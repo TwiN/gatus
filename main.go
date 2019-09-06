@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/watchdog"
 )
 
@@ -11,4 +12,6 @@ func main() {
 	request.GetIp(result)
 	request.GetStatus(result)
 	fmt.Println(result)
+
+	fmt.Println(config.Get())
 }
