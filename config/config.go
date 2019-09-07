@@ -1,23 +1,14 @@
 package config
 
 import (
+	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
 
 type Config struct {
-	Services []Service `yaml:"services"`
+	Services []*core.Service `yaml:"services"`
 }
-
-type Service struct {
-	Name             string      `yaml:"name"`
-	Url              string      `yaml:"url"`
-	Interval         uint        `yaml:"interval"`
-	FailureThreshold uint        `yaml:"failure-threshold"`
-	Conditions       []Condition `yaml:"conditions"`
-}
-
-type Condition string
 
 var config *Config
 
@@ -41,5 +32,13 @@ func ReadConfigurationFile(fileName string) *Config {
 func ParseConfigBytes(yamlBytes []byte) *Config {
 	config = &Config{}
 	yaml.Unmarshal(yamlBytes, config)
+	for _, service := range config.Services {
+		if service.FailureThreshold == 0 {
+			service.FailureThreshold = 1
+		}
+		if service.Interval == 0 {
+			service.Interval = 10
+		}
+	}
 	return config
 }

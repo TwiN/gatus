@@ -1,13 +1,12 @@
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
-    interval: 10
+    interval: 15
     failure-threshold: 3
     conditions:
       - "$STATUS == 200"
   - name: github
     url: https://github.com
-    interval: 10
-    failure-threshold: 3
     conditions:
-      - "$STATUS == 200"
+      - "$STATUS != 400"
+      - "$STATUS != 500"
