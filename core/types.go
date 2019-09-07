@@ -32,8 +32,8 @@ type Result struct {
 type Service struct {
 	Name             string       `yaml:"name"`
 	Url              string       `yaml:"url"`
-	Interval         int          `yaml:"interval,omitempty"`
-	FailureThreshold int          `yaml:"failure-threshold,omitempty"`
+	Interval         int          `yaml:"interval,omitempty"`          // TODO: Implement
+	FailureThreshold int          `yaml:"failure-threshold,omitempty"` // TODO: Implement
 	Conditions       []*Condition `yaml:"conditions"`
 }
 
