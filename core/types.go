@@ -10,13 +10,23 @@ import (
 	"time"
 )
 
+type HealthStatus struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+type ServerMessage struct {
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+}
+
 type Result struct {
-	HttpStatus      int
-	Hostname        string
-	Ip              string
-	Duration        time.Duration
-	Errors          []error
-	ConditionResult []*ConditionResult
+	HttpStatus      int                `json:"status"`
+	Hostname        string             `json:"hostname"`
+	Ip              string             `json:"ip"`
+	Duration        string             `json:"duration"`
+	Errors          []error            `json:"errors"`
+	ConditionResult []*ConditionResult `json:"condition-results"`
 }
 
 type Service struct {
@@ -52,7 +62,7 @@ func (service *Service) getStatus(result *Result) {
 		result.Errors = append(result.Errors, err)
 		return
 	}
-	result.Duration = time.Now().Sub(startTime)
+	result.Duration = time.Now().Sub(startTime).String()
 	result.HttpStatus = response.StatusCode
 }
 
