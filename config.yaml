@@ -6,7 +6,6 @@ services:
     conditions:
       - "$STATUS == 200"
   - name: github
-    url: https://github.com
+    url: https://api.github.com/healthz
     conditions:
-      - "$STATUS != 400"
-      - "$STATUS != 500"
+      - "$STATUS == 200"
