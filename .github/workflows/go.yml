@@ -1,7 +1,7 @@
 name: Go
 on: [push]
 jobs:
-  build-1.12:
+  build-112:
     name: Build with Go 1.12
     runs-on: ubuntu-latest
     steps:
@@ -17,7 +17,7 @@ jobs:
     - name: Build
       run: go build -mod vendor
 
-  build-1.13:
+  build-113:
     name: Build with Go 1.13
     runs-on: ubuntu-latest
     steps:
