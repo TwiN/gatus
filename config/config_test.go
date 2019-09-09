@@ -1,18 +1,22 @@
 package config
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+	"time"
+)
 
 func TestParseConfigBytes(t *testing.T) {
 	config := ParseConfigBytes([]byte(`
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
-    interval: 15
+    interval: 15s
     failure-threshold: 3
     conditions:
       - "$STATUS == 200"
   - name: github
-    url: https://github.com
+    url: https://api.github.com/healthz
     conditions:
       - "$STATUS != 400"
       - "$STATUS != 500"
@@ -23,14 +27,15 @@ services:
 	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
-	if config.Services[1].Url != "https://github.com" {
-		t.Errorf("URL should have been %s", "https://github.com")
+	if config.Services[1].Url != "https://api.github.com/healthz" {
+		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}
-	if config.Services[0].Interval != 15 {
-		t.Errorf("Interval should have been %d", 15)
+	fmt.Println(config.Services[0].Interval)
+	if config.Services[0].Interval != 15*time.Second {
+		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
-	if config.Services[1].Interval != 10 {
-		t.Errorf("Interval should have been %d, because it is the default value", 10)
+	if config.Services[1].Interval != 10*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
 	}
 	if config.Services[0].FailureThreshold != 3 {
 		t.Errorf("FailureThreshold should have been %d", 3)

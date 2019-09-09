@@ -4,6 +4,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"time"
 )
 
 type Config struct {
@@ -37,7 +38,7 @@ func ParseConfigBytes(yamlBytes []byte) *Config {
 			service.FailureThreshold = 1
 		}
 		if service.Interval == 0 {
-			service.Interval = 10
+			service.Interval = 10 * time.Second
 		}
 	}
 	return config

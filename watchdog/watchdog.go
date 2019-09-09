@@ -3,6 +3,7 @@ package watchdog
 import (
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
+	"log"
 	"sync"
 	"time"
 )
@@ -17,18 +18,26 @@ func GetServiceResults() *map[string][]*core.Result {
 }
 
 func Monitor() {
-	for {
-		for _, service := range config.Get().Services {
-			go func(service *core.Service) {
+	for _, service := range config.Get().Services {
+		go func(service *core.Service) {
+			for {
+				log.Printf("[watchdog][Monitor] Waiting interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
+				time.Sleep(service.Interval)
+				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
 				result := service.EvaluateConditions()
 				rwLock.Lock()
-				defer rwLock.Unlock()
 				serviceResults[service.Name] = append(serviceResults[service.Name], result)
-				if len(serviceResults[service.Name]) > 15 {
-					serviceResults[service.Name] = serviceResults[service.Name][15:]
+				if len(serviceResults[service.Name]) > 10 {
+					serviceResults[service.Name] = serviceResults[service.Name][1:]
 				}
-			}(service)
-		}
-		time.Sleep(10 * time.Second)
+				rwLock.Unlock()
+				log.Printf(
+					"[watchdog][Monitor] Finished monitoring serviceName=%s; errors=%d; requestDuration=%s",
+					service.Name,
+					len(result.Errors),
+					result.Duration.Round(time.Millisecond),
+				)
+			}
+		}(service)
 	}
 }

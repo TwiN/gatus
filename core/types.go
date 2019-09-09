@@ -24,17 +24,18 @@ type Result struct {
 	HttpStatus      int                `json:"status"`
 	Hostname        string             `json:"hostname"`
 	Ip              string             `json:"ip"`
-	Duration        string             `json:"duration"`
+	Duration        time.Duration      `json:"duration"`
 	Errors          []error            `json:"errors"`
 	ConditionResult []*ConditionResult `json:"condition-results"`
+	Timestamp       time.Time          `json:"timestamp"`
 }
 
 type Service struct {
-	Name             string       `yaml:"name"`
-	Url              string       `yaml:"url"`
-	Interval         int          `yaml:"interval,omitempty"`          // TODO: Implement
-	FailureThreshold int          `yaml:"failure-threshold,omitempty"` // TODO: Implement
-	Conditions       []*Condition `yaml:"conditions"`
+	Name             string        `yaml:"name"`
+	Url              string        `yaml:"url"`
+	Interval         time.Duration `yaml:"interval,omitempty"`
+	FailureThreshold int           `yaml:"failure-threshold,omitempty"` // TODO: Implement
+	Conditions       []*Condition  `yaml:"conditions"`
 }
 
 func (service *Service) getIp(result *Result) {
@@ -62,7 +63,7 @@ func (service *Service) getStatus(result *Result) {
 		result.Errors = append(result.Errors, err)
 		return
 	}
-	result.Duration = time.Now().Sub(startTime).String()
+	result.Duration = time.Now().Sub(startTime)
 	result.HttpStatus = response.StatusCode
 }
 
@@ -73,6 +74,7 @@ func (service *Service) EvaluateConditions() *Result {
 	for _, condition := range service.Conditions {
 		condition.Evaluate(result)
 	}
+	result.Timestamp = time.Now()
 	return result
 }
 
