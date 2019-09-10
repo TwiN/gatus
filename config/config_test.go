@@ -50,3 +50,22 @@ services:
 		t.Errorf("There should have been %d conditions", 2)
 	}
 }
+
+func TestParseConfigBytesDefault(t *testing.T) {
+	config := ParseConfigBytes([]byte(`
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "$STATUS == 200"
+`))
+	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	}
+	if config.Services[0].Interval != 10*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	}
+	if config.Services[0].FailureThreshold != 1 {
+		t.Errorf("FailureThreshold should have been %d, because it is the default value", 1)
+	}
+}
