@@ -1,6 +1,11 @@
-# gatus
+# gatus (in progress)
 
 A service health dashboard in Go
+
+
+## Draft
+
+![draft](assets/draft.jpg)
 
 
 ## Usage
