@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -21,13 +22,14 @@ type ServerMessage struct {
 }
 
 type Result struct {
-	HttpStatus      int                `json:"status"`
-	Hostname        string             `json:"hostname"`
-	Ip              string             `json:"ip"`
-	Duration        time.Duration      `json:"duration"`
-	Errors          []error            `json:"errors"`
-	ConditionResult []*ConditionResult `json:"condition-results"`
-	Timestamp       time.Time          `json:"timestamp"`
+	HttpStatus       int                `json:"status"`
+	Hostname         string             `json:"hostname"`
+	Ip               string             `json:"ip"`
+	Duration         time.Duration      `json:"duration"`
+	Errors           []error            `json:"errors"`
+	ConditionResults []*ConditionResult `json:"condition-results"`
+	Success          bool               `json:"success"`
+	Timestamp        time.Time          `json:"timestamp"`
 }
 
 type Service struct {
@@ -68,11 +70,17 @@ func (service *Service) getStatus(result *Result) {
 }
 
 func (service *Service) EvaluateConditions() *Result {
-	result := &Result{}
+	result := &Result{Success: true}
 	service.getStatus(result)
 	service.getIp(result)
+	if len(result.Errors) > 0 {
+		result.Success = false
+	}
 	for _, condition := range service.Conditions {
-		condition.Evaluate(result)
+		success := condition.Evaluate(result)
+		if !success {
+			result.Success = false
+		}
 	}
 	result.Timestamp = time.Now()
 	return result
@@ -86,38 +94,45 @@ type ConditionResult struct {
 
 type Condition string
 
-func (c *Condition) Evaluate(result *Result) {
+func (c *Condition) Evaluate(result *Result) bool {
 	condition := string(*c)
 	if strings.Contains(condition, "==") {
 		parts := sanitizeAndResolve(strings.Split(condition, "=="), result)
 		if parts[0] == parts[1] {
-			result.ConditionResult = append(result.ConditionResult, &ConditionResult{
+			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
 				Condition:   c,
 				Success:     true,
 				Explanation: fmt.Sprintf("%s is equal to %s", parts[0], parts[1]),
 			})
+			return true
 		} else {
-			result.ConditionResult = append(result.ConditionResult, &ConditionResult{
+			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
 				Condition:   c,
 				Success:     false,
 				Explanation: fmt.Sprintf("%s is not equal to %s", parts[0], parts[1]),
 			})
+			return false
 		}
 	} else if strings.Contains(condition, "!=") {
 		parts := sanitizeAndResolve(strings.Split(condition, "!="), result)
 		if parts[0] != parts[1] {
-			result.ConditionResult = append(result.ConditionResult, &ConditionResult{
+			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
 				Condition:   c,
 				Success:     true,
 				Explanation: fmt.Sprintf("%s is not equal to %s", parts[0], parts[1]),
 			})
+			return true
 		} else {
-			result.ConditionResult = append(result.ConditionResult, &ConditionResult{
+			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
 				Condition:   c,
 				Success:     false,
 				Explanation: fmt.Sprintf("%s is equal to %s", parts[0], parts[1]),
 			})
+			return false
 		}
+	} else {
+		result.Errors = append(result.Errors, errors.New(fmt.Sprintf("invalid condition '%s' has been provided", condition)))
+		return false
 	}
 }
 

@@ -12,7 +12,7 @@ func main() {
 	go watchdog.Monitor()
 	http.HandleFunc("/api/v1/results", serviceResultsHandler)
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/", indexHandler)
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 	log.Println("[main][main] Listening on port 80")
 	log.Fatal(http.ListenAndServe(":80", nil))
 }
@@ -21,11 +21,6 @@ func serviceResultsHandler(writer http.ResponseWriter, request *http.Request) {
 	serviceResults := watchdog.GetServiceResults()
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(structToJsonBytes(serviceResults))
-}
-
-func indexHandler(writer http.ResponseWriter, request *http.Request) {
-	writer.WriteHeader(http.StatusNotImplemented)
-	_, _ = writer.Write(structToJsonBytes(&core.ServerMessage{Error: true, Message: "Not implemented yet"}))
 }
 
 func healthHandler(writer http.ResponseWriter, request *http.Request) {
