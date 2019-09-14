@@ -1,0 +1,7 @@
+services:
+  - name: example
+    url: http://example.org
+    interval: 30s
+    failure-threshold: 3
+    conditions:
+      - "$STATUS == 200"
