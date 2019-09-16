@@ -39,14 +39,14 @@
 					for (let key in data[serviceName]) {
 						let entry = data[serviceName][key];
 						console.log(data[serviceName][key]);
-						serviceStatus += entry.success ? OK : NOK;
+						serviceStatus = (entry.success ? OK : NOK) + serviceStatus;
 					}
 					tableBody += ""
 						+ "<tr>"
 						+ "  <td>" + serviceName + "</td>"
 						+ "  <td>" + serviceStatus + "</td>"
-						+ "  <td>" + data[serviceName][0].hostname + "</td>"
-						+ "  <td>" + parseInt(data[serviceName][0].duration / 1000000) + "ms </td>"
+						+ "  <td>" + data[serviceName][data[serviceName].length-1].hostname + "</td>"
+						+ "  <td>" + parseInt(data[serviceName][data[serviceName].length-1].duration / 1000000) + "ms </td>"
 						+ "</tr>";
 				}
 				$("#results").html(tableBody);
