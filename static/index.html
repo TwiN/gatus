@@ -6,21 +6,23 @@
 </head>
 <body>
 	<div class="container my-3 bg-light rounded p-4 border shadow">
-		<div class="text-center">
+		<div class="text-center mb-3">
 			<div class="display-4">Gatus</div>
 		</div>
-		<table class="table">
-			<thead>
-				<tr>
-					<th scope="col">Name</th>
-					<th scope="col">Status</th>
-					<th scope="col">Hostname</th>
-					<th scope="col">Response time</th>
-				</tr>
-			</thead>
-			<tbody id="results">
-			</tbody>
-		</table>
+		<div class="table-responsive">
+			<table class="table">
+				<thead>
+					<tr>
+						<th scope="col">Name</th>
+						<th scope="col">Status</th>
+						<th scope="col">Hostname</th>
+						<th scope="col">Response time</th>
+					</tr>
+				</thead>
+				<tbody id="results">
+				</tbody>
+			</table>
+		</div>
 	</div>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -56,7 +58,7 @@
 		refreshTable();
 		setInterval(function() {
 			refreshTable();
-		}, 10000);
+		}, 3000);
 	</script>
 </body>
 </html>
