@@ -21,8 +21,6 @@ func Monitor() {
 	for _, service := range config.Get().Services {
 		go func(service *core.Service) {
 			for {
-				log.Printf("[watchdog][Monitor] Waiting interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
-				time.Sleep(service.Interval)
 				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
 				result := service.EvaluateConditions()
 				rwLock.Lock()
@@ -37,6 +35,8 @@ func Monitor() {
 					len(result.Errors),
 					result.Duration.Round(time.Millisecond),
 				)
+				log.Printf("[watchdog][Monitor] Waiting interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
+				time.Sleep(service.Interval)
 			}
 		}(service)
 	}
