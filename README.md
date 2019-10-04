@@ -15,7 +15,7 @@ services:
   - name: twinnation  # Name of your service, can be anything
     url: https://twinnation.org/actuator/health
     interval: 15s # Duration to wait between every status check (opt. default: 10s)
-    failure-threshold: 3
+    failure-threshold: 3 # TODO
     conditions:
       - "$STATUS == 200"
   - name: github
