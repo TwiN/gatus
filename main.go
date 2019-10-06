@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/watchdog"
 	"log"
 	"net/http"
+
+	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/watchdog"
 )
 
 func main() {
@@ -13,8 +14,8 @@ func main() {
 	http.HandleFunc("/api/v1/results", serviceResultsHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	log.Println("[main][main] Listening on port 80")
-	log.Fatal(http.ListenAndServe(":80", nil))
+	log.Println("[main][main] Listening on port 8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func serviceResultsHandler(writer http.ResponseWriter, request *http.Request) {
