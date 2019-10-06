@@ -38,6 +38,7 @@
 				let tableBody = "";
 				for (let serviceName in data) {
 					let serviceStatus = "";
+					let hostname =data[serviceName][data[serviceName].length-1].hostname 
 					for (let key in data[serviceName]) {
 						let entry = data[serviceName][key];
 						console.log(data[serviceName][key]);
@@ -47,7 +48,7 @@
 						+ "<tr>"
 						+ "  <td>" + serviceName + "</td>"
 						+ "  <td>" + serviceStatus + "</td>"
-						+ "  <td>" + data[serviceName][data[serviceName].length-1].hostname + "</td>"
+						+ "  <td><a href=\"//" + hostname + "\">" + hostname + "</a></td>"
 						+ "  <td>" + parseInt(data[serviceName][data[serviceName].length-1].duration / 1000000) + "ms </td>"
 						+ "</tr>";
 				}
