@@ -34,9 +34,6 @@ func ParseConfigBytes(yamlBytes []byte) *Config {
 	config = &Config{}
 	yaml.Unmarshal(yamlBytes, config)
 	for _, service := range config.Services {
-		if service.FailureThreshold == 0 {
-			service.FailureThreshold = 1
-		}
 		if service.Interval == 0 {
 			service.Interval = 10 * time.Second
 		}

@@ -12,7 +12,6 @@ services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
     interval: 15s
-    failure-threshold: 3
     conditions:
       - "$STATUS == 200"
   - name: github
@@ -37,12 +36,6 @@ services:
 	if config.Services[1].Interval != 10*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
 	}
-	if config.Services[0].FailureThreshold != 3 {
-		t.Errorf("FailureThreshold should have been %d", 3)
-	}
-	if config.Services[1].FailureThreshold != 1 {
-		t.Errorf("FailureThreshold should have been %d, because it is the default value", 1)
-	}
 	if len(config.Services[0].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
 	}
@@ -64,8 +57,5 @@ services:
 	}
 	if config.Services[0].Interval != 10*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
-	}
-	if config.Services[0].FailureThreshold != 1 {
-		t.Errorf("FailureThreshold should have been %d, because it is the default value", 1)
 	}
 }

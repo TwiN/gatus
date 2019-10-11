@@ -33,11 +33,10 @@ type Result struct {
 }
 
 type Service struct {
-	Name             string        `yaml:"name"`
-	Url              string        `yaml:"url"`
-	Interval         time.Duration `yaml:"interval,omitempty"`
-	FailureThreshold int           `yaml:"failure-threshold,omitempty"` // TODO: Implement
-	Conditions       []*Condition  `yaml:"conditions"`
+	Name       string        `yaml:"name"`
+	Url        string        `yaml:"url"`
+	Interval   time.Duration `yaml:"interval,omitempty"`
+	Conditions []*Condition  `yaml:"conditions"`
 }
 
 func (service *Service) getIp(result *Result) {

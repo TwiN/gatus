@@ -2,7 +2,6 @@ services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
     interval: 15s
-    failure-threshold: 3
     conditions:
       - "$STATUS == 200"
   - name: github
