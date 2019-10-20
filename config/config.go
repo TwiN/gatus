@@ -15,24 +15,27 @@ var config *Config
 
 func Get() *Config {
 	if config == nil {
-		ReadConfigurationFile("config.yaml")
+		cfg, err := readConfigurationFile("config.yaml")
+		if err != nil {
+			panic(err)
+		}
+		config = cfg
 	}
 	return config
 }
 
-func ReadConfigurationFile(fileName string) *Config {
-	config = &Config{}
-	if bytes, err := ioutil.ReadFile(fileName); err == nil { // file exists
-		return ParseConfigBytes(bytes)
+func readConfigurationFile(fileName string) (*Config, error) {
+	if bytes, err := ioutil.ReadFile(fileName); err == nil {
+		// file exists, so we'll parse it and return it
+		return parseConfigBytes(bytes), nil
 	} else {
-		panic(err)
+		return nil, err
 	}
-	return config
+	return &Config{}, nil
 }
 
-func ParseConfigBytes(yamlBytes []byte) *Config {
-	config = &Config{}
-	yaml.Unmarshal(yamlBytes, config)
+func parseConfigBytes(yamlBytes []byte) (config *Config) {
+	yaml.Unmarshal(yamlBytes, &config)
 	for _, service := range config.Services {
 		if service.Interval == 0 {
 			service.Interval = 10 * time.Second

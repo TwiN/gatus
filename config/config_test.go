@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseConfigBytes(t *testing.T) {
-	config := ParseConfigBytes([]byte(`
+	config := parseConfigBytes([]byte(`
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
@@ -45,7 +45,7 @@ services:
 }
 
 func TestParseConfigBytesDefault(t *testing.T) {
-	config := ParseConfigBytes([]byte(`
+	config := parseConfigBytes([]byte(`
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
