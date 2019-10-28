@@ -24,17 +24,25 @@ services:
 ```
 
 
+## Docker
+
+Building the Docker image is done as following:
+
+```
+docker build . -t gatus
+```
+
+You can then run the container with the following command:
+
+```
+docker run -p 8080:8080 --name gatus gatus
+```
+
+
 ## Running the tests
 
 ```
 go test ./... -mod vendor
-```
-
-
-## Building with Docker
-
-```
-docker build . -t gatus
 ```
 
 
