@@ -2,10 +2,10 @@
 
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 
-**Status:** IN PROGRESS
-
 A service health dashboard in Go that is meant to be used as a docker 
 image with a custom configuration file.
+
+Live example: https://status.twinnation.org/
 
 
 ## Usage
