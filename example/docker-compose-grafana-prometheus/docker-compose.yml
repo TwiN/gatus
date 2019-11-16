@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  gatus:
+    container_name: gatus
+    build: twinproduction/gatus
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/config.yaml
+    networks:
+      - metrics
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.14.0
+    restart: always
+    command: --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - metrics
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:6.4.4
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: secret
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/grafana.ini/:/etc/grafana/grafana.ini:ro
+      - ./grafana/provisioning/:/etc/grafana/provisioning/:ro
+    networks:
+      - metrics
+
+networks:
+  metrics:
+    driver: bridge
