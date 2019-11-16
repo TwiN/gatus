@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
-
+	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
+	"net/http"
 )
 
 func main() {
@@ -14,17 +15,20 @@ func main() {
 	http.HandleFunc("/api/v1/results", serviceResultsHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
+	if config.Get().Metrics {
+		http.Handle("/metrics", promhttp.Handler())
+	}
 	log.Println("[main][main] Listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func serviceResultsHandler(writer http.ResponseWriter, request *http.Request) {
+func serviceResultsHandler(writer http.ResponseWriter, _ *http.Request) {
 	serviceResults := watchdog.GetServiceResults()
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(structToJsonBytes(serviceResults))
 }
 
-func healthHandler(writer http.ResponseWriter, request *http.Request) {
+func healthHandler(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(structToJsonBytes(&core.HealthStatus{Status: "UP"}))
 }
