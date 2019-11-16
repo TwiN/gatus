@@ -5,6 +5,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -21,7 +22,14 @@ func Get() *Config {
 	if config == nil {
 		cfg, err := readConfigurationFile("config.yaml")
 		if err != nil {
-			panic(err)
+			if os.IsNotExist(err) {
+				cfg, err = readConfigurationFile("config.yml")
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				panic(err)
+			}
 		}
 		config = cfg
 	}
