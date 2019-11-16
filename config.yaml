@@ -1,3 +1,4 @@
+metrics: true
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
