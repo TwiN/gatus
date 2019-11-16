@@ -58,6 +58,32 @@ services:
 	if err != nil {
 		t.Error("No error should've been returned")
 	}
+	if config.Metrics {
+		t.Error("Metrics should've been false by default")
+	}
+	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	}
+	if config.Services[0].Interval != 10*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithMetrics(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+metrics: true
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "$STATUS == 200"
+`))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if !config.Metrics {
+		t.Error("Metrics should have been true")
+	}
 	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
