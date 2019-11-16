@@ -3,6 +3,7 @@ package watchdog
 import (
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/metric"
 	"log"
 	"sync"
 	"time"
@@ -20,9 +21,11 @@ func GetServiceResults() *map[string][]*core.Result {
 func Monitor() {
 	for _, service := range config.Get().Services {
 		go func(service *core.Service) {
+
 			for {
 				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
 				result := service.EvaluateConditions()
+				metric.PublishMetricsForService(service, result)
 				rwLock.Lock()
 				serviceResults[service.Name] = append(serviceResults[service.Name], result)
 				if len(serviceResults[service.Name]) > 10 {
