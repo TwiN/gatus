@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	Metrics  bool            `yaml:"metrics"`
 	Services []*core.Service `yaml:"services"`
 }
 
