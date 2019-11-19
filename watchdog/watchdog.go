@@ -21,7 +21,6 @@ func GetServiceResults() *map[string][]*core.Result {
 func Monitor() {
 	for _, service := range config.Get().Services {
 		go func(service *core.Service) {
-
 			for {
 				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
 				result := service.EvaluateConditions()
