@@ -64,6 +64,9 @@ func readConfigurationFile(fileName string) (config *Config, err error) {
 }
 
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
+	// Expand environment variables
+	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	// Parse configuration file
 	err = yaml.Unmarshal(yamlBytes, &config)
 	// Check if the configuration file at least has services.
 	if config == nil || len(config.Services) == 0 {

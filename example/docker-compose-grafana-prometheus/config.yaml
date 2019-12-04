@@ -4,12 +4,12 @@ services:
     url: https://twinnation.org/actuator/health
     interval: 10s
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
   - name: GitHub
     url: https://api.github.com/healthz
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
   - name: Example
     url: https://example.com/
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"

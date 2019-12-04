@@ -13,12 +13,12 @@ services:
     url: https://twinnation.org/actuator/health
     interval: 15s
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
   - name: github
     url: https://api.github.com/healthz
     conditions:
-      - "$STATUS != 400"
-      - "$STATUS != 500"
+      - "[STATUS] != 400"
+      - "[STATUS] != 500"
 `))
 	if err != nil {
 		t.Error("No error should've been returned")
@@ -53,7 +53,7 @@ services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
 `))
 	if err != nil {
 		t.Error("No error should've been returned")
@@ -76,7 +76,7 @@ services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
 `))
 	if err != nil {
 		t.Error("No error should've been returned")

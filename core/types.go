@@ -140,9 +140,9 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 	for _, element := range list {
 		element = strings.TrimSpace(element)
 		switch strings.ToUpper(element) {
-		case "$STATUS":
+		case "[STATUS]":
 			element = strconv.Itoa(result.HttpStatus)
-		case "$IP":
+		case "[IP]":
 			element = result.Ip
 		default:
 		}

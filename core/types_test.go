@@ -5,7 +5,7 @@ import (
 )
 
 func TestEvaluateWithIp(t *testing.T) {
-	condition := Condition("$IP == 127.0.0.1")
+	condition := Condition("[IP] == 127.0.0.1")
 	result := &Result{Ip: "127.0.0.1"}
 	condition.Evaluate(result)
 	if !result.ConditionResults[0].Success {
@@ -14,7 +14,7 @@ func TestEvaluateWithIp(t *testing.T) {
 }
 
 func TestEvaluateWithStatus(t *testing.T) {
-	condition := Condition("$STATUS == 201")
+	condition := Condition("[STATUS] == 201")
 	result := &Result{HttpStatus: 201}
 	condition.Evaluate(result)
 	if !result.ConditionResults[0].Success {
@@ -23,7 +23,7 @@ func TestEvaluateWithStatus(t *testing.T) {
 }
 
 func TestEvaluateWithFailure(t *testing.T) {
-	condition := Condition("$STATUS == 200")
+	condition := Condition("[STATUS] == 200")
 	result := &Result{HttpStatus: 500}
 	condition.Evaluate(result)
 	if result.ConditionResults[0].Success {
@@ -32,7 +32,7 @@ func TestEvaluateWithFailure(t *testing.T) {
 }
 
 func TestIntegrationEvaluateConditions(t *testing.T) {
-	condition := Condition("$STATUS == 200")
+	condition := Condition("[STATUS] == 200")
 	service := Service{
 		Name:       "GitHub",
 		Url:        "https://api.github.com/healthz",
@@ -48,7 +48,7 @@ func TestIntegrationEvaluateConditions(t *testing.T) {
 }
 
 func TestIntegrationEvaluateConditionsWithFailure(t *testing.T) {
-	condition := Condition("$STATUS == 500")
+	condition := Condition("[STATUS] == 500")
 	service := Service{
 		Name:       "GitHub",
 		Url:        "https://api.github.com/healthz",

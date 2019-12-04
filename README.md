@@ -17,12 +17,14 @@ services:
     url: https://twinnation.org/actuator/health
     interval: 15s     # Duration to wait between every status check (opt. default: 10s)
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
   - name: github
     url: https://api.github.com/healthz
     conditions:
-      - "$STATUS == 200"
+      - "[STATUS] == 200"
 ```
+
+Note that you can also add environment variables in the your configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
 
 
 ## Docker
