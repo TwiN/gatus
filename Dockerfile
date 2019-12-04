@@ -11,6 +11,6 @@ COPY --from=builder /app/gatus .
 COPY --from=builder /app/config.yaml .
 COPY --from=builder /app/static static/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-ENV PORT 8080
-EXPOSE 8080
+ENV PORT=8080
+EXPOSE ${PORT}
 ENTRYPOINT ["/gatus"]
