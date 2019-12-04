@@ -3,7 +3,7 @@ version: '3.7'
 services:
   gatus:
     container_name: gatus
-    build: twinproduction/gatus
+    image: twinproduction/gatus
     restart: always
     ports:
       - 8080:8080
