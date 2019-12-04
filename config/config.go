@@ -5,6 +5,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 )
@@ -15,26 +16,42 @@ type Config struct {
 }
 
 var (
-	ErrNoServiceInConfig = errors.New("configuration file should contain at least 1 service")
-	config               *Config
+	ErrNoServiceInConfig  = errors.New("configuration file should contain at least 1 service")
+	ErrConfigFileNotFound = errors.New("configuration file not found")
+	ErrConfigNotLoaded    = errors.New("configuration is nil")
+	config                *Config
 )
 
 func Get() *Config {
 	if config == nil {
-		cfg, err := readConfigurationFile("config.yaml")
-		if err != nil {
-			if os.IsNotExist(err) {
-				cfg, err = readConfigurationFile("config.yml")
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				panic(err)
-			}
-		}
-		config = cfg
+		panic(ErrConfigNotLoaded)
 	}
 	return config
+}
+
+func Load(configFile string) error {
+	log.Printf("[config][Load] Attempting to load config from configFile=%s", configFile)
+	cfg, err := readConfigurationFile(configFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrConfigFileNotFound
+		} else {
+			return err
+		}
+	}
+	config = cfg
+	return nil
+}
+
+func LoadDefaultConfiguration() error {
+	err := Load("config.yaml")
+	if err != nil {
+		if err == ErrConfigFileNotFound {
+			return Load("config.yml")
+		}
+		return err
+	}
+	return nil
 }
 
 func readConfigurationFile(fileName string) (config *Config, err error) {

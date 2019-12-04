@@ -8,18 +8,34 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
-	go watchdog.Monitor()
+	cfg := loadConfiguration()
+	go watchdog.Monitor(cfg)
 	http.HandleFunc("/api/v1/results", serviceResultsHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	if config.Get().Metrics {
+	if cfg.Metrics {
 		http.Handle("/metrics", promhttp.Handler())
 	}
 	log.Println("[main][main] Listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func loadConfiguration() *config.Config {
+	args := os.Args
+	var err error
+	if len(args) == 2 {
+		err = config.Load(args[1])
+	} else {
+		err = config.LoadDefaultConfiguration()
+	}
+	if err != nil {
+		panic(err)
+	}
+	return config.Get()
 }
 
 func serviceResultsHandler(writer http.ResponseWriter, _ *http.Request) {

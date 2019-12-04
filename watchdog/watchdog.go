@@ -18,8 +18,8 @@ func GetServiceResults() *map[string][]*core.Result {
 	return &serviceResults
 }
 
-func Monitor() {
-	for _, service := range config.Get().Services {
+func Monitor(cfg *config.Config) {
+	for _, service := range cfg.Services {
 		go func(service *core.Service) {
 			for {
 				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
