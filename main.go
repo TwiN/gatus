@@ -40,11 +40,13 @@ func loadConfiguration() *config.Config {
 
 func serviceResultsHandler(writer http.ResponseWriter, _ *http.Request) {
 	serviceResults := watchdog.GetServiceResults()
+	writer.Header().Add("Content-type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(structToJsonBytes(serviceResults))
 }
 
 func healthHandler(writer http.ResponseWriter, _ *http.Request) {
+	writer.Header().Add("Content-type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(structToJsonBytes(&core.HealthStatus{Status: "UP"}))
 }

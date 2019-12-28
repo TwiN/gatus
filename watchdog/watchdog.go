@@ -41,5 +41,7 @@ func Monitor(cfg *config.Config) {
 				time.Sleep(service.Interval)
 			}
 		}(service)
+		// To prevent multiple requests from running exactly at the same time
+		time.Sleep(100 * time.Millisecond)
 	}
 }

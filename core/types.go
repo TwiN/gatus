@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,7 +25,7 @@ type Result struct {
 	Hostname         string             `json:"hostname"`
 	Ip               string             `json:"ip"`
 	Duration         time.Duration      `json:"duration"`
-	Errors           []error            `json:"errors"`
+	Errors           []string           `json:"errors"`
 	ConditionResults []*ConditionResult `json:"condition-results"`
 	Success          bool               `json:"success"`
 	Timestamp        time.Time          `json:"timestamp"`
@@ -42,13 +41,13 @@ type Service struct {
 func (service *Service) getIp(result *Result) {
 	urlObject, err := url.Parse(service.Url)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
+		result.Errors = append(result.Errors, err.Error())
 		return
 	}
 	result.Hostname = urlObject.Hostname()
 	ips, err := net.LookupIP(urlObject.Hostname())
 	if err != nil {
-		result.Errors = append(result.Errors, err)
+		result.Errors = append(result.Errors, err.Error())
 		return
 	}
 	result.Ip = ips[0].String()
@@ -61,7 +60,7 @@ func (service *Service) getStatus(result *Result) {
 	startTime := time.Now()
 	response, err := client.Get(service.Url)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
+		result.Errors = append(result.Errors, err.Error())
 		return
 	}
 	result.Duration = time.Now().Sub(startTime)
@@ -69,10 +68,11 @@ func (service *Service) getStatus(result *Result) {
 }
 
 func (service *Service) EvaluateConditions() *Result {
-	result := &Result{Success: true}
-	service.getStatus(result)
+	result := &Result{Success: true, Errors: []string{}}
 	service.getIp(result)
-	if len(result.Errors) > 0 {
+	if len(result.Errors) == 0 {
+		service.getStatus(result)
+	} else {
 		result.Success = false
 	}
 	for _, condition := range service.Conditions {
@@ -130,7 +130,7 @@ func (c *Condition) Evaluate(result *Result) bool {
 			return false
 		}
 	} else {
-		result.Errors = append(result.Errors, errors.New(fmt.Sprintf("invalid condition '%s' has been provided", condition)))
+		result.Errors = append(result.Errors, fmt.Sprintf("invalid condition '%s' has been provided", condition))
 		return false
 	}
 }

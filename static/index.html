@@ -3,6 +3,14 @@
 <head>
 	<title>Status</title>
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<style>
+		td > span.badge {
+			display: inline-block;
+			width: 20px;
+			cursor: default;
+			margin-right: 2px;
+		}
+	</style>
 </head>
 <body>
 	<div class="container my-3 bg-light rounded p-4 border shadow">
@@ -30,26 +38,56 @@
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
 	<script>
-		const OK = "<span class=\"badge badge-success\">&#10003;</span>&nbsp;";
-		const NOK = "<span class=\"badge badge-danger\">X</span>&nbsp;";
+		const OK = "<span class='badge badge-success' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
+		const NOK = "<span class='badge badge-danger' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
 
+		function generateServiceResultBox(serviceResult) {
+			let output = (serviceResult.success ? OK : NOK);
+			output = output.replace("__RESPONSE_TIME__", "Response time:\n" + parseInt(serviceResult.duration/1000000) + "ms");
+			let conditions = "";
+			for (let conditionResultIndex in serviceResult['condition-results']) {
+				let conditionResult = serviceResult['condition-results'][conditionResultIndex];
+				conditions += "\n- " + (conditionResult.success ? "&#10003;" : "X") + " ~ " + conditionResult.condition;
+			}
+			output = output.replace("__CONDITIONS__", "\n\nConditions:" + conditions);
+			if (serviceResult['errors'].length > 0) {
+				let errors = "";
+				for (let errorIndex in serviceResult['errors']) {
+					errors += "\n- " + serviceResult['errors'][errorIndex];
+				}
+				output = output.replace("__ERRORS__", "\n\nErrors: " + errors);
+			} else {
+				output = output.replace("__ERRORS__", "");
+			}
+			return output;
+		}
+		
 		function refreshTable() {
 			$.getJSON("/api/v1/results", function (data) {
 				let tableBody = "";
 				for (let serviceName in data) {
-					let serviceStatus = "";
-					let hostname =data[serviceName][data[serviceName].length-1].hostname 
+					let serviceStatusOverTime = "";
+					let hostname = data[serviceName][data[serviceName].length-1].hostname 
+					let minResponseTime = null;
+					let maxResponseTime = null;
 					for (let key in data[serviceName]) {
-						let entry = data[serviceName][key];
-						console.log(data[serviceName][key]);
-						serviceStatus = (entry.success ? OK : NOK) + serviceStatus;
+						let serviceResult = data[serviceName][key];
+						console.log(serviceResult);
+						serviceStatusOverTime = generateServiceResultBox(serviceResult) + serviceStatusOverTime;
+						const responseTime = parseInt(serviceResult.duration/1000000);
+						if (minResponseTime == null || minResponseTime > responseTime) {
+							minResponseTime = responseTime;
+						}
+						if (maxResponseTime == null || maxResponseTime < responseTime) {
+							maxResponseTime = responseTime;
+						}
 					}
 					tableBody += ""
 						+ "<tr>"
 						+ "  <td>" + serviceName + "</td>"
-						+ "  <td>" + serviceStatus + "</td>"
+						+ "  <td>" + serviceStatusOverTime + "</td>"
 						+ "  <td><a href=\"//" + hostname + "\">" + hostname + "</a></td>"
-						+ "  <td>" + parseInt(data[serviceName][data[serviceName].length-1].duration / 1000000) + "ms </td>"
+						+ "  <td>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</td>"
 						+ "</tr>";
 				}
 				$("#results").html(tableBody);
@@ -59,7 +97,7 @@
 		refreshTable();
 		setInterval(function() {
 			refreshTable();
-		}, 3000);
+		}, 10000);
 	</script>
 </body>
 </html>
