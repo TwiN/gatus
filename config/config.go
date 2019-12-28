@@ -44,10 +44,10 @@ func Load(configFile string) error {
 }
 
 func LoadDefaultConfiguration() error {
-	err := Load("config.yaml")
+	err := Load("config/config.yaml")
 	if err != nil {
 		if err == ErrConfigFileNotFound {
-			return Load("config.yml")
+			return Load("config/config.yml")
 		}
 		return err
 	}

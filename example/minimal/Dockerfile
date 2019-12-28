@@ -1,2 +1,2 @@
 FROM twinproduction/gatus
-ADD config.yaml ./
+ADD config.yaml ./config/config.yaml
