@@ -25,10 +25,10 @@ func main() {
 }
 
 func loadConfiguration() *config.Config {
-	args := os.Args
 	var err error
-	if len(args) == 2 {
-		err = config.Load(args[1])
+	customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
+	if len(customConfigFile) > 0 {
+		err = config.Load(customConfigFile)
 	} else {
 		err = config.LoadDefaultConfiguration()
 	}

@@ -10,6 +10,10 @@ Live example: https://status.twinnation.org/
 
 ## Usage
 
+By default, the configuration file is expected to be at `config/config.yaml`.
+
+You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
+
 ```yaml
 metrics: true         # Whether to expose metrics at /metrics
 services:
