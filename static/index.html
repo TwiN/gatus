@@ -4,11 +4,23 @@
 	<title>Status</title>
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 	<style>
-		td > span.badge {
+		#results div.container:first-child {
+			border-top-left-radius: 3px;
+			border-top-right-radius: 3px;
+		}
+		#results div.container:last-child {
+			border-bottom-left-radius: 3px;
+			border-bottom-right-radius: 3px;
+			border-bottom-width: 1px;
+			border-color: #dee2e6;
+			border-style: solid;
+		}
+		.status-ok {
 			display: inline-block;
-			width: 20px;
-			cursor: default;
-			margin-right: 2px;
+			width: 1%;
+			height: 20px;
+			margin-right: 4px;
+			background-color: #28a745;
 		}
 	</style>
 </head>
@@ -17,19 +29,7 @@
 		<div class="text-center mb-3">
 			<div class="display-4">Status</div>
 		</div>
-		<div class="table-responsive">
-			<table class="table">
-				<thead>
-					<tr>
-						<th scope="col">Name</th>
-						<th scope="col">Status</th>
-						<th scope="col">Hostname</th>
-						<th scope="col">Response time</th>
-					</tr>
-				</thead>
-				<tbody id="results">
-				</tbody>
-			</table>
+		<div id="results">
 		</div>
 	</div>
 
@@ -38,8 +38,9 @@
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
 	<script>
-		const OK = "<span class='badge badge-success' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
-		const NOK = "<span class='badge badge-danger' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
+		//const OK = "<div class='status-ok' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'></div>"
+		const OK = "<span class='badge badge-success ml-1' style='width: 5%' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
+		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
 
 		function generateServiceResultBox(serviceResult) {
 			let output = (serviceResult.success ? OK : NOK);
@@ -62,9 +63,9 @@
 			return output;
 		}
 		
-		function refreshTable() {
+		function refreshResults() {
 			$.getJSON("/api/v1/results", function (data) {
-				let tableBody = "";
+				let output = "";
 				for (let serviceName in data) {
 					let serviceStatusOverTime = "";
 					let hostname = data[serviceName][data[serviceName].length-1].hostname 
@@ -82,21 +83,30 @@
 							maxResponseTime = responseTime;
 						}
 					}
-					tableBody += ""
-						+ "<tr>"
-						+ "  <td>" + serviceName + "</td>"
-						+ "  <td>" + serviceStatusOverTime + "</td>"
-						+ "  <td><a href=\"//" + hostname + "\">" + hostname + "</a></td>"
-						+ "  <td>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</td>"
-						+ "</tr>";
+					output += ""
+						+ "<div class='container p-2 border-left border-right border-top border-black'>"
+						+ "  <div class='row mb-2'>"
+						+ "    <div class='col-8'>"
+						+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
+						+ "    </div>"
+						+ "    <div class='col-4 text-right'>"
+						+ "      <span class='font-weight-lighter'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
+						+ "    </div>"
+						+ "  </div>"
+						+ "  <div class='row'>"
+						+ "    <div class='col-12 d-flex flex-row-reverse'>"
+						+ "      " + serviceStatusOverTime
+						+ "    </div>"
+						+ "  </div>"
+						+ "</div>";
 				}
-				$("#results").html(tableBody);
+				$("#results").html(output);
 			});
 		}
 
-		refreshTable();
+		refreshResults();
 		setInterval(function() {
-			refreshTable();
+			refreshResults();
 		}, 10000);
 	</script>
 </body>

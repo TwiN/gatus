@@ -27,7 +27,7 @@ func Monitor(cfg *config.Config) {
 				metric.PublishMetricsForService(service, result)
 				rwLock.Lock()
 				serviceResults[service.Name] = append(serviceResults[service.Name], result)
-				if len(serviceResults[service.Name]) > 10 {
+				if len(serviceResults[service.Name]) > 20 {
 					serviceResults[service.Name] = serviceResults[service.Name][1:]
 				}
 				rwLock.Unlock()

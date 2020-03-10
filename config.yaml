@@ -1,11 +1,12 @@
 metrics: true
 services:
-  - name: twinnation
+  - name: Twinnation
     url: https://twinnation.org/actuator/health
-    interval: 15s
+    interval: 30s
     conditions:
       - "[STATUS] == 200"
-  - name: github
+  - name: GitHub API
     url: https://api.github.com/healthz
+    interval: 30s
     conditions:
       - "[STATUS] == 200"

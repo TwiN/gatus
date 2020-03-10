@@ -23,7 +23,7 @@ type ServerMessage struct {
 type Result struct {
 	HttpStatus       int                `json:"status"`
 	Hostname         string             `json:"hostname"`
-	Ip               string             `json:"ip"`
+	Ip               string             `json:"-"`
 	Duration         time.Duration      `json:"duration"`
 	Errors           []string           `json:"errors"`
 	ConditionResults []*ConditionResult `json:"condition-results"`
@@ -88,7 +88,7 @@ func (service *Service) EvaluateConditions() *Result {
 type ConditionResult struct {
 	Condition   *Condition `json:"condition"`
 	Success     bool       `json:"success"`
-	Explanation string     `json:"explanation"`
+	Explanation string     `json:"-"`
 }
 
 type Condition string
