@@ -20,28 +20,32 @@ func GetServiceResults() *map[string][]*core.Result {
 
 func Monitor(cfg *config.Config) {
 	for _, service := range cfg.Services {
-		go func(service *core.Service) {
-			for {
-				log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
-				result := service.EvaluateConditions()
-				metric.PublishMetricsForService(service, result)
-				rwLock.Lock()
-				serviceResults[service.Name] = append(serviceResults[service.Name], result)
-				if len(serviceResults[service.Name]) > 20 {
-					serviceResults[service.Name] = serviceResults[service.Name][1:]
-				}
-				rwLock.Unlock()
-				log.Printf(
-					"[watchdog][Monitor] Finished monitoring serviceName=%s; errors=%d; requestDuration=%s",
-					service.Name,
-					len(result.Errors),
-					result.Duration.Round(time.Millisecond),
-				)
-				log.Printf("[watchdog][Monitor] Waiting interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
-				time.Sleep(service.Interval)
-			}
-		}(service)
-		// To prevent multiple requests from running exactly at the same time
-		time.Sleep(100 * time.Millisecond)
+		go monitor(service)
+		// To prevent multiple requests from running at the same time
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func monitor(service *core.Service) {
+	for {
+		// By placing the lock here, we prevent multiple services from being monitored at the exact same time, which
+		// could cause performance issues and return inaccurate results
+		rwLock.Lock()
+		log.Printf("[watchdog][Monitor] Monitoring serviceName=%s", service.Name)
+		result := service.EvaluateConditions()
+		metric.PublishMetricsForService(service, result)
+		serviceResults[service.Name] = append(serviceResults[service.Name], result)
+		if len(serviceResults[service.Name]) > 20 {
+			serviceResults[service.Name] = serviceResults[service.Name][1:]
+		}
+		rwLock.Unlock()
+		log.Printf(
+			"[watchdog][Monitor] Finished monitoring serviceName=%s; errors=%d; requestDuration=%s",
+			service.Name,
+			len(result.Errors),
+			result.Duration.Round(time.Millisecond),
+		)
+		log.Printf("[watchdog][Monitor] Waiting interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
+		time.Sleep(service.Interval)
 	}
 }

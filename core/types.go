@@ -76,7 +76,7 @@ func (service *Service) EvaluateConditions() *Result {
 		result.Success = false
 	}
 	for _, condition := range service.Conditions {
-		success := condition.Evaluate(result)
+		success := condition.evaluate(result)
 		if !success {
 			result.Success = false
 		}
@@ -93,7 +93,7 @@ type ConditionResult struct {
 
 type Condition string
 
-func (c *Condition) Evaluate(result *Result) bool {
+func (c *Condition) evaluate(result *Result) bool {
 	condition := string(*c)
 	if strings.Contains(condition, "==") {
 		parts := sanitizeAndResolve(strings.Split(condition, "=="), result)

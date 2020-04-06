@@ -18,7 +18,7 @@ You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment var
 metrics: true         # Whether to expose metrics at /metrics
 services:
   - name: twinnation  # Name of your service, can be anything
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     interval: 15s     # Duration to wait between every status check (opt. default: 10s)
     conditions:
       - "[STATUS] == 200"

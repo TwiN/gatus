@@ -4,7 +4,7 @@ data:
     metrics: true
     services:
       - name: TwiNNatioN
-        url: https://twinnation.org/actuator/health
+        url: https://twinnation.org/health
         interval: 1m
         conditions:
           - "[STATUS] == 200"

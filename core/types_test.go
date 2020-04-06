@@ -7,7 +7,7 @@ import (
 func TestEvaluateWithIp(t *testing.T) {
 	condition := Condition("[IP] == 127.0.0.1")
 	result := &Result{Ip: "127.0.0.1"}
-	condition.Evaluate(result)
+	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
@@ -16,7 +16,7 @@ func TestEvaluateWithIp(t *testing.T) {
 func TestEvaluateWithStatus(t *testing.T) {
 	condition := Condition("[STATUS] == 201")
 	result := &Result{HttpStatus: 201}
-	condition.Evaluate(result)
+	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
@@ -25,7 +25,7 @@ func TestEvaluateWithStatus(t *testing.T) {
 func TestEvaluateWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	result := &Result{HttpStatus: 500}
-	condition.Evaluate(result)
+	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
