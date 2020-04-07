@@ -39,12 +39,13 @@
 
 	<script>
 		//const OK = "<div class='status-ok' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'></div>"
-		const OK = "<span class='badge badge-success ml-1' style='width: 5%' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
-		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
+		const OK = "<span class='badge badge-success ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
+		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____TIMESTAMP____ERRORS__'>X</span>";
 
 		function generateServiceResultBox(serviceResult) {
 			let output = (serviceResult.success ? OK : NOK);
-			output = output.replace("__RESPONSE_TIME__", "Response time:\n" + parseInt(serviceResult.duration/1000000) + "ms");
+			output = output.replace("__TIMESTAMP__", "Timestamp:\n" + prettifyTimestamp(serviceResult.timestamp));
+			output = output.replace("__RESPONSE_TIME__", "\n\nResponse time:\n" + parseInt(serviceResult.duration/1000000) + "ms");
 			let conditions = "";
 			for (let conditionResultIndex in serviceResult['condition-results']) {
 				let conditionResult = serviceResult['condition-results'][conditionResultIndex];
@@ -102,6 +103,17 @@
 				}
 				$("#results").html(output);
 			});
+		}
+
+		function prettifyTimestamp(timestamp) {
+			let date = new Date(timestamp);
+			let YYYY = date.getFullYear();
+			let MM = ((date.getMonth()+1)<10?"0":"")+""+(date.getMonth()+1);
+			let DD = ((date.getDate())<10?"0":"")+""+(date.getDate());
+			let hh = ((date.getHours())<10?"0":"")+""+(date.getHours());
+			let mm = ((date.getMinutes())<10?"0":"")+""+(date.getMinutes());
+			let ss = ((date.getSeconds())<10?"0":"")+""+(date.getSeconds());
+			return YYYY+"-"+MM+"-"+DD+" "+hh+":"+mm+":"+ss;
 		}
 
 		refreshResults();
