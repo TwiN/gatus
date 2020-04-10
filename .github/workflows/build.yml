@@ -1,9 +1,18 @@
-name: Go
-on: [push]
+name: build
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Set up Go 1.14
         uses: actions/setup-go@v1
@@ -12,7 +21,7 @@ jobs:
         id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
-      - name: Test
-        run: go test -mod vendor ./...
-      - name: Build
+      - name: Build binary to make sure it works
         run: go build -mod vendor
+      - name: Test
+        run: go test -mod vendor -cover ./...
