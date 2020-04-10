@@ -2,9 +2,10 @@ metrics: true
 services:
   - name: Twinnation
     url: https://twinnation.org/health
-    interval: 30s
+    interval: 10s
     conditions:
       - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 20"
   - name: GitHub API
     url: https://api.github.com/healthz
     interval: 30s

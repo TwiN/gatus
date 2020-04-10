@@ -19,9 +19,10 @@ metrics: true         # Whether to expose metrics at /metrics
 services:
   - name: twinnation  # Name of your service, can be anything
     url: https://twinnation.org/health
-    interval: 15s     # Duration to wait between every status check (opt. default: 10s)
+    interval: 15s     # Duration to wait between every status check (default: 10s)
     conditions:
       - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 300"
   - name: github
     url: https://api.github.com/healthz
     conditions:
@@ -29,6 +30,19 @@ services:
 ```
 
 Note that you can also add environment variables in the your configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
+
+
+### Conditions
+
+Here are some examples of conditions you can use:
+
+| Condition                             | Description                               | Values that would pass | Values that would fail |
+| ------------------------------------- | ----------------------------------------- | ---------------------- | ---------------------- |
+| `[STATUS] == 200`                     | Status must be equal to 200               | 200                    | 201, 404, 500          |
+| `[STATUS] < 300`                      | Status must lower than 300                | 200, 201, 299          | 301, 302, 400, 500     |
+| `[STATUS] <= 299`                     | Status must be less than or equal to 299  | 200, 201, 299          | 301, 302, 400, 500     |
+| `[STATUS] > 400`                      | Status must be greater than 400           | 401, 402, 403, 404     | 200, 201, 300, 400     |
+| `[RESPONSE_TIME] < 500`               | Response time must be below 500ms         | 100ms, 200ms, 300ms    | 500ms, 1500ms          |
 
 
 ## Docker

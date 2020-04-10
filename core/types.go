@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	StatusPlaceholder       = "[STATUS]"
+	IPPlaceHolder           = "[IP]"
+	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
+)
+
 type HealthStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
@@ -95,44 +101,31 @@ type Condition string
 
 func (c *Condition) evaluate(result *Result) bool {
 	condition := string(*c)
+	success := false
 	if strings.Contains(condition, "==") {
 		parts := sanitizeAndResolve(strings.Split(condition, "=="), result)
-		if parts[0] == parts[1] {
-			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
-				Condition:   c,
-				Success:     true,
-				Explanation: fmt.Sprintf("%s is equal to %s", parts[0], parts[1]),
-			})
-			return true
-		} else {
-			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
-				Condition:   c,
-				Success:     false,
-				Explanation: fmt.Sprintf("%s is not equal to %s", parts[0], parts[1]),
-			})
-			return false
-		}
+		success = parts[0] == parts[1]
 	} else if strings.Contains(condition, "!=") {
 		parts := sanitizeAndResolve(strings.Split(condition, "!="), result)
-		if parts[0] != parts[1] {
-			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
-				Condition:   c,
-				Success:     true,
-				Explanation: fmt.Sprintf("%s is not equal to %s", parts[0], parts[1]),
-			})
-			return true
-		} else {
-			result.ConditionResults = append(result.ConditionResults, &ConditionResult{
-				Condition:   c,
-				Success:     false,
-				Explanation: fmt.Sprintf("%s is equal to %s", parts[0], parts[1]),
-			})
-			return false
-		}
+		success = parts[0] != parts[1]
+	} else if strings.Contains(condition, "<=") {
+		parts := sanitizeAndResolveNumerical(strings.Split(condition, "<="), result)
+		success = parts[0] <= parts[1]
+	} else if strings.Contains(condition, ">=") {
+		parts := sanitizeAndResolveNumerical(strings.Split(condition, ">="), result)
+		success = parts[0] >= parts[1]
+	} else if strings.Contains(condition, ">") {
+		parts := sanitizeAndResolveNumerical(strings.Split(condition, ">"), result)
+		success = parts[0] > parts[1]
+	} else if strings.Contains(condition, "<") {
+		parts := sanitizeAndResolveNumerical(strings.Split(condition, "<"), result)
+		success = parts[0] < parts[1]
 	} else {
 		result.Errors = append(result.Errors, fmt.Sprintf("invalid condition '%s' has been provided", condition))
 		return false
 	}
+	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: c, Success: success})
+	return success
 }
 
 func sanitizeAndResolve(list []string, result *Result) []string {
@@ -140,13 +133,29 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 	for _, element := range list {
 		element = strings.TrimSpace(element)
 		switch strings.ToUpper(element) {
-		case "[STATUS]":
+		case StatusPlaceholder:
 			element = strconv.Itoa(result.HttpStatus)
-		case "[IP]":
+		case IPPlaceHolder:
 			element = result.Ip
+		case ResponseTimePlaceHolder:
+			element = strconv.Itoa(int(result.Duration.Milliseconds()))
 		default:
 		}
 		sanitizedList = append(sanitizedList, element)
 	}
 	return sanitizedList
+}
+
+func sanitizeAndResolveNumerical(list []string, result *Result) []int {
+	var sanitizedNumbers []int
+	sanitizedList := sanitizeAndResolve(list, result)
+	for _, element := range sanitizedList {
+		if number, err := strconv.Atoi(element); err != nil {
+			// Default to 0 if the string couldn't be converted to an integer
+			sanitizedNumbers = append(sanitizedNumbers, 0)
+		} else {
+			sanitizedNumbers = append(sanitizedNumbers, number)
+		}
+	}
+	return sanitizedNumbers
 }
