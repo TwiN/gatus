@@ -92,9 +92,8 @@ func (service *Service) EvaluateConditions() *Result {
 }
 
 type ConditionResult struct {
-	Condition   *Condition `json:"condition"`
-	Success     bool       `json:"success"`
-	Explanation string     `json:"-"`
+	Condition *Condition `json:"condition"`
+	Success   bool       `json:"success"`
 }
 
 type Condition string
