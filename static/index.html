@@ -40,7 +40,7 @@
 	<script>
 		//const OK = "<div class='status-ok' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'></div>"
 		const OK = "<span class='badge badge-success ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
-		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____TIMESTAMP____ERRORS__'>X</span>";
+		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
 
 		function generateServiceResultBox(serviceResult) {
 			let output = (serviceResult.success ? OK : NOK);
