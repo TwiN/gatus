@@ -5,9 +5,9 @@ services:
     interval: 10s
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 20"
-  - name: GitHub API
-    url: https://api.github.com/healthz
+      - "[RESPONSE_TIME] < 30"
+  - name: Example
+    url: https://example.org/
     interval: 30s
     conditions:
       - "[STATUS] == 200"
