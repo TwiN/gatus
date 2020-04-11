@@ -5,7 +5,8 @@ services:
     interval: 10s
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 30"
+      - "[RESPONSE_TIME] < 500"
+      - "[BODY].status == UP"
   - name: Example
     url: https://example.org/
     interval: 30s

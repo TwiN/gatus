@@ -2,6 +2,8 @@ package core
 
 import (
 	"fmt"
+	"github.com/TwinProduction/gatus/jsonpath"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,6 +16,7 @@ const (
 	StatusPlaceholder       = "[STATUS]"
 	IPPlaceHolder           = "[IP]"
 	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
+	BodyPlaceHolder         = "[BODY]"
 )
 
 type HealthStatus struct {
@@ -21,13 +24,9 @@ type HealthStatus struct {
 	Message string `json:"message,omitempty"`
 }
 
-type ServerMessage struct {
-	Error   bool   `json:"error"`
-	Message string `json:"message"`
-}
-
 type Result struct {
 	HttpStatus       int                `json:"status"`
+	Body             []byte             `json:"-"`
 	Hostname         string             `json:"hostname"`
 	Ip               string             `json:"-"`
 	Duration         time.Duration      `json:"duration"`
@@ -59,7 +58,8 @@ func (service *Service) getIp(result *Result) {
 	result.Ip = ips[0].String()
 }
 
-func (service *Service) getStatus(result *Result) {
+func (service *Service) call(result *Result) {
+	// TODO: re-use the same client instead of creating multiple clients
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -71,13 +71,17 @@ func (service *Service) getStatus(result *Result) {
 	}
 	result.Duration = time.Now().Sub(startTime)
 	result.HttpStatus = response.StatusCode
+	result.Body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		result.Errors = append(result.Errors, err.Error())
+	}
 }
 
 func (service *Service) EvaluateConditions() *Result {
 	result := &Result{Success: true, Errors: []string{}}
 	service.getIp(result)
 	if len(result.Errors) == 0 {
-		service.getStatus(result)
+		service.call(result)
 	} else {
 		result.Success = false
 	}
@@ -138,7 +142,13 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = result.Ip
 		case ResponseTimePlaceHolder:
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
+		case BodyPlaceHolder:
+			element = string(result.Body)
 		default:
+			// if starts with BodyPlaceHolder, then do the jsonpath thingy
+			if strings.HasPrefix(element, BodyPlaceHolder) {
+				element = jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
+			}
 		}
 		sanitizedList = append(sanitizedList, element)
 	}

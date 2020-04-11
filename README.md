@@ -37,13 +37,15 @@ Note that you can also add environment variables in the your configuration file 
 
 Here are some examples of conditions you can use:
 
-| Condition                             | Description                               | Values that would pass | Values that would fail |
-| ------------------------------------- | ----------------------------------------- | ---------------------- | ---------------------- |
-| `[STATUS] == 200`                     | Status must be equal to 200               | 200                    | 201, 404, 500          |
-| `[STATUS] < 300`                      | Status must lower than 300                | 200, 201, 299          | 301, 302, 400, 500     |
-| `[STATUS] <= 299`                     | Status must be less than or equal to 299  | 200, 201, 299          | 301, 302, 400, 500     |
-| `[STATUS] > 400`                      | Status must be greater than 400           | 401, 402, 403, 404     | 200, 201, 300, 400     |
-| `[RESPONSE_TIME] < 500`               | Response time must be below 500ms         | 100ms, 200ms, 300ms    | 500ms, 1500ms          |
+| Condition                             | Description                               | Values that would pass   | Values that would fail  |
+| ------------------------------------- | ----------------------------------------- | ------------------------ | ----------------------- |
+| `[STATUS] == 200`                     | Status must be equal to 200               | 200                      | 201, 404, 500           |
+| `[STATUS] < 300`                      | Status must lower than 300                | 200, 201, 299            | 301, 302, 400, 500      |
+| `[STATUS] <= 299`                     | Status must be less than or equal to 299  | 200, 201, 299            | 301, 302, 400, 500      |
+| `[STATUS] > 400`                      | Status must be greater than 400           | 401, 402, 403, 404       | 200, 201, 300, 400      |
+| `[RESPONSE_TIME] < 500`               | Response time must be below 500ms         | 100ms, 200ms, 300ms      | 500ms, 1500ms           |
+| `[BODY] == 1`                         | The body must be equal to 1               | 1                        | literally anything else |
+| (beta) `[BODY].data.id == 1`          | The jsonpath `$.data.id` is equal to 1    | `{ "data" : { "id": 1 }` | literally anything else |
 
 
 ## Docker
