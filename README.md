@@ -26,6 +26,12 @@ services:
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
   - name: github
     url: https://api.github.com/healthz
+    interval: 2m
+    conditions:
+      - "[STATUS] == 200"
+  - name: Example
+    url: https://example.org/
+    interval: 30s
     conditions:
       - "[STATUS] == 200"
 ```
