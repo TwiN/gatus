@@ -22,8 +22,8 @@ services:
     url: https://twinnation.org/health
     interval: 15s     # Duration to wait between every status check (default: 10s)
     conditions:
-      - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 300"
+      - "[STATUS] == 200"         # Status must be 200
+      - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
   - name: github
     url: https://api.github.com/healthz
     conditions:
