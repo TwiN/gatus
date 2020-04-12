@@ -51,7 +51,7 @@ Here are some examples of conditions you can use:
 | `[STATUS] > 400`                      | Status must be greater than 400           | 401, 402, 403, 404       | 200, 201, 300, 400      |
 | `[RESPONSE_TIME] < 500`               | Response time must be below 500ms         | 100ms, 200ms, 300ms      | 500ms, 1500ms           |
 | `[BODY] == 1`                         | The body must be equal to 1               | 1                        | literally anything else |
-| `[BODY].data.id == 1`          | The jsonpath `$.data.id` is equal to 1    | `{"data":{"id":1}}` | literally anything else |
+| `[BODY].data.id == 1`                 | The jsonpath `$.data.id` is equal to 1    | `{"data":{"id":1}}`      | literally anything else |
 
 **NOTE**: `[BODY]` with JSON path (i.e. `[BODY].id == 1`) is currently in BETA. For the most part, the only thing that doesn't work is arrays.
 
