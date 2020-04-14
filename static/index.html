@@ -49,13 +49,13 @@
 			let conditions = "";
 			for (let conditionResultIndex in serviceResult['condition-results']) {
 				let conditionResult = serviceResult['condition-results'][conditionResultIndex];
-				conditions += "\n- " + (conditionResult.success ? "&#10003;" : "X") + " ~ " + conditionResult.condition;
+				conditions += "\n" + (conditionResult.success ? "&#10003;" : "X") + " ~ " + htmlEntities(conditionResult.condition);
 			}
 			output = output.replace("__CONDITIONS__", "\n\nConditions:" + conditions);
 			if (serviceResult['errors'].length > 0) {
 				let errors = "";
 				for (let errorIndex in serviceResult['errors']) {
-					errors += "\n- " + serviceResult['errors'][errorIndex];
+					errors += "\n- " + htmlEntities(serviceResult['errors'][errorIndex]);
 				}
 				output = output.replace("__ERRORS__", "\n\nErrors: " + errors);
 			} else {
@@ -114,6 +114,15 @@
 			let mm = ((date.getMinutes())<10?"0":"")+""+(date.getMinutes());
 			let ss = ((date.getSeconds())<10?"0":"")+""+(date.getSeconds());
 			return YYYY+"-"+MM+"-"+DD+" "+hh+":"+mm+":"+ss;
+		}
+
+		function htmlEntities(s) {
+			return String(s)
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&apos;');
 		}
 
 		refreshResults();

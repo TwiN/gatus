@@ -1,14 +1,21 @@
 metrics: true
 services:
-  - name: Twinnation
-    url: https://twinnation.org/health
+#  - name: twinnation
+#    interval: 10s
+#    url: https://twinnation.org/health
+#    conditions:
+#      - "[STATUS] == 200"
+#      - "[RESPONSE_TIME] < 1000"
+#      - "[BODY].status == UP"
+  - name: twinnation-articles-api
     interval: 10s
+    url: https://twinnation.org/api/v1/articles
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 500"
-      - "[BODY].status == UP"
-  - name: Example
-    url: https://example.org/
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
+      - "[BODY].[0].id == 42"
+
+#  - name: example
+#    url: https://example.org/
+#    interval: 30s
+#    conditions:
+#      - "[STATUS] == 200"

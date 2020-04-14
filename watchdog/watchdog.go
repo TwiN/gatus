@@ -22,7 +22,7 @@ func Monitor(cfg *config.Config) {
 	for _, service := range cfg.Services {
 		go monitor(service)
 		// To prevent multiple requests from running at the same time
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1111 * time.Millisecond)
 	}
 }
 

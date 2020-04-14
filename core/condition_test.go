@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestEvaluateWithIp(t *testing.T) {
+func TestCondition_evaluateWithIp(t *testing.T) {
 	condition := Condition("[IP] == 127.0.0.1")
 	result := &Result{Ip: "127.0.0.1"}
 	condition.evaluate(result)
@@ -14,7 +14,7 @@ func TestEvaluateWithIp(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithStatus(t *testing.T) {
+func TestCondition_evaluateWithStatus(t *testing.T) {
 	condition := Condition("[STATUS] == 201")
 	result := &Result{HttpStatus: 201}
 	condition.evaluate(result)
@@ -23,7 +23,7 @@ func TestEvaluateWithStatus(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithStatusFailure(t *testing.T) {
+func TestCondition_evaluateWithStatusFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	result := &Result{HttpStatus: 500}
 	condition.evaluate(result)
@@ -32,7 +32,7 @@ func TestEvaluateWithStatusFailure(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithStatusUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithStatusUsingLessThan(t *testing.T) {
 	condition := Condition("[STATUS] < 300")
 	result := &Result{HttpStatus: 201}
 	condition.evaluate(result)
@@ -41,7 +41,7 @@ func TestEvaluateWithStatusUsingLessThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithStatusFailureUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithStatusFailureUsingLessThan(t *testing.T) {
 	condition := Condition("[STATUS] < 300")
 	result := &Result{HttpStatus: 404}
 	condition.evaluate(result)
@@ -50,7 +50,7 @@ func TestEvaluateWithStatusFailureUsingLessThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithResponseTimeUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithResponseTimeUsingLessThan(t *testing.T) {
 	condition := Condition("[RESPONSE_TIME] < 500")
 	result := &Result{Duration: time.Millisecond * 50}
 	condition.evaluate(result)
@@ -59,7 +59,7 @@ func TestEvaluateWithResponseTimeUsingLessThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
 	condition := Condition("[RESPONSE_TIME] > 500")
 	result := &Result{Duration: time.Millisecond * 750}
 	condition.evaluate(result)
@@ -68,7 +68,7 @@ func TestEvaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithResponseTimeUsingGreaterThanOrEqualTo(t *testing.T) {
+func TestCondition_evaluateWithResponseTimeUsingGreaterThanOrEqualTo(t *testing.T) {
 	condition := Condition("[RESPONSE_TIME] >= 500")
 	result := &Result{Duration: time.Millisecond * 500}
 	condition.evaluate(result)
@@ -77,7 +77,7 @@ func TestEvaluateWithResponseTimeUsingGreaterThanOrEqualTo(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) {
+func TestCondition_evaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) {
 	condition := Condition("[RESPONSE_TIME] <= 500")
 	result := &Result{Duration: time.Millisecond * 500}
 	condition.evaluate(result)
@@ -86,7 +86,7 @@ func TestEvaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBody(t *testing.T) {
+func TestCondition_evaluateWithBody(t *testing.T) {
 	condition := Condition("[BODY] == test")
 	result := &Result{Body: []byte("test")}
 	condition.evaluate(result)
@@ -95,7 +95,7 @@ func TestEvaluateWithBody(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPath(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPath(t *testing.T) {
 	condition := Condition("[BODY].status == UP")
 	result := &Result{Body: []byte("{\"status\":\"UP\"}")}
 	condition.evaluate(result)
@@ -104,7 +104,7 @@ func TestEvaluateWithBodyJsonPath(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplex(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathComplex(t *testing.T) {
 	condition := Condition("[BODY].data.name == john")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1, \"name\": \"john\"}}")}
 	condition.evaluate(result)
@@ -113,7 +113,7 @@ func TestEvaluateWithBodyJsonPathComplex(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplexInt(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathLongInt(t *testing.T) {
 	condition := Condition("[BODY].data.id == 1")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -122,7 +122,16 @@ func TestEvaluateWithBodyJsonPathComplexInt(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplexIntUsingGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathComplexInt(t *testing.T) {
+	condition := Condition("[BODY].data[1].id == 2")
+	result := &Result{Body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyJsonPathComplexIntUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 0")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -131,7 +140,7 @@ func TestEvaluateWithBodyJsonPathComplexIntUsingGreaterThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplexIntFailureUsingGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -140,7 +149,7 @@ func TestEvaluateWithBodyJsonPathComplexIntFailureUsingGreaterThan(t *testing.T)
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplexIntUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathComplexIntUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 2}}")}
 	condition.evaluate(result)
@@ -149,43 +158,11 @@ func TestEvaluateWithBodyJsonPathComplexIntUsingLessThan(t *testing.T) {
 	}
 }
 
-func TestEvaluateWithBodyJsonPathComplexIntFailureUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 10}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
-	}
-}
-
-func TestIntegrationEvaluateConditions(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
-	service := Service{
-		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
-		Conditions: []*Condition{&condition},
-	}
-	result := service.EvaluateConditions()
-	if !result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a success", condition)
-	}
-	if !result.Success {
-		t.Error("Because all conditions passed, this should have been a success")
-	}
-}
-
-func TestIntegrationEvaluateConditionsWithFailure(t *testing.T) {
-	condition := Condition("[STATUS] == 500")
-	service := Service{
-		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
-		Conditions: []*Condition{&condition},
-	}
-	result := service.EvaluateConditions()
-	if result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a failure", condition)
-	}
-	if result.Success {
-		t.Error("Because one of the conditions failed, success should have been false")
 	}
 }

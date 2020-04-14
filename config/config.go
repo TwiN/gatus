@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 )
 
 type Config struct {
@@ -74,9 +73,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	} else {
 		// Set the default values if they aren't set
 		for _, service := range config.Services {
-			if service.Interval == 0 {
-				service.Interval = 10 * time.Second
-			}
+			service.Validate()
 		}
 	}
 	return
