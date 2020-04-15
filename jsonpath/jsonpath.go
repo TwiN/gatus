@@ -7,11 +7,12 @@ import (
 	"strings"
 )
 
+// Eval is a half-baked json path implementation that needs some love
 func Eval(path string, b []byte) (string, error) {
 	var object interface{}
 	err := json.Unmarshal(b, &object)
 	if err != nil {
-		// Try to unmarshall it into an array instead
+		// Try to unmarshal it into an array instead
 		return "", err
 	}
 	return walk(path, object)
@@ -20,19 +21,14 @@ func Eval(path string, b []byte) (string, error) {
 func walk(path string, object interface{}) (string, error) {
 	keys := strings.Split(path, ".")
 	currentKey := keys[0]
-	// if there's more than one key, then walk deeper
-	if len(keys) > 1 {
-		switch value := extractValue(currentKey, object).(type) {
-		case map[string]interface{}:
-			return walk(strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1), value)
-		case interface{}:
-			return fmt.Sprintf("%v", value), nil
-		default:
-			return "", fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
-		}
+	switch value := extractValue(currentKey, object).(type) {
+	case map[string]interface{}:
+		return walk(strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1), value)
+	case interface{}:
+		return fmt.Sprintf("%v", value), nil
+	default:
+		return "", fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
 	}
-	// if there's only one key and the target key is that key, then return its value
-	return fmt.Sprintf("%v", extractValue(currentKey, object)), nil
 }
 
 func extractValue(currentKey string, value interface{}) interface{} {
