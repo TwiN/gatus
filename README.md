@@ -15,6 +15,8 @@ By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
 
+Here's a simple example:
+
 ```yaml
 metrics: true         # Whether to expose metrics at /metrics
 services:
@@ -23,13 +25,9 @@ services:
     interval: 15s     # Duration to wait between every status check (default: 10s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
+      - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
-  - name: github
-    url: https://api.github.com/healthz
-    interval: 2m
-    conditions:
-      - "[STATUS] == 200"
-  - name: Example
+  - name: example
     url: https://example.org/
     interval: 30s
     conditions:
@@ -37,6 +35,20 @@ services:
 ```
 
 Note that you can also add environment variables in the your configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
+
+
+### Configuration
+
+| Parameter               | Description | Default |
+| ----------------------- | ------------------------------------------------------ | -------------- |
+| `metrics`               | Whether to expose metrics at /metrics                  | `false`
+| `services[].name`       | Name of the service. Can be anything.                  | Required `""`
+| `services[].url`        | URL to send the request to                             | Required `""`
+| `services[].conditions` | Conditions used to determine the health of the service | `[]`
+| `services[].interval`   | Duration to wait between every status check            | `10s`
+| `services[].method`     | Request method                                         | `GET`
+| `services[].body`       | Request body                                           | `""`
+| `services[].headers`    | Request headers                                        | `{}` 
 
 
 ### Conditions
@@ -52,6 +64,7 @@ Here are some examples of conditions you can use:
 | `[RESPONSE_TIME] < 500`               | Response time must be below 500ms         | 100ms, 200ms, 300ms      | 500ms, 1500ms           |
 | `[BODY] == 1`                         | The body must be equal to 1               | 1                        | literally anything else |
 | `[BODY].data.id == 1`                 | The jsonpath `$.data.id` is equal to 1    | `{"data":{"id":1}}`      | literally anything else |
+| `[BODY].data[0].id == 1`              | The jsonpath `$.data[0].id` is equal to 1 | `{"data":[{"id":1}]}`    | literally anything else |
 
 **NOTE**: `[BODY]` with JSON path (i.e. `[BODY].id == 1`) is currently in BETA. For the most part, the only thing that doesn't work is arrays.
 

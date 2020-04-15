@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"github.com/TwinProduction/gatus/client"
 	"io/ioutil"
 	"net"
@@ -10,13 +11,18 @@ import (
 	"time"
 )
 
+var (
+	ErrNoCondition = errors.New("you must specify at least one condition per service")
+	ErrNoUrl       = errors.New("you must specify an url for each service")
+)
+
 type Service struct {
 	Name       string            `yaml:"name"`
-	Interval   time.Duration     `yaml:"interval,omitempty"`
 	Url        string            `yaml:"url"`
 	Method     string            `yaml:"method,omitempty"`
 	Body       string            `yaml:"body,omitempty"`
-	Headers    map[string]string `yaml:"headers"`
+	Headers    map[string]string `yaml:"headers,omitempty"`
+	Interval   time.Duration     `yaml:"interval,omitempty"`
 	Conditions []*Condition      `yaml:"conditions"`
 }
 
@@ -27,6 +33,15 @@ func (service *Service) Validate() {
 	}
 	if len(service.Method) == 0 {
 		service.Method = http.MethodGet
+	}
+	if len(service.Headers) == 0 {
+		service.Headers = make(map[string]string)
+	}
+	if len(service.Url) == 0 {
+		panic(ErrNoUrl)
+	}
+	if len(service.Conditions) == 0 {
+		panic(ErrNoCondition)
 	}
 
 	// Make sure that the request can be created
