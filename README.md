@@ -39,16 +39,16 @@ Note that you can also add environment variables in the your configuration file 
 
 ### Configuration
 
-| Parameter               | Description | Default |
+| Parameter               | Description                                            | Default        |
 | ----------------------- | ------------------------------------------------------ | -------------- |
-| `metrics`               | Whether to expose metrics at /metrics                  | `false`
-| `services[].name`       | Name of the service. Can be anything.                  | Required `""`
-| `services[].url`        | URL to send the request to                             | Required `""`
-| `services[].conditions` | Conditions used to determine the health of the service | `[]`
-| `services[].interval`   | Duration to wait between every status check            | `10s`
-| `services[].method`     | Request method                                         | `GET`
-| `services[].body`       | Request body                                           | `""`
-| `services[].headers`    | Request headers                                        | `{}` 
+| `metrics`               | Whether to expose metrics at /metrics                  | `false`        |
+| `services[].name`       | Name of the service. Can be anything.                  | Required `""`  |
+| `services[].url`        | URL to send the request to                             | Required `""`  |
+| `services[].conditions` | Conditions used to determine the health of the service | `[]`           |
+| `services[].interval`   | Duration to wait between every status check            | `10s`          |
+| `services[].method`     | Request method                                         | `GET`          |
+| `services[].body`       | Request body                                           | `""`           |
+| `services[].headers`    | Request headers                                        | `{}`           |
 
 
 ### Conditions
