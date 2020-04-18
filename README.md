@@ -6,7 +6,8 @@
 A service health dashboard in Go that is meant to be used as a docker 
 image with a custom configuration file.
 
-Live example: https://status.twinnation.org/
+I personally deploy it in my Kubernetes cluster and have it monitor the status of my
+core applications: https://status.twinnation.org/
 
 
 ## Usage
