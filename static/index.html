@@ -1,9 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Status</title>
+	<title>Health Dashboard</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 	<style>
+		html, body {
+			background-color: #f7f9fb;
+		}
+		html {
+			height: 100%;
+		}
+		body {
+			min-height: 100%;
+		}
 		#results div.container:first-child {
 			border-top-left-radius: 3px;
 			border-top-right-radius: 3px;
@@ -22,14 +32,70 @@
 			margin-right: 4px;
 			background-color: #28a745;
 		}
+		.status {
+			cursor: pointer;
+			transition: opacity 500ms ease-in-out;
+		}
+		.status:hover {
+			opacity: 0.7;
+			transition: opacity 100ms ease-in-out;
+		}
+		.status-over-time {
+			overflow: auto;
+		}
+		.status-over-time>span:not(:last-child) {
+			margin-left: 2px;
+		}
+		.status-time-ago {
+			color: #6a737d;
+			opacity: 0.5;
+			margin-top: 5px;
+		}
+		#tooltip {
+			position: fixed;
+			top: 0;
+			left: 0;
+			background-color: white;
+			border: 1px solid lightgray;
+			border-radius: 4px;
+			padding: 6px;
+			font-size: 13px;
+		}
+		#tooltip code {
+			color: #212529;
+			line-height: 1;
+		}
+		#tooltip .tooltip-title {
+			font-weight: bold;
+			margin-bottom: 0;
+			display: block;
+		}
+		#tooltip .tooltip-title {
+			margin-top: 8px;
+		}
+		#tooltip>.tooltip-title:first-child {
+			margin-top: 0;
+		}
 	</style>
 </head>
 <body>
-	<div class="container my-3 bg-light rounded p-4 border shadow">
-		<div class="text-center mb-3">
-			<div class="display-4">Status</div>
+	<div class="container my-3 rounded p-4 border shadow">
+		<div class="mb-3">
+			<div class="display-4">Health Status</div>
 		</div>
-		<div id="results">
+		<div id="results"></div>
+	</div>
+
+	<div id="tooltip" style="display: none">
+		<div class="tooltip-title">Timestamp:</div>
+		<code id="tooltip-timestamp">...</code>
+		<div class="tooltip-title">Response time:</div>
+		<code id="tooltip-response-time">...</code>
+		<div class="tooltip-title">Conditions:</div>
+		<code id="tooltip-conditions">...</code>
+		<div id="tooltip-errors-container">
+			<div class="tooltip-title">Errors:</div>
+			<code id="tooltip-errors">...</code>
 		</div>
 	</div>
 
@@ -38,44 +104,80 @@
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
 	<script>
-		//const OK = "<div class='status-ok' title='__RESPONSE_TIME____CONDITIONS____ERRORS__'></div>"
-		const OK = "<span class='badge badge-success ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____ERRORS__'>&#10003;</span>";
-		const NOK = "<span class='badge badge-danger ml-1' style='width: 5%' title='__TIMESTAMP____RESPONSE_TIME____CONDITIONS____ERRORS__'>X</span>";
+		let serviceStatuses = {};
+		let timerHandler = 0;
+		let userClickedStatus = false;
 
-		function generateServiceResultBox(serviceResult) {
-			let output = (serviceResult.success ? OK : NOK);
-			output = output.replace("__TIMESTAMP__", "Timestamp:\n" + prettifyTimestamp(serviceResult.timestamp));
-			output = output.replace("__RESPONSE_TIME__", "\n\nResponse time:\n" + parseInt(serviceResult.duration/1000000) + "ms");
+		function showTooltip(serviceName, index, element) {
+			console.log(element.getBoundingClientRect().y);
+			console.log(document.body.getBoundingClientRect().height);
+			userClickedStatus = false;
+			clearTimeout(timerHandler);
+			let serviceResult = serviceStatuses[serviceName][index];
+			$("#tooltip-timestamp").text(prettifyTimestamp(serviceResult.timestamp));
+			$("#tooltip-response-time").text(parseInt(serviceResult.duration/1000000) + "ms");
+			// Populate the condition section
 			let conditions = "";
-			for (let conditionResultIndex in serviceResult['condition-results']) {
-				let conditionResult = serviceResult['condition-results'][conditionResultIndex];
-				conditions += "\n" + (conditionResult.success ? "&#10003;" : "X") + " ~ " + htmlEntities(conditionResult.condition);
+			for (let i in serviceResult['condition-results']) {
+				let conditionResult = serviceResult['condition-results'][i];
+				conditions += (conditionResult.success ? "&#10003;" : "X") + " ~ " + htmlEntities(conditionResult.condition) + "<br />";
 			}
-			output = output.replace("__CONDITIONS__", "\n\nConditions:" + conditions);
-			if (serviceResult['errors'].length > 0) {
+			$("#tooltip-conditions").html(conditions);
+			// Populate the error section only if there are errors
+			if (serviceResult.errors && serviceResult.errors.length > 0) {
 				let errors = "";
-				for (let errorIndex in serviceResult['errors']) {
-					errors += "\n- " + htmlEntities(serviceResult['errors'][errorIndex]);
+				for (let i in serviceResult.errors) {
+					errors += "- " + htmlEntities(serviceResult.errors[i]) + "<br />";
 				}
-				output = output.replace("__ERRORS__", "\n\nErrors: " + errors);
+				$("#tooltip-errors").html(errors);
+				$("#tooltip-errors-container").show();
 			} else {
-				output = output.replace("__ERRORS__", "");
+				$("#tooltip-errors-container").hide();
 			}
-			return output;
+			// Position tooltip
+			$("#tooltip").css({top: "0px", left: "0px"}).show();
+			let targetTopPosition = element.getBoundingClientRect().y + 30;
+			let targetLeftPosition = element.getBoundingClientRect().x;
+			// Make adjustments if necessary
+			let tooltipBoundingClientRect = document.querySelector('#tooltip').getBoundingClientRect();
+			if (targetLeftPosition + window.scrollX + tooltipBoundingClientRect.width + 50 > document.body.getBoundingClientRect().width) {
+				targetLeftPosition = element.getBoundingClientRect().x - tooltipBoundingClientRect.width + element.getBoundingClientRect().width;
+			}
+			if (targetTopPosition + window.scrollY + tooltipBoundingClientRect.height + 50 > document.body.getBoundingClientRect().height) {
+				targetTopPosition = element.getBoundingClientRect().y - (tooltipBoundingClientRect.height + 10)
+			}
+			$("#tooltip").css({top: targetTopPosition + "px", left: targetLeftPosition + "px"});
 		}
-		
+
+		function fadeTooltip() {
+			if (!userClickedStatus) {
+				timerHandler = setTimeout(function () {
+					$("#tooltip").hide();
+				}, 2000);
+			}
+		}
+
+		function createStatusBadge(serviceName, index, success) {
+			if (success) {
+				return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\""+serviceName+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
+			}
+			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\""+serviceName+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
+		}
+
 		function refreshResults() {
 			$.getJSON("/api/v1/results", function (data) {
+				serviceStatuses = data;
 				let output = "";
 				for (let serviceName in data) {
 					let serviceStatusOverTime = "";
-					let hostname = data[serviceName][data[serviceName].length-1].hostname 
+					let hostname = data[serviceName][data[serviceName].length-1].hostname
 					let minResponseTime = null;
 					let maxResponseTime = null;
+					let newestTimestamp = null;
+					let oldestTimestamp = null;
 					for (let key in data[serviceName]) {
 						let serviceResult = data[serviceName][key];
-						console.log(serviceResult);
-						serviceStatusOverTime = generateServiceResultBox(serviceResult) + serviceStatusOverTime;
+						serviceStatusOverTime = createStatusBadge(serviceName, key, serviceResult.success) + serviceStatusOverTime;
 						const responseTime = parseInt(serviceResult.duration/1000000);
 						if (minResponseTime == null || minResponseTime > responseTime) {
 							minResponseTime = responseTime;
@@ -83,9 +185,16 @@
 						if (maxResponseTime == null || maxResponseTime < responseTime) {
 							maxResponseTime = responseTime;
 						}
+						const timestamp = new Date(serviceResult.timestamp);
+						if (newestTimestamp == null || newestTimestamp > timestamp) {
+							newestTimestamp = timestamp;
+						}
+						if (oldestTimestamp == null || oldestTimestamp < timestamp) {
+							oldestTimestamp = timestamp;
+						}
 					}
 					output += ""
-						+ "<div class='container p-2 border-left border-right border-top border-black'>"
+						+ "<div class='container py-3 border-left border-right border-top border-black'>"
 						+ "  <div class='row mb-2'>"
 						+ "    <div class='col-8'>"
 						+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
@@ -95,8 +204,16 @@
 						+ "    </div>"
 						+ "  </div>"
 						+ "  <div class='row'>"
-						+ "    <div class='col-12 d-flex flex-row-reverse'>"
+						+ "    <div class='col-12 d-flex flex-row-reverse status-over-time'>"
 						+ "      " + serviceStatusOverTime
+						+ "    </div>"
+						+ "  </div>"
+						+ "  <div class='row status-time-ago'>"
+						+ "    <div class='col-6'>"
+						+ "      " + generatePrettyTimeAgo(newestTimestamp)
+						+ "    </div>"
+						+ "    <div class='col-6 text-right'>"
+						+ "      " + generatePrettyTimeAgo(oldestTimestamp)
 						+ "    </div>"
 						+ "  </div>"
 						+ "</div>";
@@ -116,6 +233,19 @@
 			return YYYY+"-"+MM+"-"+DD+" "+hh+":"+mm+":"+ss;
 		}
 
+		function generatePrettyTimeAgo(t) {
+			let differenceInMs = new Date().getTime() - new Date(t).getTime();
+			if (differenceInMs > 3600000) {
+				let hours = (differenceInMs/3600000).toFixed(0);
+				return hours + " hour" + (hours !== "1" ? "s" : "") + " ago";
+			}
+			if (differenceInMs > 60000) {
+				let minutes = (differenceInMs/60000).toFixed(0);
+				return minutes + " minute" + (minutes !== "1" ? "s" : "") + " ago";
+			}
+			return (differenceInMs/1000).toFixed(0) + " seconds ago";
+		}
+
 		function htmlEntities(s) {
 			return String(s)
 				.replace(/&/g, '&amp;')
@@ -128,7 +258,7 @@
 		refreshResults();
 		setInterval(function() {
 			refreshResults();
-		}, 10000);
+		}, 30000);
 	</script>
 </body>
 </html>
