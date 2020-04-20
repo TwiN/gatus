@@ -109,8 +109,6 @@
 		let userClickedStatus = false;
 
 		function showTooltip(serviceName, index, element) {
-			console.log(element.getBoundingClientRect().y);
-			console.log(document.body.getBoundingClientRect().height);
 			userClickedStatus = false;
 			clearTimeout(timerHandler);
 			let serviceResult = serviceStatuses[serviceName][index];
