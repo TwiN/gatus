@@ -9,10 +9,9 @@ import (
 	"os"
 )
 
-type Config struct {
-	Metrics  bool            `yaml:"metrics"`
-	Services []*core.Service `yaml:"services"`
-}
+const (
+	DefaultConfigurationFilePath = "config/config.yaml"
+)
 
 var (
 	ErrNoServiceInConfig  = errors.New("configuration file should contain at least 1 service")
@@ -20,6 +19,11 @@ var (
 	ErrConfigNotLoaded    = errors.New("configuration is nil")
 	config                *Config
 )
+
+type Config struct {
+	Metrics  bool            `yaml:"metrics"`
+	Services []*core.Service `yaml:"services"`
+}
 
 func Get() *Config {
 	if config == nil {
@@ -43,7 +47,7 @@ func Load(configFile string) error {
 }
 
 func LoadDefaultConfiguration() error {
-	err := Load("config/config.yaml")
+	err := Load(DefaultConfigurationFilePath)
 	if err != nil {
 		if err == ErrConfigFileNotFound {
 			return Load("config/config.yml")
