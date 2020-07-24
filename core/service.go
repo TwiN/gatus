@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"github.com/TwinProduction/gatus/client"
 	"io/ioutil"
@@ -21,6 +22,7 @@ type Service struct {
 	Url        string            `yaml:"url"`
 	Method     string            `yaml:"method,omitempty"`
 	Body       string            `yaml:"body,omitempty"`
+	GraphQL    bool              `yaml:"graphql,omitempty"`
 	Headers    map[string]string `yaml:"headers,omitempty"`
 	Interval   time.Duration     `yaml:"interval,omitempty"`
 	Conditions []*Condition      `yaml:"conditions"`
@@ -102,7 +104,17 @@ func (service *Service) call(result *Result) {
 }
 
 func (service *Service) buildRequest() *http.Request {
-	request, _ := http.NewRequest(service.Method, service.Url, bytes.NewBuffer([]byte(service.Body)))
+	var bodyBuffer *bytes.Buffer
+	if service.GraphQL {
+		graphQlBody := map[string]string{
+			"query": service.Body,
+		}
+		body, _ := json.Marshal(graphQlBody)
+		bodyBuffer = bytes.NewBuffer(body)
+	} else {
+		bodyBuffer = bytes.NewBuffer([]byte(service.Body))
+	}
+	request, _ := http.NewRequest(service.Method, service.Url, bodyBuffer)
 	for k, v := range service.Headers {
 		request.Header.Set(k, v)
 	}

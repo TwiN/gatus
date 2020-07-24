@@ -40,16 +40,17 @@ Note that you can also add environment variables in the your configuration file 
 
 ### Configuration
 
-| Parameter               | Description                                            | Default        |
-| ----------------------- | ------------------------------------------------------ | -------------- |
-| `metrics`               | Whether to expose metrics at /metrics                  | `false`        |
-| `services[].name`       | Name of the service. Can be anything.                  | Required `""`  |
-| `services[].url`        | URL to send the request to                             | Required `""`  |
-| `services[].conditions` | Conditions used to determine the health of the service | `[]`           |
-| `services[].interval`   | Duration to wait between every status check            | `10s`          |
-| `services[].method`     | Request method                                         | `GET`          |
-| `services[].body`       | Request body                                           | `""`           |
-| `services[].headers`    | Request headers                                        | `{}`           |
+| Parameter               | Description                                                     | Default        |
+| ----------------------- | --------------------------------------------------------------- | -------------- |
+| `metrics`               | Whether to expose metrics at /metrics                           | `false`        |
+| `services[].name`       | Name of the service. Can be anything.                           | Required `""`  |
+| `services[].url`        | URL to send the request to                                      | Required `""`  |
+| `services[].conditions` | Conditions used to determine the health of the service          | `[]`           |
+| `services[].interval`   | Duration to wait between every status check                     | `10s`          |
+| `services[].method`     | Request method                                                  | `GET`          |
+| `services[].graphql`    | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
+| `services[].body`       | Request body                                                    | `""`           |
+| `services[].headers`    | Request headers                                                 | `{}`           |
 
 
 ### Conditions
@@ -95,3 +96,38 @@ go test ./... -mod vendor
 ## Using in Production
 
 See the [example](example) folder.
+
+
+## FAQ
+
+### Sending a GraphQL request
+
+By setting `services[].graphql` to true, the body will automatically be wrapped by the standard GraphQL `query` parameter.
+
+For instance, the following configuration:
+```
+services:
+  - name: properties
+    url: http://localhost:8080/playground
+    method: POST
+    graphql: true
+    body: |
+      {
+        user(gender: "female") {
+          id
+          name
+          gender
+          avatar
+        }
+      }
+    headers:
+      Content-Type: application/json
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].data.user[0].gender == female"
+```
+
+will send a `POST` request to `http://localhost:8080/playground` with the following body:
+```json
+{"query":"      {\n        user(gender: \"female\") {\n          id\n          name\n          gender\n          avatar\n        }\n      }"}
+```
