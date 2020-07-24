@@ -18,6 +18,7 @@ const (
 
 func sanitizeAndResolve(list []string, result *Result) []string {
 	var sanitizedList []string
+	body := strings.TrimSpace(string(result.Body))
 	for _, element := range list {
 		element = strings.TrimSpace(element)
 		switch strings.ToUpper(element) {
@@ -28,7 +29,7 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 		case ResponseTimePlaceHolder:
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
 		case BodyPlaceHolder:
-			element = string(result.Body)
+			element = body
 		default:
 			// if starts with BodyPlaceHolder, then evaluate json path
 			if strings.HasPrefix(element, BodyPlaceHolder) {
