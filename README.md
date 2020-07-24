@@ -107,7 +107,7 @@ By setting `services[].graphql` to true, the body will automatically be wrapped 
 For instance, the following configuration:
 ```
 services:
-  - name: properties
+  - name: filter users by gender
     url: http://localhost:8080/playground
     method: POST
     graphql: true
