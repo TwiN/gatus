@@ -52,6 +52,9 @@ func extractValue(currentKey string, value interface{}) interface{} {
 			}
 			return nil
 		}
+		if value == nil || value.(map[string]interface{})[currentKey] == nil {
+			return nil
+		}
 		// if currentKey contains both a key and an index (i.e. data[0])
 		array := value.(map[string]interface{})[currentKey].([]interface{})
 		if len(array) > arrayIndex {
