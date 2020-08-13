@@ -32,13 +32,22 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = body
 		default:
 			// if starts with BodyPlaceHolder, then evaluate json path
-			if strings.HasPrefix(element, BodyPlaceHolder) {
-				resolvedElement, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
+			if strings.Contains(element, BodyPlaceHolder) {
+				wantLength := false
+				if strings.HasPrefix(element, "len(") && strings.HasSuffix(element, ")") {
+					wantLength = true
+					element = strings.TrimSuffix(strings.TrimPrefix(element, "len("), ")")
+				}
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
 				if err != nil {
 					result.Errors = append(result.Errors, err.Error())
 					element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
 				} else {
-					element = resolvedElement
+					if wantLength {
+						element = fmt.Sprintf("%d", resolvedElementLength)
+					} else {
+						element = resolvedElement
+					}
 				}
 			}
 		}

@@ -14,8 +14,4 @@ services:
       - "[STATUS] == 200"
       - "[BODY].id == 24"
       - "[BODY].tags[0] == spring"
-  - name: example
-    url: https://example.org/
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
+      - "len([BODY].tags) > 0"

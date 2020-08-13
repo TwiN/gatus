@@ -8,9 +8,12 @@ func TestEval(t *testing.T) {
 
 	expectedOutput := "value"
 
-	output, err := Eval(path, []byte(data))
+	output, outputLength, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
+	}
+	if outputLength != len(expectedOutput) {
+		t.Errorf("Expected output length to be %v, but was %v", len(expectedOutput), outputLength)
 	}
 	if output != expectedOutput {
 		t.Errorf("Expected output to be %v, but was %v", expectedOutput, output)
@@ -23,7 +26,7 @@ func TestEvalWithLongSimpleWalk(t *testing.T) {
 
 	expectedOutput := "value"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -38,10 +41,11 @@ func TestEvalWithArrayOfMaps(t *testing.T) {
 
 	expectedOutput := "2"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
+
 	if output != expectedOutput {
 		t.Errorf("Expected output to be %v, but was %v", expectedOutput, output)
 	}
@@ -53,7 +57,7 @@ func TestEvalWithArrayOfValues(t *testing.T) {
 
 	expectedOutput := "1"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -68,7 +72,7 @@ func TestEvalWithRootArrayOfValues(t *testing.T) {
 
 	expectedOutput := "2"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -83,7 +87,7 @@ func TestEvalWithRootArrayOfMaps(t *testing.T) {
 
 	expectedOutput := "1"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -96,7 +100,7 @@ func TestEvalWithRootArrayOfMapsUsingInvalidArrayIndex(t *testing.T) {
 	path := "[5].id"
 	data := `[{"id": 1}, {"id": 2}]`
 
-	_, err := Eval(path, []byte(data))
+	_, _, err := Eval(path, []byte(data))
 	if err == nil {
 		t.Error("Should've returned an error, but didn't")
 	}
@@ -108,7 +112,7 @@ func TestEvalWithLongWalkAndArray(t *testing.T) {
 
 	expectedOutput := "1"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -123,7 +127,7 @@ func TestEvalWithNestedArray(t *testing.T) {
 
 	expectedOutput := "7"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}
@@ -138,7 +142,7 @@ func TestEvalWithMapOfNestedArray(t *testing.T) {
 
 	expectedOutput := "e"
 
-	output, err := Eval(path, []byte(data))
+	output, _, err := Eval(path, []byte(data))
 	if err != nil {
 		t.Error("Didn't expect any error, but got", err)
 	}

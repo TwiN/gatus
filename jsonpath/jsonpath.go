@@ -8,26 +8,30 @@ import (
 )
 
 // Eval is a half-baked json path implementation that needs some love
-func Eval(path string, b []byte) (string, error) {
+func Eval(path string, b []byte) (string, int, error) {
 	var object interface{}
 	err := json.Unmarshal(b, &object)
 	if err != nil {
 		// Try to unmarshal it into an array instead
-		return "", err
+		return "", 0, err
 	}
 	return walk(path, object)
 }
 
-func walk(path string, object interface{}) (string, error) {
+func walk(path string, object interface{}) (string, int, error) {
 	keys := strings.Split(path, ".")
 	currentKey := keys[0]
 	switch value := extractValue(currentKey, object).(type) {
 	case map[string]interface{}:
 		return walk(strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1), value)
+	case string:
+		return value, len(value), nil
+	case []interface{}:
+		return fmt.Sprintf("%v", value), len(value), nil
 	case interface{}:
-		return fmt.Sprintf("%v", value), nil
+		return fmt.Sprintf("%v", value), 1, nil
 	default:
-		return "", fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
+		return "", 0, fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
 	}
 }
 

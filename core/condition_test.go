@@ -166,3 +166,21 @@ func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingLessThan(t *tes
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
 }
+
+func TestCondition_evaluateWithBodySliceLength(t *testing.T) {
+	condition := Condition("len([BODY].data) == 3")
+	result := &Result{Body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
+	condition := Condition("len([BODY].name) == 8")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}

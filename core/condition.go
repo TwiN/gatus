@@ -41,10 +41,10 @@ func (c *Condition) evaluate(result *Result) bool {
 		return false
 	}
 	conditionToDisplay := condition
-	// If the condition isn't a success, return the resolved condition
+	// If the condition isn't a success, return what the resolved condition was too
 	if !success {
 		log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, resolvedCondition)
-		conditionToDisplay = resolvedCondition
+		conditionToDisplay = fmt.Sprintf("%s (%s)", condition, resolvedCondition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
