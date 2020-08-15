@@ -107,7 +107,7 @@ See the [example](example) folder.
 By setting `services[].graphql` to true, the body will automatically be wrapped by the standard GraphQL `query` parameter.
 
 For instance, the following configuration:
-```
+```yaml
 services:
   - name: filter users by gender
     url: http://localhost:8080/playground
