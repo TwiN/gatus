@@ -7,6 +7,7 @@ services:
       - "[STATUS] == 200"
   - name: GitHub
     url: https://api.github.com/healthz
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
   - name: Example
