@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/watchdog"
@@ -8,6 +10,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
+)
+
+const CacheTTL = 10 * time.Second
+
+var (
+	cachedServiceResults          []byte
+	cachedServiceResultsGzipped   []byte
+	cachedServiceResultsTimestamp time.Time
 )
 
 func main() {
@@ -37,14 +49,30 @@ func loadConfiguration() *config.Config {
 	return config.Get()
 }
 
-func serviceResultsHandler(writer http.ResponseWriter, _ *http.Request) {
-	serviceResults := watchdog.GetServiceResults()
-	data, err := json.Marshal(serviceResults)
-	if err != nil {
-		log.Printf("[main][serviceResultsHandler] Unable to marshall object to JSON: %s", err.Error())
-		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte("Unable to marshall object to JSON"))
-		return
+func serviceResultsHandler(writer http.ResponseWriter, r *http.Request) {
+	if isExpired := cachedServiceResultsTimestamp.IsZero() || time.Now().Sub(cachedServiceResultsTimestamp) > CacheTTL; isExpired {
+		buffer := &bytes.Buffer{}
+		gzipWriter := gzip.NewWriter(buffer)
+		serviceResults := watchdog.GetServiceResults()
+		data, err := json.Marshal(serviceResults)
+		if err != nil {
+			log.Printf("[main][serviceResultsHandler] Unable to marshall object to JSON: %s", err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+			_, _ = writer.Write([]byte("Unable to marshall object to JSON"))
+			return
+		}
+		gzipWriter.Write(data)
+		gzipWriter.Close()
+		cachedServiceResults = data
+		cachedServiceResultsGzipped = buffer.Bytes()
+		cachedServiceResultsTimestamp = time.Now()
+	}
+	var data []byte
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		writer.Header().Set("Content-Encoding", "gzip")
+		data = cachedServiceResultsGzipped
+	} else {
+		data = cachedServiceResults
 	}
 	writer.Header().Add("Content-type", "application/json")
 	writer.WriteHeader(http.StatusOK)
