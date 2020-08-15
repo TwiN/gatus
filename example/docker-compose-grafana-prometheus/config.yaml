@@ -2,7 +2,7 @@ metrics: true
 services:
   - name: TwiNNatioN
     url: https://twinnation.org/health
-    interval: 10s
+    interval: 30s
     conditions:
       - "[STATUS] == 200"
   - name: GitHub
