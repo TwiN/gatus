@@ -77,7 +77,7 @@
 </head>
 <body>
 	<div class="container my-3 rounded p-4 border shadow">
-		<div class="mb-3">
+		<div class="mb-5">
 			<div class="display-4">Health Status</div>
 		</div>
 		<div id="results"></div>
@@ -160,60 +160,67 @@
 
 		function refreshResults() {
 			$.getJSON("/api/v1/results", function (data) {
-				serviceStatuses = data;
-				let output = "";
-				for (let serviceName in data) {
-					let serviceStatusOverTime = "";
-					let hostname = data[serviceName][data[serviceName].length-1].hostname
-					let minResponseTime = null;
-					let maxResponseTime = null;
-					let newestTimestamp = null;
-					let oldestTimestamp = null;
-					for (let key in data[serviceName]) {
-						let serviceResult = data[serviceName][key];
-						serviceStatusOverTime = createStatusBadge(serviceName, key, serviceResult.success) + serviceStatusOverTime;
-						const responseTime = parseInt(serviceResult.duration/1000000);
-						if (minResponseTime == null || minResponseTime > responseTime) {
-							minResponseTime = responseTime;
-						}
-						if (maxResponseTime == null || maxResponseTime < responseTime) {
-							maxResponseTime = responseTime;
-						}
-						const timestamp = new Date(serviceResult.timestamp);
-						if (newestTimestamp == null || newestTimestamp > timestamp) {
-							newestTimestamp = timestamp;
-						}
-						if (oldestTimestamp == null || oldestTimestamp < timestamp) {
-							oldestTimestamp = timestamp;
-						}
-					}
-					output += ""
-						+ "<div class='container py-3 border-left border-right border-top border-black'>"
-						+ "  <div class='row mb-2'>"
-						+ "    <div class='col-10'>"
-						+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
-						+ "    </div>"
-						+ "    <div class='col-2 text-right'>"
-						+ "      <span class='font-weight-lighter'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
-						+ "    </div>"
-						+ "  </div>"
-						+ "  <div class='row'>"
-						+ "    <div class='col-12 d-flex flex-row-reverse status-over-time'>"
-						+ "      " + serviceStatusOverTime
-						+ "    </div>"
-						+ "  </div>"
-						+ "  <div class='row status-time-ago'>"
-						+ "    <div class='col-6'>"
-						+ "      " + generatePrettyTimeAgo(newestTimestamp)
-						+ "    </div>"
-						+ "    <div class='col-6 text-right'>"
-						+ "      " + generatePrettyTimeAgo(oldestTimestamp)
-						+ "    </div>"
-						+ "  </div>"
-						+ "</div>";
+				// Update the table only if there's a change
+				if (JSON.stringify(serviceStatuses) !== JSON.stringify(data)) {
+					serviceStatuses = data;
+					buildTable();
 				}
-				$("#results").html(output);
 			});
+		}
+
+		function buildTable() {
+			let output = "";
+			for (let serviceName in serviceStatuses) {
+				let serviceStatusOverTime = "";
+				let hostname = serviceStatuses[serviceName][serviceStatuses[serviceName].length-1].hostname
+				let minResponseTime = null;
+				let maxResponseTime = null;
+				let newestTimestamp = null;
+				let oldestTimestamp = null;
+				for (let key in serviceStatuses[serviceName]) {
+					let serviceResult = serviceStatuses[serviceName][key];
+					serviceStatusOverTime = createStatusBadge(serviceName, key, serviceResult.success) + serviceStatusOverTime;
+					const responseTime = parseInt(serviceResult.duration/1000000);
+					if (minResponseTime == null || minResponseTime > responseTime) {
+						minResponseTime = responseTime;
+					}
+					if (maxResponseTime == null || maxResponseTime < responseTime) {
+						maxResponseTime = responseTime;
+					}
+					const timestamp = new Date(serviceResult.timestamp);
+					if (newestTimestamp == null || newestTimestamp < timestamp) {
+						newestTimestamp = timestamp;
+					}
+					if (oldestTimestamp == null || oldestTimestamp > timestamp) {
+						oldestTimestamp = timestamp;
+					}
+				}
+				output += ""
+					+ "<div class='container py-3 border-left border-right border-top border-black'>"
+					+ "  <div class='row mb-2'>"
+					+ "    <div class='col-10'>"
+					+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
+					+ "    </div>"
+					+ "    <div class='col-2 text-right'>"
+					+ "      <span class='font-weight-lighter'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
+					+ "    </div>"
+					+ "  </div>"
+					+ "  <div class='row'>"
+					+ "    <div class='col-12 d-flex flex-row-reverse status-over-time'>"
+					+ "      " + serviceStatusOverTime
+					+ "    </div>"
+					+ "  </div>"
+					+ "  <div class='row status-time-ago'>"
+					+ "    <div class='col-6'>"
+					+ "      " + generatePrettyTimeAgo(oldestTimestamp)
+					+ "    </div>"
+					+ "    <div class='col-6 text-right'>"
+					+ "      " + generatePrettyTimeAgo(newestTimestamp)
+					+ "    </div>"
+					+ "  </div>"
+					+ "</div>";
+			}
+			$("#results").html(output);
 		}
 
 		function prettifyTimestamp(timestamp) {
