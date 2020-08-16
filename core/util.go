@@ -13,6 +13,9 @@ const (
 	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
 	BodyPlaceHolder         = "[BODY]"
 
+	LengthFunctionPrefix = "len("
+	FunctionSuffix       = ")"
+
 	InvalidConditionElementSuffix = "(INVALID)"
 )
 
@@ -34,9 +37,9 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			// if starts with BodyPlaceHolder, then evaluate json path
 			if strings.Contains(element, BodyPlaceHolder) {
 				wantLength := false
-				if strings.HasPrefix(element, "len(") && strings.HasSuffix(element, ")") {
+				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
 					wantLength = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, "len("), ")")
+					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
 				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
 				if err != nil {
