@@ -1,6 +1,7 @@
 # gatus
 
 ![build](https://github.com/TwinProduction/gatus/workflows/build/badge.svg?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TwinProduction/gatus)](https://goreportcard.com/report/github.com/TwinProduction/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 
 A service health dashboard in Go that is meant to be used as a docker 
