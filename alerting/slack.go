@@ -12,8 +12,8 @@ type requestBody struct {
 	Text string `json:"text"`
 }
 
-// SendMessage sends a message to the given Slack webhook
-func SendMessage(webhookUrl, msg string) error {
+// SendSlackMessage sends a message to the given Slack webhook
+func SendSlackMessage(webhookUrl, msg string) error {
 	body, _ := json.Marshal(requestBody{Text: msg})
 	response, err := client.GetHttpClient().Post(webhookUrl, "application/json", bytes.NewBuffer(body))
 	if err != nil {
