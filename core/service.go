@@ -26,6 +26,9 @@ type Service struct {
 	Headers    map[string]string `yaml:"headers,omitempty"`
 	Interval   time.Duration     `yaml:"interval,omitempty"`
 	Conditions []*Condition      `yaml:"conditions"`
+	Alerts     []*Alert          `yaml:"alerts"`
+
+	numberOfFailuresInARow int
 }
 
 func (service *Service) Validate() {
@@ -68,7 +71,26 @@ func (service *Service) EvaluateConditions() *Result {
 		}
 	}
 	result.Timestamp = time.Now()
+	if result.Success {
+		service.numberOfFailuresInARow = 0
+	} else {
+		service.numberOfFailuresInARow++
+	}
 	return result
+}
+
+func (service *Service) GetAlertsTriggered() []Alert {
+	var alerts []Alert
+	if service.numberOfFailuresInARow == 0 {
+		return alerts
+	}
+	for _, alert := range service.Alerts {
+		if alert.Enabled && alert.Threshold == service.numberOfFailuresInARow {
+			alerts = append(alerts, *alert)
+			continue
+		}
+	}
+	return alerts
 }
 
 func (service *Service) getIp(result *Result) {

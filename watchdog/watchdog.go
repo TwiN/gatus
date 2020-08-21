@@ -2,6 +2,7 @@ package watchdog
 
 import (
 	"fmt"
+	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
@@ -54,6 +55,21 @@ func monitor(service *core.Service) {
 			result.Duration.Round(time.Millisecond),
 			extra,
 		)
+
+		cfg := config.Get()
+		if cfg.Alerting != nil {
+			for _, alertTriggered := range service.GetAlertsTriggered() {
+				if alertTriggered.Type == core.SlackAlert {
+					if len(cfg.Alerting.Slack) > 0 {
+						log.Printf("[watchdog][monitor] Sending Slack alert because alert with description=%s has been triggered", alertTriggered.Description)
+						alerting.SendSlackMessage(cfg.Alerting.Slack, service.Name, alertTriggered.Description)
+					} else {
+						log.Printf("[watchdog][monitor] Not sending Slack alert despite being triggered, because there is no Slack webhook configured")
+					}
+				}
+			}
+		}
+
 		log.Printf("[watchdog][monitor] Waiting for interval=%s before monitoring serviceName=%s", service.Interval, service.Name)
 		time.Sleep(service.Interval)
 	}
