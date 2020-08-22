@@ -31,11 +31,18 @@
 		}
 		.status {
 			cursor: pointer;
-			transition: opacity 500ms ease-in-out;
+			transition: all 500ms ease-in-out;
+			overflow-x: hidden;
+			padding: .25em 0;
+			color: white;
+		}
+		.title {
+			font-size: 2.5rem;
 		}
 		.status:hover {
 			opacity: 0.7;
 			transition: opacity 100ms ease-in-out;
+			color: black;
 		}
 		.status-over-time {
 			overflow: auto;
@@ -47,6 +54,9 @@
 			color: #6a737d;
 			opacity: 0.5;
 			margin-top: 5px;
+		}
+		.status-min-max-ms {
+			overflow-x: hidden;
 		}
 		#tooltip {
 			position: fixed;
@@ -76,9 +86,16 @@
 	</style>
 </head>
 <body>
-	<div class="container my-3 rounded p-4 border shadow">
-		<div class="mb-5">
-			<div class="display-4">Health Status</div>
+	<div class="container my-3 rounded p-3 border shadow">
+		<div class="mb-2">
+			<div class="row">
+				<div class="col-8 text-left my-auto">
+					<div class="title display-4">Health Status</div>
+				</div>
+				<div class="col-4 text-right">
+					<img src="logo.png" alt="GaTuS" style="position: relative; min-width: 50px; max-width: 200px; width: 20%;"/>
+				</div>
+			</div>
 		</div>
 		<div id="results"></div>
 	</div>
@@ -136,6 +153,9 @@
 			let tooltipBoundingClientRect = document.querySelector('#tooltip').getBoundingClientRect();
 			if (targetLeftPosition + window.scrollX + tooltipBoundingClientRect.width + 50 > document.body.getBoundingClientRect().width) {
 				targetLeftPosition = element.getBoundingClientRect().x - tooltipBoundingClientRect.width + element.getBoundingClientRect().width;
+				if (targetLeftPosition < 0) {
+					targetLeftPosition += -targetLeftPosition;
+				}
 			}
 			if (targetTopPosition + window.scrollY + tooltipBoundingClientRect.height + 50 > document.body.getBoundingClientRect().height) {
 				targetTopPosition = element.getBoundingClientRect().y - (tooltipBoundingClientRect.height + 10)
@@ -198,11 +218,11 @@
 				output += ""
 					+ "<div class='container py-3 border-left border-right border-top border-black'>"
 					+ "  <div class='row mb-2'>"
-					+ "    <div class='col-10'>"
+					+ "    <div class='col-md-10'>"
 					+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
 					+ "    </div>"
-					+ "    <div class='col-2 text-right'>"
-					+ "      <span class='font-weight-lighter'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
+					+ "    <div class='col-md-2 text-right'>"
+					+ "      <span class='font-weight-lighter status-min-max-ms'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
 					+ "    </div>"
 					+ "  </div>"
 					+ "  <div class='row'>"
@@ -231,7 +251,7 @@
 			let hh = ((date.getHours())<10?"0":"")+""+(date.getHours());
 			let mm = ((date.getMinutes())<10?"0":"")+""+(date.getMinutes());
 			let ss = ((date.getSeconds())<10?"0":"")+""+(date.getSeconds());
-			return YYYY+"-"+MM+"-"+DD+" "+hh+":"+mm+":"+ss;
+			return YYYY + "-" + MM + "-" + DD + " " + hh + ":" + mm + ":" + ss;
 		}
 
 		function generatePrettyTimeAgo(t) {
