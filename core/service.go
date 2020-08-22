@@ -42,6 +42,11 @@ func (service *Service) Validate() {
 	if len(service.Headers) == 0 {
 		service.Headers = make(map[string]string)
 	}
+	for _, alert := range service.Alerts {
+		if alert.Threshold <= 0 {
+			alert.Threshold = 3
+		}
+	}
 	if len(service.Url) == 0 {
 		panic(ErrNoUrl)
 	}
@@ -73,6 +78,7 @@ func (service *Service) EvaluateConditions() *Result {
 	result.Timestamp = time.Now()
 	if result.Success {
 		service.numberOfFailuresInARow = 0
+		// TODO: Send notification that alert has been resolved?
 	} else {
 		service.numberOfFailuresInARow++
 	}
