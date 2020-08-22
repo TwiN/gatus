@@ -41,17 +41,22 @@ Note that you can also add environment variables in the your configuration file 
 
 ### Configuration
 
-| Parameter               | Description                                                     | Default        |
-| ----------------------- | --------------------------------------------------------------- | -------------- |
-| `metrics`               | Whether to expose metrics at /metrics                           | `false`        |
-| `services[].name`       | Name of the service. Can be anything.                           | Required `""`  |
-| `services[].url`        | URL to send the request to                                      | Required `""`  |
-| `services[].conditions` | Conditions used to determine the health of the service          | `[]`           |
-| `services[].interval`   | Duration to wait between every status check                     | `10s`          |
-| `services[].method`     | Request method                                                  | `GET`          |
-| `services[].graphql`    | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
-| `services[].body`       | Request body                                                    | `""`           |
-| `services[].headers`    | Request headers                                                 | `{}`           |
+| Parameter                         | Description                                                     | Default        |
+| --------------------------------- | --------------------------------------------------------------- | -------------- |
+| `metrics`                         | Whether to expose metrics at /metrics                           | `false`        |
+| `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
+| `services[].name`                 | Name of the service. Can be anything.                           | Required `""`  |
+| `services[].url`                  | URL to send the request to                                      | Required `""`  |
+| `services[].conditions`           | Conditions used to determine the health of the service          | `[]`           |
+| `services[].interval`             | Duration to wait between every status check                     | `10s`          |
+| `services[].method`               | Request method                                                  | `GET`          |
+| `services[].graphql`              | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
+| `services[].body`                 | Request body                                                    | `""`           |
+| `services[].headers`              | Request headers                                                 | `{}`           |
+| `services[].alerts[].type`        | Type of alert. Currently, only `slack` is supported             | Required `""`  |
+| `services[].alerts[].enabled`     | Whether to enable the alert                                     | `false`        |
+| `services[].alerts[].threshold`   | Number of failures in a row needed before triggering the alert  | `3`            |
+| `services[].alerts[].description` | Description of the alert. Will be included in the alert sent    | `""`           |
 
 
 ### Conditions
@@ -133,4 +138,28 @@ services:
 will send a `POST` request to `http://localhost:8080/playground` with the following body:
 ```json
 {"query":"      {\n        user(gender: \"female\") {\n          id\n          name\n          gender\n          avatar\n        }\n      }"}
+```
+
+
+### Configuring Slack alerts
+
+```yaml
+alerting:
+  slack: https://hooks.slack.com/services/**********/**********/**********
+services:
+  - name: twinnation
+    interval: 30s
+    url: https://twinnation.org/health
+    alerts:
+      - type: slack
+        enabled: true
+        description: "healthcheck failed 3 times in a row"
+      - type: slack
+        enabled: true
+        threshold: 5
+        description: "healthcheck failed 5 times in a row"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
 ```
