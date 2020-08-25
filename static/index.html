@@ -157,8 +157,11 @@
 					targetLeftPosition += -targetLeftPosition;
 				}
 			}
-			if (targetTopPosition + window.scrollY + tooltipBoundingClientRect.height + 50 > document.body.getBoundingClientRect().height) {
-				targetTopPosition = element.getBoundingClientRect().y - (tooltipBoundingClientRect.height + 10)
+			if (targetTopPosition + window.scrollY + tooltipBoundingClientRect.height + 50 > document.body.getBoundingClientRect().height && targetTopPosition >= 0) {
+				targetTopPosition = element.getBoundingClientRect().y - (tooltipBoundingClientRect.height + 10);
+				if (targetTopPosition < 0) {
+					targetTopPosition = element.getBoundingClientRect().y + 30;
+				}
 			}
 			$("#tooltip").css({top: targetTopPosition + "px", left: targetLeftPosition + "px"});
 		}
