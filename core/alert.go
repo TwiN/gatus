@@ -18,5 +18,6 @@ type Alert struct {
 type AlertType string
 
 const (
-	SlackAlert AlertType = "slack"
+	SlackAlert  AlertType = "slack"
+	CustomAlert AlertType = "custom"
 )

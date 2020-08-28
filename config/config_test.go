@@ -143,7 +143,7 @@ services:
 		t.Error("Metrics should've been false by default")
 	}
 	if config.Alerting == nil {
-		t.Fatal("config.Alerting shouldn't have been nil")
+		t.Fatal("config.AlertingConfig shouldn't have been nil")
 	}
 	if config.Alerting.Slack != "http://example.com" {
 		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack)

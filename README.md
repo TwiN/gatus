@@ -11,6 +11,20 @@ I personally deploy it in my Kubernetes cluster and have it monitor the status o
 core applications: https://status.twinnation.org/
 
 
+## Table of Contents
+
+- [Usage](#usage)
+  - [Configuration](#configuration)
+  - [Conditions](#conditions)
+- [Docker](#docker)
+- [Running the tests](#running-the-tests)
+- [Using in Production](#using-in-production)
+- [FAQ](#faq)
+  - [Sending a GraphQL request](#sending-a-graphql-request)
+  - [Configuring Slack alerts](#configuring-slack-alerts)
+  - [Configuring custom alert](#configuring-custom-alerts)
+
+
 ## Usage
 
 By default, the configuration file is expected to be at `config/config.yaml`.
@@ -23,14 +37,14 @@ Here's a simple example:
 metrics: true         # Whether to expose metrics at /metrics
 services:
   - name: twinnation  # Name of your service, can be anything
-    url: https://twinnation.org/health
-    interval: 15s     # Duration to wait between every status check (default: 10s)
+    url: "https://twinnation.org/health"
+    interval: 30s     # Duration to wait between every status check (default: 10s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
   - name: example
-    url: https://example.org/
+    url: "https://example.org/"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -44,7 +58,7 @@ Note that you can also add environment variables in the your configuration file 
 | Parameter                         | Description                                                     | Default        |
 | --------------------------------- | --------------------------------------------------------------- | -------------- |
 | `metrics`                         | Whether to expose metrics at /metrics                           | `false`        |
-| `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
+| `services`                        | List of services to monitor                                     | Required `[]`  |
 | `services[].name`                 | Name of the service. Can be anything.                           | Required `""`  |
 | `services[].url`                  | URL to send the request to                                      | Required `""`  |
 | `services[].conditions`           | Conditions used to determine the health of the service          | `[]`           |
@@ -53,10 +67,16 @@ Note that you can also add environment variables in the your configuration file 
 | `services[].graphql`              | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
 | `services[].body`                 | Request body                                                    | `""`           |
 | `services[].headers`              | Request headers                                                 | `{}`           |
-| `services[].alerts[].type`        | Type of alert. Currently, only `slack` is supported             | Required `""`  |
+| `services[].alerts[].type`        | Type of alert. Valid types: `slack`, `custom`                   | Required `""`  |
 | `services[].alerts[].enabled`     | Whether to enable the alert                                     | `false`        |
 | `services[].alerts[].threshold`   | Number of failures in a row needed before triggering the alert  | `3`            |
 | `services[].alerts[].description` | Description of the alert. Will be included in the alert sent    | `""`           |
+| `alerting`                        | Configuration for alerting                                      | `{}`           |
+| `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
+| `alerting.custom`                 | Configuration for custom actions on failure or alerts           | `""`           |
+| `alerting.custom.url`             | Custom alerting request url                                     | `""`           |
+| `alerting.custom.body`            | Custom alerting request body.                                   | `""`           |
+| `alerting.custom.headers`         | Custom alerting request headers                                 | `{}`           |
 
 
 ### Conditions
@@ -145,11 +165,11 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 ```yaml
 alerting:
-  slack: https://hooks.slack.com/services/**********/**********/**********
+  slack: "https://hooks.slack.com/services/**********/**********/**********"
 services:
   - name: twinnation
     interval: 30s
-    url: https://twinnation.org/health
+    url: "https://twinnation.org/health"
     alerts:
       - type: slack
         enabled: true
@@ -158,6 +178,45 @@ services:
         enabled: true
         threshold: 5
         description: "healthcheck failed 5 times in a row"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+
+### Configuring custom alerts
+
+While they're called alerts, you can use this feature to call anything. 
+
+For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by 
+leveraging Gatus, you could have Gatus call that application endpoint when a service starts failing. Your application
+would then check if the service that started failing was recently deployed, and if it was, then automatically 
+roll it back.
+
+The values `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and the 
+service name accordingly in the body (`alerting.custom.body`) and the url (`alerting.custom.url`).
+
+For all intents and purpose, we'll configure the custom alert with a Slack webhook, but you can call anything you want.
+
+```yaml
+alerting:
+  custom:
+    url: "https://hooks.slack.com/services/**********/**********/**********"
+    method: "POST"
+    body: |
+      {
+        "text": "[SERVICE_NAME] - [ALERT_DESCRIPTION]"
+      }
+services:
+  - name: twinnation
+    interval: 30s
+    url: "https://twinnation.org/health"
+    alerts:
+      - type: custom
+        enabled: true
+        threshold: 10
+        description: "healthcheck failed 10 times in a row"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"

@@ -21,9 +21,9 @@ var (
 )
 
 type Config struct {
-	Metrics  bool            `yaml:"metrics"`
-	Alerting *core.Alerting  `yaml:"alerting"`
-	Services []*core.Service `yaml:"services"`
+	Metrics  bool                 `yaml:"metrics"`
+	Alerting *core.AlertingConfig `yaml:"alerting"`
+	Services []*core.Service      `yaml:"services"`
 }
 
 func Get() *Config {

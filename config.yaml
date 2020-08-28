@@ -9,7 +9,7 @@ services:
       - "[RESPONSE_TIME] < 1000"
   - name: twinnation-articles-api
     interval: 30s
-    url: https://twinnation.org/api/v1/articles/24
+    url: "https://twinnation.org/api/v1/articles/24"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].id == 24"
