@@ -195,7 +195,7 @@ would then check if the service that started failing was recently deployed, and 
 roll it back.
 
 The values `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and the 
-service name accordingly in the body (`alerting.custom.body`) and the url (`alerting.custom.url`).
+service name respectively in the body (`alerting.custom.body`) and the url (`alerting.custom.url`).
 
 For all intents and purpose, we'll configure the custom alert with a Slack webhook, but you can call anything you want.
 
