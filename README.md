@@ -13,6 +13,7 @@ core applications: https://status.twinnation.org/
 
 ## Table of Contents
 
+- [Features](#features)
 - [Usage](#usage)
   - [Configuration](#configuration)
   - [Conditions](#conditions)
@@ -23,6 +24,17 @@ core applications: https://status.twinnation.org/
   - [Sending a GraphQL request](#sending-a-graphql-request)
   - [Configuring Slack alerts](#configuring-slack-alerts)
   - [Configuring custom alert](#configuring-custom-alerts)
+
+
+## Features
+
+The main features of Gatus are:
+- **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
+- **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
+- **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
+- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider like PagerDuty or a custom application that manages automated rollbacks. 
+- **Metrics**
+- **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 
 
 ## Usage
@@ -49,6 +61,10 @@ services:
     conditions:
       - "[STATUS] == 200"
 ```
+
+This example would look like this:
+
+![Simple example](.github/assets/example.png)
 
 Note that you can also add environment variables in the your configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
 
@@ -83,20 +99,18 @@ Note that you can also add environment variables in the your configuration file 
 
 Here are some examples of conditions you can use:
 
-| Condition                    | Description                                             | Passing values           | Failing values          |
-| -----------------------------| ------------------------------------------------------- | ------------------------ | ----------------------- |
-| `[STATUS] == 200`            | Status must be equal to 200                             | 200                      | 201, 404, 500           |
-| `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299            | 301, 302, 400, 500      |
-| `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299            | 301, 302, 400, 500      |
-| `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404       | 200, 201, 300, 400      |
-| `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms      | 500ms, 1500ms           |
-| `[BODY] == 1`                | The body must be equal to 1                             | 1                        | literally anything else |
-| `[BODY].data.id == 1`        | The jsonpath `$.data.id` is equal to 1                  | `{"data":{"id":1}}`      | literally anything else |
-| `[BODY].data[0].id == 1`     | The jsonpath `$.data[0].id` is equal to 1               | `{"data":[{"id":1}]}`    | literally anything else |
-| `len([BODY].data) > 0`       | Array at jsonpath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`    | `{"data":[{"id":1}]}`   |
-| `len([BODY].name) == 8`      | String at jsonpath `$.name` has a length of 8           | `{"name":"john.doe"}`    | `{"name":"bob"}`        |
-
-**NOTE**: `[BODY]` with JSON path (i.e. `[BODY].id == 1`) is currently in BETA. For the most part, the only thing that doesn't work is arrays.
+| Condition                    | Description                                             | Passing values           | Failing values |
+| -----------------------------| ------------------------------------------------------- | ------------------------ | -------------- |
+| `[STATUS] == 200`            | Status must be equal to 200                             | 200                      | 201, 404, ...  |
+| `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299            | 301, 302, ...  |
+| `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299            | 301, 302, ...  |
+| `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404       | 400, 200, ...  |
+| `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms      | 500ms, 501ms   |
+| `[BODY] == 1`                | The body must be equal to 1                             | 1                        | Anything else  |
+| `[BODY].data.id == 1`        | The jsonpath `$.data.id` is equal to 1                  | `{"data":{"id":1}}`      |  |
+| `[BODY].data[0].id == 1`     | The jsonpath `$.data[0].id` is equal to 1               | `{"data":[{"id":1}]}`    |  |
+| `len([BODY].data) > 0`       | Array at jsonpath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`    |  |
+| `len([BODY].name) == 8`      | String at jsonpath `$.name` has a length of 8           | `{"name":"john.doe"}`    | `{"name":"bob"}` |
 
 
 ## Docker
