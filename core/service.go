@@ -34,7 +34,7 @@ type Service struct {
 func (service *Service) Validate() {
 	// Set default values
 	if service.Interval == 0 {
-		service.Interval = 10 * time.Second
+		service.Interval = 1 * time.Minute
 	}
 	if len(service.Method) == 0 {
 		service.Method = http.MethodGet

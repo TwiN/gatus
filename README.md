@@ -50,7 +50,7 @@ metrics: true         # Whether to expose metrics at /metrics
 services:
   - name: twinnation  # Name of your service, can be anything
     url: "https://twinnation.org/health"
-    interval: 30s     # Duration to wait between every status check (default: 10s)
+    interval: 30s     # Duration to wait between every status check (default: 60s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
@@ -78,7 +78,7 @@ Note that you can also add environment variables in the your configuration file 
 | `services[].name`                 | Name of the service. Can be anything.                           | Required `""`  |
 | `services[].url`                  | URL to send the request to                                      | Required `""`  |
 | `services[].conditions`           | Conditions used to determine the health of the service          | `[]`           |
-| `services[].interval`             | Duration to wait between every status check                     | `10s`          |
+| `services[].interval`             | Duration to wait between every status check                     | `60s`          |
 | `services[].method`               | Request method                                                  | `GET`          |
 | `services[].graphql`              | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
 | `services[].body`                 | Request body                                                    | `""`           |
