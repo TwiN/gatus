@@ -17,16 +17,34 @@ var (
 	ErrNoUrl       = errors.New("you must specify an url for each service")
 )
 
+// Service is the configuration of a monitored endpoint
 type Service struct {
-	Name       string            `yaml:"name"`
-	Url        string            `yaml:"url"`
-	Method     string            `yaml:"method,omitempty"`
-	Body       string            `yaml:"body,omitempty"`
-	GraphQL    bool              `yaml:"graphql,omitempty"`
-	Headers    map[string]string `yaml:"headers,omitempty"`
-	Interval   time.Duration     `yaml:"interval,omitempty"`
-	Conditions []*Condition      `yaml:"conditions"`
-	Alerts     []*Alert          `yaml:"alerts"`
+	// Name of the service. Can be anything.
+	Name string `yaml:"name"`
+
+	// URL to send the request to
+	Url string `yaml:"url"`
+
+	// Method of the request made to the url of the service
+	Method string `yaml:"method,omitempty"`
+
+	// Body of the request
+	Body string `yaml:"body,omitempty"`
+
+	// GraphQL is whether to wrap the body in a query param ({"query":"$body"})
+	GraphQL bool `yaml:"graphql,omitempty"`
+
+	// Headers of the request
+	Headers map[string]string `yaml:"headers,omitempty"`
+
+	// Interval is the duration to wait between every status check
+	Interval time.Duration `yaml:"interval,omitempty"`
+
+	// Conditions used to determine the health of the service
+	Conditions []*Condition `yaml:"conditions"`
+
+	// Alerts is the alerting configuration for the service in case of failure
+	Alerts []*Alert `yaml:"alerts"`
 
 	numberOfFailuresInARow int
 }
