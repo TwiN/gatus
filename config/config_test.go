@@ -40,8 +40,8 @@ services:
 	if config.Services[0].Interval != 15*time.Second {
 		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
-	if config.Services[1].Interval != 10*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	if config.Services[1].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if len(config.Services[0].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
@@ -71,8 +71,8 @@ services:
 	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
-	if config.Services[0].Interval != 10*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	if config.Services[0].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 }
 
@@ -97,8 +97,8 @@ services:
 	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
-	if config.Services[0].Interval != 10*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	if config.Services[0].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 }
 
@@ -154,8 +154,8 @@ services:
 	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
-	if config.Services[0].Interval != 10*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 10*time.Second)
+	if config.Services[0].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if config.Services[0].Alerts == nil {
 		t.Fatal("The service alerts shouldn't have been nil")
