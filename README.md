@@ -23,6 +23,7 @@ core applications: https://status.twinnation.org/
 - [FAQ](#faq)
   - [Sending a GraphQL request](#sending-a-graphql-request)
   - [Configuring Slack alerts](#configuring-slack-alerts)
+  - [Configuring Twilio alerts](#configuring-twilio-alerts)
   - [Configuring custom alert](#configuring-custom-alerts)
 
 
@@ -83,12 +84,17 @@ Note that you can also add environment variables in the your configuration file 
 | `services[].graphql`              | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
 | `services[].body`                 | Request body                                                    | `""`           |
 | `services[].headers`              | Request headers                                                 | `{}`           |
-| `services[].alerts[].type`        | Type of alert. Valid types: `slack`, `custom`                   | Required `""`  |
+| `services[].alerts[].type`        | Type of alert. Valid types: `slack`, `twilio`, `custom`         | Required `""`  |
 | `services[].alerts[].enabled`     | Whether to enable the alert                                     | `false`        |
 | `services[].alerts[].threshold`   | Number of failures in a row needed before triggering the alert  | `3`            |
 | `services[].alerts[].description` | Description of the alert. Will be included in the alert sent    | `""`           |
 | `alerting`                        | Configuration for alerting                                      | `{}`           |
 | `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
+| `alerting.twilio`                 | Settings for alerts of type `twilio`                            | `""`           |
+| `alerting.twilio.SID`             | Twilio account SID                                              | Required `""`  |
+| `alerting.twilio.Token`           | Twilio auth Token                                               | Required `""`  |
+| `alerting.twilio.From`            | Number to send twilio alerts from                               | Required `""`  |
+| `alerting.twilio.To`              | Number to send twilio alerts to                                 | Required `""`  |
 | `alerting.custom`                 | Configuration for custom actions on failure or alerts           | `""`           |
 | `alerting.custom.url`             | Custom alerting request url                                     | `""`           |
 | `alerting.custom.body`            | Custom alerting request body.                                   | `""`           |
@@ -189,6 +195,33 @@ services:
         enabled: true
         description: "healthcheck failed 3 times in a row"
       - type: slack
+        enabled: true
+        threshold: 5
+        description: "healthcheck failed 5 times in a row"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+### Configuring Twilio alerts
+
+```yaml
+alerting:
+  twilio:
+    SID: ****
+    Token: ****
+    From: +1-234-567-8901
+    To: +1-234-567-8901
+services:
+  - name: twinnation
+    interval: 30s
+    url: "https://twinnation.org/health"
+    alerts:
+      - type: twilio
+        enabled: true
+        description: "healthcheck failed 3 times in a row"
+      - type: twilio
         enabled: true
         threshold: 5
         description: "healthcheck failed 5 times in a row"
