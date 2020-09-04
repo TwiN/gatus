@@ -91,10 +91,10 @@ Note that you can also add environment variables in the your configuration file 
 | `alerting`                        | Configuration for alerting                                      | `{}`           |
 | `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
 | `alerting.twilio`                 | Settings for alerts of type `twilio`                            | `""`           |
-| `alerting.twilio.SID`             | Twilio account SID                                              | Required `""`  |
-| `alerting.twilio.Token`           | Twilio auth Token                                               | Required `""`  |
-| `alerting.twilio.From`            | Number to send twilio alerts from                               | Required `""`  |
-| `alerting.twilio.To`              | Number to send twilio alerts to                                 | Required `""`  |
+| `alerting.twilio.sid`             | Twilio account SID                                              | Required `""`  |
+| `alerting.twilio.token`           | Twilio auth token                                               | Required `""`  |
+| `alerting.twilio.from`            | Number to send Twilio alerts from                               | Required `""`  |
+| `alerting.twilio.to`              | Number to send twilio alerts to                                 | Required `""`  |
 | `alerting.custom`                 | Configuration for custom actions on failure or alerts           | `""`           |
 | `alerting.custom.url`             | Custom alerting request url                                     | `""`           |
 | `alerting.custom.body`            | Custom alerting request body.                                   | `""`           |
