@@ -10,7 +10,15 @@ import (
 
 type AlertingConfig struct {
 	Slack  string               `yaml:"slack"`
+	Twilio *TwilioAlertProvider `yaml:"twilio"`
 	Custom *CustomAlertProvider `yaml:"custom"`
+}
+
+type TwilioAlertProvider struct {
+	SID   string `yaml:"sid"`
+	Token string `yaml:"token"`
+	From  string `yaml:"from"`
+	To    string `yaml:"to"`
 }
 
 type CustomAlertProvider struct {

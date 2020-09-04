@@ -19,5 +19,6 @@ type AlertType string
 
 const (
 	SlackAlert  AlertType = "slack"
+	TwilioAlert AlertType = "twilio"
 	CustomAlert AlertType = "custom"
 )

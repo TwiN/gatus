@@ -1,11 +1,13 @@
 package watchdog
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
 	"log"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -70,6 +72,28 @@ func monitor(service *core.Service) {
 						}
 					} else {
 						log.Printf("[watchdog][monitor] Not sending Slack alert despite being triggered, because there is no Slack webhook configured")
+					}
+				} else if alertTriggered.Type == core.TwilioAlert {
+					if len(cfg.Alerting.Twilio.Token) > 0 &&
+						len(cfg.Alerting.Twilio.SID) > 0 &&
+						len(cfg.Alerting.Twilio.From) > 0 &&
+						len(cfg.Alerting.Twilio.To) > 0 {
+						log.Printf("[watchdog][monitor] Sending Twilio alert because alert with description=%s has been triggered", alertTriggered.Description)
+						alertProvider = &core.CustomAlertProvider{
+							Url:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", cfg.Alerting.Twilio.SID),
+							Method: "POST",
+							Body: url.Values{
+								"To":   {cfg.Alerting.Twilio.To},
+								"From": {cfg.Alerting.Twilio.From},
+								"Body": {fmt.Sprintf("%s - %s", service.Name, alertTriggered.Description)},
+							}.Encode(),
+							Headers: map[string]string{
+								"Content-Type":  "application/x-www-form-urlencoded",
+								"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", cfg.Alerting.Twilio.SID, cfg.Alerting.Twilio.Token)))),
+							},
+						}
+					} else {
+						log.Printf("[watchdog][monitor] Not sending Twilio alert despite being triggered, because twilio config settings missing")
 					}
 				} else if alertTriggered.Type == core.CustomAlert {
 					if cfg.Alerting.Custom != nil && len(cfg.Alerting.Custom.Url) > 0 {
