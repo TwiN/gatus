@@ -13,6 +13,9 @@ type Alert struct {
 
 	// Description of the alert. Will be included in the alert sent.
 	Description string `yaml:"description"`
+
+	// SendOnResolved defines whether to send a second notification when the issue has been resolved
+	SendOnResolved bool `yaml:"send-on-resolved"`
 }
 
 type AlertType string

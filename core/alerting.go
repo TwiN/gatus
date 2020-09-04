@@ -21,11 +21,19 @@ type TwilioAlertProvider struct {
 	To    string `yaml:"to"`
 }
 
+func (provider *TwilioAlertProvider) IsValid() bool {
+	return len(provider.Token) > 0 && len(provider.SID) > 0 && len(provider.From) > 0 && len(provider.To) > 0
+}
+
 type CustomAlertProvider struct {
 	Url     string            `yaml:"url"`
 	Method  string            `yaml:"method,omitempty"`
 	Body    string            `yaml:"body,omitempty"`
 	Headers map[string]string `yaml:"headers,omitempty"`
+}
+
+func (provider *CustomAlertProvider) IsValid() bool {
+	return len(provider.Url) > 0
 }
 
 func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription string) *http.Request {
