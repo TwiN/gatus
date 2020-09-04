@@ -24,7 +24,7 @@ core applications: https://status.twinnation.org/
   - [Sending a GraphQL request](#sending-a-graphql-request)
   - [Configuring Slack alerts](#configuring-slack-alerts)
   - [Configuring Twilio alerts](#configuring-twilio-alerts)
-  - [Configuring custom alert](#configuring-custom-alerts)
+  - [Configuring custom alerts](#configuring-custom-alerts)
 
 
 ## Features
