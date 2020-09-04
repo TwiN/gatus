@@ -209,10 +209,10 @@ services:
 ```yaml
 alerting:
   twilio:
-    SID: ****
-    Token: ****
-    From: +1-234-567-8901
-    To: +1-234-567-8901
+    sid: ****
+    token: ****
+    from: +1-234-567-8901
+    to: +1-234-567-8901
 services:
   - name: twinnation
     interval: 30s
