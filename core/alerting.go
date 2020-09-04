@@ -15,10 +15,10 @@ type AlertingConfig struct {
 }
 
 type TwilioAlertProvider struct {
-	SID   string `yaml:"SID"`
-	Token string `yaml:"Token"`
-	From  string `yaml:"From"`
-	To    string `yaml:"To"`
+	SID   string `yaml:"sid"`
+	Token string `yaml:"token"`
+	From  string `yaml:"from"`
+	To    string `yaml:"to"`
 }
 
 type CustomAlertProvider struct {
