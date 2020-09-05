@@ -38,31 +38,45 @@ func (provider *CustomAlertProvider) IsValid() bool {
 	return len(provider.Url) > 0
 }
 
-func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription string) *http.Request {
+func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
-	url := provider.Url
-	if strings.Contains(provider.Body, "[ALERT_DESCRIPTION]") {
-		body = strings.ReplaceAll(provider.Body, "[ALERT_DESCRIPTION]", alertDescription)
+	providerUrl := provider.Url
+	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
+		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
 	}
-	if strings.Contains(provider.Body, "[SERVICE_NAME]") {
-		body = strings.ReplaceAll(provider.Body, "[SERVICE_NAME]", serviceName)
+	if strings.Contains(body, "[SERVICE_NAME]") {
+		body = strings.ReplaceAll(body, "[SERVICE_NAME]", serviceName)
 	}
-	if strings.Contains(provider.Url, "[ALERT_DESCRIPTION]") {
-		url = strings.ReplaceAll(provider.Url, "[ALERT_DESCRIPTION]", alertDescription)
+	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
+		if resolved {
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
+		} else {
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
+		}
 	}
-	if strings.Contains(provider.Url, "[SERVICE_NAME]") {
-		url = strings.ReplaceAll(provider.Url, "[SERVICE_NAME]", serviceName)
+	if strings.Contains(providerUrl, "[ALERT_DESCRIPTION]") {
+		providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_DESCRIPTION]", alertDescription)
+	}
+	if strings.Contains(providerUrl, "[SERVICE_NAME]") {
+		providerUrl = strings.ReplaceAll(providerUrl, "[SERVICE_NAME]", serviceName)
+	}
+	if strings.Contains(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]") {
+		if resolved {
+			providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
+		} else {
+			providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
+		}
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
-	request, _ := http.NewRequest(provider.Method, url, bodyBuffer)
+	request, _ := http.NewRequest(provider.Method, providerUrl, bodyBuffer)
 	for k, v := range provider.Headers {
 		request.Header.Set(k, v)
 	}
 	return request
 }
 
-func (provider *CustomAlertProvider) Send(serviceName, alertDescription string) error {
-	request := provider.buildRequest(serviceName, alertDescription)
+func (provider *CustomAlertProvider) Send(serviceName, alertDescription string, resolved bool) error {
+	request := provider.buildRequest(serviceName, alertDescription, resolved)
 	response, err := client.GetHttpClient().Do(request)
 	if err != nil {
 		return err

@@ -248,7 +248,10 @@ would then check if the service that started failing was recently deployed, and 
 roll it back.
 
 The values `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and the 
-service name respectively in the body (`alerting.custom.body`) and the url (`alerting.custom.url`).
+service name respectively in the body (`alerting.custom.body`) as well as the url (`alerting.custom.url`).
+
+If you have `send-on-resolved` set to `true`, you may want to use `[ALERT_TRIGGERED_OR_RESOLVED]` to differentiate
+the notifications. It will be replaced for either `TRIGGERED` or `RESOLVED`, based on the situation.
 
 For all intents and purpose, we'll configure the custom alert with a Slack webhook, but you can call anything you want.
 
@@ -259,7 +262,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[SERVICE_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
       }
 services:
   - name: twinnation
@@ -269,6 +272,7 @@ services:
       - type: custom
         enabled: true
         threshold: 10
+        send-on-resolved: true
         description: "healthcheck failed 10 times in a row"
     conditions:
       - "[STATUS] == 200"

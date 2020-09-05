@@ -100,14 +100,14 @@ func handleAlerting(service *core.Service, result *core.Result) {
 					}
 				} else if alert.Type == core.TwilioAlert {
 					if cfg.Alerting.Twilio != nil && cfg.Alerting.Twilio.IsValid() {
-						log.Printf("[watchdog][monitor] Sending Twilio alert because alert with description=%s has been triggered", alert.Description)
-						alertProvider = core.CreateTwilioCustomAlertProvider(cfg.Alerting.Twilio, fmt.Sprintf("%s - %s", service.Name, alert.Description))
+						log.Printf("[watchdog][monitor] Sending Twilio alert because alert with description=%s has been resolved", alert.Description)
+						alertProvider = core.CreateTwilioCustomAlertProvider(cfg.Alerting.Twilio, fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description))
 					} else {
-						log.Printf("[watchdog][monitor] Not sending Twilio alert despite being triggered, because Twilio isn't configured properly'")
+						log.Printf("[watchdog][monitor] Not sending Twilio alert despite being resolved, because Twilio isn't configured properly")
 					}
 				} else if alert.Type == core.CustomAlert {
 					if cfg.Alerting.Custom != nil && cfg.Alerting.Custom.IsValid() {
-						log.Printf("[watchdog][monitor] Sending custom alert because alert with description=%s has been triggered", alert.Description)
+						log.Printf("[watchdog][monitor] Sending custom alert because alert with description=%s has been resolved", alert.Description)
 						alertProvider = &core.CustomAlertProvider{
 							Url:     cfg.Alerting.Custom.Url,
 							Method:  cfg.Alerting.Custom.Method,
@@ -115,11 +115,11 @@ func handleAlerting(service *core.Service, result *core.Result) {
 							Headers: cfg.Alerting.Custom.Headers,
 						}
 					} else {
-						log.Printf("[watchdog][monitor] Not sending custom alert despite being triggered, because there is no custom url configured")
+						log.Printf("[watchdog][monitor] Not sending custom alert despite being resolved, because the custom provider isn't configured properly")
 					}
 				}
 				if alertProvider != nil {
-					err := alertProvider.Send(service.Name, alert.Description)
+					err := alertProvider.Send(service.Name, alert.Description, true)
 					if err != nil {
 						log.Printf("[watchdog][monitor] Ran into error sending an alert: %s", err.Error())
 					}
@@ -145,7 +145,7 @@ func handleAlerting(service *core.Service, result *core.Result) {
 			} else if alert.Type == core.TwilioAlert {
 				if cfg.Alerting.Twilio != nil && cfg.Alerting.Twilio.IsValid() {
 					log.Printf("[watchdog][monitor] Sending Twilio alert because alert with description=%s has been triggered", alert.Description)
-					alertProvider = core.CreateTwilioCustomAlertProvider(cfg.Alerting.Twilio, fmt.Sprintf("%s - %s", service.Name, alert.Description))
+					alertProvider = core.CreateTwilioCustomAlertProvider(cfg.Alerting.Twilio, fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description))
 				} else {
 					log.Printf("[watchdog][monitor] Not sending Twilio alert despite being triggered, because Twilio config settings missing")
 				}
@@ -163,7 +163,7 @@ func handleAlerting(service *core.Service, result *core.Result) {
 				}
 			}
 			if alertProvider != nil {
-				err := alertProvider.Send(service.Name, alert.Description)
+				err := alertProvider.Send(service.Name, alert.Description, false)
 				if err != nil {
 					log.Printf("[watchdog][monitor] Ran into error sending an alert: %s", err.Error())
 				}
