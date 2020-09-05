@@ -46,7 +46,7 @@ type Service struct {
 	// Alerts is the alerting configuration for the service in case of failure
 	Alerts []*Alert `yaml:"alerts"`
 
-	numberOfFailuresInARow int
+	NumberOfFailuresInARow int
 }
 
 func (service *Service) Validate() {
@@ -94,22 +94,16 @@ func (service *Service) EvaluateConditions() *Result {
 		}
 	}
 	result.Timestamp = time.Now()
-	if result.Success {
-		service.numberOfFailuresInARow = 0
-		// TODO: Send notification that alert has been resolved?
-	} else {
-		service.numberOfFailuresInARow++
-	}
 	return result
 }
 
 func (service *Service) GetAlertsTriggered() []Alert {
 	var alerts []Alert
-	if service.numberOfFailuresInARow == 0 {
+	if service.NumberOfFailuresInARow == 0 {
 		return alerts
 	}
 	for _, alert := range service.Alerts {
-		if alert.Enabled && alert.Threshold == service.numberOfFailuresInARow {
+		if alert.Enabled && alert.Threshold == service.NumberOfFailuresInARow {
 			alerts = append(alerts, *alert)
 			continue
 		}
