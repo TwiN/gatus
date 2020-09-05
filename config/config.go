@@ -22,6 +22,7 @@ var (
 
 type Config struct {
 	Metrics  bool                 `yaml:"metrics"`
+	Debug    bool                 `yaml:"debug"`
 	Alerting *core.AlertingConfig `yaml:"alerting"`
 	Services []*core.Service      `yaml:"services"`
 }

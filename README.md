@@ -67,38 +67,40 @@ This example would look like this:
 
 ![Simple example](.github/assets/example.png)
 
-Note that you can also add environment variables in the your configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
+Note that you can also add environment variables in the configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
 
 
 ### Configuration
 
-| Parameter                         | Description                                                     | Default        |
-| --------------------------------- | --------------------------------------------------------------- | -------------- |
-| `metrics`                         | Whether to expose metrics at /metrics                           | `false`        |
-| `services`                        | List of services to monitor                                     | Required `[]`  |
-| `services[].name`                 | Name of the service. Can be anything.                           | Required `""`  |
-| `services[].url`                  | URL to send the request to                                      | Required `""`  |
-| `services[].conditions`           | Conditions used to determine the health of the service          | `[]`           |
-| `services[].interval`             | Duration to wait between every status check                     | `60s`          |
-| `services[].method`               | Request method                                                  | `GET`          |
-| `services[].graphql`              | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
-| `services[].body`                 | Request body                                                    | `""`           |
-| `services[].headers`              | Request headers                                                 | `{}`           |
-| `services[].alerts[].type`        | Type of alert. Valid types: `slack`, `twilio`, `custom`         | Required `""`  |
-| `services[].alerts[].enabled`     | Whether to enable the alert                                     | `false`        |
-| `services[].alerts[].threshold`   | Number of failures in a row needed before triggering the alert  | `3`            |
-| `services[].alerts[].description` | Description of the alert. Will be included in the alert sent    | `""`           |
-| `alerting`                        | Configuration for alerting                                      | `{}`           |
-| `alerting.slack`                  | Webhook to use for alerts of type `slack`                       | `""`           |
-| `alerting.twilio`                 | Settings for alerts of type `twilio`                            | `""`           |
-| `alerting.twilio.sid`             | Twilio account SID                                              | Required `""`  |
-| `alerting.twilio.token`           | Twilio auth token                                               | Required `""`  |
-| `alerting.twilio.from`            | Number to send Twilio alerts from                               | Required `""`  |
-| `alerting.twilio.to`              | Number to send twilio alerts to                                 | Required `""`  |
-| `alerting.custom`                 | Configuration for custom actions on failure or alerts           | `""`           |
-| `alerting.custom.url`             | Custom alerting request url                                     | `""`           |
-| `alerting.custom.body`            | Custom alerting request body.                                   | `""`           |
-| `alerting.custom.headers`         | Custom alerting request headers                                 | `{}`           |
+| Parameter                              | Description                                                     | Default        |
+| -------------------------------------- | --------------------------------------------------------------- | -------------- |
+| `debug`                                | Whether to enable debug logs                                    | `false`        |
+| `metrics`                              | Whether to expose metrics at /metrics                           | `false`        |
+| `services`                             | List of services to monitor                                     | Required `[]`  |
+| `services[].name`                      | Name of the service. Can be anything.                           | Required `""`  |
+| `services[].url`                       | URL to send the request to                                      | Required `""`  |
+| `services[].conditions`                | Conditions used to determine the health of the service          | `[]`           |
+| `services[].interval`                  | Duration to wait between every status check                     | `60s`          |
+| `services[].method`                    | Request method                                                  | `GET`          |
+| `services[].graphql`                   | Whether to wrap the body in a query param (`{"query":"$body"}`) | `false`        |
+| `services[].body`                      | Request body                                                    | `""`           |
+| `services[].headers`                   | Request headers                                                 | `{}`           |
+| `services[].alerts[].type`             | Type of alert. Valid types: `slack`, `twilio`, `custom`         | Required `""`  |
+| `services[].alerts[].enabled`          | Whether to enable the alert                                     | `false`        |
+| `services[].alerts[].threshold`        | Number of failures in a row needed before triggering the alert  | `3`            |
+| `services[].alerts[].description`      | Description of the alert. Will be included in the alert sent    | `""`           |
+| `services[].alerts[].send-on-resolved` | Whether to send a notification once a triggered alert subsides  | `false`        |
+| `alerting`                             | Configuration for alerting                                      | `{}`           |
+| `alerting.slack`                       | Webhook to use for alerts of type `slack`                       | `""`           |
+| `alerting.twilio`                      | Settings for alerts of type `twilio`                            | `""`           |
+| `alerting.twilio.sid`                  | Twilio account SID                                              | Required `""`  |
+| `alerting.twilio.token`                | Twilio auth token                                               | Required `""`  |
+| `alerting.twilio.from`                 | Number to send Twilio alerts from                               | Required `""`  |
+| `alerting.twilio.to`                   | Number to send twilio alerts to                                 | Required `""`  |
+| `alerting.custom`                      | Configuration for custom actions on failure or alerts           | `""`           |
+| `alerting.custom.url`                  | Custom alerting request url                                     | `""`           |
+| `alerting.custom.body`                 | Custom alerting request body.                                   | `""`           |
+| `alerting.custom.headers`              | Custom alerting request headers                                 | `{}`           |
 
 
 ### Conditions
@@ -121,7 +123,7 @@ Here are some examples of conditions you can use:
 
 ## Docker
 
-Building the Docker image is done as following:
+Building the Docker image is done as follows:
 
 ```
 docker build . -t gatus
@@ -194,33 +196,37 @@ services:
       - type: slack
         enabled: true
         description: "healthcheck failed 3 times in a row"
+        send-on-resolved: true
       - type: slack
         enabled: true
         threshold: 5
         description: "healthcheck failed 5 times in a row"
+        send-on-resolved: true
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
 ```
 
+Here's an example of what the notifications look like:
+
+![Slack notifications](.github/assets/slack-alerts.png)
+
+
 ### Configuring Twilio alerts
 
 ```yaml
 alerting:
   twilio:
-    sid: ****
-    token: ****
-    from: +1-234-567-8901
-    to: +1-234-567-8901
+    sid: "..."
+    token: "..."
+    from: "+1-234-567-8901"
+    to: "+1-234-567-8901"
 services:
   - name: twinnation
     interval: 30s
     url: "https://twinnation.org/health"
     alerts:
-      - type: twilio
-        enabled: true
-        description: "healthcheck failed 3 times in a row"
       - type: twilio
         enabled: true
         threshold: 5

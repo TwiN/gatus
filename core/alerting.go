@@ -2,9 +2,11 @@ package core
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"github.com/TwinProduction/gatus/client"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -69,4 +71,65 @@ func (provider *CustomAlertProvider) Send(serviceName, alertDescription string) 
 		return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
 	}
 	return nil
+}
+
+func CreateSlackCustomAlertProvider(slackWebHookUrl string, service *Service, alert *Alert, result *Result, resolved bool) *CustomAlertProvider {
+	var message string
+	var color string
+	if resolved {
+		message = fmt.Sprintf("An alert for *%s* has been resolved after %d failures in a row", service.Name, service.NumberOfFailuresInARow)
+		color = "#36A64F"
+	} else {
+		message = fmt.Sprintf("An alert for *%s* has been triggered", service.Name)
+		color = "#DD0000"
+	}
+	var results string
+	for _, conditionResult := range result.ConditionResults {
+		var prefix string
+		if conditionResult.Success {
+			prefix = ":heavy_check_mark:"
+		} else {
+			prefix = ":x:"
+		}
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+	}
+	return &CustomAlertProvider{
+		Url:    slackWebHookUrl,
+		Method: "POST",
+		Body: fmt.Sprintf(`{
+  "text": "",
+  "attachments": [
+    {
+      "title": ":helmet_with_white_cross: Gatus",
+      "text": "%s:\n> %s",
+      "short": false,
+      "color": "%s",
+      "fields": [
+        {
+          "title": "Condition results",
+          "value": "%s",
+          "short": false
+        }
+      ]
+    },
+  ]
+}`, message, alert.Description, color, results),
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
+}
+
+func CreateTwilioCustomAlertProvider(provider *TwilioAlertProvider, message string) *CustomAlertProvider {
+	return &CustomAlertProvider{
+		Url:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
+		Method: "POST",
+		Body: url.Values{
+			"To":   {provider.To},
+			"From": {provider.From},
+			"Body": {message},
+		}.Encode(),
+		Headers: map[string]string{
+			"Content-Type":  "application/x-www-form-urlencoded",
+			"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", provider.SID, provider.Token)))),
+		},
+	}
 }

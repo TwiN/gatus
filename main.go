@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/watchdog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -53,12 +52,11 @@ func serviceResultsHandler(writer http.ResponseWriter, r *http.Request) {
 	if isExpired := cachedServiceResultsTimestamp.IsZero() || time.Now().Sub(cachedServiceResultsTimestamp) > CacheTTL; isExpired {
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		serviceResults := watchdog.GetServiceResults()
-		data, err := json.Marshal(serviceResults)
+		data, err := watchdog.GetJsonEncodedServiceResults()
 		if err != nil {
-			log.Printf("[main][serviceResultsHandler] Unable to marshall object to JSON: %s", err.Error())
+			log.Printf("[main][serviceResultsHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
-			_, _ = writer.Write([]byte("Unable to marshall object to JSON"))
+			_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
 			return
 		}
 		gzipWriter.Write(data)
