@@ -25,7 +25,7 @@ func main() {
 	cfg := loadConfiguration()
 	http.HandleFunc("/api/v1/results", serviceResultsHandler)
 	http.HandleFunc("/health", healthHandler)
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	http.Handle("/", GzipHandler(http.FileServer(http.Dir("./static"))))
 	if cfg.Metrics {
 		http.Handle("/metrics", promhttp.Handler())
 	}
