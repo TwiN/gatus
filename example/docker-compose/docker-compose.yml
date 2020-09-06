@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+    gatus:
+        image: twinproduction/gatus:latest
+        ports:
+          - 8080:8080
+        volumes:
+          - ./config.yaml:/config/config.yaml

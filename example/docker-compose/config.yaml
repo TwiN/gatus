@@ -1,0 +1,6 @@
+services:
+  - name: example
+    url: http://example.org
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
