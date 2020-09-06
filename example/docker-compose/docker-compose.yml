@@ -5,4 +5,4 @@ services:
         ports:
           - 8080:8080
         volumes:
-          - ./../minimal/config.yaml:/config/config.yaml
+          - ./config.yaml:/config/config.yaml
