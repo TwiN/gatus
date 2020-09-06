@@ -123,16 +123,8 @@ Here are some examples of conditions you can use:
 
 ## Docker
 
-Building the Docker image is done as follows:
-
 ```
-docker build . -t gatus
-```
-
-You can then run the container with the following command:
-
-```
-docker run -p 8080:8080 --name gatus gatus
+docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 
 
