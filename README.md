@@ -18,6 +18,7 @@ core applications: https://status.twinnation.org/
   - [Configuration](#configuration)
   - [Conditions](#conditions)
 - [Docker](#docker)
+  - [Docker Compose](#docker-compose)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -127,6 +128,20 @@ Here are some examples of conditions you can use:
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 
+### Docker Compose 
+
+```
+version: "3.8"
+services:
+    gatus:
+        image: twinproduction/gatus:latest
+        ports:
+          - 8080:8080
+        volumes:
+          - ./config.yaml:/config/config.yaml
+```
+
+An example `config.yaml` is found on the Usage section above.
 
 ## Running the tests
 
