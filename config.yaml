@@ -7,11 +7,10 @@ services:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 1000"
-  - name: twinnation-articles-api
-    interval: 30s
-    url: "https://twinnation.org/api/v1/articles/24"
+  - name: cat-fact
+    interval: 1m
+    url: "https://cat-fact.herokuapp.com/facts/random"
     conditions:
       - "[STATUS] == 200"
-      - "[BODY].id == 24"
-      - "[BODY].tags[0] == spring"
-      - "len([BODY].tags) > 0"
+      - "[BODY].deleted == false"
+      - "len([BODY].text) > 0"
