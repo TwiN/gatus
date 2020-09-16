@@ -46,7 +46,8 @@ type Service struct {
 	// Alerts is the alerting configuration for the service in case of failure
 	Alerts []*Alert `yaml:"alerts"`
 
-	NumberOfFailuresInARow int
+	NumberOfFailuresInARow  int
+	NumberOfSuccessesInARow int
 }
 
 func (service *Service) Validate() {
@@ -63,6 +64,9 @@ func (service *Service) Validate() {
 	for _, alert := range service.Alerts {
 		if alert.Threshold <= 0 {
 			alert.Threshold = 3
+		}
+		if alert.SuccessBeforeResolved <= 0 {
+			alert.SuccessBeforeResolved = 2
 		}
 	}
 	if len(service.Url) == 0 {

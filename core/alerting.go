@@ -5,15 +5,17 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/TwinProduction/gatus/client"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
 type AlertingConfig struct {
-	Slack  string               `yaml:"slack"`
-	Twilio *TwilioAlertProvider `yaml:"twilio"`
-	Custom *CustomAlertProvider `yaml:"custom"`
+	Slack     string               `yaml:"slack"`
+	PagerDuty string               `yaml:"pagerduty"`
+	Twilio    *TwilioAlertProvider `yaml:"twilio"`
+	Custom    *CustomAlertProvider `yaml:"custom"`
 }
 
 type TwilioAlertProvider struct {
@@ -75,26 +77,32 @@ func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription 
 	return request
 }
 
-func (provider *CustomAlertProvider) Send(serviceName, alertDescription string, resolved bool) error {
+// Send a request to the alert provider and return the body
+func (provider *CustomAlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	request := provider.buildRequest(serviceName, alertDescription, resolved)
 	response, err := client.GetHttpClient().Do(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if response.StatusCode > 399 {
-		return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
+		} else {
+			return nil, fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+		}
 	}
-	return nil
+	return ioutil.ReadAll(response.Body)
 }
 
 func CreateSlackCustomAlertProvider(slackWebHookUrl string, service *Service, alert *Alert, result *Result, resolved bool) *CustomAlertProvider {
 	var message string
 	var color string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after %d failures in a row", service.Name, service.NumberOfFailuresInARow)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", service.Name, alert.SuccessBeforeResolved)
 		color = "#36A64F"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered", service.Name)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", service.Name, alert.Threshold)
 		color = "#DD0000"
 	}
 	var results string
@@ -144,6 +152,27 @@ func CreateTwilioCustomAlertProvider(provider *TwilioAlertProvider, message stri
 		Headers: map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
 			"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", provider.SID, provider.Token)))),
+		},
+	}
+}
+
+// https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
+func CreatePagerDutyCustomAlertProvider(routingKey, eventAction, resolveKey string, service *Service, message string) *CustomAlertProvider {
+	return &CustomAlertProvider{
+		Url:    "https://events.pagerduty.com/v2/enqueue",
+		Method: "POST",
+		Body: fmt.Sprintf(`{
+  "routing_key": "%s",
+  "dedup_key": "%s",
+  "event_action": "%s",
+  "payload": {
+    "summary": "%s",
+    "source": "%s",
+    "severity": "critical"
+  }
+}`, routingKey, resolveKey, eventAction, message, service.Name),
+		Headers: map[string]string{
+			"Content-Type": "application/json",
 		},
 	}
 }
