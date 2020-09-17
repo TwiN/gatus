@@ -128,7 +128,7 @@ services:
     alerts:
       - type: slack
         enabled: true
-        threshold: 7
+        failure-threshold: 7
         description: "Healthcheck failed 7 times in a row"
     conditions:
       - "[STATUS] == 200"
@@ -166,8 +166,11 @@ services:
 	if !config.Services[0].Alerts[0].Enabled {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[0].Threshold != 7 {
-		t.Errorf("The threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[0].Threshold)
+	if config.Services[0].Alerts[0].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[0].FailureThreshold)
+	}
+	if config.Services[0].Alerts[0].FailureThreshold != 7 {
+		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
 	}
 	if config.Services[0].Alerts[0].Type != core.SlackAlert {
 		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)

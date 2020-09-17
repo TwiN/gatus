@@ -62,11 +62,11 @@ func (service *Service) Validate() {
 		service.Headers = make(map[string]string)
 	}
 	for _, alert := range service.Alerts {
-		if alert.Threshold <= 0 {
-			alert.Threshold = 3
+		if alert.FailureThreshold <= 0 {
+			alert.FailureThreshold = 3
 		}
-		if alert.SuccessBeforeResolved <= 0 {
-			alert.SuccessBeforeResolved = 2
+		if alert.SuccessThreshold <= 0 {
+			alert.SuccessThreshold = 2
 		}
 	}
 	if len(service.Url) == 0 {
@@ -107,7 +107,7 @@ func (service *Service) GetAlertsTriggered() []Alert {
 		return alerts
 	}
 	for _, alert := range service.Alerts {
-		if alert.Enabled && alert.Threshold == service.NumberOfFailuresInARow {
+		if alert.Enabled && alert.FailureThreshold == service.NumberOfFailuresInARow {
 			alerts = append(alerts, *alert)
 			continue
 		}

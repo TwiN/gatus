@@ -99,10 +99,10 @@ func CreateSlackCustomAlertProvider(slackWebHookUrl string, service *Service, al
 	var message string
 	var color string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", service.Name, alert.SuccessBeforeResolved)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", service.Name, alert.SuccessThreshold)
 		color = "#36A64F"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", service.Name, alert.Threshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", service.Name, alert.FailureThreshold)
 		color = "#DD0000"
 	}
 	var results string

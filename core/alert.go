@@ -8,8 +8,8 @@ type Alert struct {
 	// Enabled defines whether or not the alert is enabled
 	Enabled bool `yaml:"enabled"`
 
-	// Threshold is the number of failures in a row needed before triggering the alert
-	Threshold int `yaml:"threshold"`
+	// FailureThreshold is the number of failures in a row needed before triggering the alert
+	FailureThreshold int `yaml:"failure-threshold"`
 
 	// Description of the alert. Will be included in the alert sent.
 	Description string `yaml:"description"`
@@ -17,8 +17,8 @@ type Alert struct {
 	// SendOnResolved defines whether to send a second notification when the issue has been resolved
 	SendOnResolved bool `yaml:"send-on-resolved"`
 
-	// SuccessBeforeResolved defines whether to send a second notification when the issue has been resolved
-	SuccessBeforeResolved int `yaml:"success-before-resolved"`
+	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
+	SuccessThreshold int `yaml:"success-threshold"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents

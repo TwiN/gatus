@@ -26,7 +26,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 	service.NumberOfFailuresInARow++
 	for _, alert := range service.Alerts {
 		// If the alert hasn't been triggered, move to the next one
-		if !alert.Enabled || alert.Threshold != service.NumberOfFailuresInARow {
+		if !alert.Enabled || alert.FailureThreshold != service.NumberOfFailuresInARow {
 			continue
 		}
 		if alert.Triggered {
@@ -100,7 +100,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *config.Config) {
 	service.NumberOfSuccessesInARow++
 	for _, alert := range service.Alerts {
-		if !alert.Enabled || !alert.Triggered || alert.SuccessBeforeResolved > service.NumberOfSuccessesInARow {
+		if !alert.Enabled || !alert.Triggered || alert.SuccessThreshold > service.NumberOfSuccessesInARow {
 			continue
 		}
 		alert.Triggered = false

@@ -74,36 +74,37 @@ Note that you can also add environment variables in the configuration file (i.e.
 
 ### Configuration
 
-| Parameter                                     | Description                                                                | Default        |
-| --------------------------------------------- | -------------------------------------------------------------------------- | -------------- |
-| `debug`                                       | Whether to enable debug logs                                               | `false`        |
-| `metrics`                                     | Whether to expose metrics at /metrics                                      | `false`        |
-| `services`                                    | List of services to monitor                                                | Required `[]`  |
-| `services[].name`                             | Name of the service. Can be anything.                                      | Required `""`  |
-| `services[].url`                              | URL to send the request to                                                 | Required `""`  |
-| `services[].conditions`                       | Conditions used to determine the health of the service                     | `[]`           |
-| `services[].interval`                         | Duration to wait between every status check                                | `60s`          |
-| `services[].method`                           | Request method                                                             | `GET`          |
-| `services[].graphql`                          | Whether to wrap the body in a query param (`{"query":"$body"}`)            | `false`        |
-| `services[].body`                             | Request body                                                               | `""`           |
-| `services[].headers`                          | Request headers                                                            | `{}`           |
-| `services[].alerts[].type`                    | Type of alert. Valid types: `slack`, `twilio`, `custom`                    | Required `""`  |
-| `services[].alerts[].enabled`                 | Whether to enable the alert                                                | `false`        |
-| `services[].alerts[].threshold`               | Number of failures in a row needed before triggering the alert             | `3`            |
-| `services[].alerts[].description`             | Description of the alert. Will be included in the alert sent               | `""`           |
-| `services[].alerts[].send-on-resolved`        | Whether to send a notification once a triggered alert subsides             | `false`        |
-| `services[].alerts[].success-before-resolved` | Number of successes in a row needed before sending a resolved notification | `2`            |
-| `alerting`                                    | Configuration for alerting                                                 | `{}`           |
-| `alerting.slack`                              | Webhook to use for alerts of type `slack`                                  | `""`           |
-| `alerting.twilio`                             | Settings for alerts of type `twilio`                                       | `""`           |
-| `alerting.twilio.sid`                         | Twilio account SID                                                         | Required `""`  |
-| `alerting.twilio.token`                       | Twilio auth token                                                          | Required `""`  |
-| `alerting.twilio.from`                        | Number to send Twilio alerts from                                          | Required `""`  |
-| `alerting.twilio.to`                          | Number to send twilio alerts to                                            | Required `""`  |
-| `alerting.custom`                             | Configuration for custom actions on failure or alerts                      | `""`           |
-| `alerting.custom.url`                         | Custom alerting request url                                                | `""`           |
-| `alerting.custom.body`                        | Custom alerting request body.                                              | `""`           |
-| `alerting.custom.headers`                     | Custom alerting request headers                                            | `{}`           |
+| Parameter                                | Description                                                                   | Default        |
+| ---------------------------------------- | ----------------------------------------------------------------------------- | -------------- |
+| `debug`                                  | Whether to enable debug logs                                                  | `false`        |
+| `metrics`                                | Whether to expose metrics at /metrics                                         | `false`        |
+| `services`                               | List of services to monitor                                                   | Required `[]`  |
+| `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
+| `services[].url`                         | URL to send the request to                                                    | Required `""`  |
+| `services[].conditions`                  | Conditions used to determine the health of the service                        | `[]`           |
+| `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
+| `services[].method`                      | Request method                                                                | `GET`          |
+| `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
+| `services[].body`                        | Request body                                                                  | `""`           |
+| `services[].headers`                     | Request headers                                                               | `{}`           |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `custom`          | Required `""`  |
+| `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
+| `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
+| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
+| `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
+| `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
+| `alerting`                               | Configuration for alerting                                                    | `{}`           |
+| `alerting.slack`                         | Webhook to use for alerts of type `slack`                                     | `""`           |
+| `alerting.pagerduty`                     | PagerDuty Events API v2 integration key. Used for alerts of type `pagerduty`  | `""`           |
+| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `""`           |
+| `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
+| `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
+| `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
+| `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
+| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `""`           |
+| `alerting.custom.url`                    | Custom alerting request url                                                   | `""`           |
+| `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
+| `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
 
 
 ### Conditions
@@ -144,7 +145,7 @@ services:
         send-on-resolved: true
       - type: slack
         enabled: true
-        threshold: 5
+        failure-threshold: 5
         description: "healthcheck failed 5 times in a row"
         send-on-resolved: true
     conditions:
@@ -175,10 +176,10 @@ services:
     alerts:
       - type: pagerduty
         enabled: true
-        threshold: 3
+        failure-threshold: 3
+        success-threshold: 5
         description: "healthcheck failed 3 times in a row"
         send-on-resolved: true
-        success-before-resolved: 5
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -202,8 +203,9 @@ services:
     alerts:
       - type: twilio
         enabled: true
-        threshold: 5
+        failure-threshold: 5
         description: "healthcheck failed 5 times in a row"
+        send-on-resolved: true
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -244,7 +246,8 @@ services:
     alerts:
       - type: custom
         enabled: true
-        threshold: 10
+        failure-threshold: 10
+        success-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed 10 times in a row"
     conditions:
