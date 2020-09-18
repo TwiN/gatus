@@ -110,8 +110,8 @@ services:
 ```
 
 The sample above will do the following:
-- Send a request to the **https://twinnation.org/health** (`services[].url`) specified every **30s** (`services[].interval`)
-- Evaluate the conditions that mark this service as "healthy"
+- Send a request to the `https://twinnation.org/health` (`services[].url`) specified every **30s** (`services[].interval`)
+- Evaluate the conditions to determine whether the service is "healthy" or not
 - **If all conditions are not met 3 (`services[].alerts[].failure-threshold`) times in a row**: Gatus will create a new incident
 - **If, after an incident has been triggered, all conditions are met 5 (`services[].alerts[].success-threshold`) times in a row _AND_ `services[].alerts[].send-on-resolved` is set to `true`**: Gatus will resolve the triggered incident
 
