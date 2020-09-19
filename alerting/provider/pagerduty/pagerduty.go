@@ -1,21 +1,22 @@
-package alerting
+package pagerduty
 
 import (
 	"fmt"
+	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
 )
 
-type PagerDutyAlertProvider struct {
+type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
 }
 
-func (provider *PagerDutyAlertProvider) IsValid() bool {
+func (provider *AlertProvider) IsValid() bool {
 	return len(provider.IntegrationKey) == 32
 }
 
 // https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-func (provider *PagerDutyAlertProvider) ToCustomAlertProvider(eventAction, resolveKey string, service *core.Service, message string) *CustomAlertProvider {
-	return &CustomAlertProvider{
+func (provider *AlertProvider) ToCustomAlertProvider(eventAction, resolveKey string, service *core.Service, message string) *custom.AlertProvider {
+	return &custom.AlertProvider{
 		Url:    "https://events.pagerduty.com/v2/enqueue",
 		Method: "POST",
 		Body: fmt.Sprintf(`{

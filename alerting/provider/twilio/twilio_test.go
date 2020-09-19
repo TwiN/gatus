@@ -1,13 +1,13 @@
-package alerting
+package twilio
 
 import "testing"
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := TwilioAlertProvider{}
+	invalidProvider := AlertProvider{}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := TwilioAlertProvider{
+	validProvider := AlertProvider{
 		SID:   "1",
 		Token: "1",
 		From:  "1",

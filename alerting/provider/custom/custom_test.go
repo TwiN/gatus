@@ -1,27 +1,27 @@
-package alerting
+package custom
 
 import (
 	"io/ioutil"
 	"testing"
 )
 
-func TestCustomAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := CustomAlertProvider{Url: ""}
+func TestAlertProvider_IsValid(t *testing.T) {
+	invalidProvider := AlertProvider{Url: ""}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := CustomAlertProvider{Url: "http://example.com"}
+	validProvider := AlertProvider{Url: "http://example.com"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
 }
 
-func TestCustomAlertProvider_buildRequestWhenResolved(t *testing.T) {
+func TestAlertProvider_buildRequestWhenResolved(t *testing.T) {
 	const (
 		ExpectedUrl  = "http://example.com/service-name"
 		ExpectedBody = "service-name,alert-description,RESOLVED"
 	)
-	customAlertProvider := &CustomAlertProvider{
+	customAlertProvider := &AlertProvider{
 		Url:     "http://example.com/[SERVICE_NAME]",
 		Method:  "GET",
 		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
@@ -37,12 +37,12 @@ func TestCustomAlertProvider_buildRequestWhenResolved(t *testing.T) {
 	}
 }
 
-func TestCustomAlertProvider_buildRequestWhenTriggered(t *testing.T) {
+func TestAlertProvider_buildRequestWhenTriggered(t *testing.T) {
 	const (
 		ExpectedUrl  = "http://example.com/service-name"
 		ExpectedBody = "service-name,alert-description,TRIGGERED"
 	)
-	customAlertProvider := &CustomAlertProvider{
+	customAlertProvider := &AlertProvider{
 		Url:     "http://example.com/[SERVICE_NAME]",
 		Method:  "GET",
 		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",

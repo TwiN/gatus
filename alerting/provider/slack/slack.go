@@ -1,19 +1,20 @@
-package alerting
+package slack
 
 import (
 	"fmt"
+	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
 )
 
-type SlackAlertProvider struct {
+type AlertProvider struct {
 	WebhookUrl string `yaml:"webhook-url"`
 }
 
-func (provider *SlackAlertProvider) IsValid() bool {
+func (provider *AlertProvider) IsValid() bool {
 	return len(provider.WebhookUrl) > 0
 }
 
-func (provider *SlackAlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *CustomAlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	var color string
 	if resolved {
@@ -33,7 +34,7 @@ func (provider *SlackAlertProvider) ToCustomAlertProvider(service *core.Service,
 		}
 		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
-	return &CustomAlertProvider{
+	return &custom.AlertProvider{
 		Url:    provider.WebhookUrl,
 		Method: "POST",
 		Body: fmt.Sprintf(`{

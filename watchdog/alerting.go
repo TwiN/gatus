@@ -3,7 +3,7 @@ package watchdog
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"log"
@@ -36,7 +36,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			}
 			continue
 		}
-		var alertProvider *alerting.CustomAlertProvider
+		var alertProvider *custom.AlertProvider
 		if alert.Type == core.SlackAlert {
 			if cfg.Alerting.Slack != nil && cfg.Alerting.Slack.IsValid() {
 				log.Printf("[watchdog][handleAlertsToTrigger] Sending Slack alert because alert with description='%s' has been triggered", alert.Description)
@@ -103,7 +103,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 		if !alert.SendOnResolved {
 			continue
 		}
-		var alertProvider *alerting.CustomAlertProvider
+		var alertProvider *custom.AlertProvider
 		if alert.Type == core.SlackAlert {
 			if cfg.Alerting.Slack != nil && cfg.Alerting.Slack.IsValid() {
 				log.Printf("[watchdog][handleAlertsToResolve] Sending Slack alert because alert with description='%s' has been resolved", alert.Description)
@@ -128,7 +128,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 		} else if alert.Type == core.CustomAlert {
 			if cfg.Alerting.Custom != nil && cfg.Alerting.Custom.IsValid() {
 				log.Printf("[watchdog][handleAlertsToResolve] Sending custom alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = &alerting.CustomAlertProvider{
+				alertProvider = &custom.AlertProvider{
 					Url:     cfg.Alerting.Custom.Url,
 					Method:  cfg.Alerting.Custom.Method,
 					Body:    cfg.Alerting.Custom.Body,

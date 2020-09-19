@@ -1,4 +1,4 @@
-package alerting
+package custom
 
 import (
 	"bytes"
@@ -9,18 +9,18 @@ import (
 	"strings"
 )
 
-type CustomAlertProvider struct {
+type AlertProvider struct {
 	Url     string            `yaml:"url"`
 	Method  string            `yaml:"method,omitempty"`
 	Body    string            `yaml:"body,omitempty"`
 	Headers map[string]string `yaml:"headers,omitempty"`
 }
 
-func (provider *CustomAlertProvider) IsValid() bool {
+func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Url) > 0
 }
 
-func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription string, resolved bool) *http.Request {
+func (provider *AlertProvider) buildRequest(serviceName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
 	providerUrl := provider.Url
 	method := provider.Method
@@ -62,7 +62,7 @@ func (provider *CustomAlertProvider) buildRequest(serviceName, alertDescription 
 }
 
 // Send a request to the alert provider and return the body
-func (provider *CustomAlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
+func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	request := provider.buildRequest(serviceName, alertDescription, resolved)
 	response, err := client.GetHttpClient().Do(request)
 	if err != nil {
