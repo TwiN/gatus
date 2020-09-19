@@ -94,15 +94,17 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
 | `alerting`                               | Configuration for alerting                                                    | `{}`           |
-| `alerting.slack`                         | Webhook to use for alerts of type `slack`                                     | `""`           |
-| `alerting.pagerduty`                     | PagerDuty Events API v2 integration key. Used for alerts of type `pagerduty`  | `""`           |
+| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `""`           |
+| `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
+| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `""`           |
+| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
 | `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `""`           |
 | `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
 | `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
 | `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
 | `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `""`           |
-| `alerting.custom.url`                    | Custom alerting request url                                                   | `""`           |
+| `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
 
@@ -133,7 +135,8 @@ Here are some examples of conditions you can use:
 
 ```yaml
 alerting:
-  slack: "https://hooks.slack.com/services/**********/**********/**********"
+  slack: 
+    webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
 services:
   - name: twinnation
     interval: 30s
@@ -168,7 +171,8 @@ PagerDuty instead.
 
 ```yaml
 alerting:
-  pagerduty: "********************************"
+  pagerduty: 
+    integration-key: "********************************"
 services:
   - name: twinnation
     interval: 30s

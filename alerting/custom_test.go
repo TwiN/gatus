@@ -1,9 +1,20 @@
-package core
+package alerting
 
 import (
 	"io/ioutil"
 	"testing"
 )
+
+func TestCustomAlertProvider_IsValid(t *testing.T) {
+	invalidProvider := CustomAlertProvider{Url: ""}
+	if invalidProvider.IsValid() {
+		t.Error("provider shouldn't have been valid")
+	}
+	validProvider := CustomAlertProvider{Url: "http://example.com"}
+	if !validProvider.IsValid() {
+		t.Error("provider should've been valid")
+	}
+}
 
 func TestCustomAlertProvider_buildRequestWhenResolved(t *testing.T) {
 	const (

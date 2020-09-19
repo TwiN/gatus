@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -21,10 +22,10 @@ var (
 )
 
 type Config struct {
-	Metrics  bool                 `yaml:"metrics"`
-	Debug    bool                 `yaml:"debug"`
-	Alerting *core.AlertingConfig `yaml:"alerting"`
-	Services []*core.Service      `yaml:"services"`
+	Metrics  bool             `yaml:"metrics"`
+	Debug    bool             `yaml:"debug"`
+	Alerting *alerting.Config `yaml:"alerting"`
+	Services []*core.Service  `yaml:"services"`
 }
 
 func Get() *Config {

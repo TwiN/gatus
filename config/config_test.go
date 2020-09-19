@@ -121,7 +121,8 @@ badconfig:
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 alerting:
-  slack: "http://example.com"
+  slack:
+    webhook-url: "http://example.com"
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
@@ -145,7 +146,7 @@ services:
 	if config.Alerting == nil {
 		t.Fatal("config.AlertingConfig shouldn't have been nil")
 	}
-	if config.Alerting.Slack != "http://example.com" {
+	if config.Alerting.Slack.WebhookUrl != "http://example.com" {
 		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack)
 	}
 	if len(config.Services) != 1 {

@@ -3,7 +3,6 @@ package watchdog
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
@@ -71,7 +70,7 @@ func monitor(service *core.Service) {
 			result.Duration.Round(time.Millisecond),
 			extra,
 		)
-		alerting.Handle(service, result)
+		HandleAlerting(service, result)
 		if cfg.Debug {
 			log.Printf("[watchdog][monitor] Waiting for interval=%s before monitoring serviceName=%s again", service.Interval, service.Name)
 		}

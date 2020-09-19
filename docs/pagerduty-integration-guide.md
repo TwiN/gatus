@@ -30,10 +30,11 @@ If you need help with this integration, please create an issue at https://github
 
 
 ## In Gatus
-In your configuration file, you must first specify the integration key in `alerting.pagerduty`, like so:
+In your configuration file, you must first specify the integration key at `alerting.pagerduty.integration-key`, like so:
 ```yaml
 alerting:
-  pagerduty: "********************************"
+  pagerduty: 
+    integration-key: "********************************"
 ```
 You can now add alerts of type `pagerduty` in the services you've defined, like so:
 ```yaml
