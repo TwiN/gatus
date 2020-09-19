@@ -113,18 +113,18 @@ Note that you can also add environment variables in the configuration file (i.e.
 
 Here are some examples of conditions you can use:
 
-| Condition                    | Description                                             | Passing values           | Failing values |
-| -----------------------------| ------------------------------------------------------- | ------------------------ | -------------- |
-| `[STATUS] == 200`            | Status must be equal to 200                             | 200                      | 201, 404, ...  |
-| `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299            | 301, 302, ...  |
-| `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299            | 301, 302, ...  |
-| `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404       | 400, 200, ...  |
-| `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms      | 500ms, 501ms   |
-| `[BODY] == 1`                | The body must be equal to 1                             | 1                        | Anything else  |
-| `[BODY].data.id == 1`        | The jsonpath `$.data.id` is equal to 1                  | `{"data":{"id":1}}`      |  |
-| `[BODY].data[0].id == 1`     | The jsonpath `$.data[0].id` is equal to 1               | `{"data":[{"id":1}]}`    |  |
-| `len([BODY].data) > 0`       | Array at jsonpath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`    |  |
-| `len([BODY].name) == 8`      | String at jsonpath `$.name` has a length of 8           | `{"name":"john.doe"}`    | `{"name":"bob"}` |
+| Condition                    | Description                                             | Passing values             | Failing values |
+| -----------------------------| ------------------------------------------------------- | -------------------------- | -------------- |
+| `[STATUS] == 200`            | Status must be equal to 200                             | 200                        | 201, 404, ...  |
+| `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299              | 301, 302, ...  |
+| `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299              | 301, 302, ...  |
+| `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404         | 400, 200, ...  |
+| `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms        | 500ms, 501ms   |
+| `[BODY] == 1`                | The body must be equal to 1                             | 1                          | Anything else  |
+| `[BODY].user.name == john`   | JSONPath value of `$.user.name` is equal to `john`      | `{"user":{"name":"john"}}` |  |
+| `[BODY].data[0].id == 1`     | JSONPath value of `$.data[0].id` is equal to 1          | `{"data":[{"id":1}]}`      |  |
+| `len([BODY].data) < 5`       | Array at JSONPath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`      |  |
+| `len([BODY].name) == 8`      | String at JSONPath `$.name` has a length of 8           | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 
 
 ### Alerting
