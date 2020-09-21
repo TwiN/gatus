@@ -49,10 +49,10 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 50m
+              cpu: 200m
               memory: 50M
             requests:
-              cpu: 20m
+              cpu: 50m
               memory: 20M
           volumeMounts:
             - mountPath: /config
