@@ -50,7 +50,7 @@ type Service struct {
 	NumberOfSuccessesInARow int
 }
 
-func (service *Service) Validate() {
+func (service *Service) ValidateAndSetDefaults() {
 	// Set default values
 	if service.Interval == 0 {
 		service.Interval = 1 * time.Minute

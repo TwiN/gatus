@@ -36,7 +36,7 @@ func Get() *Config {
 }
 
 func Load(configFile string) error {
-	log.Printf("[config][Load] Attempting to load config from configFile=%s", configFile)
+	log.Printf("[config][Load] Reading configuration from configFile=%s", configFile)
 	cfg, err := readConfigurationFile(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -75,13 +75,50 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Parse configuration file
 	err = yaml.Unmarshal(yamlBytes, &config)
 	// Check if the configuration file at least has services.
-	if config == nil || len(config.Services) == 0 {
+	if config == nil || config.Services == nil || len(config.Services) == 0 {
 		err = ErrNoServiceInConfig
 	} else {
-		// Set the default values if they aren't set
-		for _, service := range config.Services {
-			service.Validate()
-		}
+		validateAlertingConfig(config)
+		validateServicesConfig(config)
 	}
 	return
+}
+
+func validateServicesConfig(config *Config) {
+	for _, service := range config.Services {
+		if config.Debug {
+			log.Printf("[config][validateServicesConfig] Validating service '%s'", service.Name)
+		}
+		service.ValidateAndSetDefaults()
+	}
+	log.Printf("[config][validateServicesConfig] Validated %d services", len(config.Services))
+}
+
+func validateAlertingConfig(config *Config) {
+	if config.Alerting == nil {
+		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
+		return
+	}
+	var validProviders, invalidProviders []core.AlertType
+	if config.Alerting.Slack != nil && config.Alerting.Slack.IsValid() {
+		validProviders = append(validProviders, core.SlackAlert)
+	} else {
+		invalidProviders = append(invalidProviders, core.SlackAlert)
+	}
+	if config.Alerting.Twilio != nil && config.Alerting.Twilio.IsValid() {
+		validProviders = append(validProviders, core.TwilioAlert)
+	} else {
+		invalidProviders = append(invalidProviders, core.TwilioAlert)
+	}
+	if config.Alerting.PagerDuty != nil && config.Alerting.PagerDuty.IsValid() {
+		validProviders = append(validProviders, core.PagerDutyAlert)
+	} else {
+		invalidProviders = append(invalidProviders, core.PagerDutyAlert)
+	}
+	if config.Alerting.Custom != nil && config.Alerting.Custom.IsValid() {
+		validProviders = append(validProviders, core.CustomAlert)
+	} else {
+		invalidProviders = append(invalidProviders, core.CustomAlert)
+	}
+	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }
