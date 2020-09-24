@@ -50,6 +50,7 @@ type Service struct {
 	NumberOfSuccessesInARow int
 }
 
+// ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one
 func (service *Service) ValidateAndSetDefaults() {
 	// Set default values
 	if service.Interval == 0 {
@@ -83,7 +84,8 @@ func (service *Service) ValidateAndSetDefaults() {
 	}
 }
 
-func (service *Service) EvaluateConditions() *Result {
+// EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
+func (service *Service) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
 	service.getIp(result)
 	if len(result.Errors) == 0 {

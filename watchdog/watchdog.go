@@ -50,7 +50,7 @@ func monitor(service *core.Service) {
 		if cfg.Debug {
 			log.Printf("[watchdog][monitor] Monitoring serviceName=%s", service.Name)
 		}
-		result := service.EvaluateConditions()
+		result := service.EvaluateHealth()
 		metric.PublishMetricsForService(service, result)
 		serviceResultsMutex.Lock()
 		serviceResults[service.Name] = append(serviceResults[service.Name], result)

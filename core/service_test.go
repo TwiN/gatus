@@ -4,14 +4,14 @@ import (
 	"testing"
 )
 
-func TestIntegrationEvaluateConditions(t *testing.T) {
+func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
 		Name:       "TwiNNatioN",
 		Url:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
-	result := service.EvaluateConditions()
+	result := service.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
@@ -20,14 +20,14 @@ func TestIntegrationEvaluateConditions(t *testing.T) {
 	}
 }
 
-func TestIntegrationEvaluateConditionsWithFailure(t *testing.T) {
+func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 500")
 	service := Service{
 		Name:       "TwiNNatioN",
 		Url:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
-	result := service.EvaluateConditions()
+	result := service.EvaluateHealth()
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
