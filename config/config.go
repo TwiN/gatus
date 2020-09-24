@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -99,26 +100,95 @@ func validateAlertingConfig(config *Config) {
 		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
 		return
 	}
+	alertTypes := []core.AlertType{
+		core.SlackAlert,
+		core.TwilioAlert,
+		core.PagerDutyAlert,
+		core.CustomAlert,
+	}
 	var validProviders, invalidProviders []core.AlertType
-	if config.Alerting.Slack != nil && config.Alerting.Slack.IsValid() {
-		validProviders = append(validProviders, core.SlackAlert)
-	} else {
-		invalidProviders = append(invalidProviders, core.SlackAlert)
+	for _, alertType := range alertTypes {
+		alertProvider := GetAlertingProviderByAlertType(config, alertType)
+		if alertProvider != nil {
+			if alertProvider.IsValid() {
+				validProviders = append(validProviders, alertType)
+			} else {
+				log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
+				invalidProviders = append(invalidProviders, alertType)
+			}
+		} else {
+			invalidProviders = append(invalidProviders, alertType)
+		}
 	}
-	if config.Alerting.Twilio != nil && config.Alerting.Twilio.IsValid() {
-		validProviders = append(validProviders, core.TwilioAlert)
-	} else {
-		invalidProviders = append(invalidProviders, core.TwilioAlert)
-	}
-	if config.Alerting.PagerDuty != nil && config.Alerting.PagerDuty.IsValid() {
-		validProviders = append(validProviders, core.PagerDutyAlert)
-	} else {
-		invalidProviders = append(invalidProviders, core.PagerDutyAlert)
-	}
-	if config.Alerting.Custom != nil && config.Alerting.Custom.IsValid() {
-		validProviders = append(validProviders, core.CustomAlert)
-	} else {
-		invalidProviders = append(invalidProviders, core.CustomAlert)
-	}
+	//if config.Alerting.Slack != nil {
+	//	if config.Alerting.Slack.IsValid() {
+	//		validProviders = append(validProviders, core.SlackAlert)
+	//	} else {
+	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.SlackAlert)
+	//		invalidProviders = append(invalidProviders, core.SlackAlert)
+	//	}
+	//} else {
+	//	invalidProviders = append(invalidProviders, core.SlackAlert)
+	//}
+	//if config.Alerting.Twilio != nil {
+	//	if config.Alerting.Twilio.IsValid() {
+	//		validProviders = append(validProviders, core.TwilioAlert)
+	//	} else {
+	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.TwilioAlert)
+	//		invalidProviders = append(invalidProviders, core.TwilioAlert)
+	//	}
+	//} else {
+	//	invalidProviders = append(invalidProviders, core.TwilioAlert)
+	//}
+	//if config.Alerting.PagerDuty != nil {
+	//	if config.Alerting.PagerDuty.IsValid() {
+	//		validProviders = append(validProviders, core.PagerDutyAlert)
+	//	} else {
+	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.PagerDutyAlert)
+	//		invalidProviders = append(invalidProviders, core.PagerDutyAlert)
+	//	}
+	//} else {
+	//	invalidProviders = append(invalidProviders, core.PagerDutyAlert)
+	//}
+	//if config.Alerting.Custom != nil {
+	//	if config.Alerting.Custom.IsValid() {
+	//		validProviders = append(validProviders, core.CustomAlert)
+	//	} else {
+	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.CustomAlert)
+	//		invalidProviders = append(invalidProviders, core.CustomAlert)
+	//	}
+	//} else {
+	//	invalidProviders = append(invalidProviders, core.CustomAlert)
+	//}
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+}
+
+func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) provider.AlertProvider {
+	switch alertType {
+	case core.SlackAlert:
+		if config.Alerting.Slack == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Slack
+	case core.TwilioAlert:
+		if config.Alerting.Twilio == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Twilio
+	case core.PagerDutyAlert:
+		if config.Alerting.PagerDuty == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.PagerDuty
+	case core.CustomAlert:
+		if config.Alerting.Custom == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Custom
+	}
+	return nil
 }

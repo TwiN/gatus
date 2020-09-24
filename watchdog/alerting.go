@@ -37,6 +37,8 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			continue
 		}
 		var alertProvider *custom.AlertProvider
+		// TODO: leverage provider.AlertingProvider interface and config.GetAlertingProviderByAlertType(cfg, alert.Type)
+		// TODO: to support all types of alerts without having to explicitly define them here and in handleAlertsToResolve()
 		if alert.Type == core.SlackAlert {
 			if cfg.Alerting.Slack != nil && cfg.Alerting.Slack.IsValid() {
 				log.Printf("[watchdog][handleAlertsToTrigger] Sending Slack alert because alert with description='%s' has been triggered", alert.Description)
@@ -128,12 +130,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 		} else if alert.Type == core.CustomAlert {
 			if cfg.Alerting.Custom != nil && cfg.Alerting.Custom.IsValid() {
 				log.Printf("[watchdog][handleAlertsToResolve] Sending custom alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = &custom.AlertProvider{
-					Url:     cfg.Alerting.Custom.Url,
-					Method:  cfg.Alerting.Custom.Method,
-					Body:    cfg.Alerting.Custom.Body,
-					Headers: cfg.Alerting.Custom.Headers,
-				}
+				alertProvider = cfg.Alerting.Custom
 			} else {
 				log.Printf("[watchdog][handleAlertsToResolve] Not sending custom alert despite being resolved, because the custom provider isn't configured properly")
 			}

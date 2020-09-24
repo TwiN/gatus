@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/TwinProduction/gatus/core"
 	"testing"
 	"time"
@@ -36,7 +35,6 @@ services:
 	if config.Services[1].Url != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}
-	fmt.Println(config.Services[0].Interval)
 	if config.Services[0].Interval != 15*time.Second {
 		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
@@ -123,6 +121,8 @@ func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 alerting:
   slack:
     webhook-url: "http://example.com"
+  pagerduty:
+    integration-key: "00000000000000000000000000000000"
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
@@ -144,10 +144,19 @@ services:
 		t.Error("Metrics should've been false by default")
 	}
 	if config.Alerting == nil {
-		t.Fatal("config.AlertingConfig shouldn't have been nil")
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
+		t.Fatal("Slack alerting config should've been valid")
 	}
 	if config.Alerting.Slack.WebhookUrl != "http://example.com" {
-		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack)
+		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack.WebhookUrl)
+	}
+	if config.Alerting.PagerDuty == nil || !config.Alerting.PagerDuty.IsValid() {
+		t.Fatal("PagerDuty alerting config should've been valid")
+	}
+	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
+		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
 	}
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
@@ -178,5 +187,33 @@ services:
 	}
 	if config.Services[0].Alerts[0].Description != "Healthcheck failed 7 times in a row" {
 		t.Errorf("The type of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[0].Description)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidPagerDutyAlertingConfig(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  pagerduty:
+    integration-key: "INVALID_KEY"
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.PagerDuty == nil {
+		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+	}
+	if config.Alerting.PagerDuty.IsValid() {
+		t.Fatal("PagerDuty alerting config should've been invalid")
 	}
 }
