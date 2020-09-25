@@ -120,46 +120,6 @@ func validateAlertingConfig(config *Config) {
 			invalidProviders = append(invalidProviders, alertType)
 		}
 	}
-	//if config.Alerting.Slack != nil {
-	//	if config.Alerting.Slack.IsValid() {
-	//		validProviders = append(validProviders, core.SlackAlert)
-	//	} else {
-	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.SlackAlert)
-	//		invalidProviders = append(invalidProviders, core.SlackAlert)
-	//	}
-	//} else {
-	//	invalidProviders = append(invalidProviders, core.SlackAlert)
-	//}
-	//if config.Alerting.Twilio != nil {
-	//	if config.Alerting.Twilio.IsValid() {
-	//		validProviders = append(validProviders, core.TwilioAlert)
-	//	} else {
-	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.TwilioAlert)
-	//		invalidProviders = append(invalidProviders, core.TwilioAlert)
-	//	}
-	//} else {
-	//	invalidProviders = append(invalidProviders, core.TwilioAlert)
-	//}
-	//if config.Alerting.PagerDuty != nil {
-	//	if config.Alerting.PagerDuty.IsValid() {
-	//		validProviders = append(validProviders, core.PagerDutyAlert)
-	//	} else {
-	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.PagerDutyAlert)
-	//		invalidProviders = append(invalidProviders, core.PagerDutyAlert)
-	//	}
-	//} else {
-	//	invalidProviders = append(invalidProviders, core.PagerDutyAlert)
-	//}
-	//if config.Alerting.Custom != nil {
-	//	if config.Alerting.Custom.IsValid() {
-	//		validProviders = append(validProviders, core.CustomAlert)
-	//	} else {
-	//		log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", core.CustomAlert)
-	//		invalidProviders = append(invalidProviders, core.CustomAlert)
-	//	}
-	//} else {
-	//	invalidProviders = append(invalidProviders, core.CustomAlert)
-	//}
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }
 
