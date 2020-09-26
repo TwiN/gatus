@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
+// Technically, all alert providers should be reachable using the custom alert provider
 type AlertProvider struct {
 	Url     string            `yaml:"url"`
 	Method  string            `yaml:"method,omitempty"`
@@ -17,10 +19,12 @@ type AlertProvider struct {
 	Headers map[string]string `yaml:"headers,omitempty"`
 }
 
+// IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Url) > 0
 }
 
+// ToCustomAlertProvider converts the provider into a custom.AlertProvider
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *AlertProvider {
 	return provider
 }

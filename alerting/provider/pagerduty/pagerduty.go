@@ -6,10 +6,12 @@ import (
 	"github.com/TwinProduction/gatus/core"
 )
 
+// AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
 }
 
+// IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
 	return len(provider.IntegrationKey) == 32
 }

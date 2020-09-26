@@ -6,14 +6,17 @@ import (
 	"github.com/TwinProduction/gatus/core"
 )
 
+// AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
 	WebhookUrl string `yaml:"webhook-url"`
 }
 
+// IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
 	return len(provider.WebhookUrl) > 0
 }
 
+// ToCustomAlertProvider converts the provider into a custom.AlertProvider
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	var color string

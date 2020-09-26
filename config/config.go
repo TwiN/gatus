@@ -12,6 +12,8 @@ import (
 )
 
 const (
+	// DefaultConfigurationFilePath is the default path that will be used to search for the configuration file
+	// if a custom path isn't configured through the GATUS_CONFIG_FILE environment variable
 	DefaultConfigurationFilePath = "config/config.yaml"
 )
 
@@ -22,6 +24,7 @@ var (
 	config                *Config
 )
 
+// Config is the main configuration structure
 type Config struct {
 	Metrics  bool             `yaml:"metrics"`
 	Debug    bool             `yaml:"debug"`
