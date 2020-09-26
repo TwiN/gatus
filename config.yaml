@@ -1,15 +1,15 @@
 metrics: true
 services:
   - name: twinnation
+    url: "https://twinnation.org/health"
     interval: 30s
-    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 1000"
   - name: cat-fact
-    interval: 1m
     url: "https://cat-fact.herokuapp.com/facts/random"
+    interval: 1m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"

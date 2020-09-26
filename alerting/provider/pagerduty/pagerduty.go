@@ -15,7 +15,17 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-func (provider *AlertProvider) ToCustomAlertProvider(eventAction, resolveKey string, service *core.Service, message string) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+	var message, eventAction, resolveKey string
+	if resolved {
+		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description)
+		eventAction = "resolve"
+		resolveKey = alert.ResolveKey
+	} else {
+		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description)
+		eventAction = "trigger"
+		resolveKey = ""
+	}
 	return &custom.AlertProvider{
 		Url:    "https://events.pagerduty.com/v2/enqueue",
 		Method: "POST",

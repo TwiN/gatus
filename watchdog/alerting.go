@@ -2,8 +2,6 @@ package watchdog
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"log"
@@ -36,44 +34,16 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			}
 			continue
 		}
-		var alertProvider *custom.AlertProvider
-		// TODO: leverage provider.AlertingProvider interface and config.GetAlertingProviderByAlertType(cfg, alert.Type)
-		// TODO: to support all types of alerts without having to explicitly define them here and in handleAlertsToResolve()
-		if alert.Type == core.SlackAlert {
-			if cfg.Alerting.Slack != nil && cfg.Alerting.Slack.IsValid() {
-				log.Printf("[watchdog][handleAlertsToTrigger] Sending Slack alert because alert with description='%s' has been triggered", alert.Description)
-				alertProvider = cfg.Alerting.Slack.ToCustomAlertProvider(service, alert, result, false)
-			} else {
-				log.Printf("[watchdog][handleAlertsToTrigger] Not sending Slack alert despite being triggered, because there is no Slack webhook configured")
-			}
-		} else if alert.Type == core.PagerDutyAlert {
-			if cfg.Alerting.PagerDuty != nil && cfg.Alerting.PagerDuty.IsValid() {
-				log.Printf("[watchdog][handleAlertsToTrigger] Sending PagerDuty alert because alert with description='%s' has been triggered", alert.Description)
-				alertProvider = cfg.Alerting.PagerDuty.ToCustomAlertProvider("trigger", "", service, fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description))
-			} else {
-				log.Printf("[watchdog][handleAlertsToTrigger] Not sending PagerDuty alert despite being triggered, because PagerDuty isn't configured properly")
-			}
-		} else if alert.Type == core.TwilioAlert {
-			if cfg.Alerting.Twilio != nil && cfg.Alerting.Twilio.IsValid() {
-				log.Printf("[watchdog][handleAlertsToTrigger] Sending Twilio alert because alert with description='%s' has been triggered", alert.Description)
-				alertProvider = cfg.Alerting.Twilio.ToCustomAlertProvider(fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description))
-			} else {
-				log.Printf("[watchdog][handleAlertsToTrigger] Not sending Twilio alert despite being triggered, because Twilio config settings missing")
-			}
-		} else if alert.Type == core.CustomAlert {
-			if cfg.Alerting.Custom != nil && cfg.Alerting.Custom.IsValid() {
-				log.Printf("[watchdog][handleAlertsToTrigger] Sending custom alert because alert with description='%s' has been triggered", alert.Description)
-				alertProvider = cfg.Alerting.Custom
-			} else {
-				log.Printf("[watchdog][handleAlertsToTrigger] Not sending custom alert despite being triggered, because there is no custom url configured")
-			}
-		}
-		if alertProvider != nil {
+		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
+		if alertProvider != nil && alertProvider.IsValid() {
+			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert with description='%s' has been triggered", alert.Type, alert.Description)
+			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, false)
 			// TODO: retry on error
 			var err error
+			// We need to extract the DedupKey from PagerDuty's response
 			if alert.Type == core.PagerDutyAlert {
 				var body []byte
-				body, err = alertProvider.Send(service.Name, alert.Description, true)
+				body, err = customAlertProvider.Send(service.Name, alert.Description, false)
 				if err == nil {
 					var response pagerDutyResponse
 					err = json.Unmarshal(body, &response)
@@ -84,13 +54,17 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 					}
 				}
 			} else {
-				_, err = alertProvider.Send(service.Name, alert.Description, false)
+				// All other alert types don't need to extract anything from the body, so we can just send the request right away
+				_, err = customAlertProvider.Send(service.Name, alert.Description, false)
 			}
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToTrigger] Ran into error sending an alert: %s", err.Error())
 			} else {
 				alert.Triggered = true
 			}
+
+		} else {
+			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being triggered, because the provider wasn't configured properly", alert.Type)
 		}
 	}
 }
@@ -105,39 +79,12 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 		if !alert.SendOnResolved {
 			continue
 		}
-		var alertProvider *custom.AlertProvider
-		if alert.Type == core.SlackAlert {
-			if cfg.Alerting.Slack != nil && cfg.Alerting.Slack.IsValid() {
-				log.Printf("[watchdog][handleAlertsToResolve] Sending Slack alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = cfg.Alerting.Slack.ToCustomAlertProvider(service, alert, result, true)
-			} else {
-				log.Printf("[watchdog][handleAlertsToResolve] Not sending Slack alert despite being resolved, because there is no Slack webhook configured")
-			}
-		} else if alert.Type == core.PagerDutyAlert {
-			if cfg.Alerting.PagerDuty != nil && cfg.Alerting.PagerDuty.IsValid() {
-				log.Printf("[watchdog][handleAlertsToResolve] Sending PagerDuty alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = cfg.Alerting.PagerDuty.ToCustomAlertProvider("resolve", alert.ResolveKey, service, fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description))
-			} else {
-				log.Printf("[watchdog][handleAlertsToResolve] Not sending PagerDuty alert despite being resolved, because PagerDuty isn't configured properly")
-			}
-		} else if alert.Type == core.TwilioAlert {
-			if cfg.Alerting.Twilio != nil && cfg.Alerting.Twilio.IsValid() {
-				log.Printf("[watchdog][handleAlertsToResolve] Sending Twilio alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = cfg.Alerting.Twilio.ToCustomAlertProvider(fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description))
-			} else {
-				log.Printf("[watchdog][handleAlertsToResolve] Not sending Twilio alert despite being resolved, because Twilio isn't configured properly")
-			}
-		} else if alert.Type == core.CustomAlert {
-			if cfg.Alerting.Custom != nil && cfg.Alerting.Custom.IsValid() {
-				log.Printf("[watchdog][handleAlertsToResolve] Sending custom alert because alert with description='%s' has been resolved", alert.Description)
-				alertProvider = cfg.Alerting.Custom
-			} else {
-				log.Printf("[watchdog][handleAlertsToResolve] Not sending custom alert despite being resolved, because the custom provider isn't configured properly")
-			}
-		}
-		if alertProvider != nil {
+		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
+		if alertProvider != nil && alertProvider.IsValid() {
+			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert with description='%s' has been resolved", alert.Type, alert.Description)
+			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, true)
 			// TODO: retry on error
-			_, err := alertProvider.Send(service.Name, alert.Description, true)
+			_, err := customAlertProvider.Send(service.Name, alert.Description, true)
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToResolve] Ran into error sending an alert: %s", err.Error())
 			} else {
@@ -145,6 +92,8 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 					alert.ResolveKey = ""
 				}
 			}
+		} else {
+			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being resolved, because the provider wasn't configured properly", alert.Type)
 		}
 	}
 	service.NumberOfFailuresInARow = 0

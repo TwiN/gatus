@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/core"
 	"net/url"
 )
 
@@ -18,7 +19,13 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Token) > 0 && len(provider.SID) > 0 && len(provider.From) > 0 && len(provider.To) > 0
 }
 
-func (provider *AlertProvider) ToCustomAlertProvider(message string) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+	var message string
+	if resolved {
+		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description)
+	} else {
+		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description)
+	}
 	return &custom.AlertProvider{
 		Url:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
 		Method: "POST",

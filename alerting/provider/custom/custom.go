@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/core"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,6 +19,10 @@ type AlertProvider struct {
 
 func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Url) > 0
+}
+
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *AlertProvider {
+	return provider
 }
 
 func (provider *AlertProvider) buildRequest(serviceName, alertDescription string, resolved bool) *http.Request {
