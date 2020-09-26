@@ -7,7 +7,7 @@
 A service health dashboard in Go that is meant to be used as a docker 
 image with a custom configuration file.
 
-I personally deploy it in my Kubernetes cluster and have it monitor the status of my
+I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twinnation.org/
 
 
@@ -139,8 +139,8 @@ alerting:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
 services:
   - name: twinnation
-    interval: 30s
     url: "https://twinnation.org/health"
+    interval: 30s
     alerts:
       - type: slack
         enabled: true
@@ -175,15 +175,15 @@ alerting:
     integration-key: "********************************"
 services:
   - name: twinnation
-    interval: 30s
     url: "https://twinnation.org/health"
+    interval: 30s
     alerts:
       - type: pagerduty
         enabled: true
         failure-threshold: 3
         success-threshold: 5
-        description: "healthcheck failed 3 times in a row"
         send-on-resolved: true
+        description: "healthcheck failed 3 times in a row"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -208,8 +208,8 @@ services:
       - type: twilio
         enabled: true
         failure-threshold: 5
-        description: "healthcheck failed 5 times in a row"
         send-on-resolved: true
+        description: "healthcheck failed 5 times in a row"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -245,8 +245,8 @@ alerting:
       }
 services:
   - name: twinnation
-    interval: 30s
     url: "https://twinnation.org/health"
+    interval: 30s
     alerts:
       - type: custom
         enabled: true
