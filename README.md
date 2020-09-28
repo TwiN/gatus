@@ -267,12 +267,12 @@ Other than using one of the examples provided in the `examples` folder, you can 
 creating a configuration file - we'll call it `config.yaml` for this example - and running the following 
 command:
 ```
-docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/test.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 If you're on Windows, replace `"$(pwd)"` by the absolute path to your current directory, e.g.:
 ```
-docker run -p 8080:8080 --mount type=bind,source=E:/Go/src/github.com/TwinProduction/gatus/test.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 ## Running the tests
