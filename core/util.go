@@ -19,6 +19,7 @@ const (
 	InvalidConditionElementSuffix = "(INVALID)"
 )
 
+// sanitizeAndResolve sanitizes and resolves a list of element and returns the list of resolved elements
 func sanitizeAndResolve(list []string, result *Result) []string {
 	var sanitizedList []string
 	body := strings.TrimSpace(string(result.Body))
@@ -34,7 +35,7 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 		case BodyPlaceHolder:
 			element = body
 		default:
-			// if starts with BodyPlaceHolder, then evaluate json path
+			// if contains the BodyPlaceHolder, then evaluate json path
 			if strings.Contains(element, BodyPlaceHolder) {
 				wantLength := false
 				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {

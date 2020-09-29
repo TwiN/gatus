@@ -113,6 +113,24 @@ func TestCondition_evaluateWithBodyJsonPathComplex(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithBodyJsonPathDoublePlaceholders(t *testing.T) {
+	condition := Condition("[BODY].user.firstName != [BODY].user.lastName")
+	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyJsonPathDoublePlaceholdersFailure(t *testing.T) {
+	condition := Condition("[BODY].user.firstName == [BODY].user.lastName")
+	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
 func TestCondition_evaluateWithBodyJsonPathLongInt(t *testing.T) {
 	condition := Condition("[BODY].data.id == 1")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
