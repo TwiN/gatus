@@ -30,13 +30,13 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 		}
 		if alert.Triggered {
 			if cfg.Debug {
-				log.Printf("[watchdog][handleAlertsToTrigger] Alert with description='%s' has already been triggered, skipping", alert.Description)
+				log.Printf("[watchdog][handleAlertsToTrigger] Alert with description='%s' has already been TRIGGERED, skipping", alert.Description)
 			}
 			continue
 		}
 		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
-			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert with description='%s' has been triggered", alert.Type, alert.Description)
+			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert with description='%s' has been TRIGGERED", alert.Type, alert.Description)
 			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, false)
 			// TODO: retry on error
 			var err error
@@ -64,7 +64,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			}
 
 		} else {
-			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being triggered, because the provider wasn't configured properly", alert.Type)
+			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", alert.Type)
 		}
 	}
 }
@@ -81,7 +81,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 		}
 		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
-			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert with description='%s' has been resolved", alert.Type, alert.Description)
+			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert with description='%s' has been RESOLVED", alert.Type, alert.Description)
 			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, true)
 			// TODO: retry on error
 			_, err := customAlertProvider.Send(service.Name, alert.Description, true)
@@ -93,7 +93,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 				}
 			}
 		} else {
-			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being resolved, because the provider wasn't configured properly", alert.Type)
+			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", alert.Type)
 		}
 	}
 	service.NumberOfFailuresInARow = 0
