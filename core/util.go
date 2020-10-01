@@ -13,8 +13,9 @@ const (
 	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
 	BodyPlaceHolder         = "[BODY]"
 
-	LengthFunctionPrefix = "len("
-	FunctionSuffix       = ")"
+	LengthFunctionPrefix  = "len("
+	PatternFunctionPrefix = "pat("
+	FunctionSuffix        = ")"
 
 	InvalidConditionElementSuffix = "(INVALID)"
 )

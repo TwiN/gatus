@@ -202,3 +202,66 @@ func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
 }
+
+func TestCondition_evaluateWithBodyStringPattern(t *testing.T) {
+	condition := Condition("[BODY].name == pat(*ohn*)")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyStringPatternFailure(t *testing.T) {
+	condition := Condition("[BODY].name == pat(bob*)")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyPatternFailure(t *testing.T) {
+	condition := Condition("[BODY] == pat(*john*)")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithIPPattern(t *testing.T) {
+	condition := Condition("[IP] == pat(10.*)")
+	result := &Result{Ip: "10.0.0.0"}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithIPPatternFailure(t *testing.T) {
+	condition := Condition("[IP] == pat(10.*)")
+	result := &Result{Ip: "255.255.255.255"}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithStatusPattern(t *testing.T) {
+	condition := Condition("[STATUS] == pat(4*)")
+	result := &Result{HttpStatus: 404}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
+	condition := Condition("[STATUS] != pat(4*)")
+	result := &Result{HttpStatus: 404}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
