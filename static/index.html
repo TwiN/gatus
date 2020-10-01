@@ -104,6 +104,18 @@
 				</div>
 			</div>
 		</div>
+		<div class="mb-2">
+			<div class="row">
+				<div class="col-8">
+					<div class="input-group mb-3">
+						<input type="number" id="refreshRate" class="form-control" value="10">
+						<div class="input-group-append">
+							<span class="input-group-text">Seconds</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 		<div id="results"></div>
 	</div>
 
@@ -131,6 +143,7 @@
 	<script>
 		let serviceStatuses = {};
 		let timerHandler = 0;
+		let refreshInterval = 0;
 		let userClickedStatus = false;
 
 		function showTooltip(serviceName, index, element) {
@@ -291,10 +304,19 @@
 				.replace(/'/g, '&apos;');
 		}
 
-		refreshResults();
-		setInterval(function() {
+		function setRefreshInterval(i) {
 			refreshResults();
-		}, 30000);
+			refreshInterval = setInterval(function() {
+				refreshResults();
+			}, i)
+		}
+
+		$("#refreshRate").change(function() {			
+			clearInterval(refreshInterval);
+			setRefreshInterval($(this).val() * 1000)
+		});
+
+		setRefreshInterval(30000)
 	</script>
 </body>
 </html>
