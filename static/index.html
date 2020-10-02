@@ -90,6 +90,15 @@
 		#social img:hover {
 			opacity: 1;
 		}
+		#settings {
+			position: fixed;
+			left: 5px;
+			bottom: 5px;
+			padding: 5px;
+		}
+		#settings select:focus {
+			box-shadow: none;
+		}
 	</style>
 </head>
 <body>
@@ -128,9 +137,26 @@
 		</a>
 	</div>
 
+	<div id="settings">
+		<div class="input-group input-group-sm">
+			<div class="input-group-prepend">
+				<div class="input-group-text">&#x21bb;</div>
+			</div>
+			<select class="form-control form-control-sm" id="refresh-rate">
+				<option value="10">10s</option>
+				<option value="30" selected>30s</option>
+				<option value="60">1m</option>
+				<option value="120">2m</option>
+				<option value="300">5m</option>
+				<option value="600">10m</option>
+			</select>
+		</div>
+	</div>
+
 	<script>
 		let serviceStatuses = {};
 		let timerHandler = 0;
+		let refreshIntervalHandler = 0;
 		let userClickedStatus = false;
 
 		function showTooltip(serviceName, index, element) {
@@ -291,10 +317,19 @@
 				.replace(/'/g, '&apos;');
 		}
 
-		refreshResults();
-		setInterval(function() {
+		function setRefreshInterval(seconds) {
 			refreshResults();
-		}, 30000);
+			refreshIntervalHandler = setInterval(function() {
+				refreshResults();
+			}, seconds * 1000)
+		}
+
+		$("#refresh-rate").change(function() {
+			clearInterval(refreshIntervalHandler);
+			setRefreshInterval($(this).val())
+		});
+		setRefreshInterval(30);
+		$("#refresh-rate").val(30);
 	</script>
 </body>
 </html>
