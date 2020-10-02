@@ -90,6 +90,15 @@
 		#social img:hover {
 			opacity: 1;
 		}
+		#settings {
+            position: fixed;
+			left: 5px;
+			bottom: 5px;
+			padding: 5px;
+		}
+        #settings select:focus {
+            box-shadow: none;
+        }
 	</style>
 </head>
 <body>
@@ -101,19 +110,6 @@
 				</div>
 				<div class="col-4 text-right">
 					<img src="logo.png" alt="Gatus" style="position: relative; min-width: 50px; max-width: 200px; width: 20%;"/>
-				</div>
-			</div>
-		</div>
-		<div class="mb-2">
-			<div class="row flex-row-reverse">
-				<div class="col-2">
-					<div class="input-group mb-3">
-					  <select class="custom-select" id="refreshRate">
-					  </select>
-					  <div class="input-group-append">
-					    <label class="input-group-text" for="refreshRate">Seconds</label>
-					  </div>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -141,10 +137,26 @@
 		</a>
 	</div>
 
+	<div id="settings">
+		<div class="input-group input-group-sm">
+			<div class="input-group-prepend">
+				<div class="input-group-text">&#x21bb;</div>
+			</div>
+			<select class="form-control form-control-sm" id="refresh-rate">
+				<option value="10">10s</option>
+				<option value="30" selected>30s</option>
+				<option value="60">1m</option>
+				<option value="120">2m</option>
+				<option value="300">5m</option>
+				<option value="600">10m</option>
+			</select>
+		</div>
+	</div>
+
 	<script>
 		let serviceStatuses = {};
 		let timerHandler = 0;
-		let refreshInterval = 0;
+		let refreshIntervalHandler = 0;
 		let userClickedStatus = false;
 
 		function showTooltip(serviceName, index, element) {
@@ -305,26 +317,19 @@
 				.replace(/'/g, '&apos;');
 		}
 
-		function setRefreshInterval(i) {
+		function setRefreshInterval(seconds) {
 			refreshResults();
-			refreshInterval = setInterval(function() {
+			refreshIntervalHandler = setInterval(function() {
 				refreshResults();
-			}, i)
+			}, seconds * 1000)
 		}
 
-		$("#refreshRate").change(function() {			
-			clearInterval(refreshInterval);
-			setRefreshInterval($(this).val() * 1000)
+		$("#refresh-rate").change(function() {
+			clearInterval(refreshIntervalHandler);
+			setRefreshInterval($(this).val())
 		});
-
-		for (var i = 5; i <= 600; i++) {
-			if (i%5 == 0) {
-				$("#refreshRate").append(new Option(i, i));
-			}
-		}
-		$("#refreshRate").val(30);
-
-		setRefreshInterval(30000)
+		setRefreshInterval(30);
+		$("#refresh-rate").val(30);
 	</script>
 </body>
 </html>
