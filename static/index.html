@@ -105,13 +105,14 @@
 			</div>
 		</div>
 		<div class="mb-2">
-			<div class="row">
-				<div class="col-8">
+			<div class="row flex-row-reverse">
+				<div class="col-2">
 					<div class="input-group mb-3">
-						<input type="number" id="refreshRate" class="form-control" value="10">
-						<div class="input-group-append">
-							<span class="input-group-text">Seconds</span>
-						</div>
+					  <select class="custom-select" id="refreshRate">
+					  </select>
+					  <div class="input-group-append">
+					    <label class="input-group-text" for="refreshRate">Seconds</label>
+					  </div>
 					</div>
 				</div>
 			</div>
@@ -315,6 +316,13 @@
 			clearInterval(refreshInterval);
 			setRefreshInterval($(this).val() * 1000)
 		});
+
+		for (var i = 5; i <= 600; i++) {
+			if (i%5 == 0) {
+				$("#refreshRate").append(new Option(i, i));
+			}
+		}
+		$("#refreshRate").val(10);
 
 		setRefreshInterval(30000)
 	</script>
