@@ -19,8 +19,6 @@ core applications: https://status.twinnation.org/
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
-      - [Length - len()](#length---len)
-      - [Pattern - pat()](#pattern---pat)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
@@ -146,30 +144,12 @@ Here are some examples of conditions you can use:
 
 #### Functions
 
-##### Length - len()
+| Function   | Description                                                                                                      | Example                    |
+|:-----------|:---------------------------------------------------------------------------------------------------------------- |:-------------------------- |
+| `len`      | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                                | `len([BODY].username) > 8`
+| `pat`      | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.   | `[IP] == pat(192.168.*)`
 
-Returns the length of the object/slice.
-
-Example:
-```
-len([BODY].username) > 8
-```
-
-Works only with the `[BODY]` placeholder.
-
-
-##### Pattern - pat()
-
-Specifies that the string passed as parameter should be evaluated as a pattern.
-
-Usage:
-```
-[IP] == pat(192.168.*)
-```
-
-Works only with `==` and `!=` comparators.
-
-**NOTE**: Use patterns only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+**NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
 
 
