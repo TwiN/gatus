@@ -73,7 +73,7 @@ func (provider *AlertProvider) buildRequest(serviceName, alertDescription string
 // Send a request to the alert provider and return the body
 func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	request := provider.buildRequest(serviceName, alertDescription, resolved)
-	response, err := client.GetHttpClient().Do(request)
+	response, err := client.GetHttpClient(false).Do(request)
 	if err != nil {
 		return nil, err
 	}

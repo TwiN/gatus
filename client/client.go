@@ -1,19 +1,35 @@
 package client
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 )
 
 var (
-	client *http.Client
+	secureHttpClient   *http.Client
+	insecureHttpClient *http.Client
 )
 
-func GetHttpClient() *http.Client {
-	if client == nil {
-		client = &http.Client{
-			Timeout: time.Second * 10,
+func GetHttpClient(insecure bool) *http.Client {
+	if insecure {
+		if insecureHttpClient == nil {
+			insecureHttpClient = &http.Client{
+				Timeout: time.Second * 10,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			}
 		}
+		return insecureHttpClient
+	} else {
+		if secureHttpClient == nil {
+			secureHttpClient = &http.Client{
+				Timeout: time.Second * 10,
+			}
+		}
+		return secureHttpClient
 	}
-	return client
 }

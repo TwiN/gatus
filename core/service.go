@@ -46,6 +46,9 @@ type Service struct {
 	// Alerts is the alerting configuration for the service in case of failure
 	Alerts []*Alert `yaml:"alerts"`
 
+	// Insecure is whether to skip verifying the server's certificate chain and host name
+	Insecure bool `yaml:"insecure,omitempty"`
+
 	NumberOfFailuresInARow  int
 	NumberOfSuccessesInARow int
 }
@@ -135,7 +138,7 @@ func (service *Service) getIp(result *Result) {
 func (service *Service) call(result *Result) {
 	request := service.buildRequest()
 	startTime := time.Now()
-	response, err := client.GetHttpClient().Do(request)
+	response, err := client.GetHttpClient(service.Insecure).Do(request)
 	if err != nil {
 		result.Duration = time.Since(startTime)
 		result.Errors = append(result.Errors, err.Error())

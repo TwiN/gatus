@@ -84,6 +84,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].url`                         | URL to send the request to                                                    | Required `""`  |
 | `services[].conditions`                  | Conditions used to determine the health of the service                        | `[]`           |
+| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
 | `services[].method`                      | Request method                                                                | `GET`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
