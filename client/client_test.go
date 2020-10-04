@@ -1,6 +1,8 @@
 package client
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGetHttpClient(t *testing.T) {
 	if secureHttpClient != nil {

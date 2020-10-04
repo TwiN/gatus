@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 	"time"
 )
@@ -32,4 +33,13 @@ func GetHttpClient(insecure bool) *http.Client {
 		}
 		return secureHttpClient
 	}
+}
+
+func CanCreateConnectionToTcpService(address string) bool {
+	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
 }

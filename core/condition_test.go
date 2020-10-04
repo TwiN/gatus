@@ -265,3 +265,21 @@ func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
 }
+
+func TestCondition_evaluateWithConnected(t *testing.T) {
+	condition := Condition("[CONNECTED] == true")
+	result := &Result{Connected: true}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithConnectedFailure(t *testing.T) {
+	condition := Condition("[CONNECTED] == true")
+	result := &Result{Connected: false}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}

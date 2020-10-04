@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -136,19 +137,30 @@ func (service *Service) getIp(result *Result) {
 }
 
 func (service *Service) call(result *Result) {
-	request := service.buildRequest()
-	startTime := time.Now()
-	response, err := client.GetHttpClient(service.Insecure).Do(request)
-	if err != nil {
-		result.Duration = time.Since(startTime)
-		result.Errors = append(result.Errors, err.Error())
-		return
+	isServiceTcp := strings.HasPrefix(service.Url, "tcp://")
+	var request *http.Request
+	var response *http.Response
+	var err error
+	if !isServiceTcp {
+		request = service.buildRequest()
 	}
-	result.Duration = time.Since(startTime)
-	result.HttpStatus = response.StatusCode
-	result.Body, err = ioutil.ReadAll(response.Body)
-	if err != nil {
-		result.Errors = append(result.Errors, err.Error())
+	startTime := time.Now()
+	if isServiceTcp {
+		result.Connected = client.CanCreateConnectionToTcpService(strings.TrimPrefix(service.Url, "tcp://"))
+		result.Duration = time.Since(startTime)
+	} else {
+		response, err = client.GetHttpClient(service.Insecure).Do(request)
+		result.Duration = time.Since(startTime)
+		if err != nil {
+			result.Errors = append(result.Errors, err.Error())
+			return
+		}
+		result.HttpStatus = response.StatusCode
+		result.Connected = response.StatusCode > 0
+		result.Body, err = ioutil.ReadAll(response.Body)
+		if err != nil {
+			result.Errors = append(result.Errors, err.Error())
+		}
 	}
 }
 

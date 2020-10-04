@@ -29,6 +29,9 @@ core applications: https://status.twinnation.org/
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
   - [Sending a GraphQL request](#sending-a-graphql-request)
+  - [Recommended interval](#recommended-interval)
+  - [Default timeouts](#default-timeouts)
+  - [Monitoring a TCP service](#monitoring-a-tcp-service)
 
 
 ## Features
@@ -122,6 +125,7 @@ Here are some examples of conditions you can use:
 | `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299              | 301, 302, ...  |
 | `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299              | 301, 302, ...  |
 | `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404         | 400, 200, ...  |
+| `[CONNECTED] == true`        | Connection to host must've been successful              | true, false                |  |
 | `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms        | 500ms, 501ms   |
 | `[IP] == 127.0.0.1`          | Target IP must be 127.0.0.1                             | 127.0.0.1                  | 0.0.0.0        |
 | `[BODY] == 1`                | The body must be equal to 1                             | 1                          | `{}`, `2`, ... |
@@ -135,12 +139,13 @@ Here are some examples of conditions you can use:
 
 #### Placeholders
 
-| Placeholder                  | Description                                             | Example of resolved value  |
-|:---------------------------- |:------------------------------------------------------- |:-------------------------- |
-| `[STATUS]`                   | Resolves into the HTTP status of the request            | 404
-| `[RESPONSE_TIME]`            | Resolves into the response time the request took, in ms | 10
-| `[IP]`                       | Resolves into the IP of the target host                 | 192.168.0.232
-| `[BODY]`                     | Resolves into the response body. Supports JSONPath.     | `{"name":"john.doe"}`
+| Placeholder             | Description                                             | Example of resolved value |
+|:----------------------- |:------------------------------------------------------- |:------------------------- |
+| `[STATUS]`              | Resolves into the HTTP status of the request            | 404
+| `[RESPONSE_TIME]`       | Resolves into the response time the request took, in ms | 10
+| `[IP]`                  | Resolves into the IP of the target host                 | 192.168.0.232
+| `[BODY]`                | Resolves into the response body. Supports JSONPath.     | `{"name":"john.doe"}`
+| `[CONNECTED]`           | Resolves into whether a connection could be established | `true`
 
 
 #### Functions
@@ -346,3 +351,60 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 ```json
 {"query":"      {\n        user(gender: \"female\") {\n          id\n          name\n          gender\n          avatar\n        }\n      }"}
 ```
+
+
+### Recommended interval
+
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one service at a time. 
+In other words, even if you have multiple services with the exact same interval, they will not execute at the same time.
+
+You can test this yourself by running Gatus with several services configured with a very short, unrealistic interval, 
+such as 1ms. You'll notice that the response time does not fluctuate - that is because while services are evaluated on
+different goroutines, there's a global lock that prevents multiple services from running at the same time.
+
+Unfortunately, there is a drawback. If you have a lot of services, including some that are very slow or prone to time out (the default
+time out is 10s for HTTP and 5s for TCP), then it means that for the entire duration of the request, no other services can be evaluated.
+
+**This does mean that Gatus will be unable to evaluate the health of other services**. 
+The interval does not include the duration of the request itself, which means that if a service has an interval of 30s 
+and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s. 
+
+While this does not prevent Gatus' from performing health checks on all other services, it may cause Gatus to be unable 
+to respect the configured interval, for instance:
+- Service A has an interval of 5s, and times out after 10s to complete 
+- Service B has an interval of 5s, and takes 1ms to complete
+- Service B will be unable to run every 5s, because service A's health evaluation takes longer than its interval
+
+To sum it up, while Gatus can really handle any interval you throw at it, you're better off having slow requests with 
+higher interval.
+
+As a rule of the thumb, I personally set interval for more complex health checks to `5m` (5 minutes) and 
+simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
+
+
+### Default timeouts
+
+| Protocol | Timeout |
+|:-------- |:------- |
+| HTTP     | 10s
+| TCP      | 5s
+
+
+### Monitoring a TCP service
+
+By prefixing `services[].url` with `tcp:\\`, you can monitor TCP services at a very basic level:
+
+```yaml
+  - name: redis
+    url: "tcp://127.0.0.1:6379"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `services[].body`, `services[].insecure`, 
+`services[].headers`, `services[].method` and `services[].graphql` are not supported for TCP services.
+
+**NOTE**: `[CONNECTED] == true` does not guarantee that the service itself is healthy - it only guarantees that there's 
+something at the given address listening to the given port, and that a connection to that address was successfully 
+established.

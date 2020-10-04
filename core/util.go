@@ -12,6 +12,7 @@ const (
 	IPPlaceHolder           = "[IP]"
 	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
 	BodyPlaceHolder         = "[BODY]"
+	ConnectedPlaceHolder    = "[CONNECTED]"
 
 	LengthFunctionPrefix  = "len("
 	PatternFunctionPrefix = "pat("
@@ -35,6 +36,8 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
 		case BodyPlaceHolder:
 			element = body
+		case ConnectedPlaceHolder:
+			element = strconv.FormatBool(result.Connected)
 		default:
 			// if contains the BodyPlaceHolder, then evaluate json path
 			if strings.Contains(element, BodyPlaceHolder) {

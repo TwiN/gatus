@@ -9,16 +9,37 @@ type HealthStatus struct {
 	Message string `json:"message,omitempty"`
 }
 
+// Result of the evaluation of a Service
 type Result struct {
-	HttpStatus       int                `json:"status"`
-	Body             []byte             `json:"-"`
-	Hostname         string             `json:"hostname"`
-	Ip               string             `json:"-"`
-	Duration         time.Duration      `json:"duration"`
-	Errors           []string           `json:"errors"`
+	// HttpStatus is the HTTP response status code
+	HttpStatus int `json:"status"`
+
+	// Body is the response body
+	Body []byte `json:"-"`
+
+	// Hostname extracted from the Service Url
+	Hostname string `json:"hostname"`
+
+	// Ip resolved from the Service Url
+	Ip string `json:"-"`
+
+	// Connected whether a connection to the host was established successfully
+	Connected bool `json:"-"`
+
+	// Duration time that the request took
+	Duration time.Duration `json:"duration"`
+
+	// Errors encountered during the evaluation of the service's health
+	Errors []string `json:"errors"`
+
+	// ConditionResults results of the service's conditions
 	ConditionResults []*ConditionResult `json:"condition-results"`
-	Success          bool               `json:"success"`
-	Timestamp        time.Time          `json:"timestamp"`
+
+	// Success whether the result signifies a success or not
+	Success bool `json:"success"`
+
+	// Timestamp when the request was sent
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type ConditionResult struct {
