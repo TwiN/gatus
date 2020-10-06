@@ -10,11 +10,30 @@ import (
 )
 
 const (
-	StatusPlaceholder       = "[STATUS]"
-	IPPlaceHolder           = "[IP]"
+	// StatusPlaceholder is a placeholder for a HTTP status.
+	//
+	// Values that could replace the placeholder: 200, 404, 500, ...
+	StatusPlaceholder = "[STATUS]"
+
+	// IPPlaceHolder is a placeholder for an IP.
+	//
+	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
+	IPPlaceHolder = "[IP]"
+
+	// ResponseTimePlaceHolder is a placeholder for the request response time, in milliseconds.
+	//
+	// Values that could replace the placeholder: 1, 500, 1000, ...
 	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
-	BodyPlaceHolder         = "[BODY]"
-	ConnectedPlaceHolder    = "[CONNECTED]"
+
+	// BodyPlaceHolder is a placeholder for the body of the response
+	//
+	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
+	BodyPlaceHolder = "[BODY]"
+
+	// ConnectedPlaceHolder is a placeholder for whether a connection was successfully established.
+	//
+	// Values that could replace the placeholder: true, false
+	ConnectedPlaceHolder = "[CONNECTED]"
 
 	LengthFunctionPrefix  = "len("
 	PatternFunctionPrefix = "pat("
@@ -23,6 +42,7 @@ const (
 	InvalidConditionElementSuffix = "(INVALID)"
 )
 
+// Condition is a condition that needs to be met in order for a Service to be considered healthy.
 type Condition string
 
 // evaluate the Condition with the Result of the health check
