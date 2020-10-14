@@ -102,19 +102,23 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
 | `alerting`                               | Configuration for alerting                                                    | `{}`           |
-| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `""`           |
+| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
 | `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `""`           |
+| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
-| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `""`           |
+| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
 | `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
 | `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
 | `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
 | `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
-| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `""`           |
+| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
+| `security`                               | Security configuration                                                        | `{}`           |
+| `security.basic`                         | Basic authentication security configuration                                   | `{}`           |
+| `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
+| `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
 
 
 ### Conditions
@@ -410,3 +414,17 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `services[].body`, `s
 **NOTE**: `[CONNECTED] == true` does not guarantee that the service itself is healthy - it only guarantees that there's 
 something at the given address listening to the given port, and that a connection to that address was successfully 
 established.
+
+
+### Basic authentication
+
+You can require Basic authentication by leveraging the `security.basic` configuration:
+
+```yaml
+security:
+  basic:
+    username: "john.doe"
+    password-sha512: "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
+```
+
+The example above will require that you authenticate with the username `john.doe` as well as the password `hunter2`.
