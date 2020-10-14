@@ -5,6 +5,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/security"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -18,16 +19,18 @@ const (
 )
 
 var (
-	ErrNoServiceInConfig  = errors.New("configuration file should contain at least 1 service")
-	ErrConfigFileNotFound = errors.New("configuration file not found")
-	ErrConfigNotLoaded    = errors.New("configuration is nil")
-	config                *Config
+	ErrNoServiceInConfig     = errors.New("configuration file should contain at least 1 service")
+	ErrConfigFileNotFound    = errors.New("configuration file not found")
+	ErrConfigNotLoaded       = errors.New("configuration is nil")
+	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
+	config                   *Config
 )
 
 // Config is the main configuration structure
 type Config struct {
 	Metrics  bool             `yaml:"metrics"`
 	Debug    bool             `yaml:"debug"`
+	Security *security.Config `yaml:"security"`
 	Alerting *alerting.Config `yaml:"alerting"`
 	Services []*core.Service  `yaml:"services"`
 }
@@ -83,6 +86,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		err = ErrNoServiceInConfig
 	} else {
 		validateAlertingConfig(config)
+		validateSecurityConfig(config)
 		validateServicesConfig(config)
 	}
 	return
@@ -96,6 +100,20 @@ func validateServicesConfig(config *Config) {
 		service.ValidateAndSetDefaults()
 	}
 	log.Printf("[config][validateServicesConfig] Validated %d services", len(config.Services))
+}
+
+func validateSecurityConfig(config *Config) {
+	if config.Security != nil {
+		if config.Security.IsValid() {
+			if config.Debug {
+				log.Printf("[config][validateSecurityConfig] Basic security configuration has been validated")
+			}
+		} else {
+			// If there was an attempt to configure security, then it must mean that some confidential or private
+			// data are exposed. As a result, we'll force a panic because it's better to be safe than sorry.
+			panic(ErrInvalidSecurityConfig)
+		}
+	}
 }
 
 func validateAlertingConfig(config *Config) {

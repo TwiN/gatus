@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/TwinProduction/gatus/core"
 	"testing"
 	"time"
@@ -215,5 +216,58 @@ services:
 	}
 	if config.Alerting.PagerDuty.IsValid() {
 		t.Fatal("PagerDuty alerting config should've been invalid")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidSecurityConfig(t *testing.T) {
+	defer func() { recover() }()
+	_, _ = parseAndValidateConfigBytes([]byte(`
+security:
+  basic:
+    username: "admin"
+    password-sha512: "invalid-sha512-hash"
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	t.Error("Function should've panicked")
+}
+
+func TestParseAndValidateConfigBytesWithValidSecurityConfig(t *testing.T) {
+	const expectedUsername = "admin"
+	const expectedPasswordHash = "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+security:
+  basic:
+    username: "%s"
+    password-sha512: "%s"
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`, expectedUsername, expectedPasswordHash)))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Security == nil {
+		t.Fatal("config.Security shouldn't have been nil")
+	}
+	if !config.Security.IsValid() {
+		t.Error("Security config should've been valid")
+	}
+	if config.Security.Basic == nil {
+		t.Fatal("config.Security.Basic shouldn't have been nil")
+	}
+	if config.Security.Basic.Username != expectedUsername {
+		t.Errorf("config.Security.Basic.Username should've been %s, but was %s", expectedUsername, config.Security.Basic.Username)
+	}
+	if config.Security.Basic.PasswordSha512Hash != expectedPasswordHash {
+		t.Errorf("config.Security.Basic.PasswordSha512Hash should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
 	}
 }
