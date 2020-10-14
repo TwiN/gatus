@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/watchdog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
@@ -23,7 +24,11 @@ var (
 
 func main() {
 	cfg := loadConfiguration()
-	http.HandleFunc("/api/v1/results", serviceResultsHandler)
+	resultsHandler := serviceResultsHandler
+	if cfg.Security != nil && cfg.Security.IsValid() {
+		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)
+	}
+	http.HandleFunc("/api/v1/results", resultsHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.Handle("/", GzipHandler(http.FileServer(http.Dir("./static"))))
 	if cfg.Metrics {
