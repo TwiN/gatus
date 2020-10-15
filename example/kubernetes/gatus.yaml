@@ -13,6 +13,16 @@ data:
         interval: 5m
         conditions:
           - "[STATUS] == 200"
+      - name: cat-fact
+        url: "https://cat-fact.herokuapp.com/facts/random"
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].deleted == false"
+          - "len([BODY].text) > 0"
+          - "[BODY].text == pat(*cat*)"
+          - "[STATUS] == pat(2*)"
+          - "[CONNECTED] == true"
       - name: Example
         url: https://example.com/
         conditions:
