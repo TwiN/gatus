@@ -82,7 +82,15 @@ func (c *Condition) evaluate(result *Result) bool {
 	// If the condition isn't a success, return what the resolved condition was too
 	if !success {
 		log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, resolvedCondition)
-		conditionToDisplay = fmt.Sprintf("%s (%s)", condition, resolvedCondition)
+		// Check if the resolved condition was an invalid path
+		isResolvedConditionInvalidPath := strings.ReplaceAll(resolvedCondition, fmt.Sprintf("%s ", InvalidConditionElementSuffix), "") == condition
+		if isResolvedConditionInvalidPath {
+			// Since, in the event of an invalid path, the resolvedCondition contains the condition itself,
+			// we'll only display the resolvedCondition
+			conditionToDisplay = resolvedCondition
+		} else {
+			conditionToDisplay = fmt.Sprintf("%s (%s)", condition, resolvedCondition)
+		}
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
