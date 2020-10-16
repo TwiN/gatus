@@ -138,7 +138,9 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 				}
 				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
 				if err != nil {
-					result.Errors = append(result.Errors, err.Error())
+					if err.Error() != "unexpected end of JSON input" {
+						result.Errors = append(result.Errors, err.Error())
+					}
 					element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
 				} else {
 					if wantLength {
