@@ -81,6 +81,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
 	// Parse configuration file
 	err = yaml.Unmarshal(yamlBytes, &config)
+	if err != nil {
+		return
+	}
 	// Check if the configuration file at least has services.
 	if config == nil || config.Services == nil || len(config.Services) == 0 {
 		err = ErrNoServiceInConfig
