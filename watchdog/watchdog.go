@@ -44,9 +44,11 @@ func Monitor(cfg *config.Config) {
 func monitor(service *core.Service) {
 	cfg := config.Get()
 	for {
-		// By placing the lock here, we prevent multiple services from being monitored at the exact same time, which
-		// could cause performance issues and return inaccurate results
-		monitoringMutex.Lock()
+		if !cfg.DisableMonitoringLock {
+			// By placing the lock here, we prevent multiple services from being monitored at the exact same time, which
+			// could cause performance issues and return inaccurate results
+			monitoringMutex.Lock()
+		}
 		if cfg.Debug {
 			log.Printf("[watchdog][monitor] Monitoring serviceName=%s", service.Name)
 		}
@@ -74,7 +76,9 @@ func monitor(service *core.Service) {
 		if cfg.Debug {
 			log.Printf("[watchdog][monitor] Waiting for interval=%s before monitoring serviceName=%s again", service.Interval, service.Name)
 		}
-		monitoringMutex.Unlock()
+		if !cfg.DisableMonitoringLock {
+			monitoringMutex.Unlock()
+		}
 		time.Sleep(service.Interval)
 	}
 }

@@ -34,6 +34,7 @@ core applications: https://status.twinnation.org/
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP service](#monitoring-a-tcp-service)
+  - [disable-monitoring-lock](#disable-monitoring-lock)
 
 
 ## Features
@@ -119,6 +120,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `security.basic`                         | Basic authentication security configuration                                   | `{}`           |
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
 | `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
+| `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
 
 
 ### Conditions
@@ -361,7 +363,10 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 ### Recommended interval
 
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one service at a time. 
+**NOTE**: This does not _really_ apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
+tells Gatus to only evaluate one service at a time.
+
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one service at a time
 In other words, even if you have multiple services with the exact same interval, they will not execute at the same time.
 
 You can test this yourself by running Gatus with several services configured with a very short, unrealistic interval, 
@@ -428,3 +433,15 @@ security:
 ```
 
 The example above will require that you authenticate with the username `john.doe` as well as the password `hunter2`.
+
+
+### disable-monitoring-lock
+
+Setting `disable-monitoring-lock` to `true` means that multiple services could be monitored at the same time.
+
+While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted 
+by the evaluation of multiple services at the same time, therefore, the default value for this parameter is `false`.
+
+There are two main reasons why you might want to disable the monitoring lock:
+- You're using Gatus for load testing (I mean, technically, each services run on a different goroutine... If you )
+- You have a _lot_ of services to monitor

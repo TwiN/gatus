@@ -28,11 +28,25 @@ var (
 
 // Config is the main configuration structure
 type Config struct {
-	Metrics  bool             `yaml:"metrics"`
-	Debug    bool             `yaml:"debug"`
+	// Debug Whether to enable debug logs
+	Debug bool `yaml:"debug"`
+
+	// Metrics Whether to expose metrics at /metrics
+	Metrics bool `yaml:"metrics"`
+
+	// DisableMonitoringLock Whether to disable the monitoring lock
+	// The monitoring lock is what prevents multiple services from being processed at the same time.
+	// Disabling this may lead to inaccurate response times
+	DisableMonitoringLock bool `yaml:"disable-monitoring-lock"`
+
+	// Security Configuration for securing access to Gatus
 	Security *security.Config `yaml:"security"`
+
+	// Alerting Configuration for alerting
 	Alerting *alerting.Config `yaml:"alerting"`
-	Services []*core.Service  `yaml:"services"`
+
+	// Services List of services to monitor
+	Services []*core.Service `yaml:"services"`
 }
 
 func Get() *Config {
