@@ -443,5 +443,7 @@ While this behavior wouldn't generally be harmful, conditions using the `[RESPON
 by the evaluation of multiple services at the same time, therefore, the default value for this parameter is `false`.
 
 There are two main reasons why you might want to disable the monitoring lock:
-- You're using Gatus for load testing (I mean, technically, each services run on a different goroutine... If you )
+- You're using Gatus for load testing (each services are periodically evaluated on a different goroutine, so 
+technically, if you create 100 services with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of services to monitor
+- You want to test multiple services at very short interval (< 5s)
