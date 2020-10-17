@@ -442,7 +442,7 @@ Setting `disable-monitoring-lock` to `true` means that multiple services could b
 While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted 
 by the evaluation of multiple services at the same time, therefore, the default value for this parameter is `false`.
 
-There are two main reasons why you might want to disable the monitoring lock:
+There are three main reasons why you might want to disable the monitoring lock:
 - You're using Gatus for load testing (each services are periodically evaluated on a different goroutine, so 
 technically, if you create 100 services with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of services to monitor
