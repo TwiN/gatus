@@ -16,6 +16,10 @@ const (
 	// DefaultConfigurationFilePath is the default path that will be used to search for the configuration file
 	// if a custom path isn't configured through the GATUS_CONFIG_FILE environment variable
 	DefaultConfigurationFilePath = "config/config.yaml"
+
+	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
+	// configuration file if DefaultConfigurationFilePath didn't work
+	DefaultFallbackConfigurationFilePath = "config/config.yml"
 )
 
 var (
@@ -49,6 +53,7 @@ type Config struct {
 	Services []*core.Service `yaml:"services"`
 }
 
+// Get returns the configuration, or panics if the configuration hasn't loaded yet
 func Get() *Config {
 	if config == nil {
 		panic(ErrConfigNotLoaded)
@@ -56,6 +61,7 @@ func Get() *Config {
 	return config
 }
 
+// Load loads a custom configuration file
 func Load(configFile string) error {
 	log.Printf("[config][Load] Reading configuration from configFile=%s", configFile)
 	cfg, err := readConfigurationFile(configFile)
@@ -70,11 +76,12 @@ func Load(configFile string) error {
 	return nil
 }
 
+// LoadDefaultConfiguration loads the default configuration file
 func LoadDefaultConfiguration() error {
 	err := Load(DefaultConfigurationFilePath)
 	if err != nil {
 		if err == ErrConfigFileNotFound {
-			return Load("config/config.yml")
+			return Load(DefaultFallbackConfigurationFilePath)
 		}
 		return err
 	}
