@@ -291,3 +291,10 @@ services:
 		t.Errorf("config.Security.Basic.PasswordSha512Hash should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
 	}
 }
+
+func TestLoadFileThatDoesNotExist(t *testing.T) {
+	err := Load("file-that-does-not-exist.yaml")
+	if err == nil {
+		t.Error("Should've returned an error, because the file specified doesn't exist")
+	}
+}
