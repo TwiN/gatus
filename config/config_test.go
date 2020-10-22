@@ -7,6 +7,26 @@ import (
 	"time"
 )
 
+func TestGetBeforeConfigIsLoaded(t *testing.T) {
+	defer func() { recover() }()
+	Get()
+	t.Fatal("Should've panicked because the configuration hasn't been loaded yet")
+}
+
+func TestLoadFileThatDoesNotExist(t *testing.T) {
+	err := Load("file-that-does-not-exist.yaml")
+	if err == nil {
+		t.Error("Should've returned an error, because the file specified doesn't exist")
+	}
+}
+
+func TestLoadDefaultConfigurationFile(t *testing.T) {
+	err := LoadDefaultConfiguration()
+	if err == nil {
+		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
+	}
+}
+
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 services:
@@ -289,19 +309,5 @@ services:
 	}
 	if config.Security.Basic.PasswordSha512Hash != expectedPasswordHash {
 		t.Errorf("config.Security.Basic.PasswordSha512Hash should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
-	}
-}
-
-func TestLoadFileThatDoesNotExist(t *testing.T) {
-	err := Load("file-that-does-not-exist.yaml")
-	if err == nil {
-		t.Error("Should've returned an error, because the file specified doesn't exist")
-	}
-}
-
-func TestLoadDefaultConfigurationFile(t *testing.T) {
-	err := LoadDefaultConfiguration()
-	if err == nil {
-		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
 	}
 }

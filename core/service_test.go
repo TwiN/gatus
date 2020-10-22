@@ -37,6 +37,41 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 	}
 }
 
+func TestService_ValidateAndSetDefaultsWithNoName(t *testing.T) {
+	defer func() { recover() }()
+	condition := Condition("[STATUS] == 200")
+	service := &Service{
+		Name:       "",
+		Url:        "http://example.com",
+		Conditions: []*Condition{&condition},
+	}
+	service.ValidateAndSetDefaults()
+	t.Fatal("Should've panicked because service didn't have a name, which is a mandatory field")
+}
+
+func TestService_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
+	defer func() { recover() }()
+	condition := Condition("[STATUS] == 200")
+	service := &Service{
+		Name:       "example",
+		Url:        "",
+		Conditions: []*Condition{&condition},
+	}
+	service.ValidateAndSetDefaults()
+	t.Fatal("Should've panicked because service didn't have an url, which is a mandatory field")
+}
+
+func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
+	defer func() { recover() }()
+	service := &Service{
+		Name:       "example",
+		Url:        "http://example.com",
+		Conditions: nil,
+	}
+	service.ValidateAndSetDefaults()
+	t.Fatal("Should've panicked because service didn't have at least 1 condition")
+}
+
 func TestService_GetAlertsTriggered(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{

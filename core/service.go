@@ -14,8 +14,14 @@ import (
 )
 
 var (
-	ErrNoCondition = errors.New("you must specify at least one condition per service")
-	ErrNoUrl       = errors.New("you must specify an url for each service")
+	// ErrServiceWithNoCondition is the error with which gatus will panic if a service is configured with no conditions
+	ErrServiceWithNoCondition = errors.New("you must specify at least one condition per service")
+
+	// ErrServiceWithNoUrl is the error with which gatus will panic if a service is configured with no url
+	ErrServiceWithNoUrl = errors.New("you must specify an url for each service")
+
+	// ErrServiceWithNoName is the error with which gatus will panic if a service is configured with no name
+	ErrServiceWithNoName = errors.New("you must specify a name for each service")
 )
 
 // Service is the configuration of a monitored endpoint
@@ -50,7 +56,10 @@ type Service struct {
 	// Insecure is whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
 
-	NumberOfFailuresInARow  int
+	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
+	NumberOfFailuresInARow int
+
+	// NumberOfFailuresInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int
 }
 
@@ -74,11 +83,14 @@ func (service *Service) ValidateAndSetDefaults() {
 			alert.SuccessThreshold = 2
 		}
 	}
+	if len(service.Name) == 0 {
+		panic(ErrServiceWithNoName)
+	}
 	if len(service.Url) == 0 {
-		panic(ErrNoUrl)
+		panic(ErrServiceWithNoUrl)
 	}
 	if len(service.Conditions) == 0 {
-		panic(ErrNoCondition)
+		panic(ErrServiceWithNoCondition)
 	}
 
 	// Make sure that the request can be created
@@ -107,6 +119,7 @@ func (service *Service) EvaluateHealth() *Result {
 	return result
 }
 
+// GetAlertsTriggered returns a slice of alerts that have been triggered
 func (service *Service) GetAlertsTriggered() []Alert {
 	var alerts []Alert
 	if service.NumberOfFailuresInARow == 0 {
