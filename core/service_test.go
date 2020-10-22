@@ -2,6 +2,7 @@ package core
 
 import (
 	"testing"
+	"time"
 )
 
 func TestIntegrationEvaluateHealth(t *testing.T) {
@@ -39,5 +40,24 @@ func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	}
 	if result.Success {
 		t.Error("Because one of the conditions failed, success should have been false")
+	}
+}
+
+func TestService_ValidateAndSetDefaults(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "TwiNNatioN",
+		Url:        "https://twinnation.org/health",
+		Conditions: []*Condition{&condition},
+	}
+	service.ValidateAndSetDefaults()
+	if service.Method != "GET" {
+		t.Error("Service method should've defaulted to GET")
+	}
+	if service.Interval != time.Minute {
+		t.Error("Service interval should've defaulted to 1 minute")
+	}
+	if service.Headers == nil {
+		t.Error("Service headers should've defaulted to an empty map")
 	}
 }

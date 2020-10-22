@@ -36,6 +36,12 @@ services:
 	if config.Services[1].Url != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}
+	if config.Services[0].Method != "GET" {
+		t.Errorf("Method should have been %s (default)", "GET")
+	}
+	if config.Services[1].Method != "GET" {
+		t.Errorf("Method should have been %s (default)", "GET")
+	}
 	if config.Services[0].Interval != 15*time.Second {
 		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
@@ -130,7 +136,10 @@ services:
     alerts:
       - type: slack
         enabled: true
+      - type: pagerduty
+        enabled: true
         failure-threshold: 7
+        success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
     conditions:
       - "[STATUS] == 200"
@@ -171,23 +180,32 @@ services:
 	if config.Services[0].Alerts == nil {
 		t.Fatal("The service alerts shouldn't have been nil")
 	}
-	if len(config.Services[0].Alerts) != 1 {
-		t.Fatal("There should've been 1 alert configured")
+	if len(config.Services[0].Alerts) != 2 {
+		t.Fatal("There should've been 2 alert configured")
 	}
 	if !config.Services[0].Alerts[0].Enabled {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[0].FailureThreshold != 7 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[0].FailureThreshold)
+	if config.Services[0].Alerts[0].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[0].FailureThreshold)
 	}
-	if config.Services[0].Alerts[0].FailureThreshold != 7 {
-		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
+	if config.Services[0].Alerts[0].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
+	}
+	if config.Services[0].Alerts[1].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
+	}
+	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
+		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
 	}
 	if config.Services[0].Alerts[0].Type != core.SlackAlert {
 		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
 	}
-	if config.Services[0].Alerts[0].Description != "Healthcheck failed 7 times in a row" {
-		t.Errorf("The type of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[0].Description)
+	if config.Services[0].Alerts[1].Type != core.PagerDutyAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.PagerDutyAlert, config.Services[0].Alerts[1].Type)
+	}
+	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[0].Description)
 	}
 }
 
@@ -199,6 +217,8 @@ alerting:
 services:
   - name: twinnation
     url: https://twinnation.org/actuator/health
+    alerts:
+      - type: pagerduty
     conditions:
       - "[STATUS] == 200"
 `))
