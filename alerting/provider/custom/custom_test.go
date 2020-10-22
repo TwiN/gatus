@@ -1,6 +1,7 @@
 package custom
 
 import (
+	"github.com/TwinProduction/gatus/core"
 	"io/ioutil"
 	"testing"
 )
@@ -55,5 +56,16 @@ func TestAlertProvider_buildRequestWhenTriggered(t *testing.T) {
 	body, _ := ioutil.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
+	}
+}
+
+func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
+	provider := AlertProvider{Url: "http://example.com"}
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, true)
+	if customAlertProvider == nil {
+		t.Error("customAlertProvider shouldn't have been nil")
+	}
+	if customAlertProvider != customAlertProvider {
+		t.Error("customAlertProvider should've been equal to customAlertProvider")
 	}
 }
