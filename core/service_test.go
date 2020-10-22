@@ -49,6 +49,7 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 		Name:       "TwiNNatioN",
 		Url:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
+		Alerts:     []*Alert{{Type: PagerDutyAlert}},
 	}
 	service.ValidateAndSetDefaults()
 	if service.Method != "GET" {
@@ -59,5 +60,17 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 	}
 	if service.Headers == nil {
 		t.Error("Service headers should've defaulted to an empty map")
+	}
+	if len(service.Alerts) != 1 {
+		t.Error("Service should've had 1 alert")
+	}
+	if service.Alerts[0].Enabled {
+		t.Error("Service alert should've defaulted to disabled")
+	}
+	if service.Alerts[0].SuccessThreshold != 2 {
+		t.Error("Service alert should've defaulted to a success threshold of 2")
+	}
+	if service.Alerts[0].FailureThreshold != 3 {
+		t.Error("Service alert should've defaulted to a failure threshold of 3")
 	}
 }

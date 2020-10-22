@@ -298,3 +298,10 @@ func TestLoadFileThatDoesNotExist(t *testing.T) {
 		t.Error("Should've returned an error, because the file specified doesn't exist")
 	}
 }
+
+func TestLoadDefaultConfigurationFile(t *testing.T) {
+	err := LoadDefaultConfiguration()
+	if err == nil {
+		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
+	}
+}
