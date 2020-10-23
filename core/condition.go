@@ -38,10 +38,10 @@ const (
 	// LengthFunctionPrefix is the prefix for the length function
 	LengthFunctionPrefix = "len("
 
-	// LengthFunctionPrefix is the prefix for the pattern function
+	// PatternFunctionPrefix is the prefix for the pattern function
 	PatternFunctionPrefix = "pat("
 
-	// LengthFunctionPrefix is the suffix for all functions
+	// FunctionSuffix is the suffix for all functions
 	FunctionSuffix = ")"
 
 	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
