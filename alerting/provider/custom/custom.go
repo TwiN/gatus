@@ -81,9 +81,8 @@ func (provider *AlertProvider) Send(serviceName, alertDescription string, resolv
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return nil, fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
-		} else {
-			return nil, fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 		}
+		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	return ioutil.ReadAll(response.Body)
 }
