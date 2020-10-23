@@ -50,10 +50,10 @@ services:
 	if len(config.Services) != 2 {
 		t.Error("Should have returned two services")
 	}
-	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
-	if config.Services[1].Url != "https://api.github.com/healthz" {
+	if config.Services[1].URL != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}
 	if config.Services[0].Method != "GET" {
@@ -93,7 +93,7 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
@@ -119,7 +119,7 @@ services:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
-	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
@@ -179,8 +179,8 @@ services:
 	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
 		t.Fatal("Slack alerting config should've been valid")
 	}
-	if config.Alerting.Slack.WebhookUrl != "http://example.com" {
-		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack.WebhookUrl)
+	if config.Alerting.Slack.WebhookURL != "http://example.com" {
+		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack.WebhookURL)
 	}
 	if config.Alerting.PagerDuty == nil || !config.Alerting.PagerDuty.IsValid() {
 		t.Fatal("PagerDuty alerting config should've been valid")
@@ -191,7 +191,7 @@ services:
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
 	}
-	if config.Services[0].Url != "https://twinnation.org/actuator/health" {
+	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {

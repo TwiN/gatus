@@ -5,24 +5,24 @@ import (
 )
 
 func TestGetHttpClient(t *testing.T) {
-	if secureHttpClient != nil {
-		t.Error("secureHttpClient should've been nil since it hasn't been called a single time yet")
+	if secureHTTPClient != nil {
+		t.Error("secureHTTPClient should've been nil since it hasn't been called a single time yet")
 	}
-	if insecureHttpClient != nil {
-		t.Error("insecureHttpClient should've been nil since it hasn't been called a single time yet")
+	if insecureHTTPClient != nil {
+		t.Error("insecureHTTPClient should've been nil since it hasn't been called a single time yet")
 	}
-	_ = GetHttpClient(false)
-	if secureHttpClient == nil {
-		t.Error("secureHttpClient shouldn't have been nil, since it has been called once")
+	_ = GetHTTPClient(false)
+	if secureHTTPClient == nil {
+		t.Error("secureHTTPClient shouldn't have been nil, since it has been called once")
 	}
-	if insecureHttpClient != nil {
-		t.Error("insecureHttpClient should've been nil since it hasn't been called a single time yet")
+	if insecureHTTPClient != nil {
+		t.Error("insecureHTTPClient should've been nil since it hasn't been called a single time yet")
 	}
-	_ = GetHttpClient(true)
-	if secureHttpClient == nil {
-		t.Error("secureHttpClient shouldn't have been nil, since it has been called once")
+	_ = GetHTTPClient(true)
+	if secureHTTPClient == nil {
+		t.Error("secureHTTPClient shouldn't have been nil, since it has been called once")
 	}
-	if insecureHttpClient == nil {
-		t.Error("insecureHttpClient shouldn't have been nil, since it has been called once")
+	if insecureHTTPClient == nil {
+		t.Error("insecureHTTPClient shouldn't have been nil, since it has been called once")
 	}
 }

@@ -31,7 +31,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		resolveKey = ""
 	}
 	return &custom.AlertProvider{
-		Url:    "https://events.pagerduty.com/v2/enqueue",
+		URL:    "https://events.pagerduty.com/v2/enqueue",
 		Method: "POST",
 		Body: fmt.Sprintf(`{
   "routing_key": "%s",

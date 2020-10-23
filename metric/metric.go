@@ -20,16 +20,16 @@ var (
 func PublishMetricsForService(service *core.Service, result *core.Result) {
 	if config.Get().Metrics {
 		rwLock.Lock()
-		gauge, exists := gauges[fmt.Sprintf("%s_%s", service.Name, service.Url)]
+		gauge, exists := gauges[fmt.Sprintf("%s_%s", service.Name, service.URL)]
 		if !exists {
 			gauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 				Subsystem:   "gatus",
 				Name:        "tasks",
-				ConstLabels: prometheus.Labels{"service": service.Name, "url": service.Url},
+				ConstLabels: prometheus.Labels{"service": service.Name, "url": service.URL},
 			}, []string{"status", "success"})
-			gauges[fmt.Sprintf("%s_%s", service.Name, service.Url)] = gauge
+			gauges[fmt.Sprintf("%s_%s", service.Name, service.URL)] = gauge
 		}
 		rwLock.Unlock()
-		gauge.WithLabelValues(strconv.Itoa(result.HttpStatus), strconv.FormatBool(result.Success)).Inc()
+		gauge.WithLabelValues(strconv.Itoa(result.HTTPStatus), strconv.FormatBool(result.Success)).Inc()
 	}
 }

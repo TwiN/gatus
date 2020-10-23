@@ -30,7 +30,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description)
 	}
 	return &custom.AlertProvider{
-		Url:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
+		URL:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
 		Method: "POST",
 		Body: url.Values{
 			"To":   {provider.To},

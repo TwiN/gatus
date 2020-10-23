@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const CacheTTL = 10 * time.Second
+const cacheTTL = 10 * time.Second
 
 var (
 	cachedServiceResults          []byte
@@ -54,10 +54,10 @@ func loadConfiguration() *config.Config {
 }
 
 func serviceResultsHandler(writer http.ResponseWriter, r *http.Request) {
-	if isExpired := cachedServiceResultsTimestamp.IsZero() || time.Now().Sub(cachedServiceResultsTimestamp) > CacheTTL; isExpired {
+	if isExpired := cachedServiceResultsTimestamp.IsZero() || time.Now().Sub(cachedServiceResultsTimestamp) > cacheTTL; isExpired {
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err := watchdog.GetJsonEncodedServiceResults()
+		data, err := watchdog.GetJSONEncodedServiceResults()
 		if err != nil {
 			log.Printf("[main][serviceResultsHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)

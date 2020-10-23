@@ -8,15 +8,15 @@ import (
 )
 
 var (
-	secureHttpClient   *http.Client
-	insecureHttpClient *http.Client
+	secureHTTPClient   *http.Client
+	insecureHTTPClient *http.Client
 )
 
-// GetHttpClient returns the shared HTTP client
-func GetHttpClient(insecure bool) *http.Client {
+// GetHTTPClient returns the shared HTTP client
+func GetHTTPClient(insecure bool) *http.Client {
 	if insecure {
-		if insecureHttpClient == nil {
-			insecureHttpClient = &http.Client{
+		if insecureHTTPClient == nil {
+			insecureHTTPClient = &http.Client{
 				Timeout: time.Second * 10,
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
@@ -25,19 +25,18 @@ func GetHttpClient(insecure bool) *http.Client {
 				},
 			}
 		}
-		return insecureHttpClient
-	} else {
-		if secureHttpClient == nil {
-			secureHttpClient = &http.Client{
-				Timeout: time.Second * 10,
-			}
-		}
-		return secureHttpClient
+		return insecureHTTPClient
 	}
+	if secureHTTPClient == nil {
+		secureHTTPClient = &http.Client{
+			Timeout: time.Second * 10,
+		}
+	}
+	return secureHTTPClient
 }
 
-// CanCreateConnectionToTcpService checks whether a connection can be established with a TCP service
-func CanCreateConnectionToTcpService(address string) bool {
+// CanCreateConnectionToTCPService checks whether a connection can be established with a TCP service
+func CanCreateConnectionToTCPService(address string) bool {
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
 	if err != nil {
 		return false

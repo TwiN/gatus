@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-func TestCondition_evaluateWithIp(t *testing.T) {
+func TestCondition_evaluateWithIP(t *testing.T) {
 	condition := Condition("[IP] == 127.0.0.1")
-	result := &Result{Ip: "127.0.0.1"}
+	result := &Result{IP: "127.0.0.1"}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -16,7 +16,7 @@ func TestCondition_evaluateWithIp(t *testing.T) {
 
 func TestCondition_evaluateWithStatus(t *testing.T) {
 	condition := Condition("[STATUS] == 201")
-	result := &Result{HttpStatus: 201}
+	result := &Result{HTTPStatus: 201}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -25,7 +25,7 @@ func TestCondition_evaluateWithStatus(t *testing.T) {
 
 func TestCondition_evaluateWithStatusFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	result := &Result{HttpStatus: 500}
+	result := &Result{HTTPStatus: 500}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -34,7 +34,7 @@ func TestCondition_evaluateWithStatusFailure(t *testing.T) {
 
 func TestCondition_evaluateWithStatusUsingLessThan(t *testing.T) {
 	condition := Condition("[STATUS] < 300")
-	result := &Result{HttpStatus: 201}
+	result := &Result{HTTPStatus: 201}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -43,7 +43,7 @@ func TestCondition_evaluateWithStatusUsingLessThan(t *testing.T) {
 
 func TestCondition_evaluateWithStatusFailureUsingLessThan(t *testing.T) {
 	condition := Condition("[STATUS] < 300")
-	result := &Result{HttpStatus: 404}
+	result := &Result{HTTPStatus: 404}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -95,7 +95,7 @@ func TestCondition_evaluateWithBody(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPath(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPath(t *testing.T) {
 	condition := Condition("[BODY].status == UP")
 	result := &Result{Body: []byte("{\"status\":\"UP\"}")}
 	condition.evaluate(result)
@@ -104,7 +104,7 @@ func TestCondition_evaluateWithBodyJsonPath(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplex(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplex(t *testing.T) {
 	condition := Condition("[BODY].data.name == john")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1, \"name\": \"john\"}}")}
 	condition.evaluate(result)
@@ -113,7 +113,7 @@ func TestCondition_evaluateWithBodyJsonPathComplex(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithInvalidBodyJsonPathComplex(t *testing.T) {
+func TestCondition_evaluateWithInvalidBodyJSONPathComplex(t *testing.T) {
 	expectedResolvedCondition := "[BODY].data.name (INVALID) == john"
 	condition := Condition("[BODY].data.name == john")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
@@ -126,7 +126,7 @@ func TestCondition_evaluateWithInvalidBodyJsonPathComplex(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathDoublePlaceholders(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathDoublePlaceholders(t *testing.T) {
 	condition := Condition("[BODY].user.firstName != [BODY].user.lastName")
 	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
 	condition.evaluate(result)
@@ -135,7 +135,7 @@ func TestCondition_evaluateWithBodyJsonPathDoublePlaceholders(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathDoublePlaceholdersFailure(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathDoublePlaceholdersFailure(t *testing.T) {
 	condition := Condition("[BODY].user.firstName == [BODY].user.lastName")
 	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
 	condition.evaluate(result)
@@ -144,7 +144,7 @@ func TestCondition_evaluateWithBodyJsonPathDoublePlaceholdersFailure(t *testing.
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathLongInt(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathLongInt(t *testing.T) {
 	condition := Condition("[BODY].data.id == 1")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -153,7 +153,7 @@ func TestCondition_evaluateWithBodyJsonPathLongInt(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplexInt(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplexInt(t *testing.T) {
 	condition := Condition("[BODY].data[1].id == 2")
 	result := &Result{Body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
 	condition.evaluate(result)
@@ -162,7 +162,7 @@ func TestCondition_evaluateWithBodyJsonPathComplexInt(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplexIntUsingGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplexIntUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 0")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -171,7 +171,7 @@ func TestCondition_evaluateWithBodyJsonPathComplexIntUsingGreaterThan(t *testing
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
@@ -180,7 +180,7 @@ func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingGreaterThan(t *
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplexIntUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplexIntUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 2}}")}
 	condition.evaluate(result)
@@ -189,7 +189,7 @@ func TestCondition_evaluateWithBodyJsonPathComplexIntUsingLessThan(t *testing.T)
 	}
 }
 
-func TestCondition_evaluateWithBodyJsonPathComplexIntFailureUsingLessThan(t *testing.T) {
+func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 10}}")}
 	condition.evaluate(result)
@@ -245,7 +245,7 @@ func TestCondition_evaluateWithBodyPatternFailure(t *testing.T) {
 
 func TestCondition_evaluateWithIPPattern(t *testing.T) {
 	condition := Condition("[IP] == pat(10.*)")
-	result := &Result{Ip: "10.0.0.0"}
+	result := &Result{IP: "10.0.0.0"}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -254,7 +254,7 @@ func TestCondition_evaluateWithIPPattern(t *testing.T) {
 
 func TestCondition_evaluateWithIPPatternFailure(t *testing.T) {
 	condition := Condition("[IP] == pat(10.*)")
-	result := &Result{Ip: "255.255.255.255"}
+	result := &Result{IP: "255.255.255.255"}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -263,7 +263,7 @@ func TestCondition_evaluateWithIPPatternFailure(t *testing.T) {
 
 func TestCondition_evaluateWithStatusPattern(t *testing.T) {
 	condition := Condition("[STATUS] == pat(4*)")
-	result := &Result{HttpStatus: 404}
+	result := &Result{HTTPStatus: 404}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -272,7 +272,7 @@ func TestCondition_evaluateWithStatusPattern(t *testing.T) {
 
 func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
 	condition := Condition("[STATUS] != pat(4*)")
-	result := &Result{HttpStatus: 404}
+	result := &Result{HTTPStatus: 404}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)

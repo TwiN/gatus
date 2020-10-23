@@ -16,17 +16,17 @@ type HealthStatus struct {
 
 // Result of the evaluation of a Service
 type Result struct {
-	// HttpStatus is the HTTP response status code
-	HttpStatus int `json:"status"`
+	// HTTPStatus is the HTTP response status code
+	HTTPStatus int `json:"status"`
 
 	// Body is the response body
 	Body []byte `json:"-"`
 
-	// Hostname extracted from the Service Url
+	// Hostname extracted from the Service URL
 	Hostname string `json:"hostname"`
 
-	// Ip resolved from the Service Url
-	Ip string `json:"-"`
+	// IP resolved from the Service URL
+	IP string `json:"-"`
 
 	// Connected whether a connection to the host was established successfully
 	Connected bool `json:"-"`

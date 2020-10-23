@@ -13,7 +13,7 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
 // Technically, all alert providers should be reachable using the custom alert provider
 type AlertProvider struct {
-	Url     string            `yaml:"url"`
+	URL     string            `yaml:"url"`
 	Method  string            `yaml:"method,omitempty"`
 	Body    string            `yaml:"body,omitempty"`
 	Headers map[string]string `yaml:"headers,omitempty"`
@@ -21,7 +21,7 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.Url) > 0
+	return len(provider.URL) > 0
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
@@ -31,7 +31,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 
 func (provider *AlertProvider) buildRequest(serviceName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
-	providerUrl := provider.Url
+	providerURL := provider.URL
 	method := provider.Method
 	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
 		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
@@ -46,24 +46,24 @@ func (provider *AlertProvider) buildRequest(serviceName, alertDescription string
 			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
 		}
 	}
-	if strings.Contains(providerUrl, "[ALERT_DESCRIPTION]") {
-		providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_DESCRIPTION]", alertDescription)
+	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
+		providerURL = strings.ReplaceAll(providerURL, "[ALERT_DESCRIPTION]", alertDescription)
 	}
-	if strings.Contains(providerUrl, "[SERVICE_NAME]") {
-		providerUrl = strings.ReplaceAll(providerUrl, "[SERVICE_NAME]", serviceName)
+	if strings.Contains(providerURL, "[SERVICE_NAME]") {
+		providerURL = strings.ReplaceAll(providerURL, "[SERVICE_NAME]", serviceName)
 	}
-	if strings.Contains(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]") {
+	if strings.Contains(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
-			providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
+			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
 		} else {
-			providerUrl = strings.ReplaceAll(providerUrl, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
+			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
 		}
 	}
 	if len(method) == 0 {
 		method = "GET"
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
-	request, _ := http.NewRequest(method, providerUrl, bodyBuffer)
+	request, _ := http.NewRequest(method, providerURL, bodyBuffer)
 	for k, v := range provider.Headers {
 		request.Header.Set(k, v)
 	}
@@ -73,7 +73,7 @@ func (provider *AlertProvider) buildRequest(serviceName, alertDescription string
 // Send a request to the alert provider and return the body
 func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	request := provider.buildRequest(serviceName, alertDescription, resolved)
-	response, err := client.GetHttpClient(false).Do(request)
+	response, err := client.GetHTTPClient(false).Do(request)
 	if err != nil {
 		return nil, err
 	}

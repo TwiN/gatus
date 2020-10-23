@@ -17,8 +17,8 @@ var (
 	// ErrServiceWithNoCondition is the error with which gatus will panic if a service is configured with no conditions
 	ErrServiceWithNoCondition = errors.New("you must specify at least one condition per service")
 
-	// ErrServiceWithNoUrl is the error with which gatus will panic if a service is configured with no url
-	ErrServiceWithNoUrl = errors.New("you must specify an url for each service")
+	// ErrServiceWithNoURL is the error with which gatus will panic if a service is configured with no url
+	ErrServiceWithNoURL = errors.New("you must specify an url for each service")
 
 	// ErrServiceWithNoName is the error with which gatus will panic if a service is configured with no name
 	ErrServiceWithNoName = errors.New("you must specify a name for each service")
@@ -30,7 +30,7 @@ type Service struct {
 	Name string `yaml:"name"`
 
 	// URL to send the request to
-	Url string `yaml:"url"`
+	URL string `yaml:"url"`
 
 	// Method of the request made to the url of the service
 	Method string `yaml:"method,omitempty"`
@@ -86,15 +86,15 @@ func (service *Service) ValidateAndSetDefaults() {
 	if len(service.Name) == 0 {
 		panic(ErrServiceWithNoName)
 	}
-	if len(service.Url) == 0 {
-		panic(ErrServiceWithNoUrl)
+	if len(service.URL) == 0 {
+		panic(ErrServiceWithNoURL)
 	}
 	if len(service.Conditions) == 0 {
 		panic(ErrServiceWithNoCondition)
 	}
 
 	// Make sure that the request can be created
-	_, err := http.NewRequest(service.Method, service.Url, bytes.NewBuffer([]byte(service.Body)))
+	_, err := http.NewRequest(service.Method, service.URL, bytes.NewBuffer([]byte(service.Body)))
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +103,7 @@ func (service *Service) ValidateAndSetDefaults() {
 // EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
 func (service *Service) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
-	service.getIp(result)
+	service.getIP(result)
 	if len(result.Errors) == 0 {
 		service.call(result)
 	} else {
@@ -134,8 +134,8 @@ func (service *Service) GetAlertsTriggered() []Alert {
 	return alerts
 }
 
-func (service *Service) getIp(result *Result) {
-	urlObject, err := url.Parse(service.Url)
+func (service *Service) getIP(result *Result) {
+	urlObject, err := url.Parse(service.URL)
 	if err != nil {
 		result.Errors = append(result.Errors, err.Error())
 		return
@@ -146,29 +146,29 @@ func (service *Service) getIp(result *Result) {
 		result.Errors = append(result.Errors, err.Error())
 		return
 	}
-	result.Ip = ips[0].String()
+	result.IP = ips[0].String()
 }
 
 func (service *Service) call(result *Result) {
-	isServiceTcp := strings.HasPrefix(service.Url, "tcp://")
+	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	var request *http.Request
 	var response *http.Response
 	var err error
-	if !isServiceTcp {
+	if !isServiceTCP {
 		request = service.buildRequest()
 	}
 	startTime := time.Now()
-	if isServiceTcp {
-		result.Connected = client.CanCreateConnectionToTcpService(strings.TrimPrefix(service.Url, "tcp://"))
+	if isServiceTCP {
+		result.Connected = client.CanCreateConnectionToTCPService(strings.TrimPrefix(service.URL, "tcp://"))
 		result.Duration = time.Since(startTime)
 	} else {
-		response, err = client.GetHttpClient(service.Insecure).Do(request)
+		response, err = client.GetHTTPClient(service.Insecure).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
 			result.Errors = append(result.Errors, err.Error())
 			return
 		}
-		result.HttpStatus = response.StatusCode
+		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
 		result.Body, err = ioutil.ReadAll(response.Body)
 		if err != nil {
@@ -188,7 +188,7 @@ func (service *Service) buildRequest() *http.Request {
 	} else {
 		bodyBuffer = bytes.NewBuffer([]byte(service.Body))
 	}
-	request, _ := http.NewRequest(service.Method, service.Url, bodyBuffer)
+	request, _ := http.NewRequest(service.Method, service.URL, bodyBuffer)
 	for k, v := range service.Headers {
 		request.Header.Set(k, v)
 	}

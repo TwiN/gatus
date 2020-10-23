@@ -7,18 +7,18 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{WebhookUrl: ""}
+	invalidProvider := AlertProvider{WebhookURL: ""}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{WebhookUrl: "http://example.com"}
+	validProvider := AlertProvider{WebhookURL: "http://example.com"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
 }
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
-	provider := AlertProvider{WebhookUrl: "http://example.com"}
+	provider := AlertProvider{WebhookURL: "http://example.com"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "SUCCESSFUL_CONDITION", Success: true}}}, true)
 	if customAlertProvider == nil {
 		t.Error("customAlertProvider shouldn't have been nil")
@@ -29,7 +29,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 }
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
-	provider := AlertProvider{WebhookUrl: "http://example.com"}
+	provider := AlertProvider{WebhookURL: "http://example.com"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
 	if customAlertProvider == nil {
 		t.Error("customAlertProvider shouldn't have been nil")

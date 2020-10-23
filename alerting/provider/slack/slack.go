@@ -8,12 +8,12 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	WebhookUrl string `yaml:"webhook-url"`
+	WebhookURL string `yaml:"webhook-url"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.WebhookUrl) > 0
+	return len(provider.WebhookURL) > 0
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
@@ -38,7 +38,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	return &custom.AlertProvider{
-		Url:    provider.WebhookUrl,
+		URL:    provider.WebhookURL,
 		Method: "POST",
 		Body: fmt.Sprintf(`{
   "text": "",

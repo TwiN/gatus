@@ -22,9 +22,9 @@ var (
 	monitoringMutex sync.Mutex
 )
 
-// GetJsonEncodedServiceResults returns a list of the last 20 results for each services encoded using json.Marshal.
+// GetJSONEncodedServiceResults returns a list of the last 20 results for each services encoded using json.Marshal.
 // The reason why the encoding is done here is because we use a mutex to prevent concurrent map access.
-func GetJsonEncodedServiceResults() ([]byte, error) {
+func GetJSONEncodedServiceResults() ([]byte, error) {
 	serviceResultsMutex.RLock()
 	data, err := json.Marshal(serviceResults)
 	serviceResultsMutex.RUnlock()

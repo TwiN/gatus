@@ -127,9 +127,9 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 		element = strings.TrimSpace(element)
 		switch strings.ToUpper(element) {
 		case StatusPlaceholder:
-			element = strconv.Itoa(result.HttpStatus)
+			element = strconv.Itoa(result.HTTPStatus)
 		case IPPlaceHolder:
-			element = result.Ip
+			element = result.IP
 		case ResponseTimePlaceHolder:
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
 		case BodyPlaceHolder:

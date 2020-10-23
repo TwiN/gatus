@@ -9,7 +9,7 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
 		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
+		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert}},
 	}
@@ -42,7 +42,7 @@ func TestService_ValidateAndSetDefaultsWithNoName(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := &Service{
 		Name:       "",
-		Url:        "http://example.com",
+		URL:        "http://example.com",
 		Conditions: []*Condition{&condition},
 	}
 	service.ValidateAndSetDefaults()
@@ -54,7 +54,7 @@ func TestService_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := &Service{
 		Name:       "example",
-		Url:        "",
+		URL:        "",
 		Conditions: []*Condition{&condition},
 	}
 	service.ValidateAndSetDefaults()
@@ -65,7 +65,7 @@ func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 	defer func() { recover() }()
 	service := &Service{
 		Name:       "example",
-		Url:        "http://example.com",
+		URL:        "http://example.com",
 		Conditions: nil,
 	}
 	service.ValidateAndSetDefaults()
@@ -76,7 +76,7 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
 		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
+		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: true}},
 	}
@@ -100,7 +100,7 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
 		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
+		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
 	result := service.EvaluateHealth()
@@ -119,7 +119,7 @@ func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 500")
 	service := Service{
 		Name:       "TwiNNatioN",
-		Url:        "https://twinnation.org/health",
+		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
 	result := service.EvaluateHealth()
