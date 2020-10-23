@@ -12,6 +12,7 @@ var (
 	insecureHttpClient *http.Client
 )
 
+// GetHttpClient returns the shared HTTP client
 func GetHttpClient(insecure bool) *http.Client {
 	if insecure {
 		if insecureHttpClient == nil {
@@ -35,6 +36,7 @@ func GetHttpClient(insecure bool) *http.Client {
 	}
 }
 
+// CanCreateConnectionToTcpService checks whether a connection can be established with a TCP service
 func CanCreateConnectionToTcpService(address string) bool {
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
 	if err != nil {

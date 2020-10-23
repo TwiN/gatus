@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Sha512 hashes a provided string using SHA512 and returns the resulting hash as a string
 func Sha512(s string) string {
 	hash := sha512.New()
 	hash.Write([]byte(s))

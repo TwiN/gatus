@@ -29,11 +29,20 @@ type Alert struct {
 	Triggered bool
 }
 
+// AlertType is the type of the alert.
+// The value will generally be the name of the alert provider
 type AlertType string
 
 const (
-	SlackAlert     AlertType = "slack"
+	// SlackAlert is the AlertType for the slack alerting provider
+	SlackAlert AlertType = "slack"
+
+	// PagerDutyAlert is the AlertType for the pagerduty alerting provider
 	PagerDutyAlert AlertType = "pagerduty"
-	TwilioAlert    AlertType = "twilio"
-	CustomAlert    AlertType = "custom"
+
+	// TwilioAlert is the AlertType for the twilio alerting provider
+	TwilioAlert AlertType = "twilio"
+
+	// CustomAlert is the AlertType for the custom alerting provider
+	CustomAlert AlertType = "custom"
 )

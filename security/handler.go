@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Handler takes care of security for a given handler with the given security configuratioon
 func Handler(handler http.HandlerFunc, security *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		usernameEntered, passwordEntered, ok := r.BasicAuth()
