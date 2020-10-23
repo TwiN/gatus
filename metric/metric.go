@@ -15,6 +15,8 @@ var (
 	rwLock sync.RWMutex
 )
 
+// PublishMetricsForService publishes metrics for the given service and its result.
+// These metrics will be exposed at /metrics if the metrics are enabled
 func PublishMetricsForService(service *core.Service, result *core.Result) {
 	if config.Get().Metrics {
 		rwLock.Lock()

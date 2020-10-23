@@ -16,7 +16,9 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.IntegrationKey) == 32
 }
 
-// https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
+// ToCustomAlertProvider converts the provider into a custom.AlertProvider
+//
+// relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
 	var message, eventAction, resolveKey string
 	if resolved {

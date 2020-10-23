@@ -7,9 +7,17 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 )
 
+// Config is the configuration for alerting providers
 type Config struct {
-	Slack     *slack.AlertProvider     `yaml:"slack"`
+	// Slack is the configuration for the slack alerting provider
+	Slack *slack.AlertProvider `yaml:"slack"`
+
+	// Pagerduty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty"`
-	Twilio    *twilio.AlertProvider    `yaml:"twilio"`
-	Custom    *custom.AlertProvider    `yaml:"custom"`
+
+	// Twilio is the configuration for the twilio alerting provider
+	Twilio *twilio.AlertProvider `yaml:"twilio"`
+
+	// Custom is the configuration for the custom alerting provider
+	Custom *custom.AlertProvider `yaml:"custom"`
 }
