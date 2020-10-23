@@ -23,11 +23,19 @@ const (
 )
 
 var (
-	ErrNoServiceInConfig     = errors.New("configuration file should contain at least 1 service")
-	ErrConfigFileNotFound    = errors.New("configuration file not found")
-	ErrConfigNotLoaded       = errors.New("configuration is nil")
+	// ErrNoServiceInConfig is an error returned when a configuration file has no services configured
+	ErrNoServiceInConfig = errors.New("configuration file should contain at least 1 service")
+
+	// ErrConfigFileNotFound is an error returned when the configuration file could not be found
+	ErrConfigFileNotFound = errors.New("configuration file not found")
+
+	// ErrConfigNotLoaded is an error returned when an attempt to Get() the configuration before loading it is made
+	ErrConfigNotLoaded = errors.New("configuration is nil")
+
+	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
-	config                   *Config
+
+	config *Config
 )
 
 // Config is the main configuration structure
@@ -168,6 +176,7 @@ func validateAlertingConfig(config *Config) {
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }
 
+// GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding core.AlertType
 func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) provider.AlertProvider {
 	switch alertType {
 	case core.SlackAlert:

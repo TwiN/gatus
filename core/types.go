@@ -4,8 +4,13 @@ import (
 	"time"
 )
 
+// HealthStatus is the status of Gatus
 type HealthStatus struct {
-	Status  string `json:"status"`
+	// Status is the state of Gatus (UP/DOWN)
+	Status string `json:"status"`
+
+	// Message is an accompanying description of why the status is as reported.
+	// If the Status is UP, no message will be provided
 	Message string `json:"message,omitempty"`
 }
 
@@ -42,7 +47,11 @@ type Result struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// ConditionResult result of a Condition
 type ConditionResult struct {
+	// Condition that was evaluated
 	Condition string `json:"condition"`
-	Success   bool   `json:"success"`
+
+	// Success whether the condition was met (successful) or not (failed)
+	Success bool `json:"success"`
 }
