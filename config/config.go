@@ -76,9 +76,8 @@ func Load(configFile string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ErrConfigFileNotFound
-		} else {
-			return err
 		}
+		return err
 	}
 	config = cfg
 	return nil
