@@ -35,6 +35,7 @@ core applications: https://status.twinnation.org/
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP service](#monitoring-a-tcp-service)
+  - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
 
 
