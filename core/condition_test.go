@@ -126,6 +126,19 @@ func TestCondition_evaluateWithInvalidBodyJSONPathComplex(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithInvalidBodyJSONPathComplexWithLengthFunction(t *testing.T) {
+	expectedResolvedCondition := "len([BODY].data.name) (INVALID) == john"
+	condition := Condition("len([BODY].data.name) == john")
+	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure, because the path was invalid", condition)
+	}
+	if result.ConditionResults[0].Condition != expectedResolvedCondition {
+		t.Errorf("Condition '%s' should have resolved to '%s', but resolved to '%s' instead", condition, expectedResolvedCondition, result.ConditionResults[0].Condition)
+	}
+}
+
 func TestCondition_evaluateWithBodyJSONPathDoublePlaceholders(t *testing.T) {
 	condition := Condition("[BODY].user.firstName != [BODY].user.lastName")
 	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
