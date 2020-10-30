@@ -3,15 +3,17 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/watchdog"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/discovery"
+	"github.com/TwinProduction/gatus/security"
+	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const cacheTTL = 10 * time.Second
@@ -24,6 +26,10 @@ var (
 
 func main() {
 	cfg := loadConfiguration()
+	if cfg.AutoDiscoverK8SServices {
+		discoveredServices := discovery.GetServices(cfg)
+		cfg.Services = append(cfg.Services, discoveredServices...)
+	}
 	resultsHandler := serviceResultsHandler
 	if cfg.Security != nil && cfg.Security.IsValid() {
 		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)

@@ -14,3 +14,17 @@ services:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"
       - "len([BODY].text) > 0"
+
+auto-discover-k8s-services: true
+k8s-service-suffix: ".svc.environment.local"
+
+k8s-service-config:
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+
+exclude-suffix:
+  - primary
+  - canary
+
+k8s-cluster-mode: "out"
