@@ -22,7 +22,7 @@ core applications: https://status.twinnation.org/
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
-  - [Kubernetes](#kubernetes-alpha)
+  - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
@@ -314,13 +314,13 @@ services:
 |:------------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `kubernetes`                                | Kubernetes configuration                                                      | `{}`           |
 | `kubernetes.auto-discover`                  | Whether to enable auto discovery                                              | `false`        |
-| `kubernetes.cluster-mode`                   | Cluster mode to use for authenticating. Supported values: `in`, `out`         | Required ``    |
+| `kubernetes.cluster-mode`                   | Cluster mode to use for authenticating. Supported values: `in`, `out`         | Required `""`  |
 | `kubernetes.service-template`               | Service template. See `services[]` in [Configuration](#configuration)         | Required `nil` |
 | `kubernetes.excluded-service-suffixes`      | List of service suffixes to not monitor (e.g. `canary`)                       | `[]`           |
 | `kubernetes.namespaces`                     | List of configurations for the namespaces from which services will be discovered | `[]`        |
-| `kubernetes.namespaces[].name`              | Namespace name                                                                | Required ``    |
-| `kubernetes.namespaces[].hostname-suffix`   | Suffix to append to the service name before calling `target-path`             | Required ``    |
-| `kubernetes.namespaces[].target-path`       | Path that will be called on the discovered service for the health check       | ``             |
+| `kubernetes.namespaces[].name`              | Namespace name                                                                | Required `""`  |
+| `kubernetes.namespaces[].hostname-suffix`   | Suffix to append to the service name before calling `target-path`             | Required `""`  |
+| `kubernetes.namespaces[].target-path`       | Path that will be called on the discovered service for the health check       | `""`           |
 | `kubernetes.namespaces[].excluded-services` | List of services to not monitor in the given namespace                        | `[]`           |
 
 
