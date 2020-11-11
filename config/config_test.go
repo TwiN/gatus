@@ -411,3 +411,22 @@ kubernetes:
 `))
 	t.Error("Function should've panicked because providing a service-template is mandatory")
 }
+
+func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryUsingClusterModeIn(t *testing.T) {
+	defer func() { recover() }()
+	_, _ = parseAndValidateConfigBytes([]byte(`
+kubernetes:
+  cluster-mode: "in"
+  auto-discover: true
+  service-template:
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+`))
+	// TODO: find a way to test this?
+	t.Error("Function should've panicked because testing with ClusterModeIn isn't supported")
+}
