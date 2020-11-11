@@ -116,8 +116,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	// Check if the configuration file at least has services.
-	if config == nil || config.Services == nil || len(config.Services) == 0 {
+	// Check if the configuration file at least has services configured or Kubernetes auto discovery enabled
+	if config == nil || ((config.Services == nil || len(config.Services) == 0) && (config.Kubernetes == nil || !config.Kubernetes.AutoDiscover)) {
 		err = ErrNoServiceInConfig
 	} else {
 		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
@@ -132,6 +132,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 
 func validateKubernetesConfig(config *Config) {
 	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
+		if config.Kubernetes.ServiceTemplate == nil {
+			panic("kubernetes.service-template cannot be nil")
+		}
 		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
 		if err != nil {
 			panic(err)

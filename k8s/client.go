@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -11,21 +12,22 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func NewClient(clusterMode string) *kubernetes.Clientset {
+// NewClient creates a Kubernetes client for the given ClusterMode
+func NewClient(clusterMode ClusterMode) (*kubernetes.Clientset, error) {
 	var kubeConfig *rest.Config
+	var err error
 	switch clusterMode {
-	case "in":
-		kubeConfig = getInClusterConfig()
-	case "out":
-		kubeConfig = getOutClusterConfig()
+	case ClusterModeIn:
+		kubeConfig, err = getInClusterConfig()
+	case ClusterModeOut:
+		kubeConfig, err = getOutClusterConfig()
 	default:
-		panic("invalid cluster mode")
+		return nil, fmt.Errorf("invalid cluster mode, try '%s' or '%s'", ClusterModeIn, ClusterModeOut)
 	}
-	clientset, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("unable to get cluster config for mode '%s': %s", clusterMode, err.Error())
 	}
-	return clientset
+	return kubernetes.NewForConfig(kubeConfig)
 }
 
 func homeDir() string {
@@ -35,25 +37,17 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func getOutClusterConfig() *rest.Config {
-	var kubeconfig *string
+func getOutClusterConfig() (*rest.Config, error) {
+	var kubeConfig *string
 	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		kubeConfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		kubeConfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		panic(err.Error())
-	}
-	return config
+	return clientcmd.BuildConfigFromFlags("", *kubeConfig)
 }
 
-func getInClusterConfig() *rest.Config {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-	return config
+func getInClusterConfig() (*rest.Config, error) {
+	return rest.InClusterConfig()
 }

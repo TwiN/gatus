@@ -9,7 +9,10 @@ import (
 
 // DiscoverServices return discovered services
 func DiscoverServices(kubernetesConfig *Config) ([]*core.Service, error) {
-	client := NewClient(kubernetesConfig.ClusterMode)
+	client, err := NewClient(kubernetesConfig.ClusterMode)
+	if err != nil {
+		return nil, err
+	}
 	services := make([]*core.Service, 0)
 	for _, ns := range kubernetesConfig.Namespaces {
 		kubernetesServices, err := GetKubernetesServices(client, ns.Name)
