@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/discovery"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/watchdog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -26,10 +25,6 @@ var (
 
 func main() {
 	cfg := loadConfiguration()
-	if cfg.Kubernetes.AutoDiscover {
-		discoveredServices := discovery.GetServices(cfg)
-		cfg.Services = append(cfg.Services, discoveredServices...)
-	}
 	resultsHandler := serviceResultsHandler
 	if cfg.Security != nil && cfg.Security.IsValid() {
 		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)

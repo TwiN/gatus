@@ -9,6 +9,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/discovery"
 	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
 	"gopkg.in/yaml.v2"
@@ -123,8 +124,16 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		validateAlertingConfig(config)
 		validateSecurityConfig(config)
 		validateServicesConfig(config)
+		validateKubernetesConfig(config)
 	}
 	return
+}
+
+func validateKubernetesConfig(config *Config) {
+	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
+		discoveredServices := discovery.GetServices(config.Kubernetes)
+		config.Services = append(config.Services, discoveredServices...)
+	}
 }
 
 func validateServicesConfig(config *Config) {
