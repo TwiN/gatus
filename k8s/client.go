@@ -12,23 +12,19 @@ import (
 )
 
 func NewClient(clusterMode string) *kubernetes.Clientset {
-
 	var kubeConfig *rest.Config
-
 	switch clusterMode {
 	case "in":
-		kubeConfig = getInclusterConfig()
+		kubeConfig = getInClusterConfig()
 	case "out":
 		kubeConfig = getOutClusterConfig()
 	default:
 		panic("invalid cluster mode")
 	}
-
 	clientset, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		panic(err.Error())
 	}
-
 	return clientset
 }
 
@@ -47,20 +43,17 @@ func getOutClusterConfig() *rest.Config {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
-
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		panic(err.Error())
 	}
-
 	return config
 }
 
-func getInclusterConfig() *rest.Config {
+func getInClusterConfig() *rest.Config {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
 	}
-
 	return config
 }

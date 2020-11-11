@@ -9,7 +9,6 @@ import (
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/discovery"
 	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
 	"gopkg.in/yaml.v2"
@@ -121,6 +120,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if config == nil || config.Services == nil || len(config.Services) == 0 {
 		err = ErrNoServiceInConfig
 	} else {
+		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
+		// invalid configurations
 		validateAlertingConfig(config)
 		validateSecurityConfig(config)
 		validateServicesConfig(config)
@@ -131,7 +132,10 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 
 func validateKubernetesConfig(config *Config) {
 	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
-		discoveredServices := discovery.GetServices(config.Kubernetes)
+		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
+		if err != nil {
+			panic(err)
+		}
 		config.Services = append(config.Services, discoveredServices...)
 	}
 }
