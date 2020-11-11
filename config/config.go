@@ -2,14 +2,16 @@ package config
 
 import (
 	"errors"
-	"github.com/TwinProduction/gatus/alerting"
-	"github.com/TwinProduction/gatus/alerting/provider"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/security"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/provider"
+	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/k8s"
+	"github.com/TwinProduction/gatus/security"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -59,6 +61,9 @@ type Config struct {
 
 	// Services List of services to monitor
 	Services []*core.Service `yaml:"services"`
+
+	// Kubernetes is the Kubernetes configuration
+	Kubernetes *k8s.Config `yaml:"kubernetes"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet
@@ -112,15 +117,35 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	// Check if the configuration file at least has services.
-	if config == nil || config.Services == nil || len(config.Services) == 0 {
+	// Check if the configuration file at least has services configured or Kubernetes auto discovery enabled
+	if config == nil || ((config.Services == nil || len(config.Services) == 0) && (config.Kubernetes == nil || !config.Kubernetes.AutoDiscover)) {
 		err = ErrNoServiceInConfig
 	} else {
+		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
+		// invalid configurations
 		validateAlertingConfig(config)
 		validateSecurityConfig(config)
 		validateServicesConfig(config)
+		validateKubernetesConfig(config)
 	}
 	return
+}
+
+func validateKubernetesConfig(config *Config) {
+	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
+		if config.Kubernetes.ServiceTemplate == nil {
+			panic("kubernetes.service-template cannot be nil")
+		}
+		if config.Debug {
+			log.Println("[config][validateKubernetesConfig] Automatically discovering Kubernetes services...")
+		}
+		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
+		if err != nil {
+			panic(err)
+		}
+		config.Services = append(config.Services, discoveredServices...)
+		log.Printf("[config][validateKubernetesConfig] Discovered %d Kubernetes services", len(discoveredServices))
+	}
 }
 
 func validateServicesConfig(config *Config) {

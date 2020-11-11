@@ -14,3 +14,21 @@ services:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"
       - "len([BODY].text) > 0"
+
+kubernetes:
+  cluster-mode: "out"
+  auto-discover: true
+  excluded-service-suffixes:
+    - canary
+  service-template:
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+      excluded-services:
+        - gatus
+        - kubernetes
+        - twinnation

@@ -3,15 +3,16 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/watchdog"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/security"
+	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const cacheTTL = 10 * time.Second

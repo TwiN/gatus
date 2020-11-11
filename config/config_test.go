@@ -2,9 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/TwinProduction/gatus/core"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/k8stest"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestGetBeforeConfigIsLoaded(t *testing.T) {
@@ -145,6 +149,8 @@ badconfig:
 
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
+debug: true
+
 alerting:
   slack:
     webhook-url: "http://example.com"
@@ -310,4 +316,117 @@ services:
 	if config.Security.Basic.PasswordSha512Hash != expectedPasswordHash {
 		t.Errorf("config.Security.Basic.PasswordSha512Hash should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
 	}
+}
+
+func TestParseAndValidateConfigBytesWithNoServicesOrAutoDiscovery(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(``))
+	if err != ErrNoServiceInConfig {
+		t.Error("The error returned should have been of type ErrNoServiceInConfig")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithKubernetesAutoDiscovery(t *testing.T) {
+	var kubernetesServices []v1.Service
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-1", "default"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2", "default"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2-canary", "default"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-3", "kube-system"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-4", "tools"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-5", "tools"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-6", "tools"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7", "metrics"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7-canary", "metrics"))
+	k8stest.InitializeMockedKubernetesClient(kubernetesServices)
+	config, err := parseAndValidateConfigBytes([]byte(`
+debug: true
+
+kubernetes:
+  cluster-mode: "mock"
+  auto-discover: true
+  excluded-service-suffixes:
+    - canary
+  service-template:
+    interval: 29s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+    - name: tools
+      hostname-suffix: ".tools.svc.cluster.local"
+      target-path: "/health"
+      excluded-services:
+        - service-6
+    - name: metrics
+      hostname-suffix: ".metrics.svc.cluster.local"
+      target-path: "/health"
+`))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Kubernetes == nil {
+		t.Fatal("Kuberbetes config shouldn't have been nil")
+	}
+	if len(config.Services) != 5 {
+		t.Error("Expected 5 services to have been added through k8s auto discovery, got", len(config.Services))
+	}
+	for _, service := range config.Services {
+		if service.Name == "service-2-canary" || service.Name == "service-7-canary" {
+			t.Errorf("service '%s' should've been excluded because excluded-service-suffixes has 'canary'", service.Name)
+		} else if service.Name == "service-6" {
+			t.Errorf("service '%s' should've been excluded because excluded-services has 'service-6'", service.Name)
+		} else if service.Name == "service-3" {
+			t.Errorf("service '%s' should've been excluded because the namespace 'kube-system' is not configured for auto discovery", service.Name)
+		} else {
+			if service.Interval != 29*time.Second {
+				t.Errorf("service '%s' should've had an interval of 29s, because the template is configured for it", service.Name)
+			}
+			if len(service.Conditions) != 1 {
+				t.Errorf("service '%s' should've had 1 condition", service.Name)
+			}
+			if len(service.Conditions) == 1 && *service.Conditions[0] != "[STATUS] == 200" {
+				t.Errorf("service '%s' should've had the condition '[STATUS] == 200', because the template is configured for it", service.Name)
+			}
+			if !strings.HasSuffix(service.URL, ".svc.cluster.local/health") {
+				t.Errorf("service '%s' should've had an URL with the suffix '.svc.cluster.local/health'", service.Name)
+			}
+		}
+	}
+}
+
+func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryButNoServiceTemplate(t *testing.T) {
+	defer func() { recover() }()
+	_, _ = parseAndValidateConfigBytes([]byte(`
+kubernetes:
+  cluster-mode: "mock"
+  auto-discover: true
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+`))
+	t.Error("Function should've panicked because providing a service-template is mandatory")
+}
+
+func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryUsingClusterModeIn(t *testing.T) {
+	defer func() { recover() }()
+	_, _ = parseAndValidateConfigBytes([]byte(`
+kubernetes:
+  cluster-mode: "in"
+  auto-discover: true
+  service-template:
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+`))
+	// TODO: find a way to test this?
+	t.Error("Function should've panicked because testing with ClusterModeIn isn't supported")
 }
