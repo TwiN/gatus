@@ -135,11 +135,15 @@ func validateKubernetesConfig(config *Config) {
 		if config.Kubernetes.ServiceTemplate == nil {
 			panic("kubernetes.service-template cannot be nil")
 		}
+		if config.Debug {
+			log.Println("[config][validateKubernetesConfig] Automatically discovering Kubernetes services...")
+		}
 		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
 		if err != nil {
 			panic(err)
 		}
 		config.Services = append(config.Services, discoveredServices...)
+		log.Printf("[config][validateKubernetesConfig] Discovered %d Kubernetes services", len(discoveredServices))
 	}
 }
 
