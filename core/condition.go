@@ -155,7 +155,11 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 					if err.Error() != "unexpected end of JSON input" {
 						result.Errors = append(result.Errors, err.Error())
 					}
-					element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
+					if wantLength {
+						element = fmt.Sprintf("len(%s) %s", element, InvalidConditionElementSuffix)
+					} else {
+						element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
+					}
 				} else {
 					if wantLength {
 						element = fmt.Sprintf("%d", resolvedElementLength)
