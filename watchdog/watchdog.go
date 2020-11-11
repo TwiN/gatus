@@ -3,12 +3,13 @@ package watchdog
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/metric"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/metric"
 )
 
 var (

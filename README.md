@@ -22,6 +22,7 @@ core applications: https://status.twinnation.org/
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Kubernetes Autodiscovery](#kubernetes-autodiscovery)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
@@ -48,6 +49,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
+- Auto discover services in Kubernetes.
 
 
 ## Usage
@@ -168,6 +170,32 @@ Here are some examples of conditions you can use:
 **NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
 
+### Kubernetes Autodiscovery
+Autodiscovery works by reading all `Service` object from the configured `Namespaces` and appending the `Suffix` and configured `health-api` to the Service name and making an http call.
+All auto-discovered services will have the service configuration populated from the `service-template`.
+
+You Can exclude certain services from the dashboard by using the `exclude-suffix`.
+
+```yaml
+kubernetes:
+  cluster-mode: "out"
+  auto-discover: true
+  service-suffix: ".services.svc.cluster.local"
+  exclude-suffix:
+    - primary
+    - canary
+  service-template:
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: website
+      service-suffix: "website.svc.cluster.local"
+      health-api: "/health"
+    - name: services
+      service-suffix: "services.svc.cluster.local"
+      health-api: "/health"
+```
 
 ### Alerting
 

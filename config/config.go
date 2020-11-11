@@ -2,14 +2,16 @@ package config
 
 import (
 	"errors"
-	"github.com/TwinProduction/gatus/alerting"
-	"github.com/TwinProduction/gatus/alerting/provider"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/security"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/provider"
+	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/k8s"
+	"github.com/TwinProduction/gatus/security"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -59,6 +61,8 @@ type Config struct {
 
 	// Services List of services to monitor
 	Services []*core.Service `yaml:"services"`
+
+	Kubernetes *k8s.Config `yaml:"kubernetes"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet
