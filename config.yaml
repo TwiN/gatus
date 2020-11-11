@@ -26,9 +26,6 @@ kubernetes:
     conditions:
       - "[STATUS] == 200"
   namespaces:
-    - name: databases
-      service-suffix: "databases.svc.cluster.local"
-      health-api: "/health"
-    - name: services
-      service-suffix: "services.svc.cluster.local"
+    - name: default
+      service-suffix: "default.svc.cluster.local"
       health-api: "/health"
