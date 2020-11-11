@@ -336,7 +336,9 @@ You can exclude certain services from the dashboard by using `kubernetes.exclude
 ```yaml
 kubernetes:
   auto-discover: true
-  cluster-mode: "out"
+  # out: Gatus is deployed outside of the K8s cluster.
+  # in: Gatus is deployed in the K8s cluster
+  cluster-mode: "out"                                              
   excluded-service-suffixes:
     - canary
   service-template:
@@ -345,8 +347,14 @@ kubernetes:
       - "[STATUS] == 200"
   namespaces:
     - name: default
+      # If cluster-mode is out, you should use an externally accessible hostname suffix (e.g.. .example.com)
+      # This will result in gatus generating services with URLs like <service-name>.example.com
+      # If cluster-mode is in, you can use either an externally accessible hostname suffix (e.g.. .example.com)
+      # or an internally accessible hostname suffix (e.g. .default.svc.cluster.local)
       hostname-suffix: ".default.svc.cluster.local"
       target-path: "/health"
+      # If some services cannot be or do not need to be monitored, you can exclude them by explicitly defining them
+      # in the following list.
       excluded-services:
         - gatus
         - kubernetes
