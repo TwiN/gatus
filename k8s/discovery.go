@@ -19,27 +19,31 @@ func DiscoverServices(kubernetesConfig *Config) ([]*core.Service, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, s := range kubernetesServices {
-			if isExcluded(kubernetesConfig.ExcludeSuffix, s.Name) {
-				continue
+	skipExcluded:
+		for _, service := range kubernetesServices {
+			for _, excludedServiceSuffix := range kubernetesConfig.ExcludedServiceSuffixes {
+				if strings.HasSuffix(service.Name, excludedServiceSuffix) {
+					continue skipExcluded
+				}
+			}
+			for _, excludedService := range ns.ExcludedServices {
+				if service.Name == excludedService {
+					continue skipExcluded
+				}
+			}
+			var url string
+			if strings.HasPrefix(ns.TargetPath, "/") {
+				url = fmt.Sprintf("http://%s%s%s", service.Name, ns.HostnameSuffix, ns.TargetPath)
+			} else {
+				url = fmt.Sprintf("http://%s%s/%s", service.Name, ns.HostnameSuffix, ns.TargetPath)
 			}
 			services = append(services, &core.Service{
-				Name:       s.Name,
-				URL:        fmt.Sprintf("http://%s%s/%s", s.Name, ns.ServiceSuffix, ns.HealthAPI),
+				Name:       service.Name,
+				URL:        url,
 				Interval:   kubernetesConfig.ServiceTemplate.Interval,
 				Conditions: kubernetesConfig.ServiceTemplate.Conditions,
 			})
 		}
 	}
 	return services, nil
-}
-
-// TODO: don't uselessly allocate new things here, just move this inside the DiscoverServices function
-func isExcluded(excludeList []string, name string) bool {
-	for _, x := range excludeList {
-		if strings.HasSuffix(name, x) {
-			return true
-		}
-	}
-	return false
 }

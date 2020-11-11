@@ -7,29 +7,32 @@ type Config struct {
 	// AutoDiscover to discover services to monitor
 	AutoDiscover bool `yaml:"auto-discover"`
 
-	// ServiceTemplate Template for auto discovered services
-	ServiceTemplate *core.Service `yaml:"service-template"`
-
-	// ExcludeSuffix is a slice of service suffixes that should be ignored
-	ExcludeSuffix []string `yaml:"exclude-suffix"`
-
-	// ClusterMode to authenticate with kubernetes
+	// ClusterMode is the mode to use to authenticate with Kubernetes
 	ClusterMode ClusterMode `yaml:"cluster-mode"`
 
-	// Namespaces from which to discover services
+	// ServiceTemplate is the template for auto discovered services
+	ServiceTemplate *core.Service `yaml:"service-template"`
+
+	// ExcludedServiceSuffixes is a list of service suffixes that should be ignored
+	ExcludedServiceSuffixes []string `yaml:"excluded-service-suffixes"`
+
+	// Namespaces is a list of configurations for the namespaces from which services will be discovered
 	Namespaces []*NamespaceConfig `yaml:"namespaces"`
 }
 
 // NamespaceConfig level config
 type NamespaceConfig struct {
-	// Name of namespace
+	// Name of the namespace
 	Name string `yaml:"name"`
 
-	// ServiceSuffix to append to service name
-	ServiceSuffix string `yaml:"service-suffix"`
+	// ExcludedServices is a list of services to exclude from the auto discovery
+	ExcludedServices []string `yaml:"excluded-services"`
 
-	// HealthAPI URI to append to service to reach health check API
-	HealthAPI string `yaml:"health-api"`
+	// HostnameSuffix is a suffix to append to each service name before calling TargetPath
+	HostnameSuffix string `yaml:"hostname-suffix"`
+
+	// TargetPath Path to append after the HostnameSuffix
+	TargetPath string `yaml:"target-path"`
 }
 
 // ClusterMode is the mode to use to authenticate to Kubernetes

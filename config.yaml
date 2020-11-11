@@ -18,7 +18,7 @@ services:
 kubernetes:
   cluster-mode: "out"
   auto-discover: true
-  exclude-suffix:
+  excluded-service-suffixes:
     - primary
     - canary
   service-template:
@@ -27,5 +27,9 @@ kubernetes:
       - "[STATUS] == 200"
   namespaces:
     - name: default
-      service-suffix: "default.svc.cluster.local"
-      health-api: "/health"
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+      excluded-services:
+        - gatus
+        - kubernetes
+        - twinnation

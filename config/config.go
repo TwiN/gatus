@@ -62,6 +62,7 @@ type Config struct {
 	// Services List of services to monitor
 	Services []*core.Service `yaml:"services"`
 
+	// Kubernetes is the Kubernetes configuration
 	Kubernetes *k8s.Config `yaml:"kubernetes"`
 }
 
