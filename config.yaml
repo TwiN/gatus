@@ -14,10 +14,10 @@ services:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"
       - "len([BODY].text) > 0"
+
 kubernetes:
   cluster-mode: "out"
   auto-discover: true
-  service-suffix: ".services.svc.cluster.local"
   exclude-suffix:
     - primary
     - canary
