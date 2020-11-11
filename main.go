@@ -26,7 +26,7 @@ var (
 
 func main() {
 	cfg := loadConfiguration()
-	if cfg.AutoDiscoverK8SServices {
+	if cfg.Kubernetes.AutoDiscover {
 		discoveredServices := discovery.GetServices(cfg)
 		cfg.Services = append(cfg.Services, discoveredServices...)
 	}

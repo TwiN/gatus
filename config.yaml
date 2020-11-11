@@ -14,17 +14,21 @@ services:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"
       - "len([BODY].text) > 0"
-
-auto-discover-k8s-services: true
-k8s-service-suffix: ".svc.environment.local"
-
-k8s-service-config:
-  interval: 30s
-  conditions:
-    - "[STATUS] == 200"
-
-exclude-suffix:
-  - primary
-  - canary
-
-k8s-cluster-mode: "out"
+kubernetes:
+  cluster-mode: "out"
+  auto-discover: true
+  service-suffix: ".services.svc.cluster.local"
+  exclude-suffix:
+    - primary
+    - canary
+  service-template:
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+  namespaces:
+    - name: databases
+      service-suffix: "databases.svc.cluster.local"
+      health-api: "/health"
+    - name: services
+      service-suffix: "services.svc.cluster.local"
+      health-api: "/health"

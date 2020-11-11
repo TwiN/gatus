@@ -9,6 +9,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
 	"gopkg.in/yaml.v2"
 )
@@ -61,17 +62,7 @@ type Config struct {
 	// Services List of services to monitor
 	Services []*core.Service `yaml:"services"`
 
-	//AutoDiscoverK8SServices to discover services to monitor
-	AutoDiscoverK8SServices bool `yaml:"auto-discover-k8s-services"`
-
-	//K8SServiceSuffix to append to service name
-	K8SServiceSuffix string `yaml:"k8s-service-suffix"`
-
-	K8SServiceConfig core.Service `yaml:"k8s-service-config"`
-
-	ExcludeSuffix []string `yaml:"exclude-suffix"`
-
-	K8sClusterMode string `yaml:"k8s-cluster-mode"`
+	Kubernetes *k8s.Config `yaml:"kubernetes"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet

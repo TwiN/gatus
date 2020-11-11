@@ -11,15 +11,23 @@ import (
 
 //GetServices return discovered service
 func GetServices(cfg *config.Config) []*core.Service {
-	client := k8s.NewClient(cfg.K8sClusterMode)
-	services := k8s.GetServices(client, "services")
+	client := k8s.NewClient(cfg.Kubernetes.ClusterMode)
 	svcs := make([]*core.Service, 0)
-	for _, s := range services {
-		if exclude(cfg.ExcludeSuffix, s.Name) {
-			continue
+
+	for _, ns := range cfg.Kubernetes.Namespaces {
+		services := k8s.GetServices(client, ns.Name)
+
+		for _, s := range services {
+			if exclude(cfg.Kubernetes.ExcludeSuffix, s.Name) {
+				continue
+			}
+			svc := core.Service{Name: s.Name,
+				URL:        fmt.Sprintf("http://%s%s/%s", s.Name, ns.ServiceSuffix, ns.HealthAPI),
+				Interval:   cfg.Kubernetes.ServiceTemplate.Interval,
+				Conditions: cfg.Kubernetes.ServiceTemplate.Conditions,
+			}
+			svcs = append(svcs, &svc)
 		}
-		svc := core.Service{Name: s.Name, URL: fmt.Sprintf("http://%s%s/health", s.Name, cfg.K8SServiceSuffix), Interval: cfg.K8SServiceConfig.Interval, Conditions: cfg.K8SServiceConfig.Conditions}
-		svcs = append(svcs, &svc)
 	}
 	return svcs
 }
