@@ -8,7 +8,7 @@ type Config struct {
 	AutoDiscover bool `yaml:"auto-discover"`
 
 	// ServiceTemplate Template for auto discovered services
-	ServiceTemplate core.Service `yaml:"service-template"`
+	ServiceTemplate *core.Service `yaml:"service-template"`
 
 	// ExcludeSuffix Ignore services with this suffix
 	ExcludeSuffix []string `yaml:"exclude-suffix"`
@@ -17,7 +17,7 @@ type Config struct {
 	ClusterMode string `yaml:"cluster-mode"`
 
 	// Namespaces from which to discover services
-	Namespaces []NamespaceConfig `yaml:"namespaces"`
+	Namespaces []*NamespaceConfig `yaml:"namespaces"`
 }
 
 // NamespaceConfig level config
