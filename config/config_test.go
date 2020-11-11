@@ -149,6 +149,8 @@ badconfig:
 
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
+debug: true
+
 alerting:
   slack:
     webhook-url: "http://example.com"
