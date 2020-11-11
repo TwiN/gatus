@@ -394,5 +394,18 @@ kubernetes:
 			}
 		}
 	}
+}
 
+func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryButNoServiceTemplate(t *testing.T) {
+	defer func() { recover() }()
+	_, _ = parseAndValidateConfigBytes([]byte(`
+kubernetes:
+  cluster-mode: "mock"
+  auto-discover: true
+  namespaces:
+    - name: default
+      hostname-suffix: ".default.svc.cluster.local"
+      target-path: "/health"
+`))
+	t.Error("Function should've panicked because providing a service-template is mandatory")
 }
