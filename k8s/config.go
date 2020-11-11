@@ -7,7 +7,7 @@ type Config struct {
 	// AutoDiscover to discover services to monitor
 	AutoDiscover bool `yaml:"auto-discover"`
 
-	// ServiceTemplate Template for auto disocovered services
+	// ServiceTemplate Template for auto discovered services
 	ServiceTemplate core.Service `yaml:"service-template"`
 
 	// ExcludeSuffix Ignore services with this suffix
