@@ -11,7 +11,7 @@ type Config struct {
 	ServiceTemplate core.Service `yaml:"service-template"`
 
 	// ExcludeSuffix Ignore services with this suffix
-	ExcludeSuffix []string `yaml:"isExcluded-suffix"`
+	ExcludeSuffix []string `yaml:"exclude-suffix"`
 
 	// ClusterMode to authenticate with kubernetes
 	ClusterMode string `yaml:"cluster-mode"`
