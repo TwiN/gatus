@@ -39,6 +39,7 @@ type NamespaceConfig struct {
 type ClusterMode string
 
 const (
-	ClusterModeIn  ClusterMode = "in"
-	ClusterModeOut ClusterMode = "out"
+	ClusterModeIn   ClusterMode = "in"
+	ClusterModeOut  ClusterMode = "out"
+	ClusterModeMock ClusterMode = "mock"
 )

@@ -19,7 +19,6 @@ kubernetes:
   cluster-mode: "out"
   auto-discover: true
   excluded-service-suffixes:
-    - primary
     - canary
   service-template:
     interval: 30s
