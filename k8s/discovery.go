@@ -31,11 +31,16 @@ func DiscoverServices(kubernetesConfig *Config) ([]*core.Service, error) {
 					continue skipExcluded
 				}
 			}
-			var url string
+			// XXX: try to extract health from liveness probe endpoint?
+			var url, port string
+			if len(service.Spec.Ports) > 0 && !strings.Contains(ns.HostnameSuffix, ":") && strings.HasSuffix(ns.HostnameSuffix, ".svc.cluster.local") {
+				port = fmt.Sprintf(":%d", service.Spec.Ports[0].Port)
+			}
+			// If the path starts with a / or starts with a port
 			if strings.HasPrefix(ns.TargetPath, "/") {
-				url = fmt.Sprintf("http://%s%s%s", service.Name, ns.HostnameSuffix, ns.TargetPath)
+				url = fmt.Sprintf("http://%s%s%s%s", service.Name, ns.HostnameSuffix, port, ns.TargetPath)
 			} else {
-				url = fmt.Sprintf("http://%s%s/%s", service.Name, ns.HostnameSuffix, ns.TargetPath)
+				url = fmt.Sprintf("http://%s%s%s/%s", service.Name, ns.HostnameSuffix, port, ns.TargetPath)
 			}
 			services = append(services, &core.Service{
 				Name:       service.Name,

@@ -42,12 +42,14 @@ func InitializeMockedKubernetesClient(services []v1.Service) {
 }
 
 // CreateTestServices creates a mocked service for testing purposes
-func CreateTestServices(name, namespace string) v1.Service {
+func CreateTestServices(name, namespace string, port int32) v1.Service {
 	return v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1.ServiceSpec{},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{Name: "http", Protocol: v1.ProtocolTCP, Port: port}},
+		},
 	}
 }

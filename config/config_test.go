@@ -327,15 +327,15 @@ func TestParseAndValidateConfigBytesWithNoServicesOrAutoDiscovery(t *testing.T) 
 
 func TestParseAndValidateConfigBytesWithKubernetesAutoDiscovery(t *testing.T) {
 	var kubernetesServices []v1.Service
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-1", "default"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2", "default"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2-canary", "default"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-3", "kube-system"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-4", "tools"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-5", "tools"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-6", "tools"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7", "metrics"))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7-canary", "metrics"))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-1", "default", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2", "default", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2-canary", "default", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-3", "kube-system", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-4", "tools", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-5", "tools", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-6", "tools", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7", "metrics", 8080))
+	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7-canary", "metrics", 8080))
 	k8stest.InitializeMockedKubernetesClient(kubernetesServices)
 	config, err := parseAndValidateConfigBytes([]byte(`
 debug: true
@@ -391,8 +391,8 @@ kubernetes:
 			if len(service.Conditions) == 1 && *service.Conditions[0] != "[STATUS] == 200" {
 				t.Errorf("service '%s' should've had the condition '[STATUS] == 200', because the template is configured for it", service.Name)
 			}
-			if !strings.HasSuffix(service.URL, ".svc.cluster.local/health") {
-				t.Errorf("service '%s' should've had an URL with the suffix '.svc.cluster.local/health'", service.Name)
+			if !strings.HasSuffix(service.URL, ".svc.cluster.local:8080/health") {
+				t.Errorf("service '%s' should've had an URL with the suffix '.svc.cluster.local:8080/health'", service.Name)
 			}
 		}
 	}
