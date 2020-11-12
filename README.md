@@ -22,13 +22,14 @@ core applications: https://status.twinnation.org/
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
-  - [Kubernetes (ALPHA)](#kubernetes-alpha)
-    - [Auto Discovery](#auto-discovery)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+  - [Kubernetes (ALPHA)](#kubernetes-alpha)
+    - [Auto Discovery](#auto-discovery)
+    - [Deploying](#deploying)
 - [Docker](#docker)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
@@ -363,6 +364,10 @@ kubernetes:
 Note that `hostname-suffix` could also be something like `.yourdomain.com`, in which case the endpoint that would be 
 monitored would be `potato.example.com/health`, assuming you have a service named `potato` and a matching ingress
 to map `potato.example.com` to the `potato` service.
+
+#### Deploying
+
+See [example/kubernetes-with-auto-discovery](example/kubernetes-with-auto-discovery)
 
 
 ## Docker

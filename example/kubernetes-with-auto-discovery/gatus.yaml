@@ -1,0 +1,109 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    kubernetes:
+      cluster-mode: "in"
+      auto-discover: true
+      excluded-service-suffixes:
+        - canary
+      service-template:
+        interval: 30s
+        conditions:
+          - "[STATUS] == 200"
+      namespaces:
+        - name: default
+          hostname-suffix: ".default.svc.cluster.local"
+          target-path: "/health"
+          excluded-services:
+            - gatus
+kind: ConfigMap
+metadata:
+  name: gatus
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gatus
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - list
+      - get
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  name: gatus
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gatus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gatus
+subjects:
+  - kind: ServiceAccount
+    name: gatus
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatus
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: gatus
+  template:
+    metadata:
+      labels:
+        k8s-app: gatus
+      name: gatus
+      namespace: kube-system
+    spec:
+      containers:
+        - image: twinproduction/gatus
+          imagePullPolicy: IfNotPresent
+          name: gatus
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 200m
+              memory: 50M
+            requests:
+              cpu: 50m
+              memory: 20M
+          volumeMounts:
+            - mountPath: /config
+              name: gatus-config
+      volumes:
+        - configMap:
+            name: gatus
+          name: gatus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gatus
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    k8s-app: gatus
