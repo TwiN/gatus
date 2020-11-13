@@ -3,20 +3,22 @@ package custom
 import (
 	"bytes"
 	"fmt"
-	"github.com/TwinProduction/gatus/client"
-	"github.com/TwinProduction/gatus/core"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
 // Technically, all alert providers should be reachable using the custom alert provider
 type AlertProvider struct {
-	URL     string            `yaml:"url"`
-	Method  string            `yaml:"method,omitempty"`
-	Body    string            `yaml:"body,omitempty"`
-	Headers map[string]string `yaml:"headers,omitempty"`
+	URL      string            `yaml:"url"`
+	Method   string            `yaml:"method,omitempty"`
+	Insecure bool              `yaml:"insecure,omitempty"`
+	Body     string            `yaml:"body,omitempty"`
+	Headers  map[string]string `yaml:"headers,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -73,7 +75,7 @@ func (provider *AlertProvider) buildRequest(serviceName, alertDescription string
 // Send a request to the alert provider and return the body
 func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	request := provider.buildRequest(serviceName, alertDescription, resolved)
-	response, err := client.GetHTTPClient(false).Do(request)
+	response, err := client.GetHTTPClient(provider.Insecure).Do(request)
 	if err != nil {
 		return nil, err
 	}

@@ -265,6 +265,85 @@ services:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithCustomAlertingConfig(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  custom:
+    url: "https://example.com"
+    body: |
+      {
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+      }
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    alerts:
+      - type: custom
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Custom == nil {
+		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+	}
+	if !config.Alerting.Custom.IsValid() {
+		t.Fatal("Custom alerting config should've been valid")
+	}
+	if config.Alerting.Custom.Insecure {
+		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithCustomAlertingConfigThatHasInsecureSetToTrue(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  custom:
+    url: "https://example.com"
+    method: "POST"
+    insecure: true
+    body: |
+      {
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+      }
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    alerts:
+      - type: custom
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("No error should've been returned")
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Custom == nil {
+		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+	}
+	if !config.Alerting.Custom.IsValid() {
+		t.Error("Custom alerting config should've been valid")
+	}
+	if config.Alerting.Custom.Method != "POST" {
+		t.Error("config.Alerting.Custom.Method should've been POST")
+	}
+	if !config.Alerting.Custom.Insecure {
+		t.Error("config.Alerting.Custom.Insecure shouldn't have been true")
+	}
+}
+
 func TestParseAndValidateConfigBytesWithInvalidSecurityConfig(t *testing.T) {
 	defer func() { recover() }()
 	_, _ = parseAndValidateConfigBytes([]byte(`

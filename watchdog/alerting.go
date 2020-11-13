@@ -2,9 +2,10 @@ package watchdog
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
-	"log"
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure

@@ -95,10 +95,10 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services`                               | List of services to monitor                                                   | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].url`                         | URL to send the request to                                                    | Required `""`  |
-| `services[].conditions`                  | Conditions used to determine the health of the service                        | `[]`           |
-| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
-| `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
 | `services[].method`                      | Request method                                                                | `GET`          |
+| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `services[].conditions`                  | Conditions used to determine the health of the service                        | `[]`           |
+| `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
@@ -120,6 +120,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
+| `alerting.custom.method`                 | Request method                                                                | `GET`          |
+| `alerting.custom.insecure`               | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
 | `security`                               | Security configuration                                                        | `{}`           |
