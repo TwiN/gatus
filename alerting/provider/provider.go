@@ -4,6 +4,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 	"github.com/TwinProduction/gatus/core"
 )
@@ -22,5 +23,6 @@ var (
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
+	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
 )

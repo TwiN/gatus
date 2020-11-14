@@ -179,6 +179,7 @@ func validateAlertingConfig(config *Config) {
 	}
 	alertTypes := []core.AlertType{
 		core.SlackAlert,
+		core.MattermostAlert,
 		core.TwilioAlert,
 		core.PagerDutyAlert,
 		core.CustomAlert,
@@ -209,6 +210,12 @@ func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) pr
 			return nil
 		}
 		return config.Alerting.Slack
+	case core.MattermostAlert:
+		if config.Alerting.Mattermost == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Mattermost
 	case core.TwilioAlert:
 		if config.Alerting.Twilio == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil

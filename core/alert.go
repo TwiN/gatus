@@ -37,6 +37,9 @@ const (
 	// SlackAlert is the AlertType for the slack alerting provider
 	SlackAlert AlertType = "slack"
 
+	// MattermostAlert is the AlertType for the mattermost alerting provider
+	MattermostAlert AlertType = "mattermost"
+
 	// PagerDutyAlert is the AlertType for the pagerduty alerting provider
 	PagerDutyAlert AlertType = "pagerduty"
 
