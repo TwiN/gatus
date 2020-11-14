@@ -43,31 +43,31 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		Method: "POST",
 		Insecure: provider.Insecure,
 		Body: fmt.Sprintf(`{
-			"text": "",
-			"username": "gatus",
-			"icon_url": "https://raw.githubusercontent.com/TwinProduction/gatus/master/static/logo.png",
-			"attachments": [
-				{
-					"title": ":rescue_worker_helmet: Gatus",
-					"fallback": "Gatus - %s",
-					"text": "%s:\n> %s",
-					"short": false,
-					"color": "%s",
-					"fields": [
-						{
-						"title": "URL",
-						"value": "%s",
-						"short": false
-						},
-						{
-						"title": "Condition results",
-						"value": "%s",
-						"short": false
-						}
-					]
-				}
-			]
-		}`, message, message, alert.Description, color, service.URL, results),
+  "text": "",
+  "username": "gatus",
+  "icon_url": "https://raw.githubusercontent.com/TwinProduction/gatus/master/static/logo.png",
+  "attachments": [
+    {
+      "title": ":rescue_worker_helmet: Gatus",
+      "fallback": "Gatus - %s",
+      "text": "%s:\n> %s",
+      "short": false,
+      "color": "%s",
+      "fields": [
+        {
+          "title": "URL",
+          "value": "%s",
+          "short": false
+        },
+        {
+          "title": "Condition results",
+          "value": "%s",
+          "short": false
+        }
+      ]
+    }
+  ]
+}`, message, message, alert.Description, color, service.URL, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
 }
