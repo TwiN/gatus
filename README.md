@@ -24,9 +24,9 @@ core applications: https://status.twinnation.org/
     - [Functions](#functions)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
-    - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
@@ -103,7 +103,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `custom`, `mattermost` | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
@@ -112,9 +112,6 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting`                               | Configuration for alerting                                                    | `{}`           |
 | `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
 | `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
-| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
-| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
 | `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
@@ -122,6 +119,9 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
 | `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
 | `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
+| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
+| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
+| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.method`                 | Request method                                                                | `GET`          |
@@ -214,37 +214,6 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
-#### Configuring Mattermost alerts
-
-```yaml
-alerting:
-  mattermost: 
-    webhook-url: "http://**********/hooks/**********"
-    insecure: true
-services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
-    interval: 30s
-    alerts:
-      - type: mattermost
-        enabled: true
-        description: "healthcheck failed 3 times in a row"
-        send-on-resolved: true
-      - type: mattermost
-        enabled: true
-        failure-threshold: 5
-        description: "healthcheck failed 5 times in a row"
-        send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-```
-
-Here's an example of what the notifications look like:
-
-![Mattermost notifications](.github/assets/mattermost-alerts.png)
-
 #### Configuring PagerDuty alerts
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts 
@@ -298,6 +267,33 @@ services:
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
 ```
+
+
+#### Configuring Mattermost alerts
+
+```yaml
+alerting:
+  mattermost: 
+    webhook-url: "http://**********/hooks/**********"
+    insecure: true
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    alerts:
+      - type: mattermost
+        enabled: true
+        description: "healthcheck failed 3 times in a row"
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+Here's an example of what the notifications look like:
+
+![Mattermost notifications](.github/assets/mattermost-alerts.png)
 
 
 #### Configuring custom alerts
