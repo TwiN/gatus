@@ -4,6 +4,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 )
 
@@ -11,6 +12,9 @@ import (
 type Config struct {
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack"`
+
+	// Mattermost is the configuration for the mattermost alerting provider
+	Mattermost *mattermost.AlertProvider `yaml:"mattermost"`
 
 	// Pagerduty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty"`

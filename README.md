@@ -24,6 +24,7 @@ core applications: https://status.twinnation.org/
     - [Functions](#functions)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
+    - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
@@ -48,7 +49,7 @@ The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
-- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
+- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 - **Service auto discovery in Kubernetes** (ALPHA)
@@ -102,7 +103,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `custom`          | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `custom`, `mattermost` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
@@ -111,6 +112,9 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting`                               | Configuration for alerting                                                    | `{}`           |
 | `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
 | `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
+| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
+| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
+| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
 | `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
@@ -210,6 +214,37 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
+#### Configuring Mattermost alerts
+
+```yaml
+alerting:
+  mattermost: 
+    webhook-url: "http://**********/hooks/**********"
+    insecure: true
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    alerts:
+      - type: mattermost
+        enabled: true
+        description: "healthcheck failed 3 times in a row"
+        send-on-resolved: true
+      - type: mattermost
+        enabled: true
+        failure-threshold: 5
+        description: "healthcheck failed 5 times in a row"
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+Here's an example of what the notifications look like:
+
+![Mattermost notifications](.github/assets/mattermost-alerts.png)
+
 #### Configuring PagerDuty alerts
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts 
@@ -287,6 +322,7 @@ alerting:
   custom:
     url: "https://hooks.slack.com/services/**********/**********/**********"
     method: "POST"
+    insecure: true
     body: |
       {
         "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
