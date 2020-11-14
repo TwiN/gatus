@@ -55,7 +55,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
           "short": false
         }
       ]
-    },
+    }
   ]
 }`, message, alert.Description, color, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
