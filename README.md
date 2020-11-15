@@ -161,13 +161,14 @@ Here are some examples of conditions you can use:
 
 #### Placeholders
 
-| Placeholder             | Description                                             | Example of resolved value |
-|:----------------------- |:------------------------------------------------------- |:------------------------- |
-| `[STATUS]`              | Resolves into the HTTP status of the request            | 404
-| `[RESPONSE_TIME]`       | Resolves into the response time the request took, in ms | 10
-| `[IP]`                  | Resolves into the IP of the target host                 | 192.168.0.232
-| `[BODY]`                | Resolves into the response body. Supports JSONPath.     | `{"name":"john.doe"}`
-| `[CONNECTED]`           | Resolves into whether a connection could be established | `true`
+| Placeholder                | Description                                                     | Example of resolved value |
+|:-------------------------- |:--------------------------------------------------------------- |:------------------------- |
+| `[STATUS]`                 | Resolves into the HTTP status of the request                    | 404
+| `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms         | 10
+| `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
+| `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`
+| `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
+| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration, in ms | 4461677039, 0 (if not using HTTPS)
 
 
 #### Functions
