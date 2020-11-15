@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -185,7 +186,9 @@ func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
 	var sanitizedNumbers []int64
 	sanitizedList := sanitizeAndResolve(list, result)
 	for _, element := range sanitizedList {
-		if number, err := strconv.ParseInt(element, 10, 64); err != nil {
+		if duration, err := time.ParseDuration(element); err == nil {
+			sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
+		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
 			sanitizedNumbers = append(sanitizedNumbers, 0)
 		} else {
