@@ -45,6 +45,9 @@ type Result struct {
 
 	// Timestamp when the request was sent
 	Timestamp time.Time `json:"timestamp"`
+
+	// CertificateExpiration is the duration before the certificate expires
+	CertificateExpiration time.Duration `json:"certificate-expiration,omitempty"`
 }
 
 // ConditionResult result of a Condition

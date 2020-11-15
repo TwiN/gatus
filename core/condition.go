@@ -35,6 +35,11 @@ const (
 	// Values that could replace the placeholder: true, false
 	ConnectedPlaceHolder = "[CONNECTED]"
 
+	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
+	//
+	// Values that could replace the placeholder: 4461677039 (~52 days)
+	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
+
 	// LengthFunctionPrefix is the prefix for the length function
 	LengthFunctionPrefix = "len("
 
@@ -142,6 +147,8 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = body
 		case ConnectedPlaceHolder:
 			element = strconv.FormatBool(result.Connected)
+		case CertificateExpirationPlaceholder:
+			element = strconv.FormatInt(int64(result.CertificateExpiration.Milliseconds()), 10)
 		default:
 			// if contains the BodyPlaceHolder, then evaluate json path
 			if strings.Contains(element, BodyPlaceHolder) {
@@ -174,11 +181,11 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 	return sanitizedList
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) []int {
-	var sanitizedNumbers []int
+func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
+	var sanitizedNumbers []int64
 	sanitizedList := sanitizeAndResolve(list, result)
 	for _, element := range sanitizedList {
-		if number, err := strconv.Atoi(element); err != nil {
+		if number, err := strconv.ParseInt(element, 10, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
 			sanitizedNumbers = append(sanitizedNumbers, 0)
 		} else {
