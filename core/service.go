@@ -169,6 +169,10 @@ func (service *Service) call(result *Result) {
 			result.Errors = append(result.Errors, err.Error())
 			return
 		}
+		if response.TLS != nil {
+			certificate := response.TLS.PeerCertificates[0]
+			result.CertificateExpiration = certificate.NotAfter.Sub(time.Now())
+		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
 		result.Body, err = ioutil.ReadAll(response.Body)

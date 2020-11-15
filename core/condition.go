@@ -35,6 +35,11 @@ const (
 	// Values that could replace the placeholder: true, false
 	ConnectedPlaceHolder = "[CONNECTED]"
 
+	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
+	//
+	// Values that could replace the placeholder: 4461677039 (~52 days)
+	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
+
 	// LengthFunctionPrefix is the prefix for the length function
 	LengthFunctionPrefix = "len("
 
@@ -142,6 +147,8 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = body
 		case ConnectedPlaceHolder:
 			element = strconv.FormatBool(result.Connected)
+		case CertificateExpirationPlaceholder:
+			element = strconv.FormatInt(int64(result.CertificateExpiration.Milliseconds()), 10)
 		default:
 			// if contains the BodyPlaceHolder, then evaluate json path
 			if strings.Contains(element, BodyPlaceHolder) {
