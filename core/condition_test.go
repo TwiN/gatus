@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -304,6 +305,35 @@ func TestCondition_evaluateWithConnected(t *testing.T) {
 func TestCondition_evaluateWithConnectedFailure(t *testing.T) {
 	condition := Condition("[CONNECTED] == true")
 	result := &Result{Connected: false}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithUnsetCertificateExpiration(t *testing.T) {
+	condition := Condition("[CERTIFICATE_EXPIRATION] == 0")
+	result := &Result{}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThan(t *testing.T) {
+	acceptable := (time.Hour * 24 * 28).Milliseconds()
+	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
+	result := &Result{CertificateExpiration: time.Hour * 24 * 60}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThanFailure(t *testing.T) {
+	acceptable := (time.Hour * 24 * 28).Milliseconds()
+	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
+	result := &Result{CertificateExpiration: time.Hour * 24 * 14}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
