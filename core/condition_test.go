@@ -320,7 +320,7 @@ func TestCondition_evaluateWithUnsetCertificateExpiration(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithCertificateExpirationGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithCertificateExpirationGreaterThanNumerical(t *testing.T) {
 	acceptable := (time.Hour * 24 * 28).Milliseconds()
 	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
 	result := &Result{CertificateExpiration: time.Hour * 24 * 60}
@@ -330,10 +330,28 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThan(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithCertificateExpirationGreaterThanFailure(t *testing.T) {
+func TestCondition_evaluateWithCertificateExpirationGreaterThanNumericalFailure(t *testing.T) {
 	acceptable := (time.Hour * 24 * 28).Milliseconds()
 	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
 	result := &Result{CertificateExpiration: time.Hour * 24 * 14}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThanDuration(t *testing.T) {
+	condition := Condition("[CERTIFICATE_EXPIRATION] > 12h")
+	result := &Result{CertificateExpiration: 24 * time.Hour}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThanDurationFailure(t *testing.T) {
+	condition := Condition("[CERTIFICATE_EXPIRATION] > 48h")
+	result := &Result{CertificateExpiration: 24 * time.Hour}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
