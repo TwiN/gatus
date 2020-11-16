@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -186,7 +187,15 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
 	var sanitizedNumbers []int64
 	sanitizedList := sanitizeAndResolve(list, result)
+	dayRegex := regexp.MustCompile(`^\s*(\d+)d\s*$`)
 	for _, element := range sanitizedList {
+		if matches := dayRegex.FindStringSubmatch(element); matches != nil {
+			if days, err := strconv.ParseInt(matches[1], 10, 64); err == nil {
+				duration := time.Duration(days * int64(time.Hour * 24))
+				sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
+				continue
+			}
+		}
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
