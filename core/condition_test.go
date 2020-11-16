@@ -60,9 +60,38 @@ func TestCondition_evaluateWithResponseTimeUsingLessThan(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithResponseTimeUsingLessThanDuration(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] < 1s")
+	result := &Result{Duration: time.Millisecond * 50}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithResponseTimeUsingLessThanInvalid(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] < potato")
+	result := &Result{Duration: time.Millisecond * 50}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have failed because the condition has an invalid numerical value that should've automatically resolved to 0", condition)
+	}
+}
+
 func TestCondition_evaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
+	// Not exactly sure why you'd want to have a condition that checks if the response time is too fast,
+	// but hey, who am I to judge?
 	condition := Condition("[RESPONSE_TIME] > 500")
 	result := &Result{Duration: time.Millisecond * 750}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithResponseTimeUsingGreaterThanDuration(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] > 1s")
+	result := &Result{Duration: time.Second * 2}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
