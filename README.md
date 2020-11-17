@@ -157,6 +157,7 @@ Here are some examples of conditions you can use:
 | `len([BODY].data) < 5`       | Array at JSONPath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`      |  |
 | `len([BODY].name) == 8`      | String at JSONPath `$.name` has a length of 8           | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].name == pat(john*)`  | String at JSONPath `$.name` matches pattern `john*`     | `{"name":"john.doe"}`      | `{"name":"bob"}` |
+| `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 
 
 #### Placeholders
@@ -168,7 +169,7 @@ Here are some examples of conditions you can use:
 | `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`
 | `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
-| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration, in ms | 4461677039, 0 (if not using HTTPS)
+| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not using HTTPS)
 
 
 #### Functions

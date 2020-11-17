@@ -60,9 +60,38 @@ func TestCondition_evaluateWithResponseTimeUsingLessThan(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithResponseTimeUsingLessThanDuration(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] < 1s")
+	result := &Result{Duration: time.Millisecond * 50}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithResponseTimeUsingLessThanInvalid(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] < potato")
+	result := &Result{Duration: time.Millisecond * 50}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have failed because the condition has an invalid numerical value that should've automatically resolved to 0", condition)
+	}
+}
+
 func TestCondition_evaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
+	// Not exactly sure why you'd want to have a condition that checks if the response time is too fast,
+	// but hey, who am I to judge?
 	condition := Condition("[RESPONSE_TIME] > 500")
 	result := &Result{Duration: time.Millisecond * 750}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithResponseTimeUsingGreaterThanDuration(t *testing.T) {
+	condition := Condition("[RESPONSE_TIME] > 1s")
+	result := &Result{Duration: time.Second * 2}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -320,7 +349,7 @@ func TestCondition_evaluateWithUnsetCertificateExpiration(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithCertificateExpirationGreaterThan(t *testing.T) {
+func TestCondition_evaluateWithCertificateExpirationGreaterThanNumerical(t *testing.T) {
 	acceptable := (time.Hour * 24 * 28).Milliseconds()
 	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
 	result := &Result{CertificateExpiration: time.Hour * 24 * 60}
@@ -330,10 +359,28 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThan(t *testing.T) {
 	}
 }
 
-func TestCondition_evaluateWithCertificateExpirationGreaterThanFailure(t *testing.T) {
+func TestCondition_evaluateWithCertificateExpirationGreaterThanNumericalFailure(t *testing.T) {
 	acceptable := (time.Hour * 24 * 28).Milliseconds()
 	condition := Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt(acceptable, 10))
 	result := &Result{CertificateExpiration: time.Hour * 24 * 14}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThanDuration(t *testing.T) {
+	condition := Condition("[CERTIFICATE_EXPIRATION] > 12h")
+	result := &Result{CertificateExpiration: 24 * time.Hour}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithCertificateExpirationGreaterThanDurationFailure(t *testing.T) {
+	condition := Condition("[CERTIFICATE_EXPIRATION] > 48h")
+	result := &Result{CertificateExpiration: 24 * time.Hour}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
