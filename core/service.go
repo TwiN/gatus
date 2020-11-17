@@ -33,6 +33,9 @@ type Service struct {
 	// URL to send the request to
 	URL string `yaml:"url"`
 
+	// DNS is the configuration of DNS monitoring
+	DNS *DNS `yaml:"dns,omitempty"`
+
 	// Method of the request made to the url of the service
 	Method string `yaml:"method,omitempty"`
 
@@ -94,6 +97,11 @@ func (service *Service) ValidateAndSetDefaults() {
 		panic(ErrServiceWithNoCondition)
 	}
 
+	if service.DNS != nil {
+		service.DNS.validateAndSetDefault()
+		return
+	}
+
 	// Make sure that the request can be created
 	_, err := http.NewRequest(service.Method, service.URL, bytes.NewBuffer([]byte(service.Body)))
 	if err != nil {
@@ -104,12 +112,18 @@ func (service *Service) ValidateAndSetDefaults() {
 // EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
 func (service *Service) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
-	service.getIP(result)
-	if len(result.Errors) == 0 {
-		service.call(result)
-	} else {
-		result.Success = false
+	switch {
+	case service.DNS != nil:
+		service.DNS.query(service.URL, result)
+	default:
+		service.getIP(result)
+		if len(result.Errors) == 0 {
+			service.call(result)
+		} else {
+			result.Success = false
+		}
 	}
+
 	for _, condition := range service.Conditions {
 		success := condition.evaluate(result)
 		if !success {
@@ -151,6 +165,7 @@ func (service *Service) getIP(result *Result) {
 }
 
 func (service *Service) call(result *Result) {
+
 	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	var request *http.Request
 	var response *http.Response
