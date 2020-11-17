@@ -53,7 +53,7 @@ func init() {
 	flag.IntVar(&port, "port", defaultPort, "port to listen (default: 8080)")
 	flag.IntVar(&port, "p", defaultPort, "port to listen (default: 8080 ; shorthand)")
 	flag.StringVar(&host, "host", defaultHost, "host to listen on (default all interfaces on host)")
-	flag.StringVar(&host, "host", defaultHost, "host to listen on (default all interfaces on host; shorthand)")
+	flag.StringVar(&host, "h", defaultHost, "host to listen on (default all interfaces on host; shorthand)")
 }
 
 func main() {
