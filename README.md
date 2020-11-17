@@ -157,7 +157,7 @@ Here are some examples of conditions you can use:
 | `len([BODY].data) < 5`       | Array at JSONPath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`      |  |
 | `len([BODY].name) == 8`      | String at JSONPath `$.name` has a length of 8           | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].name == pat(john*)`  | String at JSONPath `$.name` matches pattern `john*`     | `{"name":"john.doe"}`      | `{"name":"bob"}` |
-| `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | `{"name":"john.doe"}`      | `{"name":"bob"}` |
+| `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ... |
 
 
 #### Placeholders
