@@ -169,7 +169,7 @@ func (service *Service) call(result *Result) {
 			result.Errors = append(result.Errors, err.Error())
 			return
 		}
-		if response.TLS != nil {
+		if response.TLS != nil && len(response.TLS.PeerCertificates) > 0 {
 			certificate := response.TLS.PeerCertificates[0]
 			result.CertificateExpiration = certificate.NotAfter.Sub(time.Now())
 		}
