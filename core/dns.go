@@ -20,7 +20,7 @@ const (
 )
 
 type DNS struct {
-	// QueryType is the type for the DNS records like A,AAAA, CNAME...
+	// QueryType is the type for the DNS records like A, AAAA, CNAME...
 	QueryType string `yaml:"query-type"`
 	// QueryName is the query for DNS
 	QueryName string `yaml:"query-name"`
@@ -77,7 +77,7 @@ func (d *DNS) query(url string, result *Result) {
 				result.Body = []byte(ns.Ns)
 			}
 		default:
-			result.Body = []byte("not supported")
+			result.Body = []byte("query type is not supported yet")
 		}
 	}
 }

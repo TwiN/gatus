@@ -72,34 +72,6 @@ func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 	t.Fatal("Should've panicked because service didn't have at least 1 condition")
 }
 
-func TestService_ValidateAndSetDefaultsWithNoDNSQueryName(t *testing.T) {
-	defer func() { recover() }()
-	service := &Service{
-		Name: "",
-		URL:  "http://example.com",
-		DNS: &DNS{
-			QueryType: "A",
-			QueryName: "",
-		},
-	}
-	service.ValidateAndSetDefaults()
-	t.Fatal("Should've panicked because service`s dns didn't have a query name, which is a mandatory field for dns")
-}
-
-func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
-	defer func() { recover() }()
-	service := &Service{
-		Name: "",
-		URL:  "http://example.com",
-		DNS: &DNS{
-			QueryType: "B",
-			QueryName: "example.com",
-		},
-	}
-	service.ValidateAndSetDefaults()
-	t.Fatal("Should've panicked because service`s dns query type is invalid, it needs to be a valid query name like A, AAAA, CNAME...")
-}
-
 func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	service := &Service{
