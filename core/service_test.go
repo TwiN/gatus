@@ -101,16 +101,18 @@ func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
 }
 
 func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
+	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	service := &Service{
-		Name: "",
+		Name: "dns-test",
 		URL:  "http://example.com",
 		DNS: &DNS{
 			QueryType: "A",
 			QueryName: "example.com",
 		},
+		Conditions: []*Condition{&conditionSuccess},
 	}
 	service.ValidateAndSetDefaults()
-	if service.DNS.QueryName == "example.com." {
+	if service.DNS.QueryName != "example.com." {
 		t.Error("Service.dns.query-name should be formatted with . suffix")
 	}
 }
