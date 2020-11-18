@@ -165,7 +165,6 @@ func (service *Service) getIP(result *Result) {
 }
 
 func (service *Service) call(result *Result) {
-
 	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	var request *http.Request
 	var response *http.Response
