@@ -17,25 +17,25 @@ const (
 	// Values that could replace the placeholder: 200, 404, 500, ...
 	StatusPlaceholder = "[STATUS]"
 
-	// IPPlaceHolder is a placeholder for an IP.
+	// IPPlaceholder is a placeholder for an IP.
 	//
 	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
-	IPPlaceHolder = "[IP]"
+	IPPlaceholder = "[IP]"
 
-	// ResponseTimePlaceHolder is a placeholder for the request response time, in milliseconds.
+	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
 	//
 	// Values that could replace the placeholder: 1, 500, 1000, ...
-	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
+	ResponseTimePlaceholder = "[RESPONSE_TIME]"
 
-	// BodyPlaceHolder is a placeholder for the body of the response
+	// BodyPlaceholder is a placeholder for the body of the response
 	//
 	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
-	BodyPlaceHolder = "[BODY]"
+	BodyPlaceholder = "[BODY]"
 
-	// ConnectedPlaceHolder is a placeholder for whether a connection was successfully established.
+	// ConnectedPlaceholder is a placeholder for whether a connection was successfully established.
 	//
 	// Values that could replace the placeholder: true, false
-	ConnectedPlaceHolder = "[CONNECTED]"
+	ConnectedPlaceholder = "[CONNECTED]"
 
 	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
 	//
@@ -141,25 +141,25 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 		switch strings.ToUpper(element) {
 		case StatusPlaceholder:
 			element = strconv.Itoa(result.HTTPStatus)
-		case IPPlaceHolder:
+		case IPPlaceholder:
 			element = result.IP
-		case ResponseTimePlaceHolder:
+		case ResponseTimePlaceholder:
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
-		case BodyPlaceHolder:
+		case BodyPlaceholder:
 			element = body
-		case ConnectedPlaceHolder:
+		case ConnectedPlaceholder:
 			element = strconv.FormatBool(result.Connected)
 		case CertificateExpirationPlaceholder:
-			element = strconv.FormatInt(int64(result.CertificateExpiration.Milliseconds()), 10)
+			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		default:
-			// if contains the BodyPlaceHolder, then evaluate json path
-			if strings.Contains(element, BodyPlaceHolder) {
+			// if contains the BodyPlaceholder, then evaluate json path
+			if strings.Contains(element, BodyPlaceholder) {
 				wantLength := false
 				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
 					wantLength = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceholder), "", 1), result.Body)
 				if err != nil {
 					if err.Error() != "unexpected end of JSON input" {
 						result.Errors = append(result.Errors, err.Error())
