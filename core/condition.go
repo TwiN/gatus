@@ -2,11 +2,13 @@ package core
 
 import (
 	"fmt"
-	"github.com/TwinProduction/gatus/jsonpath"
-	"github.com/TwinProduction/gatus/pattern"
 	"log"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/TwinProduction/gatus/jsonpath"
+	"github.com/TwinProduction/gatus/pattern"
 )
 
 const (
@@ -15,30 +17,30 @@ const (
 	// Values that could replace the placeholder: 200, 404, 500, ...
 	StatusPlaceholder = "[STATUS]"
 
-	// IPPlaceHolder is a placeholder for an IP.
+	// IPPlaceholder is a placeholder for an IP.
 	//
 	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
-	IPPlaceHolder = "[IP]"
+	IPPlaceholder = "[IP]"
 
 	// DNSRCodePlaceHolder is a place holder for DNS_RCODE
 	//
 	// Values that could be NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP and REFUSED
 	DNSRCodePlaceHolder = "[DNS_RCODE]"
 
-	// ResponseTimePlaceHolder is a placeholder for the request response time, in milliseconds.
+	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
 	//
 	// Values that could replace the placeholder: 1, 500, 1000, ...
-	ResponseTimePlaceHolder = "[RESPONSE_TIME]"
+	ResponseTimePlaceholder = "[RESPONSE_TIME]"
 
-	// BodyPlaceHolder is a placeholder for the body of the response
+	// BodyPlaceholder is a placeholder for the body of the response
 	//
 	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
-	BodyPlaceHolder = "[BODY]"
+	BodyPlaceholder = "[BODY]"
 
-	// ConnectedPlaceHolder is a placeholder for whether a connection was successfully established.
+	// ConnectedPlaceholder is a placeholder for whether a connection was successfully established.
 	//
 	// Values that could replace the placeholder: true, false
-	ConnectedPlaceHolder = "[CONNECTED]"
+	ConnectedPlaceholder = "[CONNECTED]"
 
 	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
 	//
@@ -144,27 +146,27 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 		switch strings.ToUpper(element) {
 		case StatusPlaceholder:
 			element = strconv.Itoa(result.HTTPStatus)
-		case IPPlaceHolder:
+		case IPPlaceholder:
 			element = result.IP
-		case ResponseTimePlaceHolder:
+		case ResponseTimePlaceholder:
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
+		case BodyPlaceholder:
+			element = body
 		case DNSRCodePlaceHolder:
 			element = result.DNSRCode
-		case BodyPlaceHolder:
-			element = body
-		case ConnectedPlaceHolder:
+		case ConnectedPlaceholder:
 			element = strconv.FormatBool(result.Connected)
 		case CertificateExpirationPlaceholder:
-			element = strconv.FormatInt(int64(result.CertificateExpiration.Milliseconds()), 10)
+			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		default:
-			// if contains the BodyPlaceHolder, then evaluate json path
-			if strings.Contains(element, BodyPlaceHolder) {
+			// if contains the BodyPlaceholder, then evaluate json path
+			if strings.Contains(element, BodyPlaceholder) {
 				wantLength := false
 				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
 					wantLength = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceHolder), "", 1), result.Body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceholder), "", 1), result.Body)
 				if err != nil {
 					if err.Error() != "unexpected end of JSON input" {
 						result.Errors = append(result.Errors, err.Error())
@@ -192,7 +194,9 @@ func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
 	var sanitizedNumbers []int64
 	sanitizedList := sanitizeAndResolve(list, result)
 	for _, element := range sanitizedList {
-		if number, err := strconv.ParseInt(element, 10, 64); err != nil {
+		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
+			sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
+		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
 			sanitizedNumbers = append(sanitizedNumbers, 0)
 		} else {
