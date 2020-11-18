@@ -11,12 +11,13 @@ func TestIntegrationQuery(t *testing.T) {
 		inputURL        string
 		expectedDNSCode string
 		expectedBody    string
+		isErrExpected   bool
 	}{
 		{
 			name: "test DNS with type A",
 			inputDNS: DNS{
 				QueryType: "A",
-				QueryName: "example.com",
+				QueryName: "example.com.",
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
@@ -26,7 +27,7 @@ func TestIntegrationQuery(t *testing.T) {
 			name: "test DNS with type AAAA",
 			inputDNS: DNS{
 				QueryType: "AAAA",
-				QueryName: "example.com",
+				QueryName: "example.com.",
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
@@ -36,17 +37,17 @@ func TestIntegrationQuery(t *testing.T) {
 			name: "test DNS with type CNAME",
 			inputDNS: DNS{
 				QueryType: "CNAME",
-				QueryName: "example.com",
+				QueryName: "doc.google.com.",
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "",
+			expectedBody:    "writely.l.google.com.",
 		},
 		{
 			name: "test DNS with type MX",
 			inputDNS: DNS{
 				QueryType: "MX",
-				QueryName: "example.com",
+				QueryName: "example.com.",
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
@@ -56,11 +57,20 @@ func TestIntegrationQuery(t *testing.T) {
 			name: "test DNS with type NS",
 			inputDNS: DNS{
 				QueryType: "NS",
-				QueryName: "example.com",
+				QueryName: "example.com.",
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "b.iana-servers.net.",
+		},
+		{
+			name: "test DNS with fake type and retrieve error",
+			inputDNS: DNS{
+				QueryType: "B",
+				QueryName: "google",
+			},
+			inputURL:      "8.8.8.8",
+			isErrExpected: true,
 		},
 	}
 
@@ -69,10 +79,9 @@ func TestIntegrationQuery(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			dns := test.inputDNS
 			result := &Result{}
-			dns.validateAndSetDefault()
 			dns.query(test.inputURL, result)
-			if len(result.Errors) != 0 {
-				t.Errorf("there should be no error Errors:%v", result.Errors)
+			if test.isErrExpected && len(result.Errors) == 0 {
+				t.Errorf("there should be errors")
 			}
 			if result.DNSRCode != test.expectedDNSCode {
 				t.Errorf("DNSRCodePlaceHolder '%s' should have been %s", result.DNSRCode, test.expectedDNSCode)
