@@ -2,8 +2,10 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 
 	"github.com/TwinProduction/gatus/alerting"
@@ -22,6 +24,12 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
+
+	// DefaultAddress is the default address the service will bind to
+	DefaultAddress = "0.0.0.0"
+
+	// DefaultPort is the default port the service will listen on
+	DefaultPort = 8080
 )
 
 var (
@@ -64,6 +72,9 @@ type Config struct {
 
 	// Kubernetes is the Kubernetes configuration
 	Kubernetes *k8s.Config `yaml:"kubernetes"`
+
+	// webConfig is the optional configuration of the web listener providing the frontend UI
+	Web *webConfig `yaml:"web"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet
@@ -127,8 +138,18 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		validateSecurityConfig(config)
 		validateServicesConfig(config)
 		validateKubernetesConfig(config)
+		validateAddressAndPortConfig(config)
 	}
 	return
+}
+
+func validateAddressAndPortConfig(config *Config) {
+	if config.Web == nil {
+		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort}
+	} else {
+		config.Web.validateAndSetDefaults()
+	}
+
 }
 
 func validateKubernetesConfig(config *Config) {
@@ -236,4 +257,28 @@ func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) pr
 		return config.Alerting.Custom
 	}
 	return nil
+}
+
+// webConfig is the structure which supports the configuration of the endpoint
+// which provides access to the web frontend
+type webConfig struct {
+	// Address to listen on (defaults to 0.0.0.0 specified by DefaultAddress)
+	Address string `yaml:"address"`
+
+	// Port to listen on (default to 8080 specified by DefaultPort)
+	Port int `yaml:"port"`
+}
+
+// validateAndSetDefaults checks and sets missing values based on the defaults
+// in given in DefaultAddress and DefaultPort if necessary
+func (web *webConfig) validateAndSetDefaults() {
+	if len(web.Address) == 0 {
+		web.Address = DefaultAddress
+	}
+
+	if web.Port == 0 {
+		web.Port = DefaultPort
+	} else if web.Port < 0 || web.Port > math.MaxUint16 {
+		panic(fmt.Sprintf("port has an invalid value %d shoud be between %d - %d\r\n", web.Port, 0, math.MaxUint16))
+	}
 }

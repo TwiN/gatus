@@ -133,6 +133,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
 | `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
 | `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
+| `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
+| `web.port`                               | Port to listen on                                                             | `8080`         |
 
 For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha)
 
