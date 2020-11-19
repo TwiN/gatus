@@ -219,6 +219,23 @@ services:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithInvalidPort(t *testing.T) {
+	defer func() { recover() }()
+
+	parseAndValidateConfigBytes([]byte(`
+web:
+  port: 65536
+  address: 127.0.0.1
+services:
+  - name: twinnation
+    url: https://twinnation.org/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+
+	t.Fatal("Should've panicked because the configuration specifies an invalid port value")
+}
+
 func TestParseAndValidateConfigBytesWithMetrics(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 metrics: true
