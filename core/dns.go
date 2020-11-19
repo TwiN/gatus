@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	// ErrDNSWithNoQueryName
+	// ErrDNSWithNoQueryName is the error with which gatus will panic if a dns is configured without query name
 	ErrDNSWithNoQueryName = errors.New("you must specify query name for DNS")
-	// ErrDNSWithInvalidQueryType
+	// ErrDNSWithInvalidQueryType is the error with which gatus will panic if a dns is configured with invalid query type
 	ErrDNSWithInvalidQueryType = errors.New("invalid query type")
 )
 
