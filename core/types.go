@@ -19,8 +19,8 @@ type Result struct {
 	// HTTPStatus is the HTTP response status code
 	HTTPStatus int `json:"status"`
 
-	//
-	DNSRCode string `json:"dnsr_code"`
+	// DNSRCode is the response code of DNS query in human readable version
+	DNSRCode string `json:"dns-rcode"`
 
 	// Body is the response body
 	Body []byte `json:"-"`

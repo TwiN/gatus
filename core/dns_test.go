@@ -84,7 +84,7 @@ func TestIntegrationQuery(t *testing.T) {
 				t.Errorf("there should be errors")
 			}
 			if result.DNSRCode != test.expectedDNSCode {
-				t.Errorf("DNSRCodePlaceHolder '%s' should have been %s", result.DNSRCode, test.expectedDNSCode)
+				t.Errorf("DNSRCodePlaceholder '%s' should have been %s", result.DNSRCode, test.expectedDNSCode)
 			}
 
 			if string(result.Body) != test.expectedBody {
