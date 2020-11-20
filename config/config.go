@@ -73,7 +73,7 @@ type Config struct {
 	// Kubernetes is the Kubernetes configuration
 	Kubernetes *k8s.Config `yaml:"kubernetes"`
 
-	// webConfig is the optional configuration of the web listener providing the frontend UI
+	// Web is the configuration for the web listener
 	Web *webConfig `yaml:"web"`
 }
 
@@ -138,18 +138,17 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		validateSecurityConfig(config)
 		validateServicesConfig(config)
 		validateKubernetesConfig(config)
-		validateAddressAndPortConfig(config)
+		validateWebConfig(config)
 	}
 	return
 }
 
-func validateAddressAndPortConfig(config *Config) {
+func validateWebConfig(config *Config) {
 	if config.Web == nil {
 		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort}
 	} else {
 		config.Web.validateAndSetDefaults()
 	}
-
 }
 
 func validateKubernetesConfig(config *Config) {
@@ -275,10 +274,9 @@ func (web *webConfig) validateAndSetDefaults() {
 	if len(web.Address) == 0 {
 		web.Address = DefaultAddress
 	}
-
 	if web.Port == 0 {
 		web.Port = DefaultPort
 	} else if web.Port < 0 || web.Port > math.MaxUint16 {
-		panic(fmt.Sprintf("port has an invalid value %d shoud be between %d - %d\r\n", web.Port, 0, math.MaxUint16))
+		panic(fmt.Sprintf("port has an invalid: value should be between %d and %d", 0, math.MaxUint16))
 	}
 }
