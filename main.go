@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,8 +25,6 @@ var (
 )
 
 func main() {
-	flag.Parse()
-
 	cfg := loadConfiguration()
 	resultsHandler := serviceResultsHandler
 	if cfg.Security != nil && cfg.Security.IsValid() {
