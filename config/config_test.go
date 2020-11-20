@@ -35,7 +35,7 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     interval: 15s
     conditions:
       - "[STATUS] == 200"
@@ -54,8 +54,8 @@ services:
 	if len(config.Services) != 2 {
 		t.Error("Should have returned two services")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[1].URL != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
@@ -84,7 +84,7 @@ func TestParseAndValidateConfigBytesDefault(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -97,8 +97,8 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -110,7 +110,7 @@ func TestParseAndValidateConfigBytesWithMetrics(t *testing.T) {
 metrics: true
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -123,8 +123,8 @@ services:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -158,7 +158,7 @@ alerting:
     integration-key: "00000000000000000000000000000000"
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     alerts:
       - type: slack
         enabled: true
@@ -197,8 +197,8 @@ services:
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -242,7 +242,7 @@ alerting:
     integration-key: "INVALID_KEY"
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     alerts:
       - type: pagerduty
     conditions:
@@ -276,7 +276,7 @@ alerting:
       }
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     alerts:
       - type: custom
     conditions:
@@ -315,7 +315,7 @@ alerting:
       }
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     alerts:
       - type: custom
     conditions:
@@ -353,7 +353,7 @@ security:
     password-sha512: "invalid-sha512-hash"
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -370,7 +370,7 @@ security:
     password-sha512: "%s"
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `, expectedUsername, expectedPasswordHash)))
