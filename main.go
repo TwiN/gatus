@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -35,9 +36,10 @@ func main() {
 	if cfg.Metrics {
 		http.Handle("/metrics", promhttp.Handler())
 	}
-	log.Println("[main][main] Listening on port 8080")
+
+	log.Printf("[main][main] Listening on %s:%d\r\n", cfg.Web.Address, cfg.Web.Port)
 	go watchdog.Monitor(cfg)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port), nil))
 }
 
 func loadConfiguration() *config.Config {
