@@ -262,11 +262,11 @@ services:
 	}
 
 	if config.Web.Address != DefaultAddress {
-		t.Errorf("Bind address should have been %s, because it is specified in config", DefaultAddress)
+		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
 	}
 
 	if config.Web.Port != DefaultPort {
-		t.Errorf("Port should have been %d, because it is specified in config", DefaultPort)
+		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
 }
 
