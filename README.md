@@ -39,6 +39,7 @@ core applications: https://status.twinnation.org/
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP service](#monitoring-a-tcp-service)
+  - [Monitoring using DNS queries](#monitoring-using-dns-queries)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
 
@@ -103,8 +104,9 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
-| `services[].dns.query-type`              | Query type for DNS                                                            | `""`           |
-| `services[].dns.query-name`              | Query name for DNS                                                           | `""`           |
+| `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring using DNS queries](#monitoring-using-dns-queries)  | `""`           |
+| `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
+| `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
 | `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
@@ -167,12 +169,12 @@ Here are some examples of conditions you can use:
 | Placeholder                | Description                                                     | Example of resolved value |
 |:-------------------------- |:--------------------------------------------------------------- |:------------------------- |
 | `[STATUS]`                 | Resolves into the HTTP status of the request                    | 404
-| `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
 | `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms         | 10
 | `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`
 | `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not using HTTPS)
+| `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
 
 
 #### Functions
@@ -528,6 +530,27 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `services[].body`, `s
 **NOTE**: `[CONNECTED] == true` does not guarantee that the service itself is healthy - it only guarantees that there's 
 something at the given address listening to the given port, and that a connection to that address was successfully 
 established.
+
+
+### Monitoring using DNS queries
+
+Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
+```yaml
+  - name: example dns query
+    url: "8.8.8.8"                  # Address of the DNS server to use
+    interval: 30s
+    dns:
+      query-name: "example.com"
+      query-type: "A"
+    conditions:
+      - "[BODY] == 93.184.216.34"
+      - "[DNS_RCODE] == NOERROR"
+```
+
+There are two placeholders that can be used in the conditions for services of type DNS:
+- The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
+- The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as 
+`NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
 
 ### Basic authentication
