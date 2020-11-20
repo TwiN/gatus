@@ -112,18 +112,12 @@ func (service *Service) ValidateAndSetDefaults() {
 // EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
 func (service *Service) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
-	switch {
-	case service.DNS != nil:
-		service.DNS.query(service.URL, result)
-	default:
-		service.getIP(result)
-		if len(result.Errors) == 0 {
-			service.call(result)
-		} else {
-			result.Success = false
-		}
+	service.getIP(result)
+	if len(result.Errors) == 0 {
+		service.call(result)
+	} else {
+		result.Success = false
 	}
-
 	for _, condition := range service.Conditions {
 		success := condition.evaluate(result)
 		if !success {
@@ -150,13 +144,17 @@ func (service *Service) GetAlertsTriggered() []Alert {
 }
 
 func (service *Service) getIP(result *Result) {
-	urlObject, err := url.Parse(service.URL)
-	if err != nil {
-		result.Errors = append(result.Errors, err.Error())
-		return
+	if service.DNS != nil {
+		result.Hostname = strings.TrimSuffix(service.URL, ":53")
+	} else {
+		urlObject, err := url.Parse(service.URL)
+		if err != nil {
+			result.Errors = append(result.Errors, err.Error())
+			return
+		}
+		result.Hostname = urlObject.Hostname()
 	}
-	result.Hostname = urlObject.Hostname()
-	ips, err := net.LookupIP(urlObject.Hostname())
+	ips, err := net.LookupIP(result.Hostname)
 	if err != nil {
 		result.Errors = append(result.Errors, err.Error())
 		return
@@ -165,15 +163,20 @@ func (service *Service) getIP(result *Result) {
 }
 
 func (service *Service) call(result *Result) {
-	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	var request *http.Request
 	var response *http.Response
 	var err error
-	if !isServiceTCP {
-		request = service.buildRequest()
+	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
+	isServiceDNS := service.DNS != nil
+	isServiceHTTP := !isServiceTCP && !isServiceDNS
+	if isServiceHTTP {
+		request = service.buildHTTPRequest()
 	}
 	startTime := time.Now()
-	if isServiceTCP {
+	if isServiceDNS {
+		service.DNS.query(service.URL, result)
+		result.Duration = time.Since(startTime)
+	} else if isServiceTCP {
 		result.Connected = client.CanCreateConnectionToTCPService(strings.TrimPrefix(service.URL, "tcp://"))
 		result.Duration = time.Since(startTime)
 	} else {
@@ -196,7 +199,7 @@ func (service *Service) call(result *Result) {
 	}
 }
 
-func (service *Service) buildRequest() *http.Request {
+func (service *Service) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if service.GraphQL {
 		graphQlBody := map[string]string{
