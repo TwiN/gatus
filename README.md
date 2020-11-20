@@ -103,6 +103,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
+| `services[].dns.query-type`              | Query type for DNS                                                            | `""`           |
+| `services[].dns.query-name`              | Query name for DNS                                                           | `""`           |
 | `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
@@ -165,6 +167,7 @@ Here are some examples of conditions you can use:
 | Placeholder                | Description                                                     | Example of resolved value |
 |:-------------------------- |:--------------------------------------------------------------- |:------------------------- |
 | `[STATUS]`                 | Resolves into the HTTP status of the request                    | 404
+| `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
 | `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms         | 10
 | `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`

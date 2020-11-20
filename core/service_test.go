@@ -72,6 +72,23 @@ func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 	t.Fatal("Should've panicked because service didn't have at least 1 condition")
 }
 
+func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
+	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
+	service := &Service{
+		Name: "dns-test",
+		URL:  "http://example.com",
+		DNS: &DNS{
+			QueryType: "A",
+			QueryName: "example.com",
+		},
+		Conditions: []*Condition{&conditionSuccess},
+	}
+	service.ValidateAndSetDefaults()
+	if service.DNS.QueryName != "example.com." {
+		t.Error("Service.dns.query-name should be formatted with . suffix")
+	}
+}
+
 func TestService_GetAlertsTriggered(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
@@ -106,6 +123,30 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	result := service.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	if !result.Connected {
+		t.Error("Because the connection has been established, result.Connected should've been true")
+	}
+	if !result.Success {
+		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
+	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
+	conditionBody := Condition("[BODY] == 93.184.216.34")
+	service := Service{
+		Name: "TwiNNatioN",
+		URL:  "8.8.8.8",
+		DNS: &DNS{
+			QueryType: "A",
+			QueryName: "example.com.",
+		},
+		Conditions: []*Condition{&conditionSuccess, &conditionBody},
+	}
+	result := service.EvaluateHealth()
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Conditions '%s' and %s should have been a success", conditionSuccess, conditionBody)
 	}
 	if !result.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")

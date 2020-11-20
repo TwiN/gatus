@@ -22,6 +22,11 @@ const (
 	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
 	IPPlaceholder = "[IP]"
 
+	// DNSRCodePlaceholder is a place holder for DNS_RCODE
+	//
+	// Values that could be NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP and REFUSED
+	DNSRCodePlaceholder = "[DNS_RCODE]"
+
 	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
 	//
 	// Values that could replace the placeholder: 1, 500, 1000, ...
@@ -147,6 +152,8 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 			element = strconv.Itoa(int(result.Duration.Milliseconds()))
 		case BodyPlaceholder:
 			element = body
+		case DNSRCodePlaceholder:
+			element = result.DNSRCode
 		case ConnectedPlaceholder:
 			element = strconv.FormatBool(result.Connected)
 		case CertificateExpirationPlaceholder:
