@@ -103,11 +103,9 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != DefaultAddress {
 		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
 	}
-
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
@@ -190,7 +188,7 @@ web:
   address: 127.0.0.1
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -203,17 +201,15 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != "127.0.0.1" {
 		t.Errorf("Bind address should have been %s, because it is specified in config", "127.0.0.1")
 	}
-
 	if config.Web.Port != 12345 {
 		t.Errorf("Port should have been %d, because it is specified in config", 12345)
 	}
@@ -221,18 +217,16 @@ services:
 
 func TestParseAndValidateConfigBytesWithInvalidPort(t *testing.T) {
 	defer func() { recover() }()
-
-	parseAndValidateConfigBytes([]byte(`
+	_, _ = parseAndValidateConfigBytes([]byte(`
 web:
   port: 65536
   address: 127.0.0.1
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
-
 	t.Fatal("Should've panicked because the configuration specifies an invalid port value")
 }
 
@@ -260,11 +254,9 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != DefaultAddress {
 		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
 	}
-
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
@@ -275,7 +267,7 @@ func TestParseAndValidateConfigBytesWithMetricsAndHostAndPort(t *testing.T) {
 metrics: true
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 web:
@@ -291,17 +283,15 @@ web:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != "192.168.0.1" {
 		t.Errorf("Bind address should have been %s, because it is the default value", "192.168.0.1")
 	}
-
 	if config.Web.Port != 9090 {
 		t.Errorf("Port should have been %d, because it is specified in config", 9090)
 	}
