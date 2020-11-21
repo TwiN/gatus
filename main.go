@@ -29,8 +29,7 @@ func main() {
 	if cfg.Security != nil && cfg.Security.IsValid() {
 		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)
 	}
-	// favicon needs to be always served from the root
-	http.HandleFunc("/favicon.ico", favIconHandler)
+	http.HandleFunc("/favicon.ico", favIconHandler) // favicon needs to be always served from the root
 	http.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/results"), resultsHandler)
 	http.HandleFunc(cfg.Web.PrependWithContextRoot("/health"), healthHandler)
 	http.Handle(cfg.Web.ContextRoot, GzipHandler(http.StripPrefix(cfg.Web.ContextRoot, http.FileServer(http.Dir("./static")))))
@@ -92,7 +91,7 @@ func healthHandler(writer http.ResponseWriter, _ *http.Request) {
 	_, _ = writer.Write([]byte("{\"status\":\"UP\"}"))
 }
 
-// favIconHanlder responds to /favicon.ico requests
+// favIconHandler handles requests for /favicon.ico
 func favIconHandler(writer http.ResponseWriter, request *http.Request) {
 	http.ServeFile(writer, request, "./static/favicon.ico")
 }
