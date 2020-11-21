@@ -29,13 +29,16 @@ func main() {
 	if cfg.Security != nil && cfg.Security.IsValid() {
 		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)
 	}
-	http.HandleFunc("/api/v1/results", resultsHandler)
-	http.HandleFunc("/health", healthHandler)
-	http.Handle("/", GzipHandler(http.FileServer(http.Dir("./static"))))
+	// favicon needs to be always served from the root
+	http.HandleFunc("/favicon.ico", favIconHandler)
+	http.HandleFunc(cfg.Web.AppendToCtxRoot("/api/v1/results"), resultsHandler)
+	http.HandleFunc(cfg.Web.AppendToCtxRoot("/health"), healthHandler)
+	http.Handle(cfg.Web.CtxRoot(), GzipHandler(http.StripPrefix(cfg.Web.CtxRoot(), http.FileServer(http.Dir("./static")))))
+
 	if cfg.Metrics {
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle(cfg.Web.AppendToCtxRoot("/metrics"), promhttp.Handler())
 	}
-	log.Printf("[main][main] Listening on %s\n", cfg.Web.SocketAddress())
+	log.Printf("[main][main] Listening on %s%s\n", cfg.Web.SocketAddress(), cfg.Web.CtxRoot())
 	go watchdog.Monitor(cfg)
 	log.Fatal(http.ListenAndServe(cfg.Web.SocketAddress(), nil))
 }
@@ -87,4 +90,9 @@ func healthHandler(writer http.ResponseWriter, _ *http.Request) {
 	writer.Header().Add("Content-type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write([]byte("{\"status\":\"UP\"}"))
+}
+
+// favIconHanlder responds to /favicon.ico requests
+func favIconHandler(writer http.ResponseWriter, request *http.Request) {
+	http.ServeFile(writer, request, "./static/favicon.ico")
 }

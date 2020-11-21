@@ -28,6 +28,9 @@ const (
 
 	// DefaultPort is the default port the service will listen on
 	DefaultPort = 8080
+
+	// DefaultContextRoot is the default context root of the web application
+	DefaultContextRoot = "/"
 )
 
 var (

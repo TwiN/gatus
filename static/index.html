@@ -3,7 +3,7 @@
 <head>
 	<title>Health Dashboard</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="stylesheet" href="/bootstrap.min.css" />
+	<link rel="stylesheet" href="./bootstrap.min.css" />
 	<style>
 		html, body {
 			background-color: #f7f9fb;
@@ -129,11 +129,11 @@
 		</div>
 	</div>
 
-	<script src="/jquery.min.js"></script>
+	<script src="./jquery.min.js"></script>
 
 	<div id="social">
 		<a href="https://github.com/TwinProduction/gatus" target="_blank" title="Gatus on GitHub">
-			<img src="/github.png" alt="GitHub" width="32" height="auto" />
+			<img src="./github.png" alt="GitHub" width="32" height="auto" />
 		</a>
 	</div>
 
@@ -220,7 +220,7 @@
 		}
 
 		function refreshResults() {
-			$.getJSON("/api/v1/results", function (data) {
+			$.getJSON("./api/v1/results", function (data) {
 				// Update the table only if there's a change
 				if (JSON.stringify(serviceStatuses) !== JSON.stringify(data)) {
 					serviceStatuses = data;
