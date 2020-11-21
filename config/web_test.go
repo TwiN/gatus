@@ -15,6 +15,19 @@ func TestWebConfig_SocketAddress(t *testing.T) {
 	}
 }
 
+func TestWebConfig_PrependWithContextRoot(t *testing.T) {
+	web := &webConfig{ContextRoot: "/status/"}
+	if result := web.PrependWithContextRoot("/api/v1/results"); result != "/status/api/v1/results/" {
+		t.Errorf("expected %s, got %s", "/status/api/v1/results/", result)
+	}
+	if result := web.PrependWithContextRoot("/health"); result != "/status/health/" {
+		t.Errorf("expected %s, got %s", "/status/health/", result)
+	}
+	if result := web.PrependWithContextRoot("/health/"); result != "/status/health/" {
+		t.Errorf("expected %s, got %s", "/status/health/", result)
+	}
+}
+
 // validContextRootTest specifies all test case which should end up in
 // a valid context root used to bind the web interface to
 var validContextRootTests = []struct {
