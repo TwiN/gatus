@@ -15,91 +15,72 @@ func TestWebConfig_SocketAddress(t *testing.T) {
 	}
 }
 
-func TestWebConfig_ContextRootEmpty(t *testing.T) {
-	const expected = "/"
+// validContextRootTest specifies all test case which should end up in
+// a valid context root used to bind the web interface to
+var validContextRootTests = []struct {
+	name         string
+	path         string
+	expectedPath string
+}{
+	{"Empty", "", "/"},
+	{"/", "/", "/"},
+	{"///", "///", "/"},
+	{"Single character 'a'", "a", "/a/"},
+	{"Slash at the beginning", "/status", "/status/"},
+	{"Slashes at start and end", "/status/", "/status/"},
+	{"Multiple slashes at start", "//status", "/status/"},
+	{"Mutliple slashes at start and end", "///status////", "/status/"},
+	{"Contains '@' in path'", "me@/status/gatus", "/me@/status/gatus/"},
+}
 
-	web := &webConfig{
-		ContextRoot: "",
-	}
-
-	web.validateAndSetDefaults()
-
-	if web.ContextRoot != expected {
-		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
+func TestWebConfig_ValidContextRoots(t *testing.T) {
+	for idx, test := range validContextRootTests {
+		t.Run(fmt.Sprintf("%d: %s", idx, test.name), func(t *testing.T) {
+			expectValidResultForContextRoot(t, test.path, test.expectedPath)
+		})
 	}
 }
 
-func TestWebConfig_ContextRoot(t *testing.T) {
-	const expected = "/status/"
+// invalidContextRootTests contains all tests for context root which are
+// expected to
+var invalidContextRootTests = []struct {
+	name string
+	path string
+}{
+	{"Only a fragment identifier", "#"},
+	{"Invalid character in path", "/invalid" + string([]byte{0x7F}) + "/"},
+	{"Starts with protocol", "http://status/gatus"},
+	{"Path with fragment", "/status/gatus#here"},
+	{"starts with '://'", "://status"},
+	{"contains query parameter", "/status/h?ello=world"},
+	{"contains '?'", "/status?/"},
+}
 
-	web := &webConfig{
-		ContextRoot: "/status/",
-	}
-
-	web.validateAndSetDefaults()
-
-	if web.ContextRoot != expected {
-		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
+func TestWebConfig_InvalidContextRoots(t *testing.T) {
+	for idx, test := range invalidContextRootTests {
+		t.Run(fmt.Sprintf("%d: %s", idx, test.name), func(t *testing.T) {
+			expectInvalidResultForContextRoot(t, test.path)
+		})
 	}
 }
 
-func TestWebConfig_ContextRootInvalid(t *testing.T) {
+func expectInvalidResultForContextRoot(t *testing.T, path string) {
 	defer func() { recover() }()
 
-	web := &webConfig{
-		ContextRoot: "/s?=ta t u&s/",
-	}
-
+	web := &webConfig{ContextRoot: path}
 	web.validateAndSetDefaults()
 
-	t.Fatal("Should've panicked because the configuration specifies an invalid context root")
+	t.Fatal(fmt.Sprintf("Should've panicked because the configuration specifies an invalid context root: %s", path))
 }
 
-func TestWebConfig_ContextRootNonParseable(t *testing.T) {
-	defer func() { recover() }()
-
+func expectValidResultForContextRoot(t *testing.T, path string, expected string) {
 	web := &webConfig{
-		ContextRoot: "/invalid" + string([]byte{0x7F}) + "/",
-	}
-
-	web.validateAndSetDefaults()
-
-	t.Fatal(fmt.Sprintf("Should've panicked because the configuration specifies an invalid context root %s", web.ContextRoot))
-}
-
-func TestWebConfig_ContextRootMultiPath(t *testing.T) {
-	const expected = "/app/status/"
-	web := &webConfig{
-		ContextRoot: "/app/status",
+		ContextRoot: path,
 	}
 
 	web.validateAndSetDefaults()
 
 	if web.ContextRoot != expected {
 		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
-	}
-}
-
-func TestWebConfig_ContextRootAppendWithEmptyContextRoot(t *testing.T) {
-	const expected = "/bla/"
-	web := &webConfig{}
-
-	web.validateAndSetDefaults()
-
-	if web.AppendToContexRoot("/bla/") != expected {
-		t.Errorf("expected %s, got %s", expected, web.AppendToContexRoot("/bla/"))
-	}
-}
-
-func TestWebConfig_ContextRootAppendWithContext(t *testing.T) {
-	const expected = "/app/status/bla/"
-	web := &webConfig{
-		ContextRoot: "/app/status",
-	}
-
-	web.validateAndSetDefaults()
-
-	if web.AppendToContexRoot("/bla/") != expected {
-		t.Errorf("expected %s, got %s", expected, web.AppendToContexRoot("/bla/"))
 	}
 }

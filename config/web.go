@@ -21,7 +21,7 @@ type webConfig struct {
 }
 
 // validateAndSetDefaults checks and sets missing values based on the defaults
-// in given in DefaultAddress and DefaultPort if necessary
+// in given in DefaultWebContext, DefaultAddress and DefaultPort if necessary
 func (web *webConfig) validateAndSetDefaults() {
 	if len(web.Address) == 0 {
 		web.Address = DefaultAddress
@@ -31,17 +31,27 @@ func (web *webConfig) validateAndSetDefaults() {
 	} else if web.Port < 0 || web.Port > math.MaxUint16 {
 		panic(fmt.Sprintf("port has an invalid: value should be between %d and %d", 0, math.MaxUint16))
 	}
-	if len(web.ContextRoot) == 0 {
-		web.ContextRoot = DefaultContextRoot
+
+	web.ContextRoot = validateAndBuild(web.ContextRoot)
+}
+
+// validateAndBuild validates and builds a checked
+// path for the context root
+func validateAndBuild(contextRoot string) string {
+	trimedContextRoot := strings.Trim(contextRoot, "/")
+
+	if len(trimedContextRoot) == 0 {
+		return DefaultContextRoot
 	} else {
-		url, err := url.Parse(web.ContextRoot)
+		url, err := url.Parse(trimedContextRoot)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid context root %s - error: %s.", web.ContextRoot, err))
+			panic(fmt.Sprintf("Invalid context root %s - error: %s.", contextRoot, err))
 		}
-		if url.Path != web.ContextRoot {
-			panic(fmt.Sprintf("Invalid context root %s, simple path required.", web.ContextRoot))
+		if url.Path != trimedContextRoot {
+			panic(fmt.Sprintf("Invalid context root %s, simple path required.", contextRoot))
 		}
-		web.ContextRoot = strings.TrimRight(url.Path, "/") + "/"
+
+		return "/" + strings.Trim(url.Path, "/") + "/"
 	}
 }
 
