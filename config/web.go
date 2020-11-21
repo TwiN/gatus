@@ -16,9 +16,8 @@ type webConfig struct {
 	// Port to listen on (default to 8080 specified by DefaultPort)
 	Port int `yaml:"port"`
 
+	// ContextRoot set the root context for the web application
 	ContextRoot string `yaml:"context-root"`
-
-	safeContextRoot string
 }
 
 // validateAndSetDefaults checks and sets missing values based on the defaults
@@ -33,26 +32,16 @@ func (web *webConfig) validateAndSetDefaults() {
 		panic(fmt.Sprintf("port has an invalid: value should be between %d and %d", 0, math.MaxUint16))
 	}
 	if len(web.ContextRoot) == 0 {
-		web.safeContextRoot = DefaultContextRoot
+		web.ContextRoot = DefaultContextRoot
 	} else {
-		// url.PathEscape escapes all "/", in order to build a secure path
-		// (1) split into path fragements using "/" as delimiter
-		// (2) use url.PathEscape() on each fragment
-		// (3) re-concatinate the path using "/" as join character
-		const splitJoinChar = "/"
-		pathes := strings.Split(web.ContextRoot, splitJoinChar)
-		escapedPathes := make([]string, len(pathes))
-		for i, path := range pathes {
-			escapedPathes[i] = url.PathEscape(path)
-		}
-
-		web.safeContextRoot = strings.Join(escapedPathes, splitJoinChar)
-
-		// assure that we have still a valid url
-		_, err := url.Parse(web.safeContextRoot)
+		url, err := url.Parse(web.ContextRoot)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid context root %s - Error %s", web.ContextRoot, err))
+			panic(fmt.Sprintf("Invalid context root %s - error: %s.", web.ContextRoot, err))
 		}
+		if url.Path != web.ContextRoot {
+			panic(fmt.Sprintf("Invalid context root %s, simple path required.", web.ContextRoot))
+		}
+		web.ContextRoot = strings.TrimRight(url.Path, "/") + "/"
 	}
 }
 
@@ -61,14 +50,9 @@ func (web *webConfig) SocketAddress() string {
 	return fmt.Sprintf("%s:%d", web.Address, web.Port)
 }
 
-// CtxRoot returns the context root
-func (web *webConfig) CtxRoot() string {
-	return web.safeContextRoot
-}
-
-// AppendToCtxRoot appends the given string to the context root
-// AppendToCtxRoot takes care of having only one "/" character at
+// AppendToContexRoot appends the given string to the context root
+// AppendToContexRoot takes care of having only one "/" character at
 // the join point and exactly on "/" at the end
-func (web *webConfig) AppendToCtxRoot(fragment string) string {
-	return strings.TrimSuffix(web.safeContextRoot, "/") + "/" + strings.Trim(fragment, "/") + "/"
+func (web *webConfig) AppendToContexRoot(fragment string) string {
+	return web.ContextRoot + strings.Trim(fragment, "/") + "/"
 }

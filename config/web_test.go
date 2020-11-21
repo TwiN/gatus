@@ -12,6 +12,20 @@ func TestWebConfig_SocketAddress(t *testing.T) {
 	}
 }
 
+func TestWebConfig_ContextRootEmpty(t *testing.T) {
+	const expected = "/"
+
+	web := &webConfig{
+		ContextRoot: "",
+	}
+
+	web.validateAndSetDefaults()
+
+	if web.ContextRoot != expected {
+		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
+	}
+}
+
 func TestWebConfig_ContextRoot(t *testing.T) {
 	const expected = "/status/"
 
@@ -21,13 +35,13 @@ func TestWebConfig_ContextRoot(t *testing.T) {
 
 	web.validateAndSetDefaults()
 
-	if web.CtxRoot() != expected {
-		t.Errorf("expected %s, got %s", expected, web.CtxRoot())
+	if web.ContextRoot != expected {
+		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
 	}
 }
 
-func TestWebConfig_ContextRootWithEscapableChars(t *testing.T) {
-	const expected = "/s%3F=ta%20t%20u&s/"
+func TestWebConfig_ContextRootInvalid(t *testing.T) {
+	defer func() { recover() }()
 
 	web := &webConfig{
 		ContextRoot: "/s?=ta t u&s/",
@@ -35,21 +49,19 @@ func TestWebConfig_ContextRootWithEscapableChars(t *testing.T) {
 
 	web.validateAndSetDefaults()
 
-	if web.CtxRoot() != expected {
-		t.Errorf("expected %s, got %s", expected, web.CtxRoot())
-	}
+	t.Fatal("Should've panicked because the configuration specifies an invalid context root")
 }
 
 func TestWebConfig_ContextRootMultiPath(t *testing.T) {
-	const expected = "/app/status"
+	const expected = "/app/status/"
 	web := &webConfig{
 		ContextRoot: "/app/status",
 	}
 
 	web.validateAndSetDefaults()
 
-	if web.CtxRoot() != expected {
-		t.Errorf("expected %s, got %s", expected, web.CtxRoot())
+	if web.ContextRoot != expected {
+		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
 	}
 }
 
@@ -59,8 +71,8 @@ func TestWebConfig_ContextRootAppendWithEmptyContextRoot(t *testing.T) {
 
 	web.validateAndSetDefaults()
 
-	if web.AppendToCtxRoot("/bla/") != expected {
-		t.Errorf("expected %s, got %s", expected, web.AppendToCtxRoot("/bla/"))
+	if web.AppendToContexRoot("/bla/") != expected {
+		t.Errorf("expected %s, got %s", expected, web.AppendToContexRoot("/bla/"))
 	}
 }
 
@@ -72,7 +84,7 @@ func TestWebConfig_ContextRootAppendWithContext(t *testing.T) {
 
 	web.validateAndSetDefaults()
 
-	if web.AppendToCtxRoot("/bla/") != expected {
-		t.Errorf("expected %s, got %s", expected, web.AppendToCtxRoot("/bla/"))
+	if web.AppendToContexRoot("/bla/") != expected {
+		t.Errorf("expected %s, got %s", expected, web.AppendToContexRoot("/bla/"))
 	}
 }

@@ -146,7 +146,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 
 func validateWebConfig(config *Config) {
 	if config.Web == nil {
-		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort}
+		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort, ContextRoot: DefaultContextRoot}
 	} else {
 		config.Web.validateAndSetDefaults()
 	}
