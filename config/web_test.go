@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestWebConfig_SocketAddress(t *testing.T) {
 	web := &webConfig{
@@ -50,6 +53,18 @@ func TestWebConfig_ContextRootInvalid(t *testing.T) {
 	web.validateAndSetDefaults()
 
 	t.Fatal("Should've panicked because the configuration specifies an invalid context root")
+}
+
+func TestWebConfig_ContextRootNonParseable(t *testing.T) {
+	defer func() { recover() }()
+
+	web := &webConfig{
+		ContextRoot: "/invalid" + string([]byte{0x7F}) + "/",
+	}
+
+	web.validateAndSetDefaults()
+
+	t.Fatal(fmt.Sprintf("Should've panicked because the configuration specifies an invalid context root %s", web.ContextRoot))
 }
 
 func TestWebConfig_ContextRootMultiPath(t *testing.T) {
