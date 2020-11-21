@@ -87,6 +87,7 @@ func Get() *Config {
 }
 
 // Load loads a custom configuration file
+// Note that the misconfiguration of some fields may lead to panics. This is on purpose.
 func Load(configFile string) error {
 	log.Printf("[config][Load] Reading configuration from configFile=%s", configFile)
 	cfg, err := readConfigurationFile(configFile)

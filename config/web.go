@@ -20,38 +20,35 @@ type webConfig struct {
 	ContextRoot string `yaml:"context-root"`
 }
 
-// validateAndSetDefaults checks and sets missing values based on the defaults
-// in given in DefaultWebContext, DefaultAddress and DefaultPort if necessary
+// validateAndSetDefaults checks and sets the default values for fields that are not set
 func (web *webConfig) validateAndSetDefaults() {
+	// Validate the Address
 	if len(web.Address) == 0 {
 		web.Address = DefaultAddress
 	}
+	// Validate the Port
 	if web.Port == 0 {
 		web.Port = DefaultPort
 	} else if web.Port < 0 || web.Port > math.MaxUint16 {
-		panic(fmt.Sprintf("port has an invalid: value should be between %d and %d", 0, math.MaxUint16))
+		panic(fmt.Sprintf("invalid port: value should be between %d and %d", 0, math.MaxUint16))
 	}
-
-	web.ContextRoot = validateAndBuild(web.ContextRoot)
-}
-
-// validateAndBuild validates and builds a checked
-// path for the context root
-func validateAndBuild(contextRoot string) string {
-	trimedContextRoot := strings.Trim(contextRoot, "/")
-
-	if len(trimedContextRoot) == 0 {
-		return DefaultContextRoot
+	// Validate the ContextRoot
+	if len(web.ContextRoot) == 0 {
+		web.ContextRoot = DefaultContextRoot
 	} else {
-		url, err := url.Parse(trimedContextRoot)
+		trimmedContextRoot := strings.Trim(web.ContextRoot, "/")
+		if len(trimmedContextRoot) == 0 {
+			web.ContextRoot = DefaultContextRoot
+			return
+		}
+		rootContextURL, err := url.Parse(trimmedContextRoot)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid context root %s - error: %s.", contextRoot, err))
+			panic("invalid context root:" + err.Error())
 		}
-		if url.Path != trimedContextRoot {
-			panic(fmt.Sprintf("Invalid context root %s, simple path required.", contextRoot))
+		if rootContextURL.Path != trimmedContextRoot {
+			panic("invalid context root: too complex")
 		}
-
-		return "/" + strings.Trim(url.Path, "/") + "/"
+		web.ContextRoot = "/" + strings.Trim(rootContextURL.Path, "/") + "/"
 	}
 }
 
@@ -60,9 +57,7 @@ func (web *webConfig) SocketAddress() string {
 	return fmt.Sprintf("%s:%d", web.Address, web.Port)
 }
 
-// PrependWithContextRoot appends the given string to the context root
-// PrependWithContextRoot takes care of having only one "/" character at
-// the join point and exactly on "/" at the end
-func (web *webConfig) PrependWithContextRoot(fragment string) string {
-	return web.ContextRoot + strings.Trim(fragment, "/") + "/"
+// PrependWithContextRoot appends the given path to the ContextRoot
+func (web *webConfig) PrependWithContextRoot(path string) string {
+	return web.ContextRoot + strings.Trim(path, "/") + "/"
 }
