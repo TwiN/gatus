@@ -60,9 +60,9 @@ func (web *webConfig) SocketAddress() string {
 	return fmt.Sprintf("%s:%d", web.Address, web.Port)
 }
 
-// AppendToContexRoot appends the given string to the context root
-// AppendToContexRoot takes care of having only one "/" character at
+// PrependWithContextRoot appends the given string to the context root
+// PrependWithContextRoot takes care of having only one "/" character at
 // the join point and exactly on "/" at the end
-func (web *webConfig) AppendToContexRoot(fragment string) string {
+func (web *webConfig) PrependWithContextRoot(fragment string) string {
 	return web.ContextRoot + strings.Trim(fragment, "/") + "/"
 }

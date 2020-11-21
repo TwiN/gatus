@@ -31,12 +31,12 @@ func main() {
 	}
 	// favicon needs to be always served from the root
 	http.HandleFunc("/favicon.ico", favIconHandler)
-	http.HandleFunc(cfg.Web.AppendToContexRoot("/api/v1/results"), resultsHandler)
-	http.HandleFunc(cfg.Web.AppendToContexRoot("/health"), healthHandler)
+	http.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/results"), resultsHandler)
+	http.HandleFunc(cfg.Web.PrependWithContextRoot("/health"), healthHandler)
 	http.Handle(cfg.Web.ContextRoot, GzipHandler(http.StripPrefix(cfg.Web.ContextRoot, http.FileServer(http.Dir("./static")))))
 
 	if cfg.Metrics {
-		http.Handle(cfg.Web.AppendToContexRoot("/metrics"), promhttp.Handler())
+		http.Handle(cfg.Web.PrependWithContextRoot("/metrics"), promhttp.Handler())
 	}
 	log.Printf("[main][main] Listening on %s%s\n", cfg.Web.SocketAddress(), cfg.Web.ContextRoot)
 	go watchdog.Monitor(cfg)
