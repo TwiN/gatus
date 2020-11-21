@@ -31,6 +31,8 @@ var validContextRootTests = []struct {
 	{"Multiple slashes at start", "//status", "/status/"},
 	{"Mutliple slashes at start and end", "///status////", "/status/"},
 	{"Contains '@' in path'", "me@/status/gatus", "/me@/status/gatus/"},
+	{"nested context with trailing slash", "/status/gatus/", "/status/gatus/"},
+	{"nested context without trailing slash", "/status/gatus/system", "/status/gatus/system/"},
 }
 
 func TestWebConfig_ValidContextRoots(t *testing.T) {
@@ -42,7 +44,7 @@ func TestWebConfig_ValidContextRoots(t *testing.T) {
 }
 
 // invalidContextRootTests contains all tests for context root which are
-// expected to
+// expected to fail and stop program execution
 var invalidContextRootTests = []struct {
 	name string
 	path string
