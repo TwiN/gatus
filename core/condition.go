@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -190,11 +191,29 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 	return sanitizedList
 }
 
+func parseDuration(duration string) (time.Duration, error) {
+	regex := regexp.MustCompile(`^(\d+)([dMY])$`)
+	if matches := regex.FindStringSubmatch(duration); matches != nil {
+		if number, err := strconv.Atoi(matches[1]); err == nil {
+			now := time.Now()
+			switch (matches[2]) {
+			case "d":
+				return now.AddDate(0, 0, number).Sub(now), nil
+			case "M":
+				return now.AddDate(0, number, 0).Sub(now), nil
+			case "Y":
+				return now.AddDate(number, 0, 0).Sub(now), nil
+			}
+		}
+	}
+	return time.ParseDuration(duration)
+}
+
 func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
 	var sanitizedNumbers []int64
 	sanitizedList := sanitizeAndResolve(list, result)
 	for _, element := range sanitizedList {
-		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
+		if duration, err := parseDuration(element); duration != 0 && err == nil {
 			sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
