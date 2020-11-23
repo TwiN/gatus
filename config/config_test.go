@@ -367,7 +367,7 @@ alerting:
   pagerduty:
     integration-key: "00000000000000000000000000000000"
   messagebird:
-    token: "1"
+    access-key: "1"
     originator: "31619191918"
     recipients: "31619191919"
 services:
