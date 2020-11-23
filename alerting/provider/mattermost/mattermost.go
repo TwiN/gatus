@@ -2,6 +2,8 @@ package mattermost
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
 )
@@ -39,8 +41,8 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	return &custom.AlertProvider{
-		URL:    provider.WebhookURL,
-		Method: "POST",
+		URL:      provider.WebhookURL,
+		Method:   http.MethodPost,
 		Insecure: provider.Insecure,
 		Body: fmt.Sprintf(`{
   "text": "",

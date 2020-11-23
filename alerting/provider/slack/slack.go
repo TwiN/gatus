@@ -2,6 +2,7 @@ package slack
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
@@ -38,7 +39,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	}
 	return &custom.AlertProvider{
 		URL:    provider.WebhookURL,
-		Method: "POST",
+		Method: http.MethodPost,
 		Body: fmt.Sprintf(`{
   "text": "",
   "attachments": [

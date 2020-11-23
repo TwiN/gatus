@@ -27,6 +27,7 @@ core applications: https://status.twinnation.org/
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
+    - [Configuring Messagebird alerts](#configuring-messagebird-alerts)    
     - [Configuring custom alerts](#configuring-custom-alerts)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
@@ -50,7 +51,7 @@ The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
-- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
+- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 - **Service auto discovery in Kubernetes** (ALPHA)
@@ -107,7 +108,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring using DNS queries](#monitoring-using-dns-queries)  | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `custom` | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
@@ -126,6 +127,10 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
 | `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
 | `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
+| `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
+| `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
+| `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.method`                 | Request method                                                                | `GET`          |
@@ -305,6 +310,32 @@ Here's an example of what the notifications look like:
 
 ![Mattermost notifications](.github/assets/mattermost-alerts.png)
 
+
+#### Configuring Messagebird alerts
+
+Example of sending **sms** message alert by using Messagebird
+
+```yaml
+alerting:
+  messagebird:
+    access-key: "..."
+    originator: "31619191918"
+    recipients: "31619191919"
+services:
+  - name: twinnation
+    interval: 30s
+    url: "https://twinnation.org/health"
+    alerts:
+      - type: messagebird
+        enabled: true
+        failure-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed 3 times in a row"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
 
 #### Configuring custom alerts
 
