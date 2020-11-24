@@ -368,8 +368,8 @@ alerting:
     integration-key: "00000000000000000000000000000000"
   messagebird:
     access-key: "1"
-    from: "31619191918"
-    to: "31619191919"
+    originator: "31619191918"
+    recipients: "31619191919"
 services:
   - name: twinnation
     url: https://twinnation.org/health
