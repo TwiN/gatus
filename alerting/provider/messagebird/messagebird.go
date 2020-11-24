@@ -14,14 +14,14 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Messagebird
 type AlertProvider struct {
-	AccessKey  string `yaml:"access-key"`
-	Originator string `yaml:"originator"`
-	Recipients string `yaml:"recipients"`
+	AccessKey string `yaml:"access-key"`
+	From      string `yaml:"from"`
+	To        string `yaml:"to"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.AccessKey) > 0 && len(provider.Originator) > 0 && len(provider.Recipients) > 0
+	return len(provider.AccessKey) > 0 && len(provider.From) > 0 && len(provider.To) > 0
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
@@ -37,8 +37,11 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	return &custom.AlertProvider{
 		URL:    restAPIURL,
 		Method: http.MethodPost,
-		Body: fmt.Sprintf(`{ "originator": "%s", "recipients": "%s", "body": "%s"}`,
-			provider.Originator, provider.Recipients, message),
+		Body: fmt.Sprintf(`{
+  "originator": "%s",
+  "recipients": "%s",
+  "body": "%s"
+}`, provider.From, provider.To, message),
 		Headers: map[string]string{
 			"Content-Type":  "application/json",
 			"Authorization": fmt.Sprintf("AccessKey %s", provider.AccessKey),

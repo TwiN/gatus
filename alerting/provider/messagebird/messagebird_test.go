@@ -13,9 +13,9 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
-		AccessKey:  "1",
-		Originator: "1",
-		Recipients: "1",
+		AccessKey: "1",
+		From:      "1",
+		To:        "1",
 	}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
@@ -24,9 +24,9 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	provider := AlertProvider{
-		AccessKey:  "1",
-		Originator: "1",
-		Recipients: "1",
+		AccessKey: "1",
+		From:      "1",
+		To:        "1",
 	}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
@@ -39,9 +39,9 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	provider := AlertProvider{
-		AccessKey:  "1",
-		Originator: "1",
-		Recipients: "1",
+		AccessKey: "1",
+		From:      "1",
+		To:        "1",
 	}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, false)
 	if customAlertProvider == nil {
