@@ -62,7 +62,7 @@ func (provider *AlertProvider) buildRequest(serviceName, alertDescription string
 		}
 	}
 	if len(method) == 0 {
-		method = "GET"
+		method = http.MethodGet
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
 	request, _ := http.NewRequest(method, providerURL, bodyBuffer)

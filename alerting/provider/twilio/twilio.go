@@ -3,9 +3,11 @@ package twilio
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
+	"net/url"
+
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
-	"net/url"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Twilio
@@ -22,7 +24,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description)
@@ -31,7 +33,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	}
 	return &custom.AlertProvider{
 		URL:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
-		Method: "POST",
+		Method: http.MethodPost,
 		Body: url.Values{
 			"To":   {provider.To},
 			"From": {provider.From},

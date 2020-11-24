@@ -2,9 +2,10 @@ package alerting
 
 import (
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
+	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
-	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 )
 
@@ -15,6 +16,9 @@ type Config struct {
 
 	// Mattermost is the configuration for the mattermost alerting provider
 	Mattermost *mattermost.AlertProvider `yaml:"mattermost"`
+
+	// Messagebird is the configuration for the messagebird alerting provider
+	Messagebird *messagebird.AlertProvider `yaml:"messagebird"`
 
 	// Pagerduty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty"`

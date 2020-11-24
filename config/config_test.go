@@ -366,6 +366,10 @@ alerting:
     webhook-url: "http://example.com"
   pagerduty:
     integration-key: "00000000000000000000000000000000"
+  messagebird:
+    access-key: "1"
+    originator: "31619191918"
+    recipients: "31619191919"
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -377,6 +381,8 @@ services:
         failure-threshold: 7
         success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
+      - type: messagebird
+        enabled: true
     conditions:
       - "[STATUS] == 200"
 `))
@@ -401,8 +407,20 @@ services:
 	if config.Alerting.PagerDuty == nil || !config.Alerting.PagerDuty.IsValid() {
 		t.Fatal("PagerDuty alerting config should've been valid")
 	}
+	if config.Alerting.Messagebird == nil || !config.Alerting.Messagebird.IsValid() {
+		t.Fatal("Messagebird alerting config should've been valid")
+	}
 	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
 		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
+	}
+	if config.Alerting.Messagebird.AccessKey != "1" {
+		t.Errorf("Messagebird access key should've been %s, but was %s", "1", config.Alerting.Messagebird.AccessKey)
+	}
+	if config.Alerting.Messagebird.Originator != "31619191918" {
+		t.Errorf("Messagebird originator field should've been %s, but was %s", "31619191918", config.Alerting.Messagebird.Originator)
+	}
+	if config.Alerting.Messagebird.Recipients != "31619191919" {
+		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
 	}
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
@@ -416,8 +434,8 @@ services:
 	if config.Services[0].Alerts == nil {
 		t.Fatal("The service alerts shouldn't have been nil")
 	}
-	if len(config.Services[0].Alerts) != 2 {
-		t.Fatal("There should've been 2 alert configured")
+	if len(config.Services[0].Alerts) != 3 {
+		t.Fatal("There should've been 3 alert configured")
 	}
 	if !config.Services[0].Alerts[0].Enabled {
 		t.Error("The alert should've been enabled")
@@ -442,6 +460,9 @@ services:
 	}
 	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
 		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[0].Description)
+	}
+	if config.Services[0].Alerts[2].Type != core.MessagebirdAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[1].Type)
 	}
 }
 

@@ -40,6 +40,9 @@ const (
 	// MattermostAlert is the AlertType for the mattermost alerting provider
 	MattermostAlert AlertType = "mattermost"
 
+	// MessagebirdAlert is the AlertType for the messagebird alerting provider
+	MessagebirdAlert AlertType = "messagebird"
+
 	// PagerDutyAlert is the AlertType for the pagerduty alerting provider
 	PagerDutyAlert AlertType = "pagerduty"
 
