@@ -416,11 +416,11 @@ services:
 	if config.Alerting.Messagebird.AccessKey != "1" {
 		t.Errorf("Messagebird access key should've been %s, but was %s", "1", config.Alerting.Messagebird.AccessKey)
 	}
-	if config.Alerting.Messagebird.From != "31619191918" {
-		t.Errorf("Messagebird from field should've been %s, but was %s", "31619191918", config.Alerting.Messagebird.From)
+	if config.Alerting.Messagebird.Originator != "31619191918" {
+		t.Errorf("Messagebird originator field should've been %s, but was %s", "31619191918", config.Alerting.Messagebird.Originator)
 	}
-	if config.Alerting.Messagebird.To != "31619191919" {
-		t.Errorf("Messagebird to field should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.To)
+	if config.Alerting.Messagebird.Recipients != "31619191919" {
+		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
 	}
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")

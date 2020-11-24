@@ -129,8 +129,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
 | `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
-| `alerting.messagebird.from`              | The sender of the message                                                     | Required `""`  |
-| `alerting.messagebird.to`                | The recipients of the message                                                 | Required `""`  |
+| `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
+| `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.method`                 | Request method                                                                | `GET`          |
@@ -319,8 +319,8 @@ Example of sending **sms** message alert by using Messagebird
 alerting:
   messagebird:
     access-key: "..."
-    from: "31619191918"
-    to: "31619191919,31619191920"
+    originator: "31619191918"
+    recipients: "31619191919,31619191920"
 services:
   - name: twinnation
     interval: 30s
