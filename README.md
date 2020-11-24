@@ -319,8 +319,8 @@ Example of sending **sms** message alert by using Messagebird
 alerting:
   messagebird:
     access-key: "..."
-    to: "31619191918"
-    from: "31619191919,31619191920"
+    from: "31619191918"
+    to: "31619191919,31619191920"
 services:
   - name: twinnation
     interval: 30s
