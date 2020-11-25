@@ -313,7 +313,7 @@ Here's an example of what the notifications look like:
 
 #### Configuring Messagebird alerts
 
-Example of sending **sms** message alert by using Messagebird
+Example of sending **SMS** text message alert using Messagebird:
 
 ```yaml
 alerting:
@@ -336,6 +336,7 @@ services:
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
 ```
+
 
 #### Configuring custom alerts
 
