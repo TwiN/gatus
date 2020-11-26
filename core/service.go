@@ -30,6 +30,9 @@ type Service struct {
 	// Name of the service. Can be anything.
 	Name string `yaml:"name"`
 
+	// Group the service is a part of. Used for grouping multiple services together on the front end.
+	Group string `yaml:"group,omitempty"`
+
 	// URL to send the request to
 	URL string `yaml:"url"`
 

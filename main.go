@@ -18,19 +18,19 @@ import (
 const cacheTTL = 10 * time.Second
 
 var (
-	cachedServiceResults          []byte
-	cachedServiceResultsGzipped   []byte
-	cachedServiceResultsTimestamp time.Time
+	cachedServiceStatuses          []byte
+	cachedServiceStatusesGzipped   []byte
+	cachedServiceStatusesTimestamp time.Time
 )
 
 func main() {
 	cfg := loadConfiguration()
-	resultsHandler := serviceResultsHandler
+	statusesHandler := serviceStatusesHandler
 	if cfg.Security != nil && cfg.Security.IsValid() {
-		resultsHandler = security.Handler(serviceResultsHandler, cfg.Security)
+		statusesHandler = security.Handler(serviceStatusesHandler, cfg.Security)
 	}
 	http.HandleFunc("/favicon.ico", favIconHandler) // favicon needs to be always served from the root
-	http.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/results"), resultsHandler)
+	http.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses"), statusesHandler)
 	http.HandleFunc(cfg.Web.PrependWithContextRoot("/health"), healthHandler)
 	http.Handle(cfg.Web.ContextRoot, GzipHandler(http.StripPrefix(cfg.Web.ContextRoot, http.FileServer(http.Dir("./static")))))
 
@@ -56,29 +56,29 @@ func loadConfiguration() *config.Config {
 	return config.Get()
 }
 
-func serviceResultsHandler(writer http.ResponseWriter, r *http.Request) {
-	if isExpired := cachedServiceResultsTimestamp.IsZero() || time.Now().Sub(cachedServiceResultsTimestamp) > cacheTTL; isExpired {
+func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
+	if isExpired := cachedServiceStatusesTimestamp.IsZero() || time.Now().Sub(cachedServiceStatusesTimestamp) > cacheTTL; isExpired {
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err := watchdog.GetJSONEncodedServiceResults()
+		data, err := watchdog.GetJSONEncodedServiceStatuses()
 		if err != nil {
-			log.Printf("[main][serviceResultsHandler] Unable to marshal object to JSON: %s", err.Error())
+			log.Printf("[main][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
 			_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
 			return
 		}
 		gzipWriter.Write(data)
 		gzipWriter.Close()
-		cachedServiceResults = data
-		cachedServiceResultsGzipped = buffer.Bytes()
-		cachedServiceResultsTimestamp = time.Now()
+		cachedServiceStatuses = data
+		cachedServiceStatusesGzipped = buffer.Bytes()
+		cachedServiceStatusesTimestamp = time.Now()
 	}
 	var data []byte
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		writer.Header().Set("Content-Encoding", "gzip")
-		data = cachedServiceResultsGzipped
+		data = cachedServiceStatusesGzipped
 	} else {
-		data = cachedServiceResults
+		data = cachedServiceStatuses
 	}
 	writer.Header().Add("Content-type", "application/json")
 	writer.WriteHeader(http.StatusOK)
