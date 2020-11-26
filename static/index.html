@@ -296,6 +296,10 @@
 			}
 			let output = "";
 			for (let group in outputByGroup) {
+				// Services that don't have a group should be skipped and left for last
+				if (group === 'undefined') {
+					continue
+				}
 				let key = group.replace(/[^a-zA-Z0-9]/g, '');
 				let existingGroupContentSelector = $("#service-group-" + key + "-content");
 				let isCurrentlyHidden = existingGroupContentSelector.length && existingGroupContentSelector[0].style.display === 'none';
@@ -315,6 +319,13 @@
 					+ "    " + outputByGroup[group]
 					+ "  </div>"
 					+ "</div>";
+			}
+			// Add all services that don't have a group at the end
+			if (outputByGroup['undefined']) {
+				output += ""
+					+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
+					+ "  " + outputByGroup['undefined']
+					+ "</div>"
 			}
 			$("#results").html(output);
 		}
