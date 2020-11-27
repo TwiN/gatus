@@ -1,15 +1,37 @@
-metrics: true
 services:
-  - name: twinnation
+  - name: frontend
+    group: core
     url: "https://twinnation.org/health"
-    interval: 30s
+    interval: 1m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 1000"
+
+  - name: backend
+    group: core
+    url: "http://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: monitoring
+    group: internal
+    url: "http://example.com/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: nas
+    group: internal
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
   - name: cat-fact
     url: "https://cat-fact.herokuapp.com/facts/random"
-    interval: 1m
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].deleted == false"
