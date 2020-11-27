@@ -43,6 +43,7 @@ core applications: https://status.twinnation.org/
   - [Monitoring using DNS queries](#monitoring-using-dns-queries)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
+  - [Service groups](#service-groups)
 
 
 ## Features
@@ -97,6 +98,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `metrics`                                | Whether to expose metrics at /metrics                                         | `false`        |
 | `services`                               | List of services to monitor                                                   | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
+| `services[].group`                       | Group name. Used to group multiple services together on the dashboard. See [Service groups](#service-groups). | `""`           |
 | `services[].url`                         | URL to send the request to                                                    | Required `""`  |
 | `services[].method`                      | Request method                                                                | `GET`          |
 | `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
@@ -614,3 +616,49 @@ There are three main reasons why you might want to disable the monitoring lock:
 technically, if you create 100 services with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of services to monitor
 - You want to test multiple services at very short interval (< 5s)
+
+
+### Service groups
+
+Service groups are used for grouping multiple services together on the dashboard.
+
+```yaml
+services:
+  - name: frontend
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: backend
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: monitoring
+    group: internal
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: nas
+    group: internal
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: random service that isn't part of a group
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+```
+
+The configuration above will result in a dashboard that looks like this:
+
+![Gatus Service Groups](.github/assets/service-groups.png)
