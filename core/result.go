@@ -4,22 +4,12 @@ import (
 	"time"
 )
 
-// HealthStatus is the status of Gatus
-type HealthStatus struct {
-	// Status is the state of Gatus (UP/DOWN)
-	Status string `json:"status"`
-
-	// Message is an accompanying description of why the status is as reported.
-	// If the Status is UP, no message will be provided
-	Message string `json:"message,omitempty"`
-}
-
 // Result of the evaluation of a Service
 type Result struct {
 	// HTTPStatus is the HTTP response status code
 	HTTPStatus int `json:"status"`
 
-	// DNSRCode is the response code of DNS query in human readable version
+	// DNSRCode is the response code of a DNS query in a human readable format
 	DNSRCode string `json:"dns-rcode"`
 
 	// Body is the response body
@@ -51,13 +41,4 @@ type Result struct {
 
 	// CertificateExpiration is the duration before the certificate expires
 	CertificateExpiration time.Duration `json:"certificate-expiration,omitempty"`
-}
-
-// ConditionResult result of a Condition
-type ConditionResult struct {
-	// Condition that was evaluated
-	Condition string `json:"condition"`
-
-	// Success whether the condition was met (successful) or not (failed)
-	Success bool `json:"success"`
 }

@@ -99,6 +99,13 @@
 		#settings select:focus {
 			box-shadow: none;
 		}
+		.service-group {
+            cursor: pointer;
+            user-select: none;
+		}
+        .service-group h5:hover {
+            color: #1b1e21 !important;
+        }
 	</style>
 </head>
 <body>
@@ -162,7 +169,7 @@
 		function showTooltip(serviceName, index, element) {
 			userClickedStatus = false;
 			clearTimeout(timerHandler);
-			let serviceResult = serviceStatuses[serviceName][index];
+			let serviceResult = serviceStatuses[serviceName].results[index];
 			$("#tooltip-timestamp").text(prettifyTimestamp(serviceResult.timestamp));
 			$("#tooltip-response-time").text(parseInt(serviceResult.duration/1000000) + "ms");
 			// Populate the condition section
@@ -219,8 +226,8 @@
 			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\""+serviceName+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
 		}
 
-		function refreshResults() {
-			$.getJSON("./api/v1/results", function (data) {
+		function refreshStatuses() {
+			$.getJSON("./api/v1/statuses", function (data) {
 				// Update the table only if there's a change
 				if (JSON.stringify(serviceStatuses) !== JSON.stringify(data)) {
 					serviceStatuses = data;
@@ -230,16 +237,17 @@
 		}
 
 		function buildTable() {
-			let output = "";
+			let outputByGroup = {};
 			for (let serviceName in serviceStatuses) {
 				let serviceStatusOverTime = "";
-				let hostname = serviceStatuses[serviceName][serviceStatuses[serviceName].length-1].hostname
+				let serviceStatus = serviceStatuses[serviceName];
+				let hostname = serviceStatus.results[serviceStatus.results.length-1].hostname;
 				let minResponseTime = null;
 				let maxResponseTime = null;
 				let newestTimestamp = null;
 				let oldestTimestamp = null;
-				for (let key in serviceStatuses[serviceName]) {
-					let serviceResult = serviceStatuses[serviceName][key];
+				for (let key in serviceStatus.results) {
+					let serviceResult = serviceStatus.results[key];
 					serviceStatusOverTime = createStatusBadge(serviceName, key, serviceResult.success) + serviceStatusOverTime;
 					const responseTime = parseInt(serviceResult.duration/1000000);
 					if (minResponseTime == null || minResponseTime > responseTime) {
@@ -256,8 +264,8 @@
 						oldestTimestamp = timestamp;
 					}
 				}
-				output += ""
-					+ "<div class='container py-3 border-left border-right border-top border-black'>"
+				let output = ""
+					+ "<div class='container py-3 border-left border-right border-top border-black rounded-0'>"
 					+ "  <div class='row mb-2'>"
 					+ "    <div class='col-md-10'>"
 					+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
@@ -280,8 +288,57 @@
 					+ "    </div>"
 					+ "  </div>"
 					+ "</div>";
+				// create an empty entry if this group is new
+				if (!outputByGroup[serviceStatus.group]) {
+					outputByGroup[serviceStatus.group] = "";
+				}
+				outputByGroup[serviceStatus.group] += output;
+			}
+			let output = "";
+			for (let group in outputByGroup) {
+				// Services that don't have a group should be skipped and left for last
+				if (group === 'undefined') {
+					continue
+				}
+				let key = group.replace(/[^a-zA-Z0-9]/g, '');
+				let existingGroupContentSelector = $("#service-group-" + key + "-content");
+				let isCurrentlyHidden = existingGroupContentSelector.length && existingGroupContentSelector[0].style.display === 'none';
+				let groupStatus = "<span class='text-success'>&#10003;</span>";
+				if (outputByGroup[group].includes("badge badge-danger")) {
+					groupStatus = "<span class='text-warning'>~</span>";
+				}
+				output += ""
+					+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
+					+ "  <div class='container pt-2 border-left border-right border-top border-black border-bottom service-group' id='service-group-" + key + "' data-group='" + key + "' onclick='toggleGroup(this)'>"
+					+ "    <h5 class='text-secondary text-monospace pb-0'>"
+					+ "      " + groupStatus + " " + group
+					+ "      <span class='float-right service-group-arrow' id='service-group-" + key + "-arrow'>" + (isCurrentlyHidden ? "&#9660;" : "&#9650;") + "</span>"
+					+ "    </h5>"
+					+ "  </div>"
+					+ "  <div class='service-group-content' id='service-group-" + key + "-content' style='" + (isCurrentlyHidden ? "display: none;" : "") + "'>"
+					+ "    " + outputByGroup[group]
+					+ "  </div>"
+					+ "</div>";
+			}
+			// Add all services that don't have a group at the end
+			if (outputByGroup['undefined']) {
+				output += ""
+					+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
+					+ "  " + outputByGroup['undefined']
+					+ "</div>"
 			}
 			$("#results").html(output);
+		}
+
+		function toggleGroup(element) {
+			let selector = $("#service-group-" + element.dataset.group + "-content");
+			selector.toggle("fast", function() {
+				if (selector.length && selector[0].style.display === 'none') {
+					$("#service-group-" + element.dataset.group + "-arrow").html("&#9660;");
+				} else {
+					$("#service-group-" + element.dataset.group + "-arrow").html("&#9650;");
+				}
+			});
 		}
 
 		function prettifyTimestamp(timestamp) {
@@ -318,15 +375,15 @@
 		}
 
 		function setRefreshInterval(seconds) {
-			refreshResults();
+			refreshStatuses();
 			refreshIntervalHandler = setInterval(function() {
-				refreshResults();
-			}, seconds * 1000)
+				refreshStatuses();
+			}, seconds * 1000);
 		}
 
 		$("#refresh-rate").change(function() {
 			clearInterval(refreshIntervalHandler);
-			setRefreshInterval($(this).val())
+			setRefreshInterval($(this).val());
 		});
 		setRefreshInterval(30);
 		$("#refresh-rate").val(30);

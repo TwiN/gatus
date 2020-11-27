@@ -13,22 +13,22 @@ import (
 )
 
 var (
-	serviceResults = make(map[string][]*core.Result)
+	serviceStatuses = make(map[string]*core.ServiceStatus)
 
-	// serviceResultsMutex is used to prevent concurrent map access
-	serviceResultsMutex sync.RWMutex
+	// serviceStatusesMutex is used to prevent concurrent map access
+	serviceStatusesMutex sync.RWMutex
 
 	// monitoringMutex is used to prevent multiple services from being evaluated at the same time.
 	// Without this, conditions using response time may become inaccurate.
 	monitoringMutex sync.Mutex
 )
 
-// GetJSONEncodedServiceResults returns a list of the last 20 results for each services encoded using json.Marshal.
+// GetJSONEncodedServiceStatuses returns a list of core.ServiceStatus for each services encoded using json.Marshal.
 // The reason why the encoding is done here is because we use a mutex to prevent concurrent map access.
-func GetJSONEncodedServiceResults() ([]byte, error) {
-	serviceResultsMutex.RLock()
-	data, err := json.Marshal(serviceResults)
-	serviceResultsMutex.RUnlock()
+func GetJSONEncodedServiceStatuses() ([]byte, error) {
+	serviceStatusesMutex.RLock()
+	data, err := json.Marshal(serviceStatuses)
+	serviceStatusesMutex.RUnlock()
 	return data, err
 }
 
@@ -55,12 +55,7 @@ func monitor(service *core.Service) {
 		}
 		result := service.EvaluateHealth()
 		metric.PublishMetricsForService(service, result)
-		serviceResultsMutex.Lock()
-		serviceResults[service.Name] = append(serviceResults[service.Name], result)
-		if len(serviceResults[service.Name]) > 20 {
-			serviceResults[service.Name] = serviceResults[service.Name][1:]
-		}
-		serviceResultsMutex.Unlock()
+		UpdateServiceStatuses(service, result)
 		var extra string
 		if !result.Success {
 			extra = fmt.Sprintf("responseBody=%s", result.Body)
@@ -82,4 +77,16 @@ func monitor(service *core.Service) {
 		}
 		time.Sleep(service.Interval)
 	}
+}
+
+// UpdateServiceStatuses updates the slice of service statuses
+func UpdateServiceStatuses(service *core.Service, result *core.Result) {
+	serviceStatusesMutex.Lock()
+	serviceStatus, exists := serviceStatuses[service.Name]
+	if !exists {
+		serviceStatus = core.NewServiceStatus(service)
+		serviceStatuses[service.Name] = serviceStatus
+	}
+	serviceStatus.AddResult(result)
+	serviceStatusesMutex.Unlock()
 }
