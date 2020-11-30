@@ -59,5 +59,5 @@ func (web *webConfig) SocketAddress() string {
 
 // PrependWithContextRoot appends the given path to the ContextRoot
 func (web *webConfig) PrependWithContextRoot(path string) string {
-	return web.ContextRoot + strings.Trim(path, "/") + "/"
+	return web.ContextRoot + strings.Trim(path, "/")
 }

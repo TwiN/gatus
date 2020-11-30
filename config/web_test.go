@@ -17,14 +17,14 @@ func TestWebConfig_SocketAddress(t *testing.T) {
 
 func TestWebConfig_PrependWithContextRoot(t *testing.T) {
 	web := &webConfig{ContextRoot: "/status/"}
-	if result := web.PrependWithContextRoot("/api/v1/results"); result != "/status/api/v1/results/" {
-		t.Errorf("expected %s, got %s", "/status/api/v1/results/", result)
+	if result := web.PrependWithContextRoot("/api/v1/results"); result != "/status/api/v1/results" {
+		t.Errorf("expected %s, got %s", "/status/api/v1/results", result)
 	}
-	if result := web.PrependWithContextRoot("/health"); result != "/status/health/" {
-		t.Errorf("expected %s, got %s", "/status/health/", result)
+	if result := web.PrependWithContextRoot("/health"); result != "/status/health" {
+		t.Errorf("expected %s, got %s", "/status/health", result)
 	}
-	if result := web.PrependWithContextRoot("/health/"); result != "/status/health/" {
-		t.Errorf("expected %s, got %s", "/status/health/", result)
+	if result := web.PrependWithContextRoot("/health/"); result != "/status/health" {
+		t.Errorf("expected %s, got %s", "/status/health", result)
 	}
 }
 
@@ -42,10 +42,10 @@ var validContextRootTests = []struct {
 	{"Slash at the beginning", "/status", "/status/"},
 	{"Slashes at start and end", "/status/", "/status/"},
 	{"Multiple slashes at start", "//status", "/status/"},
-	{"Mutliple slashes at start and end", "///status////", "/status/"},
+	{"Multiple slashes at start and end", "///status////", "/status/"},
 	{"Contains '@' in path'", "me@/status/gatus", "/me@/status/gatus/"},
-	{"nested context with trailing slash", "/status/gatus/", "/status/gatus/"},
-	{"nested context without trailing slash", "/status/gatus/system", "/status/gatus/system/"},
+	{"Nested context with trailing slash", "/status/gatus/", "/status/gatus/"},
+	{"Nested context without trailing slash", "/status/gatus/system", "/status/gatus/system/"},
 }
 
 func TestWebConfig_ValidContextRoots(t *testing.T) {
@@ -56,6 +56,16 @@ func TestWebConfig_ValidContextRoots(t *testing.T) {
 	}
 }
 
+func expectValidResultForContextRoot(t *testing.T, path string, expected string) {
+	web := &webConfig{
+		ContextRoot: path,
+	}
+	web.validateAndSetDefaults()
+	if web.ContextRoot != expected {
+		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
+	}
+}
+
 // invalidContextRootTests contains all tests for context root which are
 // expected to fail and stop program execution
 var invalidContextRootTests = []struct {
@@ -63,12 +73,12 @@ var invalidContextRootTests = []struct {
 	path string
 }{
 	{"Only a fragment identifier", "#"},
-	{"Invalid character in path", "/invalid" + string([]byte{0x7F}) + "/"},
+	{"Invalid character in path", "/invalid" + string([]byte{0x7F})},
 	{"Starts with protocol", "http://status/gatus"},
 	{"Path with fragment", "/status/gatus#here"},
-	{"starts with '://'", "://status"},
-	{"contains query parameter", "/status/h?ello=world"},
-	{"contains '?'", "/status?/"},
+	{"Starts with '://'", "://status"},
+	{"Contains query parameter", "/status/h?ello=world"},
+	{"Contains '?'", "/status?"},
 }
 
 func TestWebConfig_InvalidContextRoots(t *testing.T) {
@@ -86,16 +96,4 @@ func expectInvalidResultForContextRoot(t *testing.T, path string) {
 	web.validateAndSetDefaults()
 
 	t.Fatal(fmt.Sprintf("Should've panicked because the configuration specifies an invalid context root: %s", path))
-}
-
-func expectValidResultForContextRoot(t *testing.T, path string, expected string) {
-	web := &webConfig{
-		ContextRoot: path,
-	}
-
-	web.validateAndSetDefaults()
-
-	if web.ContextRoot != expected {
-		t.Errorf("expected %s, got %s", expected, web.ContextRoot)
-	}
 }
