@@ -219,11 +219,11 @@
 			}
 		}
 
-		function createStatusBadge(serviceName, index, success) {
+		function createStatusBadge(serviceStatusIndex, index, success) {
 			if (success) {
-				return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\""+serviceName+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
+				return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\""+serviceStatusIndex+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
 			}
-			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\""+serviceName+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
+			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\""+serviceStatusIndex+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
 		}
 
 		function refreshStatuses() {
@@ -238,17 +238,17 @@
 
 		function buildTable() {
 			let outputByGroup = {};
-			for (let serviceName in serviceStatuses) {
+			for (let serviceStatusIndex in serviceStatuses) {
 				let serviceStatusOverTime = "";
-				let serviceStatus = serviceStatuses[serviceName];
+				let serviceStatus = serviceStatuses[serviceStatusIndex];
 				let hostname = serviceStatus.results[serviceStatus.results.length-1].hostname;
 				let minResponseTime = null;
 				let maxResponseTime = null;
 				let newestTimestamp = null;
 				let oldestTimestamp = null;
-				for (let key in serviceStatus.results) {
-					let serviceResult = serviceStatus.results[key];
-					serviceStatusOverTime = createStatusBadge(serviceName, key, serviceResult.success) + serviceStatusOverTime;
+				for (let resultIndex in serviceStatus.results) {
+					let serviceResult = serviceStatus.results[resultIndex];
+					serviceStatusOverTime = createStatusBadge(serviceStatusIndex, resultIndex, serviceResult.success) + serviceStatusOverTime;
 					const responseTime = parseInt(serviceResult.duration/1000000);
 					if (minResponseTime == null || minResponseTime > responseTime) {
 						minResponseTime = responseTime;
@@ -268,7 +268,7 @@
 					+ "<div class='container py-3 border-left border-right border-top border-black rounded-0'>"
 					+ "  <div class='row mb-2'>"
 					+ "    <div class='col-md-10'>"
-					+ "      <span class='font-weight-bold'>" + serviceName + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
+					+ "      <span class='font-weight-bold'>" + serviceStatus.name + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
 					+ "    </div>"
 					+ "    <div class='col-md-2 text-right'>"
 					+ "      <span class='font-weight-lighter status-min-max-ms'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"

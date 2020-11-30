@@ -2,6 +2,9 @@ package core
 
 // ServiceStatus contains the evaluation Results of a Service
 type ServiceStatus struct {
+	// Name of the service
+	Name string `json:"name,omitempty"`
+
 	// Group the service is a part of. Used for grouping multiple services together on the front end.
 	Group string `json:"group,omitempty"`
 
@@ -12,6 +15,7 @@ type ServiceStatus struct {
 // NewServiceStatus creates a new ServiceStatus
 func NewServiceStatus(service *Service) *ServiceStatus {
 	return &ServiceStatus{
+		Name:    service.Name,
 		Group:   service.Group,
 		Results: make([]*Result, 0),
 	}

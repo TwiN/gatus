@@ -81,11 +81,12 @@ func monitor(service *core.Service) {
 
 // UpdateServiceStatuses updates the slice of service statuses
 func UpdateServiceStatuses(service *core.Service, result *core.Result) {
+	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
 	serviceStatusesMutex.Lock()
-	serviceStatus, exists := serviceStatuses[service.Name]
+	serviceStatus, exists := serviceStatuses[key]
 	if !exists {
 		serviceStatus = core.NewServiceStatus(service)
-		serviceStatuses[service.Name] = serviceStatus
+		serviceStatuses[key] = serviceStatus
 	}
 	serviceStatus.AddResult(result)
 	serviceStatusesMutex.Unlock()
