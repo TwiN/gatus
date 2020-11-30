@@ -10,7 +10,7 @@ type Result struct {
 	HTTPStatus int `json:"status"`
 
 	// DNSRCode is the response code of a DNS query in a human readable format
-	DNSRCode string `json:"dns-rcode"`
+	DNSRCode string `json:"-"`
 
 	// Body is the response body
 	Body []byte `json:"-"`
@@ -40,5 +40,5 @@ type Result struct {
 	Timestamp time.Time `json:"timestamp"`
 
 	// CertificateExpiration is the duration before the certificate expires
-	CertificateExpiration time.Duration `json:"certificate-expiration,omitempty"`
+	CertificateExpiration time.Duration `json:"-"`
 }
