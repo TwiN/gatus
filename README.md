@@ -146,7 +146,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
 | `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
 | `web.port`                               | Port to listen on                                                             | `8080`         |
-| `web.context-root`                       | Context root which should be used by the web frontent                         | `/`            |
+| `web.context-root`                       | Context root at which Gatus will be exposed (frontend and backend)            | `/`            |
 
 For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha)
 
