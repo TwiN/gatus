@@ -41,7 +41,7 @@ jobs:
           version: latest
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - name: Login to GitHub Packages Docker Registry
+      - name: Login to Docker Registry
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME  }}
