@@ -44,6 +44,7 @@ core applications: https://status.twinnation.org/
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Service groups](#service-groups)
+  - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
 
 
 ## Features
@@ -144,6 +145,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
 | `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
 | `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
+| `web`                                    | Web configuration                                                             | `{}`           |
 | `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
 | `web.port`                               | Port to listen on                                                             | `8080`         |
 | `web.context-root`                       | Context root at which Gatus will be exposed (frontend and backend)            | `/`            |
@@ -662,3 +664,19 @@ services:
 The configuration above will result in a dashboard that looks like this:
 
 ![Gatus Service Groups](.github/assets/service-groups.png)
+
+
+### Exposing Gatus on a custom port
+
+By default, Gatus is exposed on port `8080`, but you may specify a different port by setting the `web.port` parameter:
+```yaml
+web:
+  port: 8081
+```
+
+If you're using a PaaS like Heroku that doesn't let you set a custom port and exposes it through an environment
+variable instead, you can use that environment variable directly in the configuration file:
+```yaml
+web:
+  port: ${PORT}
+```
