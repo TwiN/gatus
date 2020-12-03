@@ -1,0 +1,30 @@
+name: build
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.15
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.15
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+      - name: Build binary to make sure it works
+        run: go build -mod vendor
+      - name: Test
+        run: go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+      - name: Codecov
+        uses: codecov/codecov-action@v1.0.14
+        with:
+          file: ./coverage.txt
