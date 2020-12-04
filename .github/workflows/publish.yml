@@ -29,5 +29,4 @@ jobs:
           pull: true
           push: true
           tags: |
-            ${{ env.IMAGE_REPOSITORY }}
             ${{ env.IMAGE_REPOSITORY }}:${{ env.RELEASE }}
