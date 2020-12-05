@@ -464,6 +464,7 @@ If you're on Windows, replace `"$(pwd)"` by the absolute path to your current di
 docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
+
 ## Running the tests
 
 ```
