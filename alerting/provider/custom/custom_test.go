@@ -17,7 +17,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_buildRequestWhenResolved(t *testing.T) {
+func TestAlertProvider_buildHTTPRequestWhenResolved(t *testing.T) {
 	const (
 		ExpectedURL  = "http://example.com/service-name?event=RESOLVED&description=alert-description"
 		ExpectedBody = "service-name,alert-description,RESOLVED"
@@ -27,7 +27,7 @@ func TestAlertProvider_buildRequestWhenResolved(t *testing.T) {
 		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: nil,
 	}
-	request := customAlertProvider.buildRequest("service-name", "alert-description", true)
+	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", true)
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
@@ -37,7 +37,7 @@ func TestAlertProvider_buildRequestWhenResolved(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_buildRequestWhenTriggered(t *testing.T) {
+func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 	const (
 		ExpectedURL  = "http://example.com/service-name?event=TRIGGERED&description=alert-description"
 		ExpectedBody = "service-name,alert-description,TRIGGERED"
@@ -47,7 +47,7 @@ func TestAlertProvider_buildRequestWhenTriggered(t *testing.T) {
 		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: map[string]string{"Authorization": "Basic hunter2"},
 	}
-	request := customAlertProvider.buildRequest("service-name", "alert-description", false)
+	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", false)
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
