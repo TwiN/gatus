@@ -1,9 +1,10 @@
 package custom
 
 import (
-	"github.com/TwinProduction/gatus/core"
 	"io/ioutil"
 	"testing"
+
+	"github.com/TwinProduction/gatus/core"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {

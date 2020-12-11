@@ -1,9 +1,10 @@
 package pagerduty
 
 import (
-	"github.com/TwinProduction/gatus/core"
 	"strings"
 	"testing"
+
+	"github.com/TwinProduction/gatus/core"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
