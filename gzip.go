@@ -25,6 +25,7 @@ func (w *gzipResponseWriter) WriteHeader(status int) {
 	w.ResponseWriter.WriteHeader(status)
 }
 
+// Write writes len(b) bytes from b to the underlying data stream.
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
