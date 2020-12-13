@@ -20,6 +20,8 @@ type gzipResponseWriter struct {
 	http.ResponseWriter
 }
 
+// WriteHeader sends an HTTP response header with the provided status code.
+// It also deletes the Content-Length header, since the GZIP compression may modify the size of the payload
 func (w *gzipResponseWriter) WriteHeader(status int) {
 	w.Header().Del("Content-Length")
 	w.ResponseWriter.WriteHeader(status)
