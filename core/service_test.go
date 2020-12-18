@@ -96,6 +96,9 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: true}},
+		Headers: map[string]string{
+			"Host": "twinnation.org",
+		},
 	}
 	service.ValidateAndSetDefaults()
 	if service.NumberOfFailuresInARow != 0 {

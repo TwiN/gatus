@@ -14,6 +14,11 @@ import (
 	"github.com/TwinProduction/gatus/client"
 )
 
+const (
+	// HostHeader is the name of the header used to specify the host
+	HostHeader = "Host"
+)
+
 var (
 	// ErrServiceWithNoCondition is the error with which gatus will panic if a service is configured with no conditions
 	ErrServiceWithNoCondition = errors.New("you must specify at least one condition per service")
@@ -216,6 +221,9 @@ func (service *Service) buildHTTPRequest() *http.Request {
 	request, _ := http.NewRequest(service.Method, service.URL, bodyBuffer)
 	for k, v := range service.Headers {
 		request.Header.Set(k, v)
+		if k == HostHeader {
+			request.Host = v
+		}
 	}
 	return request
 }
