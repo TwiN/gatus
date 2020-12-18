@@ -17,6 +17,9 @@ import (
 const (
 	// HostHeader is the name of the header used to specify the host
 	HostHeader = "Host"
+
+	// ContentTypeHeader is the name of the header used to specify the content type
+	ContentTypeHeader = "Content-Type"
 )
 
 var (
@@ -86,6 +89,11 @@ func (service *Service) ValidateAndSetDefaults() {
 	}
 	if len(service.Headers) == 0 {
 		service.Headers = make(map[string]string)
+	}
+	// Automatically add "Content-Type: application/json" header if there's no Content-Type set
+	// and service.GraphQL is set to true
+	if _, contentTypeHeaderExists := service.Headers[ContentTypeHeader]; !contentTypeHeaderExists && service.GraphQL {
+		service.Headers[ContentTypeHeader] = "application/json"
 	}
 	for _, alert := range service.Alerts {
 		if alert.FailureThreshold <= 0 {
