@@ -576,8 +576,9 @@ established.
 
 Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
 ```yaml
+services:
   - name: example dns query
-    url: "8.8.8.8"                  # Address of the DNS server to use
+    url: "8.8.8.8" # Address of the DNS server to use
     interval: 30s
     dns:
       query-name: "example.com"
