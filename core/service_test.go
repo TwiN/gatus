@@ -1,6 +1,8 @@
 package core
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 )
@@ -122,8 +124,11 @@ func TestService_buildHTTPRequest(t *testing.T) {
 	}
 	service.ValidateAndSetDefaults()
 	request := service.buildHTTPRequest()
+	if request.Method != "GET" {
+		t.Error("request.Method should've been GET, but was", request.Method)
+	}
 	if request.Host != "twinnation.org" {
-		t.Error("request's Host should've been twinnation.org, but was", request.Host)
+		t.Error("request.Host should've been twinnation.org, but was", request.Host)
 	}
 }
 
@@ -132,6 +137,7 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	service := Service{
 		Name:       "TwiNNatioN",
 		URL:        "https://twinnation.org/health",
+		Method:     "POST",
 		Conditions: []*Condition{&condition},
 		Headers: map[string]string{
 			"Host": "example.com",
@@ -139,8 +145,42 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	}
 	service.ValidateAndSetDefaults()
 	request := service.buildHTTPRequest()
+	if request.Method != "POST" {
+		t.Error("request.Method should've been POST, but was", request.Method)
+	}
 	if request.Host != "example.com" {
-		t.Error("request's Host should've been example.org, but was", request.Host)
+		t.Error("request.Host should've been example.com, but was", request.Host)
+	}
+}
+
+func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "TwiNNatioN",
+		URL:        "https://twinnation.org/graphql",
+		Method:     "POST",
+		Conditions: []*Condition{&condition},
+		GraphQL:    true,
+		Body: `{
+  user(gender: "female") {
+    id
+    name
+    gender
+    avatar
+  }
+}`,
+	}
+	service.ValidateAndSetDefaults()
+	request := service.buildHTTPRequest()
+	if request.Method != "POST" {
+		t.Error("request.Method should've been POST, but was", request.Method)
+	}
+	if contentType := request.Header.Get(ContentTypeHeader); contentType != "application/json" {
+		t.Error("request.Header.Content-Type should've been application/json, but was", contentType)
+	}
+	body, _ := ioutil.ReadAll(request.Body)
+	if !strings.HasPrefix(string(body), "{\"query\":") {
+		t.Error("request.Body should've started with '{\"query\":', but it didn't:", string(body))
 	}
 }
 
