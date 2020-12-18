@@ -96,9 +96,6 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: true}},
-		Headers: map[string]string{
-			"Host": "twinnation.org",
-		},
 	}
 	service.ValidateAndSetDefaults()
 	if service.NumberOfFailuresInARow != 0 {
@@ -113,6 +110,37 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 	service.NumberOfFailuresInARow = service.Alerts[0].FailureThreshold
 	if len(service.GetAlertsTriggered()) != 1 {
 		t.Error("Alert should've been triggered")
+	}
+}
+
+func TestService_buildHTTPRequest(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "TwiNNatioN",
+		URL:        "https://twinnation.org/health",
+		Conditions: []*Condition{&condition},
+	}
+	service.ValidateAndSetDefaults()
+	request := service.buildHTTPRequest()
+	if request.Host != "twinnation.org" {
+		t.Error("request's Host should've been twinnation.org, but was", request.Host)
+	}
+}
+
+func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "TwiNNatioN",
+		URL:        "https://twinnation.org/health",
+		Conditions: []*Condition{&condition},
+		Headers: map[string]string{
+			"Host": "example.com",
+		},
+	}
+	service.ValidateAndSetDefaults()
+	request := service.buildHTTPRequest()
+	if request.Host != "example.com" {
+		t.Error("request's Host should've been example.org, but was", request.Host)
 	}
 }
 
