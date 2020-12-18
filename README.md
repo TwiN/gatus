@@ -500,7 +500,7 @@ services:
         }
       }
     headers:
-      Content-Type: application/json
+      Content-Type: application/json # XXX: as of v1.9.2, this header is automatically added when graphql is set to true
     conditions:
       - "[STATUS] == 200"
       - "[BODY].data.user[0].gender == female"
@@ -576,7 +576,6 @@ established.
 
 Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
 ```yaml
-services:
   - name: example dns query
     url: "8.8.8.8" # Address of the DNS server to use
     interval: 30s
