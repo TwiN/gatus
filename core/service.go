@@ -23,13 +23,13 @@ const (
 )
 
 var (
-	// ErrServiceWithNoCondition is the error with which gatus will panic if a service is configured with no conditions
+	// ErrServiceWithNoCondition is the error with which Gatus will panic if a service is configured with no conditions
 	ErrServiceWithNoCondition = errors.New("you must specify at least one condition per service")
 
-	// ErrServiceWithNoURL is the error with which gatus will panic if a service is configured with no url
+	// ErrServiceWithNoURL is the error with which Gatus will panic if a service is configured with no url
 	ErrServiceWithNoURL = errors.New("you must specify an url for each service")
 
-	// ErrServiceWithNoName is the error with which gatus will panic if a service is configured with no name
+	// ErrServiceWithNoName is the error with which Gatus will panic if a service is configured with no name
 	ErrServiceWithNoName = errors.New("you must specify a name for each service")
 )
 
