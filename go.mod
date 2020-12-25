@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.74.0 // indirect
-	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
@@ -16,11 +15,9 @@ require (
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.19.6
-	k8s.io/apimachinery v0.19.6
-	k8s.io/client-go v0.0.0-00010101000000-000000000000
+	k8s.io/api v0.18.14
+	k8s.io/apimachinery v0.18.14
+	k8s.io/client-go v0.18.14
 )
 
-replace k8s.io/client-go => k8s.io/client-go v0.19.6
-
-replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.3
+replace k8s.io/client-go => k8s.io/client-go v0.18.14
