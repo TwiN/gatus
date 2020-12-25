@@ -26,17 +26,17 @@ github.com/golang/protobuf/ptypes/timestamp
 ## explicit
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
-# github.com/googleapis/gnostic v0.5.3
-## explicit
+# github.com/googleapis/gnostic v0.4.1 => github.com/googleapis/gnostic v0.4.0
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
-github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
 # github.com/imdario/mergo v0.3.11
 ## explicit
 github.com/imdario/mergo
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
+# github.com/kr/pretty v0.2.0
+## explicit
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/miekg/dns v1.1.35
@@ -152,8 +152,6 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-gopkg.in/yaml.v3
 # k8s.io/api v0.19.6
 ## explicit
 k8s.io/api/admissionregistration/v1
@@ -313,3 +311,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
 # k8s.io/client-go => k8s.io/client-go v0.19.6
+# github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0
