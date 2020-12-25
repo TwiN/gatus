@@ -249,8 +249,8 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
 	service := Service{
-		Name:       "Google",
-		URL:        "icmp://google.com",
+		Name:       "ICMP example",
+		URL:        "icmp://127.0.0.1",
 		Conditions: []*Condition{&conditionSuccess},
 	}
 	result := service.EvaluateHealth()
