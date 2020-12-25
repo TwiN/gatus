@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -28,7 +29,7 @@ type KubernetesClient struct {
 
 // GetServices returns a list of services for a given namespace
 func (k *KubernetesClient) GetServices(namespace string) ([]v1.Service, error) {
-	services, err := k.client.CoreV1().Services(namespace).List(metav1.ListOptions{})
+	services, err := k.client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

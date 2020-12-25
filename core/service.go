@@ -182,9 +182,10 @@ func (service *Service) call(result *Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error
-	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	isServiceDNS := service.DNS != nil
-	isServiceHTTP := !isServiceTCP && !isServiceDNS
+	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
+	isServiceICMP := strings.HasPrefix(service.URL, "icmp://")
+	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP
 	if isServiceHTTP {
 		request = service.buildHTTPRequest()
 	}
@@ -193,7 +194,10 @@ func (service *Service) call(result *Result) {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
 	} else if isServiceTCP {
-		result.Connected = client.CanCreateConnectionToTCPService(strings.TrimPrefix(service.URL, "tcp://"))
+		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(service.URL, "tcp://"))
+		result.Duration = time.Since(startTime)
+	} else if isServiceICMP {
+		//result.Connected = client.CanPing(strings.TrimPrefix(service.URL, "icmp://"))
 		result.Duration = time.Since(startTime)
 	} else {
 		response, err = client.GetHTTPClient(service.Insecure).Do(request)

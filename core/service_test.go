@@ -203,6 +203,25 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	}
 }
 
+func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
+	condition := Condition("[STATUS] == 500")
+	service := Service{
+		Name:       "TwiNNatioN",
+		URL:        "https://twinnation.org/health",
+		Conditions: []*Condition{&condition},
+	}
+	result := service.EvaluateHealth()
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	if !result.Connected {
+		t.Error("Because the connection has been established, result.Connected should've been true")
+	}
+	if result.Success {
+		t.Error("Because one of the conditions failed, success should have been false")
+	}
+}
+
 func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	conditionBody := Condition("[BODY] == 93.184.216.34")
@@ -227,21 +246,21 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 }
 
-func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
-	condition := Condition("[STATUS] == 500")
+func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
+	conditionSuccess := Condition("[CONNECTED] == true")
 	service := Service{
-		Name:       "TwiNNatioN",
-		URL:        "https://twinnation.org/health",
-		Conditions: []*Condition{&condition},
+		Name:       "Google",
+		URL:        "icmp://google.com",
+		Conditions: []*Condition{&conditionSuccess},
 	}
 	result := service.EvaluateHealth()
-	if result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a failure", condition)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Conditions '%s' should have been a success", conditionSuccess)
 	}
 	if !result.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")
 	}
-	if result.Success {
-		t.Error("Because one of the conditions failed, success should have been false")
+	if !result.Success {
+		t.Error("Because all conditions passed, this should have been a success")
 	}
 }

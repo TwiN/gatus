@@ -26,3 +26,12 @@ func TestGetHttpClient(t *testing.T) {
 		t.Error("insecureHTTPClient shouldn't have been nil, since it has been called once")
 	}
 }
+
+func TestCanPing(t *testing.T) {
+	if !CanPing("127.0.0.1") {
+		t.Error("expected true")
+	}
+	if CanPing("256.256.256.256") {
+		t.Error("expected false")
+	}
+}

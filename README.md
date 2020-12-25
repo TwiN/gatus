@@ -40,7 +40,8 @@ core applications: https://status.twinnation.org/
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP service](#monitoring-a-tcp-service)
-  - [Monitoring using DNS queries](#monitoring-using-dns-queries)
+  - [Monitoring a service using ICMP](#monitoring-a-service-using-icmp)
+  - [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Service groups](#service-groups)
@@ -557,6 +558,7 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 By prefixing `services[].url` with `tcp:\\`, you can monitor TCP services at a very basic level:
 
 ```yaml
+services:
   - name: redis
     url: "tcp://127.0.0.1:6379"
     interval: 30s
@@ -572,10 +574,28 @@ something at the given address listening to the given port, and that a connectio
 established.
 
 
-### Monitoring using DNS queries
+### Monitoring a service using ICMP
+
+By prefixing `services[].url` with `icmp:\\`, you can monitor services at a very basic level using ICMP, or more 
+commonly known as "ping" or "echo":
+
+```yaml
+services:
+  - name: ICMP
+    url: "icmp://example.com"
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for services of type ICMP.
+You can specify a domain prefixed by `icmp://` or an IP address.
+
+
+### Monitoring a service using DNS queries
 
 Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
 ```yaml
+services:
   - name: example dns query
     url: "8.8.8.8" # Address of the DNS server to use
     interval: 30s
