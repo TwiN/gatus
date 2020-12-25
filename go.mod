@@ -8,7 +8,6 @@ require (
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/kr/pretty v0.2.0 // indirect
 	github.com/miekg/dns v1.1.35
 	github.com/prometheus/client_golang v1.9.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
@@ -19,9 +18,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.19.6
 	k8s.io/apimachinery v0.19.6
-	k8s.io/client-go v0.19.6
+	k8s.io/client-go v0.0.0-00010101000000-000000000000
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.19.6
 
-replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0
+replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.3
