@@ -24,7 +24,7 @@ jobs:
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
-        run: go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: sudo go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
