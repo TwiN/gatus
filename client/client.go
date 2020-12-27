@@ -53,12 +53,13 @@ func CanCreateTCPConnection(address string) bool {
 	return true
 }
 
-// CanPing checks if an address can be pinged
+// Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
+//
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
-func CanPing(address string) bool {
+func Ping(address string) (bool, time.Duration) {
 	pinger, err := ping.NewPinger(address)
 	if err != nil {
-		return false
+		return false, 0
 	}
 	pinger.Count = 1
 	pinger.Timeout = 5 * time.Second
@@ -66,7 +67,10 @@ func CanPing(address string) bool {
 	pinger.SetPrivileged(true)
 	err = pinger.Run()
 	if err != nil {
-		return false
+		return false, 0
 	}
-	return true
+	if pinger.Statistics() != nil {
+		return true, pinger.Statistics().MaxRtt
+	}
+	return true, 0
 }

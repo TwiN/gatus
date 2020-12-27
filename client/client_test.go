@@ -27,11 +27,17 @@ func TestGetHttpClient(t *testing.T) {
 	}
 }
 
-func TestCanPing(t *testing.T) {
-	if !CanPing("127.0.0.1") {
+func TestPing(t *testing.T) {
+	if success, rtt := Ping("127.0.0.1"); !success {
 		t.Error("expected true")
+		if rtt == 0 {
+			t.Error("Round-trip time returned on success should've higher than 0")
+		}
 	}
-	if CanPing("256.256.256.256") {
+	if success, rtt := Ping("256.256.256.256"); success {
 		t.Error("expected false")
+		if rtt != 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
 	}
 }

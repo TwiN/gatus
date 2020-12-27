@@ -197,8 +197,7 @@ func (service *Service) call(result *Result) {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(service.URL, "tcp://"))
 		result.Duration = time.Since(startTime)
 	} else if isServiceICMP {
-		result.Connected = client.CanPing(strings.TrimPrefix(service.URL, "icmp://"))
-		result.Duration = time.Since(startTime)
+		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(service.URL, "icmp://"))
 	} else {
 		response, err = client.GetHTTPClient(service.Insecure).Do(request)
 		result.Duration = time.Since(startTime)
