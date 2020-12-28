@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestGetHttpClient(t *testing.T) {
+func TestGetHTTPClient(t *testing.T) {
 	if secureHTTPClient != nil {
 		t.Error("secureHTTPClient should've been nil since it hasn't been called a single time yet")
 	}
