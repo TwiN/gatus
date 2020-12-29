@@ -249,7 +249,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
 	service := Service{
-		Name:       "ICMP example",
+		Name:       "ICMP test",
 		URL:        "icmp://127.0.0.1",
 		Conditions: []*Condition{&conditionSuccess},
 	}
@@ -262,5 +262,19 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	}
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestService_getIP(t *testing.T) {
+	conditionSuccess := Condition("[CONNECTED] == true")
+	service := Service{
+		Name:       "Invalid URL test",
+		URL:        "",
+		Conditions: []*Condition{&conditionSuccess},
+	}
+	result := &Result{}
+	service.getIP(result)
+	if len(result.Errors) == 0 {
+		t.Error("service.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")
 	}
 }
