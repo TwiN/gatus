@@ -38,6 +38,10 @@ github.com/gorilla/mux
 # github.com/imdario/mergo v0.3.11
 ## explicit
 github.com/imdario/mergo
+# github.com/jinzhu/inflection v1.0.0
+github.com/jinzhu/inflection
+# github.com/jinzhu/now v1.1.1
+github.com/jinzhu/now
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -156,6 +160,16 @@ gopkg.in/inf.v0
 ## explicit
 gopkg.in/yaml.v2
 # k8s.io/api v0.18.14
+# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+gopkg.in/yaml.v3
+# gorm.io/gorm v1.20.9
+## explicit
+gorm.io/gorm
+gorm.io/gorm/clause
+gorm.io/gorm/logger
+gorm.io/gorm/schema
+gorm.io/gorm/utils
+# k8s.io/api v0.0.0-20190816222004-e3a6b8045b0b
 ## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
