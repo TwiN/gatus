@@ -2,6 +2,8 @@ package core
 
 import (
 	"testing"
+
+	"github.com/TwinProduction/gatus/pattern"
 )
 
 func TestIntegrationQuery(t *testing.T) {
@@ -61,7 +63,7 @@ func TestIntegrationQuery(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "b.iana-servers.net.",
+			expectedBody:    "*.iana-servers.net.",
 		},
 		{
 			name: "test DNS with fake type and retrieve error",
@@ -87,8 +89,15 @@ func TestIntegrationQuery(t *testing.T) {
 				t.Errorf("DNSRCodePlaceholder '%s' should have been %s", result.DNSRCode, test.expectedDNSCode)
 			}
 
-			if string(result.Body) != test.expectedBody {
-				t.Errorf("got %s, expected result %s,", string(result.Body), test.expectedBody)
+			if test.inputDNS.QueryType == "NS" {
+				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
+				if !pattern.Match(test.expectedBody, string(result.Body)) {
+					t.Errorf("got %s, expected result %s,", string(result.Body), test.expectedBody)
+				}
+			} else {
+				if string(result.Body) != test.expectedBody {
+					t.Errorf("got %s, expected result %s,", string(result.Body), test.expectedBody)
+				}
 			}
 		})
 	}
