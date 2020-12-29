@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gatus/storage"
 	"github.com/TwinProduction/gocache"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -32,9 +33,9 @@ func init() {
 }
 
 // Handle creates the router and starts the server
-func Handle() {
+func Handle(resultGetter storage.ResultGetter) {
 	cfg := config.Get()
-	router := CreateRouter(cfg)
+	router := CreateRouter(cfg, resultGetter)
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
 		Handler:      router,
@@ -47,12 +48,19 @@ func Handle() {
 }
 
 // CreateRouter creates the router for the http server
-func CreateRouter(cfg *config.Config) *mux.Router {
+func CreateRouter(cfg *config.Config, resultGetter storage.ResultGetter) *mux.Router {
 	router := mux.NewRouter()
-	statusesHandler := serviceStatusesHandler
-	if cfg.Security != nil && cfg.Security.IsValid() {
-		statusesHandler = security.Handler(serviceStatusesHandler, cfg.Security)
+	statusesHandler := func(writer http.ResponseWriter, r *http.Request) {
+		serviceStatusesHandler(writer, r, resultGetter)
 	}
+	if cfg.Security != nil && cfg.Security.IsValid() {
+		statusesHandler = security.Handler(statusesHandler, cfg.Security)
+	}
+
+	badgeHandler := func(writer http.ResponseWriter, r *http.Request) {
+		badgeHandler(writer, r, resultGetter)
+	}
+
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET") // favicon needs to be always served from the root
 	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses"), statusesHandler).Methods("GET")
 	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/badges/uptime/{duration}/{identifier}"), badgeHandler).Methods("GET")
@@ -64,7 +72,7 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	return router
 }
 
-func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
+func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request, resultGetter storage.ResultGetter) {
 	gzipped := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 	var exists bool
 	var value interface{}
@@ -79,7 +87,16 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err = watchdog.GetJSONEncodedServiceStatuses()
+
+		results, err := resultGetter.GetAll()
+		if err != nil {
+			log.Printf("[main][serviceStatusesHandler] Unable to get results: %s", err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+			_, _ = writer.Write([]byte("Unable to get results"))
+			return
+		}
+
+		data, err := json.Marshal(results)
 		if err != nil {
 			log.Printf("[main][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)

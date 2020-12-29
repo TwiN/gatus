@@ -1,7 +1,6 @@
 package watchdog
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -10,51 +9,26 @@ import (
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
+	"github.com/TwinProduction/gatus/storage"
 )
 
 var (
-	serviceStatuses = make(map[string]*core.ServiceStatus)
-
-	// serviceStatusesMutex is used to prevent concurrent map access
-	serviceStatusesMutex sync.RWMutex
-
 	// monitoringMutex is used to prevent multiple services from being evaluated at the same time.
 	// Without this, conditions using response time may become inaccurate.
 	monitoringMutex sync.Mutex
 )
 
-// GetJSONEncodedServiceStatuses returns a list of core.ServiceStatus for each services encoded using json.Marshal.
-// The reason why the encoding is done here is because we use a mutex to prevent concurrent map access.
-func GetJSONEncodedServiceStatuses() ([]byte, error) {
-	serviceStatusesMutex.RLock()
-	data, err := json.Marshal(serviceStatuses)
-	serviceStatusesMutex.RUnlock()
-	return data, err
-}
-
-// GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
-func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
-	key := fmt.Sprintf("%s_%s", group, name)
-	serviceStatusesMutex.RLock()
-	serviceStatus, exists := serviceStatuses[key]
-	serviceStatusesMutex.RUnlock()
-	if !exists {
-		return nil
-	}
-	return serviceStatus.Uptime
-}
-
 // Monitor loops over each services and starts a goroutine to monitor each services separately
-func Monitor(cfg *config.Config) {
+func Monitor(cfg *config.Config, resultStorer storage.ResultStorer) {
 	for _, service := range cfg.Services {
-		go monitor(service)
+		go monitor(service, resultStorer)
 		// To prevent multiple requests from running at the same time
 		time.Sleep(1111 * time.Millisecond)
 	}
 }
 
 // monitor monitors a single service in a loop
-func monitor(service *core.Service) {
+func monitor(service *core.Service, resultStorer storage.ResultStorer) {
 	cfg := config.Get()
 	for {
 		if !cfg.DisableMonitoringLock {
@@ -67,7 +41,9 @@ func monitor(service *core.Service) {
 		}
 		result := service.EvaluateHealth()
 		metric.PublishMetricsForService(service, result)
-		UpdateServiceStatuses(service, result)
+
+		resultStorer.Store(service, result)
+
 		var extra string
 		if !result.Success {
 			extra = fmt.Sprintf("responseBody=%s", result.Body)
@@ -89,17 +65,4 @@ func monitor(service *core.Service) {
 		}
 		time.Sleep(service.Interval)
 	}
-}
-
-// UpdateServiceStatuses updates the slice of service statuses
-func UpdateServiceStatuses(service *core.Service, result *core.Result) {
-	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
-	serviceStatusesMutex.Lock()
-	serviceStatus, exists := serviceStatuses[key]
-	if !exists {
-		serviceStatus = core.NewServiceStatus(service)
-		serviceStatuses[key] = serviceStatus
-	}
-	serviceStatus.AddResult(result)
-	serviceStatusesMutex.Unlock()
 }

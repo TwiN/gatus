@@ -2,12 +2,13 @@ package controller
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gatus/storage"
 	"github.com/gorilla/mux"
 )
 
@@ -15,7 +16,7 @@ import (
 //
 // Valid values for {duration}: 7d, 24h, 1h
 // Pattern for {identifier}: group-<GROUP_NAME>-service-<SERVICE_NAME>.svg
-func badgeHandler(writer http.ResponseWriter, request *http.Request) {
+func badgeHandler(writer http.ResponseWriter, request *http.Request, resultGetter storage.ResultGetter) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
 	// group-<GROUP_NAME>-service-<SERVICE_NAME>.svg
@@ -33,12 +34,21 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 	groupName := strings.TrimPrefix(parts[0], "group-")
 	serviceName := strings.TrimSuffix(parts[1], ".svg")
-	uptime := watchdog.GetUptimeByServiceGroupAndName(groupName, serviceName)
-	if uptime == nil {
-		writer.WriteHeader(http.StatusNotFound)
-		_, _ = writer.Write([]byte("Requested service not found"))
+
+	results, err := resultGetter.GetAll()
+	if err != nil {
+		log.Printf("[badge][badgeHandler] Unable to get results: %s", err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte("Unable to get results"))
 		return
 	}
+	key := fmt.Sprintf("%s_%s", groupName, serviceName)
+	serviceStatus, exists := results[key]
+	var uptime *core.Uptime
+	if exists {
+		uptime = serviceStatus.Uptime
+	}
+
 	formattedDate := time.Now().Format(http.TimeFormat)
 	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	writer.Header().Set("Date", formattedDate)
