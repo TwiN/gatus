@@ -21,14 +21,20 @@ type ResultStorer interface {
 
 // Database represents the gatus database and provides CRUD operations
 type Database struct {
-	database *gorm.DB
+	database    *gorm.DB
+	memoryStore *InMemoryStore
 }
 
 // NewDatabase constructs and returns a new Database. It will also auto-migrate the database schema if applicable
 func NewDatabase(config Config) (*Database, error) {
+	inMemoryStore := newInMemoryStore()
 	if config.InMemory {
-		return nil, fmt.Errorf("in memory database isn't supported yet")
+		return &Database{
+			database:    nil,
+			memoryStore: &inMemoryStore,
+		}, nil
 	}
+
 	db, err := sql.NewPostgresDatabase(config.ConnectionString)
 	if err != nil {
 		return nil, err
@@ -36,11 +42,18 @@ func NewDatabase(config Config) (*Database, error) {
 	if err := db.AutoMigrate(&service{}, &evaluationError{}, &conditionResult{}, &result{}); err != nil {
 		return nil, err
 	}
-	return &Database{db}, nil
+	return &Database{
+		database:    db,
+		memoryStore: nil,
+	}, nil
 }
 
 // GetAll returns all gatus results from teh database
 func (db *Database) GetAll() (map[string]*core.ServiceStatus, error) {
+	if db.memoryStore != nil {
+		return db.memoryStore.GetAll(), nil
+	}
+
 	services := []service{}
 
 	queryResult := db.database.Preload("Results.ConditionResults").Preload("Results.Errors").Preload(clause.Associations).Find(&services)
@@ -69,6 +82,11 @@ func (db *Database) GetAll() (map[string]*core.ServiceStatus, error) {
 
 // Store inserts the provided result in the database
 func (db *Database) Store(svc *core.Service, res *core.Result) error {
+	if db.memoryStore != nil {
+		db.memoryStore.Insert(svc, res)
+		return nil
+	}
+
 	svcFromDb := &service{}
 
 	queryResult := db.database.Where(service{Name: svc.Name, Group: svc.Group}).FirstOrCreate(&svcFromDb)
