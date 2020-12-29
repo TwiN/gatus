@@ -25,8 +25,11 @@ type Database struct {
 }
 
 // NewDatabase constructs and returns a new Database. It will also auto-migrate the database schema if applicable
-func NewDatabase() (*Database, error) {
-	db, err := sql.NewPostgresDatabase()
+func NewDatabase(config Config) (*Database, error) {
+	if config.InMemory {
+		return nil, fmt.Errorf("in memory database isn't supported yet")
+	}
+	db, err := sql.NewPostgresDatabase(config.ConnectionString)
 	if err != nil {
 		return nil, err
 	}

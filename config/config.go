@@ -11,6 +11,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
+	"github.com/TwinProduction/gatus/storage"
 	"gopkg.in/yaml.v2"
 )
 
@@ -76,6 +77,9 @@ type Config struct {
 
 	// Web is the configuration for the web listener
 	Web *webConfig `yaml:"web"`
+
+	// Storage is the Storage configuration
+	Storage *storage.Config `yaml:"storage"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet
@@ -141,6 +145,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		validateServicesConfig(config)
 		validateKubernetesConfig(config)
 		validateWebConfig(config)
+		validateStorageConfig(config)
 	}
 	return
 }
@@ -151,6 +156,19 @@ func validateWebConfig(config *Config) {
 	} else {
 		config.Web.validateAndSetDefaults()
 	}
+}
+
+func validateStorageConfig(config *Config) {
+	if config.Storage.InMemory {
+		log.Println("[config][validateStorageConfig] Using in memory database")
+		return
+	}
+
+	if len(config.Storage.ConnectionString) == 0 {
+		panic("storage.connectionString must be set if in memory database is not being used")
+	}
+
+	log.Println("[config][validateStorageConfig] Using postgres database")
 }
 
 func validateKubernetesConfig(config *Config) {
