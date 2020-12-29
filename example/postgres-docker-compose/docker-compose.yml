@@ -1,0 +1,30 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:13-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment: 
+      POSTGRES_USER: gatus
+      POSTGRES_PASSWORD: gatus
+      POSTGRES_DB: gatus
+    networks:
+      - database
+
+  gatus:
+    build: ../../
+    restart: always
+    depends_on:
+      - "db"
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/config/config.yaml
+    networks:
+      - database
+
+networks:
+  database:
+    driver: bridge

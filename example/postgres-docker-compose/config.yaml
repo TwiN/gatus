@@ -1,0 +1,9 @@
+services:
+  - name: example
+    url: http://example.org
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+storage:
+  inMemory: false
+  connectionString: "host=db user=gatus dbname=gatus password=gatus port=5432 sslmode=disable"
