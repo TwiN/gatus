@@ -112,12 +112,10 @@ func (service *Service) ValidateAndSetDefaults() {
 	if len(service.Conditions) == 0 {
 		panic(ErrServiceWithNoCondition)
 	}
-
 	if service.DNS != nil {
 		service.DNS.validateAndSetDefault()
 		return
 	}
-
 	// Make sure that the request can be created
 	_, err := http.NewRequest(service.Method, service.URL, bytes.NewBuffer([]byte(service.Body)))
 	if err != nil {
