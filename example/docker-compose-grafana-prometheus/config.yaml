@@ -1,3 +1,5 @@
+storage:
+  inMemory: true
 metrics: true
 services:
   - name: TwiNNatioN

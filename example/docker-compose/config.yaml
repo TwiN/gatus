@@ -1,3 +1,5 @@
+storage:
+  inMemory: true
 services:
   - name: example
     url: http://example.org

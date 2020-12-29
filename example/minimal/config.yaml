@@ -4,3 +4,5 @@ services:
     interval: 30s
     conditions:
       - "[STATUS] == 200"
+storage:
+  inMemory: true
