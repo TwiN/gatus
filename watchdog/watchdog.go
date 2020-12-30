@@ -35,7 +35,9 @@ func GetJSONEncodedServiceStatuses() ([]byte, error) {
 // GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
 func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
 	key := fmt.Sprintf("%s_%s", group, name)
+	serviceStatusesMutex.RLock()
 	serviceStatus, exists := serviceStatuses[key]
+	serviceStatusesMutex.RUnlock()
 	if !exists {
 		return nil
 	}

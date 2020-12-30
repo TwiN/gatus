@@ -58,7 +58,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **GitHub uptime badges** (ALPHA)
+- **GitHub uptime badges** (ALPHA): ![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/group-core-service-twinnation%20-%20external.svg) ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg) ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/group-core-service-twinnation%20-%20external.svg)
 - **Service auto discovery in Kubernetes** (ALPHA)
 
 
@@ -705,10 +705,15 @@ web:
 ```
 
 ### Uptime badges
+![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/group-core-service-twinnation%20-%20external.svg)
+![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
+![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/group-core-service-twinnation%20-%20external.svg)
 
 > **NOTE**: This feature is currently in ALPHA
 
 Gatus can automatically generate a SVG badge for one of your monitored services.
+This allows you to put badges in your individual services' README or even create your own status page, if you 
+desire.
 
 The endpoint to generate a badge is the following:
 ```
@@ -728,3 +733,9 @@ If you want to display a service that is not part of a group, you must leave the
 ```
 http://example.com/api/v1/badges/uptime/7d/group--service-frontend.svg
 ```
+
+Example: ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
+```
+![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
+```
+
