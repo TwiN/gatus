@@ -27,6 +27,9 @@ github.com/google/gofuzz/bytesource
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
+# github.com/gorilla/mux v1.8.0
+## explicit
+github.com/gorilla/mux
 # github.com/imdario/mergo v0.3.11
 ## explicit
 github.com/imdario/mergo

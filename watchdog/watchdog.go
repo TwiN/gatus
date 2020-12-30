@@ -32,6 +32,16 @@ func GetJSONEncodedServiceStatuses() ([]byte, error) {
 	return data, err
 }
 
+// GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
+func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
+	key := fmt.Sprintf("%s_%s", group, name)
+	serviceStatus, exists := serviceStatuses[key]
+	if !exists {
+		return nil
+	}
+	return serviceStatus.Uptime
+}
+
 // Monitor loops over each services and starts a goroutine to monitor each services separately
 func Monitor(cfg *config.Config) {
 	for _, service := range cfg.Services {

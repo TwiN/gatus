@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestNewServiceStatus(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
@@ -17,7 +20,7 @@ func TestServiceStatus_AddResult(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
 	serviceStatus := NewServiceStatus(service)
 	for i := 0; i < 50; i++ {
-		serviceStatus.AddResult(&Result{})
+		serviceStatus.AddResult(&Result{Timestamp: time.Now()})
 	}
 	if len(serviceStatus.Results) != 20 {
 		t.Errorf("expected serviceStatus.Results to not exceed a length of 20")

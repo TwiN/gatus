@@ -10,6 +10,9 @@ type ServiceStatus struct {
 
 	// Results is the list of service evaluation results
 	Results []*Result `json:"results"`
+
+	// Uptime information on the service's uptime
+	Uptime *Uptime `json:"uptime"`
 }
 
 // NewServiceStatus creates a new ServiceStatus
@@ -18,6 +21,7 @@ func NewServiceStatus(service *Service) *ServiceStatus {
 		Name:    service.Name,
 		Group:   service.Group,
 		Results: make([]*Result, 0),
+		Uptime:  NewUptime(),
 	}
 }
 
@@ -28,4 +32,5 @@ func (ss *ServiceStatus) AddResult(result *Result) {
 	if len(ss.Results) > 20 {
 		ss.Results = ss.Results[1:]
 	}
+	ss.Uptime.ProcessResult(result)
 }

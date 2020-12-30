@@ -1,12 +1,12 @@
 services:
-  - name: frontend
+  - name: front end
     group: core
     url: "https://twinnation.org/health"
-    interval: 1m
+    interval: 5s
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 1000"
+      - "[RESPONSE_TIME] < 70"
 
   - name: backend
     group: core

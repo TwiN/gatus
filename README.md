@@ -46,6 +46,7 @@ core applications: https://status.twinnation.org/
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Service groups](#service-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Uptime Badges (ALPHA)](#uptime-badges)
 
 
 ## Features
@@ -57,6 +58,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
+- **GitHub uptime badges** (ALPHA)
 - **Service auto discovery in Kubernetes** (ALPHA)
 
 
@@ -588,7 +590,7 @@ services:
 ```
 
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for services of type ICMP.
-You can specify a domain prefixed by `icmp://` or an IP address.
+You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
 
 ### Monitoring a service using DNS queries
@@ -700,4 +702,29 @@ variable instead, you can use that environment variable directly in the configur
 ```yaml
 web:
   port: ${PORT}
+```
+
+### Uptime badges
+
+> **NOTE**: This feature is currently in ALPHA
+
+Gatus can automatically generate a SVG badge for one of your monitored services.
+
+The endpoint to generate a badge is the following:
+```
+/api/v1/badges/uptime/{duration}/{identifier}.svg
+```
+Where:
+- `{duration}` is `7d`, `24h` or `1h`
+- `{identifier}` has the following pattern: `group-<GROUP_NAME>-service-<SERVICE_NAME>.svg`
+
+For instance, if you want the uptime during the last 24 hours from the service `frontend` in the group `core`, 
+the URL would look like this:
+```
+http://example.com/api/v1/badges/uptime/7d/group-core-service-frontend.svg
+```
+
+If you want to display a service that is not part of a group, you must leave the group value empty:
+```
+http://example.com/api/v1/badges/uptime/7d/group--service-frontend.svg
 ```
