@@ -98,3 +98,10 @@ func copyErrors(errors []string) []string {
 	}
 	return copiedErrors
 }
+
+// Clear will empty all the results from the in memory store
+func (ims *InMemoryStore) Clear() {
+	serviceResultsMutex.Lock()
+	serviceStatuses = make(map[string]*core.ServiceStatus)
+	serviceResultsMutex.Unlock()
+}
