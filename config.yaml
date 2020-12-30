@@ -2,7 +2,7 @@ services:
   - name: frontend
     group: core
     url: "https://twinnation.org/health"
-    interval: 5s
+    interval: 1m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
