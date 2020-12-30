@@ -1,8 +1,13 @@
 # cloud.google.com/go v0.74.0
 ## explicit
 cloud.google.com/go/compute/metadata
+# github.com/TwinProduction/gocache v0.3.0
+## explicit
+github.com/TwinProduction/gocache
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
+# github.com/boltdb/bolt v1.3.1
+github.com/boltdb/bolt
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
 # github.com/davecgh/go-spew v1.1.1

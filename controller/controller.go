@@ -12,6 +12,7 @@ import (
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gocache"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -21,10 +22,14 @@ const (
 )
 
 var (
-	cachedServiceStatuses          []byte
-	cachedServiceStatusesGzipped   []byte
-	cachedServiceStatusesTimestamp time.Time
+	cache = gocache.NewCache().WithMaxSize(100).WithEvictionPolicy(gocache.LeastRecentlyUsed)
 )
+
+func init() {
+	if err := cache.StartJanitor(); err != nil {
+		log.Fatal("[controller][init] Failed to start cache janitor:", err.Error())
+	}
+}
 
 // Handle creates the router and starts the server
 func Handle() {
@@ -60,36 +65,45 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 }
 
 func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
-	if isExpired := cachedServiceStatusesTimestamp.IsZero() || time.Now().Sub(cachedServiceStatusesTimestamp) > cacheTTL; isExpired {
+	gzipped := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+	var exists bool
+	var value interface{}
+	if gzipped {
+		writer.Header().Set("Content-Encoding", "gzip")
+		value, exists = cache.Get("service-status-gzipped")
+	} else {
+		value, exists = cache.Get("service-status")
+	}
+	var data []byte
+	if !exists {
+		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err := watchdog.GetJSONEncodedServiceStatuses()
+		data, err = watchdog.GetJSONEncodedServiceStatuses()
 		if err != nil {
 			log.Printf("[main][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
 			_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
 			return
 		}
-		gzipWriter.Write(data)
-		gzipWriter.Close()
-		cachedServiceStatuses = data
-		cachedServiceStatusesGzipped = buffer.Bytes()
-		cachedServiceStatusesTimestamp = time.Now()
-	}
-	var data []byte
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		writer.Header().Set("Content-Encoding", "gzip")
-		data = cachedServiceStatusesGzipped
+		_, _ = gzipWriter.Write(data)
+		_ = gzipWriter.Close()
+		gzippedData := buffer.Bytes()
+		cache.SetWithTTL("service-status", data, cacheTTL)
+		cache.SetWithTTL("service-status-gzipped", gzippedData, cacheTTL)
+		if gzipped {
+			data = gzippedData
+		}
 	} else {
-		data = cachedServiceStatuses
+		data = value.([]byte)
 	}
-	writer.Header().Add("Content-type", "application/json")
+	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(data)
 }
 
 func healthHandler(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Add("Content-type", "application/json")
+	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write([]byte("{\"status\":\"UP\"}"))
 }
