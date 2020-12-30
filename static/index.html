@@ -166,8 +166,11 @@
 	let refreshIntervalHandler = 0;
 	let userClickedStatus = false;
 
+	// TODO: make this variable configurable and persist the choice in localStorage
+	let showStatusOnHover = true;
+
 	function showTooltip(serviceName, index, element) {
-		userClickedStatus = false;
+		//userClickedStatus = false;
 		clearTimeout(timerHandler);
 		let serviceResult = serviceStatuses[serviceName].results[index];
 		$("#tooltip-timestamp").text(prettifyTimestamp(serviceResult.timestamp));
@@ -219,11 +222,30 @@
 		}
 	}
 
+	function toggleTooltip(serviceName, index, element) {
+		console.log("userClickedStatus="+userClickedStatus);
+		if (!userClickedStatus) {
+			showTooltip(serviceName, index, element);
+			userClickedStatus = true;
+		} else {
+			$("#tooltip").hide();
+			userClickedStatus = false;
+		}
+	}
+
 	function createStatusBadge(serviceStatusIndex, index, success) {
 		if (success) {
-			return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\""+serviceStatusIndex+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
+			if (showStatusOnHover) {
+				return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
+			} else {
+				return "<span class='status badge badge-success' style='width: 5%' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>&#10003;</span>";
+			}
 		}
-		return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\""+serviceStatusIndex+"\", "+index+", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
+		if (showStatusOnHover) {
+			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
+		} else {
+			return "<span class='status badge badge-danger' style='width: 5%' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>X</span>";
+		}
 	}
 
 	function refreshStatuses() {
