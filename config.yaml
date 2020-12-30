@@ -1,5 +1,5 @@
 services:
-  - name: front end
+  - name: frontend
     group: core
     url: "https://twinnation.org/health"
     interval: 5s
