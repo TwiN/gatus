@@ -64,16 +64,20 @@ func (db *Database) GetAll() (map[string]*core.ServiceStatus, error) {
 	svcToResults := make(map[string]*core.ServiceStatus)
 
 	for _, svc := range services {
+		uptime := core.NewUptime()
+
 		key := fmt.Sprintf("%s_%s", svc.Group, svc.Name)
 		crs := []*core.Result{}
 		for _, r := range svc.Results {
 			cr := ConvertFromStorage(r)
 			crs = append(crs, &cr)
+			uptime.ProcessResult(&cr)
 		}
 		svcToResults[key] = &core.ServiceStatus{
 			Name:    svc.Name,
 			Group:   svc.Group,
 			Results: crs,
+			Uptime:  uptime,
 		}
 	}
 

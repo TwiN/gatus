@@ -35,6 +35,7 @@ func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 			Name:    svcStatus.Name,
 			Group:   svcStatus.Group,
 			Results: copiedResults,
+			Uptime:  svcStatus.Uptime,
 		}
 	}
 	serviceResultsMutex.RUnlock()
