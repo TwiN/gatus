@@ -159,6 +159,13 @@ func validateWebConfig(config *Config) {
 }
 
 func validateStorageConfig(config *Config) {
+	if config.Storage == nil {
+		config.Storage = &storage.Config{
+			ConnectionString: "",
+			InMemory:         true,
+		}
+	}
+
 	if config.Storage.InMemory {
 		log.Println("[config][validateStorageConfig] Using in memory database")
 		return
