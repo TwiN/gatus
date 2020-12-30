@@ -44,6 +44,9 @@ services:
     conditions:
       - "[STATUS] != 400"
       - "[STATUS] != 500"
+storage:
+  inMemory: false
+  connectionString: "example"
 `))
 	if err != nil {
 		t.Error("No error should've been returned")
@@ -78,6 +81,12 @@ services:
 	if len(config.Services[1].Conditions) != 2 {
 		t.Errorf("There should have been %d conditions", 2)
 	}
+	if config.Storage.InMemory != false {
+		t.Errorf("InMemory should have been false")
+	}
+	if config.Storage.ConnectionString != "example" {
+		t.Errorf("ConnectionString should have been %s", "example")
+	}
 }
 
 func TestParseAndValidateConfigBytesDefault(t *testing.T) {
@@ -111,6 +120,12 @@ services:
 	}
 	if config.Web.ContextRoot != DefaultContextRoot {
 		t.Errorf("ContextRoot should have been %s, because it is the default value", DefaultContextRoot)
+	}
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
 	}
 }
 
@@ -147,6 +162,13 @@ services:
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
+
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithPort(t *testing.T) {
@@ -182,6 +204,13 @@ services:
 	if config.Web.Port != 12345 {
 		t.Errorf("Port should have been %d, because it is specified in config", 12345)
 	}
+
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithPortAndHost(t *testing.T) {
@@ -215,6 +244,12 @@ services:
 	}
 	if config.Web.Port != 12345 {
 		t.Errorf("Port should have been %d, because it is specified in config", 12345)
+	}
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
 	}
 }
 
@@ -253,6 +288,12 @@ services:
 	}
 	if config.Web.ContextRoot != "/deeply/nested/down=/their/" {
 		t.Errorf("Port should have been %s, because it is specified in config", "/deeply/nested/down=/their/")
+	}
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
 	}
 }
 
@@ -304,6 +345,12 @@ services:
 	if config.Web.ContextRoot != DefaultContextRoot {
 		t.Errorf("ContextRoot should have been %s, because it is the default value", DefaultContextRoot)
 	}
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithMetricsAndHostAndPort(t *testing.T) {
@@ -338,6 +385,12 @@ web:
 	}
 	if config.Web.Port != 9090 {
 		t.Errorf("Port should have been %d, because it is specified in config", 9090)
+	}
+	if config.Storage.InMemory != true {
+		t.Errorf("InMemory should have been true, because it is the default value")
+	}
+	if config.Storage.ConnectionString != "" {
+		t.Errorf("InMemory should have been an empty string, because it is the default value")
 	}
 }
 
