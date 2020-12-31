@@ -22,7 +22,6 @@ var (
 )
 
 // GetJSONEncodedServiceStatuses returns a list of core.ServiceStatus for each services encoded using json.Marshal.
-// The reason why the encoding is done here is because we use a mutex to prevent concurrent map access.
 func GetJSONEncodedServiceStatuses() ([]byte, error) {
 	serviceStatuses := store.GetAll()
 	data, err := json.Marshal(serviceStatuses)
