@@ -10,35 +10,27 @@ import (
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
+	"github.com/TwinProduction/gatus/storage"
 )
 
 var (
-	serviceStatuses = make(map[string]*core.ServiceStatus)
-
-	// serviceStatusesMutex is used to prevent concurrent map access
-	serviceStatusesMutex sync.RWMutex
+	store = storage.NewInMemoryStore()
 
 	// monitoringMutex is used to prevent multiple services from being evaluated at the same time.
 	// Without this, conditions using response time may become inaccurate.
 	monitoringMutex sync.Mutex
 )
 
-// GetJSONEncodedServiceStatuses returns a list of core.ServiceStatus for each services encoded using json.Marshal.
-// The reason why the encoding is done here is because we use a mutex to prevent concurrent map access.
-func GetJSONEncodedServiceStatuses() ([]byte, error) {
-	serviceStatusesMutex.RLock()
-	data, err := json.Marshal(serviceStatuses)
-	serviceStatusesMutex.RUnlock()
-	return data, err
+// GetServiceStatusesAsJSON returns a list of core.ServiceStatus for each services encoded using json.Marshal.
+func GetServiceStatusesAsJSON() ([]byte, error) {
+	serviceStatuses := store.GetAll()
+	return json.Marshal(serviceStatuses)
 }
 
 // GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
 func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
-	key := fmt.Sprintf("%s_%s", group, name)
-	serviceStatusesMutex.RLock()
-	serviceStatus, exists := serviceStatuses[key]
-	serviceStatusesMutex.RUnlock()
-	if !exists {
+	serviceStatus := store.GetServiceStatus(group, name)
+	if serviceStatus == nil {
 		return nil
 	}
 	return serviceStatus.Uptime
@@ -93,13 +85,5 @@ func monitor(service *core.Service) {
 
 // UpdateServiceStatuses updates the slice of service statuses
 func UpdateServiceStatuses(service *core.Service, result *core.Result) {
-	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
-	serviceStatusesMutex.Lock()
-	serviceStatus, exists := serviceStatuses[key]
-	if !exists {
-		serviceStatus = core.NewServiceStatus(service)
-		serviceStatuses[key] = serviceStatus
-	}
-	serviceStatus.AddResult(result)
-	serviceStatusesMutex.Unlock()
+	store.Insert(service, result)
 }

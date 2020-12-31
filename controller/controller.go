@@ -79,7 +79,7 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err = watchdog.GetJSONEncodedServiceStatuses()
+		data, err = watchdog.GetServiceStatusesAsJSON()
 		if err != nil {
 			log.Printf("[main][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
