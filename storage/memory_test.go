@@ -402,3 +402,35 @@ func TestStorage_ModificationsToReturnedMapDoNotAffectInternalMap(t *testing.T) 
 		t.Errorf("Returned map from GetAll should be free to modify by the caller without affecting internal in-memory map, but length of results from in-memory map (%d) was equal to the length of results in modified map (%d)", len(results), len(modifiedResults))
 	}
 }
+
+func TestStorage_GetServiceStatusForExistingStatusReturnsThatServiceStatus(t *testing.T) {
+	memoryStore.Clear()
+
+	memoryStore.Insert(&testService, &core.Result{})
+	serviceStatus := memoryStore.GetServiceStatus(testService.Group, testService.Name)
+
+	if serviceStatus == nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' was nil after inserting the service into the store", testService.Group, testService.Name)
+	}
+}
+
+func TestStorage_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
+	memoryStore.Clear()
+
+	memoryStore.Insert(&testService, &core.Result{})
+
+	serviceStatus := memoryStore.GetServiceStatus("nonexistantgroup", "nonexistantname")
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
+	}
+
+	serviceStatus = memoryStore.GetServiceStatus(testService.Group, "nonexistantname")
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
+	}
+
+	serviceStatus = memoryStore.GetServiceStatus("nonexistantgroup", testService.Name)
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
+	}
+}
