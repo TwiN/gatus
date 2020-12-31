@@ -24,8 +24,7 @@ var (
 // GetServiceStatusesAsJSON returns a list of core.ServiceStatus for each services encoded using json.Marshal.
 func GetServiceStatusesAsJSON() ([]byte, error) {
 	serviceStatuses := store.GetAll()
-	data, err := json.Marshal(serviceStatuses)
-	return data, err
+	return json.Marshal(serviceStatuses)
 }
 
 // GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
