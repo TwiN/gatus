@@ -130,6 +130,32 @@ func TestService_buildHTTPRequest(t *testing.T) {
 	if request.Host != "twinnation.org" {
 		t.Error("request.Host should've been twinnation.org, but was", request.Host)
 	}
+	if userAgent := request.Header.Get("User-Agent"); userAgent != GatusUserAgent {
+		t.Errorf("request.Header.Get(User-Agent) should've been %s, but was %s", GatusUserAgent, userAgent)
+	}
+}
+
+func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "TwiNNatioN",
+		URL:        "https://twinnation.org/health",
+		Conditions: []*Condition{&condition},
+		Headers: map[string]string{
+			"User-Agent": "Test/2.0",
+		},
+	}
+	service.ValidateAndSetDefaults()
+	request := service.buildHTTPRequest()
+	if request.Method != "GET" {
+		t.Error("request.Method should've been GET, but was", request.Method)
+	}
+	if request.Host != "twinnation.org" {
+		t.Error("request.Host should've been twinnation.org, but was", request.Host)
+	}
+	if userAgent := request.Header.Get("User-Agent"); userAgent != "Test/2.0" {
+		t.Errorf("request.Header.Get(User-Agent) should've been %s, but was %s", "Test/2.0", userAgent)
+	}
 }
 
 func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {

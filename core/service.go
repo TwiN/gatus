@@ -20,6 +20,12 @@ const (
 
 	// ContentTypeHeader is the name of the header used to specify the content type
 	ContentTypeHeader = "Content-Type"
+
+	// UserAgentHeader is the name of the header used to specify the request's user agent
+	UserAgentHeader = "User-Agent"
+
+	// GatusUserAgent is the default user agent that Gatus uses to send requests.
+	GatusUserAgent = "Gatus/1.0"
 )
 
 var (
@@ -89,6 +95,10 @@ func (service *Service) ValidateAndSetDefaults() {
 	}
 	if len(service.Headers) == 0 {
 		service.Headers = make(map[string]string)
+	}
+	// Automatically add user agent header if there isn't one specified in the service configuration
+	if _, userAgentHeaderExists := service.Headers[UserAgentHeader]; !userAgentHeaderExists {
+		service.Headers[UserAgentHeader] = GatusUserAgent
 	}
 	// Automatically add "Content-Type: application/json" header if there's no Content-Type set
 	// and service.GraphQL is set to true
