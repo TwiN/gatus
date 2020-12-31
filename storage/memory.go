@@ -43,11 +43,8 @@ func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStatus {
 	key := fmt.Sprintf("%s_%s", group, name)
 	ims.serviceResultsMutex.RLock()
-	serviceStatus, exists := ims.serviceStatuses[key]
+	serviceStatus := ims.serviceStatuses[key]
 	ims.serviceResultsMutex.RUnlock()
-	if !exists {
-		return nil
-	}
 	return serviceStatus
 }
 
