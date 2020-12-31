@@ -360,7 +360,7 @@ func TestStorage_InsertResultForServiceWithConditionResultsIntoEmptyMemoryStore_
 	}
 }
 
-func TestStorage_MultipleMemoryStoreInstancesReferToSameMemoryMap(t *testing.T) {
+func TestStorage_MultipleMemoryStoreInstancesReferToDifferentInternalMaps(t *testing.T) {
 	memoryStore.Clear()
 	currentMap := memoryStore.GetAll()
 
@@ -368,23 +368,23 @@ func TestStorage_MultipleMemoryStoreInstancesReferToSameMemoryMap(t *testing.T) 
 	otherMemoryStoresMap := otherMemoryStore.GetAll()
 
 	if len(currentMap) != len(otherMemoryStoresMap) {
-		t.Errorf("Multiple memory stores should refer to the same internal map, but 'memoryStore' returned %d results, and 'otherMemoryStore' returned %d results", len(currentMap), len(otherMemoryStoresMap))
+		t.Errorf("Multiple memory stores should refer to the different internal maps, but 'memoryStore' returned %d results, and 'otherMemoryStore' returned %d results", len(currentMap), len(otherMemoryStoresMap))
 	}
 
 	memoryStore.Insert(&testService, &core.Result{})
 	currentMap = memoryStore.GetAll()
 	otherMemoryStoresMap = otherMemoryStore.GetAll()
 
-	if len(currentMap) != len(otherMemoryStoresMap) {
-		t.Errorf("Multiple memory stores should refer to the same internal map, but 'memoryStore' returned %d results after inserting, and 'otherMemoryStore' returned %d results after inserting", len(currentMap), len(otherMemoryStoresMap))
+	if len(currentMap) == len(otherMemoryStoresMap) {
+		t.Errorf("Multiple memory stores should refer to different internal maps, but 'memoryStore' returned %d results after inserting, and 'otherMemoryStore' returned %d results after inserting", len(currentMap), len(otherMemoryStoresMap))
 	}
 
 	otherMemoryStore.Clear()
 	currentMap = memoryStore.GetAll()
 	otherMemoryStoresMap = otherMemoryStore.GetAll()
 
-	if len(currentMap) != len(otherMemoryStoresMap) {
-		t.Errorf("Multiple memory stores should refer to the same internal map, but 'memoryStore' returned %d results after clearing, and 'otherMemoryStore' returned %d results after clearing", len(currentMap), len(otherMemoryStoresMap))
+	if len(currentMap) == len(otherMemoryStoresMap) {
+		t.Errorf("Multiple memory stores should refer to different internal maps, but 'memoryStore' returned %d results after clearing, and 'otherMemoryStore' returned %d results after clearing", len(currentMap), len(otherMemoryStoresMap))
 	}
 }
 

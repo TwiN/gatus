@@ -7,28 +7,26 @@ import (
 	"github.com/TwinProduction/gatus/core"
 )
 
-var (
-	serviceStatuses = make(map[string]*core.ServiceStatus)
-
-	// serviceResultsMutex is used to prevent concurrent map access
-	serviceResultsMutex sync.RWMutex
-)
-
 // InMemoryStore implements an in-memory store
-type InMemoryStore struct{}
+type InMemoryStore struct {
+	serviceStatuses     map[string]*core.ServiceStatus
+	serviceResultsMutex sync.RWMutex
+}
 
 // NewInMemoryStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
 // up in-memory stores will give you a unique reference to a struct each time, all structs returned
 // by this function will act on the same in-memory store.
 func NewInMemoryStore() InMemoryStore {
-	return InMemoryStore{}
+	return InMemoryStore{
+		serviceStatuses: make(map[string]*core.ServiceStatus),
+	}
 }
 
 // GetAll returns all the observed results for all services from the in memory store
 func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 	results := make(map[string]*core.ServiceStatus)
-	serviceResultsMutex.RLock()
-	for key, svcStatus := range serviceStatuses {
+	ims.serviceResultsMutex.RLock()
+	for key, svcStatus := range ims.serviceStatuses {
 		copiedResults := copyResults(svcStatus.Results)
 		results[key] = &core.ServiceStatus{
 			Name:    svcStatus.Name,
@@ -36,7 +34,7 @@ func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 			Results: copiedResults,
 		}
 	}
-	serviceResultsMutex.RUnlock()
+	ims.serviceResultsMutex.RUnlock()
 
 	return results
 }
@@ -44,9 +42,9 @@ func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 // GetServiceStatus returns the service status for a given service name in the given group
 func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStatus {
 	key := fmt.Sprintf("%s_%s", group, name)
-	serviceResultsMutex.RLock()
-	serviceStatus, exists := serviceStatuses[key]
-	serviceResultsMutex.RUnlock()
+	ims.serviceResultsMutex.RLock()
+	serviceStatus, exists := ims.serviceStatuses[key]
+	ims.serviceResultsMutex.RUnlock()
 	if !exists {
 		return nil
 	}
@@ -56,14 +54,14 @@ func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStat
 // Insert inserts the observed result for the specified service into the in memory store
 func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
-	serviceResultsMutex.Lock()
-	serviceStatus, exists := serviceStatuses[key]
+	ims.serviceResultsMutex.Lock()
+	serviceStatus, exists := ims.serviceStatuses[key]
 	if !exists {
 		serviceStatus = core.NewServiceStatus(service)
-		serviceStatuses[key] = serviceStatus
+		ims.serviceStatuses[key] = serviceStatus
 	}
 	serviceStatus.AddResult(result)
-	serviceResultsMutex.Unlock()
+	ims.serviceResultsMutex.Unlock()
 }
 
 func copyResults(results []*core.Result) []*core.Result {
@@ -112,7 +110,7 @@ func copyErrors(errors []string) []string {
 
 // Clear will empty all the results from the in memory store
 func (ims *InMemoryStore) Clear() {
-	serviceResultsMutex.Lock()
-	serviceStatuses = make(map[string]*core.ServiceStatus)
-	serviceResultsMutex.Unlock()
+	ims.serviceResultsMutex.Lock()
+	ims.serviceStatuses = make(map[string]*core.ServiceStatus)
+	ims.serviceResultsMutex.Unlock()
 }
