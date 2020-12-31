@@ -16,8 +16,8 @@ type InMemoryStore struct {
 // NewInMemoryStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
 // up in-memory stores will give you a unique reference to a struct each time, all structs returned
 // by this function will act on the same in-memory store.
-func NewInMemoryStore() InMemoryStore {
-	return InMemoryStore{
+func NewInMemoryStore() *InMemoryStore {
+	return &InMemoryStore{
 		serviceStatuses: make(map[string]*core.ServiceStatus),
 	}
 }
