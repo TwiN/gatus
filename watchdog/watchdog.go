@@ -21,8 +21,8 @@ var (
 	monitoringMutex sync.Mutex
 )
 
-// GetJSONEncodedServiceStatuses returns a list of core.ServiceStatus for each services encoded using json.Marshal.
-func GetJSONEncodedServiceStatuses() ([]byte, error) {
+// GetServiceStatusesAsJSON returns a list of core.ServiceStatus for each services encoded using json.Marshal.
+func GetServiceStatusesAsJSON() ([]byte, error) {
 	serviceStatuses := store.GetAll()
 	data, err := json.Marshal(serviceStatuses)
 	return data, err
