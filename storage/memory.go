@@ -41,6 +41,18 @@ func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 	return results
 }
 
+// GetServiceStatus returns the service status for a given service name in the given group
+func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStatus {
+	key := fmt.Sprintf("%s_%s", group, name)
+	serviceResultsMutex.RLock()
+	serviceStatus, exists := serviceStatuses[key]
+	serviceResultsMutex.RUnlock()
+	if !exists {
+		return nil
+	}
+	return serviceStatus
+}
+
 // Insert inserts the observed result for the specified service into the in memory store
 func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 	key := fmt.Sprintf("%s_%s", service.Group, service.Name)

@@ -30,10 +30,8 @@ func GetServiceStatusesAsJSON() ([]byte, error) {
 
 // GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
 func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
-	key := fmt.Sprintf("%s_%s", group, name)
-	serviceStatuses := store.GetAll()
-	serviceStatus, exists := serviceStatuses[key]
-	if !exists {
+	serviceStatus := store.GetServiceStatus(group, name)
+	if serviceStatus == nil {
 		return nil
 	}
 	return serviceStatus.Uptime
