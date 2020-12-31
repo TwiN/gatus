@@ -24,7 +24,7 @@ func NewInMemoryStore() *InMemoryStore {
 
 // GetAll returns all the observed results for all services from the in memory store
 func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
-	results := make(map[string]*core.ServiceStatus)
+	results := make(map[string]*core.ServiceStatus, len(ims.serviceStatuses))
 	ims.serviceResultsMutex.RLock()
 	for key, svcStatus := range ims.serviceStatuses {
 		copiedResults := copyResults(svcStatus.Results)
