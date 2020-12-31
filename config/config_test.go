@@ -271,12 +271,14 @@ services:
 	t.Fatal("Should've panicked because the configuration specifies an invalid port value")
 }
 
-func TestParseAndValidateConfigBytesWithMetrics(t *testing.T) {
+func TestParseAndValidateConfigBytesWithMetricsAndCustomUserAgentHeader(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 metrics: true
 services:
   - name: twinnation
     url: https://twinnation.org/health
+    headers:
+      User-Agent: Test/2.0
     conditions:
       - "[STATUS] == 200"
 `))
@@ -304,19 +306,22 @@ services:
 	if config.Web.ContextRoot != DefaultContextRoot {
 		t.Errorf("ContextRoot should have been %s, because it is the default value", DefaultContextRoot)
 	}
+	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != "Test/2.0" {
+		t.Errorf("User-Agent should've been %s, got %s", "Test/2.0", userAgent)
+	}
 }
 
 func TestParseAndValidateConfigBytesWithMetricsAndHostAndPort(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 metrics: true
+web:
+  address: 192.168.0.1
+  port: 9090
 services:
   - name: twinnation
     url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
-web:
-  address: 192.168.0.1
-  port: 9090
 `))
 	if err != nil {
 		t.Error("No error should've been returned")
@@ -327,17 +332,20 @@ web:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
+	if config.Web.Address != "192.168.0.1" {
+		t.Errorf("Bind address should have been %s, because it is the default value", "192.168.0.1")
+	}
+	if config.Web.Port != 9090 {
+		t.Errorf("Port should have been %d, because it is specified in config", 9090)
+	}
 	if config.Services[0].URL != "https://twinnation.org/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Web.Address != "192.168.0.1" {
-		t.Errorf("Bind address should have been %s, because it is the default value", "192.168.0.1")
-	}
-	if config.Web.Port != 9090 {
-		t.Errorf("Port should have been %d, because it is specified in config", 9090)
+	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != core.GatusUserAgent {
+		t.Errorf("User-Agent should've been %s because it's the default value, got %s", core.GatusUserAgent, userAgent)
 	}
 }
 
