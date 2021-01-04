@@ -26,16 +26,14 @@ func NewInMemoryStore() *InMemoryStore {
 func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
 	results := make(map[string]*core.ServiceStatus, len(ims.serviceStatuses))
 	ims.serviceResultsMutex.RLock()
-	for key, svcStatus := range ims.serviceStatuses {
-		copiedResults := copyResults(svcStatus.Results)
+	for key, serviceStatus := range ims.serviceStatuses {
 		results[key] = &core.ServiceStatus{
-			Name:    svcStatus.Name,
-			Group:   svcStatus.Group,
-			Results: copiedResults,
+			Name:    serviceStatus.Name,
+			Group:   serviceStatus.Group,
+			Results: copyResults(serviceStatus.Results),
 		}
 	}
 	ims.serviceResultsMutex.RUnlock()
-
 	return results
 }
 
@@ -62,11 +60,8 @@ func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 }
 
 func copyResults(results []*core.Result) []*core.Result {
-	copiedResults := []*core.Result{}
+	var copiedResults []*core.Result
 	for _, result := range results {
-		copiedErrors := copyErrors(result.Errors)
-		copiedConditionResults := copyConditionResults(result.ConditionResults)
-
 		copiedResults = append(copiedResults, &core.Result{
 			HTTPStatus:            result.HTTPStatus,
 			DNSRCode:              result.DNSRCode,
@@ -75,8 +70,8 @@ func copyResults(results []*core.Result) []*core.Result {
 			IP:                    result.IP,
 			Connected:             result.Connected,
 			Duration:              result.Duration,
-			Errors:                copiedErrors,
-			ConditionResults:      copiedConditionResults,
+			Errors:                copyErrors(result.Errors),
+			ConditionResults:      copyConditionResults(result.ConditionResults),
 			Success:               result.Connected,
 			Timestamp:             result.Timestamp,
 			CertificateExpiration: result.CertificateExpiration,
@@ -85,22 +80,21 @@ func copyResults(results []*core.Result) []*core.Result {
 	return copiedResults
 }
 
-func copyConditionResults(crs []*core.ConditionResult) []*core.ConditionResult {
-	copiedConditionResults := []*core.ConditionResult{}
-	for _, conditionResult := range crs {
+func copyConditionResults(conditionResults []*core.ConditionResult) []*core.ConditionResult {
+	var copiedConditionResults []*core.ConditionResult
+	for _, conditionResult := range conditionResults {
 		copiedConditionResults = append(copiedConditionResults, &core.ConditionResult{
 			Condition: conditionResult.Condition,
 			Success:   conditionResult.Success,
 		})
 	}
-
 	return copiedConditionResults
 }
 
 func copyErrors(errors []string) []string {
-	copiedErrors := []string{}
-	for _, error := range errors {
-		copiedErrors = append(copiedErrors, error)
+	var copiedErrors []string
+	for _, err := range errors {
+		copiedErrors = append(copiedErrors, err)
 	}
 	return copiedErrors
 }
