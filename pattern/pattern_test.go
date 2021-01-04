@@ -1,6 +1,9 @@
 package pattern
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestMatch(t *testing.T) {
 	testMatch(t, "*", "livingroom_123", true)
@@ -15,6 +18,7 @@ func TestMatch(t *testing.T) {
 	testMatch(t, "*vin*om*2*", "livingroom_123", true)
 	testMatch(t, "livingroom_123", "livingroom_123", true)
 	testMatch(t, "*livingroom_123*", "livingroom_123", true)
+	testMatch(t, "*test*", "\\test", true)
 	testMatch(t, "livingroom", "livingroom_123", false)
 	testMatch(t, "livingroom123", "livingroom_123", false)
 	testMatch(t, "what", "livingroom_123", false)
@@ -24,14 +28,16 @@ func TestMatch(t *testing.T) {
 }
 
 func testMatch(t *testing.T, pattern, key string, expectedToMatch bool) {
-	matched := Match(pattern, key)
-	if expectedToMatch {
-		if !matched {
-			t.Errorf("%s should've matched pattern '%s'", key, pattern)
+	t.Run(fmt.Sprintf("pattern '%s' from '%s'", pattern, key), func(t *testing.T) {
+		matched := Match(pattern, key)
+		if expectedToMatch {
+			if !matched {
+				t.Errorf("%s should've matched pattern '%s'", key, pattern)
+			}
+		} else {
+			if matched {
+				t.Errorf("%s shouldn't have matched pattern '%s'", key, pattern)
+			}
 		}
-	} else {
-		if matched {
-			t.Errorf("%s shouldn't have matched pattern '%s'", key, pattern)
-		}
-	}
+	})
 }
