@@ -172,7 +172,7 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 						result.Errors = append(result.Errors, err.Error())
 					}
 					if wantLength {
-						element = fmt.Sprintf("len(%s) %s", element, InvalidConditionElementSuffix)
+						element = fmt.Sprintf("%s%s%s %s", LengthFunctionPrefix, element, FunctionSuffix, InvalidConditionElementSuffix)
 					} else {
 						element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
 					}
