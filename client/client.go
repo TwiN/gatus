@@ -19,7 +19,7 @@ func GetHTTPClient(insecure bool) *http.Client {
 	if insecure {
 		if insecureHTTPClient == nil {
 			insecureHTTPClient = &http.Client{
-				Timeout: time.Second * 10,
+				Timeout: 10 * time.Second,
 				Transport: &http.Transport{
 					MaxIdleConns:        100,
 					MaxIdleConnsPerHost: 20,
