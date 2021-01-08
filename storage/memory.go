@@ -72,7 +72,7 @@ func copyResults(results []*core.Result) []*core.Result {
 			Duration:              result.Duration,
 			Errors:                copyErrors(result.Errors),
 			ConditionResults:      copyConditionResults(result.ConditionResults),
-			Success:               result.Connected,
+			Success:               result.Success,
 			Timestamp:             result.Timestamp,
 			CertificateExpiration: result.CertificateExpiration,
 		})
