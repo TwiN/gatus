@@ -16,6 +16,7 @@ type Store struct {
 	serviceStatuses *gocache.Cache
 	interval        *time.Duration
 	filePath        string
+	shouldPersist   bool
 }
 
 // NewStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
@@ -54,6 +55,7 @@ func (ims *Store) WithPersistence(filePath string, interval *time.Duration) *Sto
 
 	ims.interval = interval
 	ims.filePath = filePath
+	ims.shouldPersist = true
 
 	if interval != nil {
 		go flushToDisk(ims)
@@ -69,8 +71,8 @@ func (ims *Store) GetAllAsJSON() ([]byte, error) {
 // GetServiceStatus returns the service status for a given service name in the given group
 func (ims *Store) GetServiceStatus(group, name string) *core.ServiceStatus {
 	key := fmt.Sprintf("%s_%s", group, name)
-	serviceStatus, _ := ims.serviceStatuses.Get(key)
-	if serviceStatus == nil {
+	serviceStatus, exists := ims.serviceStatuses.Get(key)
+	if !exists {
 		return nil
 	}
 
@@ -96,7 +98,7 @@ func (ims *Store) Insert(service *core.Service, result *core.Result) {
 	}
 	status.AddResult(result)
 
-	if ims.interval == nil {
+	if ims.interval == nil && ims.shouldPersist {
 		err := ims.serviceStatuses.SaveToFile(ims.filePath)
 		if err != nil {
 			panic(fmt.Sprintf("Unable to save to file: %s", err))
