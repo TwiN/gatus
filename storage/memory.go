@@ -1,15 +1,22 @@
 package storage
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gocache"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
 )
 
 // InMemoryStore implements an in-memory store
 type InMemoryStore struct {
 	serviceStatuses *gocache.Cache
+	interval        *time.Duration
+	filePath        string
 }
 
 // NewInMemoryStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
@@ -19,6 +26,37 @@ func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		serviceStatuses: gocache.NewCache(),
 	}
+}
+
+func init() {
+	gob.Register(&core.Result{})
+	gob.Register(&core.Uptime{})
+	gob.Register(&core.ServiceStatus{})
+}
+
+// WithPersistence configures the cache to read and write to a given filepath.
+func (ims *InMemoryStore) WithPersistence(filePath string, flushInterval *time.Duration) *InMemoryStore {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		err := ioutil.WriteFile(filePath, []byte{}, 0644)
+		if err != nil {
+			panic(fmt.Sprintf("Could not write to file: %s", err))
+		}
+	} else {
+		log.Println("Reading from file")
+		numEvictions, err := ims.serviceStatuses.ReadFromFile(filePath)
+		log.Println(fmt.Sprintf("Found items: %d", ims.serviceStatuses.Count()))
+		if numEvictions != 0 {
+			panic(fmt.Sprintf("Unexpectedly dropped %d cache entries", numEvictions))
+		}
+
+		if err != nil {
+			panic(fmt.Sprintf("Could not read from file: %s", err))
+		}
+	}
+
+	ims.interval = flushInterval
+	ims.filePath = filePath
+	return ims
 }
 
 // GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
@@ -55,6 +93,13 @@ func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 		panic("Service status was an unexpected format.")
 	}
 	status.AddResult(result)
+
+	if ims.interval == nil {
+		err := ims.serviceStatuses.SaveToFile(ims.filePath)
+		if err != nil {
+			panic(fmt.Sprintf("Unable to save to file: %s", err))
+		}
+	}
 }
 
 // Clear will empty all the results from the in memory store

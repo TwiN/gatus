@@ -40,6 +40,13 @@ func NewUptime() *Uptime {
 // ProcessResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
 func (uptime *Uptime) ProcessResult(result *Result) {
+	if uptime.successCountPerHour == nil {
+		uptime.successCountPerHour = make(map[string]uint64)
+	}
+	if uptime.totalCountPerHour == nil {
+		uptime.totalCountPerHour = make(map[string]uint64)
+	}
+
 	timestampDateWithHour := result.Timestamp.Format(RFC3339WithoutMinutesAndSeconds)
 	if result.Success {
 		uptime.successCountPerHour[timestampDateWithHour]++
