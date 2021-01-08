@@ -87,18 +87,23 @@ func TestInMemoryStore_Insert(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	if len(store.serviceStatuses) != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", len(store.serviceStatuses))
+	if store.serviceStatuses.Count() != 1 {
+		t.Fatalf("expected 1 ServiceStatus, got %d", store.serviceStatuses.Count())
 	}
 	key := fmt.Sprintf("%s_%s", testService.Group, testService.Name)
-	serviceStatus, exists := store.serviceStatuses[key]
+	serviceStatus, exists := store.serviceStatuses.Get(key)
+	status, ok := serviceStatus.(*core.ServiceStatus)
+	if !ok {
+		t.Fatalf("Service status was an unexpected format.")
+	}
+
 	if !exists {
 		t.Fatalf("Store should've had key '%s', but didn't", key)
 	}
-	if len(serviceStatus.Results) != 2 {
-		t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", serviceStatus.Name, len(serviceStatus.Results))
+	if len(status.Results) != 2 {
+		t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", status.Name, len(status.Results))
 	}
-	for i, r := range serviceStatus.Results {
+	for i, r := range status.Results {
 		expectedResult := store.GetServiceStatus(testService.Group, testService.Name).Results[i]
 		if r.HTTPStatus != expectedResult.HTTPStatus {
 			t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
