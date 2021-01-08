@@ -83,7 +83,7 @@ var (
 )
 
 func TestInMemoryStore_Insert(t *testing.T) {
-	store := NewInMemoryStore()
+	store := NewStore()
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
@@ -145,7 +145,7 @@ func TestInMemoryStore_Insert(t *testing.T) {
 }
 
 func TestInMemoryStore_GetServiceStatus(t *testing.T) {
-	store := NewInMemoryStore()
+	store := NewStore()
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
@@ -169,7 +169,7 @@ func TestInMemoryStore_GetServiceStatus(t *testing.T) {
 }
 
 func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
-	store := NewInMemoryStore()
+	store := NewStore()
 	store.Insert(&testService, &testSuccessfulResult)
 
 	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname")
@@ -187,7 +187,7 @@ func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) 
 }
 
 func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
-	store := NewInMemoryStore()
+	store := NewStore()
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
 	store.Insert(&testService, firstResult)

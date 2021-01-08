@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/TwinProduction/gatus/storage"
 	"io/ioutil"
 	"log"
 	"os"
@@ -76,6 +77,9 @@ type Config struct {
 
 	// Web is the configuration for the web listener
 	Web *webConfig `yaml:"web"`
+
+	// Storage is the configuration for cache persistence
+	Storage *storage.Config `yaml:"storage"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet

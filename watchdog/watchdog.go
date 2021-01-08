@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	store = storage.NewInMemoryStore()
+	store = storage.NewStore()
 
 	// monitoringMutex is used to prevent multiple services from being evaluated at the same time.
 	// Without this, conditions using response time may become inaccurate.
@@ -36,6 +36,10 @@ func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
 
 // Monitor loops over each services and starts a goroutine to monitor each services separately
 func Monitor(cfg *config.Config) {
+	if cfg.Storage != nil {
+		store = store.WithPersistence(cfg.Storage.FilePath, cfg.Storage.Interval)
+	}
+
 	for _, service := range cfg.Services {
 		go monitor(service)
 		// To prevent multiple requests from running at the same time

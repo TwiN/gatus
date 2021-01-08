@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-// InMemoryStore implements an in-memory store
-type InMemoryStore struct {
+// Store implements an in-memory store
+type Store struct {
 	serviceStatuses *gocache.Cache
 	interval        *time.Duration
 	filePath        string
 }
 
-// NewInMemoryStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
+// NewStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
 // up in-memory stores will give you a unique reference to a struct each time, all structs returned
 // by this function will act on the same in-memory store.
-func NewInMemoryStore() *InMemoryStore {
-	return &InMemoryStore{
+func NewStore() *Store {
+	return &Store{
 		serviceStatuses: gocache.NewCache(),
 	}
 }
@@ -33,8 +33,9 @@ func init() {
 	gob.Register(&core.ServiceStatus{})
 }
 
-// WithPersistence configures the cache to read and write to a given filepath.
-func (ims *InMemoryStore) WithPersistence(filePath string, flushInterval *time.Duration) *InMemoryStore {
+// WithPersistence configures the in-memory store to read and write to a given filepath at the specified interval.
+// If interval is nil then every cache write causes an immediate flush to disk.
+func (ims *Store) WithPersistence(filePath string, interval *time.Duration) *Store {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		err := ioutil.WriteFile(filePath, []byte{}, 0644)
 		if err != nil {
@@ -51,22 +52,22 @@ func (ims *InMemoryStore) WithPersistence(filePath string, flushInterval *time.D
 		}
 	}
 
-	ims.interval = flushInterval
+	ims.interval = interval
 	ims.filePath = filePath
 
-	if flushInterval != nil {
-		go monitor(ims)
+	if interval != nil {
+		go flushToDisk(ims)
 	}
 	return ims
 }
 
 // GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
-func (ims *InMemoryStore) GetAllAsJSON() ([]byte, error) {
+func (ims *Store) GetAllAsJSON() ([]byte, error) {
 	return json.Marshal(ims.serviceStatuses.GetAll())
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStatus {
+func (ims *Store) GetServiceStatus(group, name string) *core.ServiceStatus {
 	key := fmt.Sprintf("%s_%s", group, name)
 	serviceStatus, _ := ims.serviceStatuses.Get(key)
 	if serviceStatus == nil {
@@ -81,7 +82,7 @@ func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStat
 }
 
 // Insert inserts the observed result for the specified service into the in memory store
-func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
+func (ims *Store) Insert(service *core.Service, result *core.Result) {
 	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
 	serviceStatus, exists := ims.serviceStatuses.Get(key)
 	if !exists {
@@ -104,14 +105,16 @@ func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 }
 
 // Clear will empty all the results from the in memory store
-func (ims *InMemoryStore) Clear() {
+func (ims *Store) Clear() {
 	ims.serviceStatuses.Clear()
 }
 
-func monitor(store *InMemoryStore) {
-	err := store.serviceStatuses.SaveToFile(store.filePath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to flush the cache to file: %s", err))
+func flushToDisk(store *Store) {
+	for {
+		err := store.serviceStatuses.SaveToFile(store.filePath)
+		if err != nil {
+			panic(fmt.Sprintf("failed to flush the cache to file: %s", err))
+		}
+		time.Sleep(*store.interval)
 	}
-	time.Sleep(*store.interval)
 }
