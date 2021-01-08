@@ -105,7 +105,7 @@ func TestStorage_InsertTwoResultsForSingleServiceIntoEmptyMemoryStore_ThenGetAll
 		Duration:              time.Second * 2,
 		Errors:                nil,
 		ConditionResults:      nil,
-		Success:               true,
+		Success:               false,
 		Timestamp:             time.Now(),
 		CertificateExpiration: time.Second * 2,
 	}
@@ -132,7 +132,6 @@ func TestStorage_InsertTwoResultsForSingleServiceIntoEmptyMemoryStore_ThenGetAll
 
 	for i, r := range serviceResults.Results {
 		expectedResult := resultsToInsert[i]
-
 		if r.HTTPStatus != expectedResult.HTTPStatus {
 			t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
 		}
