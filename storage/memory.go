@@ -7,7 +7,6 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gocache"
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
 )
@@ -42,9 +41,7 @@ func (ims *InMemoryStore) WithPersistence(filePath string, flushInterval *time.D
 			panic(fmt.Sprintf("Could not write to file: %s", err))
 		}
 	} else {
-		log.Println("Reading from file")
 		numEvictions, err := ims.serviceStatuses.ReadFromFile(filePath)
-		log.Println(fmt.Sprintf("Found items: %d", ims.serviceStatuses.Count()))
 		if numEvictions != 0 {
 			panic(fmt.Sprintf("Unexpectedly dropped %d cache entries", numEvictions))
 		}
@@ -56,6 +53,10 @@ func (ims *InMemoryStore) WithPersistence(filePath string, flushInterval *time.D
 
 	ims.interval = flushInterval
 	ims.filePath = filePath
+
+	if flushInterval != nil {
+		go monitor(ims)
+	}
 	return ims
 }
 
@@ -105,4 +106,12 @@ func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 // Clear will empty all the results from the in memory store
 func (ims *InMemoryStore) Clear() {
 	ims.serviceStatuses.Clear()
+}
+
+func monitor(store *InMemoryStore) {
+	err := store.serviceStatuses.SaveToFile(store.filePath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to flush the cache to file: %s", err))
+	}
+	time.Sleep(*store.interval)
 }
