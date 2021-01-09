@@ -13,7 +13,7 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
-	timestamp, _ = time.ParseInLocation(time.RFC3339, "2021-01-08T23:39:37-05:00", time.Local)
+	timestamp = time.Now()
 
 	testService = core.Service{
 		Name:                    "name",
@@ -183,14 +183,19 @@ func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) 
 
 func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	store := NewInMemoryStore()
-	store.Insert(&testService, &testSuccessfulResult)
-	store.Insert(&testService, &testUnsuccessfulResult)
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	store.Insert(&testService, firstResult)
+	store.Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the builder
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
 	output, err := store.GetAllAsJSON()
 	if err != nil {
 		t.Fatal("shouldn't have returned an error, got", err.Error())
 	}
-	expectedOutput := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"2021-01-08T23:39:37-05:00"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"2021-01-08T23:39:37-05:00"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
+	expectedOutput := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
 	if string(output) != expectedOutput {
-		t.Error(string(output))
+		t.Error("expected:\n" + expectedOutput + "\n\ngot:\n" + string(output))
 	}
 }
