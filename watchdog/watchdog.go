@@ -1,7 +1,6 @@
 package watchdog
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -21,10 +20,9 @@ var (
 	monitoringMutex sync.Mutex
 )
 
-// GetServiceStatusesAsJSON returns a list of core.ServiceStatus for each services encoded using json.Marshal.
+// GetServiceStatusesAsJSON the JSON encoding of all core.ServiceStatus recorded
 func GetServiceStatusesAsJSON() ([]byte, error) {
-	serviceStatuses := store.GetAll()
-	return json.Marshal(serviceStatuses)
+	return store.GetAllAsJSON()
 }
 
 // GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -22,19 +23,12 @@ func NewInMemoryStore() *InMemoryStore {
 	}
 }
 
-// GetAll returns all the observed results for all services from the in memory store
-func (ims *InMemoryStore) GetAll() map[string]*core.ServiceStatus {
-	results := make(map[string]*core.ServiceStatus, len(ims.serviceStatuses))
+// GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
+func (ims *InMemoryStore) GetAllAsJSON() ([]byte, error) {
 	ims.serviceResultsMutex.RLock()
-	for key, serviceStatus := range ims.serviceStatuses {
-		results[key] = &core.ServiceStatus{
-			Name:    serviceStatus.Name,
-			Group:   serviceStatus.Group,
-			Results: copyResults(serviceStatus.Results),
-		}
-	}
+	serviceStatuses, err := json.Marshal(ims.serviceStatuses)
 	ims.serviceResultsMutex.RUnlock()
-	return results
+	return serviceStatuses, err
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
@@ -57,46 +51,6 @@ func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
 	}
 	serviceStatus.AddResult(result)
 	ims.serviceResultsMutex.Unlock()
-}
-
-func copyResults(results []*core.Result) []*core.Result {
-	var copiedResults []*core.Result
-	for _, result := range results {
-		copiedResults = append(copiedResults, &core.Result{
-			HTTPStatus:            result.HTTPStatus,
-			DNSRCode:              result.DNSRCode,
-			Body:                  result.Body,
-			Hostname:              result.Hostname,
-			IP:                    result.IP,
-			Connected:             result.Connected,
-			Duration:              result.Duration,
-			Errors:                copyErrors(result.Errors),
-			ConditionResults:      copyConditionResults(result.ConditionResults),
-			Success:               result.Success,
-			Timestamp:             result.Timestamp,
-			CertificateExpiration: result.CertificateExpiration,
-		})
-	}
-	return copiedResults
-}
-
-func copyConditionResults(conditionResults []*core.ConditionResult) []*core.ConditionResult {
-	var copiedConditionResults []*core.ConditionResult
-	for _, conditionResult := range conditionResults {
-		copiedConditionResults = append(copiedConditionResults, &core.ConditionResult{
-			Condition: conditionResult.Condition,
-			Success:   conditionResult.Success,
-		})
-	}
-	return copiedConditionResults
-}
-
-func copyErrors(errors []string) []string {
-	var copiedErrors []string
-	for _, err := range errors {
-		copiedErrors = append(copiedErrors, err)
-	}
-	return copiedErrors
 }
 
 // Clear will empty all the results from the in memory store
