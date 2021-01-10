@@ -1,0 +1,2 @@
+ignore:
+  - "watchdog/watchdog.go"
