@@ -61,7 +61,6 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			} else {
 				alert.Triggered = true
 			}
-
 		} else {
 			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", alert.Type)
 		}
