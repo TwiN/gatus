@@ -44,11 +44,9 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			// We need to extract the DedupKey from PagerDuty's response
 			if alert.Type == core.PagerDutyAlert {
 				var body []byte
-				body, err = customAlertProvider.Send(service.Name, alert.Description, false)
-				if err == nil {
+				if body, err = customAlertProvider.Send(service.Name, alert.Description, false); err == nil {
 					var response pagerDutyResponse
-					err = json.Unmarshal(body, &response)
-					if err != nil {
+					if err = json.Unmarshal(body, &response); err != nil {
 						log.Printf("[watchdog][handleAlertsToTrigger] Ran into error unmarshaling pager duty response: %s", err.Error())
 					} else {
 						alert.ResolveKey = response.DedupKey

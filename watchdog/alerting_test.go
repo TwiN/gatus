@@ -11,6 +11,7 @@ import (
 
 func TestHandleAlerting(t *testing.T) {
 	cfg := &config.Config{
+		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
 				URL:    "https://twinnation.org/health",
@@ -76,6 +77,17 @@ func TestHandleAlerting(t *testing.T) {
 		t.Fatal("The alert should still show as triggered")
 	}
 
+	HandleAlerting(service, &core.Result{Success: false})
+	if service.NumberOfFailuresInARow != 4 {
+		t.Fatal("service.NumberOfFailuresInARow should've increased from 3 to 4, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've stayed at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if !service.Alerts[0].Triggered {
+		t.Fatal("The alert should still show as triggered")
+	}
+
 	HandleAlerting(service, &core.Result{Success: true})
 	if service.NumberOfFailuresInARow != 0 {
 		t.Fatal("service.NumberOfFailuresInARow should've reset to 0, got", service.NumberOfFailuresInARow)
@@ -84,7 +96,7 @@ func TestHandleAlerting(t *testing.T) {
 		t.Fatal("service.NumberOfSuccessesInARow should've increased from 0 to 1, got", service.NumberOfSuccessesInARow)
 	}
 	if !service.Alerts[0].Triggered {
-		t.Fatal("The alert should still be triggered")
+		t.Fatal("The alert should still be triggered (because service.Alerts[0].SuccessThreshold is 3)")
 	}
 
 	HandleAlerting(service, &core.Result{Success: true})
@@ -118,5 +130,118 @@ func TestHandleAlerting(t *testing.T) {
 	}
 	if service.Alerts[0].Triggered {
 		t.Fatal("The alert should no longer be triggered")
+	}
+}
+
+func TestHandleAlertingWhenAlertingConfigIsNil(t *testing.T) {
+	cfg := &config.Config{
+		Debug:    true,
+		Alerting: nil,
+	}
+	config.Set(cfg)
+	HandleAlerting(nil, nil)
+}
+
+func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
+	cfg := &config.Config{
+		Alerting: &alerting.Config{},
+	}
+	config.Set(cfg)
+	service := &core.Service{
+		URL: "http://example.com",
+		Alerts: []*core.Alert{
+			{
+				Type:             core.CustomAlert,
+				Enabled:          true,
+				FailureThreshold: 1,
+				SuccessThreshold: 1,
+				SendOnResolved:   true,
+				Triggered:        false,
+			},
+		},
+	}
+
+	if service.NumberOfFailuresInARow != 0 {
+		t.Fatal("service.NumberOfFailuresInARow should've started at 0, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've started at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't start triggered")
+	}
+
+	HandleAlerting(service, &core.Result{Success: false})
+	if service.NumberOfFailuresInARow != 1 {
+		t.Fatal("service.NumberOfFailuresInARow should've increased from 0 to 1, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've stayed at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't have triggered")
+	}
+
+	HandleAlerting(service, &core.Result{Success: false})
+	if service.NumberOfFailuresInARow != 2 {
+		t.Fatal("service.NumberOfFailuresInARow should've increased from 1 to 2, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've stayed at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't have triggered, because the provider wasn't configured properly")
+	}
+}
+
+func TestHandleAlertingWithoutSendingAlertOnResolve(t *testing.T) {
+	cfg := &config.Config{
+		Alerting: &alerting.Config{},
+	}
+	config.Set(cfg)
+	service := &core.Service{
+		URL: "http://example.com",
+		Alerts: []*core.Alert{
+			{
+				Type:             core.CustomAlert,
+				Enabled:          true,
+				FailureThreshold: 1,
+				SuccessThreshold: 1,
+				SendOnResolved:   false,
+				Triggered:        false,
+			},
+		},
+	}
+
+	if service.NumberOfFailuresInARow != 0 {
+		t.Fatal("service.NumberOfFailuresInARow should've started at 0, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've started at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't start triggered")
+	}
+
+	HandleAlerting(service, &core.Result{Success: false})
+	if service.NumberOfFailuresInARow != 1 {
+		t.Fatal("service.NumberOfFailuresInARow should've increased from 0 to 1, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've stayed at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't have triggered")
+	}
+
+	HandleAlerting(service, &core.Result{Success: false})
+	if service.NumberOfFailuresInARow != 2 {
+		t.Fatal("service.NumberOfFailuresInARow should've increased from 1 to 2, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 0 {
+		t.Fatal("service.NumberOfSuccessesInARow should've stayed at 0, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't have triggered, because the provider wasn't configured properly")
 	}
 }
