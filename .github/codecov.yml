@@ -1,2 +1,6 @@
 ignore:
   - "watchdog/watchdog.go"
+
+coverage:
+  status:
+    patch: off
