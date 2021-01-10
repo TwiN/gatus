@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/TwinProduction/gatus/client"
@@ -74,6 +75,9 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 
 // Send a request to the alert provider and return the body
 func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
+	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+		return []byte("{}"), nil
+	}
 	request := provider.buildHTTPRequest(serviceName, alertDescription, resolved)
 	response, err := client.GetHTTPClient(provider.Insecure).Do(request)
 	if err != nil {
