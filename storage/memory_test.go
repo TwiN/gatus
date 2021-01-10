@@ -196,6 +196,6 @@ func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	}
 	expectedOutput := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
 	if string(output) != expectedOutput {
-		t.Error("expected:\n" + expectedOutput + "\n\ngot:\n" + string(output))
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
 	}
 }
