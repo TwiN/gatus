@@ -17,6 +17,16 @@ func TestGetBeforeConfigIsLoaded(t *testing.T) {
 	t.Fatal("Should've panicked because the configuration hasn't been loaded yet")
 }
 
+func TestSet(t *testing.T) {
+	if config != nil {
+		t.Fatal("config should've been nil")
+	}
+	Set(&Config{})
+	if config == nil {
+		t.Fatal("config shouldn't have been nil")
+	}
+}
+
 func TestLoadFileThatDoesNotExist(t *testing.T) {
 	err := Load("file-that-does-not-exist.yaml")
 	if err == nil {

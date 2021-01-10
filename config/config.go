@@ -86,6 +86,12 @@ func Get() *Config {
 	return config
 }
 
+// Set sets the configuration
+// Used only for testing
+func Set(cfg *Config) {
+	config = cfg
+}
+
 // Load loads a custom configuration file
 // Note that the misconfiguration of some fields may lead to panics. This is on purpose.
 func Load(configFile string) error {
