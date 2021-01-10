@@ -302,6 +302,47 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButServiceStartFailingA
 	}
 }
 
+func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Clearenv()
+
+	cfg := &config.Config{
+		Debug: true,
+		Alerting: &alerting.Config{
+			Custom: &custom.AlertProvider{
+				URL:    "https://twinnation.org/health",
+				Method: "GET",
+			},
+		},
+	}
+	config.Set(cfg)
+	service := &core.Service{
+		URL: "http://example.com",
+		Alerts: []*core.Alert{
+			{
+				Type:             core.CustomAlert,
+				Enabled:          true,
+				FailureThreshold: 1,
+				SuccessThreshold: 1,
+				SendOnResolved:   false,
+				Triggered:        true,
+			},
+		},
+		NumberOfFailuresInARow: 1,
+	}
+
+	HandleAlerting(service, &core.Result{Success: true})
+	if service.NumberOfFailuresInARow != 0 {
+		t.Fatal("service.NumberOfFailuresInARow should've decreased from 1 to 0, got", service.NumberOfFailuresInARow)
+	}
+	if service.NumberOfSuccessesInARow != 1 {
+		t.Fatal("service.NumberOfSuccessesInARow should've increased from 0 to 1, got", service.NumberOfSuccessesInARow)
+	}
+	if service.Alerts[0].Triggered {
+		t.Fatal("The alert shouldn't be triggered anymore")
+	}
+}
+
 func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
