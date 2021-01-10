@@ -187,7 +187,7 @@ func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	secondResult := &testUnsuccessfulResult
 	store.Insert(&testService, firstResult)
 	store.Insert(&testService, secondResult)
-	// Can't be bothered dealing with timezone issues on the builder
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
 	output, err := store.GetAllAsJSON()
