@@ -29,7 +29,7 @@ func TestGetHTTPClient(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
-	pingTimeout = time.Second
+	pingTimeout = 500 * time.Millisecond
 	if success, rtt := Ping("127.0.0.1"); !success {
 		t.Error("expected true")
 		if rtt == 0 {
