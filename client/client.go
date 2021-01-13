@@ -13,6 +13,8 @@ var (
 	secureHTTPClient   *http.Client
 	insecureHTTPClient *http.Client
 
+	// pingTimeout is the timeout for the Ping function
+	// This is mainly exposed for testing purposes
 	pingTimeout = 5 * time.Second
 )
 
