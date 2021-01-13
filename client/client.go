@@ -12,6 +12,8 @@ import (
 var (
 	secureHTTPClient   *http.Client
 	insecureHTTPClient *http.Client
+
+	pingTimeout = 5 * time.Second
 )
 
 // GetHTTPClient returns the shared HTTP client
@@ -62,7 +64,7 @@ func Ping(address string) (bool, time.Duration) {
 		return false, 0
 	}
 	pinger.Count = 1
-	pinger.Timeout = 5 * time.Second
+	pinger.Timeout = pingTimeout
 	pinger.SetNetwork("ip4")
 	pinger.SetPrivileged(true)
 	err = pinger.Run()
