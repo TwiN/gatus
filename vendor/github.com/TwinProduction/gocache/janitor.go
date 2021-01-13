@@ -2,7 +2,6 @@ package gocache
 
 import (
 	"log"
-	"runtime"
 	"time"
 )
 
@@ -24,9 +23,10 @@ const (
 )
 
 // StartJanitor starts the janitor on a different goroutine
-// The janitor's job is to delete expired keys in the background.
+// The janitor's job is to delete expired keys in the background, in other words, it takes care of passive eviction.
 // It can be stopped by calling Cache.StopJanitor.
-// If you do not start the janitor, expired keys will only be deleted when they are accessed through Get
+// If you do not start the janitor, expired keys will only be deleted when they are accessed through Get, GetByKeys, or
+// GetAll.
 func (cache *Cache) StartJanitor() error {
 	if cache.stopJanitor != nil {
 		return ErrJanitorAlreadyRunning
@@ -109,26 +109,32 @@ func (cache *Cache) StartJanitor() error {
 				}
 				cache.mutex.Unlock()
 			case <-cache.stopJanitor:
-				cache.stopJanitor = nil
+				cache.stopJanitor <- true
 				return
 			}
 		}
 	}()
-	if Debug {
-		go func() {
-			var m runtime.MemStats
-			for {
-				runtime.ReadMemStats(&m)
-				log.Printf("Alloc=%vMB; HeapReleased=%vMB; Sys=%vMB; HeapInUse=%vMB; HeapObjects=%v; HeapObjectsFreed=%v; GC=%v; cache.memoryUsage=%vMB; cacheSize=%d\n", m.Alloc/1024/1024, m.HeapReleased/1024/1024, m.Sys/1024/1024, m.HeapInuse/1024/1024, m.HeapObjects, m.Frees, m.NumGC, cache.memoryUsage/1024/1024, cache.Count())
-				time.Sleep(3 * time.Second)
-			}
-		}()
-	}
+	//if Debug {
+	//	go func() {
+	//		var m runtime.MemStats
+	//		for {
+	//			runtime.ReadMemStats(&m)
+	//			log.Printf("Alloc=%vMB; HeapReleased=%vMB; Sys=%vMB; HeapInUse=%vMB; HeapObjects=%v; HeapObjectsFreed=%v; GC=%v; cache.memoryUsage=%vMB; cacheSize=%d\n", m.Alloc/1024/1024, m.HeapReleased/1024/1024, m.Sys/1024/1024, m.HeapInuse/1024/1024, m.HeapObjects, m.Frees, m.NumGC, cache.memoryUsage/1024/1024, cache.Count())
+	//			time.Sleep(3 * time.Second)
+	//		}
+	//	}()
+	//}
 	return nil
 }
 
 // StopJanitor stops the janitor
 func (cache *Cache) StopJanitor() {
-	cache.stopJanitor <- true
-	time.Sleep(100 * time.Millisecond)
+	if cache.stopJanitor != nil {
+		// Tell the janitor to stop, and then wait for the janitor to reply on the same channel that it's stopping
+		// This may seem a bit odd, but this allows us to avoid a data race condition in which setting cache.stopJanitor
+		// to nil
+		cache.stopJanitor <- true
+		<-cache.stopJanitor
+		cache.stopJanitor = nil
+	}
 }

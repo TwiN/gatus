@@ -70,6 +70,10 @@ func Ping(address string) (bool, time.Duration) {
 		return false, 0
 	}
 	if pinger.Statistics() != nil {
+		// If the packet loss is 100, it means that the packet didn't reach the host
+		if pinger.Statistics().PacketLoss == 100 {
+			return false, pinger.Timeout
+		}
 		return true, pinger.Statistics().MaxRtt
 	}
 	return true, 0

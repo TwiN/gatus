@@ -3,11 +3,12 @@ package gocache
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/boltdb/bolt"
 	"log"
 	"os"
 	"sort"
 	"time"
+
+	"github.com/boltdb/bolt"
 )
 
 // SaveToFile stores the content of the cache to a file so that it can be read using

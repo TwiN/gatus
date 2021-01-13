@@ -6,8 +6,12 @@ import (
 	"unsafe"
 )
 
+// Entry is a cache entry
 type Entry struct {
-	Key   string
+	// Key is the name of the cache entry
+	Key string
+
+	// Value is the value of the cache entry
 	Value interface{}
 
 	// RelevantTimestamp is the variable used to store either:
@@ -24,10 +28,12 @@ type Entry struct {
 	previous *Entry
 }
 
+// Accessed updates the Entry's RelevantTimestamp to now
 func (entry *Entry) Accessed() {
 	entry.RelevantTimestamp = time.Now()
 }
 
+// Expired returns whether the Entry has expired
 func (entry Entry) Expired() bool {
 	if entry.Expiration > 0 {
 		if time.Now().UnixNano() > entry.Expiration {
@@ -37,6 +43,7 @@ func (entry Entry) Expired() bool {
 	return false
 }
 
+// SizeInBytes returns the size of an entry in bytes, approximately.
 func (entry *Entry) SizeInBytes() int {
 	return toBytes(entry.Key) + toBytes(entry.Value) + 32
 }

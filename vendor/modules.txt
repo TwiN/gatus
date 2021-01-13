@@ -1,7 +1,7 @@
 # cloud.google.com/go v0.74.0
 ## explicit
 cloud.google.com/go/compute/metadata
-# github.com/TwinProduction/gocache v0.3.0
+# github.com/TwinProduction/gocache v1.1.0
 ## explicit
 github.com/TwinProduction/gocache
 # github.com/beorn7/perks v1.0.1
