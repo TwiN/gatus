@@ -204,3 +204,69 @@ func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
 	}
 }
+
+func TestPersistedMemoryStore_UsesFileOnDisk(t *testing.T) {
+	tempDir := t.TempDir()
+	cacheFile := tempDir + "/cache.log"
+
+	storeOne := NewStore().WithPersistence(cacheFile, nil)
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	storeOne.Insert(&testService, firstResult)
+	storeOne.Insert(&testService, secondResult)
+
+	storeTwo := NewStore().WithPersistence(cacheFile, nil)
+	output, err := storeTwo.GetAllAsJSON()
+	if err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+
+	expectedOutput := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0,"24h":0,"1h":0}}}`
+	if string(output) != expectedOutput {
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
+	}
+}
+
+func TestPersistedMemoryStore_FlushesAtSpecifiedInterval(t *testing.T) {
+	tempDir := t.TempDir()
+	cacheFile := tempDir + "/cache.log"
+	interval, _ := time.ParseDuration("1s")
+
+	store := NewStore().WithPersistence(cacheFile, &interval)
+	// Avoid race condition between the first flush to disk and adding results to the store
+	time.Sleep(interval)
+
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	store.Insert(&testService, firstResult)
+	store.Insert(&testService, secondResult)
+
+	storeTwo := NewStore().WithPersistence(cacheFile, nil)
+	outputOne, err := storeTwo.GetAllAsJSON()
+	if err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+	expectedOutputOne := "{}"
+	if string(outputOne) != expectedOutputOne {
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutputOne, string(outputOne))
+	}
+
+	// Wait for the results to be flushed to disk
+	time.Sleep(interval)
+
+	storeThree := NewStore().WithPersistence(cacheFile, nil)
+	outputTwo, err := storeThree.GetAllAsJSON()
+	if err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+	expectedOutputTwo := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0,"24h":0,"1h":0}}}`
+	if string(outputTwo) != expectedOutputTwo {
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutputTwo, string(outputTwo))
+	}
+}

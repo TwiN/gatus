@@ -81,7 +81,7 @@ func (ims *Store) GetServiceStatus(group, name string) *core.ServiceStatus {
 	return status
 }
 
-// Insert inserts the observed result for the specified service into the in memory store
+// Insert inserts the observed result for the specified service into the store
 func (ims *Store) Insert(service *core.Service, result *core.Result) {
 	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
 	serviceStatus, exists := ims.serviceStatuses.Get(key)
