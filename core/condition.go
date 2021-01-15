@@ -48,10 +48,19 @@ const (
 	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
 
 	// LengthFunctionPrefix is the prefix for the length function
+	//
+	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
 	LengthFunctionPrefix = "len("
 
 	// PatternFunctionPrefix is the prefix for the pattern function
+	//
+	// Usage: pat(192.168.*.*)
 	PatternFunctionPrefix = "pat("
+
+	// AnyFunctionPrefix is the prefix for the any function
+	//
+	// Usage: any(1.1.1.1, 1.0.0.1)
+	AnyFunctionPrefix = "any("
 
 	// FunctionSuffix is the suffix for all functions
 	FunctionSuffix = ")"
@@ -67,48 +76,51 @@ type Condition string
 func (c *Condition) evaluate(result *Result) bool {
 	condition := string(*c)
 	success := false
-	var resolvedCondition string
+	conditionToDisplay := condition
 	if strings.Contains(condition, "==") {
-		parts := sanitizeAndResolve(strings.Split(condition, "=="), result)
-		success = isEqual(parts[0], parts[1])
-		resolvedCondition = fmt.Sprintf("%v == %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "=="), result)
+		success = isEqual(resolvedParameters[0], resolvedParameters[1])
+		if !success {
+			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
+		}
 	} else if strings.Contains(condition, "!=") {
-		parts := sanitizeAndResolve(strings.Split(condition, "!="), result)
-		success = !isEqual(parts[0], parts[1])
-		resolvedCondition = fmt.Sprintf("%v != %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "!="), result)
+		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
+		if !success {
+			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
+		}
 	} else if strings.Contains(condition, "<=") {
-		parts := sanitizeAndResolveNumerical(strings.Split(condition, "<="), result)
-		success = parts[0] <= parts[1]
-		resolvedCondition = fmt.Sprintf("%v <= %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<="), result)
+		success = resolvedParameters[0] <= resolvedParameters[1]
+		if !success {
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
+		}
 	} else if strings.Contains(condition, ">=") {
-		parts := sanitizeAndResolveNumerical(strings.Split(condition, ">="), result)
-		success = parts[0] >= parts[1]
-		resolvedCondition = fmt.Sprintf("%v >= %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">="), result)
+		success = resolvedParameters[0] >= resolvedParameters[1]
+		if !success {
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
+		}
 	} else if strings.Contains(condition, ">") {
-		parts := sanitizeAndResolveNumerical(strings.Split(condition, ">"), result)
-		success = parts[0] > parts[1]
-		resolvedCondition = fmt.Sprintf("%v > %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">"), result)
+		success = resolvedParameters[0] > resolvedParameters[1]
+		if !success {
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
+		}
 	} else if strings.Contains(condition, "<") {
-		parts := sanitizeAndResolveNumerical(strings.Split(condition, "<"), result)
-		success = parts[0] < parts[1]
-		resolvedCondition = fmt.Sprintf("%v < %v", parts[0], parts[1])
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<"), result)
+		success = resolvedParameters[0] < resolvedParameters[1]
+		if !success {
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
+		}
 	} else {
 		result.Errors = append(result.Errors, fmt.Sprintf("invalid condition '%s' has been provided", condition))
 		return false
 	}
-	conditionToDisplay := condition
 	// If the condition isn't a success, return what the resolved condition was too
+	// XXX: make this configurable? i.e. show-resolved-conditions-on-failure
 	if !success {
-		log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, resolvedCondition)
-		// Check if the resolved condition was an invalid path
-		isResolvedConditionInvalidPath := strings.ReplaceAll(resolvedCondition, fmt.Sprintf("%s ", InvalidConditionElementSuffix), "") == condition
-		if isResolvedConditionInvalidPath {
-			// Since, in the event of an invalid path, the resolvedCondition contains the condition itself,
-			// we'll only display the resolvedCondition
-			conditionToDisplay = resolvedCondition
-		} else {
-			conditionToDisplay = fmt.Sprintf("%s (%s)", condition, resolvedCondition)
-		}
+		log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
@@ -116,33 +128,64 @@ func (c *Condition) evaluate(result *Result) bool {
 
 // isEqual compares two strings.
 //
-// It also supports the pattern function. That is to say, if one of the strings starts with PatternFunctionPrefix
-// and ends with FunctionSuffix, it will be treated like a pattern.
+// Supports the pattern and the any functions.
+// i.e. if one of the parameters starts with PatternFunctionPrefix and ends with FunctionSuffix, it will be treated like
+// a pattern.
 func isEqual(first, second string) bool {
-	var isFirstPattern, isSecondPattern bool
-	if strings.HasPrefix(first, PatternFunctionPrefix) && strings.HasSuffix(first, FunctionSuffix) {
-		isFirstPattern = true
-		first = strings.TrimSuffix(strings.TrimPrefix(first, PatternFunctionPrefix), FunctionSuffix)
+	firstHasFunctionSuffix := strings.HasSuffix(first, FunctionSuffix)
+	secondHasFunctionSuffix := strings.HasSuffix(second, FunctionSuffix)
+	if firstHasFunctionSuffix || secondHasFunctionSuffix {
+		var isFirstPattern, isSecondPattern bool
+		if strings.HasPrefix(first, PatternFunctionPrefix) && firstHasFunctionSuffix {
+			isFirstPattern = true
+			first = strings.TrimSuffix(strings.TrimPrefix(first, PatternFunctionPrefix), FunctionSuffix)
+		}
+		if strings.HasPrefix(second, PatternFunctionPrefix) && secondHasFunctionSuffix {
+			isSecondPattern = true
+			second = strings.TrimSuffix(strings.TrimPrefix(second, PatternFunctionPrefix), FunctionSuffix)
+		}
+		if isFirstPattern && !isSecondPattern {
+			return pattern.Match(first, second)
+		} else if !isFirstPattern && isSecondPattern {
+			return pattern.Match(second, first)
+		}
+		var isFirstAny, isSecondAny bool
+		if strings.HasPrefix(first, AnyFunctionPrefix) && firstHasFunctionSuffix {
+			isFirstAny = true
+			first = strings.TrimSuffix(strings.TrimPrefix(first, AnyFunctionPrefix), FunctionSuffix)
+		}
+		if strings.HasPrefix(second, AnyFunctionPrefix) && secondHasFunctionSuffix {
+			isSecondAny = true
+			second = strings.TrimSuffix(strings.TrimPrefix(second, AnyFunctionPrefix), FunctionSuffix)
+		}
+		if isFirstAny && !isSecondAny {
+			options := strings.Split(first, ",")
+			for _, option := range options {
+				if strings.TrimSpace(option) == second {
+					return true
+				}
+			}
+			return false
+		} else if !isFirstAny && isSecondAny {
+			options := strings.Split(second, ",")
+			for _, option := range options {
+				if strings.TrimSpace(option) == first {
+					return true
+				}
+			}
+			return false
+		}
 	}
-	if strings.HasPrefix(second, PatternFunctionPrefix) && strings.HasSuffix(second, FunctionSuffix) {
-		isSecondPattern = true
-		second = strings.TrimSuffix(strings.TrimPrefix(second, PatternFunctionPrefix), FunctionSuffix)
-	}
-	if isFirstPattern && !isSecondPattern {
-		return pattern.Match(first, second)
-	} else if !isFirstPattern && isSecondPattern {
-		return pattern.Match(second, first)
-	} else {
-		return first == second
-	}
+	return first == second
 }
 
-// sanitizeAndResolve sanitizes and resolves a list of element and returns the list of resolved elements
-func sanitizeAndResolve(list []string, result *Result) []string {
-	var sanitizedList []string
+// sanitizeAndResolve sanitizes and resolves a list of elements and returns the list of parameters as well as a list
+// of resolved parameters
+func sanitizeAndResolve(elements []string, result *Result) (parameters, resolvedParameters []string) {
 	body := strings.TrimSpace(string(result.Body))
-	for _, element := range list {
+	for _, element := range elements {
 		element = strings.TrimSpace(element)
+		parameters = append(parameters, element)
 		switch strings.ToUpper(element) {
 		case StatusPlaceholder:
 			element = strconv.Itoa(result.HTTPStatus)
@@ -185,23 +228,48 @@ func sanitizeAndResolve(list []string, result *Result) []string {
 				}
 			}
 		}
-		sanitizedList = append(sanitizedList, element)
+		resolvedParameters = append(resolvedParameters, element)
 	}
-	return sanitizedList
+	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) []int64 {
-	var sanitizedNumbers []int64
-	sanitizedList := sanitizeAndResolve(list, result)
-	for _, element := range sanitizedList {
+func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
+	parameters, resolvedParameters := sanitizeAndResolve(list, result)
+	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
-			sanitizedNumbers = append(sanitizedNumbers, duration.Milliseconds())
+			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
-			sanitizedNumbers = append(sanitizedNumbers, 0)
+			resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
 		} else {
-			sanitizedNumbers = append(sanitizedNumbers, number)
+			resolvedNumericalParameters = append(resolvedNumericalParameters, number)
 		}
 	}
-	return sanitizedNumbers
+	return parameters, resolvedNumericalParameters
+}
+
+func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
+	return prettify(parameters, []string{strconv.Itoa(int(resolvedParameters[0])), strconv.Itoa(int(resolvedParameters[1]))}, operator)
+}
+
+func prettify(parameters []string, resolvedParameters []string, operator string) string {
+	// Since, in the event of an invalid path, the resolvedParameters also contain the condition itself,
+	// we'll return the resolvedParameters as-is.
+	if strings.HasSuffix(resolvedParameters[0], InvalidConditionElementSuffix) || strings.HasSuffix(resolvedParameters[1], InvalidConditionElementSuffix) {
+		return fmt.Sprintf("%v %s %v", resolvedParameters[0], operator, resolvedParameters[1])
+	}
+	// First element is a placeholder
+	if parameters[0] != resolvedParameters[0] && parameters[1] == resolvedParameters[1] {
+		return fmt.Sprintf("%v (%v) %s %v", parameters[0], resolvedParameters[0], operator, resolvedParameters[1])
+	}
+	// Second element is a placeholder
+	if parameters[0] == resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
+		return fmt.Sprintf("%v %s %v (%v)", resolvedParameters[0], operator, parameters[1], resolvedParameters[1])
+	}
+	// Both elements are placeholders...?
+	if parameters[0] != resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
+		return fmt.Sprintf("%v (%v) %s %v (%v)", parameters[0], resolvedParameters[0], operator, parameters[1], resolvedParameters[1])
+	}
+	// Neither elements are placeholders
+	return fmt.Sprintf("%v %s %v", parameters[0], operator, parameters[1])
 }

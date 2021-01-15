@@ -322,6 +322,53 @@ func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithBodyStringAny(t *testing.T) {
+	condition := Condition("[BODY].name == any(john.doe, jane.doe)")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	result = &Result{Body: []byte("{\"name\": \"jane.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyStringAnyFailure(t *testing.T) {
+	condition := Condition("[BODY].name == any(john.doe, jane.doe)")
+	result := &Result{Body: []byte("{\"name\": \"bob.doe\"}")}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+}
+
+func TestCondition_evaluateWithStatusAny(t *testing.T) {
+	condition := Condition("[STATUS] == any(200, 429)")
+	statuses := []int{200, 429}
+	for _, status := range statuses {
+		result := &Result{HTTPStatus: status}
+		condition.evaluate(result)
+		if !result.ConditionResults[0].Success {
+			t.Errorf("Condition '%s' should have been a success", condition)
+		}
+	}
+}
+
+func TestCondition_evaluateWithStatusAnyFailure(t *testing.T) {
+	condition := Condition("[STATUS] == any(200, 429)")
+	statuses := []int{201, 400, 404, 500}
+	for _, status := range statuses {
+		result := &Result{HTTPStatus: status}
+		condition.evaluate(result)
+		if result.ConditionResults[0].Success {
+			t.Errorf("Condition '%s' should have been a failure", condition)
+		}
+	}
+}
+
 func TestCondition_evaluateWithConnected(t *testing.T) {
 	condition := Condition("[CONNECTED] == true")
 	result := &Result{Connected: true}
