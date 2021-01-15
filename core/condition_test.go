@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -22,6 +23,9 @@ func TestCondition_evaluateWithStatus(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	if result.ConditionResults[0].Condition != string(condition) {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, condition, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithStatusFailure(t *testing.T) {
@@ -30,6 +34,10 @@ func TestCondition_evaluateWithStatusFailure(t *testing.T) {
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[STATUS] (500) == 200"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -40,6 +48,10 @@ func TestCondition_evaluateWithStatusUsingLessThan(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[STATUS] < 300"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithStatusFailureUsingLessThan(t *testing.T) {
@@ -48,6 +60,10 @@ func TestCondition_evaluateWithStatusFailureUsingLessThan(t *testing.T) {
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[STATUS] (404) < 300"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -58,6 +74,10 @@ func TestCondition_evaluateWithResponseTimeUsingLessThan(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] < 500"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithResponseTimeUsingLessThanDuration(t *testing.T) {
@@ -67,6 +87,10 @@ func TestCondition_evaluateWithResponseTimeUsingLessThanDuration(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] < 1s"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithResponseTimeUsingLessThanInvalid(t *testing.T) {
@@ -75,6 +99,10 @@ func TestCondition_evaluateWithResponseTimeUsingLessThanInvalid(t *testing.T) {
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have failed because the condition has an invalid numerical value that should've automatically resolved to 0", condition)
+	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] (50) < potato (0)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -87,6 +115,10 @@ func TestCondition_evaluateWithResponseTimeUsingGreaterThan(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] > 500"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithResponseTimeUsingGreaterThanDuration(t *testing.T) {
@@ -95,6 +127,10 @@ func TestCondition_evaluateWithResponseTimeUsingGreaterThanDuration(t *testing.T
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] > 1s"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -105,6 +141,10 @@ func TestCondition_evaluateWithResponseTimeUsingGreaterThanOrEqualTo(t *testing.
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] >= 500"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) {
@@ -113,6 +153,10 @@ func TestCondition_evaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) 
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[RESPONSE_TIME] <= 500"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -123,6 +167,10 @@ func TestCondition_evaluateWithBody(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY] == test"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyJSONPath(t *testing.T) {
@@ -131,6 +179,10 @@ func TestCondition_evaluateWithBodyJSONPath(t *testing.T) {
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[BODY].status == UP"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -141,31 +193,35 @@ func TestCondition_evaluateWithBodyJSONPathComplex(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].data.name == john"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithInvalidBodyJSONPathComplex(t *testing.T) {
-	expectedResolvedCondition := "[BODY].data.name (INVALID) == john"
 	condition := Condition("[BODY].data.name == john")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure, because the path was invalid", condition)
 	}
-	if result.ConditionResults[0].Condition != expectedResolvedCondition {
-		t.Errorf("Condition '%s' should have resolved to '%s', but resolved to '%s' instead", condition, expectedResolvedCondition, result.ConditionResults[0].Condition)
+	expectedConditionDisplayed := "[BODY].data.name (INVALID) == john"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
 func TestCondition_evaluateWithInvalidBodyJSONPathComplexWithLengthFunction(t *testing.T) {
-	expectedResolvedCondition := "len([BODY].data.name) (INVALID) == john"
 	condition := Condition("len([BODY].data.name) == john")
 	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure, because the path was invalid", condition)
 	}
-	if result.ConditionResults[0].Condition != expectedResolvedCondition {
-		t.Errorf("Condition '%s' should have resolved to '%s', but resolved to '%s' instead", condition, expectedResolvedCondition, result.ConditionResults[0].Condition)
+	expectedConditionDisplayed := "len([BODY].data.name) (INVALID) == john"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -176,6 +232,10 @@ func TestCondition_evaluateWithBodyJSONPathDoublePlaceholders(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].user.firstName != [BODY].user.lastName"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyJSONPathDoublePlaceholdersFailure(t *testing.T) {
@@ -184,6 +244,10 @@ func TestCondition_evaluateWithBodyJSONPathDoublePlaceholdersFailure(t *testing.
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[BODY].user.firstName (john) == [BODY].user.lastName (doe)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -194,6 +258,10 @@ func TestCondition_evaluateWithBodyJSONPathLongInt(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].data.id == 1"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyJSONPathComplexInt(t *testing.T) {
@@ -202,6 +270,10 @@ func TestCondition_evaluateWithBodyJSONPathComplexInt(t *testing.T) {
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[BODY].data[1].id == 2"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -212,6 +284,10 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntUsingGreaterThan(t *testing
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].data.id > 0"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingGreaterThan(t *testing.T) {
@@ -220,6 +296,10 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingGreaterThan(t *
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[BODY].data.id (1) > 5"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -230,6 +310,10 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntUsingLessThan(t *testing.T)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].data.id < 5"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingLessThan(t *testing.T) {
@@ -238,6 +322,10 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingLessThan(t *tes
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[BODY].data.id (10) < 5"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -248,6 +336,10 @@ func TestCondition_evaluateWithBodySliceLength(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "len([BODY].data) == 3"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
@@ -256,6 +348,36 @@ func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "len([BODY].name) == 8"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
+}
+
+func TestCondition_evaluateWithBodyPattern(t *testing.T) {
+	condition := Condition("[BODY] == pat(*john*)")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[BODY] == pat(*john*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
+}
+
+func TestCondition_evaluateWithReverseBodyPattern(t *testing.T) {
+	condition := Condition("pat(*john*) == [BODY]")
+	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "pat(*john*) == [BODY]"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -266,6 +388,10 @@ func TestCondition_evaluateWithBodyStringPattern(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[BODY].name == pat(*ohn*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyStringPatternFailure(t *testing.T) {
@@ -275,14 +401,9 @@ func TestCondition_evaluateWithBodyStringPatternFailure(t *testing.T) {
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
-}
-
-func TestCondition_evaluateWithBodyPatternFailure(t *testing.T) {
-	condition := Condition("[BODY] == pat(*john*)")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
-	condition.evaluate(result)
-	if !result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a success", condition)
+	expectedConditionDisplayed := "[BODY].name (john.doe) == pat(bob*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -293,6 +414,10 @@ func TestCondition_evaluateWithIPPattern(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[IP] == pat(10.*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithIPPatternFailure(t *testing.T) {
@@ -301,6 +426,10 @@ func TestCondition_evaluateWithIPPatternFailure(t *testing.T) {
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[IP] (255.255.255.255) == pat(10.*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -311,6 +440,10 @@ func TestCondition_evaluateWithStatusPattern(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[STATUS] == pat(4*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
@@ -320,19 +453,27 @@ func TestCondition_evaluateWithStatusPatternFailure(t *testing.T) {
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
+	expectedConditionDisplayed := "[STATUS] (404) != pat(4*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithBodyStringAny(t *testing.T) {
 	condition := Condition("[BODY].name == any(john.doe, jane.doe)")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
-	condition.evaluate(result)
-	if !result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a success", condition)
+	expectedConditionDisplayed := "[BODY].name == any(john.doe, jane.doe)"
+	results := []*Result{
+		{Body: []byte("{\"name\": \"john.doe\"}")},
+		{Body: []byte("{\"name\": \"jane.doe\"}")},
 	}
-	result = &Result{Body: []byte("{\"name\": \"jane.doe\"}")}
-	condition.evaluate(result)
-	if !result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a success", condition)
+	for _, result := range results {
+		success := condition.evaluate(result)
+		if !success || !result.ConditionResults[0].Success {
+			t.Errorf("Condition '%s' should have been a success", condition)
+		}
+		if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+			t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+		}
 	}
 }
 
@@ -342,6 +483,10 @@ func TestCondition_evaluateWithBodyStringAnyFailure(t *testing.T) {
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[BODY].name (bob.doe) == any(john.doe, jane.doe)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -353,6 +498,26 @@ func TestCondition_evaluateWithStatusAny(t *testing.T) {
 		condition.evaluate(result)
 		if !result.ConditionResults[0].Success {
 			t.Errorf("Condition '%s' should have been a success", condition)
+		}
+		expectedConditionDisplayed := "[STATUS] == any(200, 429)"
+		if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+			t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+		}
+	}
+}
+
+func TestCondition_evaluateWithReverseStatusAny(t *testing.T) {
+	condition := Condition("any(200, 429) == [STATUS]")
+	statuses := []int{200, 429}
+	for _, status := range statuses {
+		result := &Result{HTTPStatus: status}
+		condition.evaluate(result)
+		if !result.ConditionResults[0].Success {
+			t.Errorf("Condition '%s' should have been a success", condition)
+		}
+		expectedConditionDisplayed := "any(200, 429) == [STATUS]"
+		if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+			t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 		}
 	}
 }
@@ -366,6 +531,26 @@ func TestCondition_evaluateWithStatusAnyFailure(t *testing.T) {
 		if result.ConditionResults[0].Success {
 			t.Errorf("Condition '%s' should have been a failure", condition)
 		}
+		expectedConditionDisplayed := fmt.Sprintf("[STATUS] (%d) == any(200, 429)", status)
+		if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+			t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+		}
+	}
+}
+
+func TestCondition_evaluateWithReverseStatusAnyFailure(t *testing.T) {
+	condition := Condition("any(200, 429) == [STATUS]")
+	statuses := []int{201, 400, 404, 500}
+	for _, status := range statuses {
+		result := &Result{HTTPStatus: status}
+		condition.evaluate(result)
+		if result.ConditionResults[0].Success {
+			t.Errorf("Condition '%s' should have been a failure", condition)
+		}
+		expectedConditionDisplayed := fmt.Sprintf("any(200, 429) == [STATUS] (%d)", status)
+		if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+			t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+		}
 	}
 }
 
@@ -376,6 +561,10 @@ func TestCondition_evaluateWithConnected(t *testing.T) {
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[CONNECTED] == true"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithConnectedFailure(t *testing.T) {
@@ -385,6 +574,10 @@ func TestCondition_evaluateWithConnectedFailure(t *testing.T) {
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
+	expectedConditionDisplayed := "[CONNECTED] (false) == true"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithUnsetCertificateExpiration(t *testing.T) {
@@ -393,6 +586,10 @@ func TestCondition_evaluateWithUnsetCertificateExpiration(t *testing.T) {
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] == 0"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -404,6 +601,10 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThanNumerical(t *test
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] > 2419200000"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithCertificateExpirationGreaterThanNumericalFailure(t *testing.T) {
@@ -414,6 +615,10 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThanNumericalFailure(
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
+	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] (1209600000) > 2419200000"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithCertificateExpirationGreaterThanDuration(t *testing.T) {
@@ -423,6 +628,10 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThanDuration(t *testi
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
+	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] > 12h"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
 }
 
 func TestCondition_evaluateWithCertificateExpirationGreaterThanDurationFailure(t *testing.T) {
@@ -431,5 +640,9 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThanDurationFailure(t
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] (86400000) > 48h (172800000)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
 	}
 }
