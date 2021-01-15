@@ -38,6 +38,24 @@ func BenchmarkCondition_evaluateWithBodyStringFailure(b *testing.B) {
 	b.ReportAllocs()
 }
 
+func BenchmarkCondition_evaluateWithBodyStringLen(b *testing.B) {
+	condition := Condition("len([BODY].name) == 8")
+	for n := 0; n < b.N; n++ {
+		result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+		condition.evaluate(result)
+	}
+	b.ReportAllocs()
+}
+
+func BenchmarkCondition_evaluateWithBodyStringLenFailure(b *testing.B) {
+	condition := Condition("len([BODY].name) == 8")
+	for n := 0; n < b.N; n++ {
+		result := &Result{Body: []byte("{\"name\": \"bob.doe\"}")}
+		condition.evaluate(result)
+	}
+	b.ReportAllocs()
+}
+
 func BenchmarkCondition_evaluateWithStatus(b *testing.B) {
 	condition := Condition("[STATUS] == 200")
 	for n := 0; n < b.N; n++ {

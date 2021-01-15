@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -73,8 +72,8 @@ const (
 type Condition string
 
 // evaluate the Condition with the Result of the health check
-func (c *Condition) evaluate(result *Result) bool {
-	condition := string(*c)
+func (c Condition) evaluate(result *Result) bool {
+	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, "==") {
@@ -117,10 +116,8 @@ func (c *Condition) evaluate(result *Result) bool {
 		result.Errors = append(result.Errors, fmt.Sprintf("invalid condition '%s' has been provided", condition))
 		return false
 	}
-	// If the condition isn't a success, return what the resolved condition was too
-	// XXX: make this configurable? i.e. show-resolved-conditions-on-failure
 	if !success {
-		log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
+		//log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
@@ -181,11 +178,13 @@ func isEqual(first, second string) bool {
 
 // sanitizeAndResolve sanitizes and resolves a list of elements and returns the list of parameters as well as a list
 // of resolved parameters
-func sanitizeAndResolve(elements []string, result *Result) (parameters, resolvedParameters []string) {
+func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
+	parameters := make([]string, len(elements))
+	resolvedParameters := make([]string, len(elements))
 	body := strings.TrimSpace(string(result.Body))
-	for _, element := range elements {
+	for i, element := range elements {
 		element = strings.TrimSpace(element)
-		parameters = append(parameters, element)
+		parameters[i] = element
 		switch strings.ToUpper(element) {
 		case StatusPlaceholder:
 			element = strconv.Itoa(result.HTTPStatus)
@@ -209,26 +208,26 @@ func sanitizeAndResolve(elements []string, result *Result) (parameters, resolved
 					wantLength = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.Replace(element, fmt.Sprintf("%s.", BodyPlaceholder), "", 1), result.Body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(element, BodyPlaceholder+"."), result.Body)
 				if err != nil {
 					if err.Error() != "unexpected end of JSON input" {
 						result.Errors = append(result.Errors, err.Error())
 					}
 					if wantLength {
-						element = fmt.Sprintf("%s%s%s %s", LengthFunctionPrefix, element, FunctionSuffix, InvalidConditionElementSuffix)
+						element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
 					} else {
-						element = fmt.Sprintf("%s %s", element, InvalidConditionElementSuffix)
+						element = element + " " + InvalidConditionElementSuffix
 					}
 				} else {
 					if wantLength {
-						element = fmt.Sprintf("%d", resolvedElementLength)
+						element = strconv.Itoa(resolvedElementLength)
 					} else {
 						element = resolvedElement
 					}
 				}
 			}
 		}
-		resolvedParameters = append(resolvedParameters, element)
+		resolvedParameters[i] = element
 	}
 	return parameters, resolvedParameters
 }
@@ -252,24 +251,25 @@ func prettifyNumericalParameters(parameters []string, resolvedParameters []int64
 	return prettify(parameters, []string{strconv.Itoa(int(resolvedParameters[0])), strconv.Itoa(int(resolvedParameters[1]))}, operator)
 }
 
+// XXX: make this configurable? i.e. show-resolved-conditions-on-failure
 func prettify(parameters []string, resolvedParameters []string, operator string) string {
 	// Since, in the event of an invalid path, the resolvedParameters also contain the condition itself,
 	// we'll return the resolvedParameters as-is.
 	if strings.HasSuffix(resolvedParameters[0], InvalidConditionElementSuffix) || strings.HasSuffix(resolvedParameters[1], InvalidConditionElementSuffix) {
-		return fmt.Sprintf("%v %s %v", resolvedParameters[0], operator, resolvedParameters[1])
+		return resolvedParameters[0] + " " + operator + " " + resolvedParameters[1]
 	}
 	// First element is a placeholder
 	if parameters[0] != resolvedParameters[0] && parameters[1] == resolvedParameters[1] {
-		return fmt.Sprintf("%v (%v) %s %v", parameters[0], resolvedParameters[0], operator, resolvedParameters[1])
+		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1]
 	}
 	// Second element is a placeholder
 	if parameters[0] == resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return fmt.Sprintf("%v %s %v (%v)", resolvedParameters[0], operator, parameters[1], resolvedParameters[1])
+		return parameters[0] + " " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
 	}
 	// Both elements are placeholders...?
 	if parameters[0] != resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return fmt.Sprintf("%v (%v) %s %v (%v)", parameters[0], resolvedParameters[0], operator, parameters[1], resolvedParameters[1])
+		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
 	}
 	// Neither elements are placeholders
-	return fmt.Sprintf("%v %s %v", parameters[0], operator, parameters[1])
+	return parameters[0] + " " + operator + " " + parameters[1]
 }
