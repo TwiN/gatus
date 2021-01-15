@@ -19,9 +19,7 @@ type Store struct {
 	shouldPersist   bool
 }
 
-// NewStore returns an in-memory store. Note that the store acts as a singleton, so although new-ing
-// up in-memory stores will give you a unique reference to a struct each time, all structs returned
-// by this function will act on the same in-memory store.
+// NewStore returns an in-memory store
 func NewStore() *Store {
 	return &Store{
 		serviceStatuses: gocache.NewCache(),
@@ -45,7 +43,7 @@ func (ims *Store) WithPersistence(filePath string, interval *time.Duration) *Sto
 	} else {
 		numEvictions, err := ims.serviceStatuses.ReadFromFile(filePath)
 		if numEvictions != 0 {
-			panic(fmt.Sprintf("Unexpectedly dropped %d cache entries", numEvictions))
+			fmt.Sprintf("Unexpectedly dropped %d cache entries", numEvictions)
 		}
 
 		if err != nil {
