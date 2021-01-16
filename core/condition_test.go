@@ -394,6 +394,20 @@ func TestCondition_evaluateWithBodyStringPattern(t *testing.T) {
 	}
 }
 
+func TestCondition_evaluateWithBodyHTMLPattern(t *testing.T) {
+	var html = `<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">john.doe</div></body></html>`
+	condition := Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)")
+	result := &Result{Body: []byte(html)}
+	condition.evaluate(result)
+	if !result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a success", condition)
+	}
+	expectedConditionDisplayed := "[BODY] == pat(*<div id=\"user\">john.doe</div>*)"
+	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
+}
+
 func TestCondition_evaluateWithBodyStringPatternFailure(t *testing.T) {
 	condition := Condition("[BODY].name == pat(bob*)")
 	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
