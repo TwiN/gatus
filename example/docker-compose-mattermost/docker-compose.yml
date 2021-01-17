@@ -1,13 +1,24 @@
 version: "3.8"
-services:
-    gatus:
-        image: twinproduction/gatus:latest
-        ports:
-          - 8080:8080
-        volumes:
-          - ./config.yaml:/config/config.yaml
 
-    mattermost-preview:
-        image: mattermost/mattermost-preview:latest
-        ports:
-          - 8065:8065
+services:
+  gatus:
+    container_name: gatus
+    image: twinproduction/gatus:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/config/config.yaml
+    networks:
+      - default
+
+  mattermost:
+    container_name: mattermost
+    image: mattermost/mattermost-preview:5.26.0
+    ports:
+      - 8065:8065
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
