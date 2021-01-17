@@ -165,7 +165,7 @@ web:
   port: 12345
 services:
   - name: twinnation
-    url: https://twinnation.org/actuator/health
+    url: https://twinnation.org/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -178,17 +178,15 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != DefaultAddress {
 		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
 	}
-
 	if config.Web.Port != 12345 {
 		t.Errorf("Port should have been %d, because it is specified in config", 12345)
 	}
