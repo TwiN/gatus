@@ -15,16 +15,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Set up Go 1.15
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: 1.15
-        id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
-        run: sudo go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
