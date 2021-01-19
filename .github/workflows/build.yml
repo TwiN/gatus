@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: sudo su
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
         with:
@@ -25,7 +24,10 @@ jobs:
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
-        run: sudo --preserve-env go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        # We're using "sudo" because one of the tests leverages ping, which requires super-user privileges.
+        # As for the "PATH=$PATH", we need it to use the same "go" executable that was configured by the "Set
+        # up Go" step.
+        run: sudo "PATH=$PATH" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
