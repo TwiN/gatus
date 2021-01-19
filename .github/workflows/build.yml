@@ -14,16 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - run: sudo su
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
+      - run: go version && which go
+      - run: sudo go version && sudo which go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build binary to make sure it works
         run: go build -mod vendor
-      - run: go version && which go
-      - run: sudo go version && sudo which go
       - name: Test
         run: sudo go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
