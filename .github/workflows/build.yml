@@ -18,16 +18,15 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - run: sudo $(which go) version
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
         # We're using "sudo" because one of the tests leverages ping, which requires super-user privileges.
-        # As for the "$(which go)", we need it to use the same "go" executable that was configured by the "Set
+        # As for the "PATH=$PATH", we need it to use the same "go" executable that was configured by the "Set
         # up Go" step (otherwise, it'd use sudo's "go" executable)
-        run: sudo $(which go) test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: sudo "PATH=$PATH" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
