@@ -19,14 +19,13 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - run: go version && which go
-      - run: sudo go version && sudo which go
+      - run: sudo --preserve-env go version && sudo --preserve-env which go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
-        run: go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: sudo --preserve-env go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
