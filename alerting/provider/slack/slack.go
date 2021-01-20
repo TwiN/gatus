@@ -31,7 +31,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
-			prefix = ":heavy_check_mark:"
+			prefix = ":white_check_mark:"
 		} else {
 			prefix = ":x:"
 		}
