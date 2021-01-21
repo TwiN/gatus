@@ -297,18 +297,18 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, service, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
 	HandleAlerting(service, &core.Result{Success: true})
-	verify(t, service, 0, 1, true, "")
+	verify(t, service, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
 	HandleAlerting(service, &core.Result{Success: false})
-	verify(t, service, 1, 0, false, "")
+	verify(t, service, 1, 0, true, "")
 	HandleAlerting(service, &core.Result{Success: false})
-	verify(t, service, 2, 0, true, "The alert should have triggered")
+	verify(t, service, 2, 0, true, "")
 	HandleAlerting(service, &core.Result{Success: true})
-	verify(t, service, 0, 1, true, "The alert should still be triggered")
+	verify(t, service, 0, 1, false, "")
 	HandleAlerting(service, &core.Result{Success: true})
-	verify(t, service, 0, 2, false, "The alert should have been resolved")
+	verify(t, service, 0, 2, false, "")
 }
 
 func verify(t *testing.T, service *core.Service, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
