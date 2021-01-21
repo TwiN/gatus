@@ -2,6 +2,7 @@ package custom
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -76,6 +77,9 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 // Send a request to the alert provider and return the body
 func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+			return nil, errors.New("error")
+		}
 		return []byte("{}"), nil
 	}
 	request := provider.buildHTTPRequest(serviceName, alertDescription, resolved)

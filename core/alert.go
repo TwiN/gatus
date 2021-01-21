@@ -26,6 +26,12 @@ type Alert struct {
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value
 	// should be set back to false. It is used to prevent the same alert from going out twice.
+	//
+	// This value should only be modified if the provider.AlertProvider's Send function does not return an error for an
+	// alert that hasn't been triggered yet. This doubles as a lazy retry. The reason why this behavior isn't also
+	// applied for alerts that are already triggered and has become "healthy" again is to prevent a case where, for
+	// some reason, the alert provider always returns errors when trying to send the resolved notification
+	// (SendOnResolved).
 	Triggered bool
 }
 
