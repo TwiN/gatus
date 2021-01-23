@@ -161,6 +161,7 @@
 </div>
 
 <script>
+	let maximumNumberOfResults = 20;
 	let serviceStatuses = {};
 	let timerHandler = 0;
 	let refreshIntervalHandler = 0;
@@ -218,7 +219,7 @@
 		if (!userClickedStatus) {
 			timerHandler = setTimeout(function () {
 				$("#tooltip").hide();
-			}, 500);
+			}, 50);
 		}
 	}
 
@@ -246,6 +247,10 @@
 		} else {
 			return "<span class='status badge badge-danger' style='width: 5%' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>X</span>";
 		}
+	}
+
+	function createBlankStatusBadge() {
+		return "<span class='status badge badge-light border' style='width: 5%;'> </span>";
 	}
 
 	function refreshStatuses() {
@@ -286,8 +291,11 @@
 					oldestTimestamp = timestamp;
 				}
 			}
+			for (let i = serviceStatus.results.length; i < maximumNumberOfResults; i++) {
+				serviceStatusOverTime += createBlankStatusBadge();
+			}
 			let output = ""
-				+ "<div class='container py-3 border-left border-right border-top border-black rounded-0'>"
+				+ "<div class='container py-3 border-left border-right border-top rounded-0'>"
 				+ "  <div class='row mb-2'>"
 				+ "    <div class='col-md-10'>"
 				+ "      <span class='font-weight-bold'>" + serviceStatus.name + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
@@ -306,7 +314,7 @@
 				+ "      " + generatePrettyTimeAgo(oldestTimestamp)
 				+ "    </div>"
 				+ "    <div class='col-6 text-right'>"
-				+ "      " + generatePrettyTimeAgo(newestTimestamp)
+				+ "      Last updated " + generatePrettyTimeAgo(newestTimestamp)
 				+ "    </div>"
 				+ "  </div>"
 				+ "</div>";
@@ -331,7 +339,7 @@
 			}
 			output += ""
 				+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
-				+ "  <div class='container pt-2 border-left border-right border-top border-black border-bottom service-group' id='service-group-" + key + "' data-group='" + key + "' onclick='toggleGroup(this)'>"
+				+ "  <div class='container pt-2 border-left border-right border-top border-bottom service-group' id='service-group-" + key + "' data-group='" + key + "' onclick='toggleGroup(this)'>"
 				+ "    <h5 class='text-secondary text-monospace pb-0'>"
 				+ "      " + groupStatus + " " + group
 				+ "      <span class='float-right service-group-arrow' id='service-group-" + key + "-arrow'>" + (isCurrentlyHidden ? "&#9660;" : "&#9650;") + "</span>"
