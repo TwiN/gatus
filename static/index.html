@@ -3,7 +3,7 @@
 <head>
 	<title>Health Dashboard</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="stylesheet" href="./bootstrap.min.css" />
+	<link href="./tailwind.min.css" rel="stylesheet" />
 	<style>
         html, body {
             background-color: #f7f9fb;
@@ -11,6 +11,9 @@
         html {
             height: 100%;
         }
+		#global {
+			max-width: 1140px;
+		}
         #results div.container:first-child {
             border-top-left-radius: 3px;
             border-top-right-radius: 3px;
@@ -22,15 +25,19 @@
             border-color: #dee2e6;
             border-style: solid;
         }
+        #results .service-group-content > div:nth-child(1) {
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
         .status {
             cursor: pointer;
             transition: all 500ms ease-in-out;
             overflow-x: hidden;
-            padding: .25em 0;
             color: white;
-        }
-        .title {
-            font-size: 2.5rem;
+			width: 5%;
+			font-size: 75%;
+			font-weight: 700;
+			text-align: center;
         }
         .status:hover {
             opacity: 0.7;
@@ -50,6 +57,9 @@
         }
         .status-min-max-ms {
             overflow-x: hidden;
+        }
+        .title {
+            font-size: 2.5rem;
         }
         #tooltip {
             position: fixed;
@@ -106,17 +116,23 @@
         .service-group h5:hover {
             color: #1b1e21 !important;
         }
+        .bg-success {
+            background-color: #28a745;
+        }
+		.text-monospace {
+			font-family: Consolas, monospace;
+		}
 	</style>
 </head>
 <body>
-<div class="container my-3 rounded p-3 border shadow">
+<div class="container mx-auto rounded shadow-xl border my-3 p-5" id="global">
 	<div class="mb-2">
-		<div class="row">
-			<div class="col-8 text-left my-auto">
-				<div class="title display-4">Health Status</div>
+		<div class="flex flex-wrap">
+			<div class="w-2/3 text-left my-auto">
+				<div class="title font-light">Health Status</div>
 			</div>
-			<div class="col-4 text-right">
-				<img src="logo.png" alt="Gatus" style="position: relative; min-width: 50px; max-width: 200px; width: 20%;"/>
+			<div class="w-1/3 flex justify-end">
+				<img src="logo.png" alt="Gatus" style="min-width: 50px; max-width: 200px; width: 20%;"/>
 			</div>
 		</div>
 	</div>
@@ -145,11 +161,11 @@
 </div>
 
 <div id="settings">
-	<div class="input-group input-group-sm">
-		<div class="input-group-prepend">
-			<div class="input-group-text">&#x21bb;</div>
+	<div class="flex bg-gray-200 rounded border border-gray-300 shadow">
+		<div class="rounded-xl py-1 px-2 text-gray-600 text-sm">
+			&#x21bb;
 		</div>
-		<select class="form-control form-control-sm" id="refresh-rate">
+		<select class="text-center text-gray-500 text-sm" id="refresh-rate">
 			<option value="10">10s</option>
 			<option value="30" selected>30s</option>
 			<option value="60">1m</option>
@@ -195,7 +211,7 @@
 			$("#tooltip-errors-container").hide();
 		}
 		// Position tooltip
-		$("#tooltip").css({top: "0px", left: "0px"}).show();
+		$("#tooltip").css({top: "0", left: "0"}).show();
 		let targetTopPosition = element.getBoundingClientRect().y + 30;
 		let targetLeftPosition = element.getBoundingClientRect().x;
 		// Make adjustments if necessary
@@ -237,20 +253,20 @@
 	function createStatusBadge(serviceStatusIndex, index, success) {
 		if (success) {
 			if (showStatusOnHover) {
-				return "<span class='status badge badge-success' style='width: 5%' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
+				return "<span class='status rounded bg-success' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>&#10003;</span>";
 			} else {
-				return "<span class='status badge badge-success' style='width: 5%' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>&#10003;</span>";
+				return "<span class='status rounded bg-success' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>&#10003;</span>";
 			}
 		}
 		if (showStatusOnHover) {
-			return "<span class='status badge badge-danger' style='width: 5%' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
+			return "<span class='status rounded bg-red-600' onmouseenter='showTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)' onmouseleave='fadeTooltip()' onclick='userClickedStatus = !userClickedStatus;'>X</span>";
 		} else {
-			return "<span class='status badge badge-danger' style='width: 5%' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>X</span>";
+			return "<span class='status rounded bg-red-600' onclick='toggleTooltip(\"" + serviceStatusIndex + "\", " + index + ", this)'>X</span>";
 		}
 	}
 
 	function createBlankStatusBadge() {
-		return "<span class='status badge badge-light border' style='width: 5%;'> </span>";
+		return "<span class='status rounded border border-dashed'> </span>";
 	}
 
 	function refreshStatuses() {
@@ -295,25 +311,25 @@
 				serviceStatusOverTime += createBlankStatusBadge();
 			}
 			let output = ""
-				+ "<div class='container py-3 border-left border-right border-top rounded-0'>"
-				+ "  <div class='row mb-2'>"
-				+ "    <div class='col-md-10'>"
-				+ "      <span class='font-weight-bold'>" + serviceStatus.name + "</span> <span class='text-secondary font-weight-lighter'>- " + hostname + "</span>"
+				+ "<div class='container px-3 py-3 border-l border-r border-t rounded-none'>"
+				+ "  <div class='flex flex-wrap mb-2'>"
+				+ "    <div class='w-3/4'>"
+				+ "      <span class='font-bold'>" + serviceStatus.name + "</span> <span class='text-gray-500 font-light'>- " + hostname + "</span>"
 				+ "    </div>"
-				+ "    <div class='col-md-2 text-right'>"
-				+ "      <span class='font-weight-lighter status-min-max-ms'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
+				+ "    <div class='w-1/4 text-right'>"
+				+ "      <span class='font-light status-min-max-ms'>" + (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) + "ms</span>"
 				+ "    </div>"
 				+ "  </div>"
-				+ "  <div class='row'>"
-				+ "    <div class='col-12 d-flex flex-row-reverse status-over-time'>"
+				+ "  <div class=''>"
+				+ "    <div class='status-over-time flex flex-row-reverse'>"
 				+ "      " + serviceStatusOverTime
 				+ "    </div>"
 				+ "  </div>"
-				+ "  <div class='row status-time-ago'>"
-				+ "    <div class='col-6'>"
+				+ "  <div class='flex flex-wrap status-time-ago'>"
+				+ "    <div class='w-1/2'>"
 				+ "      " + generatePrettyTimeAgo(oldestTimestamp)
 				+ "    </div>"
-				+ "    <div class='col-6 text-right'>"
+				+ "    <div class='w-1/2 text-right'>"
 				+ "      " + generatePrettyTimeAgo(newestTimestamp)
 				+ "    </div>"
 				+ "  </div>"
@@ -333,14 +349,14 @@
 			let key = group.replace(/[^a-zA-Z0-9]/g, '');
 			let existingGroupContentSelector = $("#service-group-" + key + "-content");
 			let isCurrentlyHidden = existingGroupContentSelector.length && existingGroupContentSelector[0].style.display === 'none';
-			let groupStatus = "<span class='text-success'>&#10003;</span>";
-			if (outputByGroup[group].includes("badge badge-danger")) {
-				groupStatus = "<span class='text-warning'>~</span>";
+			let groupStatus = "<span class='text-green-600'>&#10003;</span>";
+			if (outputByGroup[group].includes("bg-red-600")) {
+				groupStatus = "<span class='text-yellow-400'>~</span>";
 			}
 			output += ""
-				+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
-				+ "  <div class='container pt-2 border-left border-right border-top border-bottom service-group' id='service-group-" + key + "' data-group='" + key + "' onclick='toggleGroup(this)'>"
-				+ "    <h5 class='text-secondary text-monospace pb-0'>"
+				+ "<div class='" + (output.length ? 'mt-4' : 'mt-3') + "'>"
+				+ "  <div class='container pt-2 border service-group' id='service-group-" + key + "' data-group='" + key + "' onclick='toggleGroup(this)'>"
+				+ "    <h5 class='text-monospace text-gray-400 text-xl font-medium pb-2 px-3'>"
 				+ "      " + groupStatus + " " + group
 				+ "      <span class='float-right service-group-arrow' id='service-group-" + key + "-arrow'>" + (isCurrentlyHidden ? "&#9660;" : "&#9650;") + "</span>"
 				+ "    </h5>"
@@ -353,7 +369,7 @@
 		// Add all services that don't have a group at the end
 		if (outputByGroup['undefined']) {
 			output += ""
-				+ "<div class='mt-" + (output.length ? '4' : '3') + "'>"
+				+ "<div class='" + (output.length ? 'mt-4' : 'mt-3') + "'>"
 				+ "  " + outputByGroup['undefined']
 				+ "</div>"
 		}
