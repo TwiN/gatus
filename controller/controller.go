@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -34,7 +35,10 @@ func init() {
 // Handle creates the router and starts the server
 func Handle() {
 	cfg := config.Get()
-	router := CreateRouter(cfg)
+	var router http.Handler = CreateRouter(cfg)
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		router = developmentCorsHandler(router)
+	}
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
 		Handler:      router,
