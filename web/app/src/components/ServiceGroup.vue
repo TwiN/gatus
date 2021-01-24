@@ -1,15 +1,18 @@
 <template>
   <div :class="services.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
-      <div class="service-group container pt-2 border">
+      <div class="service-group container pt-2 border" @click="toggleGroup">
         <h5 class='text-monospace text-gray-400 text-xl font-medium pb-2 px-3'>
           <span v-if="healthy" class='text-green-600'>&#10003;</span>
           <span v-else class='text-yellow-400'>~</span>
           {{ name }}
+          <span class='float-right service-group-arrow'>
+            {{ collapsed ? '&#9660;' : '&#9650;' }}
+          </span>
         </h5>
       </div>
     </slot>
-    <div :class="name === 'undefined' ? '' : 'service-group-content'">
+    <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
       <slot v-for="service in services" :key="service">
         <Service :data="service"/>
       </slot>
@@ -49,6 +52,9 @@ export default {
       if (!this.healthy) {
         this.healthy = true;
       }
+    },
+    toggleGroup() {
+      this.collapsed = !this.collapsed;
     }
   },
   watch: {
@@ -61,7 +67,8 @@ export default {
   },
   data() {
     return {
-      healthy: true
+      healthy: true,
+      collapsed: false
     }
   }
 }
