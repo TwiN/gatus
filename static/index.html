@@ -194,8 +194,8 @@
 		$("#tooltip-response-time").text(parseInt(serviceResult.duration/1000000) + "ms");
 		// Populate the condition section
 		let conditions = "";
-		for (let i in serviceResult['condition-results']) {
-			let conditionResult = serviceResult['condition-results'][i];
+		for (let i in serviceResult.conditionResults) {
+			let conditionResult = serviceResult.conditionResults[i];
 			conditions += (conditionResult.success ? "&#10003;" : "X") + " ~ " + htmlEntities(conditionResult.condition) + "<br />";
 		}
 		$("#tooltip-conditions").html(conditions);

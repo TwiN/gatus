@@ -31,7 +31,7 @@ type Result struct {
 	Errors []string `json:"errors"`
 
 	// ConditionResults results of the service's conditions
-	ConditionResults []*ConditionResult `json:"condition-results"`
+	ConditionResults []*ConditionResult `json:"conditionResults"`
 
 	// Success whether the result signifies a success or not
 	Success bool `json:"success"`
