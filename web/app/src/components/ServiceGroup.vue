@@ -14,7 +14,7 @@
     </slot>
     <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
       <slot v-for="service in services" :key="service">
-        <Service :data="service"/>
+        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="50" />
       </slot>
     </div>
   </div>
@@ -55,6 +55,9 @@ export default {
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
+    },
+    showTooltip(result, event) {
+      this.$emit('showTooltip', result, event);
     }
   },
   watch: {

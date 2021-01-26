@@ -1,7 +1,8 @@
 <template>
-  <Services :serviceStatuses="serviceStatuses" :maximumNumberOfResults="20" :showStatusOnHover="true" />
-  <Social />
-  <Settings @refreshStatuses="fetchStatuses" />
+  <Services :serviceStatuses="serviceStatuses" :showStatusOnHover="true" @showTooltip="showTooltip"/>
+  <Tooltip :result="tooltip.result" :event="tooltip.event"/>
+  <Social/>
+  <Settings @refreshStatuses="fetchStatuses"/>
 </template>
 
 
@@ -9,13 +10,15 @@
 import Social from './components/Social.vue'
 import Settings from './components/Settings.vue'
 import Services from './components/Services.vue';
+import Tooltip from './components/Tooltip.vue';
 
 export default {
   name: 'App',
   components: {
     Services,
     Social,
-    Settings
+    Settings,
+    Tooltip
   },
   methods: {
     fetchStatuses() {
@@ -28,11 +31,15 @@ export default {
               this.serviceStatuses = data;
             }
           });
+    },
+    showTooltip(result, event) {
+      this.tooltip = {result: result, event: event};
     }
   },
   data() {
     return {
-      serviceStatuses: {}
+      serviceStatuses: {},
+      tooltip: {}
     }
   },
   created() {
@@ -43,10 +50,11 @@ export default {
 
 
 <style>
-  html, body {
-    background-color: #f7f9fb;
-  }
-  html {
-    height: 100%;
-  }
+html, body {
+  background-color: #f7f9fb;
+}
+
+html, body {
+  height: 100%;
+}
 </style>

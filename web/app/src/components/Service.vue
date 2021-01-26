@@ -12,16 +12,17 @@
     </div>
     <div>
       <div class='status-over-time flex flex-row'>
-        <slot v-for="filler in 20 - data.results.length" :key="filler">
+        <slot v-for="filler in maximumNumberOfResults - data.results.length" :key="filler">
           <span class="status rounded border border-dashed"> </span>
         </slot>
         <slot v-for="result in data.results" :key="result">
-          <span v-if="result.success" class="status rounded bg-success">&#10003;</span>
-          <span v-else class="status rounded bg-red-600">X</span>
+          <span v-if="result.success" class="status rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)">&#10003;</span>
+          <span v-else class="status rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)">X</span>
         </slot>
       </div>
     </div>
     <div class='flex flex-wrap status-time-ago'>
+      <!-- Show "Last update at" instead? -->
       <div class='w-1/2'>
         {{ generatePrettyTimeAgo(data.results[0].timestamp) }}
       </div>
@@ -37,7 +38,8 @@
 export default {
   name: 'Service',
   props: {
-    data: Object
+    maximumNumberOfResults: Number,
+    data: Object,
   },
   methods: {
     updateMinAndMaxResponseTimes() {
@@ -70,6 +72,9 @@ export default {
         return minutes + " minute" + (minutes !== "1" ? "s" : "") + " ago";
       }
       return (differenceInMs/1000).toFixed(0) + " seconds ago";
+    },
+    showTooltip(result, event) {
+      this.$emit('showTooltip', result, event);
     }
   },
   watch: {

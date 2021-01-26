@@ -12,7 +12,7 @@
     </div>
     <div id="results">
       <slot v-for="serviceGroup in serviceGroups" :key="serviceGroup">
-        <ServiceGroup :services="serviceGroup.services" :name="serviceGroup.name" />
+        <ServiceGroup :services="serviceGroup.services" :name="serviceGroup.name" @showTooltip="showTooltip" />
       </slot>
     </div>
   </div>
@@ -28,7 +28,6 @@ export default {
     ServiceGroup
   },
   props: {
-    maximumNumberOfResults: Number,
     showStatusOnHover: Boolean,
     serviceStatuses: Object
   },
@@ -54,6 +53,9 @@ export default {
         serviceGroups.push({name: 'undefined', services: outputByGroup['undefined']})
       }
       this.serviceGroups = serviceGroups;
+    },
+    showTooltip(result, event) {
+      this.$emit('showTooltip', result, event);
     }
   },
   watch: {

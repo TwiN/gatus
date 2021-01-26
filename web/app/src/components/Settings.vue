@@ -29,7 +29,7 @@ export default {
       }, seconds * 1000);
     },
     refreshStatuses() {
-      this.$emit('refreshStatuses')
+      this.$emit('refreshStatuses');
     },
     handleChangeRefreshInterval() {
       this.refreshStatuses();
