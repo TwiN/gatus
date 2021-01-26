@@ -11,6 +11,7 @@ import Social from './components/Social.vue'
 import Settings from './components/Settings.vue'
 import Services from './components/Services.vue';
 import Tooltip from './components/Tooltip.vue';
+import {SERVER_URL} from "./main.js";
 
 export default {
   name: 'App',
@@ -23,7 +24,7 @@ export default {
   methods: {
     fetchStatuses() {
       console.log("[App][fetchStatuses] Fetching statuses");
-      fetch("http://localhost:8080/api/v1/statuses")
+      fetch(`${SERVER_URL}/api/v1/statuses`)
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatuses) !== JSON.stringify(data)) {
