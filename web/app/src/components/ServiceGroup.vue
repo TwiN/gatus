@@ -14,7 +14,7 @@
     </slot>
     <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
       <slot v-for="service in services" :key="service">
-        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="50" />
+        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="20" />
       </slot>
     </div>
   </div>
