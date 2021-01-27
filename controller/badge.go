@@ -14,26 +14,18 @@ import (
 // badgeHandler handles the automatic generation of badge based on the group name and service name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
-// Pattern for {identifier}: group-<GROUP_NAME>-service-<SERVICE_NAME>.svg
+// Pattern for {identifier}: <KEY>.svg
 func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
-	// group-<GROUP_NAME>-service-<SERVICE_NAME>.svg
-	identifier := variables["identifier"]
 	if duration != "7d" && duration != "24h" && duration != "1h" {
 		writer.WriteHeader(http.StatusBadRequest)
 		_, _ = writer.Write([]byte("Durations supported: 7d, 24h, 1h"))
 		return
 	}
-	parts := strings.Split(identifier, "-service-")
-	if len(parts) != 2 || !strings.HasPrefix(identifier, "group-") || !strings.HasSuffix(identifier, ".svg") {
-		writer.WriteHeader(http.StatusBadRequest)
-		_, _ = writer.Write([]byte("Invalid path: Pattern should look like /group-<GROUP_NAME>-service-<SERVICE_NAME>.svg"))
-		return
-	}
-	groupName := strings.TrimPrefix(parts[0], "group-")
-	serviceName := strings.TrimSuffix(parts[1], ".svg")
-	uptime := watchdog.GetUptimeByServiceGroupAndName(groupName, serviceName)
+	identifier := variables["identifier"]
+	key := strings.TrimSuffix(identifier, ".svg")
+	uptime := watchdog.GetUptimeByKey(key)
 	if uptime == nil {
 		writer.WriteHeader(http.StatusNotFound)
 		_, _ = writer.Write([]byte("Requested service not found"))
