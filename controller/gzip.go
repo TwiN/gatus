@@ -32,10 +32,18 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-// GzipHandler compresses the response of a given handler if the request's headers specify that the client
+// GzipHandler compresses the response of a given http.Handler if the request's headers specify that the client
 // supports gzip encoding
 func GzipHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+	return GzipHandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(writer, r)
+	})
+}
+
+// GzipHandlerFunc compresses the response of a given http.HandlerFunc if the request's headers specify that the client
+// supports gzip encoding
+func GzipHandlerFunc(next http.HandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, r *http.Request) {
 		// If the request doesn't specify that it supports gzip, then don't compress it
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(writer, r)
@@ -47,5 +55,5 @@ func GzipHandler(next http.Handler) http.Handler {
 		gz.Reset(writer)
 		defer gz.Close()
 		next.ServeHTTP(&gzipResponseWriter{ResponseWriter: writer, Writer: gz}, r)
-	})
+	}
 }

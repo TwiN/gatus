@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,12 +54,9 @@ func Handle() {
 // CreateRouter creates the router for the http server
 func CreateRouter(cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
-	statusesHandler := serviceStatusesHandler
-	if cfg.Security != nil && cfg.Security.IsValid() {
-		statusesHandler = security.Handler(serviceStatusesHandler, cfg.Security)
-	}
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET") // favicon needs to be always served from the root
-	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses"), statusesHandler).Methods("GET")
+	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses"), secureIfNecessary(cfg, serviceStatusesHandler)).Methods("GET")
+	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses/{key}"), secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
 	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/badges/uptime/{duration}/{identifier}"), badgeHandler).Methods("GET")
 	router.HandleFunc(cfg.Web.PrependWithContextRoot("/health"), healthHandler).Methods("GET")
 	router.PathPrefix(cfg.Web.ContextRoot).Handler(GzipHandler(http.StripPrefix(cfg.Web.ContextRoot, http.FileServer(http.Dir("./static")))))
@@ -68,6 +66,16 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	return router
 }
 
+func secureIfNecessary(cfg *config.Config, handler http.HandlerFunc) http.HandlerFunc {
+	if cfg.Security != nil && cfg.Security.IsValid() {
+		return security.Handler(serviceStatusesHandler, cfg.Security)
+	}
+	return handler
+}
+
+// serviceStatusesHandler handles requests to retrieve all service statuses
+// Due to the size of the response, this function leverages a cache.
+// Must not be wrapped by GzipHandler
 func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 	gzipped := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 	var exists bool
@@ -85,7 +93,7 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		gzipWriter := gzip.NewWriter(buffer)
 		data, err = watchdog.GetServiceStatusesAsJSON()
 		if err != nil {
-			log.Printf("[main][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
+			log.Printf("[controller][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
 			_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
 			return
@@ -100,6 +108,28 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		data = value.([]byte)
+	}
+	writer.Header().Add("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	_, _ = writer.Write(data)
+}
+
+// serviceStatusHandler retrieves a single ServiceStatus by group name and service name
+func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	serviceStatus := watchdog.GetServiceStatusByKey(vars["key"])
+	if serviceStatus == nil {
+		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
+		writer.WriteHeader(http.StatusNotFound)
+		_, _ = writer.Write([]byte("not found"))
+		return
+	}
+	data, err := json.Marshal(serviceStatus)
+	if err != nil {
+		log.Printf("[controller][serviceStatusHandler] Unable to marshal object to JSON: %s", err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
+		return
 	}
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)

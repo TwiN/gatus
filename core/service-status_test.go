@@ -14,6 +14,9 @@ func TestNewServiceStatus(t *testing.T) {
 	if serviceStatus.Group != service.Group {
 		t.Errorf("expected %s, got %s", service.Group, serviceStatus.Group)
 	}
+	if serviceStatus.Key != "group_name" {
+		t.Errorf("expected %s, got %s", "group_name", serviceStatus.Key)
+	}
 }
 
 func TestServiceStatus_AddResult(t *testing.T) {

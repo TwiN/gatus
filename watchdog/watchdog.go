@@ -25,13 +25,18 @@ func GetServiceStatusesAsJSON() ([]byte, error) {
 	return store.GetAllAsJSON()
 }
 
-// GetUptimeByServiceGroupAndName returns the uptime of a service based on its group and name
-func GetUptimeByServiceGroupAndName(group, name string) *core.Uptime {
-	serviceStatus := store.GetServiceStatus(group, name)
+// GetUptimeByKey returns the uptime of a service based on the ServiceStatus key
+func GetUptimeByKey(key string) *core.Uptime {
+	serviceStatus := store.GetServiceStatusByKey(key)
 	if serviceStatus == nil {
 		return nil
 	}
 	return serviceStatus.Uptime
+}
+
+// GetServiceStatusByKey returns the uptime of a service based on its ServiceStatus key
+func GetServiceStatusByKey(key string) *core.ServiceStatus {
+	return store.GetServiceStatusByKey(key)
 }
 
 // Monitor loops over each services and starts a goroutine to monitor each services separately

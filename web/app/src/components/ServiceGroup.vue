@@ -33,6 +33,7 @@ export default {
     name: String,
     services: Array
   },
+  emits: ['showTooltip'],
   methods: {
     healthCheck() {
       if (this.services) {

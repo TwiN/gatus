@@ -1,5 +1,7 @@
 package core
 
+import "github.com/TwinProduction/gatus/util"
+
 // ServiceStatus contains the evaluation Results of a Service
 type ServiceStatus struct {
 	// Name of the service
@@ -7,6 +9,9 @@ type ServiceStatus struct {
 
 	// Group the service is a part of. Used for grouping multiple services together on the front end.
 	Group string `json:"group,omitempty"`
+
+	// Key is the key representing the ServiceStatus
+	Key string `json:"key"`
 
 	// Results is the list of service evaluation results
 	Results []*Result `json:"results"`
@@ -20,6 +25,7 @@ func NewServiceStatus(service *Service) *ServiceStatus {
 	return &ServiceStatus{
 		Name:    service.Name,
 		Group:   service.Group,
+		Key:     util.ConvertGroupAndServiceToKey(service.Group, service.Name),
 		Results: make([]*Result, 0),
 		Uptime:  NewUptime(),
 	}

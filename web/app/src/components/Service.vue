@@ -1,8 +1,8 @@
 <template>
-  <div class='container px-3 py-3 border-l border-r border-t rounded-none'>
+  <div class='service container px-3 py-3 border-l border-r border-t rounded-none' v-if="data && data.results && data.results.length">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <span class='font-bold'>{{ data.name }}</span> <span class='text-gray-500 font-light'>- {{ data.results[data.results.length - 1].hostname }}</span>
+        <router-link :to="generatePath()" class="font-bold transition duration-200 ease-in-out hover:text-blue-900">{{ data.name }}</router-link> <span class='text-gray-500 font-light'>- {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light status-min-max-ms'>
@@ -41,6 +41,7 @@ export default {
     maximumNumberOfResults: Number,
     data: Object,
   },
+  emits: ['showTooltip'],
   methods: {
     updateMinAndMaxResponseTimes() {
       let minResponseTime = null;
@@ -73,6 +74,12 @@ export default {
       }
       return (differenceInMs/1000).toFixed(0) + " seconds ago";
     },
+    generatePath() {
+      if (!this.data) {
+        return "/";
+      }
+      return "/services/" + this.data.key;
+    },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
     }
@@ -96,6 +103,19 @@ export default {
 
 
 <style>
+.service:first-child {
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+.service:last-child {
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-bottom-width: 1px;
+  border-color: #dee2e6;
+  border-style: solid;
+}
+
 .status {
   cursor: pointer;
   transition: all 500ms ease-in-out;

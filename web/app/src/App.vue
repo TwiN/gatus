@@ -1,51 +1,42 @@
 <template>
-  <Services :serviceStatuses="serviceStatuses" :showStatusOnHover="true" @showTooltip="showTooltip"/>
+  <div class="container container-xs relative mx-auto rounded shadow-xl border my-3 p-5 text-left" id="global">
+    <div class="mb-2">
+      <div class="flex flex-wrap">
+        <div class="w-2/3 text-left my-auto">
+          <div class="title text-5xl font-light">Health Status</div>
+        </div>
+        <div class="w-1/3 flex justify-end">
+          <img src="./assets/logo.png" alt="Gatus" style="min-width: 50px; max-width: 200px; width: 20%;"/>
+        </div>
+      </div>
+    </div>
+    <router-view @showTooltip="showTooltip"/>
+  </div>
   <Tooltip :result="tooltip.result" :event="tooltip.event"/>
   <Social/>
-  <Settings @refreshStatuses="fetchStatuses"/>
 </template>
 
 
 <script>
 import Social from './components/Social.vue'
-import Settings from './components/Settings.vue'
-import Services from './components/Services.vue';
 import Tooltip from './components/Tooltip.vue';
-import {SERVER_URL} from "./main.js";
 
 export default {
   name: 'App',
   components: {
-    Services,
     Social,
-    Settings,
     Tooltip
   },
   methods: {
-    fetchStatuses() {
-      console.log("[App][fetchStatuses] Fetching statuses");
-      fetch(`${SERVER_URL}/api/v1/statuses`)
-          .then(response => response.json())
-          .then(data => {
-            if (JSON.stringify(this.serviceStatuses) !== JSON.stringify(data)) {
-              console.log(data);
-              this.serviceStatuses = data;
-            }
-          });
-    },
     showTooltip(result, event) {
       this.tooltip = {result: result, event: event};
     }
   },
   data() {
     return {
-      serviceStatuses: {},
       tooltip: {}
     }
   },
-  created() {
-    this.fetchStatuses();
-  }
 }
 </script>
 
@@ -53,9 +44,10 @@ export default {
 <style>
 html, body {
   background-color: #f7f9fb;
+  height: 100%;
 }
 
-html, body {
-  height: 100%;
+#global, #results {
+  max-width: 1200px;
 }
 </style>

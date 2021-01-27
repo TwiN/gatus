@@ -25,20 +25,23 @@ export default {
     setRefreshInterval(seconds) {
       let that = this;
       this.refreshIntervalHandler = setInterval(function() {
-        that.refreshStatuses();
+        that.refreshData();
       }, seconds * 1000);
     },
-    refreshStatuses() {
-      this.$emit('refreshStatuses');
+    refreshData() {
+      this.$emit('refreshData');
     },
     handleChangeRefreshInterval() {
-      this.refreshStatuses();
+      this.refreshData();
       clearInterval(this.refreshIntervalHandler);
       this.setRefreshInterval(this.$refs.refreshInterval.value);
     }
   },
   created() {
     this.setRefreshInterval(this.refreshInterval);
+  },
+  unmounted() {
+    clearInterval(this.refreshIntervalHandler);
   },
   data() {
     return {
