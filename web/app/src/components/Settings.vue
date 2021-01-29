@@ -24,7 +24,7 @@ export default {
   methods: {
     setRefreshInterval(seconds) {
       let that = this;
-      this.refreshIntervalHandler = setInterval(function() {
+      this.refreshIntervalHandler = setInterval(function () {
         that.refreshData();
       }, seconds * 1000);
     },
@@ -57,13 +57,14 @@ export default {
 
 
 <style scoped>
-  #settings {
-    position: fixed;
-    left: 5px;
-    bottom: 5px;
-    padding: 5px;
-  }
-  #settings select:focus {
-    box-shadow: none;
-  }
+#settings {
+  position: fixed;
+  left: 5px;
+  bottom: 5px;
+  padding: 5px;
+}
+
+#settings select:focus {
+  box-shadow: none;
+}
 </style>
