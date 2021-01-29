@@ -2,11 +2,11 @@
   <div class="container container-xs relative mx-auto rounded shadow-xl border my-3 p-5 text-left" id="global">
     <div class="mb-2">
       <div class="flex flex-wrap">
-        <div class="w-2/3 text-left my-auto">
+        <div class="w-3/4 text-left my-auto">
           <div class="title text-5xl font-light">Health Status</div>
         </div>
-        <div class="w-1/3 flex justify-end">
-          <img src="./assets/logo.png" alt="Gatus" style="min-width: 50px; max-width: 200px; width: 20%;"/>
+        <div class="w-1/4 flex justify-end">
+          <img src="./assets/logo.png" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
         </div>
       </div>
     </div>
@@ -42,9 +42,11 @@ export default {
 
 
 <style>
+html {
+  height: 100%;
+}
 html, body {
   background-color: #f7f9fb;
-  height: 100%;
 }
 
 #global, #results {

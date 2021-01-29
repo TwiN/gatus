@@ -2,7 +2,7 @@
   <div class='service container px-3 py-3 border-l border-r border-t rounded-none' v-if="data && data.results && data.results.length">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <router-link :to="generatePath()" class="font-bold transition duration-200 ease-in-out hover:text-blue-900">{{ data.name }}</router-link> <span class='text-gray-500 font-light'>- {{ data.results[data.results.length - 1].hostname }}</span>
+        <router-link :to="generatePath()" class="inline-block font-bold transform hover:scale-110 transition duration-100 ease-in-out hover:text-blue-800" title="View detailed service health">{{ data.name }}</router-link> <span class='text-gray-500 font-light'>| {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light status-min-max-ms'>
@@ -35,6 +35,8 @@
 
 
 <script>
+import {helper} from "@/mixins/helper";
+
 export default {
   name: 'Service',
   props: {
@@ -42,6 +44,7 @@ export default {
     data: Object,
   },
   emits: ['showTooltip'],
+  mixins: [helper],
   methods: {
     updateMinAndMaxResponseTimes() {
       let minResponseTime = null;
@@ -61,18 +64,6 @@ export default {
       if (this.maxResponseTime !== maxResponseTime) {
         this.maxResponseTime = maxResponseTime;
       }
-    },
-    generatePrettyTimeAgo(t) {
-      let differenceInMs = new Date().getTime() - new Date(t).getTime();
-      if (differenceInMs > 3600000) {
-        let hours = (differenceInMs/3600000).toFixed(0);
-        return hours + " hour" + (hours !== "1" ? "s" : "") + " ago";
-      }
-      if (differenceInMs > 60000) {
-        let minutes = (differenceInMs/60000).toFixed(0);
-        return minutes + " minute" + (minutes !== "1" ? "s" : "") + " ago";
-      }
-      return (differenceInMs/1000).toFixed(0) + " seconds ago";
     },
     generatePath() {
       if (!this.data) {

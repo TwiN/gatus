@@ -124,7 +124,14 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 		_, _ = writer.Write([]byte("not found"))
 		return
 	}
-	data, err := json.Marshal(serviceStatus)
+	data := map[string]interface{}{
+		"serviceStatus": serviceStatus,
+		// This is my lazy way of exposing events even though they're not visible from the json annotation
+		// present in ServiceStatus. We do this because creating a separate object for each endpoints
+		// would be wasteful (one with and one without Events)
+		"events": serviceStatus.Events,
+	}
+	output, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("[controller][serviceStatusHandler] Unable to marshal object to JSON: %s", err.Error())
 		writer.WriteHeader(http.StatusInternalServerError)
@@ -133,7 +140,7 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	}
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(data)
+	_, _ = writer.Write(output)
 }
 
 func healthHandler(writer http.ResponseWriter, _ *http.Request) {
