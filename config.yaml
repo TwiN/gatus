@@ -1,14 +1,14 @@
 services:
-  - name: frontend
-    group: core
+  - name: Front End
+    group: Excuse Me
     url: "https://twinnation.org/health"
-    interval: 1m
+    interval: 30s
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 70"
+      - "[RESPONSE_TIME] < 23"
 
-  - name: backend
+  - name: back-end
     group: core
     url: "http://example.org/"
     interval: 5m
@@ -29,7 +29,7 @@ services:
     conditions:
       - "[STATUS] == 200"
 
-  - name: cat-fact
+  - name: cat fact
     url: "https://cat-fact.herokuapp.com/facts/random"
     interval: 5m
     conditions:

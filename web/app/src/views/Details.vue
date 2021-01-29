@@ -85,7 +85,7 @@ export default {
   methods: {
     fetchData() {
       console.log("[Details][fetchData] Fetching data");
-      fetch(`${SERVER_URL}/api/v1/statuses/${this.$route.params.key}`)
+      fetch(`${this.serverUrl}/api/v1/statuses/${this.$route.params.key}`)
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
@@ -96,8 +96,10 @@ export default {
                 if (i === data.events.length-1) {
                   if (event.type === "UNHEALTHY") {
                     event.fancyText = "Service is unhealthy";
-                  } else {
+                  } else if (event.type === "HEALTHY") {
                     event.fancyText = "Service is healthy";
+                  } else if (event.type === "START") {
+                    event.fancyText = "Monitoring started";
                   }
                 } else {
                   let nextEvent = data.events[i+1];
@@ -121,7 +123,7 @@ export default {
           });
     },
     generateBadgeImageURL(duration) {
-      return `${SERVER_URL}/api/v1/badges/uptime/${duration}/${this.serviceStatus.key}`;
+      return `${this.serverUrl}/api/v1/badges/uptime/${duration}/${this.serviceStatus.key}`;
     },
     prettifyUptime(uptime) {
       if (!uptime) {
@@ -140,7 +142,9 @@ export default {
   data() {
     return {
       serviceStatus: {},
-      events: []
+      events: [],
+      // Since this page isn't at the root, we need to modify the server URL a bit
+      serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
     }
   },
   created() {
