@@ -2,10 +2,10 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/util"
 )
 
 // InMemoryStore implements an in-memory store
@@ -32,8 +32,16 @@ func (ims *InMemoryStore) GetAllAsJSON() ([]byte, error) {
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStatus {
-	key := fmt.Sprintf("%s_%s", group, name)
+func (ims *InMemoryStore) GetServiceStatus(groupName, serviceName string) *core.ServiceStatus {
+	key := util.ConvertGroupAndServiceToKey(groupName, serviceName)
+	ims.serviceResultsMutex.RLock()
+	serviceStatus := ims.serviceStatuses[key]
+	ims.serviceResultsMutex.RUnlock()
+	return serviceStatus
+}
+
+// GetServiceStatusByKey returns the service status for a given key
+func (ims *InMemoryStore) GetServiceStatusByKey(key string) *core.ServiceStatus {
 	ims.serviceResultsMutex.RLock()
 	serviceStatus := ims.serviceStatuses[key]
 	ims.serviceResultsMutex.RUnlock()
@@ -42,7 +50,7 @@ func (ims *InMemoryStore) GetServiceStatus(group, name string) *core.ServiceStat
 
 // Insert inserts the observed result for the specified service into the in memory store
 func (ims *InMemoryStore) Insert(service *core.Service, result *core.Result) {
-	key := fmt.Sprintf("%s_%s", service.Group, service.Name)
+	key := util.ConvertGroupAndServiceToKey(service.Group, service.Name)
 	ims.serviceResultsMutex.Lock()
 	serviceStatus, exists := ims.serviceStatuses[key]
 	if !exists {

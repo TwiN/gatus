@@ -1,4 +1,4 @@
-![Gatus](static/logo-with-name.png)
+![Gatus](assets/logo-with-name.png)
 
 ![build](https://github.com/TwinProduction/gatus/workflows/build/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwinProduction/gatus?)](https://goreportcard.com/report/github.com/TwinProduction/gatus)
@@ -58,7 +58,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **GitHub uptime badges** (ALPHA): ![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/group-core-service-twinnation%20-%20external.svg) ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg) ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/group-core-service-twinnation%20-%20external.svg)
+- **GitHub uptime badges** (ALPHA): ![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/core_twinnation---external.svg) ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/core_twinnation---external.svg) ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_twinnation---external.svg)
 - **Service auto discovery in Kubernetes** (ALPHA)
 
 
@@ -708,9 +708,9 @@ web:
 ```
 
 ### Uptime badges
-![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/group-core-service-twinnation%20-%20external.svg)
-![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
-![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/group-core-service-twinnation%20-%20external.svg)
+![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/core_twinnation---external.svg)
+![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/core_twinnation---external.svg)
+![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_twinnation---external.svg)
 
 > **NOTE**: This feature is currently in ALPHA
 
@@ -737,7 +737,7 @@ If you want to display a service that is not part of a group, you must leave the
 http://example.com/api/v1/badges/uptime/7d/group--service-frontend.svg
 ```
 
-Example: ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
+Example: ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/core_twinnation---external.svg)
 ```
 ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/group-core-service-twinnation%20-%20external.svg)
 ```

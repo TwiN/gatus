@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/util"
 )
 
 var (
@@ -160,7 +161,6 @@ func TestInMemoryStore_GetServiceStatus(t *testing.T) {
 	if serviceStatus.Uptime.LastSevenDays != 0.5 {
 		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
 	}
-	fmt.Println(serviceStatus.Results[0].Timestamp.Format(time.RFC3339))
 }
 
 func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
@@ -181,6 +181,29 @@ func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) 
 	}
 }
 
+func TestInMemoryStore_GetServiceStatusByKey(t *testing.T) {
+	store := NewInMemoryStore()
+	store.Insert(&testService, &testSuccessfulResult)
+	store.Insert(&testService, &testUnsuccessfulResult)
+
+	serviceStatus := store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(testService.Group, testService.Name))
+	if serviceStatus == nil {
+		t.Fatalf("serviceStatus shouldn't have been nil")
+	}
+	if serviceStatus.Uptime == nil {
+		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
+	}
+	if serviceStatus.Uptime.LastHour != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastSevenDays != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
+	}
+}
+
 func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	store := NewInMemoryStore()
 	firstResult := &testSuccessfulResult
@@ -194,7 +217,7 @@ func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal("shouldn't have returned an error, got", err.Error())
 	}
-	expectedOutput := `{"group_name":{"name":"name","group":"group","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"condition-results":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
+	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
 	if string(output) != expectedOutput {
 		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
 	}
