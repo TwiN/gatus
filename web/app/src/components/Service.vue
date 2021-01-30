@@ -1,8 +1,11 @@
 <template>
-  <div class='service container px-3 py-3 border-l border-r border-t rounded-none' v-if="data && data.results && data.results.length">
+  <div class='service container px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data && data.results && data.results.length">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <router-link :to="generatePath()" class="inline-block font-bold transform hover:scale-110 transition duration-100 ease-in-out hover:text-blue-800" title="View detailed service health">{{ data.name }}</router-link> <span class='text-gray-500 font-light'>| {{ data.results[data.results.length - 1].hostname }}</span>
+        <router-link :to="generatePath()" class="inline-block font-bold transform hover:scale-105 transition duration-100 ease-in-out hover:text-blue-800 hover:rotate-2" title="View detailed service health">
+          {{ data.name }}
+        </router-link>
+        <span class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light status-min-max-ms'>
