@@ -3,7 +3,7 @@
     <div class="mb-2">
       <div class="flex flex-wrap">
         <div class="w-3/4 text-left my-auto">
-          <div class="title text-5xl font-light">Health Status</div>
+          <div class="text-3xl xl:text-5xl lg:text-4xl font-light">Health Status</div>
         </div>
         <div class="w-1/4 flex justify-end">
           <img src="./assets/logo.png" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
@@ -45,6 +45,7 @@ export default {
 html {
   height: 100%;
 }
+
 html, body {
   background-color: #f7f9fb;
 }
