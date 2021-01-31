@@ -17,12 +17,11 @@ export default {
   emits: ['showTooltip'],
   methods: {
     fetchData() {
-      console.log("[Home][fetchData] Fetching data");
+      //console.log("[Home][fetchData] Fetching data");
       fetch(`${SERVER_URL}/api/v1/statuses`)
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatuses) !== JSON.stringify(data)) {
-              console.log(data);
               this.serviceStatuses = data;
             }
           });

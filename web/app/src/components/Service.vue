@@ -2,14 +2,14 @@
   <div class='service container px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data && data.results && data.results.length">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <router-link :to="generatePath()" class="inline-block font-bold transform hover:scale-105 transition duration-100 ease-in-out hover:text-blue-800 hover:rotate-2" title="View detailed service health">
+        <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline" title="View detailed service health">
           {{ data.name }}
         </router-link>
         <span class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light status-min-max-ms'>
-          {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + "-" + maxResponseTime)) }}ms
+          {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + '-' + maxResponseTime)) }}ms
         </span>
       </div>
     </div>
@@ -70,9 +70,9 @@ export default {
     },
     generatePath() {
       if (!this.data) {
-        return "/";
+        return '/';
       }
-      return "/services/" + this.data.key;
+      return '/services/' + this.data.key;
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -105,7 +105,7 @@ export default {
 .service:last-child {
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-  border-bottom-width: 1px;
+  border-bottom-width: 3px;
   border-color: #dee2e6;
   border-style: solid;
 }

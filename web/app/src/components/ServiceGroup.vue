@@ -14,7 +14,7 @@
     </slot>
     <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
       <slot v-for="service in services" :key="service">
-        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="20" />
+        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="20"/>
       </slot>
     </div>
   </div>
@@ -56,6 +56,7 @@ export default {
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
+      sessionStorage.setItem(`service-group:${this.name}:collapsed`, this.collapsed);
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -72,7 +73,7 @@ export default {
   data() {
     return {
       healthy: true,
-      collapsed: false
+      collapsed: sessionStorage.getItem(`service-group:${this.name}:collapsed`) === "true"
     }
   }
 }

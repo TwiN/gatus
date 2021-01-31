@@ -84,7 +84,7 @@ export default {
   mixins: [helper],
   methods: {
     fetchData() {
-      console.log("[Details][fetchData] Fetching data");
+      //console.log("[Details][fetchData] Fetching data");
       fetch(`${this.serverUrl}/api/v1/statuses/${this.$route.params.key}`)
           .then(response => response.json())
           .then(data => {
@@ -94,25 +94,25 @@ export default {
               for (let i = data.events.length-1; i >= 0; i--) {
                 let event = data.events[i];
                 if (i === data.events.length-1) {
-                  if (event.type === "UNHEALTHY") {
-                    event.fancyText = "Service is unhealthy";
-                  } else if (event.type === "HEALTHY") {
-                    event.fancyText = "Service is healthy";
-                  } else if (event.type === "START") {
-                    event.fancyText = "Monitoring started";
+                  if (event.type === 'UNHEALTHY') {
+                    event.fancyText = 'Service is unhealthy';
+                  } else if (event.type === 'HEALTHY') {
+                    event.fancyText = 'Service is healthy';
+                  } else if (event.type === 'START') {
+                    event.fancyText = 'Monitoring started';
                   }
                 } else {
                   let nextEvent = data.events[i+1];
-                  if (event.type === "HEALTHY") {
-                    event.fancyText = "Service became healthy again";
-                  } else if (event.type === "UNHEALTHY") {
+                  if (event.type === 'HEALTHY') {
+                    event.fancyText = 'Service became healthy again';
+                  } else if (event.type === 'UNHEALTHY') {
                     if (nextEvent) {
-                      event.fancyText = "Service was unhealthy for " + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
+                      event.fancyText = 'Service was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
                     } else {
-                      event.fancyText = "Service became unhealthy";
+                      event.fancyText = 'Service became unhealthy';
                     }
-                  } else if (event.type === "START") {
-                    event.fancyText = "Monitoring started";
+                  } else if (event.type === 'START') {
+                    event.fancyText = 'Monitoring started';
                   }
                 }
                 event.fancyTimeAgo = this.generatePrettyTimeAgo(event.timestamp);
@@ -127,13 +127,13 @@ export default {
     },
     prettifyUptime(uptime) {
       if (!uptime) {
-        return "0%";
+        return '0%';
       }
-      return (uptime * 100).toFixed(2) + "%"
+      return (uptime * 100).toFixed(2) + '%'
     },
     prettifyTimeDifference(start, end) {
       let minutes = Math.ceil((new Date(start) - new Date(end))/1000/60);
-      return minutes + (minutes === 1 ? " minute" : " minutes");
+      return minutes + (minutes === 1 ? ' minute' : ' minutes');
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -155,9 +155,8 @@ export default {
 
 <style scoped>
 .service {
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  border-bottom-width: 1px;
+  border-radius: 3px;
+  border-bottom-width: 3px;
   border-color: #dee2e6;
   border-style: solid;
 }
