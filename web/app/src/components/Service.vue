@@ -1,5 +1,5 @@
 <template>
-  <div class='service container px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data && data.results && data.results.length">
+  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data && data.results && data.results.length">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
         <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline" title="View detailed service health">

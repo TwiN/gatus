@@ -1,7 +1,7 @@
 <template>
   <div :class="services.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
-      <div class="service-group container pt-2 border" @click="toggleGroup">
+      <div class="service-group pt-2 border" @click="toggleGroup">
         <h5 class='text-monospace text-gray-400 text-xl font-medium pb-2 px-3'>
           <span v-if="healthy" class='text-green-600'>&#10003;</span>
           <span v-else class='text-yellow-400'>~</span>
