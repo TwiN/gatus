@@ -1,5 +1,6 @@
 module.exports = {
 	filenameHashing: false,
 	productionSourceMap: false,
-	outputDir: '../static'
+	outputDir: '../static',
+	publicPath: '/'
 }

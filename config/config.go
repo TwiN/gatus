@@ -28,9 +28,6 @@ const (
 
 	// DefaultPort is the default port the service will listen on
 	DefaultPort = 8080
-
-	// DefaultContextRoot is the default context root of the web application
-	DefaultContextRoot = "/"
 )
 
 var (
@@ -153,7 +150,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 
 func validateWebConfig(config *Config) {
 	if config.Web == nil {
-		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort, ContextRoot: DefaultContextRoot}
+		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort}
 	} else {
 		config.Web.validateAndSetDefaults()
 	}

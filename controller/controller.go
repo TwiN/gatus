@@ -47,7 +47,7 @@ func Handle() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	log.Printf("[controller][Handle] Listening on %s%s\n", cfg.Web.SocketAddress(), cfg.Web.ContextRoot)
+	log.Println("[controller][Handle] Listening on" + cfg.Web.SocketAddress())
 	log.Fatal(server.ListenAndServe())
 }
 
@@ -56,13 +56,13 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET") // favicon needs to be always served from the root
 	router.HandleFunc("/services/{service}", spaHandler).Methods("GET")
-	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses"), secureIfNecessary(cfg, serviceStatusesHandler)).Methods("GET")
-	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/statuses/{key}"), secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
-	router.HandleFunc(cfg.Web.PrependWithContextRoot("/api/v1/badges/uptime/{duration}/{identifier}"), badgeHandler).Methods("GET")
-	router.HandleFunc(cfg.Web.PrependWithContextRoot("/health"), healthHandler).Methods("GET")
-	router.PathPrefix(cfg.Web.ContextRoot).Handler(GzipHandler(http.StripPrefix(cfg.Web.ContextRoot, http.FileServer(http.Dir("./web/static")))))
+	router.HandleFunc("/api/v1/statuses", secureIfNecessary(cfg, serviceStatusesHandler)).Methods("GET")
+	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
+	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", badgeHandler).Methods("GET")
+	router.HandleFunc("/health", healthHandler).Methods("GET")
+	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir("./web/static"))))
 	if cfg.Metrics {
-		router.Handle(cfg.Web.PrependWithContextRoot("/metrics"), promhttp.Handler()).Methods("GET")
+		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
 	return router
 }

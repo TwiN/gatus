@@ -119,9 +119,6 @@ services:
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
-	if config.Web.ContextRoot != DefaultContextRoot {
-		t.Errorf("ContextRoot should have been %s, because it is the default value", DefaultContextRoot)
-	}
 }
 
 func TestParseAndValidateConfigBytesWithAddress(t *testing.T) {
@@ -226,44 +223,6 @@ services:
 	}
 }
 
-func TestParseAndValidateConfigBytesWithPortAndHostAndContextRoot(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
-web:
-  port: 12345
-  address: 127.0.0.1
-  context-root: /deeply/nested/down=/their
-services:
-  - name: twinnation
-    url: https://twinnation.org/health
-    conditions:
-      - "[STATUS] == 200"
-`))
-	if err != nil {
-		t.Error("No error should've been returned")
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Metrics {
-		t.Error("Metrics should've been false by default")
-	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
-	}
-	if config.Services[0].Interval != 60*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
-	}
-	if config.Web.Address != "127.0.0.1" {
-		t.Errorf("Bind address should have been %s, because it is specified in config", "127.0.0.1")
-	}
-	if config.Web.Port != 12345 {
-		t.Errorf("Port should have been %d, because it is specified in config", 12345)
-	}
-	if config.Web.ContextRoot != "/deeply/nested/down=/their/" {
-		t.Errorf("Port should have been %s, because it is specified in config", "/deeply/nested/down=/their/")
-	}
-}
-
 func TestParseAndValidateConfigBytesWithInvalidPort(t *testing.T) {
 	defer func() { recover() }()
 	_, _ = parseAndValidateConfigBytes([]byte(`
@@ -310,9 +269,6 @@ services:
 	}
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
-	}
-	if config.Web.ContextRoot != DefaultContextRoot {
-		t.Errorf("ContextRoot should have been %s, because it is the default value", DefaultContextRoot)
 	}
 	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != "Test/2.0" {
 		t.Errorf("User-Agent should've been %s, got %s", "Test/2.0", userAgent)

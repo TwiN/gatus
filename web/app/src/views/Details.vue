@@ -1,5 +1,5 @@
 <template>
-  <router-link to="/" class="absolute top-2 left-2 inline-block px-2 py-0 text-lg text-black transition bg-gray-100 rounded shadow ripple hover:shadow-lg hover:bg-gray-200 focus:outline-none">
+  <router-link to="../" class="absolute top-2 left-2 inline-block px-2 py-0 text-lg text-black transition bg-gray-100 rounded shadow ripple hover:shadow-lg hover:bg-gray-200 focus:outline-none">
     &larr;
   </router-link>
   <div class="container mx-auto">

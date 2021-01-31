@@ -72,7 +72,7 @@ export default {
       if (!this.data) {
         return '/';
       }
-      return '/services/' + this.data.key;
+      return `/services/${this.data.key}`;
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
