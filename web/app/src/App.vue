@@ -1,5 +1,5 @@
 <template>
-  <div class="container container-xs relative mx-auto rounded shadow-xl border my-3 p-5 text-left" id="global">
+  <div class="container container-xs relative mx-auto xl:rounded xl:border xl:shadow-xl xl:my-5 p-5 pb-12 xl:pb-5 text-left" id="global">
     <div class="mb-2">
       <div class="flex flex-wrap">
         <div class="w-3/4 text-left my-auto">
