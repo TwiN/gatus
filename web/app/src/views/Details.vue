@@ -104,7 +104,7 @@ export default {
                 } else {
                   let nextEvent = data.events[i+1];
                   if (event.type === 'HEALTHY') {
-                    event.fancyText = 'Service became healthy again';
+                    event.fancyText = 'Service became healthy';
                   } else if (event.type === 'UNHEALTHY') {
                     if (nextEvent) {
                       event.fancyText = 'Service was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
