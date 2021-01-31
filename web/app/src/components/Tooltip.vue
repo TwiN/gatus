@@ -95,7 +95,7 @@ export default {
   },
   data() {
     return {
-      hidden: false,
+      hidden: true,
       top: 0,
       left: 0
     }
