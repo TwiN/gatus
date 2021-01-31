@@ -4,14 +4,14 @@
   </router-link>
   <div>
     <slot v-if="serviceStatus">
-      <h1 class="text-3xl text-monospace text-gray-400">RECENT CHECKS</h1>
+      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">RECENT CHECKS</h1>
       <hr class="mb-4" />
       <Service :data="serviceStatus" :maximumNumberOfResults="20" @showTooltip="showTooltip" />
     </slot>
     <div v-if="serviceStatus.uptime" class="mt-12">
-      <h1 class="text-3xl text-monospace text-gray-400">UPTIME</h1>
+      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">UPTIME</h1>
       <hr />
-      <div class="flex space-x-4 text-center text-2xl mt-5">
+      <div class="flex space-x-4 text-center text-xl xl:text-2xl mt-3">
         <div class="flex-1">
           {{ prettifyUptime(serviceStatus.uptime['7d']) }}
           <h2 class="text-sm text-gray-400">Last 7 days</h2>
@@ -40,7 +40,7 @@
       </div>
     </div>
     <div>
-      <h1 class="text-3xl text-monospace text-gray-400 mt-4">EVENTS</h1>
+      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400 mt-4">EVENTS</h1>
       <hr class="mb-4" />
       <div>
         <slot v-for="event in events" :key="event">
