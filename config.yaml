@@ -1,12 +1,12 @@
 services:
-  - name: Front End
-    group: Excuse Me
+  - name: front-end
+    group: core
     url: "https://twinnation.org/health"
-    interval: 30s
+    interval: 1m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 23"
+      - "[RESPONSE_TIME] < 150"
 
   - name: back-end
     group: core
@@ -29,7 +29,7 @@ services:
     conditions:
       - "[STATUS] == 200"
 
-  - name: cat fact
+  - name: cat-fact
     url: "https://cat-fact.herokuapp.com/facts/random"
     interval: 5m
     conditions:
