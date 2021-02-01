@@ -5,9 +5,9 @@ import (
 	"math"
 )
 
-// webConfig is the structure which supports the configuration of the endpoint
+// WebConfig is the structure which supports the configuration of the endpoint
 // which provides access to the web frontend
-type webConfig struct {
+type WebConfig struct {
 	// Address to listen on (defaults to 0.0.0.0 specified by DefaultAddress)
 	Address string `yaml:"address"`
 
@@ -16,7 +16,7 @@ type webConfig struct {
 }
 
 // validateAndSetDefaults checks and sets the default values for fields that are not set
-func (web *webConfig) validateAndSetDefaults() {
+func (web *WebConfig) validateAndSetDefaults() {
 	// Validate the Address
 	if len(web.Address) == 0 {
 		web.Address = DefaultAddress
@@ -30,6 +30,6 @@ func (web *webConfig) validateAndSetDefaults() {
 }
 
 // SocketAddress returns the combination of the Address and the Port
-func (web *webConfig) SocketAddress() string {
+func (web *WebConfig) SocketAddress() string {
 	return fmt.Sprintf("%s:%d", web.Address, web.Port)
 }

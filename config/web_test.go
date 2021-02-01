@@ -5,7 +5,7 @@ import (
 )
 
 func TestWebConfig_SocketAddress(t *testing.T) {
-	web := &webConfig{
+	web := &WebConfig{
 		Address: "0.0.0.0",
 		Port:    8081,
 	}

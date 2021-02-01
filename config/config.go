@@ -72,7 +72,7 @@ type Config struct {
 	Kubernetes *k8s.Config `yaml:"kubernetes"`
 
 	// Web is the configuration for the web listener
-	Web *webConfig `yaml:"web"`
+	Web *WebConfig `yaml:"web"`
 }
 
 // Get returns the configuration, or panics if the configuration hasn't loaded yet
@@ -150,7 +150,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 
 func validateWebConfig(config *Config) {
 	if config.Web == nil {
-		config.Web = &webConfig{Address: DefaultAddress, Port: DefaultPort}
+		config.Web = &WebConfig{Address: DefaultAddress, Port: DefaultPort}
 	} else {
 		config.Web.validateAndSetDefaults()
 	}

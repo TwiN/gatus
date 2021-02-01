@@ -9,3 +9,6 @@ build-frontend:
 
 run-frontend:
 	npm --prefix web/app run serve
+
+test:
+	go test -mod=vendor ./... -cover
