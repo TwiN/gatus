@@ -46,9 +46,9 @@
         <slot v-for="event in events" :key="event">
           <div class="p-3 my-4">
             <h2 class="text-lg">
-              <span v-if="event.type === 'HEALTHY'" class="border border-green-600 rounded-full px-1 text-green-700 opacity-75 bg-green-100 mr-2"><span class="relative bottom-0.5">🡡</span></span>
-              <span v-else-if="event.type === 'UNHEALTHY'" class="border border-red-500 rounded-full px-1 text-red-700 opacity-75 bg-red-100 mr-2">🡣</span>
-              <span v-else-if="event.type === 'START'" class="mr-2">▶</span>
+              <img v-if="event.type === 'HEALTHY'" src="../assets/arrow-up-green.png" alt="Healthy" class="border border-green-600 rounded-full opacity-75 bg-green-100 mr-2 inline" width="26" />
+              <img v-else-if="event.type === 'UNHEALTHY'" src="../assets/arrow-down-red.png" alt="Unhealthy" class="border border-red-500 rounded-full opacity-75 bg-red-100 mr-2 inline" width="26" />
+              <img v-else-if="event.type === 'START'" src="../assets/arrow-right-black.png" alt="Start" class="border border-gray-500 rounded-full opacity-75 bg-gray-100 mr-2 inline" width="26" />
               {{ event.fancyText }}
             </h2>
             <div class="flex mt-1 text-sm text-gray-400">
