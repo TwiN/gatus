@@ -60,10 +60,10 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
 	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", badgeHandler).Methods("GET")
 	router.HandleFunc("/health", healthHandler).Methods("GET")
-	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir("./web/static"))))
 	if cfg.Metrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
+	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir("./web/static"))))
 	return router
 }
 
