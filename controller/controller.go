@@ -69,7 +69,7 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 
 func secureIfNecessary(cfg *config.Config, handler http.HandlerFunc) http.HandlerFunc {
 	if cfg.Security != nil && cfg.Security.IsValid() {
-		return security.Handler(serviceStatusesHandler, cfg.Security)
+		return security.Handler(handler, cfg.Security)
 	}
 	return handler
 }
