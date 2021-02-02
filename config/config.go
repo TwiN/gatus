@@ -11,6 +11,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
+	"github.com/TwinProduction/gatus/storage"
 	"gopkg.in/yaml.v2"
 )
 
@@ -70,6 +71,9 @@ type Config struct {
 
 	// Kubernetes is the Kubernetes configuration
 	Kubernetes *k8s.Config `yaml:"kubernetes"`
+
+	// Storage is the configuration for how the data is stored
+	Storage *storage.Config `yaml:"storage"`
 
 	// Web is the configuration for the web listener
 	Web *WebConfig `yaml:"web"`
@@ -144,8 +148,19 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		validateServicesConfig(config)
 		validateKubernetesConfig(config)
 		validateWebConfig(config)
+		validateStorageConfig(config)
 	}
 	return
+}
+
+func validateStorageConfig(config *Config) {
+	if config.Storage == nil {
+		config.Storage = &storage.Config{}
+	}
+	err := storage.Load(config.Storage)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func validateWebConfig(config *Config) {
