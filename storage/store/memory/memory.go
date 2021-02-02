@@ -80,7 +80,7 @@ func (s *Store) Close() {
 	if len(s.file) > 0 {
 		err := s.cache.SaveToFile(s.file)
 		if err != nil {
-			log.Printf("[memorywithautosave][Close] Failed to save to file=%s: %s", s.file, err.Error())
+			log.Printf("[memory][Close] Failed to save to file=%s: %s", s.file, err.Error())
 		}
 	}
 }
@@ -93,10 +93,10 @@ func (s *Store) Save() error {
 // AutoSave automatically calls the Save function at every interval
 func (s *Store) AutoSave(interval time.Duration) {
 	for {
-		log.Printf("[memorywithautosave][AutoSave] Persisting data to file")
+		log.Printf("[memory][AutoSave] Persisting data to file")
 		err := s.Save()
 		if err != nil {
-			log.Printf("[memorywithautosave][AutoSave] failed to save to file=%s: %s", s.file, err.Error())
+			log.Printf("[memory][AutoSave] failed to save to file=%s: %s", s.file, err.Error())
 		}
 		time.Sleep(interval)
 	}
