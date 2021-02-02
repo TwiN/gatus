@@ -90,7 +90,7 @@ func (s *Store) Save() error {
 	return s.cache.SaveToFile(s.file)
 }
 
-// AutoSave automatically calls the Save function ever
+// AutoSave automatically calls the Save function at every interval
 func (s *Store) AutoSave(interval time.Duration) {
 	for {
 		log.Printf("[memorywithautosave][AutoSave] Persisting data to file")
