@@ -157,7 +157,7 @@ func validateStorageConfig(config *Config) {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{}
 	}
-	err := storage.Load(config.Storage)
+	err := storage.Initialize(config.Storage)
 	if err != nil {
 		panic(err)
 	}
