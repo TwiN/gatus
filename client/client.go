@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -68,7 +69,7 @@ func Ping(address string) (bool, time.Duration) {
 	pinger.Count = 1
 	pinger.Timeout = pingTimeout
 	pinger.SetNetwork("ip4")
-	pinger.SetPrivileged(true)
+	pinger.SetPrivileged(os.Getenv("NOT_PRIVILEGED") != "true")
 	err = pinger.Run()
 	if err != nil {
 		return false, 0

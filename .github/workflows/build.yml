@@ -13,6 +13,8 @@ jobs:
     name: Build
     runs-on: ubuntu-20.04
     timeout-minutes: 5
+    env:
+      NOT_PRIVILEGED: true
     steps:
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
@@ -26,7 +28,7 @@ jobs:
         # We're using "sudo" because one of the tests leverages ping, which requires super-user privileges.
         # As for the 'env "PATH=$PATH"', we need it to use the same "go" executable that was configured by the "Set
         # up Go" step (otherwise, it'd use sudo's "go" executable)
-        run: sudo env "PATH=$PATH" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v1.0.14
         with:
