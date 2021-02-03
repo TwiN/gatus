@@ -306,9 +306,9 @@ If you do not start the janitor, there will be no passive deletion of expired ke
 For the sake of convenience, a ready-to-go cache server is available 
 through the `gocacheserver` package. 
 
-The reason why the server is in a different package is because `gocache` does not use 
-any external dependencies, but rather than re-inventing the wheel, the server 
-implementation uses redcon, which is a Redis server framework for Go.
+The reason why the server is in a different package is because `gocache` limit its external dependencies to the strict 
+minimum (e.g. boltdb for persistence), however, rather than re-inventing the wheel, the server implementation uses
+redcon, which is a very good Redis server framework for Go.
 
 That way, those who desire to use gocache without the server will not add any extra dependencies
 as long as they don't import the `gocacheserver` package. 
@@ -323,7 +323,7 @@ import (
 
 func main() {
 	cache := gocache.NewCache().WithEvictionPolicy(gocache.LeastRecentlyUsed).WithMaxSize(100000)
-	server := gocacheserver.NewServer(cache)
+	server := gocacheserver.NewServer(cache).WithPort(6379)
 	server.Start()
 }
 ```
@@ -382,43 +382,67 @@ but if you're looking into using a library like gocache, odds are, you want more
 | mem    | 32G DDR4 |
 
 ```
-BenchmarkMap_Get-8                                                         	95936680	      26.3 ns/op
-BenchmarkMap_SetSmallValue-8                                               	 7738132	       424 ns/op
-BenchmarkMap_SetMediumValue-8                                              	 7766346	       424 ns/op
-BenchmarkMap_SetLargeValue-8                                               	 7947063	       435 ns/op
-BenchmarkCache_Get-8                                                       	54549049	      45.7 ns/op
-BenchmarkCache_SetSmallValue-8                                             	35225013	      69.2 ns/op
-BenchmarkCache_SetMediumValue-8                                            	 5952064	       412 ns/op
-BenchmarkCache_SetLargeValue-8                                             	 5969121	       411 ns/op
-BenchmarkCache_GetUsingLRU-8                                               	54545949	      45.6 ns/op
-BenchmarkCache_SetSmallValueUsingLRU-8                                     	 5909504	       419 ns/op
-BenchmarkCache_SetMediumValueUsingLRU-8                                    	 5910885	       418 ns/op
-BenchmarkCache_SetLargeValueUsingLRU-8                                     	 5867544	       419 ns/op
-BenchmarkCache_SetSmallValueWhenUsingMaxMemoryUsage-8                      	 5477178	       462 ns/op
-BenchmarkCache_SetMediumValueWhenUsingMaxMemoryUsage-8                     	 5417595	       475 ns/op
-BenchmarkCache_SetLargeValueWhenUsingMaxMemoryUsage-8                      	 5215263	       479 ns/op
-BenchmarkCache_SetSmallValueWithMaxSize10-8                                	10115574	       236 ns/op
-BenchmarkCache_SetMediumValueWithMaxSize10-8                               	10242792	       241 ns/op
-BenchmarkCache_SetLargeValueWithMaxSize10-8                                	10201894	       241 ns/op
-BenchmarkCache_SetSmallValueWithMaxSize1000-8                              	 9637113	       253 ns/op
-BenchmarkCache_SetMediumValueWithMaxSize1000-8                             	 9635175	       253 ns/op
-BenchmarkCache_SetLargeValueWithMaxSize1000-8                              	 9598982	       260 ns/op
-BenchmarkCache_SetSmallValueWithMaxSize100000-8                            	 7642584	       337 ns/op
-BenchmarkCache_SetMediumValueWithMaxSize100000-8                           	 7407571	       344 ns/op
-BenchmarkCache_SetLargeValueWithMaxSize100000-8                            	 7071360	       345 ns/op
-BenchmarkCache_SetSmallValueWithMaxSize100000AndLRU-8                      	 7544194	       332 ns/op
-BenchmarkCache_SetMediumValueWithMaxSize100000AndLRU-8                     	 7667004	       344 ns/op
-BenchmarkCache_SetLargeValueWithMaxSize100000AndLRU-8                      	 7357642	       338 ns/op
-BenchmarkCache_GetAndSetMultipleConcurrently-8                             	 1442306	      1684 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithRandomKeysAndLRU-8                 	 5117271	       477 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithRandomKeysAndFIFO-8                	 5228412	       475 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithRandomKeysAndNoEvictionAndLRU-8    	 5139195	       529 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithRandomKeysAndNoEvictionAndFIFO-8   	 5251639	       511 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithFrequentEvictionsAndLRU-8          	 7384626	       334 ns/op
-BenchmarkCache_GetAndSetConcurrentlyWithFrequentEvictionsAndFIFO-8         	 7361985	       332 ns/op
-BenchmarkCache_GetConcurrentlyWithLRU-8                                    	 3370784	       726 ns/op
-BenchmarkCache_GetConcurrentlyWithFIFO-8                                   	 3749994	       681 ns/op
-BenchmarkCache_GetKeysThatDoNotExistConcurrently-8                         	17647344	       143 ns/op
+// Normal map
+BenchmarkMap_Get
+BenchmarkMap_Get-8                                                              46087372  26.7 ns/op
+BenchmarkMap_Set                                                                   
+BenchmarkMap_Set/small_value-8                                                   3841911   389 ns/op
+BenchmarkMap_Set/medium_value-8                                                  3887074   391 ns/op
+BenchmarkMap_Set/large_value-8                                                   3921956   393 ns/op
+// Gocache                                                                         
+BenchmarkCache_Get                                                                 
+BenchmarkCache_Get/FirstInFirstOut-8                                            27273036  46.4 ns/op
+BenchmarkCache_Get/LeastRecentlyUsed-8                                          26648248  46.3 ns/op
+BenchmarkCache_Set                                                              
+BenchmarkCache_Set/FirstInFirstOut_small_value-8                                 2919584   405 ns/op
+BenchmarkCache_Set/FirstInFirstOut_medium_value-8                                2990841   391 ns/op
+BenchmarkCache_Set/FirstInFirstOut_large_value-8                                 2970513   391 ns/op
+BenchmarkCache_Set/LeastRecentlyUsed_small_value-8                               2962939   402 ns/op
+BenchmarkCache_Set/LeastRecentlyUsed_medium_value-8                              2962963   390 ns/op
+BenchmarkCache_Set/LeastRecentlyUsed_large_value-8                               2962928   394 ns/op
+BenchmarkCache_SetUsingMaxMemoryUsage                                           
+BenchmarkCache_SetUsingMaxMemoryUsage/small_value-8                              2683356   447 ns/op
+BenchmarkCache_SetUsingMaxMemoryUsage/medium_value-8                             2637578   441 ns/op
+BenchmarkCache_SetUsingMaxMemoryUsage/large_value-8                              2672434   443 ns/op
+BenchmarkCache_SetWithMaxSize                                                   
+BenchmarkCache_SetWithMaxSize/100_small_value-8                                  4782966   252 ns/op
+BenchmarkCache_SetWithMaxSize/10000_small_value-8                                4067967   296 ns/op
+BenchmarkCache_SetWithMaxSize/100000_small_value-8                               3762055   328 ns/op
+BenchmarkCache_SetWithMaxSize/100_medium_value-8                                 4760479   252 ns/op
+BenchmarkCache_SetWithMaxSize/10000_medium_value-8                               4081050   295 ns/op
+BenchmarkCache_SetWithMaxSize/100000_medium_value-8                              3785050   330 ns/op
+BenchmarkCache_SetWithMaxSize/100_large_value-8                                  4732909   254 ns/op
+BenchmarkCache_SetWithMaxSize/10000_large_value-8                                4079533   297 ns/op
+BenchmarkCache_SetWithMaxSize/100000_large_value-8                               3712820   331 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU                                             
+BenchmarkCache_SetWithMaxSizeAndLRU/100_small_value-8                            4761732   254 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_small_value-8                          4084474   296 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_small_value-8                         3761402   329 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100_medium_value-8                           4783075   254 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_medium_value-8                         4103980   296 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_medium_value-8                        3646023   331 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100_large_value-8                            4779025   254 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_large_value-8                          4096192   296 ns/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_large_value-8                         3726823   331 ns/op
+BenchmarkCache_GetSetMultipleConcurrent                                         
+BenchmarkCache_GetSetMultipleConcurrent-8                                         707142  1698 ns/op
+BenchmarkCache_GetSetConcurrentWithFrequentEviction
+BenchmarkCache_GetSetConcurrentWithFrequentEviction/FirstInFirstOut-8            3616256   334 ns/op
+BenchmarkCache_GetSetConcurrentWithFrequentEviction/LeastRecentlyUsed-8          3636367   331 ns/op
+BenchmarkCache_GetConcurrentWithLRU                                              
+BenchmarkCache_GetConcurrentWithLRU/FirstInFirstOut-8                            4405557   268 ns/op
+BenchmarkCache_GetConcurrentWithLRU/LeastRecentlyUsed-8                          4445475   269 ns/op
+BenchmarkCache_WithForceNilInterfaceOnNilPointer
+BenchmarkCache_WithForceNilInterfaceOnNilPointer/true_with_nil_struct_pointer-8  6184591   191 ns/op
+BenchmarkCache_WithForceNilInterfaceOnNilPointer/true-8                          6090482   191 ns/op
+BenchmarkCache_WithForceNilInterfaceOnNilPointer/false_with_nil_struct_pointer-8 6184629   187 ns/op
+BenchmarkCache_WithForceNilInterfaceOnNilPointer/false-8                         6281781   186 ns/op
+(Trimmed "BenchmarkCache_" for readability)
+WithForceNilInterfaceOnNilPointerWithConcurrency
+WithForceNilInterfaceOnNilPointerWithConcurrency/true_with_nil_struct_pointer-8  4379564   268 ns/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/true-8                          4379558   265 ns/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/false_with_nil_struct_pointer-8 4444456   261 ns/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/false-8                         4493896   262 ns/op
 ```
 
 

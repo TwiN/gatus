@@ -32,97 +32,97 @@ func TestCreateRouter(t *testing.T) {
 	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter(cfg)
 	type Scenario struct {
-		Description  string
+		Name         string
 		Path         string
 		ExpectedCode int
 		Gzip         bool
 	}
 	scenarios := []Scenario{
 		{
-			Description:  "health",
+			Name:         "health",
 			Path:         "/health",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "metrics",
+			Name:         "metrics",
 			Path:         "/metrics",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "badges-1h",
+			Name:         "badges-1h",
 			Path:         "/api/v1/badges/uptime/1h/core_frontend.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "badges-24h",
+			Name:         "badges-24h",
 			Path:         "/api/v1/badges/uptime/24h/core_backend.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "badges-7d",
+			Name:         "badges-7d",
 			Path:         "/api/v1/badges/uptime/7d/core_frontend.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "badges-with-invalid-duration",
+			Name:         "badges-with-invalid-duration",
 			Path:         "/api/v1/badges/uptime/3d/core_backend.svg",
 			ExpectedCode: http.StatusBadRequest,
 		},
 		{
-			Description:  "badges-for-invalid-key",
+			Name:         "badges-for-invalid-key",
 			Path:         "/api/v1/badges/uptime/7d/invalid_key.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
-			Description:  "service-statuses",
+			Name:         "service-statuses",
 			Path:         "/api/v1/statuses",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "service-statuses-gzip",
+			Name:         "service-statuses-gzip",
 			Path:         "/api/v1/statuses",
 			ExpectedCode: http.StatusOK,
 			Gzip:         true,
 		},
 		{
-			Description:  "service-status",
+			Name:         "service-status",
 			Path:         "/api/v1/statuses/core_frontend",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "service-status-gzip",
+			Name:         "service-status-gzip",
 			Path:         "/api/v1/statuses/core_frontend",
 			ExpectedCode: http.StatusOK,
 			Gzip:         true,
 		},
 		{
-			Description:  "service-status-for-invalid-key",
+			Name:         "service-status-for-invalid-key",
 			Path:         "/api/v1/statuses/invalid_key",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
-			Description:  "favicon",
+			Name:         "favicon",
 			Path:         "/favicon.ico",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "frontend-home",
+			Name:         "frontend-home",
 			Path:         "/",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "frontend-assets",
+			Name:         "frontend-assets",
 			Path:         "/js/app.js",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Description:  "frontend-service",
+			Name:         "frontend-service",
 			Path:         "/services/core_frontend",
 			ExpectedCode: http.StatusOK,
 		},
 	}
 	for _, scenario := range scenarios {
-		t.Run(scenario.Description, func(t *testing.T) {
+		t.Run(scenario.Name, func(t *testing.T) {
 			request, _ := http.NewRequest("GET", scenario.Path, nil)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")

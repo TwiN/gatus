@@ -170,7 +170,7 @@ func (cache *Cache) WithEvictionPolicy(policy EvictionPolicy) *Cache {
 //     value, _ := cache.Get("key")
 //     // the following returns true, because the interface{} was forcefully set to nil
 //     if value == nil {}
-//     // the following will panic, because the value has been casted to its type
+//     // the following will panic, because the value has been casted to its type (which is nil)
 //     if value.(*Struct) == nil {}
 //
 // If set to false:
@@ -218,7 +218,8 @@ func (cache *Cache) Set(key string, value interface{}) {
 // The TTL provided must be greater than 0, or NoExpiration (-1). If a negative value that isn't -1 (NoExpiration) is
 // provided, the entry will not be created if the key doesn't exist
 func (cache *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) {
-	// An interface is only nil if both its value and its type are nil, however, passing a pointer
+	// An interface is only nil if both its value and its type are nil, however, passing a nil pointer as an interface{}
+	// means that the interface itself is not nil, because the interface value is nil but not the type.
 	if cache.forceNilInterfaceOnNilPointer {
 		if value != nil && (reflect.ValueOf(value).Kind() == reflect.Ptr && reflect.ValueOf(value).IsNil()) {
 			value = nil
@@ -332,6 +333,13 @@ func (cache *Cache) Get(key string) (interface{}, bool) {
 	}
 	cache.mutex.Unlock()
 	return entry.Value, true
+}
+
+// GetValue retrieves an entry using the key passed as parameter
+// Unlike Get, this function only returns the value
+func (cache *Cache) GetValue(key string) interface{} {
+	value, _ := cache.Get(key)
+	return value
 }
 
 // GetByKeys retrieves multiple entries using the keys passed as parameter
