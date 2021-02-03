@@ -59,7 +59,7 @@ services:
       - "[STATUS] != 500"
 `, file)))
 	if err != nil {
-		t.Error("expected no error should've been returned, got", err.Error())
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -102,7 +102,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -135,7 +135,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -170,7 +170,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -204,7 +204,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -253,7 +253,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -291,7 +291,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -361,7 +361,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -454,7 +454,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -488,7 +488,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -527,7 +527,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -580,7 +580,7 @@ services:
       - "[STATUS] == 200"
 `, expectedUsername, expectedPasswordHash)))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -647,7 +647,7 @@ kubernetes:
       target-path: "/health"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
