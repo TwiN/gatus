@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 5
     steps:
       - name: Set up Go 1.15
