@@ -20,6 +20,10 @@ jobs:
           go-version: 1.15
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+      - name: Check Go version
+        run: which go
+      - name: Check Go version (sudo)
+        run: sudo which go
       - name: Build binary to make sure it works
         run: go build -mod vendor
       - name: Test
