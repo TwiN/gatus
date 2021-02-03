@@ -25,15 +25,20 @@ type Uptime struct {
 	// LastHour is the uptime percentage over the past hour
 	LastHour float64 `json:"1h"`
 
-	successCountPerHour map[string]uint64
-	totalCountPerHour   map[string]uint64
+	// SuccessCountPerHour is a map containing the number of successes per hour, per timestamp following the
+	// custom RFC3339WithoutMinutesAndSeconds format
+	SuccessCountPerHour map[string]uint64 `json:"-"`
+
+	// TotalCountPerHour is a map containing the total number of checks per hour, per timestamp following the
+	// custom RFC3339WithoutMinutesAndSeconds format
+	TotalCountPerHour map[string]uint64 `json:"-"`
 }
 
 // NewUptime creates a new Uptime
 func NewUptime() *Uptime {
 	return &Uptime{
-		successCountPerHour: make(map[string]uint64),
-		totalCountPerHour:   make(map[string]uint64),
+		SuccessCountPerHour: make(map[string]uint64),
+		TotalCountPerHour:   make(map[string]uint64),
 	}
 }
 
@@ -42,16 +47,16 @@ func NewUptime() *Uptime {
 func (uptime *Uptime) ProcessResult(result *Result) {
 	timestampDateWithHour := result.Timestamp.Format(RFC3339WithoutMinutesAndSeconds)
 	if result.Success {
-		uptime.successCountPerHour[timestampDateWithHour]++
+		uptime.SuccessCountPerHour[timestampDateWithHour]++
 	}
-	uptime.totalCountPerHour[timestampDateWithHour]++
+	uptime.TotalCountPerHour[timestampDateWithHour]++
 	// Clean up only when we're starting to have too many useless keys
 	// Note that this is only triggered when there are more entries than there should be after
 	// 10 days, despite the fact that we are deleting everything that's older than 7 days.
 	// This is to prevent re-iterating on every `ProcessResult` as soon as the uptime has been logged for 7 days.
-	if len(uptime.totalCountPerHour) > numberOfHoursInTenDays {
+	if len(uptime.TotalCountPerHour) > numberOfHoursInTenDays {
 		sevenDaysAgo := time.Now().Add(-(sevenDays + time.Hour))
-		for k := range uptime.totalCountPerHour {
+		for k := range uptime.TotalCountPerHour {
 			dateWithHour, err := time.Parse(time.RFC3339, k)
 			if err != nil {
 				// This shouldn't happen, but we'll log it in case it does happen
@@ -59,8 +64,8 @@ func (uptime *Uptime) ProcessResult(result *Result) {
 				continue
 			}
 			if sevenDaysAgo.Unix() > dateWithHour.Unix() {
-				delete(uptime.totalCountPerHour, k)
-				delete(uptime.successCountPerHour, k)
+				delete(uptime.TotalCountPerHour, k)
+				delete(uptime.SuccessCountPerHour, k)
 			}
 		}
 	}
@@ -88,8 +93,8 @@ func (uptime *Uptime) recalculate() {
 	timestamp := now.Add(-sevenDays)
 	for now.Sub(timestamp) >= 0 {
 		timestampDateWithHour := timestamp.Format(RFC3339WithoutMinutesAndSeconds)
-		successCountForTimestamp := uptime.successCountPerHour[timestampDateWithHour]
-		totalCountForTimestamp := uptime.totalCountPerHour[timestampDateWithHour]
+		successCountForTimestamp := uptime.SuccessCountPerHour[timestampDateWithHour]
+		totalCountForTimestamp := uptime.TotalCountPerHour[timestampDateWithHour]
 		uptimeBrackets["7d_success"] += successCountForTimestamp
 		uptimeBrackets["7d_total"] += totalCountForTimestamp
 		if now.Sub(timestamp) <= 24*time.Hour {

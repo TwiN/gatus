@@ -8,26 +8,26 @@
       <hr class="mb-4" />
       <Service :data="serviceStatus" :maximumNumberOfResults="20" @showTooltip="showTooltip" />
     </slot>
-    <div v-if="serviceStatus.uptime" class="mt-12">
+    <div v-if="uptime" class="mt-12">
       <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">UPTIME</h1>
       <hr />
       <div class="flex space-x-4 text-center text-xl xl:text-2xl mt-3">
         <div class="flex-1">
-          {{ prettifyUptime(serviceStatus.uptime['7d']) }}
+          {{ prettifyUptime(uptime['7d']) }}
           <h2 class="text-sm text-gray-400">Last 7 days</h2>
         </div>
         <div class="flex-1">
-          {{ prettifyUptime(serviceStatus.uptime['24h']) }}
+          {{ prettifyUptime(uptime['24h']) }}
           <h2 class="text-sm text-gray-400">Last 24 hours</h2>
         </div>
         <div class="flex-1">
-          {{ prettifyUptime(serviceStatus.uptime['1h']) }}
+          {{ prettifyUptime(uptime['1h']) }}
           <h2 class="text-sm text-gray-400">Last hour</h2>
         </div>
       </div>
       <hr class="mt-1"/>
       <h3 class="text-xl text-monospace text-gray-400 mt-1 text-right">BADGES</h3>
-      <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-12">
+      <div v-if="serviceStatus && serviceStatus.key" class="flex space-x-4 text-center text-2xl mt-6 relative bottom-12">
         <div class="flex-1">
           <img :src="generateBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
         </div>
@@ -90,6 +90,7 @@ export default {
           .then(data => {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
               this.serviceStatus = data.serviceStatus;
+              this.uptime = data.uptime;
               let events = [];
               for (let i = data.events.length-1; i >= 0; i--) {
                 let event = data.events[i];
@@ -143,6 +144,7 @@ export default {
     return {
       serviceStatus: {},
       events: [],
+      uptime: {"7d": 0, "24h": 0, "1h": 0},
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
     }

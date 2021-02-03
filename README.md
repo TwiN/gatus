@@ -100,6 +100,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `debug`                                  | Whether to enable debug logs                                                  | `false`        |
 | `metrics`                                | Whether to expose metrics at /metrics                                         | `false`        |
+| `storage`                                | Storage configuration                                                         | `{}`           |
+| `storage.file`                           | File to persist the data in. If not set, storage is in-memory only.           | `""`           |
 | `services`                               | List of services to monitor                                                   | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].group`                       | Group name. Used to group multiple services together on the dashboard. See [Service groups](#service-groups). | `""`           |

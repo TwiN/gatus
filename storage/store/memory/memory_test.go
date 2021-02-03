@@ -1,4 +1,4 @@
-package storage
+package memory
 
 import (
 	"fmt"
@@ -83,17 +83,17 @@ var (
 	}
 )
 
-func TestInMemoryStore_Insert(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_Insert(t *testing.T) {
+	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	if len(store.serviceStatuses) != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", len(store.serviceStatuses))
+	if store.cache.Count() != 1 {
+		t.Fatalf("expected 1 ServiceStatus, got %d", store.cache.Count())
 	}
 	key := fmt.Sprintf("%s_%s", testService.Group, testService.Name)
-	serviceStatus, exists := store.serviceStatuses[key]
-	if !exists {
+	serviceStatus := store.GetServiceStatusByKey(key)
+	if serviceStatus == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", key)
 	}
 	if len(serviceStatus.Results) != 2 {
@@ -140,8 +140,8 @@ func TestInMemoryStore_Insert(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_GetServiceStatus(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_GetServiceStatus(t *testing.T) {
+	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
@@ -163,8 +163,8 @@ func TestInMemoryStore_GetServiceStatus(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
+	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 
 	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname")
@@ -181,8 +181,8 @@ func TestInMemoryStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) 
 	}
 }
 
-func TestInMemoryStore_GetServiceStatusByKey(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_GetServiceStatusByKey(t *testing.T) {
+	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
@@ -204,8 +204,8 @@ func TestInMemoryStore_GetServiceStatusByKey(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_GetAllAsJSON(t *testing.T) {
+	store, _ := NewStore("")
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
 	store.Insert(&testService, firstResult)
@@ -217,8 +217,36 @@ func TestInMemoryStore_GetAllAsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal("shouldn't have returned an error, got", err.Error())
 	}
-	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"uptime":{"7d":0.5,"24h":0.5,"1h":0.5}}}`
+	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}]}}`
 	if string(output) != expectedOutput {
 		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
+	}
+}
+
+func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
+	store, _ := NewStore("")
+	firstService := core.Service{Name: "service-1", Group: "group"}
+	secondService := core.Service{Name: "service-2", Group: "group"}
+	result := &testSuccessfulResult
+	store.Insert(&firstService, result)
+	store.Insert(&secondService, result)
+	if store.cache.Count() != 2 {
+		t.Errorf("expected cache to have 2 keys, got %d", store.cache.Count())
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+		t.Fatal("firstService should exist")
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) == nil {
+		t.Fatal("secondService should exist")
+	}
+	store.DeleteAllServiceStatusesNotInKeys([]string{util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)})
+	if store.cache.Count() != 1 {
+		t.Fatalf("expected cache to have 1 keys, got %d", store.cache.Count())
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+		t.Error("secondService should've been deleted")
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) != nil {
+		t.Error("firstService should still exist")
 	}
 }

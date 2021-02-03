@@ -55,7 +55,7 @@ func Handle() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	log.Println("[controller][Handle] Listening on" + cfg.Web.SocketAddress())
+	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
@@ -140,10 +140,11 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	}
 	data := map[string]interface{}{
 		"serviceStatus": serviceStatus,
-		// This is my lazy way of exposing events even though they're not visible from the json annotation
-		// present in ServiceStatus. We do this because creating a separate object for each endpoints
-		// would be wasteful (one with and one without Events)
+		// The following fields, while present on core.ServiceStatus, are annotated to remain hidden so that we can
+		// expose only the necessary data on /api/v1/statuses.
+		// Since the /api/v1/statuses/{key} endpoint does need this data, however, we explicitly expose it here
 		"events": serviceStatus.Events,
+		"uptime": serviceStatus.Uptime,
 	}
 	output, err := json.Marshal(data)
 	if err != nil {

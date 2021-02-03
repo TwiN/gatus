@@ -42,7 +42,10 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 }
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
+	file := t.TempDir() + "/test.db"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+storage:
+  file: %s
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -54,9 +57,9 @@ services:
     conditions:
       - "[STATUS] != 400"
       - "[STATUS] != 500"
-`))
+`, file)))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -99,7 +102,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -132,7 +135,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -167,7 +170,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -201,7 +204,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -250,7 +253,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -288,7 +291,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -332,7 +335,6 @@ badconfig:
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 debug: true
-
 alerting:
   slack:
     webhook-url: "http://example.com"
@@ -359,7 +361,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -452,7 +454,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -486,7 +488,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -525,7 +527,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -578,7 +580,7 @@ services:
       - "[STATUS] == 200"
 `, expectedUsername, expectedPasswordHash)))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
@@ -645,7 +647,7 @@ kubernetes:
       target-path: "/health"
 `))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error, got", err.Error())
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")

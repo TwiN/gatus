@@ -13,8 +13,6 @@ import (
 )
 
 var (
-	store = storage.NewInMemoryStore()
-
 	// monitoringMutex is used to prevent multiple services from being evaluated at the same time.
 	// Without this, conditions using response time may become inaccurate.
 	monitoringMutex sync.Mutex
@@ -22,12 +20,12 @@ var (
 
 // GetServiceStatusesAsJSON the JSON encoding of all core.ServiceStatus recorded
 func GetServiceStatusesAsJSON() ([]byte, error) {
-	return store.GetAllAsJSON()
+	return storage.Get().GetAllAsJSON()
 }
 
 // GetUptimeByKey returns the uptime of a service based on the ServiceStatus key
 func GetUptimeByKey(key string) *core.Uptime {
-	serviceStatus := store.GetServiceStatusByKey(key)
+	serviceStatus := storage.Get().GetServiceStatusByKey(key)
 	if serviceStatus == nil {
 		return nil
 	}
@@ -36,7 +34,7 @@ func GetUptimeByKey(key string) *core.Uptime {
 
 // GetServiceStatusByKey returns the uptime of a service based on its ServiceStatus key
 func GetServiceStatusByKey(key string) *core.ServiceStatus {
-	return store.GetServiceStatusByKey(key)
+	return storage.Get().GetServiceStatusByKey(key)
 }
 
 // Monitor loops over each services and starts a goroutine to monitor each services separately
@@ -88,5 +86,5 @@ func monitor(service *core.Service) {
 
 // UpdateServiceStatuses updates the slice of service statuses
 func UpdateServiceStatuses(service *core.Service, result *core.Result) {
-	store.Insert(service, result)
+	storage.Get().Insert(service, result)
 }
