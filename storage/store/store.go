@@ -26,11 +26,6 @@ type Store interface {
 
 	// Clear deletes everything from the store
 	Clear()
-
-	// Close closes or stops whatever needs to be closed, if applicable.
-	//
-	// Note that once the store is closed, it may no longer be usable.
-	Close()
 }
 
 var (

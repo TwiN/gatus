@@ -92,17 +92,6 @@ func (s *Store) Clear() {
 	s.cache.Clear()
 }
 
-// Close closes everything which needs to be closed.
-// For this provider, there's nothing that needs to be closed, but it saves on last time before closing.
-func (s *Store) Close() {
-	if len(s.file) > 0 {
-		err := s.cache.SaveToFile(s.file)
-		if err != nil {
-			log.Printf("[memory][Close] Failed to save to file=%s: %s", s.file, err.Error())
-		}
-	}
-}
-
 // Save persists the cache to the store file
 func (s *Store) Save() error {
 	return s.cache.SaveToFile(s.file)
@@ -111,11 +100,11 @@ func (s *Store) Save() error {
 // AutoSave automatically calls the Save function at every interval
 func (s *Store) AutoSave(interval time.Duration) {
 	for {
+		time.Sleep(interval)
 		log.Printf("[memory][AutoSave] Persisting data to file")
 		err := s.Save()
 		if err != nil {
 			log.Printf("[memory][AutoSave] failed to save to file=%s: %s", s.file, err.Error())
 		}
-		time.Sleep(interval)
 	}
 }

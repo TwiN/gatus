@@ -8,7 +8,6 @@ import (
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
-	"github.com/TwinProduction/gatus/storage"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -60,9 +59,8 @@ services:
       - "[STATUS] != 500"
 `, file)))
 	if err != nil {
-		t.Error("No error should've been returned")
+		t.Error("expected no error should've been returned, got", err.Error())
 	}
-	defer storage.Get().Close()
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
 	}
