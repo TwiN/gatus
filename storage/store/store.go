@@ -19,6 +19,11 @@ type Store interface {
 	// Insert adds the observed result for the specified service into the store
 	Insert(service *core.Service, result *core.Result)
 
+	// DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided
+	//
+	// Used to delete services that have been persisted but are no longer part of the configured services
+	DeleteAllServiceStatusesNotInKeys(keys []string) int
+
 	// Clear deletes everything from the store
 	Clear()
 

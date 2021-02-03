@@ -69,6 +69,24 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	s.cache.Set(key, serviceStatus)
 }
 
+// DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided
+func (s *Store) DeleteAllServiceStatusesNotInKeys(keys []string) int {
+	var keysToDelete []string
+	for _, existingKey := range s.cache.GetKeysByPattern("*", 0) {
+		shouldDelete := true
+		for _, key := range keys {
+			if existingKey == key {
+				shouldDelete = false
+				break
+			}
+		}
+		if shouldDelete {
+			keysToDelete = append(keysToDelete, existingKey)
+		}
+	}
+	return s.cache.DeleteAll(keysToDelete)
+}
+
 // Clear deletes everything from the store
 func (s *Store) Clear() {
 	s.cache.Clear()

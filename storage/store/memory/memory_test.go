@@ -222,3 +222,31 @@ func TestStore_GetAllAsJSON(t *testing.T) {
 		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
 	}
 }
+
+func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
+	store, _ := NewStore("")
+	firstService := core.Service{Name: "service-1", Group: "group"}
+	secondService := core.Service{Name: "service-2", Group: "group"}
+	result := &testSuccessfulResult
+	store.Insert(&firstService, result)
+	store.Insert(&secondService, result)
+	if store.cache.Count() != 2 {
+		t.Errorf("expected cache to have 2 keys, got %d", store.cache.Count())
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+		t.Fatal("firstService should exist")
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) == nil {
+		t.Fatal("secondService should exist")
+	}
+	store.DeleteAllServiceStatusesNotInKeys([]string{util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)})
+	if store.cache.Count() != 1 {
+		t.Fatalf("expected cache to have 1 keys, got %d", store.cache.Count())
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+		t.Error("secondService should've been deleted")
+	}
+	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) != nil {
+		t.Error("firstService should still exist")
+	}
+}

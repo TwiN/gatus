@@ -42,7 +42,7 @@ func Initialize(cfg *Config) error {
 		if err != nil {
 			return err
 		}
-		go provider.(*memory.Store).AutoSave(5 * time.Minute)
+		go provider.(*memory.Store).AutoSave(7 * time.Minute)
 	}
 	return nil
 }

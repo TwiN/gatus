@@ -8,6 +8,7 @@ import (
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
+	"github.com/TwinProduction/gatus/storage"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -42,7 +43,10 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 }
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
+	file := t.TempDir() + "/test.db"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+storage:
+  file: %s
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -54,10 +58,11 @@ services:
     conditions:
       - "[STATUS] != 400"
       - "[STATUS] != 500"
-`))
+`, file)))
 	if err != nil {
 		t.Error("No error should've been returned")
 	}
+	defer storage.Get().Close()
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
 	}
@@ -332,7 +337,6 @@ badconfig:
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 debug: true
-
 alerting:
   slack:
     webhook-url: "http://example.com"
