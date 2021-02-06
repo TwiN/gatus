@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.74.0 // indirect
-	github.com/TwinProduction/gocache v1.2.0
+	github.com/TwinProduction/gocache v1.2.1
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0

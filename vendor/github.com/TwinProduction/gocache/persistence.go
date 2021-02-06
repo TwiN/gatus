@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // SaveToFile stores the content of the cache to a file so that it can be read using
