@@ -3,8 +3,6 @@ package memory
 import (
 	"encoding/gob"
 	"encoding/json"
-	"log"
-	"time"
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/util"
@@ -94,17 +92,8 @@ func (s *Store) Clear() {
 
 // Save persists the cache to the store file
 func (s *Store) Save() error {
-	return s.cache.SaveToFile(s.file)
-}
-
-// AutoSave automatically calls the Save function at every interval
-func (s *Store) AutoSave(interval time.Duration) {
-	for {
-		time.Sleep(interval)
-		log.Printf("[memory][AutoSave] Persisting data to file")
-		err := s.Save()
-		if err != nil {
-			log.Printf("[memory][AutoSave] failed to save to file=%s: %s", s.file, err.Error())
-		}
+	if len(s.file) > 0 {
+		return s.cache.SaveToFile(s.file)
 	}
+	return nil
 }

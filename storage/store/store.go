@@ -26,6 +26,9 @@ type Store interface {
 
 	// Clear deletes everything from the store
 	Clear()
+
+	// Save persists the data if and where it needs to be persisted
+	Save() error
 }
 
 var (

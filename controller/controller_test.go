@@ -156,6 +156,7 @@ func TestHandle(t *testing.T) {
 	config.Set(cfg)
 	_ = os.Setenv("ROUTER_TEST", "true")
 	_ = os.Setenv("ENVIRONMENT", "dev")
+	defer os.Clearenv()
 	Handle()
 	request, _ := http.NewRequest("GET", "/health", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -165,5 +166,14 @@ func TestHandle(t *testing.T) {
 	}
 	if server == nil {
 		t.Fatal("server should've been set (but because we set ROUTER_TEST, it shouldn't have been started)")
+	}
+}
+
+func TestShutdown(t *testing.T) {
+	// Pretend that we called controller.Handle(), which initializes the server variable
+	server = &http.Server{}
+	Shutdown()
+	if server != nil {
+		t.Error("server should've been shut down")
 	}
 }

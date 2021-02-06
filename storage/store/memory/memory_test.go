@@ -250,3 +250,22 @@ func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
 		t.Error("firstService should still exist")
 	}
 }
+
+func TestStore_Save(t *testing.T) {
+	files := []string{
+		"",
+		t.TempDir() + "/test.db",
+	}
+	for _, file := range files {
+		t.Run(file, func(t *testing.T) {
+			store, err := NewStore(file)
+			if err != nil {
+				t.Fatal("expected no error, got", err.Error())
+			}
+			err = store.Save()
+			if err != nil {
+				t.Fatal("expected no error, got", err.Error())
+			}
+		})
+	}
+}

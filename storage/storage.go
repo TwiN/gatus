@@ -42,7 +42,19 @@ func Initialize(cfg *Config) error {
 		if err != nil {
 			return err
 		}
-		go provider.(*memory.Store).AutoSave(7 * time.Minute)
+		go autoSave(7 * time.Minute)
 	}
 	return nil
+}
+
+// autoSave automatically calls the Save function of the provider at every interval
+func autoSave(interval time.Duration) {
+	for {
+		time.Sleep(interval)
+		log.Printf("[storage][autoSave] Saving")
+		err := provider.Save()
+		if err != nil {
+			log.Println("[storage][autoSave] Save failed:", err.Error())
+		}
+	}
 }

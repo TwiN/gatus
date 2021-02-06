@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -59,7 +60,15 @@ func Handle() {
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
-	log.Fatal(server.ListenAndServe())
+	log.Println("[controller][Handle]", server.ListenAndServe())
+}
+
+// Shutdown stops the server
+func Shutdown() {
+	if server != nil {
+		_ = server.Shutdown(context.TODO())
+		server = nil
+	}
 }
 
 // CreateRouter creates the router for the http server
