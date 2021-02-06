@@ -124,7 +124,7 @@ export default {
           });
     },
     generateBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/badges/uptime/${duration}/${this.serviceStatus.key}`;
+      return `${this.serverUrl}/api/v1/badges/uptime/${duration}/${this.serviceStatus.key}.svg`;
     },
     prettifyUptime(uptime) {
       if (!uptime) {
