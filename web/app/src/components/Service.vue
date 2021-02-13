@@ -53,7 +53,7 @@ export default {
       let minResponseTime = null;
       let maxResponseTime = null;
       for (let i in this.data.results) {
-        const responseTime = (this.data.results[i].duration/1000000).toFixed(0);
+        const responseTime = parseInt((this.data.results[i].duration/1000000).toFixed(0));
         if (minResponseTime == null || minResponseTime > responseTime) {
           minResponseTime = responseTime;
         }
