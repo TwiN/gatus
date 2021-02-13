@@ -4,6 +4,9 @@ cloud.google.com/go/compute/metadata
 # github.com/TwinProduction/gocache v1.2.1
 ## explicit
 github.com/TwinProduction/gocache
+# github.com/TwinProduction/health v1.0.0
+## explicit
+github.com/TwinProduction/health
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1

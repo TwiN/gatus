@@ -16,6 +16,7 @@ import (
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/watchdog"
 	"github.com/TwinProduction/gocache"
+	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -77,8 +78,8 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	if cfg.Metrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
+	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET")
-	router.HandleFunc("/health", healthHandler).Methods("GET")
 	router.HandleFunc("/api/v1/statuses", secureIfNecessary(cfg, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content
 	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
 	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", badgeHandler).Methods("GET")
@@ -165,12 +166,6 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(output)
-}
-
-func healthHandler(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Add("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write([]byte("{\"status\":\"UP\"}"))
 }
 
 // favIconHandler handles requests for /favicon.ico
