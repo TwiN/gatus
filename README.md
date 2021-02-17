@@ -167,7 +167,7 @@ Here are some examples of conditions you can use:
 | `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299              | 301, 302, ...  |
 | `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299              | 301, 302, ...  |
 | `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404         | 400, 200, ...  |
-| `[STATUS] == any(200, 429)`  | Status must be either 200 or 420                        | 200, 429                   | 201, 400, ...  |
+| `[STATUS] == any(200, 429)`  | Status must be either 200 or 429                        | 200, 429                   | 201, 400, ...  |
 | `[CONNECTED] == true`        | Connection to host must've been successful              | true, false                |  |
 | `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms        | 500ms, 501ms   |
 | `[IP] == 127.0.0.1`          | Target IP must be 127.0.0.1                             | 127.0.0.1                  | 0.0.0.0        |
