@@ -344,6 +344,10 @@ alerting:
     access-key: "1"
     originator: "31619191918"
     recipients: "31619191919"
+  placeholders:
+    ALERT_TRIGGERED_OR_RESOLVED:
+      triggered: "partial_outage"
+      resolved: "operational"
 services:
   - name: twinnation
     url: https://twinnation.org/health

@@ -68,3 +68,28 @@ func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
 		t.Error("customAlertProvider should've been equal to customAlertProvider")
 	}
 }
+
+func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
+	const (
+		ExpectedURL  = "http://example.com/service-name?event=MYTEST&description=alert-description"
+		ExpectedBody = "service-name,alert-description,MYTEST"
+	)
+	customAlertProvider := &AlertProvider{
+		URL:     "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		Headers: nil,
+		Placeholders: map[string]map[string]string{
+			"ALERT_TRIGGERED_OR_RESOLVED": {
+				"resolved": "MYTEST",
+			},
+		},
+	}
+	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", true)
+	if request.URL.String() != ExpectedURL {
+		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
+	}
+	body, _ := ioutil.ReadAll(request.Body)
+	if string(body) != ExpectedBody {
+		t.Error("expected body to be", ExpectedBody, "was", string(body))
+	}
+}
