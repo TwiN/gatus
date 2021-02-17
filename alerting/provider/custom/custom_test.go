@@ -93,3 +93,24 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}
 }
+
+func TestAlertProvider_GetPlaceholderValue(t *testing.T) {
+	customAlertProvider := &AlertProvider{
+		URL:          "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:         "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		Headers:      nil,
+		Placeholders: nil,
+	}
+
+	if customAlertProvider.GetPlaceholderValue("I_DO_NOT_EXIST", "i_do_also_no_exist") != "" {
+		t.Error("expected empty response from a non existing placeholder")
+	}
+
+	if customAlertProvider.GetPlaceholderValue("ALERT_TRIGGERED_OR_RESOLVED", "I_DO_NOT_EXIST") != "" {
+		t.Error("expected empty response from a non existing subvalue")
+	}
+
+	if customAlertProvider.GetPlaceholderValue("ALERT_TRIGGERED_OR_RESOLVED", "triggered") != "TRIGGERED" {
+		t.Error("expected 'triggered' as a result")
+	}
+}
