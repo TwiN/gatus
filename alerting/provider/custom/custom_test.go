@@ -71,8 +71,8 @@ func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	const (
-		ExpectedURL  = "http://example.com/service-name?event=MYTEST&description=alert-description"
-		ExpectedBody = "service-name,alert-description,MYTEST"
+		ExpectedURL  = "http://example.com/service-name?event=test&description=alert-description"
+		ExpectedBody = "service-name,alert-description,test"
 	)
 	customAlertProvider := &AlertProvider{
 		URL:     "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
@@ -80,7 +80,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 		Headers: nil,
 		Placeholders: map[string]map[string]string{
 			"ALERT_TRIGGERED_OR_RESOLVED": {
-				"resolved": "MYTEST",
+				"RESOLVED": "test",
 			},
 		},
 	}
@@ -101,12 +101,10 @@ func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 		Headers:      nil,
 		Placeholders: nil,
 	}
-
 	if customAlertProvider.GetAlertStatePlaceholderValue(true) != "RESOLVED" {
-		t.Error("expected here actually RESOLVED")
+		t.Error("expected RESOLVED, got", customAlertProvider.GetAlertStatePlaceholderValue(true))
 	}
-
 	if customAlertProvider.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
-		t.Error("expected here actually TRIGGERED")
+		t.Error("expected TRIGGERED, got", customAlertProvider.GetAlertStatePlaceholderValue(false))
 	}
 }
