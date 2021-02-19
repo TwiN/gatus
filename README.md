@@ -7,8 +7,10 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwinProduction](https://img.shields.io/github/followers/TwinProduction?label=Follow&style=social)](https://github.com/TwinProduction)
 
-A service health dashboard in Go that is meant to be used as a docker 
-image with a custom configuration file.
+Gatus is a health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
+queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
+the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
+checks can be paired with alerting via Slack, PagerDuty and even Twilio.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twinnation.org/
