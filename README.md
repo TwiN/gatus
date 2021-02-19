@@ -358,14 +358,15 @@ leveraging Gatus, you could have Gatus call that application endpoint when a ser
 would then check if the service that started failing was recently deployed, and if it was, then automatically 
 roll it back.
 
-The values `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and the 
-service name respectively in the body (`alerting.custom.body`) as well as the url (`alerting.custom.url`).
+The placeholders `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and
+the service name. These placeholders can be used in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`).
 
-If you have `send-on-resolved` set to `true`, you may want to use `[ALERT_TRIGGERED_OR_RESOLVED]` to differentiate
-the notifications. It will be replaced for either `TRIGGERED` or `RESOLVED`, based on the situation.
+If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
+`[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications. 
+The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
+(details at the end of this section).
 
 For all intents and purpose, we'll configure the custom alert with a Slack webhook, but you can call anything you want.
-
 ```yaml
 alerting:
   custom:
@@ -392,6 +393,18 @@ services:
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
 ```
+
+Note that you can customize the resolved values for the `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder like so:
+```yaml
+alerting:
+  custom:
+    placeholders:
+      ALERT_TRIGGERED_OR_RESOLVED:
+        TRIGGERED: "partial_outage"
+        RESOLVED: "operational"
+```
+As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by 
+`partial_outage` when an alert is triggered and `operational` when an alert is resolved.
 
 ### Kubernetes (ALPHA)
 
