@@ -27,6 +27,7 @@ func GetHTTPClient(insecure bool) *http.Client {
 				Transport: &http.Transport{
 					MaxIdleConns:        100,
 					MaxIdleConnsPerHost: 20,
+					Proxy:               http.ProxyFromEnvironment,
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: true,
 					},
@@ -41,6 +42,7 @@ func GetHTTPClient(insecure bool) *http.Client {
 			Transport: &http.Transport{
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 20,
+				Proxy:               http.ProxyFromEnvironment,
 			},
 		}
 	}
