@@ -344,6 +344,11 @@ alerting:
     access-key: "1"
     originator: "31619191918"
     recipients: "31619191919"
+  custom:
+    placeholders:
+      ALERT_TRIGGERED_OR_RESOLVED:
+        triggered: "partial_outage"
+        resolved: "operational"
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -395,6 +400,12 @@ services:
 	}
 	if config.Alerting.Messagebird.Recipients != "31619191919" {
 		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
+	}
+	if config.Alerting.Custom == nil {
+		t.Fatal("config.Alerting. Custom shouldn't have been nil")
+	}
+	if config.Alerting.Custom.Placeholders == nil {
+		t.Fatal("config.Alerting.Custom.Placeholders shouldn't have been nil")
 	}
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")

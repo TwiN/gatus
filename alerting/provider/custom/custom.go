@@ -16,11 +16,12 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
 // Technically, all alert providers should be reachable using the custom alert provider
 type AlertProvider struct {
-	URL      string            `yaml:"url"`
-	Method   string            `yaml:"method,omitempty"`
-	Insecure bool              `yaml:"insecure,omitempty"`
-	Body     string            `yaml:"body,omitempty"`
-	Headers  map[string]string `yaml:"headers,omitempty"`
+	URL          string                       `yaml:"url"`
+	Method       string                       `yaml:"method,omitempty"`
+	Insecure     bool                         `yaml:"insecure,omitempty"`
+	Body         string                       `yaml:"body,omitempty"`
+	Headers      map[string]string            `yaml:"headers,omitempty"`
+	Placeholders map[string]map[string]string `yaml:"placeholders,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -33,10 +34,31 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	return provider
 }
 
+// GetPlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
+func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) string {
+	status := "triggered"
+	if resolved {
+		status = "resolved"
+	}
+
+	if _, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"]; ok {
+		if val, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"][status]; ok {
+			return val
+		}
+	}
+
+	if resolved {
+		return "RESOLVED"
+	}
+
+	return "TRIGGERED"
+}
+
 func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
 	providerURL := provider.URL
 	method := provider.Method
+
 	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
 		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
 	}
@@ -45,9 +67,9 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 	}
 	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
 		} else {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
 		}
 	}
 	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
@@ -58,9 +80,9 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 	}
 	if strings.Contains(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
-			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", "RESOLVED")
+			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
 		} else {
-			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", "TRIGGERED")
+			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
 		}
 	}
 	if len(method) == 0 {
