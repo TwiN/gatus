@@ -506,13 +506,13 @@ By setting `services[].graphql` to true, the body will automatically be wrapped 
 For instance, the following configuration:
 ```yaml
 services:
-  - name: filter users by gender
+  - name: filter-users-by-gender
     url: http://localhost:8080/playground
     method: POST
     graphql: true
     body: |
       {
-        user(gender: "female") {
+        users(gender: "female") {
           id
           name
           gender
@@ -523,12 +523,12 @@ services:
       Content-Type: application/json # XXX: as of v1.9.2, this header is automatically added when graphql is set to true
     conditions:
       - "[STATUS] == 200"
-      - "[BODY].data.user[0].gender == female"
+      - "[BODY].data.users[0].gender == female"
 ```
 
 will send a `POST` request to `http://localhost:8080/playground` with the following body:
 ```json
-{"query":"      {\n        user(gender: \"female\") {\n          id\n          name\n          gender\n          avatar\n        }\n      }"}
+{"query":"      {\n        users(gender: \"female\") {\n          id\n          name\n          gender\n          avatar\n        }\n      }"}
 ```
 
 
@@ -600,7 +600,7 @@ commonly known as "ping" or "echo":
 
 ```yaml
 services:
-  - name: ICMP
+  - name: ping-example
     url: "icmp://example.com"
     conditions:
       - "[CONNECTED] == true"
@@ -615,7 +615,7 @@ You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `ic
 Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
 ```yaml
 services:
-  - name: example dns query
+  - name: example-dns-query
     url: "8.8.8.8" # Address of the DNS server to use
     interval: 30s
     dns:
