@@ -344,11 +344,6 @@ alerting:
     access-key: "1"
     originator: "31619191918"
     recipients: "31619191919"
-  custom:
-    placeholders:
-      ALERT_TRIGGERED_OR_RESOLVED:
-        triggered: "partial_outage"
-        resolved: "operational"
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -400,12 +395,6 @@ services:
 	}
 	if config.Alerting.Messagebird.Recipients != "31619191919" {
 		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
-	}
-	if config.Alerting.Custom == nil {
-		t.Fatal("config.Alerting. Custom shouldn't have been nil")
-	}
-	if config.Alerting.Custom.Placeholders == nil {
-		t.Fatal("config.Alerting.Custom.Placeholders shouldn't have been nil")
 	}
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
@@ -513,7 +502,102 @@ services:
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
 	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(true) != "RESOLVED" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'RESOLVED', got", config.Alerting.Custom.GetAlertStatePlaceholderValue(true))
+	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'TRIGGERED', got", config.Alerting.Custom.GetAlertStatePlaceholderValue(false))
+	}
 	if config.Alerting.Custom.Insecure {
+		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithCustomAlertingConfigAndCustomPlaceholderValues(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  custom:
+    placeholders:
+      ALERT_TRIGGERED_OR_RESOLVED:
+        TRIGGERED: "partial_outage"
+        RESOLVED: "operational"
+    url: "https://example.com"
+    insecure: true
+    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+services:
+  - name: twinnation
+    url: https://twinnation.org/health
+    alerts:
+      - type: custom
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Custom == nil {
+		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+	}
+	if !config.Alerting.Custom.IsValid() {
+		t.Fatal("Custom alerting config should've been valid")
+	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(true) != "operational" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'operational'")
+	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "partial_outage" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'partial_outage'")
+	}
+	if !config.Alerting.Custom.Insecure {
+		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithCustomAlertingConfigAndOneCustomPlaceholderValue(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  custom:
+    placeholders:
+      ALERT_TRIGGERED_OR_RESOLVED:
+        TRIGGERED: "partial_outage"
+    url: "https://example.com"
+    insecure: true
+    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+services:
+  - name: twinnation
+    url: https://twinnation.org/health
+    alerts:
+      - type: custom
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Custom == nil {
+		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+	}
+	if !config.Alerting.Custom.IsValid() {
+		t.Fatal("Custom alerting config should've been valid")
+	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(true) != "RESOLVED" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'RESOLVED'")
+	}
+	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "partial_outage" {
+		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'partial_outage'")
+	}
+	if !config.Alerting.Custom.Insecure {
 		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
 	}
 }

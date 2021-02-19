@@ -34,24 +34,18 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	return provider
 }
 
-// GetPlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
+// GetAlertStatePlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
 func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) string {
-	status := "triggered"
+	status := "TRIGGERED"
 	if resolved {
-		status = "resolved"
+		status = "RESOLVED"
 	}
-
 	if _, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"]; ok {
 		if val, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"][status]; ok {
 			return val
 		}
 	}
-
-	if resolved {
-		return "RESOLVED"
-	}
-
-	return "TRIGGERED"
+	return status
 }
 
 func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription string, resolved bool) *http.Request {
