@@ -15,12 +15,12 @@
     </div>
     <div>
       <div class='status-over-time flex flex-row'>
-        <slot v-for="filler in maximumNumberOfResults - data.results.length" :key="filler">
-          <span class="status rounded border border-dashed"> </span>
+        <slot v-if="data.results.length < maximumNumberOfResults">
+          <span v-for="filler in maximumNumberOfResults - data.results.length" :key="filler" class="status rounded border border-dashed"> </span>
         </slot>
         <slot v-for="result in data.results" :key="result">
-          <span v-if="result.success" class="status rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)">&#10003;</span>
-          <span v-else class="status rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)">X</span>
+          <span v-if="result.success" class="status status-success rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+          <span v-else class="status status-failure rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
         </slot>
       </div>
     </div>
@@ -110,6 +110,14 @@ export default {
   border-style: solid;
 }
 
+.status-over-time {
+  overflow: auto;
+}
+
+.status-over-time > span:not(:first-child) {
+  margin-left: 2px;
+}
+
 .status {
   cursor: pointer;
   transition: all 500ms ease-in-out;
@@ -127,14 +135,6 @@ export default {
   color: black;
 }
 
-.status-over-time {
-  overflow: auto;
-}
-
-.status-over-time > span:not(:first-child) {
-  margin-left: 2px;
-}
-
 .status-time-ago {
   color: #6a737d;
   opacity: 0.5;
@@ -143,5 +143,21 @@ export default {
 
 .status-min-max-ms {
   overflow-x: hidden;
+}
+
+.status.status-success::after {
+  content: "✓";
+}
+
+.status.status-failure::after {
+  content: "X";
+}
+
+@media screen and (max-width: 450px) {
+  .status.status-success::after,
+  .status.status-failure::after {
+    content: " ";
+    white-space: pre;
+  }
 }
 </style>

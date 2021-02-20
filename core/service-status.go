@@ -6,6 +6,14 @@ import (
 	"github.com/TwinProduction/gatus/util"
 )
 
+const (
+	// MaximumNumberOfResults is the maximum number of results that ServiceStatus.Results can have
+	MaximumNumberOfResults = 20
+
+	// MaximumNumberOfEvents is the maximum number of events that ServiceStatus.Events can have
+	MaximumNumberOfEvents = 50
+)
+
 // ServiceStatus contains the evaluation Results of a Service
 type ServiceStatus struct {
 	// Name of the service
@@ -64,14 +72,20 @@ func (ss *ServiceStatus) AddResult(result *Result) {
 				event.Type = EventUnhealthy
 			}
 			ss.Events = append(ss.Events, event)
-			if len(ss.Events) > 20 {
-				ss.Events = ss.Events[1:]
+			if len(ss.Events) > MaximumNumberOfEvents {
+				// Doing ss.Events[1:] would usually be sufficient, but in the case where for some reason, the slice has
+				// more than one extra element, we can get rid of all of them at once and thus returning the slice to a
+				// length of MaximumNumberOfEvents by using ss.Events[len(ss.Events)-MaximumNumberOfEvents:] instead
+				ss.Events = ss.Events[len(ss.Events)-MaximumNumberOfEvents:]
 			}
 		}
 	}
 	ss.Results = append(ss.Results, result)
-	if len(ss.Results) > 20 {
-		ss.Results = ss.Results[1:]
+	if len(ss.Results) > MaximumNumberOfResults {
+		// Doing ss.Results[1:] would usually be sufficient, but in the case where for some reason, the slice has more
+		// than one extra element, we can get rid of all of them at once and thus returning the slice to a length of
+		// MaximumNumberOfResults by using ss.Results[len(ss.Results)-MaximumNumberOfResults:] instead
+		ss.Results = ss.Results[len(ss.Results)-MaximumNumberOfResults:]
 	}
 	ss.Uptime.ProcessResult(result)
 }
