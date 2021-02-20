@@ -21,7 +21,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 }
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
-	provider := AlertProvider{WebhookURL: "http://example.com"}
+	provider := AlertProvider{WebhookURL: "http://example.org"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "SUCCESSFUL_CONDITION", Success: true}}}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
@@ -29,8 +29,8 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	if !strings.Contains(customAlertProvider.Body, "resolved") {
 		t.Error("customAlertProvider.Body should've contained the substring resolved")
 	}
-	if customAlertProvider.URL != "http://example.com" {
-		t.Errorf("expected URL to be %s, got %s", "http://example.com", customAlertProvider.URL)
+	if customAlertProvider.URL != "http://example.org" {
+		t.Errorf("expected URL to be %s, got %s", "http://example.org", customAlertProvider.URL)
 	}
 	if customAlertProvider.Method != http.MethodPost {
 		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
@@ -43,7 +43,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 }
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
-	provider := AlertProvider{WebhookURL: "http://example.com"}
+	provider := AlertProvider{WebhookURL: "http://example.org"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
@@ -51,8 +51,8 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	if !strings.Contains(customAlertProvider.Body, "triggered") {
 		t.Error("customAlertProvider.Body should've contained the substring triggered")
 	}
-	if customAlertProvider.URL != "http://example.com" {
-		t.Errorf("expected URL to be %s, got %s", "http://example.com", customAlertProvider.URL)
+	if customAlertProvider.URL != "http://example.org" {
+		t.Errorf("expected URL to be %s, got %s", "http://example.org", customAlertProvider.URL)
 	}
 	if customAlertProvider.Method != http.MethodPost {
 		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
