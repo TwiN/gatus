@@ -5,6 +5,6 @@ import (
 )
 
 // GetKubernetesServices return a list of Services from the given namespace
-func GetKubernetesServices(client KubernetesClientApi, namespace string) ([]v1.Service, error) {
+func GetKubernetesServices(client KubernetesClientAPI, namespace string) ([]v1.Service, error) {
 	return client.GetServices(namespace)
 }

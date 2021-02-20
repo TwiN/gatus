@@ -64,8 +64,8 @@ func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
-	if customAlertProvider != customAlertProvider {
-		t.Error("customAlertProvider should've been equal to customAlertProvider")
+	if customAlertProvider.URL != "http://example.com" {
+		t.Error("expected URL to be http://example.com, got", customAlertProvider.URL)
 	}
 }
 

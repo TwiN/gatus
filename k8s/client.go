@@ -16,13 +16,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// KubernetesClientApi is a minimal interface for interacting with Kubernetes
+// KubernetesClientAPI is a minimal interface for interacting with Kubernetes
 // Created mostly to make mocking the Kubernetes client easier
-type KubernetesClientApi interface {
+type KubernetesClientAPI interface {
 	GetServices(namespace string) ([]v1.Service, error)
 }
 
-// KubernetesClient is a working implementation of KubernetesClientApi
+// KubernetesClient is a working implementation of KubernetesClientAPI
 type KubernetesClient struct {
 	client *kubernetes.Clientset
 }
@@ -44,7 +44,7 @@ func NewKubernetesClient(client *kubernetes.Clientset) *KubernetesClient {
 }
 
 // NewClient creates a Kubernetes client for the given ClusterMode
-func NewClient(clusterMode ClusterMode) (KubernetesClientApi, error) {
+func NewClient(clusterMode ClusterMode) (KubernetesClientAPI, error) {
 	var kubeConfig *rest.Config
 	var err error
 	switch clusterMode {
