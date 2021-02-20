@@ -35,7 +35,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
 	}
 	return &custom.AlertProvider{
 		URL:    provider.WebhookURL,

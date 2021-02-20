@@ -62,7 +62,7 @@ func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
 	provider := AlertProvider{URL: "http://example.com"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
-		t.Error("customAlertProvider shouldn't have been nil")
+		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
 	if customAlertProvider != customAlertProvider {
 		t.Error("customAlertProvider should've been equal to customAlertProvider")
