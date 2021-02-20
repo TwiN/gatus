@@ -11,4 +11,4 @@ run-frontend:
 	npm --prefix web/app run serve
 
 test:
-	go test -mod=vendor ./... -cover
+	go test ./alerting/... ./client/... ./config/... ./controller/... ./core/... ./jsonpath/... ./pattern/... ./security/... ./storage/... ./util/... ./watchdog/... -cover
