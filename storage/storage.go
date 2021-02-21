@@ -36,6 +36,9 @@ func Initialize(cfg *Config) error {
 	if cfg == nil || len(cfg.File) == 0 {
 		log.Println("[storage][Initialize] Creating storage provider")
 		provider, err = memory.NewStore("")
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Printf("[storage][Initialize] Creating storage provider with file=%s", cfg.File)
 		provider, err = memory.NewStore(cfg.File)
