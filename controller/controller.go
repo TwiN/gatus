@@ -14,7 +14,7 @@ import (
 
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gatus/storage"
 	"github.com/TwinProduction/gocache"
 	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
@@ -101,21 +101,22 @@ func secureIfNecessary(cfg *config.Config, handler http.HandlerFunc) http.Handle
 // Due to the size of the response, this function leverages a cache.
 // Must not be wrapped by GzipHandler
 func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
+	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	gzipped := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 	var exists bool
 	var value interface{}
 	if gzipped {
 		writer.Header().Set("Content-Encoding", "gzip")
-		value, exists = cache.Get("service-status-gzipped")
+		value, exists = cache.Get(fmt.Sprintf("service-status-%d-%d-gzipped", page, pageSize))
 	} else {
-		value, exists = cache.Get("service-status")
+		value, exists = cache.Get(fmt.Sprintf("service-status-%d-%d", page, pageSize))
 	}
 	var data []byte
 	if !exists {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err = watchdog.GetServiceStatusesAsJSON()
+		data, err = json.Marshal(storage.Get().GetAllServiceStatusesWithResultPagination(page, pageSize))
 		if err != nil {
 			log.Printf("[controller][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -125,8 +126,8 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		_, _ = gzipWriter.Write(data)
 		_ = gzipWriter.Close()
 		gzippedData := buffer.Bytes()
-		cache.SetWithTTL("service-status", data, cacheTTL)
-		cache.SetWithTTL("service-status-gzipped", gzippedData, cacheTTL)
+		cache.SetWithTTL(fmt.Sprintf("service-status-%d-%d", page, pageSize), data, cacheTTL)
+		cache.SetWithTTL(fmt.Sprintf("service-status-%d-%d-gzipped", page, pageSize), gzippedData, cacheTTL)
 		if gzipped {
 			data = gzippedData
 		}
@@ -140,8 +141,9 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 
 // serviceStatusHandler retrieves a single ServiceStatus by group name and service name
 func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
+	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	vars := mux.Vars(r)
-	serviceStatus := watchdog.GetServiceStatusByKey(vars["key"])
+	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"])
 	if serviceStatus == nil {
 		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
 		writer.WriteHeader(http.StatusNotFound)
@@ -149,7 +151,7 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := map[string]interface{}{
-		"serviceStatus": serviceStatus,
+		"serviceStatus": serviceStatus.WithResultPagination(page, pageSize),
 		// The following fields, while present on core.ServiceStatus, are annotated to remain hidden so that we can
 		// expose only the necessary data on /api/v1/statuses.
 		// Since the /api/v1/statuses/{key} endpoint does need this data, however, we explicitly expose it here
@@ -160,20 +162,10 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("[controller][serviceStatusHandler] Unable to marshal object to JSON: %s", err.Error())
 		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
+		_, _ = writer.Write([]byte("unable to marshal object to JSON"))
 		return
 	}
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(output)
-}
-
-// favIconHandler handles requests for /favicon.ico
-func favIconHandler(writer http.ResponseWriter, request *http.Request) {
-	http.ServeFile(writer, request, staticFolder+"/favicon.ico")
-}
-
-// spaHandler handles requests for /favicon.ico
-func spaHandler(writer http.ResponseWriter, request *http.Request) {
-	http.ServeFile(writer, request, staticFolder+"/index.html")
 }

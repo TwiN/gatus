@@ -204,7 +204,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	}
 }
 
-func TestStore_GetAllAsJSON(t *testing.T) {
+func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
 	store, _ := NewStore("")
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
@@ -213,13 +213,19 @@ func TestStore_GetAllAsJSON(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	output, err := store.GetAllAsJSON()
-	if err != nil {
-		t.Fatal("shouldn't have returned an error, got", err.Error())
+	serviceStatuses := store.GetAllServiceStatusesWithResultPagination(1, 20)
+	if len(serviceStatuses) != 1 {
+		t.Fatal("expected 1 service status")
 	}
-	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}]}}`
-	if string(output) != expectedOutput {
-		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, string(output))
+	actual, exists := serviceStatuses[util.ConvertGroupAndServiceToKey(testService.Group, testService.Name)]
+	if !exists {
+		t.Fatal("expected service status to exist")
+	}
+	if len(actual.Results) != 2 {
+		t.Error("expected 2 results, got", len(actual.Results))
+	}
+	if len(actual.Events) != 2 {
+		t.Error("expected 2 events, got", len(actual.Events))
 	}
 }
 
