@@ -162,6 +162,11 @@ func TestCreateRouter(t *testing.T) {
 			Gzip:         true,
 		},
 		{
+			Name:         "service-statuses-pagination",
+			Path:         "/api/v1/statuses?page=1&pageSize=20",
+			ExpectedCode: http.StatusOK,
+		},
+		{
 			Name:         "service-status",
 			Path:         "/api/v1/statuses/core_frontend",
 			ExpectedCode: http.StatusOK,
@@ -273,6 +278,62 @@ func TestServiceStatusesHandler(t *testing.T) {
 	router := CreateRouter(&config.Config{})
 
 	request, _ := http.NewRequest("GET", "/api/v1/statuses", nil)
+	responseRecorder := httptest.NewRecorder()
+	router.ServeHTTP(responseRecorder, request)
+	if responseRecorder.Code != http.StatusOK {
+		t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, http.StatusOK, responseRecorder.Code)
+	}
+
+	output := responseRecorder.Body.String()
+	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}]}}`
+	if output != expectedOutput {
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, output)
+	}
+}
+
+func TestServiceStatusesHandlerWithPagination(t *testing.T) {
+	defer storage.Get().Clear()
+	defer cache.Clear()
+	staticFolder = "../web/static"
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	storage.Get().Insert(&testService, firstResult)
+	storage.Get().Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	router := CreateRouter(&config.Config{})
+
+	request, _ := http.NewRequest("GET", "/api/v1/statuses?page=2&pageSize=1", nil)
+	responseRecorder := httptest.NewRecorder()
+	router.ServeHTTP(responseRecorder, request)
+	if responseRecorder.Code != http.StatusOK {
+		t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, http.StatusOK, responseRecorder.Code)
+	}
+
+	output := responseRecorder.Body.String()
+	expectedOutput := `{"group_name":{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]}}`
+	if output != expectedOutput {
+		t.Errorf("expected:\n %s\n\ngot:\n %s", expectedOutput, output)
+	}
+}
+
+// TestServiceStatusesHandlerWithBadPagination checks that the behavior when bad pagination parameters are passed
+// is to use the default pagination parameters
+func TestServiceStatusesHandlerWithBadPagination(t *testing.T) {
+	defer storage.Get().Clear()
+	defer cache.Clear()
+	staticFolder = "../web/static"
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	storage.Get().Insert(&testService, firstResult)
+	storage.Get().Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	router := CreateRouter(&config.Config{})
+
+	request, _ := http.NewRequest("GET", "/api/v1/statuses?page=INVALID&pageSize=INVALID", nil)
 	responseRecorder := httptest.NewRecorder()
 	router.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusOK {
