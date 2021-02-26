@@ -102,7 +102,7 @@ func BenchmarkStore_GetAllAsJSON(b *testing.B) {
 		scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 		b.Run(scenario.Name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
-				scenario.Store.GetAllAsJSON()
+				scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
 			}
 			b.ReportAllocs()
 		})

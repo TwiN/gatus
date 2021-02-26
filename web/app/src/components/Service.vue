@@ -1,37 +1,48 @@
 <template>
-  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data && data.results && data.results.length">
+  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
         <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline" title="View detailed service health">
           {{ data.name }}
         </router-link>
-        <span class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
+        <span v-if="data.results && data.results.length" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
-        <span class='font-light status-min-max-ms'>
+        <span class='font-light status-min-max-ms' v-if="data.results && data.results.length">
           {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + '-' + maxResponseTime)) }}ms
         </span>
       </div>
     </div>
     <div>
       <div class='status-over-time flex flex-row'>
-        <slot v-if="data.results.length < maximumNumberOfResults">
-          <span v-for="filler in maximumNumberOfResults - data.results.length" :key="filler" class="status rounded border border-dashed"> </span>
+        <slot v-if="data.results && data.results.length">
+          <slot v-if="data.results.length < maximumNumberOfResults">
+            <span v-for="filler in maximumNumberOfResults - data.results.length" :key="filler" class="status rounded border border-dashed">&nbsp;</span>
+          </slot>
+          <slot v-for="result in data.results" :key="result">
+            <span v-if="result.success" class="status status-success rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+            <span v-else class="status status-failure rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+          </slot>
         </slot>
-        <slot v-for="result in data.results" :key="result">
-          <span v-if="result.success" class="status status-success rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
-          <span v-else class="status status-failure rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+        <slot v-else>
+          <span v-for="filler in maximumNumberOfResults" :key="filler" class="status rounded border border-dashed">&nbsp;</span>
         </slot>
       </div>
     </div>
     <div class='flex flex-wrap status-time-ago'>
-      <!-- Show "Last update at" instead? -->
-      <div class='w-1/2'>
-        {{ generatePrettyTimeAgo(data.results[0].timestamp) }}
-      </div>
-      <div class='w-1/2 text-right'>
-        {{ generatePrettyTimeAgo(data.results[data.results.length - 1].timestamp) }}
-      </div>
+      <slot v-if="data.results && data.results.length">
+        <div class='w-1/2'>
+          {{ generatePrettyTimeAgo(data.results[0].timestamp) }}
+        </div>
+        <div class='w-1/2 text-right'>
+          {{ generatePrettyTimeAgo(data.results[data.results.length - 1].timestamp) }}
+        </div>
+      </slot>
+      <slot v-else>
+        <div class='w-1/2'>
+          &nbsp;
+        </div>
+      </slot>
     </div>
   </div>
 </template>
@@ -153,7 +164,7 @@ export default {
   content: "X";
 }
 
-@media screen and (max-width: 450px) {
+@media screen and (max-width: 600px) {
   .status.status-success::after,
   .status.status-failure::after {
     content: " ";

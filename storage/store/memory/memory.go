@@ -2,7 +2,6 @@ package memory
 
 import (
 	"encoding/gob"
-	"encoding/json"
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/util"
@@ -37,9 +36,15 @@ func NewStore(file string) (*Store, error) {
 	return store, nil
 }
 
-// GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
-func (s *Store) GetAllAsJSON() ([]byte, error) {
-	return json.Marshal(s.cache.GetAll())
+// GetAllServiceStatusesWithResultPagination returns all monitored core.ServiceStatus
+// with a subset of core.Result defined by the page and pageSize parameters
+func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus {
+	serviceStatuses := s.cache.GetAll()
+	pagedServiceStatuses := make(map[string]*core.ServiceStatus, len(serviceStatuses))
+	for k, v := range serviceStatuses {
+		pagedServiceStatuses[k] = v.(*core.ServiceStatus).WithResultPagination(page, pageSize)
+	}
+	return pagedServiceStatuses
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
@@ -53,7 +58,7 @@ func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
 	if serviceStatus == nil {
 		return nil
 	}
-	return serviceStatus.(*core.ServiceStatus)
+	return serviceStatus.(*core.ServiceStatus).ShallowCopy()
 }
 
 // Insert adds the observed result for the specified service into the store

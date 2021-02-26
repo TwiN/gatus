@@ -8,7 +8,8 @@ import (
 // Store is the interface that each stores should implement
 type Store interface {
 	// GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
-	GetAllAsJSON() ([]byte, error)
+	// with a subset of core.Result defined by the page and pageSize parameters
+	GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus
 
 	// GetServiceStatus returns the service status for a given service name in the given group
 	GetServiceStatus(groupName, serviceName string) *core.ServiceStatus

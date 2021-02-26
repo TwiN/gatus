@@ -18,31 +18,12 @@ var (
 	monitoringMutex sync.Mutex
 )
 
-// GetServiceStatusesAsJSON the JSON encoding of all core.ServiceStatus recorded
-func GetServiceStatusesAsJSON() ([]byte, error) {
-	return storage.Get().GetAllAsJSON()
-}
-
-// GetUptimeByKey returns the uptime of a service based on the ServiceStatus key
-func GetUptimeByKey(key string) *core.Uptime {
-	serviceStatus := storage.Get().GetServiceStatusByKey(key)
-	if serviceStatus == nil {
-		return nil
-	}
-	return serviceStatus.Uptime
-}
-
-// GetServiceStatusByKey returns the uptime of a service based on its ServiceStatus key
-func GetServiceStatusByKey(key string) *core.ServiceStatus {
-	return storage.Get().GetServiceStatusByKey(key)
-}
-
 // Monitor loops over each services and starts a goroutine to monitor each services separately
 func Monitor(cfg *config.Config) {
 	for _, service := range cfg.Services {
-		go monitor(service)
-		// To prevent multiple requests from running at the same time
+		// To prevent multiple requests from running at the same time, we'll wait for a little bit before each iteration
 		time.Sleep(1111 * time.Millisecond)
+		go monitor(service)
 	}
 }
 

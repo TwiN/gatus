@@ -7,6 +7,7 @@
       <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">RECENT CHECKS</h1>
       <hr class="mb-4" />
       <Service :data="serviceStatus" :maximumNumberOfResults="20" @showTooltip="showTooltip" />
+      <Pagination @page="changePage"/>
     </slot>
     <div v-if="uptime" class="mt-12">
       <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">UPTIME</h1>
@@ -73,10 +74,12 @@ import Settings from '@/components/Settings.vue'
 import Service from '@/components/Service.vue';
 import {SERVER_URL} from "@/main.js";
 import {helper} from "@/mixins/helper.js";
+import Pagination from "@/components/Pagination";
 
 export default {
   name: 'Details',
   components: {
+    Pagination,
     Service,
     Settings,
   },
@@ -85,7 +88,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/statuses/${this.$route.params.key}`)
+      fetch(`${this.serverUrl}/api/v1/statuses/${this.$route.params.key}?page=${this.currentPage}`)
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
@@ -138,7 +141,11 @@ export default {
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
-    }
+    },
+    changePage(page) {
+      this.currentPage = page;
+      this.fetchData();
+    },
   },
   data() {
     return {
@@ -147,6 +154,7 @@ export default {
       uptime: {"7d": 0, "24h": 0, "1h": 0},
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
+      currentPage: 1,
     }
   },
   created() {

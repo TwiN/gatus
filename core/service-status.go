@@ -8,7 +8,7 @@ import (
 
 const (
 	// MaximumNumberOfResults is the maximum number of results that ServiceStatus.Results can have
-	MaximumNumberOfResults = 20
+	MaximumNumberOfResults = 100
 
 	// MaximumNumberOfEvents is the maximum number of events that ServiceStatus.Events can have
 	MaximumNumberOfEvents = 50
@@ -56,6 +56,41 @@ func NewServiceStatus(service *Service) *ServiceStatus {
 		}},
 		Uptime: NewUptime(),
 	}
+}
+
+// ShallowCopy creates a shallow copy of ServiceStatus
+func (ss *ServiceStatus) ShallowCopy() *ServiceStatus {
+	return &ServiceStatus{
+		Name:    ss.Name,
+		Group:   ss.Group,
+		Key:     ss.Key,
+		Results: ss.Results,
+		Events:  ss.Events,
+		Uptime:  ss.Uptime,
+	}
+}
+
+// WithResultPagination makes a shallow copy of the ServiceStatus with only the results
+// within the range defined by the page and pageSize parameters
+func (ss *ServiceStatus) WithResultPagination(page, pageSize int) *ServiceStatus {
+	shallowCopy := ss.ShallowCopy()
+	numberOfResults := len(shallowCopy.Results)
+	start := numberOfResults - (page * pageSize)
+	end := numberOfResults - ((page - 1) * pageSize)
+	if start > numberOfResults {
+		start = -1
+	} else if start < 0 {
+		start = 0
+	}
+	if end > numberOfResults {
+		end = numberOfResults
+	}
+	if start < 0 || end < 0 {
+		shallowCopy.Results = []*Result{}
+	} else {
+		shallowCopy.Results = shallowCopy.Results[start:end]
+	}
+	return shallowCopy
 }
 
 // AddResult adds a Result to ServiceStatus.Results and makes sure that there are

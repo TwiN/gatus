@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gatus/storage"
 	"github.com/gorilla/mux"
 )
 
@@ -25,10 +25,15 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 	identifier := variables["identifier"]
 	key := strings.TrimSuffix(identifier, ".svg")
-	uptime := watchdog.GetUptimeByKey(key)
-	if uptime == nil {
+	serviceStatus := storage.Get().GetServiceStatusByKey(key)
+	if serviceStatus == nil {
 		writer.WriteHeader(http.StatusNotFound)
 		_, _ = writer.Write([]byte("Requested service not found"))
+		return
+	}
+	if serviceStatus.Uptime == nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte("Failed to compute uptime"))
 		return
 	}
 	formattedDate := time.Now().Format(http.TimeFormat)
@@ -36,7 +41,7 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Date", formattedDate)
 	writer.Header().Set("Expires", formattedDate)
 	writer.Header().Set("Content-Type", "image/svg+xml")
-	_, _ = writer.Write(generateSVG(duration, uptime))
+	_, _ = writer.Write(generateSVG(duration, serviceStatus.Uptime))
 }
 
 func generateSVG(duration string, uptime *core.Uptime) []byte {
