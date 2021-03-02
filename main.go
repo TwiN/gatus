@@ -19,7 +19,7 @@ func main() {
 	// Wait for termination signal
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
-	signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sig
 		log.Println("Received interruption signal, attempting to gracefully shut down")
