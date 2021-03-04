@@ -210,6 +210,12 @@ Here are some examples of conditions you can use:
 
 ### Alerting
 
+Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
+individual services with configurable descriptions and thresholds.
+
+Note that if an alerting provider is not configured properly, all alerts configured with the provider's type will be
+ignored.
+
 
 #### Configuring Slack alerts
 
