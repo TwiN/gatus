@@ -59,11 +59,11 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 200m
-              memory: 50M
+              cpu: 250m
+              memory: 100M
             requests:
               cpu: 50m
-              memory: 20M
+              memory: 30M
           volumeMounts:
             - mountPath: /config
               name: gatus-config

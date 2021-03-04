@@ -22,7 +22,7 @@ func main() {
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sig
-		log.Println("Received interruption signal, attempting to gracefully shut down")
+		log.Println("Received termination signal, attempting to gracefully shut down")
 		controller.Shutdown()
 		err := storage.Get().Save()
 		if err != nil {
