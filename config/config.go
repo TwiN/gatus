@@ -228,12 +228,13 @@ func validateAlertingConfig(config *Config) {
 		return
 	}
 	alertTypes := []core.AlertType{
-		core.SlackAlert,
+		core.CustomAlert,
+		core.DiscordAlert,
 		core.MattermostAlert,
 		core.MessagebirdAlert,
-		core.TwilioAlert,
 		core.PagerDutyAlert,
-		core.CustomAlert,
+		core.SlackAlert,
+		core.TwilioAlert,
 	}
 	var validProviders, invalidProviders []core.AlertType
 	for _, alertType := range alertTypes {
@@ -255,12 +256,18 @@ func validateAlertingConfig(config *Config) {
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding core.AlertType
 func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) provider.AlertProvider {
 	switch alertType {
-	case core.SlackAlert:
-		if config.Alerting.Slack == nil {
+	case core.CustomAlert:
+		if config.Alerting.Custom == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
 		}
-		return config.Alerting.Slack
+		return config.Alerting.Custom
+	case core.DiscordAlert:
+		if config.Alerting.Discord == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Discord
 	case core.MattermostAlert:
 		if config.Alerting.Mattermost == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
@@ -273,24 +280,24 @@ func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) pr
 			return nil
 		}
 		return config.Alerting.Messagebird
-	case core.TwilioAlert:
-		if config.Alerting.Twilio == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Twilio
 	case core.PagerDutyAlert:
 		if config.Alerting.PagerDuty == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
 		}
 		return config.Alerting.PagerDuty
-	case core.CustomAlert:
-		if config.Alerting.Custom == nil {
+	case core.SlackAlert:
+		if config.Alerting.Slack == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
 		}
-		return config.Alerting.Custom
+		return config.Alerting.Slack
+	case core.TwilioAlert:
+		if config.Alerting.Twilio == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Alerting.Twilio
 	}
 	return nil
 }

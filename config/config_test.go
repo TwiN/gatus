@@ -6,6 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/alerting/provider/discord"
+	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
+	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
+	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
+	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
 	v1 "k8s.io/api/core/v1"
@@ -338,6 +346,8 @@ debug: true
 alerting:
   slack:
     webhook-url: "http://example.com"
+  discord:
+    webhook-url: "http://example.org"
   pagerduty:
     integration-key: "00000000000000000000000000000000"
   messagebird:
@@ -356,7 +366,9 @@ services:
         success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
       - type: messagebird
+      - type: discord
         enabled: true
+        failure-threshold: 10
     conditions:
       - "[STATUS] == 200"
 `))
@@ -369,6 +381,7 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
+	// Alerting providers
 	if config.Alerting == nil {
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
@@ -396,6 +409,16 @@ services:
 	if config.Alerting.Messagebird.Recipients != "31619191919" {
 		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
 	}
+	if config.Alerting.Discord == nil || !config.Alerting.Discord.IsValid() {
+		t.Fatal("Discord alerting config should've been valid")
+	}
+	if config.Alerting.Discord.WebhookURL != "http://example.org" {
+		t.Errorf("Discord webhook should've been %s, but was %s", "http://example.org", config.Alerting.Discord.WebhookURL)
+	}
+	if GetAlertingProviderByAlertType(config, core.DiscordAlert) != config.Alerting.Discord {
+		t.Error("expected discord configuration")
+	}
+	// Services
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
 	}
@@ -405,11 +428,12 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Services[0].Alerts == nil {
-		t.Fatal("The service alerts shouldn't have been nil")
+	if len(config.Services[0].Alerts) != 4 {
+		t.Fatal("There should've been 4 alerts configured")
 	}
-	if len(config.Services[0].Alerts) != 3 {
-		t.Fatal("There should've been 3 alert configured")
+
+	if config.Services[0].Alerts[0].Type != core.SlackAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
 	}
 	if !config.Services[0].Alerts[0].Enabled {
 		t.Error("The alert should've been enabled")
@@ -420,23 +444,35 @@ services:
 	if config.Services[0].Alerts[0].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
 	}
+
+	if config.Services[0].Alerts[1].Type != core.PagerDutyAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.PagerDutyAlert, config.Services[0].Alerts[1].Type)
+	}
+	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[1].Description)
+	}
 	if config.Services[0].Alerts[1].FailureThreshold != 7 {
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
 	}
 	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
 		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
 	}
-	if config.Services[0].Alerts[0].Type != core.SlackAlert {
-		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
-	}
-	if config.Services[0].Alerts[1].Type != core.PagerDutyAlert {
-		t.Errorf("The type of the alert should've been %s, but it was %s", core.PagerDutyAlert, config.Services[0].Alerts[1].Type)
-	}
-	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[0].Description)
-	}
+
 	if config.Services[0].Alerts[2].Type != core.MessagebirdAlert {
-		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[1].Type)
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[2].Type)
+	}
+	if config.Services[0].Alerts[2].Enabled {
+		t.Error("The alert should've been disabled")
+	}
+
+	if config.Services[0].Alerts[3].Type != core.DiscordAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.DiscordAlert, config.Services[0].Alerts[3].Type)
+	}
+	if config.Services[0].Alerts[3].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[3].FailureThreshold)
+	}
+	if config.Services[0].Alerts[3].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[3].SuccessThreshold)
 	}
 }
 
@@ -808,4 +844,39 @@ kubernetes:
 `))
 	// TODO: find a way to test this?
 	t.Error("Function should've panicked because testing with ClusterModeIn isn't supported")
+}
+
+func TestGetAlertingProviderByAlertType(t *testing.T) {
+	cfg := &Config{
+		Alerting: &alerting.Config{
+			Custom:      &custom.AlertProvider{},
+			Discord:     &discord.AlertProvider{},
+			Mattermost:  &mattermost.AlertProvider{},
+			Messagebird: &messagebird.AlertProvider{},
+			PagerDuty:   &pagerduty.AlertProvider{},
+			Slack:       &slack.AlertProvider{},
+			Twilio:      &twilio.AlertProvider{},
+		},
+	}
+	if GetAlertingProviderByAlertType(cfg, core.CustomAlert) != cfg.Alerting.Custom {
+		t.Error("expected Custom configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.DiscordAlert) != cfg.Alerting.Discord {
+		t.Error("expected Discord configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.MattermostAlert) != cfg.Alerting.Mattermost {
+		t.Error("expected Mattermost configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.MessagebirdAlert) != cfg.Alerting.Messagebird {
+		t.Error("expected Messagebird configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.PagerDutyAlert) != cfg.Alerting.PagerDuty {
+		t.Error("expected PagerDuty configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.SlackAlert) != cfg.Alerting.Slack {
+		t.Error("expected Slack configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.TwilioAlert) != cfg.Alerting.Twilio {
+		t.Error("expected Twilio configuration")
+	}
 }

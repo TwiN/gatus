@@ -26,6 +26,7 @@ core applications: https://status.twinnation.org/
     - [Functions](#functions)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
+    - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -118,7 +119,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring using DNS queries](#monitoring-using-dns-queries)  | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`m `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
@@ -127,6 +128,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `alerting`                               | Configuration for alerting                                                    | `{}`           |
 | `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
 | `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
+| `alerting.discord`                       | Configuration for alerts of type `discord`                                    | `{}`           |
+| `alerting.discord.webhook-url`           | Discord Webhook URL                                                           | Required `""`  |
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
 | `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
@@ -223,6 +226,7 @@ ignored.
 alerting:
   slack: 
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
+
 services:
   - name: twinnation
     url: "https://twinnation.org/health"
@@ -248,6 +252,29 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
+#### Configuring Discord alerts
+
+```yaml
+alerting:
+  discord: 
+    webhook-url: "https://discord.com/api/webhooks/**********/**********"
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    alerts:
+      - type: discord
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+
 #### Configuring PagerDuty alerts
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts 
@@ -259,6 +286,7 @@ PagerDuty instead.
 alerting:
   pagerduty: 
     integration-key: "********************************"
+
 services:
   - name: twinnation
     url: "https://twinnation.org/health"
@@ -269,7 +297,7 @@ services:
         failure-threshold: 3
         success-threshold: 5
         send-on-resolved: true
-        description: "healthcheck failed 3 times in a row"
+        description: "healthcheck failed"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -286,6 +314,7 @@ alerting:
     token: "..."
     from: "+1-234-567-8901"
     to: "+1-234-567-8901"
+
 services:
   - name: twinnation
     interval: 30s
@@ -295,7 +324,7 @@ services:
         enabled: true
         failure-threshold: 5
         send-on-resolved: true
-        description: "healthcheck failed 5 times in a row"
+        description: "healthcheck failed"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -310,6 +339,7 @@ alerting:
   mattermost: 
     webhook-url: "http://**********/hooks/**********"
     insecure: true
+
 services:
   - name: twinnation
     url: "https://twinnation.org/health"
@@ -317,7 +347,7 @@ services:
     alerts:
       - type: mattermost
         enabled: true
-        description: "healthcheck failed 3 times in a row"
+        description: "healthcheck failed"
         send-on-resolved: true
     conditions:
       - "[STATUS] == 200"
@@ -349,7 +379,7 @@ services:
         enabled: true
         failure-threshold: 3
         send-on-resolved: true
-        description: "healthcheck failed 3 times in a row"
+        description: "healthcheck failed"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -395,7 +425,7 @@ services:
         failure-threshold: 10
         success-threshold: 3
         send-on-resolved: true
-        description: "healthcheck failed 10 times in a row"
+        description: "healthcheck failed"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"

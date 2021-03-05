@@ -40,8 +40,11 @@ type Alert struct {
 type AlertType string
 
 const (
-	// SlackAlert is the AlertType for the slack alerting provider
-	SlackAlert AlertType = "slack"
+	// CustomAlert is the AlertType for the custom alerting provider
+	CustomAlert AlertType = "custom"
+
+	// DiscordAlert is the AlertType for the discord alerting provider
+	DiscordAlert AlertType = "discord"
 
 	// MattermostAlert is the AlertType for the mattermost alerting provider
 	MattermostAlert AlertType = "mattermost"
@@ -52,9 +55,9 @@ const (
 	// PagerDutyAlert is the AlertType for the pagerduty alerting provider
 	PagerDutyAlert AlertType = "pagerduty"
 
+	// SlackAlert is the AlertType for the slack alerting provider
+	SlackAlert AlertType = "slack"
+
 	// TwilioAlert is the AlertType for the twilio alerting provider
 	TwilioAlert AlertType = "twilio"
-
-	// CustomAlert is the AlertType for the custom alerting provider
-	CustomAlert AlertType = "custom"
 )

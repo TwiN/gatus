@@ -2,6 +2,7 @@ package provider
 
 import (
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/alerting/provider/discord"
 	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
 	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
@@ -22,9 +23,10 @@ type AlertProvider interface {
 var (
 	// Validate interface implementation on compile
 	_ AlertProvider = (*custom.AlertProvider)(nil)
-	_ AlertProvider = (*twilio.AlertProvider)(nil)
-	_ AlertProvider = (*slack.AlertProvider)(nil)
+	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
+	_ AlertProvider = (*slack.AlertProvider)(nil)
+	_ AlertProvider = (*twilio.AlertProvider)(nil)
 )
