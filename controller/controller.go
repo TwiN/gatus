@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	cache = gocache.NewCache().WithMaxSize(100).WithEvictionPolicy(gocache.LeastRecentlyUsed)
+	cache = gocache.NewCache().WithMaxSize(100).WithEvictionPolicy(gocache.FirstInFirstOut)
 
 	// staticFolder is the path to the location of the static folder from the root path of the project
 	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
