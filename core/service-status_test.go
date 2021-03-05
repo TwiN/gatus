@@ -26,7 +26,7 @@ func TestServiceStatus_AddResult(t *testing.T) {
 		serviceStatus.AddResult(&Result{Timestamp: time.Now()})
 	}
 	if len(serviceStatus.Results) != MaximumNumberOfResults {
-		t.Errorf("expected serviceStatus.Results to not exceed a length of 20")
+		t.Errorf("expected serviceStatus.Results to not exceed a length of %d", MaximumNumberOfResults)
 	}
 }
 

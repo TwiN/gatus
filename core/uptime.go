@@ -1,15 +1,10 @@
 package core
 
 import (
-	"log"
 	"time"
 )
 
 const (
-	// RFC3339WithoutMinutesAndSeconds is the format defined by RFC3339 (see time.RFC3339) but with the minutes
-	// and seconds hardcoded to 0.
-	RFC3339WithoutMinutesAndSeconds = "2006-01-02T15:00:00Z07:00"
-
 	numberOfHoursInTenDays = 10 * 24
 	sevenDays              = 7 * 24 * time.Hour
 )
@@ -25,47 +20,39 @@ type Uptime struct {
 	// LastHour is the uptime percentage over the past hour
 	LastHour float64 `json:"1h"`
 
-	// SuccessCountPerHour is a map containing the number of successes per hour, per timestamp following the
-	// custom RFC3339WithoutMinutesAndSeconds format
-	SuccessCountPerHour map[string]uint64 `json:"-"`
+	// SuccessCountPerHour is a map containing the number of successes (value) for every hourly unix timestamps (key)
+	SuccessCountPerHour map[int64]uint64 `json:"-"`
 
-	// TotalCountPerHour is a map containing the total number of checks per hour, per timestamp following the
-	// custom RFC3339WithoutMinutesAndSeconds format
-	TotalCountPerHour map[string]uint64 `json:"-"`
+	// TotalCountPerHour is a map containing the total number of checks (value) for every hourly unix timestamps (key)
+	TotalCountPerHour map[int64]uint64 `json:"-"`
 }
 
 // NewUptime creates a new Uptime
 func NewUptime() *Uptime {
 	return &Uptime{
-		SuccessCountPerHour: make(map[string]uint64),
-		TotalCountPerHour:   make(map[string]uint64),
+		SuccessCountPerHour: make(map[int64]uint64),
+		TotalCountPerHour:   make(map[int64]uint64),
 	}
 }
 
 // ProcessResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
 func (uptime *Uptime) ProcessResult(result *Result) {
-	timestampDateWithHour := result.Timestamp.Format(RFC3339WithoutMinutesAndSeconds)
+	unixTimestampFlooredAtHour := result.Timestamp.Unix() - (result.Timestamp.Unix() % 3600)
 	if result.Success {
-		uptime.SuccessCountPerHour[timestampDateWithHour]++
+		uptime.SuccessCountPerHour[unixTimestampFlooredAtHour]++
 	}
-	uptime.TotalCountPerHour[timestampDateWithHour]++
+	uptime.TotalCountPerHour[unixTimestampFlooredAtHour]++
 	// Clean up only when we're starting to have too many useless keys
 	// Note that this is only triggered when there are more entries than there should be after
 	// 10 days, despite the fact that we are deleting everything that's older than 7 days.
 	// This is to prevent re-iterating on every `ProcessResult` as soon as the uptime has been logged for 7 days.
 	if len(uptime.TotalCountPerHour) > numberOfHoursInTenDays {
-		sevenDaysAgo := time.Now().Add(-(sevenDays + time.Hour))
-		for k := range uptime.TotalCountPerHour {
-			dateWithHour, err := time.Parse(time.RFC3339, k)
-			if err != nil {
-				// This shouldn't happen, but we'll log it in case it does happen
-				log.Println("[uptime][ProcessResult] Failed to parse programmatically generated timestamp:", err.Error())
-				continue
-			}
-			if sevenDaysAgo.Unix() > dateWithHour.Unix() {
-				delete(uptime.TotalCountPerHour, k)
-				delete(uptime.SuccessCountPerHour, k)
+		sevenDaysAgo := time.Now().Add(-(sevenDays + time.Hour)).Unix()
+		for hourlyUnixTimestamp := range uptime.TotalCountPerHour {
+			if sevenDaysAgo > hourlyUnixTimestamp {
+				delete(uptime.TotalCountPerHour, hourlyUnixTimestamp)
+				delete(uptime.SuccessCountPerHour, hourlyUnixTimestamp)
 			}
 		}
 	}
@@ -92,9 +79,9 @@ func (uptime *Uptime) recalculate() {
 	// The oldest uptime bracket starts 7 days ago, so we'll start from there
 	timestamp := now.Add(-sevenDays)
 	for now.Sub(timestamp) >= 0 {
-		timestampDateWithHour := timestamp.Format(RFC3339WithoutMinutesAndSeconds)
-		successCountForTimestamp := uptime.SuccessCountPerHour[timestampDateWithHour]
-		totalCountForTimestamp := uptime.TotalCountPerHour[timestampDateWithHour]
+		hourlyUnixTimestamp := timestamp.Unix() - (timestamp.Unix() % 3600)
+		successCountForTimestamp := uptime.SuccessCountPerHour[hourlyUnixTimestamp]
+		totalCountForTimestamp := uptime.TotalCountPerHour[hourlyUnixTimestamp]
 		uptimeBrackets["7d_success"] += successCountForTimestamp
 		uptimeBrackets["7d_total"] += totalCountForTimestamp
 		if now.Sub(timestamp) <= 24*time.Hour {
