@@ -127,8 +127,11 @@ func BenchmarkStore_Insert(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
-				scenario.Store.Insert(&testService, &testSuccessfulResult)
-				scenario.Store.Insert(&testService, &testUnsuccessfulResult)
+				if n%100 == 0 {
+					scenario.Store.Insert(&testService, &testSuccessfulResult)
+				} else {
+					scenario.Store.Insert(&testService, &testUnsuccessfulResult)
+				}
 			}
 			b.ReportAllocs()
 		})
