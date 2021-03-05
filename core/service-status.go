@@ -58,22 +58,10 @@ func NewServiceStatus(service *Service) *ServiceStatus {
 	}
 }
 
-// ShallowCopy creates a shallow copy of ServiceStatus
-func (ss *ServiceStatus) ShallowCopy() *ServiceStatus {
-	return &ServiceStatus{
-		Name:    ss.Name,
-		Group:   ss.Group,
-		Key:     ss.Key,
-		Results: ss.Results,
-		Events:  ss.Events,
-		Uptime:  ss.Uptime,
-	}
-}
-
-// WithResultPagination makes a shallow copy of the ServiceStatus with only the results
+// WithResultPagination returns a shallow copy of the ServiceStatus with only the results
 // within the range defined by the page and pageSize parameters
-func (ss *ServiceStatus) WithResultPagination(page, pageSize int) *ServiceStatus {
-	shallowCopy := ss.ShallowCopy()
+func (ss ServiceStatus) WithResultPagination(page, pageSize int) *ServiceStatus {
+	shallowCopy := ss
 	numberOfResults := len(shallowCopy.Results)
 	start := numberOfResults - (page * pageSize)
 	end := numberOfResults - ((page - 1) * pageSize)
@@ -90,7 +78,7 @@ func (ss *ServiceStatus) WithResultPagination(page, pageSize int) *ServiceStatus
 	} else {
 		shallowCopy.Results = shallowCopy.Results[start:end]
 	}
-	return shallowCopy
+	return &shallowCopy
 }
 
 // AddResult adds a Result to ServiceStatus.Results and makes sure that there are

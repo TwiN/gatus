@@ -58,7 +58,7 @@ func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
 	if serviceStatus == nil {
 		return nil
 	}
-	return serviceStatus.(*core.ServiceStatus).ShallowCopy()
+	return serviceStatus.(*core.ServiceStatus)
 }
 
 // Insert adds the observed result for the specified service into the store
