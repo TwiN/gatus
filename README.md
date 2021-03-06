@@ -562,8 +562,6 @@ services:
           avatar
         }
       }
-    headers:
-      Content-Type: application/json # XXX: as of v1.9.2, this header is automatically added when graphql is set to true
     conditions:
       - "[STATUS] == 200"
       - "[BODY].data.users[0].gender == female"

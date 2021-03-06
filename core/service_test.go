@@ -188,7 +188,7 @@ func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 		Conditions: []*Condition{&condition},
 		GraphQL:    true,
 		Body: `{
-  user(gender: "female") {
+  users(gender: "female") {
     id
     name
     gender
