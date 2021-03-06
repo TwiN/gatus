@@ -51,8 +51,8 @@ func TestServiceStatus_AddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	timestamp := now.Add(-12 * 24 * time.Hour)
 	for timestamp.Unix() <= now.Unix() {
 		serviceStatus.AddResult(&Result{Timestamp: timestamp, Success: true})
-		if len(serviceStatus.Uptime.SuccessCountPerHour) > numberOfHoursInTenDays {
-			t.Errorf("At no point in time should there be more than %d entries in serviceStatus.SuccessCountPerHour, but there are %d", numberOfHoursInTenDays, len(serviceStatus.Uptime.SuccessCountPerHour))
+		if len(serviceStatus.Uptime.SuccessfulExecutionsPerHour) > numberOfHoursInTenDays {
+			t.Errorf("At no point in time should there be more than %d entries in serviceStatus.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(serviceStatus.Uptime.SuccessfulExecutionsPerHour))
 		}
 		if now.Sub(timestamp) > time.Hour && serviceStatus.Uptime.LastHour != 0 {
 			t.Error("most recent timestamp > 1h ago, expected serviceStatus.Uptime.LastHour to be 0, got", serviceStatus.Uptime.LastHour)

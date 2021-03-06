@@ -20,39 +20,45 @@ type Uptime struct {
 	// LastHour is the uptime percentage over the past hour
 	LastHour float64 `json:"1h"`
 
-	// SuccessCountPerHour is a map containing the number of successes (value) for every hourly unix timestamps (key)
-	SuccessCountPerHour map[int64]uint64 `json:"-"`
+	// SuccessfulExecutionsPerHour is a map containing the number of successes (value)
+	// for every hourly unix timestamps (key)
+	SuccessfulExecutionsPerHour map[int64]uint64 `json:"-"`
 
-	// TotalCountPerHour is a map containing the total number of checks (value) for every hourly unix timestamps (key)
-	TotalCountPerHour map[int64]uint64 `json:"-"`
+	// TotalExecutionsPerHour is a map containing the total number of checks (value)
+	// for every hourly unix timestamps (key)
+	TotalExecutionsPerHour map[int64]uint64 `json:"-"`
 }
 
 // NewUptime creates a new Uptime
 func NewUptime() *Uptime {
 	return &Uptime{
-		SuccessCountPerHour: make(map[int64]uint64),
-		TotalCountPerHour:   make(map[int64]uint64),
+		SuccessfulExecutionsPerHour: make(map[int64]uint64),
+		TotalExecutionsPerHour:      make(map[int64]uint64),
 	}
 }
 
 // ProcessResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
 func (uptime *Uptime) ProcessResult(result *Result) {
+	if uptime.SuccessfulExecutionsPerHour == nil || uptime.TotalExecutionsPerHour == nil {
+		uptime.SuccessfulExecutionsPerHour = make(map[int64]uint64)
+		uptime.TotalExecutionsPerHour = make(map[int64]uint64)
+	}
 	unixTimestampFlooredAtHour := result.Timestamp.Unix() - (result.Timestamp.Unix() % 3600)
 	if result.Success {
-		uptime.SuccessCountPerHour[unixTimestampFlooredAtHour]++
+		uptime.SuccessfulExecutionsPerHour[unixTimestampFlooredAtHour]++
 	}
-	uptime.TotalCountPerHour[unixTimestampFlooredAtHour]++
+	uptime.TotalExecutionsPerHour[unixTimestampFlooredAtHour]++
 	// Clean up only when we're starting to have too many useless keys
 	// Note that this is only triggered when there are more entries than there should be after
 	// 10 days, despite the fact that we are deleting everything that's older than 7 days.
 	// This is to prevent re-iterating on every `ProcessResult` as soon as the uptime has been logged for 7 days.
-	if len(uptime.TotalCountPerHour) > numberOfHoursInTenDays {
+	if len(uptime.TotalExecutionsPerHour) > numberOfHoursInTenDays {
 		sevenDaysAgo := time.Now().Add(-(sevenDays + time.Hour)).Unix()
-		for hourlyUnixTimestamp := range uptime.TotalCountPerHour {
+		for hourlyUnixTimestamp := range uptime.TotalExecutionsPerHour {
 			if sevenDaysAgo > hourlyUnixTimestamp {
-				delete(uptime.TotalCountPerHour, hourlyUnixTimestamp)
-				delete(uptime.SuccessCountPerHour, hourlyUnixTimestamp)
+				delete(uptime.TotalExecutionsPerHour, hourlyUnixTimestamp)
+				delete(uptime.SuccessfulExecutionsPerHour, hourlyUnixTimestamp)
 			}
 		}
 	}
@@ -80,8 +86,8 @@ func (uptime *Uptime) recalculate() {
 	timestamp := now.Add(-sevenDays)
 	for now.Sub(timestamp) >= 0 {
 		hourlyUnixTimestamp := timestamp.Unix() - (timestamp.Unix() % 3600)
-		successCountForTimestamp := uptime.SuccessCountPerHour[hourlyUnixTimestamp]
-		totalCountForTimestamp := uptime.TotalCountPerHour[hourlyUnixTimestamp]
+		successCountForTimestamp := uptime.SuccessfulExecutionsPerHour[hourlyUnixTimestamp]
+		totalCountForTimestamp := uptime.TotalExecutionsPerHour[hourlyUnixTimestamp]
 		uptimeBrackets["7d_success"] += successCountForTimestamp
 		uptimeBrackets["7d_total"] += totalCountForTimestamp
 		if now.Sub(timestamp) <= 24*time.Hour {
