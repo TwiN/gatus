@@ -20,7 +20,7 @@ core applications: https://status.twinnation.org/
 
 - [Features](#features)
 - [Usage](#usage)
-  - [Configuration](#configuration)
+- [Configuration](#configuration)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
@@ -85,7 +85,7 @@ services:
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
   - name: example
     url: "https://example.org/"
-    interval: 30s
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
 ```
@@ -94,10 +94,10 @@ This example would look like this:
 
 ![Simple example](.github/assets/example.png)
 
-Note that you can also add environment variables in the configuration file (i.e. `$DOMAIN`, `${DOMAIN}`)
+Note that you can also add environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 
 
-### Configuration
+## Configuration
 
 | Parameter                                | Description                                                                   | Default        |
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
@@ -111,12 +111,12 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].url`                         | URL to send the request to                                                    | Required `""`  |
 | `services[].method`                      | Request method                                                                | `GET`          |
 | `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
-| `services[].conditions`                  | Conditions used to determine the health of the service                        | `[]`           |
+| `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions) | `[]`           |
 | `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
 | `services[].headers`                     | Request headers                                                               | `{}`           |
-| `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring using DNS queries](#monitoring-using-dns-queries)  | `""`           |
+| `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
 | `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`m `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
@@ -125,31 +125,7 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
-| `alerting`                               | Configuration for alerting                                                    | `{}`           |
-| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
-| `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.discord`                       | Configuration for alerts of type `discord`                                    | `{}`           |
-| `alerting.discord.webhook-url`           | Discord Webhook URL                                                           | Required `""`  |
-| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
-| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
-| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
-| `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
-| `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
-| `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
-| `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
-| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
-| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
-| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
-| `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
-| `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
-| `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
-| `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
-| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
-| `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
-| `alerting.custom.method`                 | Request method                                                                | `GET`          |
-| `alerting.custom.insecure`               | Whether to skip verifying the server's certificate chain and host name        | `false`        |
-| `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
-| `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
+| `alerting`                               | Configuration for alerting. See [Alerting](#alerting)                         | `{}`           |
 | `security`                               | Security configuration                                                        | `{}`           |
 | `security.basic`                         | Basic authentication security configuration                                   | `{}`           |
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
@@ -159,7 +135,8 @@ Note that you can also add environment variables in the configuration file (i.e.
 | `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
 | `web.port`                               | Port to listen on                                                             | `8080`         |
 
-For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha)
+- For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha).
+- For alerting configuration, see [Alerting](#alerting).
 
 
 ### Conditions
@@ -218,6 +195,33 @@ individual services with configurable descriptions and thresholds.
 
 Note that if an alerting provider is not configured properly, all alerts configured with the provider's type will be
 ignored.
+
+| Parameter                                | Description                                                                   | Default        |
+|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
+| `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
+| `alerting.discord`                       | Configuration for alerts of type `discord`                                    | `{}`           |
+| `alerting.discord.webhook-url`           | Discord Webhook URL                                                           | Required `""`  |
+| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
+| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
+| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
+| `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
+| `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
+| `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
+| `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
+| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
+| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
+| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
+| `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
+| `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
+| `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
+| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
+| `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
+| `alerting.custom.method`                 | Request method                                                                | `GET`          |
+| `alerting.custom.insecure`               | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
+| `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
 
 
 #### Configuring Slack alerts
@@ -443,6 +447,7 @@ alerting:
 ```
 As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by 
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
+
 
 ### Kubernetes (ALPHA)
 
