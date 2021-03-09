@@ -33,7 +33,6 @@ var (
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
-		Body:                  []byte("body"),
 		Errors:                nil,
 		Connected:             true,
 		Success:               true,
@@ -59,7 +58,6 @@ var (
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
-		Body:                  []byte("body"),
 		Errors:                []string{"error-1", "error-2"},
 		Connected:             true,
 		Success:               false,
@@ -106,9 +104,6 @@ func TestStore_Insert(t *testing.T) {
 		}
 		if r.DNSRCode != expectedResult.DNSRCode {
 			t.Errorf("Result at index %d should've had a DNSRCode of %s, but was actually %s", i, expectedResult.DNSRCode, r.DNSRCode)
-		}
-		if len(r.Body) != len(expectedResult.Body) {
-			t.Errorf("Result at index %d should've had a body of length %d, but was actually %d", i, len(expectedResult.Body), len(r.Body))
 		}
 		if r.Hostname != expectedResult.Hostname {
 			t.Errorf("Result at index %d should've had a Hostname of %s, but was actually %s", i, expectedResult.Hostname, r.Hostname)

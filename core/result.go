@@ -12,10 +12,7 @@ type Result struct {
 	// DNSRCode is the response code of a DNS query in a human readable format
 	DNSRCode string `json:"-"`
 
-	// Body is the response body
-	Body []byte `json:"-"`
-
-	// Hostname extracted from the Service URL
+	// Hostname extracted from Service.URL
 	Hostname string `json:"hostname"`
 
 	// IP resolved from the Service URL
@@ -41,4 +38,11 @@ type Result struct {
 
 	// CertificateExpiration is the duration before the certificate expires
 	CertificateExpiration time.Duration `json:"-"`
+
+	// body is the response body
+	//
+	// Note that this variable is only used during the evaluation of a service's health.
+	// This means that the call Service.EvaluateHealth both populates the body (if necessary)
+	// and sets it to nil after the evaluation has been completed.
+	body []byte
 }

@@ -10,7 +10,7 @@ import (
 func TestService_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert}},
@@ -94,7 +94,7 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 func TestService_GetAlertsTriggered(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: true}},
@@ -118,7 +118,7 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 func TestService_buildHTTPRequest(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
@@ -138,7 +138,7 @@ func TestService_buildHTTPRequest(t *testing.T) {
 func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 		Headers: map[string]string{
@@ -161,7 +161,7 @@ func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Method:     "POST",
 		Conditions: []*Condition{&condition},
@@ -182,7 +182,7 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-graphql",
 		URL:        "https://twinnation.org/graphql",
 		Method:     "POST",
 		Conditions: []*Condition{&condition},
@@ -206,16 +206,17 @@ func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	}
 	body, _ := ioutil.ReadAll(request.Body)
 	if !strings.HasPrefix(string(body), "{\"query\":") {
-		t.Error("request.Body should've started with '{\"query\":', but it didn't:", string(body))
+		t.Error("request.body should've started with '{\"query\":', but it didn't:", string(body))
 	}
 }
 
 func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
+	bodyCondition := Condition("[BODY].status == UP")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []*Condition{&condition, &bodyCondition},
 	}
 	result := service.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
@@ -232,7 +233,7 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 500")
 	service := Service{
-		Name:       "TwiNNatioN",
+		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
 	}
@@ -252,7 +253,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	conditionBody := Condition("[BODY] == 93.184.216.34")
 	service := Service{
-		Name: "TwiNNatioN",
+		Name: "example",
 		URL:  "8.8.8.8",
 		DNS: &DNS{
 			QueryType: "A",
@@ -275,7 +276,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
 	service := Service{
-		Name:       "ICMP test",
+		Name:       "icmp-test",
 		URL:        "icmp://127.0.0.1",
 		Conditions: []*Condition{&conditionSuccess},
 	}
@@ -294,7 +295,7 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 func TestService_getIP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
 	service := Service{
-		Name:       "Invalid URL test",
+		Name:       "invalid-url-test",
 		URL:        "",
 		Conditions: []*Condition{&conditionSuccess},
 	}
@@ -302,5 +303,29 @@ func TestService_getIP(t *testing.T) {
 	service.getIP(result)
 	if len(result.Errors) == 0 {
 		t.Error("service.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")
+	}
+}
+
+func TestService_NeedsToReadBody(t *testing.T) {
+	statusCondition := Condition("[STATUS] == 200")
+	bodyCondition := Condition("[BODY].status == UP")
+	bodyConditionWithLength := Condition("len([BODY].tags) > 0")
+	if (&Service{Conditions: []*Condition{&statusCondition}}).needsToReadBody() {
+		t.Error("expected false, got true")
+	}
+	if !(&Service{Conditions: []*Condition{&bodyCondition}}).needsToReadBody() {
+		t.Error("expected true, got false")
+	}
+	if !(&Service{Conditions: []*Condition{&bodyConditionWithLength}}).needsToReadBody() {
+		t.Error("expected true, got false")
+	}
+	if !(&Service{Conditions: []*Condition{&statusCondition, &bodyCondition}}).needsToReadBody() {
+		t.Error("expected true, got false")
+	}
+	if !(&Service{Conditions: []*Condition{&bodyCondition, &statusCondition}}).needsToReadBody() {
+		t.Error("expected true, got false")
+	}
+	if !(&Service{Conditions: []*Condition{&bodyConditionWithLength, &statusCondition}}).needsToReadBody() {
+		t.Error("expected true, got false")
 	}
 }

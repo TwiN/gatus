@@ -162,7 +162,7 @@ func TestCondition_evaluateWithResponseTimeUsingLessThanOrEqualTo(t *testing.T) 
 
 func TestCondition_evaluateWithBody(t *testing.T) {
 	condition := Condition("[BODY] == test")
-	result := &Result{Body: []byte("test")}
+	result := &Result{body: []byte("test")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -175,7 +175,7 @@ func TestCondition_evaluateWithBody(t *testing.T) {
 
 func TestCondition_evaluateWithBodyJSONPath(t *testing.T) {
 	condition := Condition("[BODY].status == UP")
-	result := &Result{Body: []byte("{\"status\":\"UP\"}")}
+	result := &Result{body: []byte("{\"status\":\"UP\"}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -188,7 +188,7 @@ func TestCondition_evaluateWithBodyJSONPath(t *testing.T) {
 
 func TestCondition_evaluateWithBodyJSONPathComplex(t *testing.T) {
 	condition := Condition("[BODY].data.name == john")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1, \"name\": \"john\"}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1, \"name\": \"john\"}}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -201,7 +201,7 @@ func TestCondition_evaluateWithBodyJSONPathComplex(t *testing.T) {
 
 func TestCondition_evaluateWithInvalidBodyJSONPathComplex(t *testing.T) {
 	condition := Condition("[BODY].data.name == john")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure, because the path was invalid", condition)
@@ -214,7 +214,7 @@ func TestCondition_evaluateWithInvalidBodyJSONPathComplex(t *testing.T) {
 
 func TestCondition_evaluateWithInvalidBodyJSONPathComplexWithLengthFunction(t *testing.T) {
 	condition := Condition("len([BODY].data.name) == john")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure, because the path was invalid", condition)
@@ -227,7 +227,7 @@ func TestCondition_evaluateWithInvalidBodyJSONPathComplexWithLengthFunction(t *t
 
 func TestCondition_evaluateWithBodyJSONPathDoublePlaceholders(t *testing.T) {
 	condition := Condition("[BODY].user.firstName != [BODY].user.lastName")
-	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
+	result := &Result{body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -240,7 +240,7 @@ func TestCondition_evaluateWithBodyJSONPathDoublePlaceholders(t *testing.T) {
 
 func TestCondition_evaluateWithBodyJSONPathDoublePlaceholdersFailure(t *testing.T) {
 	condition := Condition("[BODY].user.firstName == [BODY].user.lastName")
-	result := &Result{Body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
+	result := &Result{body: []byte("{\"user\": {\"firstName\": \"john\", \"lastName\": \"doe\"}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -253,7 +253,7 @@ func TestCondition_evaluateWithBodyJSONPathDoublePlaceholdersFailure(t *testing.
 
 func TestCondition_evaluateWithBodyJSONPathLongInt(t *testing.T) {
 	condition := Condition("[BODY].data.id == 1")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -266,7 +266,7 @@ func TestCondition_evaluateWithBodyJSONPathLongInt(t *testing.T) {
 
 func TestCondition_evaluateWithBodyJSONPathComplexInt(t *testing.T) {
 	condition := Condition("[BODY].data[1].id == 2")
-	result := &Result{Body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
+	result := &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -279,7 +279,7 @@ func TestCondition_evaluateWithBodyJSONPathComplexInt(t *testing.T) {
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 0")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -292,7 +292,7 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntUsingGreaterThan(t *testing
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingGreaterThan(t *testing.T) {
 	condition := Condition("[BODY].data.id > 5")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 1}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 1}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -305,7 +305,7 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingGreaterThan(t *
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 2}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 2}}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -318,7 +318,7 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntUsingLessThan(t *testing.T)
 
 func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingLessThan(t *testing.T) {
 	condition := Condition("[BODY].data.id < 5")
-	result := &Result{Body: []byte("{\"data\": {\"id\": 10}}")}
+	result := &Result{body: []byte("{\"data\": {\"id\": 10}}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -331,7 +331,7 @@ func TestCondition_evaluateWithBodyJSONPathComplexIntFailureUsingLessThan(t *tes
 
 func TestCondition_evaluateWithBodySliceLength(t *testing.T) {
 	condition := Condition("len([BODY].data) == 3")
-	result := &Result{Body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
+	result := &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -344,7 +344,7 @@ func TestCondition_evaluateWithBodySliceLength(t *testing.T) {
 
 func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
 	condition := Condition("len([BODY].name) == 8")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"john.doe\"}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -357,7 +357,7 @@ func TestCondition_evaluateWithBodyStringLength(t *testing.T) {
 
 func TestCondition_evaluateWithBodyPattern(t *testing.T) {
 	condition := Condition("[BODY] == pat(*john*)")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"john.doe\"}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -370,7 +370,7 @@ func TestCondition_evaluateWithBodyPattern(t *testing.T) {
 
 func TestCondition_evaluateWithReverseBodyPattern(t *testing.T) {
 	condition := Condition("pat(*john*) == [BODY]")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"john.doe\"}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -383,7 +383,7 @@ func TestCondition_evaluateWithReverseBodyPattern(t *testing.T) {
 
 func TestCondition_evaluateWithBodyStringPattern(t *testing.T) {
 	condition := Condition("[BODY].name == pat(*ohn*)")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"john.doe\"}")}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -397,7 +397,7 @@ func TestCondition_evaluateWithBodyStringPattern(t *testing.T) {
 func TestCondition_evaluateWithBodyHTMLPattern(t *testing.T) {
 	var html = `<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">john.doe</div></body></html>`
 	condition := Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)")
-	result := &Result{Body: []byte(html)}
+	result := &Result{body: []byte(html)}
 	condition.evaluate(result)
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -410,7 +410,7 @@ func TestCondition_evaluateWithBodyHTMLPattern(t *testing.T) {
 
 func TestCondition_evaluateWithBodyStringPatternFailure(t *testing.T) {
 	condition := Condition("[BODY].name == pat(bob*)")
-	result := &Result{Body: []byte("{\"name\": \"john.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"john.doe\"}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -477,8 +477,8 @@ func TestCondition_evaluateWithBodyStringAny(t *testing.T) {
 	condition := Condition("[BODY].name == any(john.doe, jane.doe)")
 	expectedConditionDisplayed := "[BODY].name == any(john.doe, jane.doe)"
 	results := []*Result{
-		{Body: []byte("{\"name\": \"john.doe\"}")},
-		{Body: []byte("{\"name\": \"jane.doe\"}")},
+		{body: []byte("{\"name\": \"john.doe\"}")},
+		{body: []byte("{\"name\": \"jane.doe\"}")},
 	}
 	for _, result := range results {
 		success := condition.evaluate(result)
@@ -493,7 +493,7 @@ func TestCondition_evaluateWithBodyStringAny(t *testing.T) {
 
 func TestCondition_evaluateWithBodyStringAnyFailure(t *testing.T) {
 	condition := Condition("[BODY].name == any(john.doe, jane.doe)")
-	result := &Result{Body: []byte("{\"name\": \"bob.doe\"}")}
+	result := &Result{body: []byte("{\"name\": \"bob.doe\"}")}
 	condition.evaluate(result)
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
@@ -658,5 +658,29 @@ func TestCondition_evaluateWithCertificateExpirationGreaterThanDurationFailure(t
 	expectedConditionDisplayed := "[CERTIFICATE_EXPIRATION] (86400000) > 48h (172800000)"
 	if result.ConditionResults[0].Condition != expectedConditionDisplayed {
 		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, expectedConditionDisplayed, result.ConditionResults[0].Condition)
+	}
+}
+
+func TestCondition_evaluateWithInvalidOperator(t *testing.T) {
+	condition := Condition("[STATUS] ? 201")
+	result := &Result{HTTPStatus: 201}
+	condition.evaluate(result)
+	if result.Success {
+		t.Error("condition was invalid, result should've been a failure")
+	}
+	if len(result.Errors) != 1 {
+		t.Error("condition was invalid, result should've had an error")
+	}
+}
+
+func TestCondition_evaluateWithNoPlaceholder(t *testing.T) {
+	condition := Condition("1 == 2")
+	result := &Result{}
+	condition.evaluate(result)
+	if result.ConditionResults[0].Success {
+		t.Errorf("Condition '%s' should have been a failure", condition)
+	}
+	if result.ConditionResults[0].Condition != string(condition) {
+		t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", condition, condition, result.ConditionResults[0].Condition)
 	}
 }

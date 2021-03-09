@@ -23,7 +23,7 @@ const (
 
 	// DNSRCodePlaceholder is a place holder for DNS_RCODE
 	//
-	// Values that could be NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP and REFUSED
+	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
 	DNSRCodePlaceholder = "[DNS_RCODE]"
 
 	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
@@ -123,6 +123,12 @@ func (c Condition) evaluate(result *Result) bool {
 	return success
 }
 
+// hasBodyPlaceholder checks whether the condition has a BodyPlaceholder
+// Used for determining whether the response body should be read or not
+func (c Condition) hasBodyPlaceholder() bool {
+	return strings.Contains(string(c), BodyPlaceholder)
+}
+
 // isEqual compares two strings.
 //
 // Supports the pattern and the any functions.
@@ -181,7 +187,7 @@ func isEqual(first, second string) bool {
 func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
-	body := strings.TrimSpace(string(result.Body))
+	body := strings.TrimSpace(string(result.body))
 	for i, element := range elements {
 		element = strings.TrimSpace(element)
 		parameters[i] = element
@@ -208,7 +214,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 					wantLength = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(element, BodyPlaceholder+"."), result.Body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(element, BodyPlaceholder+"."), result.body)
 				if err != nil {
 					if err.Error() != "unexpected end of JSON input" {
 						result.Errors = append(result.Errors, err.Error())

@@ -80,7 +80,7 @@ type Service struct {
 	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
 	NumberOfFailuresInARow int
 
-	// NumberOfFailuresInARow is the number of successful evaluations in a row
+	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int
 }
 
@@ -149,6 +149,8 @@ func (service *Service) EvaluateHealth() *Result {
 		}
 	}
 	result.Timestamp = time.Now()
+	// No need to keep the body after the service has been evaluated
+	result.body = nil
 	return result
 }
 
@@ -220,9 +222,12 @@ func (service *Service) call(result *Result) {
 		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
-		result.Body, err = ioutil.ReadAll(response.Body)
-		if err != nil {
-			result.Errors = append(result.Errors, err.Error())
+		// Only read the body if there's a condition that uses the BodyPlaceholder
+		if service.needsToReadBody() {
+			result.body, err = ioutil.ReadAll(response.Body)
+			if err != nil {
+				result.Errors = append(result.Errors, err.Error())
+			}
 		}
 	}
 }
@@ -246,4 +251,14 @@ func (service *Service) buildHTTPRequest() *http.Request {
 		}
 	}
 	return request
+}
+
+// needsToReadBody checks if there's any conditions that requires the response body to be read
+func (service *Service) needsToReadBody() bool {
+	for _, condition := range service.Conditions {
+		if condition.hasBodyPlaceholder() {
+			return true
+		}
+	}
+	return false
 }

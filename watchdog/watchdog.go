@@ -1,7 +1,6 @@
 package watchdog
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -37,26 +36,22 @@ func monitor(service *core.Service) {
 			monitoringMutex.Lock()
 		}
 		if cfg.Debug {
-			log.Printf("[watchdog][monitor] Monitoring serviceName=%s", service.Name)
+			log.Printf("[watchdog][monitor] Monitoring group=%s; service=%s", service.Group, service.Name)
 		}
 		result := service.EvaluateHealth()
 		metric.PublishMetricsForService(service, result)
 		UpdateServiceStatuses(service, result)
-		var extra string
-		if !result.Success {
-			extra = fmt.Sprintf("responseBody=%s", result.Body)
-		}
 		log.Printf(
-			"[watchdog][monitor] Monitored serviceName=%s; success=%v; errors=%d; requestDuration=%s; %s",
+			"[watchdog][monitor] Monitored group=%s; service=%s; success=%v; errors=%d; duration=%s",
+			service.Group,
 			service.Name,
 			result.Success,
 			len(result.Errors),
 			result.Duration.Round(time.Millisecond),
-			extra,
 		)
 		HandleAlerting(service, result)
 		if cfg.Debug {
-			log.Printf("[watchdog][monitor] Waiting for interval=%s before monitoring serviceName=%s again", service.Interval, service.Name)
+			log.Printf("[watchdog][monitor] Waiting for interval=%s before monitoring group=%s service=%s again", service.Interval, service.Group, service.Name)
 		}
 		if !cfg.DisableMonitoringLock {
 			monitoringMutex.Unlock()
