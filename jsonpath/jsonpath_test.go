@@ -20,6 +20,15 @@ func TestEval(t *testing.T) {
 	}
 }
 
+func TestEvalWithInvalidPath(t *testing.T) {
+	path := "errors"
+	data := `{}`
+	_, _, err := Eval(path, []byte(data))
+	if err == nil {
+		t.Error("Expected error, but got", err)
+	}
+}
+
 func TestEvalWithLongSimpleWalk(t *testing.T) {
 	path := "long.simple.walk"
 	data := `{"long": {"simple": {"walk": "value"}}}`
