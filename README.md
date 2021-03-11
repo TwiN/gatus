@@ -159,6 +159,8 @@ Here are some examples of conditions you can use:
 | `[BODY].age == [BODY].id`    | JSONPath value of `$.age` is equal JSONPath `$.id`      | `{"age":1,"id":1}`         |  |
 | `len([BODY].data) < 5`       | Array at JSONPath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`      |  |
 | `len([BODY].name) == 8`      | String at JSONPath `$.name` has a length of 8           | `{"name":"john.doe"}`      | `{"name":"bob"}` |
+| `has([BODY].errors) == false` | JSONPath `$.errors` does not exist                     | `{"name":"john.doe"}`      | `{"errors":[]}` |
+| `has([BODY].users) == true`  | JSONPath `$.users` exists                               | `{"users":[]}`             | `{}` |
 | `[BODY].name == pat(john*)`  | String at JSONPath `$.name` matches pattern `john*`     | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].id == any(1, 2)`     | Value at JSONPath `$.id` is equal to `1` or `2`         | 1, 2                       | 3, 4, 5 |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ... |
@@ -182,6 +184,7 @@ Here are some examples of conditions you can use:
 | Function   | Description                                                                                                      | Example                    |
 |:-----------|:---------------------------------------------------------------------------------------------------------------- |:-------------------------- |
 | `len`      | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                                | `len([BODY].username) > 8`
+| `has`      | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.      | `has([BODY].errors) == false`
 | `pat`      | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.   | `[IP] == pat(192.168.*)`
 | `any`      | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.       | `[BODY].ip == any(127.0.0.1, ::1)`
 

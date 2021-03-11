@@ -51,14 +51,19 @@ const (
 	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
 	LengthFunctionPrefix = "len("
 
+	// HasFunctionPrefix is the prefix for the has function
+	//
+	// Usage: has([BODY].errors) == true
+	HasFunctionPrefix = "has("
+
 	// PatternFunctionPrefix is the prefix for the pattern function
 	//
-	// Usage: pat(192.168.*.*)
+	// Usage: [IP] == pat(192.168.*.*)
 	PatternFunctionPrefix = "pat("
 
 	// AnyFunctionPrefix is the prefix for the any function
 	//
-	// Usage: any(1.1.1.1, 1.0.0.1)
+	// Usage: [IP] == any(1.1.1.1, 1.0.0.1)
 	AnyFunctionPrefix = "any("
 
 	// FunctionSuffix is the suffix for all functions
@@ -209,26 +214,39 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 		default:
 			// if contains the BodyPlaceholder, then evaluate json path
 			if strings.Contains(element, BodyPlaceholder) {
-				wantLength := false
+				checkingForLength := false
+				checkingForExistence := false
 				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					wantLength = true
+					checkingForLength = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 				}
+				if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
+					checkingForExistence = true
+					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
+				}
 				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(element, BodyPlaceholder+"."), result.body)
-				if err != nil {
-					if err.Error() != "unexpected end of JSON input" {
-						result.Errors = append(result.Errors, err.Error())
-					}
-					if wantLength {
-						element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
+				if checkingForExistence {
+					if err != nil {
+						element = "false"
 					} else {
-						element = element + " " + InvalidConditionElementSuffix
+						element = "true"
 					}
 				} else {
-					if wantLength {
-						element = strconv.Itoa(resolvedElementLength)
+					if err != nil {
+						if err.Error() != "unexpected end of JSON input" {
+							result.Errors = append(result.Errors, err.Error())
+						}
+						if checkingForLength {
+							element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
+						} else {
+							element = element + " " + InvalidConditionElementSuffix
+						}
 					} else {
-						element = resolvedElement
+						if checkingForLength {
+							element = strconv.Itoa(resolvedElementLength)
+						} else {
+							element = resolvedElement
+						}
 					}
 				}
 			}
