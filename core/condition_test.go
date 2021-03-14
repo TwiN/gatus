@@ -282,6 +282,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY] (<!DOCTYPE html><html lang...(truncated)) == pat(*<div id=\"user\">john.doe</div>*)",
 		},
 		{
+			Name:            "body-pattern-html-failure-alt",
+			Condition:       Condition("pat(*<div id=\"user\">john.doe</div>*) == [BODY]"),
+			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "pat(*<div id=\"user\">john.doe</div>*) == [BODY] (<!DOCTYPE html><html lang...(truncated))",
+		},
+		{
 			Name:            "ip-pattern",
 			Condition:       Condition("[IP] == pat(10.*)"),
 			Result:          &Result{IP: "10.0.0.0"},

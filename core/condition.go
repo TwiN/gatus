@@ -284,10 +284,10 @@ func prettify(parameters []string, resolvedParameters []string, operator string)
 	}
 
 	// If using pattern comparison, omit the contents
-	if strings.Contains(parameters[0], PatternFunctionPrefix) && len(resolvedParameters[1]) > 25 {
+	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > 25 {
 		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
 	}
-	if strings.Contains(parameters[1], PatternFunctionPrefix) && len(resolvedParameters[0]) > 25 {
+	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > 25 {
 		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
 	}
 
