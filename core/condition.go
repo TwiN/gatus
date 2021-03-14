@@ -71,6 +71,13 @@ const (
 
 	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
 	InvalidConditionElementSuffix = "(INVALID)"
+
+	// maximumLengthBeforeTruncatingWhenComparedWithPattern is the maximum length an element being compared to a
+	// pattern can have.
+	//
+	// This is only used for aesthetic purposes; it does not influence whether the condition evaluation results in a
+	// success or a failure
+	maximumLengthBeforeTruncatingWhenComparedWithPattern = 25
 )
 
 // Condition is a condition that needs to be met in order for a Service to be considered healthy.
@@ -283,10 +290,10 @@ func prettify(parameters []string, resolvedParameters []string, operator string)
 		return resolvedParameters[0] + " " + operator + " " + resolvedParameters[1]
 	}
 	// If using the pattern function, truncate the parameter it's being compared to if said parameter is long enough
-	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > 25 {
+	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
 	}
-	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > 25 {
+	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
 	}
 	// First element is a placeholder
