@@ -282,15 +282,13 @@ func prettify(parameters []string, resolvedParameters []string, operator string)
 	if strings.HasSuffix(resolvedParameters[0], InvalidConditionElementSuffix) || strings.HasSuffix(resolvedParameters[1], InvalidConditionElementSuffix) {
 		return resolvedParameters[0] + " " + operator + " " + resolvedParameters[1]
 	}
-
-	// If using pattern comparison, omit the contents
+	// If using the pattern function, truncate the parameter it's being compared to if said parameter is long enough
 	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > 25 {
 		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
 	}
 	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > 25 {
 		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
 	}
-
 	// First element is a placeholder
 	if parameters[0] != resolvedParameters[0] && parameters[1] == resolvedParameters[1] {
 		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1]
