@@ -50,6 +50,7 @@ core applications: https://status.twinnation.org/
   - [Service groups](#service-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
+  - [API](#API)
 
 
 ## Features
