@@ -810,9 +810,7 @@ All services are available via a GET request to the following endpoint:
 
 Example: https://status.twinnation.org/api/v1/statuses
 
-Specific services can be queried via a key. This key is a combination of the service group and service name. 
-If no group is defined for a service, then it's simply the service name.
-
+Specific services can also be queried by using the following pattern:
 ```
 /api/v1/statuses/{group}_{service}
 ```
