@@ -814,7 +814,7 @@ Specific services can be queried via a key. This key is a combination of the ser
 If no group is defined for a service, then it's simply the service name.
 
 ```
-/api/v1/statuses/{key}
+/api/v1/statuses/{group}_{service}
 ```
 
 Example: <https://status.twinnation.org/api/v1/statuses/core_twinnation-home>
