@@ -817,7 +817,7 @@ If no group is defined for a service, then it's simply the service name.
 /api/v1/statuses/{group}_{service}
 ```
 
-Example: <https://status.twinnation.org/api/v1/statuses/core_twinnation-home>
+Example: https://status.twinnation.org/api/v1/statuses/core_twinnation-home
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
