@@ -50,6 +50,7 @@ core applications: https://status.twinnation.org/
   - [Service groups](#service-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
+  - [API](#API)
 
 
 ## Features
@@ -799,3 +800,25 @@ Example: ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/co
 ```
 
 If you'd like to see a visual example of each badges available, you can simply navigate to the service's detail page.
+
+### API
+Gatus provides a simple read-only API which can be queried in order to programmatically determine service status and history.
+
+All services are available via a GET request to the following endpoint:
+```
+/api/v1/statuses
+````
+
+Example: https://status.twinnation.org/api/v1/statuses
+
+Specific services can also be queried by using the following pattern:
+```
+/api/v1/statuses/{group}_{service}
+```
+
+Example: https://status.twinnation.org/api/v1/statuses/core_twinnation-home
+
+Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
+
+The API will return a JSON payload with the `Content-Type` response header set to `application/json`. 
+No such header is required to query the API.
