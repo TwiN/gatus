@@ -804,7 +804,7 @@ If you'd like to see a visual example of each badges available, you can simply n
 ### API
 Gatus provides a simple read-only API which can be queried in order to programmatically determine service status and history.
 
-All services are available via a GET request to the following endpoint.
+All services are available via a GET request to the following endpoint:
 ```
 /api/v1/statuses
 ````
