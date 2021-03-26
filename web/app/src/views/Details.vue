@@ -163,7 +163,7 @@ export default {
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
-      showAverageResponseTime: false,
+      showAverageResponseTime: true,
     }
   },
   created() {
