@@ -8,8 +8,13 @@
         <span v-if="data.results && data.results.length" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
-        <span class='font-light status-min-max-ms' v-if="data.results && data.results.length">
-          {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + '-' + maxResponseTime)) }}ms
+        <span class='font-light overflow-x-hidden cursor-pointer select-none' v-if="data.results && data.results.length" @click="toggleShowAverageResponseTime" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">
+          <slot v-if="showAverageResponseTime">
+            ~{{ averageResponseTime }}ms
+          </slot>
+          <slot v-else>
+            {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + '-' + maxResponseTime)) }}ms
+          </slot>
         </span>
       </div>
     </div>
@@ -56,15 +61,18 @@ export default {
   props: {
     maximumNumberOfResults: Number,
     data: Object,
+    showAverageResponseTime: Boolean
   },
-  emits: ['showTooltip'],
+  emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   mixins: [helper],
   methods: {
     updateMinAndMaxResponseTimes() {
       let minResponseTime = null;
       let maxResponseTime = null;
+      let totalResponseTime = 0;
       for (let i in this.data.results) {
         const responseTime = parseInt((this.data.results[i].duration/1000000).toFixed(0));
+        totalResponseTime += responseTime;
         if (minResponseTime == null || minResponseTime > responseTime) {
           minResponseTime = responseTime;
         }
@@ -78,6 +86,9 @@ export default {
       if (this.maxResponseTime !== maxResponseTime) {
         this.maxResponseTime = maxResponseTime;
       }
+      if (this.data.results && this.data.results.length) {
+        this.averageResponseTime = (totalResponseTime/this.data.results.length).toFixed(0);
+      }
     },
     generatePath() {
       if (!this.data) {
@@ -87,6 +98,9 @@ export default {
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
+    },
+    toggleShowAverageResponseTime() {
+      this.$emit('toggleShowAverageResponseTime');
     }
   },
   watch: {
@@ -100,7 +114,8 @@ export default {
   data() {
     return {
       minResponseTime: 0,
-      maxResponseTime: 0
+      maxResponseTime: 0,
+      averageResponseTime: 0
     }
   }
 }
@@ -150,10 +165,6 @@ export default {
   color: #6a737d;
   opacity: 0.5;
   margin-top: 5px;
-}
-
-.status-min-max-ms {
-  overflow-x: hidden;
 }
 
 .status.status-success::after {

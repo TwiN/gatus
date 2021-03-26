@@ -1,5 +1,10 @@
 <template>
-  <Services :serviceStatuses="serviceStatuses" :showStatusOnHover="true" @showTooltip="showTooltip"/>
+  <Services
+      :serviceStatuses="serviceStatuses"
+      :showStatusOnHover="true"
+      @showTooltip="showTooltip"
+      @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
+  />
   <Pagination @page="changePage"/>
   <Settings @refreshData="fetchData"/>
 </template>
@@ -17,7 +22,7 @@ export default {
     Services,
     Settings,
   },
-  emits: ['showTooltip'],
+  emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     fetchData() {
       //console.log("[Home][fetchData] Fetching data");
@@ -29,18 +34,22 @@ export default {
             }
           });
     },
-    showTooltip(result, event) {
-      this.$emit('showTooltip', result, event);
-    },
     changePage(page) {
       this.currentPage = page;
       this.fetchData();
+    },
+    showTooltip(result, event) {
+      this.$emit('showTooltip', result, event);
+    },
+    toggleShowAverageResponseTime() {
+      this.showAverageResponseTime = !this.showAverageResponseTime;
     },
   },
   data() {
     return {
       serviceStatuses: {},
-      currentPage: 1
+      currentPage: 1,
+      showAverageResponseTime: true
     }
   },
   created() {

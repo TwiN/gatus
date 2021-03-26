@@ -5,12 +5,12 @@
         &#x21bb;
       </div>
       <select class="text-center text-gray-500 text-sm" id="refresh-rate" ref="refreshInterval" @change="handleChangeRefreshInterval">
-        <option value="10">10s</option>
-        <option value="30" selected>30s</option>
-        <option value="60">1m</option>
-        <option value="120">2m</option>
-        <option value="300">5m</option>
-        <option value="600">10m</option>
+        <option value="10" :selected="refreshInterval === 10">10s</option>
+        <option value="30" :selected="refreshInterval === 30">30s</option>
+        <option value="60" :selected="refreshInterval === 60">1m</option>
+        <option value="120" :selected="refreshInterval === 120">2m</option>
+        <option value="300" :selected="refreshInterval === 300">5m</option>
+        <option value="600" :selected="refreshInterval === 600">10m</option>
       </select>
     </div>
   </div>
@@ -23,6 +23,7 @@ export default {
   props: {},
   methods: {
     setRefreshInterval(seconds) {
+      sessionStorage.setItem('gatus:refresh-interval', seconds);
       let that = this;
       this.refreshIntervalHandler = setInterval(function () {
         that.refreshData();
@@ -38,6 +39,9 @@ export default {
     }
   },
   created() {
+    if (this.refreshInterval !== 10 && this.refreshInterval !== 30 && this.refreshInterval !== 60 && this.refreshInterval !== 120 && this.refreshInterval !== 300 && this.refreshInterval !== 600) {
+      this.refreshInterval = 60;
+    }
     this.setRefreshInterval(this.refreshInterval);
   },
   unmounted() {
@@ -45,14 +49,11 @@ export default {
   },
   data() {
     return {
-      refreshInterval: 30,
+      refreshInterval: sessionStorage.getItem('gatus:refresh-interval') < 10 ? 60 : parseInt(sessionStorage.getItem('gatus:refresh-interval')),
       refreshIntervalHandler: 0,
     }
   },
 }
-
-// props.refreshInterval = 30
-//$("#refresh-rate").val(30);
 </script>
 
 

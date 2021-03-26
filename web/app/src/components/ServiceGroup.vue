@@ -14,7 +14,12 @@
     </slot>
     <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
       <slot v-for="service in services" :key="service">
-        <Service :data="service" @showTooltip="showTooltip" :maximumNumberOfResults="20"/>
+        <Service
+            :data="service"
+            :maximumNumberOfResults="20"
+            @showTooltip="showTooltip"
+            @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
+        />
       </slot>
     </div>
   </div>
@@ -31,9 +36,10 @@ export default {
   },
   props: {
     name: String,
-    services: Array
+    services: Array,
+    showAverageResponseTime: Boolean
   },
-  emits: ['showTooltip'],
+  emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     healthCheck() {
       if (this.services) {
@@ -56,10 +62,13 @@ export default {
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
-      sessionStorage.setItem(`service-group:${this.name}:collapsed`, this.collapsed);
+      sessionStorage.setItem(`gatus:service-group:${this.name}:collapsed`, this.collapsed);
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
+    },
+    toggleShowAverageResponseTime() {
+      this.$emit('toggleShowAverageResponseTime');
     }
   },
   watch: {
@@ -73,7 +82,7 @@ export default {
   data() {
     return {
       healthy: true,
-      collapsed: sessionStorage.getItem(`service-group:${this.name}:collapsed`) === "true"
+      collapsed: sessionStorage.getItem(`gatus:service-group:${this.name}:collapsed`) === "true"
     }
   }
 }

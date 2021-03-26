@@ -6,7 +6,12 @@
     <slot v-if="serviceStatus">
       <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">RECENT CHECKS</h1>
       <hr class="mb-4" />
-      <Service :data="serviceStatus" :maximumNumberOfResults="20" @showTooltip="showTooltip" />
+      <Service
+          :data="serviceStatus"
+          :maximumNumberOfResults="20"
+          @showTooltip="showTooltip"
+          @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
+      />
       <Pagination @page="changePage"/>
     </slot>
     <div v-if="uptime" class="mt-12">
@@ -139,12 +144,15 @@ export default {
       let minutes = Math.ceil((new Date(start) - new Date(end))/1000/60);
       return minutes + (minutes === 1 ? ' minute' : ' minutes');
     },
-    showTooltip(result, event) {
-      this.$emit('showTooltip', result, event);
-    },
     changePage(page) {
       this.currentPage = page;
       this.fetchData();
+    },
+    showTooltip(result, event) {
+      this.$emit('showTooltip', result, event);
+    },
+    toggleShowAverageResponseTime() {
+      this.showAverageResponseTime = !this.showAverageResponseTime;
     },
   },
   data() {
@@ -155,6 +163,7 @@ export default {
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
+      showAverageResponseTime: false,
     }
   },
   created() {

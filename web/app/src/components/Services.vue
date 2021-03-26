@@ -1,7 +1,7 @@
 <template>
   <div id="results">
     <slot v-for="serviceGroup in serviceGroups" :key="serviceGroup">
-      <ServiceGroup :services="serviceGroup.services" :name="serviceGroup.name" @showTooltip="showTooltip"/>
+      <ServiceGroup :services="serviceGroup.services" :name="serviceGroup.name" @showTooltip="showTooltip" @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime" />
     </slot>
   </div>
 </template>
@@ -17,9 +17,10 @@ export default {
   },
   props: {
     showStatusOnHover: Boolean,
-    serviceStatuses: Object
+    serviceStatuses: Object,
+    showAverageResponseTime: Boolean
   },
-  emits: ['showTooltip'],
+  emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     process() {
       let outputByGroup = {};
@@ -45,6 +46,9 @@ export default {
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
+    },
+    toggleShowAverageResponseTime() {
+      this.$emit('toggleShowAverageResponseTime');
     }
   },
   watch: {
