@@ -298,7 +298,7 @@ func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) pr
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
 		}
-		return config.Alerting.Discord
+		return config.Alerting.Telegram
 	case core.TwilioAlert:
 		if config.Alerting.Twilio == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
