@@ -2,3 +2,4 @@
 .vscode
 gatus
 db.db
+config/config.yml

@@ -7,6 +7,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 )
 
@@ -29,6 +30,9 @@ type Config struct {
 
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack"`
+
+	// Telegram is the configuration for the telegram alerting provider
+	Telegram *telegram.AlertProvider `yaml:"telegram"`
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio"`
