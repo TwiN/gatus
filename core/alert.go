@@ -58,6 +58,9 @@ const (
 	// SlackAlert is the AlertType for the slack alerting provider
 	SlackAlert AlertType = "slack"
 
+	// TelegramAlert is the AlertType for the telegram alerting provider
+	TelegramAlert AlertType = "telegram"
+
 	// TwilioAlert is the AlertType for the twilio alerting provider
 	TwilioAlert AlertType = "twilio"
 )

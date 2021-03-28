@@ -13,6 +13,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
@@ -354,6 +355,9 @@ alerting:
     access-key: "1"
     originator: "31619191918"
     recipients: "31619191919"
+  telegram:
+    token: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+    id: 0123456789
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -369,6 +373,8 @@ services:
       - type: discord
         enabled: true
         failure-threshold: 10
+      - type: telegram
+        enabled: true
     conditions:
       - "[STATUS] == 200"
 `))
@@ -394,11 +400,12 @@ services:
 	if config.Alerting.PagerDuty == nil || !config.Alerting.PagerDuty.IsValid() {
 		t.Fatal("PagerDuty alerting config should've been valid")
 	}
-	if config.Alerting.Messagebird == nil || !config.Alerting.Messagebird.IsValid() {
-		t.Fatal("Messagebird alerting config should've been valid")
-	}
 	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
 		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
+	}
+
+	if config.Alerting.Messagebird == nil || !config.Alerting.Messagebird.IsValid() {
+		t.Fatal("Messagebird alerting config should've been valid")
 	}
 	if config.Alerting.Messagebird.AccessKey != "1" {
 		t.Errorf("Messagebird access key should've been %s, but was %s", "1", config.Alerting.Messagebird.AccessKey)
@@ -409,11 +416,19 @@ services:
 	if config.Alerting.Messagebird.Recipients != "31619191919" {
 		t.Errorf("Messagebird to recipients should've been %s, but was %s", "31619191919", config.Alerting.Messagebird.Recipients)
 	}
+
 	if config.Alerting.Discord == nil || !config.Alerting.Discord.IsValid() {
 		t.Fatal("Discord alerting config should've been valid")
 	}
 	if config.Alerting.Discord.WebhookURL != "http://example.org" {
 		t.Errorf("Discord webhook should've been %s, but was %s", "http://example.org", config.Alerting.Discord.WebhookURL)
+	}
+
+	if config.Alerting.Telegram.Token != "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" {
+		t.Errorf("Telegram token should've been %s, but was %s", "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", config.Alerting.Telegram.Token)
+	}
+	if config.Alerting.Telegram.ID != "0123456789" {
+		t.Errorf("Telegram ID should've been %s, but was %s", "012345689", config.Alerting.Telegram.ID)
 	}
 	if GetAlertingProviderByAlertType(config, core.DiscordAlert) != config.Alerting.Discord {
 		t.Error("expected discord configuration")
@@ -428,8 +443,8 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 4 {
-		t.Fatal("There should've been 4 alerts configured")
+	if len(config.Services[0].Alerts) != 5 {
+		t.Fatal("There should've been 5 alerts configured")
 	}
 
 	if config.Services[0].Alerts[0].Type != core.SlackAlert {
@@ -450,9 +465,6 @@ services:
 	}
 	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
 		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[1].Description)
-	}
-	if config.Services[0].Alerts[1].FailureThreshold != 7 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
 	}
 	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
 		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
@@ -855,6 +867,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 			Messagebird: &messagebird.AlertProvider{},
 			PagerDuty:   &pagerduty.AlertProvider{},
 			Slack:       &slack.AlertProvider{},
+			Telegram:    &telegram.AlertProvider{},
 			Twilio:      &twilio.AlertProvider{},
 		},
 	}
@@ -875,6 +888,9 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}
 	if GetAlertingProviderByAlertType(cfg, core.SlackAlert) != cfg.Alerting.Slack {
 		t.Error("expected Slack configuration")
+	}
+	if GetAlertingProviderByAlertType(cfg, core.TelegramAlert) != cfg.Alerting.Telegram {
+		t.Error("expected Telegram configuration")
 	}
 	if GetAlertingProviderByAlertType(cfg, core.TwilioAlert) != cfg.Alerting.Twilio {
 		t.Error("expected Twilio configuration")
