@@ -84,6 +84,7 @@ const (
 type Condition string
 
 // evaluate the Condition with the Result of the health check
+// TODO: Add a mandatory space between each operators (e.g. " == " instead of "==") (BREAKING CHANGE)
 func (c Condition) evaluate(result *Result) bool {
 	condition := string(c)
 	success := false
