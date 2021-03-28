@@ -23,9 +23,9 @@ func (provider *AlertProvider) IsValid() bool {
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
 	var message, results string
 	if resolved {
-		message = fmt.Sprintf("An alert for <b>%s</b> has been resolved:\\n—\\n<i>    healthcheck passing successfully %d time(s) in a row</i>\\n—  ", service.Name, alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved:\\n—\\n    _healthcheck passing successfully %d time(s) in a row_\\n—  ", service.Name, alert.FailureThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for <b>%s</b> has been triggered:\\n—\\n<i>    healthcheck failed %d time(s) in a row</i>\\n—  ", service.Name, alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered:\\n—\\n    _healthcheck failed %d time(s) in a row_\\n—  ", service.Name, alert.FailureThreshold)
 	}
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
@@ -34,13 +34,19 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		} else {
 			prefix = "❌"
 		}
-		results += fmt.Sprintf("%s - <code>%s</code>\\n", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
 	}
-	var text string = fmt.Sprintf("⛑ <b>Gatus</b> \\n%s \\n<b>Condition results</b>\\n%s", message, results)
+	var text string
+	if len(alert.Description) > 0 {
+		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Description* \\n_%s_  \\n\\n*Condition results*\\n%s", message, alert.Description, results)
+	} else {
+		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Condition results*\\n%s", message, results)
+	}
+
 	return &custom.AlertProvider{
 		URL:     fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token),
 		Method:  http.MethodPost,
-		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "HTML" }`, provider.ID, text),
+		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN" }`, provider.ID, text),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
 }

@@ -46,6 +46,28 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "0123456789"}
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{Description: "Healthcheck Successful"}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
+	if customAlertProvider == nil {
+		t.Fatal("customAlertProvider shouldn't have been nil")
+	}
+	if !strings.Contains(customAlertProvider.Body, "triggered") {
+		t.Error("customAlertProvider.Body should've contained the substring triggered")
+	}
+	if customAlertProvider.URL != fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token) {
+		t.Errorf("expected URL to be %s, got %s", fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token), customAlertProvider.URL)
+	}
+	if customAlertProvider.Method != http.MethodPost {
+		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
+	}
+	body := make(map[string]interface{})
+	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
+	if err != nil {
+		t.Error("expected body to be valid JSON, got error:", err.Error())
+	}
+}
+
+func TestAlertProvider_ToCustomAlertProviderWithDesription(t *testing.T) {
+	provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "0123456789"}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
