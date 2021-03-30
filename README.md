@@ -31,6 +31,7 @@ core applications: https://status.twinnation.org/
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)    
+    - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
@@ -220,6 +221,9 @@ ignored.
 | `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
 | `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
 | `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
+| `alerting.telegram`                      | Configuration for alerts of type `telegram`                                   | `{}`           |
+| `alerting.telegram.token`                | Telegram Bot Token                                                            | Required `""`  |
+| `alerting.telegram.id`                   | Telegram User ID                                                              | Required `""`  |
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.method`                 | Request method                                                                | `GET`          |
@@ -394,6 +398,31 @@ services:
       - "[RESPONSE_TIME] < 300"
 ```
 
+
+#### Configuring Telegram alerts
+
+```yaml
+alerting:
+  telegram: 
+    token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    id: "0123456789"
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    alerts:
+      - type: telegram
+        enabled: true
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+```
+
+Here's an example of what the notifications look like:
+
+![Telegram notifications](.github/assets/telegram-alerts.png)
 
 #### Configuring custom alerts
 
