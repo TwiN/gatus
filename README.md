@@ -424,6 +424,7 @@ Here's an example of what the notifications look like:
 
 ![Telegram notifications](.github/assets/telegram-alerts.png)
 
+
 #### Configuring custom alerts
 
 While they're called alerts, you can use this feature to call anything. 
