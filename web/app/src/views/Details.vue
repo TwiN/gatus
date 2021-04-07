@@ -4,7 +4,7 @@
   </router-link>
   <div>
     <slot v-if="serviceStatus">
-      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">RECENT CHECKS</h1>
+      <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RECENT CHECKS</h1>
       <hr class="mb-4" />
       <Service
           :data="serviceStatus"
@@ -15,7 +15,7 @@
       <Pagination @page="changePage"/>
     </slot>
     <div v-if="uptime" class="mt-12">
-      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400">UPTIME</h1>
+      <h1 class="text-xl xl:text-3xl font-mono text-gray-400">UPTIME</h1>
       <hr />
       <div class="flex space-x-4 text-center text-xl xl:text-2xl mt-3">
         <div class="flex-1">
@@ -32,7 +32,7 @@
         </div>
       </div>
       <hr class="mt-1"/>
-      <h3 class="text-xl text-monospace text-gray-400 mt-1 text-right">BADGES</h3>
+      <h3 class="text-xl font-mono text-gray-400 mt-1 text-right">BADGES</h3>
       <div v-if="serviceStatus && serviceStatus.key" class="flex space-x-4 text-center text-2xl mt-6 relative bottom-12">
         <div class="flex-1">
           <img :src="generateBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
@@ -46,7 +46,7 @@
       </div>
     </div>
     <div>
-      <h1 class="text-xl xl:text-3xl text-monospace text-gray-400 mt-4">EVENTS</h1>
+      <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
       <hr class="mb-4" />
       <div>
         <slot v-for="event in events" :key="event">
