@@ -6,6 +6,7 @@ jobs:
   build:
     name: Publish
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out code
         uses: actions/checkout@v2
