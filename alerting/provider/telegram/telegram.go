@@ -42,7 +42,6 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	} else {
 		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Condition results*\\n%s", message, results)
 	}
-
 	return &custom.AlertProvider{
 		URL:     fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token),
 		Method:  http.MethodPost,
