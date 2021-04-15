@@ -45,7 +45,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	return &custom.AlertProvider{
 		URL:     fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token),
 		Method:  http.MethodPost,
-		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN" }`, provider.ID, text),
+		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN"}`, provider.ID, text),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
 }
