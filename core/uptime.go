@@ -13,14 +13,9 @@ const (
 // Uptime is the struct that contains the relevant data for calculating the uptime as well as the uptime itself
 // and some other statistics
 type Uptime struct {
-	// LastSevenDays is the uptime percentage over the past 7 days
-	LastSevenDays float64 `json:"7d"`
-
-	// LastTwentyFourHours is the uptime percentage over the past 24 hours
-	LastTwentyFourHours float64 `json:"24h"`
-
-	// LastHour is the uptime percentage over the past hour
-	LastHour float64 `json:"1h"`
+	LastSevenDays       float64 `json:"7d"`  // Uptime percentage over the past 7 days
+	LastTwentyFourHours float64 `json:"24h"` // Uptime percentage over the past 24 hours
+	LastHour            float64 `json:"1h"`  // Uptime percentage over the past hour
 
 	// SuccessfulExecutionsPerHour is a map containing the number of successes (value)
 	// for every hourly unix timestamps (key)
@@ -98,16 +93,6 @@ func (uptime *Uptime) ProcessResult(result *Result) {
 			uptime.recalculate()
 		}
 	}
-	// cute print
-	//b, _ := json.MarshalIndent(uptime.TotalExecutionsPerHour, "", "  ")
-	//fmt.Println("TotalExecutionsPerHour:", string(b))
-	//b, _ = json.MarshalIndent(uptime.SuccessfulExecutionsPerHour, "", "  ")
-	//fmt.Println("SuccessfulExecutionsPerHour:", string(b))
-	//b, _ = json.MarshalIndent(uptime.TotalRequestResponseTimePerHour, "", "  ")
-	//fmt.Println("TotalRequestResponseTimePerHour:", string(b))
-	//for unixTimestamp, executions := range uptime.TotalExecutionsPerHour {
-	//	fmt.Printf("average for %d was %d\n", unixTimestamp, uptime.TotalRequestResponseTimePerHour[unixTimestamp]/executions)
-	//}
 }
 
 func (uptime *Uptime) recalculate() {
