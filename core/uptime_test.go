@@ -60,7 +60,7 @@ func TestServiceStatus_AddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 		if now.Sub(timestamp) < time.Hour && serviceStatus.Uptime.LastHour == 0 {
 			t.Error("most recent timestamp < 1h ago, expected serviceStatus.Uptime.LastHour to NOT be 0, got", serviceStatus.Uptime.LastHour)
 		}
-		// Simulate service with an interval of 1 minute
+		// Simulate service with an interval of 3 minutes
 		timestamp = timestamp.Add(3 * time.Minute)
 	}
 }
