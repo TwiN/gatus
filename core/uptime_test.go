@@ -12,33 +12,39 @@ func TestUptime_ProcessResult(t *testing.T) {
 
 	checkUptimes(t, serviceStatus, 0.00, 0.00, 0.00)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-7 * 24 * time.Hour), Success: true})
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-7 * 24 * time.Hour), Success: true})
 	checkUptimes(t, serviceStatus, 1.00, 0.00, 0.00)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-6 * 24 * time.Hour), Success: false})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-6 * 24 * time.Hour), Success: false})
 	checkUptimes(t, serviceStatus, 0.50, 0.00, 0.00)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-8 * 24 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-8 * 24 * time.Hour), Success: true})
 	checkUptimes(t, serviceStatus, 0.50, 0.00, 0.00)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-24 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-12 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-24 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-12 * time.Hour), Success: true})
 	checkUptimes(t, serviceStatus, 0.75, 1.00, 0.00)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-1 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-30 * time.Minute), Success: false})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-15 * time.Minute), Success: false})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-10 * time.Minute), Success: false})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-1 * time.Hour), Success: true, Duration: 10 * time.Millisecond})
+	checkHourlyStatistics(t, uptime.HourlyStatistics[now.Unix()-now.Unix()%3600-3600], 10, 1, 1)
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-30 * time.Minute), Success: false, Duration: 500 * time.Millisecond})
+	checkHourlyStatistics(t, uptime.HourlyStatistics[now.Unix()-now.Unix()%3600-3600], 510, 2, 1)
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-15 * time.Minute), Success: false, Duration: 25 * time.Millisecond})
+	checkHourlyStatistics(t, uptime.HourlyStatistics[now.Unix()-now.Unix()%3600-3600], 535, 3, 1)
+
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-10 * time.Minute), Success: false})
 	checkUptimes(t, serviceStatus, 0.50, 0.50, 0.25)
 
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-120 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-119 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-118 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-117 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-10 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-8 * time.Hour), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-30 * time.Minute), Success: true})
-	uptime.ProcessResult(&Result{Timestamp: time.Now().Add(-25 * time.Minute), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-120 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-119 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-118 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-117 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-10 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-30 * time.Minute), Success: true})
+	uptime.ProcessResult(&Result{Timestamp: now.Add(-25 * time.Minute), Success: true})
 	checkUptimes(t, serviceStatus, 0.75, 0.70, 0.50)
 }
 
@@ -51,8 +57,8 @@ func TestServiceStatus_AddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	timestamp := now.Add(-12 * 24 * time.Hour)
 	for timestamp.Unix() <= now.Unix() {
 		serviceStatus.AddResult(&Result{Timestamp: timestamp, Success: true})
-		if len(serviceStatus.Uptime.SuccessfulExecutionsPerHour) > numberOfHoursInTenDays {
-			t.Errorf("At no point in time should there be more than %d entries in serviceStatus.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(serviceStatus.Uptime.SuccessfulExecutionsPerHour))
+		if len(serviceStatus.Uptime.HourlyStatistics) > numberOfHoursInTenDays {
+			t.Errorf("At no point in time should there be more than %d entries in serviceStatus.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(serviceStatus.Uptime.HourlyStatistics))
 		}
 		if now.Sub(timestamp) > time.Hour && serviceStatus.Uptime.LastHour != 0 {
 			t.Error("most recent timestamp > 1h ago, expected serviceStatus.Uptime.LastHour to be 0, got", serviceStatus.Uptime.LastHour)
@@ -74,5 +80,17 @@ func checkUptimes(t *testing.T, status *ServiceStatus, expectedUptimeDuringLastS
 	}
 	if status.Uptime.LastHour != expectedUptimeDuringLastHour {
 		t.Errorf("expected status.Uptime.LastHour to be %f, got %f", expectedUptimeDuringLastHour, status.Uptime.LastHour)
+	}
+}
+
+func checkHourlyStatistics(t *testing.T, hourlyUptimeStatistics *HourlyUptimeStatistics, expectedTotalExecutionsResponseTime uint64, expectedTotalExecutions uint64, expectedSuccessfulExecutions uint64) {
+	if hourlyUptimeStatistics.TotalExecutionsResponseTime != expectedTotalExecutionsResponseTime {
+		t.Error("TotalExecutionsResponseTime should've been", expectedTotalExecutionsResponseTime, "got", hourlyUptimeStatistics.TotalExecutionsResponseTime)
+	}
+	if hourlyUptimeStatistics.TotalExecutions != expectedTotalExecutions {
+		t.Error("TotalExecutions should've been", expectedTotalExecutions, "got", hourlyUptimeStatistics.TotalExecutions)
+	}
+	if hourlyUptimeStatistics.SuccessfulExecutions != expectedSuccessfulExecutions {
+		t.Error("SuccessfulExecutions should've been", expectedSuccessfulExecutions, "got", hourlyUptimeStatistics.SuccessfulExecutions)
 	}
 }
