@@ -18,6 +18,7 @@ core applications: https://status.twinnation.org/
 
 ## Table of Contents
 
+- [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
 - [Configuration](#configuration)
@@ -52,6 +53,25 @@ core applications: https://status.twinnation.org/
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
   - [API](#API)
+
+
+## Why Gatus?
+
+Before getting into the specifics, I want to address the most common question:
+> Why would I use Gatus when I can just use Prometheus’ Alertmanager, Cloudwatch or even Splunk?
+
+Neither of these can tell you that there’s a problem if there are no clients actively calling the endpoint.
+In other words, it's because monitoring metrics mostly rely on existing traffic, which effectively means that unless
+your clients are already experiencing a problem, you won't be notified.
+
+Gatus, on the other hand, allows you to configure health checks for each of your features, which in turn allows it to
+monitor these features and potentially alert you before any clients are impacted.
+
+A sign you may want to look into Gatus is by simply asking yourself whether you'd receive an alert if your load balancer
+was to go down right now. Will any of your existing alerts by triggered? Your metrics won’t report an increase in errors
+if there’s no traffic that makes it to your applications. This puts you in a situation where your clients are the ones
+that will notify you about the degradation of your services rather than you reassuring them that you're working on
+fixing the issue before they even know about it.
 
 
 ## Features
@@ -113,7 +133,7 @@ Note that you can also add environment variables in the configuration file (e.g.
 | `services[].url`                         | URL to send the request to                                                    | Required `""`  |
 | `services[].method`                      | Request method                                                                | `GET`          |
 | `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
-| `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions) | `[]`           |
+| `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions). | `[]`           |
 | `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
 | `services[].body`                        | Request body                                                                  | `""`           |
@@ -121,13 +141,13 @@ Note that you can also add environment variables in the configuration file (e.g.
 | `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`m `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
-| `alerting`                               | Configuration for alerting. See [Alerting](#alerting)                         | `{}`           |
+| `alerting`                               | Configuration for alerting. See [Alerting](#alerting).                        | `{}`           |
 | `security`                               | Security configuration                                                        | `{}`           |
 | `security.basic`                         | Basic authentication security configuration                                   | `{}`           |
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
