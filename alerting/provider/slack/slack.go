@@ -10,7 +10,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	WebhookURL string `yaml:"webhook-url"`
+	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
 }
 
 // IsValid returns whether the provider's configuration is valid
