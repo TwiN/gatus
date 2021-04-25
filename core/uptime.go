@@ -130,6 +130,8 @@ func (uptime *Uptime) recalculate() {
 	}
 }
 
+// XXX: Remove this on v3.0.0
+// Deprecated
 func (uptime *Uptime) migrateToHourlyStatistics() {
 	log.Println("[migrateToHourlyStatistics] Got", len(uptime.SuccessfulExecutionsPerHour), "entries for successful executions and", len(uptime.TotalExecutionsPerHour), "entries for total executions")
 	uptime.HourlyStatistics = make(map[int64]*HourlyUptimeStatistics)
