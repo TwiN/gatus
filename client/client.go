@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -16,14 +18,27 @@ var (
 	// pingTimeout is the timeout for the Ping function
 	// This is mainly exposed for testing purposes
 	pingTimeout = 5 * time.Second
+
+	// httpTimeout is the timeout for secureHTTPClient and insecureHTTPClient
+	httpTimeout = 10 * time.Second
 )
+
+func init() {
+	// XXX: This is an undocumented feature. See https://github.com/TwinProduction/gatus/issues/104.
+	httpTimeoutInSecondsFromEnvironmentVariable := os.Getenv("HTTP_CLIENT_TIMEOUT_IN_SECONDS")
+	if len(httpTimeoutInSecondsFromEnvironmentVariable) > 0 {
+		if httpTimeoutInSeconds, err := strconv.Atoi(httpTimeoutInSecondsFromEnvironmentVariable); err == nil {
+			httpTimeout = time.Duration(httpTimeoutInSeconds) * time.Second
+		}
+	}
+}
 
 // GetHTTPClient returns the shared HTTP client
 func GetHTTPClient(insecure bool) *http.Client {
 	if insecure {
 		if insecureHTTPClient == nil {
 			insecureHTTPClient = &http.Client{
-				Timeout: 10 * time.Second,
+				Timeout: httpTimeout,
 				Transport: &http.Transport{
 					MaxIdleConns:        100,
 					MaxIdleConnsPerHost: 20,
@@ -38,7 +53,7 @@ func GetHTTPClient(insecure bool) *http.Client {
 	}
 	if secureHTTPClient == nil {
 		secureHTTPClient = &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: httpTimeout,
 			Transport: &http.Transport{
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 20,
