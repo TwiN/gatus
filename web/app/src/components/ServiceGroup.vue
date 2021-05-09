@@ -1,8 +1,8 @@
 <template>
   <div :class="services.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
-      <div class="service-group pt-2 border" @click="toggleGroup">
-        <h5 class='font-mono text-gray-400 text-xl font-medium pb-2 px-3'>
+      <div class="service-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
+        <h5 class='font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500'>
           <span v-if="healthy" class='text-green-600'>&#10003;</span>
           <span v-else class='text-yellow-400'>~</span>
           {{ name }}
@@ -96,6 +96,6 @@ export default {
 }
 
 .service-group h5:hover {
-  color: #1b1e21 !important;
+  color: #1b1e21;
 }
 </style>

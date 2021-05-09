@@ -1,8 +1,8 @@
 <template>
-  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100' v-if="data">
+  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-500' v-if="data">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline" title="View detailed service health">
+        <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline dark:hover:text-blue-400" title="View detailed service health">
           {{ data.name }}
         </router-link>
         <span v-if="data.results && data.results.length" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
@@ -132,8 +132,6 @@ export default {
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
   border-bottom-width: 3px;
-  border-color: #dee2e6;
-  border-style: solid;
 }
 
 .status-over-time {

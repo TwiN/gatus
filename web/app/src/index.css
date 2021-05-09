@@ -5,3 +5,35 @@
 .bg-success {
     background-color: #28a745;
 }
+
+html {
+    height: 100%;
+}
+
+body {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    min-height: 100vh;
+}
+
+html, body {
+    background-color: #f7f9fb;
+}
+
+#global {
+    margin-top: 0 !important;
+}
+
+#global, #results {
+    max-width: 1280px;
+}
+
+@media screen and (max-width: 1279px) {
+    body {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    #global {
+        min-height: 100vh;
+    }
+}

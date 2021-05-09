@@ -1,5 +1,5 @@
 <template>
-  <router-link to="../" class="absolute top-2 left-2 inline-block px-2 py-0 text-lg text-black transition bg-gray-100 rounded shadow ripple hover:shadow-lg hover:bg-gray-200 focus:outline-none">
+  <router-link to="../" class="absolute top-2 left-2 inline-block px-2 pb-0.5 text-lg text-black bg-gray-100 rounded hover:bg-gray-200 focus:outline-none border border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-600">
     &larr;
   </router-link>
   <div>
@@ -176,7 +176,5 @@ export default {
 .service {
   border-radius: 3px;
   border-bottom-width: 3px;
-  border-color: #dee2e6;
-  border-style: solid;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="container container-xs relative mx-auto xl:rounded xl:border xl:shadow-xl xl:my-5 p-5 pb-12 xl:pb-5 text-left" id="global">
+  <div class="container container-xs relative mx-auto xl:rounded xl:border xl:shadow-xl xl:my-5 p-5 pb-12 xl:pb-5 text-left dark:bg-gray-800 dark:text-gray-200 dark:border-gray-500" id="global">
     <div class="mb-2">
       <div class="flex flex-wrap">
         <div class="w-3/4 text-left my-auto">
@@ -39,18 +39,3 @@ export default {
   },
 }
 </script>
-
-
-<style>
-html {
-  height: 100%;
-}
-
-html, body {
-  background-color: #f7f9fb;
-}
-
-#global, #results {
-  max-width: 1200px;
-}
-</style>
