@@ -22,7 +22,7 @@
       <div class='status-over-time flex flex-row'>
         <slot v-if="data.results && data.results.length">
           <slot v-if="data.results.length < maximumNumberOfResults">
-            <span v-for="filler in maximumNumberOfResults - data.results.length" :key="filler" class="status rounded border border-dashed">&nbsp;</span>
+            <span v-for="filler in maximumNumberOfResults - data.results.length" :key="filler" class="status rounded border border-dashed border-gray-500">&nbsp;</span>
           </slot>
           <slot v-for="result in data.results" :key="result">
             <span v-if="result.success" class="status status-success rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
