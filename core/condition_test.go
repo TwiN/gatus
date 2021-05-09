@@ -184,6 +184,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].user.firstName (john) == [BODY].user.lastName (doe)",
 		},
 		{
+			Name:            "body-jsonpath-when-body-is-array",
+			Condition:       Condition("[BODY][0].id == 1"),
+			Result:          &Result{body: []byte("[{\"id\": 1}, {\"id\": 2}]")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY][0].id == 1",
+		},
+		{
 			Name:            "body-jsonpath-complex-int",
 			Condition:       Condition("[BODY].data.id == 1"),
 			Result:          &Result{body: []byte("{\"data\": {\"id\": 1}}")},

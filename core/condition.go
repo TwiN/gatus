@@ -232,7 +232,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 					checkingForExistence = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(element, BodyPlaceholder+"."), result.body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
 				if checkingForExistence {
 					if err != nil {
 						element = "false"
