@@ -44,7 +44,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 			// We need to extract the DedupKey from PagerDuty's response
 			if alert.Type == core.PagerDutyAlert {
 				var body []byte
-				if body, err = customAlertProvider.Send(service.Name, alert.Description, false); err == nil {
+				if body, err = customAlertProvider.Send(service.Group, service.Name, alert.Description, false); err == nil {
 					var response pagerDutyResponse
 					if err = json.Unmarshal(body, &response); err != nil {
 						log.Printf("[watchdog][handleAlertsToTrigger] Ran into error unmarshaling pagerduty response: %s", err.Error())
@@ -54,7 +54,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 				}
 			} else {
 				// All other alert types don't need to extract anything from the body, so we can just send the request right away
-				_, err = customAlertProvider.Send(service.Name, alert.Description, false)
+				_, err = customAlertProvider.Send(service.Group, service.Name, alert.Description, false)
 			}
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToTrigger] Failed to send an alert for service=%s: %s", service.Name, err.Error())
@@ -84,7 +84,7 @@ func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *conf
 			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for service=%s with description='%s' has been RESOLVED", alert.Type, service.Name, alert.Description)
 			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, true)
 			// TODO: retry on error
-			_, err := customAlertProvider.Send(service.Name, alert.Description, true)
+			_, err := customAlertProvider.Send(service.Group, service.Name, alert.Description, true)
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToResolve] Failed to send an alert for service=%s: %s", service.Name, err.Error())
 			} else {

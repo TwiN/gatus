@@ -48,7 +48,7 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription string, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(groupName, serviceName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
 	providerURL := provider.URL
 	method := provider.Method
@@ -58,6 +58,9 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 	}
 	if strings.Contains(body, "[SERVICE_NAME]") {
 		body = strings.ReplaceAll(body, "[SERVICE_NAME]", serviceName)
+	}
+	if strings.Contains(body, "[GROUP_NAME]") {
+		body = strings.ReplaceAll(body, "[GROUP_NAME]", groupName)
 	}
 	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
@@ -91,14 +94,14 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 }
 
 // Send a request to the alert provider and return the body
-func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
+func (provider *AlertProvider) Send(groupName, serviceName, alertDescription string, resolved bool) ([]byte, error) {
 	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
 			return nil, errors.New("error")
 		}
 		return []byte("{}"), nil
 	}
-	request := provider.buildHTTPRequest(serviceName, alertDescription, resolved)
+	request := provider.buildHTTPRequest(groupName, serviceName, alertDescription, resolved)
 	response, err := client.GetHTTPClient(provider.Insecure).Do(request)
 	if err != nil {
 		return nil, err
