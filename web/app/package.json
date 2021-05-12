@@ -1,30 +1,29 @@
 {
-  "name": "app",
-  "version": "0.1.0",
+  "name": "gatus",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --mode development",
-    "build": "vue-cli-service build --mode production",
+    "build": "vue-cli-service build --modern --mode production",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
-    "vue": "^3.0.0",
-    "vue-router": "^4.0.0-0"
+    "core-js": "^3.12.1",
+    "vue": "^3.0.11",
+    "vue-router": "^4.0.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss7-compat": "^2.1.0",
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-eslint": "~4.5.0",
-    "@vue/cli-plugin-router": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
-    "@vue/compiler-sfc": "^3.0.0",
-    "autoprefixer": "^9.8.6",
+    "@vue/cli-plugin-babel": "^5.0.0-beta.0",
+    "@vue/cli-plugin-eslint": "^5.0.0-beta.0",
+    "@vue/cli-plugin-router": "^5.0.0-beta.0",
+    "@vue/cli-service": "^5.0.0-beta.0",
+    "@vue/compiler-sfc": "^3.0.11",
+    "autoprefixer": "^10.2.5",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^7.0.0-0",
-    "postcss": "^7.0.35",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.1.0"
+    "eslint": "^7.26.0",
+    "eslint-plugin-vue": "^7.8.0",
+    "postcss": "^8.2.15",
+    "tailwindcss": "^2.1.2"
   },
   "eslintConfig": {
     "root": true,

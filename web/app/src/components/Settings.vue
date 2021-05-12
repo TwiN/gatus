@@ -52,7 +52,6 @@ export default {
       this.applyTheme();
     },
     applyTheme() {
-      console.log(localStorage.theme, 'theme' in localStorage);
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         this.darkMode = true;
         document.documentElement.classList.add('dark');
