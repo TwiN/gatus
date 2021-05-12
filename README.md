@@ -116,7 +116,7 @@ This example would look like this:
 
 ![Simple example](.github/assets/example.png)
 
-Note that you can also add environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+Note that you can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 
 
 ## Configuration
