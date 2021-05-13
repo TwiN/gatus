@@ -1,6 +1,6 @@
 package k8s
 
-import "github.com/TwinProduction/gatus/core"
+import "github.com/Meldiron/gatus/core"
 
 // Config for Kubernetes auto-discovery
 type Config struct {

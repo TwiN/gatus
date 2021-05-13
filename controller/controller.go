@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/storage"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/security"
+	"github.com/Meldiron/gatus/storage"
 	"github.com/TwinProduction/gocache"
 	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	cache = gocache.NewCache().WithMaxSize(100).WithEvictionPolicy(gocache.FirstInFirstOut)
+	cache = gocache.NewCache().WithMaxSize(999999).WithEvictionPolicy(gocache.FirstInFirstOut)
 
 	// staticFolder is the path to the location of the static folder from the root path of the project
 	// The only reason this is exposed is to allow running tests from a different path than the root path of the project

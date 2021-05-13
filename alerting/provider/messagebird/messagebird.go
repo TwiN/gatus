@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/TwinProduction/gatus/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/alerting/provider/custom"
+	"github.com/Meldiron/gatus/core"
 )
 
 const (

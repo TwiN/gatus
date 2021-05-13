@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/storage"
 	"github.com/gorilla/mux"
 )
 

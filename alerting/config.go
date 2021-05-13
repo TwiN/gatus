@@ -1,14 +1,14 @@
 package alerting
 
 import (
-	"github.com/TwinProduction/gatus/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/alerting/provider/discord"
-	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
-	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
-	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
-	"github.com/TwinProduction/gatus/alerting/provider/slack"
-	"github.com/TwinProduction/gatus/alerting/provider/telegram"
-	"github.com/TwinProduction/gatus/alerting/provider/twilio"
+	"github.com/Meldiron/gatus/alerting/provider/custom"
+	"github.com/Meldiron/gatus/alerting/provider/discord"
+	"github.com/Meldiron/gatus/alerting/provider/mattermost"
+	"github.com/Meldiron/gatus/alerting/provider/messagebird"
+	"github.com/Meldiron/gatus/alerting/provider/pagerduty"
+	"github.com/Meldiron/gatus/alerting/provider/slack"
+	"github.com/Meldiron/gatus/alerting/provider/telegram"
+	"github.com/Meldiron/gatus/alerting/provider/twilio"
 )
 
 // Config is the configuration for alerting providers

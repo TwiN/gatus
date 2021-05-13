@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TwinProduction/gatus/alerting"
-	"github.com/TwinProduction/gatus/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/alerting"
+	"github.com/Meldiron/gatus/alerting/provider/custom"
+	"github.com/Meldiron/gatus/alerting/provider/pagerduty"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/core"
 )
 
 func TestHandleAlerting(t *testing.T) {

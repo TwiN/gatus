@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/storage"
+	"github.com/Meldiron/gatus/watchdog"
 )
 
 var (

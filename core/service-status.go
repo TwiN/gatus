@@ -3,12 +3,12 @@ package core
 import (
 	"time"
 
-	"github.com/TwinProduction/gatus/util"
+	"github.com/Meldiron/gatus/util"
 )
 
 const (
 	// MaximumNumberOfResults is the maximum number of results that ServiceStatus.Results can have
-	MaximumNumberOfResults = 100
+	MaximumNumberOfResults = 999999
 
 	// MaximumNumberOfEvents is the maximum number of events that ServiceStatus.Events can have
 	MaximumNumberOfEvents = 50

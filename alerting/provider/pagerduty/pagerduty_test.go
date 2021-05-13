@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/core"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/core"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

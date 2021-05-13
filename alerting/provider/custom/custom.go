@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TwinProduction/gatus/client"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/client"
+	"github.com/Meldiron/gatus/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/core"
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure

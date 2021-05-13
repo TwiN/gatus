@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/TwinProduction/gatus/alerting"
-	"github.com/TwinProduction/gatus/alerting/provider"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/k8s"
-	"github.com/TwinProduction/gatus/security"
-	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/util"
+	"github.com/Meldiron/gatus/alerting"
+	"github.com/Meldiron/gatus/alerting/provider"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/k8s"
+	"github.com/Meldiron/gatus/security"
+	"github.com/Meldiron/gatus/storage"
+	"github.com/Meldiron/gatus/util"
 	"gopkg.in/yaml.v2"
 )
 

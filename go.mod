@@ -1,4 +1,4 @@
-module github.com/TwinProduction/gatus
+module github.com/Meldiron/gatus
 
 go 1.16
 

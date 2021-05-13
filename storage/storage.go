@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/TwinProduction/gatus/storage/store"
-	"github.com/TwinProduction/gatus/storage/store/memory"
+	"github.com/Meldiron/gatus/storage/store"
+	"github.com/Meldiron/gatus/storage/store/memory"
 )
 
 var (

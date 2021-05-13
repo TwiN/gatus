@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	// XXX: This is an undocumented feature. See https://github.com/TwinProduction/gatus/issues/104.
+	// XXX: This is an undocumented feature. See https://github.com/Meldiron/gatus/issues/104.
 	httpTimeoutInSecondsFromEnvironmentVariable := os.Getenv("HTTP_CLIENT_TIMEOUT_IN_SECONDS")
 	if len(httpTimeoutInSecondsFromEnvironmentVariable) > 0 {
 		if httpTimeoutInSeconds, err := strconv.Atoi(httpTimeoutInSecondsFromEnvironmentVariable); err == nil {

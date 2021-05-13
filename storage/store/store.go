@@ -1,8 +1,8 @@
 package store
 
 import (
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/memory"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/storage/store/memory"
 )
 
 // Store is the interface that each stores should implement

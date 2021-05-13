@@ -6,10 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/controller"
-	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/controller"
+	"github.com/Meldiron/gatus/storage"
+	"github.com/Meldiron/gatus/watchdog"
 )
 
 func main() {

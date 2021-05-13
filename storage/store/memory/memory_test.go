@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/util"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/util"
 )
 
 var (

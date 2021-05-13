@@ -3,8 +3,8 @@ package memory
 import (
 	"encoding/gob"
 
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/util"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/util"
 	"github.com/TwinProduction/gocache"
 )
 

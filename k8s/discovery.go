@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/core"
 )
 
 // DiscoverServices return discovered services

@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/metric"
-	"github.com/TwinProduction/gatus/storage"
+	"github.com/Meldiron/gatus/config"
+	"github.com/Meldiron/gatus/core"
+	"github.com/Meldiron/gatus/metric"
+	"github.com/Meldiron/gatus/storage"
 )
 
 var (

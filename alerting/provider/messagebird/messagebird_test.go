@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TwinProduction/gatus/core"
+	"github.com/Meldiron/gatus/core"
 )
 
 func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
