@@ -46,3 +46,9 @@ services:
     conditions:
       - "[BODY] == 93.184.216.34"
       - "[DNS_RCODE] == NOERROR"
+
+  - name: icmp-ping
+    url: "icmp://example.org"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
