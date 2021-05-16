@@ -31,7 +31,8 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 		From:  "3",
 		To:    "4",
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &core.Alert{Description: "alert-description"}, &core.Result{}, true)
+	description := "alert-description"
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &core.Alert{Description: &description}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -56,7 +57,8 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 		From:  "2",
 		To:    "1",
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &core.Alert{Description: "alert-description"}, &core.Result{}, false)
+	description := "alert-description"
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &core.Alert{Description: &description}, &core.Result{}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}

@@ -25,15 +25,16 @@ func TestHandleAlerting(t *testing.T) {
 		},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 3,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        false,
 			},
 		},
@@ -78,15 +79,16 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 		Alerting: &alerting.Config{},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        false,
 			},
 		},
@@ -113,15 +115,16 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButServiceStartFailingA
 		},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 3,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        true,
 			},
 		},
@@ -147,15 +150,17 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 		},
 	}
 	config.Set(cfg)
+	enabled := true
+	disabled := false
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
-				SendOnResolved:   false,
+				SendOnResolved:   &disabled,
 				Triggered:        true,
 			},
 		},
@@ -179,15 +184,16 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 		},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.PagerDutyAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        false,
 			},
 		},
@@ -215,15 +221,16 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 		},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 2,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        false,
 			},
 		},
@@ -273,15 +280,16 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		},
 	}
 	config.Set(cfg)
+	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
 		Alerts: []*core.Alert{
 			{
 				Type:             core.CustomAlert,
-				Enabled:          true,
+				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
-				SendOnResolved:   true,
+				SendOnResolved:   &enabled,
 				Triggered:        false,
 			},
 		},

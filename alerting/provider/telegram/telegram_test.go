@@ -46,7 +46,8 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "0123456789"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{Description: "Healthcheck Successful"}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
+	description := "Healthcheck Successful"
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{Description: &description}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "UNSUCCESSFUL_CONDITION", Success: false}}}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
