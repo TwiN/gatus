@@ -41,7 +41,7 @@ func extractValue(currentKey string, value interface{}) interface{} {
 		tmp := strings.SplitN(currentKey, "[", 3)
 		arrayIndex, err := strconv.Atoi(strings.Replace(tmp[1], "]", "", 1))
 		if err != nil {
-			return value
+			return nil
 		}
 		currentKey := tmp[0]
 		// if currentKey contains only an index (i.e. [0] or 0)

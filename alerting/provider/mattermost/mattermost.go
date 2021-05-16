@@ -12,6 +12,9 @@ import (
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
 	Insecure   bool   `yaml:"insecure,omitempty"`
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -69,7 +72,12 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
       ]
     }
   ]
-}`, message, message, alert.Description, color, service.URL, results),
+}`, message, message, alert.GetDescription(), color, service.URL, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }

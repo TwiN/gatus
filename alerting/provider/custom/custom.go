@@ -22,6 +22,9 @@ type AlertProvider struct {
 	Body         string                       `yaml:"body,omitempty"`
 	Headers      map[string]string            `yaml:"headers,omitempty"`
 	Placeholders map[string]map[string]string `yaml:"placeholders,omitempty"`
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -111,4 +114,9 @@ func (provider *AlertProvider) Send(serviceName, alertDescription string, resolv
 		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	return ioutil.ReadAll(response.Body)
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }

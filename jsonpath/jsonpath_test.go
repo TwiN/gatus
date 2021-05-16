@@ -20,6 +20,15 @@ func TestEval(t *testing.T) {
 	}
 }
 
+func TestEvalWithInvalidData(t *testing.T) {
+	path := "simple"
+	data := `invalid data`
+	_, _, err := Eval(path, []byte(data))
+	if err == nil {
+		t.Error("expected an error")
+	}
+}
+
 func TestEvalWithInvalidPath(t *testing.T) {
 	path := "errors"
 	data := `{}`
@@ -72,6 +81,16 @@ func TestEvalWithArrayOfValues(t *testing.T) {
 	}
 	if output != expectedOutput {
 		t.Errorf("Expected output to be %v, but was %v", expectedOutput, output)
+	}
+}
+
+func TestEvalWithArrayOfValuesAndInvalidIndex(t *testing.T) {
+	path := "ids[wat]"
+	data := `{"ids": [1, 2]}`
+
+	_, _, err := Eval(path, []byte(data))
+	if err == nil {
+		t.Error("Expected an error")
 	}
 }
 

@@ -222,6 +222,10 @@ func validateSecurityConfig(config *Config) {
 	}
 }
 
+// validateAlertingConfig validates the alerting configuration
+// Note that the alerting configuration has to be validated before the service configuration, because the default alert
+// returned by provider.AlertProvider.GetDefaultAlert() must be parsed before core.Service.ValidateAndSetDefaults()
+// sets the default alert values when none are set.
 func validateAlertingConfig(config *Config) {
 	if config.Alerting == nil {
 		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
@@ -242,6 +246,19 @@ func validateAlertingConfig(config *Config) {
 		alertProvider := GetAlertingProviderByAlertType(config, alertType)
 		if alertProvider != nil {
 			if alertProvider.IsValid() {
+				// Parse alerts with the provider's default alert
+				if alertProvider.GetDefaultAlert() != nil {
+					for _, service := range config.Services {
+						for alertIndex, alert := range service.Alerts {
+							if alertType == alert.Type {
+								if config.Debug {
+									log.Printf("[config][validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in service=%s", alertIndex, alertType, service.Name)
+								}
+								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), alert)
+							}
+						}
+					}
+				}
 				validProviders = append(validProviders, alertType)
 			} else {
 				log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)

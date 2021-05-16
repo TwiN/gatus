@@ -12,6 +12,9 @@ import (
 type AlertProvider struct {
 	Token string `yaml:"token"`
 	ID    string `yaml:"id"`
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -37,8 +40,8 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
 	}
 	var text string
-	if len(alert.Description) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Description* \\n_%s_  \\n\\n*Condition results*\\n%s", message, alert.Description, results)
+	if len(alert.GetDescription()) > 0 {
+		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Description* \\n_%s_  \\n\\n*Condition results*\\n%s", message, alert.GetDescription(), results)
 	} else {
 		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Condition results*\\n%s", message, results)
 	}
@@ -48,4 +51,9 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN"}`, provider.ID, text),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }
