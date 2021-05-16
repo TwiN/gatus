@@ -507,6 +507,8 @@ services:
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
+debug: true
+
 alerting:
   slack:
     webhook-url: "http://example.com"
@@ -582,18 +584,35 @@ services:
 	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
 		t.Fatal("Slack alerting config should've been valid")
 	}
+	if config.Alerting.Slack.GetDefaultAlert() == nil {
+		t.Fatal("Slack.GetDefaultAlert() shouldn't have returned nil")
+	}
 	if config.Alerting.Slack.WebhookURL != "http://example.com" {
 		t.Errorf("Slack webhook should've been %s, but was %s", "http://example.com", config.Alerting.Slack.WebhookURL)
 	}
+
 	if config.Alerting.PagerDuty == nil || !config.Alerting.PagerDuty.IsValid() {
 		t.Fatal("PagerDuty alerting config should've been valid")
+	}
+	if config.Alerting.PagerDuty.GetDefaultAlert() == nil {
+		t.Fatal("PagerDuty.GetDefaultAlert() shouldn't have returned nil")
 	}
 	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
 		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
 	}
 
+	if config.Alerting.Mattermost == nil || !config.Alerting.Mattermost.IsValid() {
+		t.Fatal("Mattermost alerting config should've been valid")
+	}
+	if config.Alerting.Mattermost.GetDefaultAlert() == nil {
+		t.Fatal("Mattermost.GetDefaultAlert() shouldn't have returned nil")
+	}
+
 	if config.Alerting.Messagebird == nil || !config.Alerting.Messagebird.IsValid() {
 		t.Fatal("Messagebird alerting config should've been valid")
+	}
+	if config.Alerting.Messagebird.GetDefaultAlert() == nil {
+		t.Fatal("Messagebird.GetDefaultAlert() shouldn't have returned nil")
 	}
 	if config.Alerting.Messagebird.AccessKey != "1" {
 		t.Errorf("Messagebird access key should've been %s, but was %s", "1", config.Alerting.Messagebird.AccessKey)
@@ -608,18 +627,34 @@ services:
 	if config.Alerting.Discord == nil || !config.Alerting.Discord.IsValid() {
 		t.Fatal("Discord alerting config should've been valid")
 	}
+	if config.Alerting.Discord.GetDefaultAlert() == nil {
+		t.Fatal("Discord.GetDefaultAlert() shouldn't have returned nil")
+	}
 	if config.Alerting.Discord.WebhookURL != "http://example.org" {
 		t.Errorf("Discord webhook should've been %s, but was %s", "http://example.org", config.Alerting.Discord.WebhookURL)
 	}
+	if GetAlertingProviderByAlertType(config, core.DiscordAlert) != config.Alerting.Discord {
+		t.Error("expected discord configuration")
+	}
 
+	if config.Alerting.Telegram == nil || !config.Alerting.Telegram.IsValid() {
+		t.Fatal("Telegram alerting config should've been valid")
+	}
+	if config.Alerting.Telegram.GetDefaultAlert() == nil {
+		t.Fatal("Telegram.GetDefaultAlert() shouldn't have returned nil")
+	}
 	if config.Alerting.Telegram.Token != "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" {
 		t.Errorf("Telegram token should've been %s, but was %s", "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", config.Alerting.Telegram.Token)
 	}
 	if config.Alerting.Telegram.ID != "0123456789" {
 		t.Errorf("Telegram ID should've been %s, but was %s", "012345689", config.Alerting.Telegram.ID)
 	}
-	if GetAlertingProviderByAlertType(config, core.DiscordAlert) != config.Alerting.Discord {
-		t.Error("expected discord configuration")
+
+	if config.Alerting.Twilio == nil || !config.Alerting.Twilio.IsValid() {
+		t.Fatal("Twilio alerting config should've been valid")
+	}
+	if config.Alerting.Twilio.GetDefaultAlert() == nil {
+		t.Fatal("Twilio.GetDefaultAlert() shouldn't have returned nil")
 	}
 	// Services
 	if len(config.Services) != 1 {

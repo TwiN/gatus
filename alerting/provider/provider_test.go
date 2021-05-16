@@ -47,7 +47,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				SuccessThreshold: 10,
 			},
 			ServiceAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+				Type:             core.TelegramAlert,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &secondDescription,
@@ -55,7 +55,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				SuccessThreshold: 11,
 			},
 			ExpectedOutputAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+				Type:             core.TelegramAlert,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &secondDescription,

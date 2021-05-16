@@ -16,27 +16,6 @@ type AlertProvider struct {
 	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
-//func (provider *AlertProvider) ParseWithDefaultAlert(alert *core.Alert) {
-//	if provider.DefaultAlert == nil {
-//		return
-//	}
-//	if alert.Enabled == nil {
-//		alert.Enabled = provider.DefaultAlert.Enabled
-//	}
-//	if alert.SendOnResolved == nil {
-//		alert.SendOnResolved = provider.DefaultAlert.SendOnResolved
-//	}
-//	if len(alert.Description) == 0 {
-//		alert.Description = provider.DefaultAlert.Description
-//	}
-//	if alert.FailureThreshold == 0 {
-//		alert.FailureThreshold = provider.DefaultAlert.FailureThreshold
-//	}
-//	if alert.SuccessThreshold == 0 {
-//		alert.SuccessThreshold = provider.DefaultAlert.SuccessThreshold
-//	}
-//}
-
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
 	return len(provider.WebhookURL) > 0
