@@ -11,6 +11,9 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -57,7 +60,12 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
       ]
     }
   ]
-}`, message, alert.Description, color, results),
+}`, message, alert.GetDescription(), color, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }

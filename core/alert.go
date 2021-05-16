@@ -2,20 +2,29 @@ package core
 
 // Alert is the service's alert configuration
 type Alert struct {
-	// Type of alert
+	// Type of alert (required)
 	Type AlertType `yaml:"type"`
 
 	// Enabled defines whether or not the alert is enabled
-	Enabled bool `yaml:"enabled"`
+	//
+	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
+	// or not for provider.ParseWithDefaultAlert to work.
+	Enabled *bool `yaml:"enabled"`
 
 	// FailureThreshold is the number of failures in a row needed before triggering the alert
 	FailureThreshold int `yaml:"failure-threshold"`
 
 	// Description of the alert. Will be included in the alert sent.
-	Description string `yaml:"description"`
+	//
+	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
+	// or not for provider.ParseWithDefaultAlert to work.
+	Description *string `yaml:"description"`
 
 	// SendOnResolved defines whether to send a second notification when the issue has been resolved
-	SendOnResolved bool `yaml:"send-on-resolved"`
+	//
+	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
+	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
+	SendOnResolved *bool `yaml:"send-on-resolved"`
 
 	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
 	SuccessThreshold int `yaml:"success-threshold"`
@@ -33,6 +42,30 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool
+}
+
+// GetDescription retrieves the description of the alert
+func (alert Alert) GetDescription() string {
+	if alert.Description == nil {
+		return ""
+	}
+	return *alert.Description
+}
+
+// IsEnabled returns whether an alert is enabled or not
+func (alert Alert) IsEnabled() bool {
+	if alert.Enabled == nil {
+		return false
+	}
+	return *alert.Enabled
+}
+
+// IsSendingOnResolved returns whether an alert is sending on resolve or not
+func (alert Alert) IsSendingOnResolved() bool {
+	if alert.SendOnResolved == nil {
+		return false
+	}
+	return *alert.SendOnResolved
 }
 
 // AlertType is the type of the alert.

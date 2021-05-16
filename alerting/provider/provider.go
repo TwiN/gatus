@@ -19,6 +19,31 @@ type AlertProvider interface {
 
 	// ToCustomAlertProvider converts the provider into a custom.AlertProvider
 	ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider
+
+	// GetDefaultAlert returns the provider's default alert configuration
+	GetDefaultAlert() *core.Alert
+}
+
+// ParseWithDefaultAlert parses a service alert by using the provider's default alert as a baseline
+func ParseWithDefaultAlert(providerDefaultAlert, serviceAlert *core.Alert) {
+	if providerDefaultAlert == nil || serviceAlert == nil {
+		return
+	}
+	if serviceAlert.Enabled == nil {
+		serviceAlert.Enabled = providerDefaultAlert.Enabled
+	}
+	if serviceAlert.SendOnResolved == nil {
+		serviceAlert.SendOnResolved = providerDefaultAlert.SendOnResolved
+	}
+	if serviceAlert.Description == nil {
+		serviceAlert.Description = providerDefaultAlert.Description
+	}
+	if serviceAlert.FailureThreshold == 0 {
+		serviceAlert.FailureThreshold = providerDefaultAlert.FailureThreshold
+	}
+	if serviceAlert.SuccessThreshold == 0 {
+		serviceAlert.SuccessThreshold = providerDefaultAlert.SuccessThreshold
+	}
 }
 
 var (

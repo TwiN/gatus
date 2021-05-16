@@ -11,7 +11,31 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using Discord
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
+
+//func (provider *AlertProvider) ParseWithDefaultAlert(alert *core.Alert) {
+//	if provider.DefaultAlert == nil {
+//		return
+//	}
+//	if alert.Enabled == nil {
+//		alert.Enabled = provider.DefaultAlert.Enabled
+//	}
+//	if alert.SendOnResolved == nil {
+//		alert.SendOnResolved = provider.DefaultAlert.SendOnResolved
+//	}
+//	if len(alert.Description) == 0 {
+//		alert.Description = provider.DefaultAlert.Description
+//	}
+//	if alert.FailureThreshold == 0 {
+//		alert.FailureThreshold = provider.DefaultAlert.FailureThreshold
+//	}
+//	if alert.SuccessThreshold == 0 {
+//		alert.SuccessThreshold = provider.DefaultAlert.SuccessThreshold
+//	}
+//}
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
@@ -57,7 +81,12 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
       ]
     }
   ]
-}`, message, alert.Description, colorCode, results),
+}`, message, alert.GetDescription(), colorCode, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }

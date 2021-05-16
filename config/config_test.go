@@ -351,6 +351,8 @@ alerting:
     webhook-url: "http://example.org"
   pagerduty:
     integration-key: "00000000000000000000000000000000"
+  mattermost:
+    webhook-url: "http://example.com"
   messagebird:
     access-key: "1"
     originator: "31619191918"
@@ -358,6 +360,12 @@ alerting:
   telegram:
     token: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
     id: 0123456789
+  twilio:
+    sid: "1234"
+    token: "5678"
+    from: "+1-234-567-8901"
+    to: "+1-234-567-8901"
+
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -369,14 +377,194 @@ services:
         failure-threshold: 7
         success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
+      - type: mattermost
+        enabled: true
       - type: messagebird
       - type: discord
         enabled: true
         failure-threshold: 10
       - type: telegram
         enabled: true
+      - type: twilio
+        enabled: true
+        failure-threshold: 12
+        success-threshold: 15
     conditions:
       - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	// Alerting providers
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
+		t.Fatal("Slack alerting config should've been valid")
+	}
+	// Services
+	if len(config.Services) != 1 {
+		t.Error("There should've been 1 service")
+	}
+	if config.Services[0].URL != "https://twinnation.org/health" {
+		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	}
+	if config.Services[0].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
+	}
+	if len(config.Services[0].Alerts) != 7 {
+		t.Fatal("There should've been 7 alerts configured")
+	}
+
+	if config.Services[0].Alerts[0].Type != core.SlackAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
+	}
+	if !config.Services[0].Alerts[0].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[0].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[0].FailureThreshold)
+	}
+	if config.Services[0].Alerts[0].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[1].Type != core.PagerDutyAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.PagerDutyAlert, config.Services[0].Alerts[1].Type)
+	}
+	if config.Services[0].Alerts[1].GetDescription() != "Healthcheck failed 7 times in a row" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[1].GetDescription())
+	}
+	if config.Services[0].Alerts[1].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
+	}
+	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
+		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[2].Type != core.MattermostAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MattermostAlert, config.Services[0].Alerts[2].Type)
+	}
+	if !config.Services[0].Alerts[2].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[2].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[2].FailureThreshold)
+	}
+	if config.Services[0].Alerts[2].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[2].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[3].Type != core.MessagebirdAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[3].Type)
+	}
+	if config.Services[0].Alerts[3].IsEnabled() {
+		t.Error("The alert should've been disabled")
+	}
+
+	if config.Services[0].Alerts[4].Type != core.DiscordAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.DiscordAlert, config.Services[0].Alerts[4].Type)
+	}
+	if !config.Services[0].Alerts[4].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[4].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[4].FailureThreshold)
+	}
+	if config.Services[0].Alerts[4].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[4].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[5].Type != core.TelegramAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.TelegramAlert, config.Services[0].Alerts[5].Type)
+	}
+	if !config.Services[0].Alerts[5].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[5].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[5].FailureThreshold)
+	}
+	if config.Services[0].Alerts[5].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[5].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[6].Type != core.TwilioAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.TwilioAlert, config.Services[0].Alerts[6].Type)
+	}
+	if !config.Services[0].Alerts[6].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[6].FailureThreshold != 12 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Services[0].Alerts[6].FailureThreshold)
+	}
+	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  slack:
+    webhook-url: "http://example.com"
+    default-alert:
+      enabled: true
+  discord:
+    webhook-url: "http://example.org"
+    default-alert:
+      enabled: true
+      failure-threshold: 10
+      success-threshold: 1
+  pagerduty:
+    integration-key: "00000000000000000000000000000000"
+    default-alert:
+      enabled: true
+      description: default description
+      failure-threshold: 7
+      success-threshold: 5
+  mattermost:
+    webhook-url: "http://example.com"
+    default-alert:
+      enabled: true
+  messagebird:
+    access-key: "1"
+    originator: "31619191918"
+    recipients: "31619191919"
+    default-alert:
+      enabled: false
+      send-on-resolved: true
+  telegram:
+    token: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+    id: 0123456789
+    default-alert:
+      enabled: true
+  twilio:
+    sid: "1234"
+    token: "5678"
+    from: "+1-234-567-8901"
+    to: "+1-234-567-8901"
+    default-alert:
+      enabled: true
+      failure-threshold: 12
+      success-threshold: 15
+
+services:
+ - name: twinnation
+   url: https://twinnation.org/health
+   alerts:
+     - type: slack
+     - type: pagerduty
+     - type: mattermost
+     - type: messagebird
+     - type: discord
+       success-threshold: 2 # test service alert override
+     - type: telegram
+     - type: twilio
+   conditions:
+     - "[STATUS] == 200"
 `))
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
@@ -443,14 +631,14 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 5 {
-		t.Fatal("There should've been 5 alerts configured")
+	if len(config.Services[0].Alerts) != 7 {
+		t.Fatal("There should've been 7 alerts configured")
 	}
 
 	if config.Services[0].Alerts[0].Type != core.SlackAlert {
 		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
 	}
-	if !config.Services[0].Alerts[0].Enabled {
+	if !config.Services[0].Alerts[0].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
 	if config.Services[0].Alerts[0].FailureThreshold != 3 {
@@ -463,28 +651,155 @@ services:
 	if config.Services[0].Alerts[1].Type != core.PagerDutyAlert {
 		t.Errorf("The type of the alert should've been %s, but it was %s", core.PagerDutyAlert, config.Services[0].Alerts[1].Type)
 	}
-	if config.Services[0].Alerts[1].Description != "Healthcheck failed 7 times in a row" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[1].Description)
+	if config.Services[0].Alerts[1].GetDescription() != "default description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "default description", config.Services[0].Alerts[1].GetDescription())
+	}
+	if config.Services[0].Alerts[1].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
 	}
 	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
 		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[2].Type != core.MessagebirdAlert {
-		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[2].Type)
+	if config.Services[0].Alerts[2].Type != core.MattermostAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MattermostAlert, config.Services[0].Alerts[2].Type)
 	}
-	if config.Services[0].Alerts[2].Enabled {
-		t.Error("The alert should've been disabled")
+	if !config.Services[0].Alerts[2].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[2].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[2].FailureThreshold)
+	}
+	if config.Services[0].Alerts[2].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[2].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[3].Type != core.DiscordAlert {
-		t.Errorf("The type of the alert should've been %s, but it was %s", core.DiscordAlert, config.Services[0].Alerts[3].Type)
+	if config.Services[0].Alerts[3].Type != core.MessagebirdAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.MessagebirdAlert, config.Services[0].Alerts[3].Type)
 	}
-	if config.Services[0].Alerts[3].FailureThreshold != 10 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[3].FailureThreshold)
+	if config.Services[0].Alerts[3].IsEnabled() {
+		t.Error("The alert should've been disabled")
 	}
-	if config.Services[0].Alerts[3].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[3].SuccessThreshold)
+	if !config.Services[0].Alerts[3].IsSendingOnResolved() {
+		t.Error("The alert should be sending on resolve")
+	}
+
+	if config.Services[0].Alerts[4].Type != core.DiscordAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.DiscordAlert, config.Services[0].Alerts[4].Type)
+	}
+	if !config.Services[0].Alerts[4].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[4].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[4].FailureThreshold)
+	}
+	if config.Services[0].Alerts[4].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[4].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[5].Type != core.TelegramAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.TelegramAlert, config.Services[0].Alerts[5].Type)
+	}
+	if !config.Services[0].Alerts[5].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[5].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[5].FailureThreshold)
+	}
+	if config.Services[0].Alerts[5].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[5].SuccessThreshold)
+	}
+
+	if config.Services[0].Alerts[6].Type != core.TwilioAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.TwilioAlert, config.Services[0].Alerts[6].Type)
+	}
+	if !config.Services[0].Alerts[6].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[6].FailureThreshold != 12 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Services[0].Alerts[6].FailureThreshold)
+	}
+	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlertAndMultipleAlertsOfSameTypeWithOverriddenParameters(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  slack:
+    webhook-url: "http://example.com"
+    default-alert:
+      enabled: true
+      description: "description"
+
+services:
+ - name: twinnation
+   url: https://twinnation.org/health
+   alerts:
+     - type: slack
+       failure-threshold: 10
+     - type: slack
+       failure-threshold: 20
+       description: "wow"
+     - type: slack
+       enabled: false
+       failure-threshold: 30
+   conditions:
+     - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	// Alerting providers
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
+		t.Fatal("Slack alerting config should've been valid")
+	}
+	// Services
+	if len(config.Services) != 1 {
+		t.Error("There should've been 2 services")
+	}
+	if config.Services[0].Alerts[0].Type != core.SlackAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[0].Type)
+	}
+	if config.Services[0].Alerts[1].Type != core.SlackAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[1].Type)
+	}
+	if config.Services[0].Alerts[2].Type != core.SlackAlert {
+		t.Errorf("The type of the alert should've been %s, but it was %s", core.SlackAlert, config.Services[0].Alerts[2].Type)
+	}
+	if !config.Services[0].Alerts[0].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if !config.Services[0].Alerts[1].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[2].IsEnabled() {
+		t.Error("The alert should've been disabled")
+	}
+	if config.Services[0].Alerts[0].GetDescription() != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[0].GetDescription())
+	}
+	if config.Services[0].Alerts[1].GetDescription() != "wow" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[1].GetDescription())
+	}
+	if config.Services[0].Alerts[2].GetDescription() != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[2].GetDescription())
+	}
+	if config.Services[0].Alerts[0].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[0].FailureThreshold)
+	}
+	if config.Services[0].Alerts[1].FailureThreshold != 20 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 20, config.Services[0].Alerts[1].FailureThreshold)
+	}
+	if config.Services[0].Alerts[2].FailureThreshold != 30 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 30, config.Services[0].Alerts[2].FailureThreshold)
 	}
 }
 

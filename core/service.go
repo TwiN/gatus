@@ -161,7 +161,7 @@ func (service *Service) GetAlertsTriggered() []Alert {
 		return alerts
 	}
 	for _, alert := range service.Alerts {
-		if alert.Enabled && alert.FailureThreshold == service.NumberOfFailuresInARow {
+		if alert.IsEnabled() && alert.FailureThreshold == service.NumberOfFailuresInARow {
 			alerts = append(alerts, *alert)
 			continue
 		}

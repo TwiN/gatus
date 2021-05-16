@@ -250,6 +250,11 @@ ignored.
 | `alerting.custom.insecure`               | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
+| `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A       |
+| `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A       |
+| `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A       |
+| `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A       |
+| `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A       |
 
 
 #### Configuring Slack alerts
@@ -501,6 +506,59 @@ alerting:
 ```
 As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by 
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
+
+
+#### Setting a default provider alert
+
+While you can specify the alert configuration directly in the service definition, it's tedious and may lead to a very
+long configuration file.
+
+To avoid such problem, you can use the `default-alert` parameter present in each provider configuration:
+```yaml
+alerting:
+  slack: 
+    webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
+    default-alert:
+      enabled: true
+      description: "healthcheck failed"
+      send-on-resolved: true
+      failure-threshold: 5
+      success-threshold: 5
+```
+
+As a result, your service configuration looks a lot tidier:
+```yaml
+services:
+  - name: example
+    url: "https://example.org"
+    alerts:
+      - type: slack
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: other-example
+    url: "https://example.com"
+    alerts:
+      - type: slack
+    conditions:
+      - "[STATUS] == 200"
+```
+
+It also allows you to do things like this:
+```yaml
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    alerts:
+      - type: slack
+        failure-threshold: 5
+      - type: slack
+        failure-threshold: 10
+      - type: slack
+        failure-threshold: 15
+    conditions:
+      - "[STATUS] == 200"
+```
 
 
 ### Kubernetes (ALPHA)

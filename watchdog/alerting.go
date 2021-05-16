@@ -26,25 +26,25 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 	service.NumberOfFailuresInARow++
 	for _, alert := range service.Alerts {
 		// If the alert hasn't been triggered, move to the next one
-		if !alert.Enabled || alert.FailureThreshold > service.NumberOfFailuresInARow {
+		if !alert.IsEnabled() || alert.FailureThreshold > service.NumberOfFailuresInARow {
 			continue
 		}
 		if alert.Triggered {
 			if cfg.Debug {
-				log.Printf("[watchdog][handleAlertsToTrigger] Alert for service=%s with description='%s' has already been TRIGGERED, skipping", service.Name, alert.Description)
+				log.Printf("[watchdog][handleAlertsToTrigger] Alert for service=%s with description='%s' has already been TRIGGERED, skipping", service.Name, alert.GetDescription())
 			}
 			continue
 		}
 		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
-			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for service=%s with description='%s' has been TRIGGERED", alert.Type, service.Name, alert.Description)
+			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for service=%s with description='%s' has been TRIGGERED", alert.Type, service.Name, alert.GetDescription())
 			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, false)
 			// TODO: retry on error
 			var err error
 			// We need to extract the DedupKey from PagerDuty's response
 			if alert.Type == core.PagerDutyAlert {
 				var body []byte
-				if body, err = customAlertProvider.Send(service.Name, alert.Description, false); err == nil {
+				if body, err = customAlertProvider.Send(service.Name, alert.GetDescription(), false); err == nil {
 					var response pagerDutyResponse
 					if err = json.Unmarshal(body, &response); err != nil {
 						log.Printf("[watchdog][handleAlertsToTrigger] Ran into error unmarshaling pagerduty response: %s", err.Error())
@@ -54,7 +54,7 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 				}
 			} else {
 				// All other alert types don't need to extract anything from the body, so we can just send the request right away
-				_, err = customAlertProvider.Send(service.Name, alert.Description, false)
+				_, err = customAlertProvider.Send(service.Name, alert.GetDescription(), false)
 			}
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToTrigger] Failed to send an alert for service=%s: %s", service.Name, err.Error())
@@ -70,21 +70,21 @@ func handleAlertsToTrigger(service *core.Service, result *core.Result, cfg *conf
 func handleAlertsToResolve(service *core.Service, result *core.Result, cfg *config.Config) {
 	service.NumberOfSuccessesInARow++
 	for _, alert := range service.Alerts {
-		if !alert.Enabled || !alert.Triggered || alert.SuccessThreshold > service.NumberOfSuccessesInARow {
+		if !alert.IsEnabled() || !alert.Triggered || alert.SuccessThreshold > service.NumberOfSuccessesInARow {
 			continue
 		}
 		// Even if the alert provider returns an error, we still set the alert's Triggered variable to false.
 		// Further explanation can be found on Alert's Triggered field.
 		alert.Triggered = false
-		if !alert.SendOnResolved {
+		if !alert.IsSendingOnResolved() {
 			continue
 		}
 		alertProvider := config.GetAlertingProviderByAlertType(cfg, alert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
-			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for service=%s with description='%s' has been RESOLVED", alert.Type, service.Name, alert.Description)
+			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for service=%s with description='%s' has been RESOLVED", alert.Type, service.Name, alert.GetDescription())
 			customAlertProvider := alertProvider.ToCustomAlertProvider(service, alert, result, true)
 			// TODO: retry on error
-			_, err := customAlertProvider.Send(service.Name, alert.Description, true)
+			_, err := customAlertProvider.Send(service.Name, alert.GetDescription(), true)
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToResolve] Failed to send an alert for service=%s: %s", service.Name, err.Error())
 			} else {

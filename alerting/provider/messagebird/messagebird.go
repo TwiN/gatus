@@ -17,6 +17,9 @@ type AlertProvider struct {
 	AccessKey  string `yaml:"access-key"`
 	Originator string `yaml:"originator"`
 	Recipients string `yaml:"recipients"`
+
+	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	DefaultAlert *core.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -29,9 +32,9 @@ func (provider *AlertProvider) IsValid() bool {
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.Description)
+		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.GetDescription())
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.Description)
+		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.GetDescription())
 	}
 
 	return &custom.AlertProvider{
@@ -47,4 +50,9 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 			"Authorization": fmt.Sprintf("AccessKey %s", provider.AccessKey),
 		},
 	}
+}
+
+// GetDefaultAlert returns the provider's default alert configuration
+func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+	return provider.DefaultAlert
 }

@@ -28,7 +28,7 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 	if len(service.Alerts) != 1 {
 		t.Error("Service should've had 1 alert")
 	}
-	if service.Alerts[0].Enabled {
+	if service.Alerts[0].IsEnabled() {
 		t.Error("Service alert should've defaulted to disabled")
 	}
 	if service.Alerts[0].SuccessThreshold != 2 {
@@ -93,11 +93,12 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 
 func TestService_GetAlertsTriggered(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
+	enabled := true
 	service := Service{
 		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
-		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: true}},
+		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: &enabled}},
 	}
 	service.ValidateAndSetDefaults()
 	if service.NumberOfFailuresInARow != 0 {
