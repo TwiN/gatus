@@ -20,6 +20,15 @@ func TestEval(t *testing.T) {
 	}
 }
 
+func TestEvalWithInvalidData(t *testing.T) {
+	path := "simple"
+	data := `invalid data`
+	_, _, err := Eval(path, []byte(data))
+	if err == nil {
+		t.Error("expected an error")
+	}
+}
+
 func TestEvalWithInvalidPath(t *testing.T) {
 	path := "errors"
 	data := `{}`
