@@ -84,6 +84,16 @@ func TestEvalWithArrayOfValues(t *testing.T) {
 	}
 }
 
+func TestEvalWithArrayOfValuesAndInvalidIndex(t *testing.T) {
+	path := "ids[wat]"
+	data := `{"ids": [1, 2]}`
+
+	_, _, err := Eval(path, []byte(data))
+	if err == nil {
+		t.Error("Expected an error")
+	}
+}
+
 func TestEvalWithRootArrayOfValues(t *testing.T) {
 	path := "[1]"
 	data := `[1, 2]`
