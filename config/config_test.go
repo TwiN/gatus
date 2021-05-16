@@ -1061,7 +1061,7 @@ services:
 func TestParseAndValidateConfigBytesWithValidSecurityConfig(t *testing.T) {
 	const expectedUsername = "admin"
 	const expectedPasswordHash = "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
-	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`debug: true
 security:
   basic:
     username: "%s"
