@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -15,6 +16,9 @@ var (
 	// Because store.Store is an interface, a nil check wouldn't be sufficient, so instead of doing reflection
 	// every single time Get is called, we'll just lazily keep track of its existence through this variable
 	initialized bool
+
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 )
 
 // Get retrieves the storage provider
@@ -40,24 +44,34 @@ func Initialize(cfg *Config) error {
 			return err
 		}
 	} else {
+		if cancelFunc != nil {
+			// Stop the active autoSave task
+			cancelFunc()
+		}
+		ctx, cancelFunc = context.WithCancel(context.Background())
 		log.Printf("[storage][Initialize] Creating storage provider with file=%s", cfg.File)
 		provider, err = memory.NewStore(cfg.File)
 		if err != nil {
 			return err
 		}
-		go autoSave(7 * time.Minute)
+		go autoSave(7*time.Minute, ctx)
 	}
 	return nil
 }
 
-// autoSave automatically calls the Save function of the provider at every interval
-func autoSave(interval time.Duration) {
+// autoSave automatically calls the SaveFunc function of the provider at every interval
+func autoSave(interval time.Duration, ctx context.Context) {
 	for {
-		time.Sleep(interval)
-		log.Printf("[storage][autoSave] Saving")
-		err := provider.Save()
-		if err != nil {
-			log.Println("[storage][autoSave] Save failed:", err.Error())
+		select {
+		case <-ctx.Done():
+			log.Printf("[storage][autoSave] Stopping active job")
+			return
+		case <-time.After(interval):
+			log.Printf("[storage][autoSave] Saving")
+			err := provider.Save()
+			if err != nil {
+				log.Println("[storage][autoSave] Save failed:", err.Error())
+			}
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/TwinProduction/gatus/config"
 	"github.com/TwinProduction/gatus/controller"
@@ -13,37 +14,75 @@ import (
 )
 
 func main() {
-	cfg := loadConfiguration()
-	go watchdog.Monitor(cfg)
-	go controller.Handle()
+	cfg, err := loadConfiguration()
+	if err != nil {
+		panic(err)
+	}
+	start(cfg)
 	// Wait for termination signal
-	sig := make(chan os.Signal, 1)
+	signalChannel := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-sig
+		<-signalChannel
 		log.Println("Received termination signal, attempting to gracefully shut down")
-		controller.Shutdown()
-		err := storage.Get().Save()
-		if err != nil {
-			log.Println("Failed to save storage provider:", err.Error())
-		}
+		stop()
+		save()
 		done <- true
 	}()
 	<-done
 	log.Println("Shutting down")
 }
 
-func loadConfiguration() *config.Config {
-	var err error
+func stop() {
+	watchdog.Shutdown()
+	controller.Shutdown()
+}
+
+func save() {
+	err := storage.Get().Save()
+	if err != nil {
+		log.Println("Failed to save storage provider:", err.Error())
+	}
+}
+
+func start(cfg *config.Config) {
+	go controller.Handle(cfg.Security, cfg.Web, cfg.Metrics)
+	watchdog.Monitor(cfg)
+	go listenToConfigurationFileChanges(cfg)
+}
+
+func loadConfiguration() (cfg *config.Config, err error) {
 	customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
 	if len(customConfigFile) > 0 {
-		err = config.Load(customConfigFile)
+		cfg, err = config.Load(customConfigFile)
 	} else {
-		err = config.LoadDefaultConfiguration()
+		cfg, err = config.LoadDefaultConfiguration()
 	}
-	if err != nil {
-		panic(err)
+	return
+}
+
+func listenToConfigurationFileChanges(cfg *config.Config) {
+	for {
+		time.Sleep(30 * time.Second)
+		if cfg.HasLoadedConfigurationFileBeenModified() {
+			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
+			save()
+			updatedConfig, err := loadConfiguration()
+			if err != nil {
+				if cfg.SkipInvalidConfigUpdate {
+					log.Println("[main][listenToConfigurationFileChanges] Failed to load new configuration:", err.Error())
+					log.Println("[main][listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
+					// Update the last file modification time to avoid trying to process the same invalid configuration again
+					cfg.UpdateLastFileModTime()
+					continue
+				} else {
+					panic(err)
+				}
+			}
+			stop()
+			start(updatedConfig)
+			return
+		}
 	}
-	return config.Get()
 }

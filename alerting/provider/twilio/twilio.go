@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/core"
 )
@@ -18,7 +19,7 @@ type AlertProvider struct {
 	To    string `yaml:"to"`
 
 	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
-	DefaultAlert *core.Alert `yaml:"default-alert"`
+	DefaultAlert *alert.Alert `yaml:"default-alert"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -27,7 +28,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *core.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.GetDescription())
@@ -50,6 +51,6 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *core.Alert {
+func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

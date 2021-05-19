@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/client"
 )
 
@@ -72,7 +73,7 @@ type Service struct {
 	Conditions []*Condition `yaml:"conditions"`
 
 	// Alerts is the alerting configuration for the service in case of failure
-	Alerts []*Alert `yaml:"alerts"`
+	Alerts []*alert.Alert `yaml:"alerts"`
 
 	// Insecure is whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
@@ -85,7 +86,7 @@ type Service struct {
 }
 
 // ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one
-func (service *Service) ValidateAndSetDefaults() {
+func (service *Service) ValidateAndSetDefaults() error {
 	// Set default values
 	if service.Interval == 0 {
 		service.Interval = 1 * time.Minute
@@ -105,32 +106,32 @@ func (service *Service) ValidateAndSetDefaults() {
 	if _, contentTypeHeaderExists := service.Headers[ContentTypeHeader]; !contentTypeHeaderExists && service.GraphQL {
 		service.Headers[ContentTypeHeader] = "application/json"
 	}
-	for _, alert := range service.Alerts {
-		if alert.FailureThreshold <= 0 {
-			alert.FailureThreshold = 3
+	for _, serviceAlert := range service.Alerts {
+		if serviceAlert.FailureThreshold <= 0 {
+			serviceAlert.FailureThreshold = 3
 		}
-		if alert.SuccessThreshold <= 0 {
-			alert.SuccessThreshold = 2
+		if serviceAlert.SuccessThreshold <= 0 {
+			serviceAlert.SuccessThreshold = 2
 		}
 	}
 	if len(service.Name) == 0 {
-		panic(ErrServiceWithNoName)
+		return ErrServiceWithNoName
 	}
 	if len(service.URL) == 0 {
-		panic(ErrServiceWithNoURL)
+		return ErrServiceWithNoURL
 	}
 	if len(service.Conditions) == 0 {
-		panic(ErrServiceWithNoCondition)
+		return ErrServiceWithNoCondition
 	}
 	if service.DNS != nil {
-		service.DNS.validateAndSetDefault()
-		return
+		return service.DNS.validateAndSetDefault()
 	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(service.Method, service.URL, bytes.NewBuffer([]byte(service.Body)))
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
@@ -155,8 +156,8 @@ func (service *Service) EvaluateHealth() *Result {
 }
 
 // GetAlertsTriggered returns a slice of alerts that have been triggered
-func (service *Service) GetAlertsTriggered() []Alert {
-	var alerts []Alert
+func (service *Service) GetAlertsTriggered() []alert.Alert {
+	var alerts []alert.Alert
 	if service.NumberOfFailuresInARow == 0 {
 		return alerts
 	}

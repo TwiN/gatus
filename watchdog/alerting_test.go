@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/config"
@@ -24,13 +25,12 @@ func TestHandleAlerting(t *testing.T) {
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 3,
@@ -41,50 +41,40 @@ func TestHandleAlerting(t *testing.T) {
 	}
 
 	verify(t, service, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 2, 0, true, "The alert should've triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 3, 0, true, "The alert should still be triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 4, 0, true, "The alert should still be triggered")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, true, "The alert should still be triggered (because service.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 2, true, "The alert should still be triggered (because service.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 3, false, "The alert should've been resolved")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 4, false, "The alert should no longer be triggered")
 }
 
 func TestHandleAlertingWhenAlertingConfigIsNil(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
-
-	cfg := &config.Config{
-		Debug:    true,
-		Alerting: nil,
-	}
-	config.Set(cfg)
-	HandleAlerting(nil, nil)
+	HandleAlerting(nil, nil, nil, true)
 }
 
 func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
 
-	cfg := &config.Config{
-		Alerting: &alerting.Config{},
-	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
@@ -95,9 +85,9 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 	}
 
 	verify(t, service, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, &alerting.Config{}, false)
 	verify(t, service, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, &alerting.Config{}, false)
 	verify(t, service, 2, 0, false, "The alert shouldn't have triggered, because the provider wasn't configured properly")
 }
 
@@ -114,13 +104,12 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButServiceStartFailingA
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 3,
@@ -132,7 +121,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButServiceStartFailingA
 	}
 
 	// This test simulate an alert that was already triggered
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 2, 0, true, "The alert was already triggered at the beginning of this test")
 }
 
@@ -149,14 +138,13 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	disabled := false
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
@@ -167,7 +155,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 		NumberOfFailuresInARow: 1,
 	}
 
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -183,13 +171,12 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.PagerDutyAlert,
+				Type:             alert.TypePagerDuty,
 				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
@@ -200,10 +187,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 		NumberOfFailuresInARow: 0,
 	}
 
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, true, "")
 
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -220,13 +207,12 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 2,
 				SuccessThreshold: 2,
@@ -237,32 +223,32 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 	}
 
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, false, "")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 2, 0, false, "The alert should have failed to trigger, because the alert provider is returning an error")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 3, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 4, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 5, 0, true, "The alert should've been triggered because the alert provider is no longer returning an error")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, true, "The alert should've still been triggered")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, false, "")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 2, 0, true, "The alert should have triggered")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, true, "The alert should still be triggered")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 2, false, "The alert should have been resolved")
 }
 
@@ -279,13 +265,12 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 			},
 		},
 	}
-	config.Set(cfg)
 	enabled := true
 	service := &core.Service{
 		URL: "http://example.com",
-		Alerts: []*core.Alert{
+		Alerts: []*alert.Alert{
 			{
-				Type:             core.CustomAlert,
+				Type:             alert.TypeCustom,
 				Enabled:          &enabled,
 				FailureThreshold: 1,
 				SuccessThreshold: 1,
@@ -295,27 +280,27 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		},
 	}
 
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 1, 0, true, "")
-	HandleAlerting(service, &core.Result{Success: false})
+	HandleAlerting(service, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 2, 0, true, "")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 1, false, "")
-	HandleAlerting(service, &core.Result{Success: true})
+	HandleAlerting(service, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, service, 0, 2, false, "")
 }
 

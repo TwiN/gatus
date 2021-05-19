@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/TwinProduction/gatus/alerting/alert"
 )
 
 func TestService_ValidateAndSetDefaults(t *testing.T) {
@@ -13,7 +15,7 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
-		Alerts:     []*Alert{{Type: PagerDutyAlert}},
+		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
 	service.ValidateAndSetDefaults()
 	if service.Method != "GET" {
@@ -98,7 +100,7 @@ func TestService_GetAlertsTriggered(t *testing.T) {
 		Name:       "twinnation-health",
 		URL:        "https://twinnation.org/health",
 		Conditions: []*Condition{&condition},
-		Alerts:     []*Alert{{Type: PagerDutyAlert, Enabled: &enabled}},
+		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty, Enabled: &enabled}},
 	}
 	service.ValidateAndSetDefaults()
 	if service.NumberOfFailuresInARow != 0 {

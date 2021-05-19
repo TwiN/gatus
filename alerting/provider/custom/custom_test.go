@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/core"
 )
 
@@ -60,7 +61,7 @@ func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
 	provider := AlertProvider{URL: "http://example.com"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, true)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}

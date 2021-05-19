@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/core"
 )
 
@@ -22,7 +23,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, true)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -44,7 +45,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &core.Alert{}, &core.Result{}, false)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
