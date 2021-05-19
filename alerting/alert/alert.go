@@ -1,9 +1,9 @@
-package core
+package alert
 
 // Alert is the service's alert configuration
 type Alert struct {
 	// Type of alert (required)
-	Type AlertType `yaml:"type"`
+	Type Type `yaml:"type"`
 
 	// Enabled defines whether or not the alert is enabled
 	//
@@ -67,33 +67,3 @@ func (alert Alert) IsSendingOnResolved() bool {
 	}
 	return *alert.SendOnResolved
 }
-
-// AlertType is the type of the alert.
-// The value will generally be the name of the alert provider
-type AlertType string
-
-const (
-	// CustomAlert is the AlertType for the custom alerting provider
-	CustomAlert AlertType = "custom"
-
-	// DiscordAlert is the AlertType for the discord alerting provider
-	DiscordAlert AlertType = "discord"
-
-	// MattermostAlert is the AlertType for the mattermost alerting provider
-	MattermostAlert AlertType = "mattermost"
-
-	// MessagebirdAlert is the AlertType for the messagebird alerting provider
-	MessagebirdAlert AlertType = "messagebird"
-
-	// PagerDutyAlert is the AlertType for the pagerduty alerting provider
-	PagerDutyAlert AlertType = "pagerduty"
-
-	// SlackAlert is the AlertType for the slack alerting provider
-	SlackAlert AlertType = "slack"
-
-	// TelegramAlert is the AlertType for the telegram alerting provider
-	TelegramAlert AlertType = "telegram"
-
-	// TwilioAlert is the AlertType for the twilio alerting provider
-	TwilioAlert AlertType = "twilio"
-)

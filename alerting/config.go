@@ -1,6 +1,8 @@
 package alerting
 
 import (
+	"github.com/TwinProduction/gatus/alerting/alert"
+	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/alerting/provider/discord"
 	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
@@ -36,4 +38,59 @@ type Config struct {
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio"`
+}
+
+// GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
+func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provider.AlertProvider {
+	switch alertType {
+	case alert.TypeCustom:
+		if config.Custom == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Custom
+	case alert.TypeDiscord:
+		if config.Discord == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Discord
+	case alert.TypeMattermost:
+		if config.Mattermost == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Mattermost
+	case alert.TypeMessagebird:
+		if config.Messagebird == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Messagebird
+	case alert.TypePagerDuty:
+		if config.PagerDuty == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.PagerDuty
+	case alert.TypeSlack:
+		if config.Slack == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Slack
+	case alert.TypeTelegram:
+		if config.Telegram == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Telegram
+	case alert.TypeTwilio:
+		if config.Twilio == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Twilio
+	}
+	return nil
 }

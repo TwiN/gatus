@@ -3,13 +3,13 @@ package provider
 import (
 	"testing"
 
-	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/alerting/alert"
 )
 
 func TestParseWithDefaultAlert(t *testing.T) {
 	type Scenario struct {
 		Name                                            string
-		DefaultAlert, ServiceAlert, ExpectedOutputAlert *core.Alert
+		DefaultAlert, ServiceAlert, ExpectedOutputAlert *alert.Alert
 	}
 	enabled := true
 	disabled := false
@@ -18,18 +18,18 @@ func TestParseWithDefaultAlert(t *testing.T) {
 	scenarios := []Scenario{
 		{
 			Name: "service-alert-type-only",
-			DefaultAlert: &core.Alert{
+			DefaultAlert: &alert.Alert{
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
 			},
-			ServiceAlert: &core.Alert{
-				Type: core.DiscordAlert,
+			ServiceAlert: &alert.Alert{
+				Type: alert.TypeDiscord,
 			},
-			ExpectedOutputAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+			ExpectedOutputAlert: &alert.Alert{
+				Type:             alert.TypeDiscord,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
@@ -39,23 +39,23 @@ func TestParseWithDefaultAlert(t *testing.T) {
 		},
 		{
 			Name: "service-alert-overwrites-default-alert",
-			DefaultAlert: &core.Alert{
+			DefaultAlert: &alert.Alert{
 				Enabled:          &disabled,
 				SendOnResolved:   &disabled,
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
 			},
-			ServiceAlert: &core.Alert{
-				Type:             core.TelegramAlert,
+			ServiceAlert: &alert.Alert{
+				Type:             alert.TypeTelegram,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &secondDescription,
 				FailureThreshold: 6,
 				SuccessThreshold: 11,
 			},
-			ExpectedOutputAlert: &core.Alert{
-				Type:             core.TelegramAlert,
+			ExpectedOutputAlert: &alert.Alert{
+				Type:             alert.TypeTelegram,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &secondDescription,
@@ -65,22 +65,22 @@ func TestParseWithDefaultAlert(t *testing.T) {
 		},
 		{
 			Name: "service-alert-partially-overwrites-default-alert",
-			DefaultAlert: &core.Alert{
+			DefaultAlert: &alert.Alert{
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
 			},
-			ServiceAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+			ServiceAlert: &alert.Alert{
+				Type:             alert.TypeDiscord,
 				Enabled:          nil,
 				SendOnResolved:   nil,
 				FailureThreshold: 6,
 				SuccessThreshold: 11,
 			},
-			ExpectedOutputAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+			ExpectedOutputAlert: &alert.Alert{
+				Type:             alert.TypeDiscord,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
@@ -90,19 +90,19 @@ func TestParseWithDefaultAlert(t *testing.T) {
 		},
 		{
 			Name: "default-alert-type-should-be-ignored",
-			DefaultAlert: &core.Alert{
-				Type:             core.TelegramAlert,
+			DefaultAlert: &alert.Alert{
+				Type:             alert.TypeTelegram,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
 			},
-			ServiceAlert: &core.Alert{
-				Type: core.DiscordAlert,
+			ServiceAlert: &alert.Alert{
+				Type: alert.TypeDiscord,
 			},
-			ExpectedOutputAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+			ExpectedOutputAlert: &alert.Alert{
+				Type:             alert.TypeDiscord,
 				Enabled:          &enabled,
 				SendOnResolved:   &enabled,
 				Description:      &firstDescription,
@@ -112,8 +112,8 @@ func TestParseWithDefaultAlert(t *testing.T) {
 		},
 		{
 			Name: "no-default-alert",
-			DefaultAlert: &core.Alert{
-				Type:             core.DiscordAlert,
+			DefaultAlert: &alert.Alert{
+				Type:             alert.TypeDiscord,
 				Enabled:          nil,
 				SendOnResolved:   nil,
 				Description:      &firstDescription,

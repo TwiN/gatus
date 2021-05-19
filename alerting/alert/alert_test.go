@@ -1,4 +1,4 @@
-package core
+package alert
 
 import "testing"
 

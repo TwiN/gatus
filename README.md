@@ -49,6 +49,7 @@ core applications: https://status.twinnation.org/
   - [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
+  - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Service groups](#service-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
@@ -153,6 +154,7 @@ Note that you can also use environment variables in the configuration file (e.g.
 | `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
 | `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
 | `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
+| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).
 | `web`                                    | Web configuration                                                             | `{}`           |
 | `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
 | `web.port`                               | Port to listen on                                                             | `8080`         |
@@ -816,6 +818,30 @@ There are three main reasons why you might want to disable the monitoring lock:
 technically, if you create 100 services with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of services to monitor
 - You want to test multiple services at very short interval (< 5s)
+
+
+### Reloading configuration on the fly
+
+For the sake on convenience, Gatus automatically reloads the configuration on the fly if the loaded configuration file
+is updated while Gatus is running.
+
+By default, the application will exit if the updating configuration is invalid, but you can configure
+Gatus to continue running if the configuration file is updated with an invalid configuration by
+setting `skip-invalid-config-update` to `true`.
+
+Keep in mind that it is in your best interest to ensure the validity of the configuration file after each update you
+apply to the configuration file while Gatus is running by looking at the log and making sure that you do not see the
+following message:
+```
+The configuration file was updated, but it is not valid. The old configuration will continue being used.
+```
+Failure to do so may result in Gatus being unable to start if the application is restarted for whatever reason.
+
+I recommend not setting `skip-invalid-config-update` to `true` to avoid a situation like this, but the choice is yours
+to make.
+
+Note that if you are not using a file storage, updating the configuration while Gatus is running is effectively
+the same as restarting the application.
 
 
 ### Service groups

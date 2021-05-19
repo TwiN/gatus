@@ -16,7 +16,7 @@ type WebConfig struct {
 }
 
 // validateAndSetDefaults checks and sets the default values for fields that are not set
-func (web *WebConfig) validateAndSetDefaults() {
+func (web *WebConfig) validateAndSetDefaults() error {
 	// Validate the Address
 	if len(web.Address) == 0 {
 		web.Address = DefaultAddress
@@ -25,8 +25,9 @@ func (web *WebConfig) validateAndSetDefaults() {
 	if web.Port == 0 {
 		web.Port = DefaultPort
 	} else if web.Port < 0 || web.Port > math.MaxUint16 {
-		panic(fmt.Sprintf("invalid port: value should be between %d and %d", 0, math.MaxUint16))
+		return fmt.Errorf("invalid port: value should be between %d and %d", 0, math.MaxUint16)
 	}
+	return nil
 }
 
 // SocketAddress returns the combination of the Address and the Port

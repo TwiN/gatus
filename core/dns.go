@@ -29,16 +29,17 @@ type DNS struct {
 	QueryName string `yaml:"query-name"`
 }
 
-func (d *DNS) validateAndSetDefault() {
+func (d *DNS) validateAndSetDefault() error {
 	if len(d.QueryName) == 0 {
-		panic(ErrDNSWithNoQueryName)
+		return ErrDNSWithNoQueryName
 	}
 	if !strings.HasSuffix(d.QueryName, ".") {
 		d.QueryName += "."
 	}
 	if _, ok := dns.StringToType[d.QueryType]; !ok {
-		panic(ErrDNSWithInvalidQueryType)
+		return ErrDNSWithInvalidQueryType
 	}
+	return nil
 }
 
 func (d *DNS) query(url string, result *Result) {

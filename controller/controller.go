@@ -44,20 +44,19 @@ func init() {
 }
 
 // Handle creates the router and starts the server
-func Handle() {
-	cfg := config.Get()
-	var router http.Handler = CreateRouter(cfg)
+func Handle(securityConfig *security.Config, webConfig *config.WebConfig, enableMetrics bool) {
+	var router http.Handler = CreateRouter(securityConfig, enableMetrics)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = developmentCorsHandler(router)
 	}
 	server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
+		Addr:         fmt.Sprintf("%s:%d", webConfig.Address, webConfig.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
+	log.Println("[controller][Handle] Listening on " + webConfig.SocketAddress())
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
@@ -73,15 +72,15 @@ func Shutdown() {
 }
 
 // CreateRouter creates the router for the http server
-func CreateRouter(cfg *config.Config) *mux.Router {
+func CreateRouter(securityConfig *security.Config, enabledMetrics bool) *mux.Router {
 	router := mux.NewRouter()
-	if cfg.Metrics {
+	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET")
-	router.HandleFunc("/api/v1/statuses", secureIfNecessary(cfg, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content
-	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(cfg, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
+	router.HandleFunc("/api/v1/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content
+	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
 	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", badgeHandler).Methods("GET")
 	// SPA
 	router.HandleFunc("/services/{service}", spaHandler).Methods("GET")
@@ -90,9 +89,9 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	return router
 }
 
-func secureIfNecessary(cfg *config.Config, handler http.HandlerFunc) http.HandlerFunc {
-	if cfg.Security != nil && cfg.Security.IsValid() {
-		return security.Handler(handler, cfg.Security)
+func secureIfNecessary(securityConfig *security.Config, handler http.HandlerFunc) http.HandlerFunc {
+	if securityConfig != nil && securityConfig.IsValid() {
+		return security.Handler(handler, securityConfig)
 	}
 	return handler
 }

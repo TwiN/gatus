@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
 	"github.com/TwinProduction/gatus/alerting/provider/discord"
 	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
@@ -18,14 +19,14 @@ type AlertProvider interface {
 	IsValid() bool
 
 	// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-	ToCustomAlertProvider(service *core.Service, alert *core.Alert, result *core.Result, resolved bool) *custom.AlertProvider
+	ToCustomAlertProvider(service *core.Service, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider
 
 	// GetDefaultAlert returns the provider's default alert configuration
-	GetDefaultAlert() *core.Alert
+	GetDefaultAlert() *alert.Alert
 }
 
 // ParseWithDefaultAlert parses a service alert by using the provider's default alert as a baseline
-func ParseWithDefaultAlert(providerDefaultAlert, serviceAlert *core.Alert) {
+func ParseWithDefaultAlert(providerDefaultAlert, serviceAlert *alert.Alert) {
 	if providerDefaultAlert == nil || serviceAlert == nil {
 		return
 	}

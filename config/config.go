@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/TwinProduction/gatus/alerting"
+	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8s"
@@ -39,13 +41,8 @@ var (
 	// ErrConfigFileNotFound is an error returned when the configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
 
-	// ErrConfigNotLoaded is an error returned when an attempt to Get() the configuration before loading it is made
-	ErrConfigNotLoaded = errors.New("configuration is nil")
-
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
-
-	config *Config
 )
 
 // Config is the main configuration structure
@@ -55,6 +52,10 @@ type Config struct {
 
 	// Metrics Whether to expose metrics at /metrics
 	Metrics bool `yaml:"metrics"`
+
+	// SkipInvalidConfigUpdate Whether to make the application ignore invalid configuration
+	// if the configuration file is updated while the application is running
+	SkipInvalidConfigUpdate bool `yaml:"skip-invalid-config-update"`
 
 	// DisableMonitoringLock Whether to disable the monitoring lock
 	// The monitoring lock is what prevents multiple services from being processed at the same time.
@@ -78,47 +79,57 @@ type Config struct {
 
 	// Web is the configuration for the web listener
 	Web *WebConfig `yaml:"web"`
+
+	filePath        string    // path to the file from which config was loaded from
+	lastFileModTime time.Time // last modification time
 }
 
-// Get returns the configuration, or panics if the configuration hasn't loaded yet
-func Get() *Config {
-	if config == nil {
-		panic(ErrConfigNotLoaded)
+// HasLoadedConfigurationFileBeenModified returns whether the file that the
+// configuration has been loaded from has been modified since it was last read
+func (config Config) HasLoadedConfigurationFileBeenModified() bool {
+	if fileInfo, err := os.Stat(config.filePath); err == nil {
+		if !fileInfo.ModTime().IsZero() {
+			return config.lastFileModTime.Unix() != fileInfo.ModTime().Unix()
+		}
 	}
-	return config
+	return false
 }
 
-// Set sets the configuration
-// Used only for testing
-func Set(cfg *Config) {
-	config = cfg
+// UpdateLastFileModTime refreshes Config.lastFileModTime
+func (config *Config) UpdateLastFileModTime() {
+	if fileInfo, err := os.Stat(config.filePath); err == nil {
+		if !fileInfo.ModTime().IsZero() {
+			config.lastFileModTime = fileInfo.ModTime()
+		}
+	}
 }
 
 // Load loads a custom configuration file
 // Note that the misconfiguration of some fields may lead to panics. This is on purpose.
-func Load(configFile string) error {
+func Load(configFile string) (*Config, error) {
 	log.Printf("[config][Load] Reading configuration from configFile=%s", configFile)
 	cfg, err := readConfigurationFile(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return ErrConfigFileNotFound
+			return nil, ErrConfigFileNotFound
 		}
-		return err
+		return nil, err
 	}
-	config = cfg
-	return nil
+	cfg.filePath = configFile
+	cfg.UpdateLastFileModTime()
+	return cfg, nil
 }
 
 // LoadDefaultConfiguration loads the default configuration file
-func LoadDefaultConfiguration() error {
-	err := Load(DefaultConfigurationFilePath)
+func LoadDefaultConfiguration() (*Config, error) {
+	cfg, err := Load(DefaultConfigurationFilePath)
 	if err != nil {
 		if err == ErrConfigFileNotFound {
 			return Load(DefaultFallbackConfigurationFilePath)
 		}
-		return err
+		return nil, err
 	}
-	return nil
+	return cfg, nil
 }
 
 func readConfigurationFile(fileName string) (config *Config, err error) {
@@ -144,23 +155,33 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	} else {
 		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
 		// invalid configurations
-		validateAlertingConfig(config)
-		validateSecurityConfig(config)
-		validateServicesConfig(config)
-		validateKubernetesConfig(config)
-		validateWebConfig(config)
-		validateStorageConfig(config)
+		validateAlertingConfig(config.Alerting, config.Services, config.Debug)
+		if err := validateSecurityConfig(config); err != nil {
+			return nil, err
+		}
+		if err := validateServicesConfig(config); err != nil {
+			return nil, err
+		}
+		if err := validateKubernetesConfig(config); err != nil {
+			return nil, err
+		}
+		if err := validateWebConfig(config); err != nil {
+			return nil, err
+		}
+		if err := validateStorageConfig(config); err != nil {
+			return nil, err
+		}
 	}
 	return
 }
 
-func validateStorageConfig(config *Config) {
+func validateStorageConfig(config *Config) error {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{}
 	}
 	err := storage.Initialize(config.Storage)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// Remove all ServiceStatus that represent services which no longer exist in the configuration
 	var keys []string
@@ -171,44 +192,52 @@ func validateStorageConfig(config *Config) {
 	if numberOfServiceStatusesDeleted > 0 {
 		log.Printf("[config][validateStorageConfig] Deleted %d service statuses because their matching services no longer existed", numberOfServiceStatusesDeleted)
 	}
+	return nil
 }
 
-func validateWebConfig(config *Config) {
+func validateWebConfig(config *Config) error {
 	if config.Web == nil {
 		config.Web = &WebConfig{Address: DefaultAddress, Port: DefaultPort}
 	} else {
-		config.Web.validateAndSetDefaults()
+		return config.Web.validateAndSetDefaults()
 	}
+	return nil
 }
 
-func validateKubernetesConfig(config *Config) {
+// deprecated
+// I don't like the current implementation.
+func validateKubernetesConfig(config *Config) error {
 	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
 		if config.Kubernetes.ServiceTemplate == nil {
-			panic("kubernetes.service-template cannot be nil")
+			return errors.New("kubernetes.service-template cannot be nil")
 		}
 		if config.Debug {
 			log.Println("[config][validateKubernetesConfig] Automatically discovering Kubernetes services...")
 		}
 		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		config.Services = append(config.Services, discoveredServices...)
 		log.Printf("[config][validateKubernetesConfig] Discovered %d Kubernetes services", len(discoveredServices))
 	}
+	return nil
 }
 
-func validateServicesConfig(config *Config) {
+func validateServicesConfig(config *Config) error {
 	for _, service := range config.Services {
 		if config.Debug {
 			log.Printf("[config][validateServicesConfig] Validating service '%s'", service.Name)
 		}
-		service.ValidateAndSetDefaults()
+		if err := service.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
 	}
 	log.Printf("[config][validateServicesConfig] Validated %d services", len(config.Services))
+	return nil
 }
 
-func validateSecurityConfig(config *Config) {
+func validateSecurityConfig(config *Config) error {
 	if config.Security != nil {
 		if config.Security.IsValid() {
 			if config.Debug {
@@ -217,44 +246,45 @@ func validateSecurityConfig(config *Config) {
 		} else {
 			// If there was an attempt to configure security, then it must mean that some confidential or private
 			// data are exposed. As a result, we'll force a panic because it's better to be safe than sorry.
-			panic(ErrInvalidSecurityConfig)
+			return ErrInvalidSecurityConfig
 		}
 	}
+	return nil
 }
 
 // validateAlertingConfig validates the alerting configuration
 // Note that the alerting configuration has to be validated before the service configuration, because the default alert
 // returned by provider.AlertProvider.GetDefaultAlert() must be parsed before core.Service.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(config *Config) {
-	if config.Alerting == nil {
+func validateAlertingConfig(alertingConfig *alerting.Config, services []*core.Service, debug bool) {
+	if alertingConfig == nil {
 		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
 		return
 	}
-	alertTypes := []core.AlertType{
-		core.CustomAlert,
-		core.DiscordAlert,
-		core.MattermostAlert,
-		core.MessagebirdAlert,
-		core.PagerDutyAlert,
-		core.SlackAlert,
-		core.TelegramAlert,
-		core.TwilioAlert,
+	alertTypes := []alert.Type{
+		alert.TypeCustom,
+		alert.TypeDiscord,
+		alert.TypeMattermost,
+		alert.TypeMessagebird,
+		alert.TypePagerDuty,
+		alert.TypeSlack,
+		alert.TypeTelegram,
+		alert.TypeTwilio,
 	}
-	var validProviders, invalidProviders []core.AlertType
+	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {
-		alertProvider := GetAlertingProviderByAlertType(config, alertType)
+		alertProvider := alertingConfig.GetAlertingProviderByAlertType(alertType)
 		if alertProvider != nil {
 			if alertProvider.IsValid() {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
-					for _, service := range config.Services {
-						for alertIndex, alert := range service.Alerts {
-							if alertType == alert.Type {
-								if config.Debug {
+					for _, service := range services {
+						for alertIndex, serviceAlert := range service.Alerts {
+							if alertType == serviceAlert.Type {
+								if debug {
 									log.Printf("[config][validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in service=%s", alertIndex, alertType, service.Name)
 								}
-								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), alert)
+								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), serviceAlert)
 							}
 						}
 					}
@@ -269,59 +299,4 @@ func validateAlertingConfig(config *Config) {
 		}
 	}
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
-}
-
-// GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding core.AlertType
-func GetAlertingProviderByAlertType(config *Config, alertType core.AlertType) provider.AlertProvider {
-	switch alertType {
-	case core.CustomAlert:
-		if config.Alerting.Custom == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Custom
-	case core.DiscordAlert:
-		if config.Alerting.Discord == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Discord
-	case core.MattermostAlert:
-		if config.Alerting.Mattermost == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Mattermost
-	case core.MessagebirdAlert:
-		if config.Alerting.Messagebird == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Messagebird
-	case core.PagerDutyAlert:
-		if config.Alerting.PagerDuty == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.PagerDuty
-	case core.SlackAlert:
-		if config.Alerting.Slack == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Slack
-	case core.TelegramAlert:
-		if config.Alerting.Telegram == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Telegram
-	case core.TwilioAlert:
-		if config.Alerting.Twilio == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Alerting.Twilio
-	}
-	return nil
 }

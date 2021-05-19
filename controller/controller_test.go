@@ -105,7 +105,7 @@ func TestCreateRouter(t *testing.T) {
 	}
 	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter(cfg)
+	router := CreateRouter(cfg.Security, cfg.Metrics)
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -235,12 +235,10 @@ func TestHandle(t *testing.T) {
 			},
 		},
 	}
-	config.Set(cfg)
-	defer config.Set(nil)
 	_ = os.Setenv("ROUTER_TEST", "true")
 	_ = os.Setenv("ENVIRONMENT", "dev")
 	defer os.Clearenv()
-	Handle()
+	Handle(cfg.Security, cfg.Web, cfg.Metrics)
 	defer Shutdown()
 	request, _ := http.NewRequest("GET", "/health", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -273,7 +271,7 @@ func TestServiceStatusesHandler(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	router := CreateRouter(&config.Config{})
+	router := CreateRouter(nil, false)
 
 	type Scenario struct {
 		Name         string
