@@ -7,7 +7,7 @@ import (
 
 // Store is the interface that each stores should implement
 type Store interface {
-	// GetAllAsJSON returns the JSON encoding of all monitored core.ServiceStatus
+	// GetAllServiceStatusesWithResultPagination returns the JSON encoding of all monitored core.ServiceStatus
 	// with a subset of core.Result defined by the page and pageSize parameters
 	GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus
 
