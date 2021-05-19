@@ -37,6 +37,10 @@ func Get() store.Store {
 func Initialize(cfg *Config) error {
 	initialized = true
 	var err error
+	if cancelFunc != nil {
+		// Stop the active autoSave task
+		cancelFunc()
+	}
 	if cfg == nil || len(cfg.File) == 0 {
 		log.Println("[storage][Initialize] Creating storage provider")
 		provider, err = memory.NewStore("")
@@ -44,10 +48,6 @@ func Initialize(cfg *Config) error {
 			return err
 		}
 	} else {
-		if cancelFunc != nil {
-			// Stop the active autoSave task
-			cancelFunc()
-		}
 		ctx, cancelFunc = context.WithCancel(context.Background())
 		log.Printf("[storage][Initialize] Creating storage provider with file=%s", cfg.File)
 		provider, err = memory.NewStore(cfg.File)
