@@ -109,8 +109,10 @@ func TestService_ValidateAndSetDefaultsWithNoDNSQueryName(t *testing.T) {
 		QueryType: "A",
 		QueryName: "",
 	}
-	dns.validateAndSetDefault()
-	t.Fatal("Should've panicked because service`s dns didn't have a query name, which is a mandatory field for dns")
+	err := dns.validateAndSetDefault()
+	if err == nil {
+		t.Fatal("Should've returned an error because service`s dns didn't have a query name, which is a mandatory field for dns")
+	}
 }
 
 func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
@@ -119,6 +121,8 @@ func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
 		QueryType: "B",
 		QueryName: "example.com",
 	}
-	dns.validateAndSetDefault()
-	t.Fatal("Should've panicked because service`s dns query type is invalid, it needs to be a valid query name like A, AAAA, CNAME...")
+	err := dns.validateAndSetDefault()
+	if err == nil {
+		t.Fatal("Should've returned an error because service`s dns query type is invalid, it needs to be a valid query name like A, AAAA, CNAME...")
+	}
 }

@@ -221,8 +221,7 @@ services:
 }
 
 func TestParseAndValidateConfigBytesWithInvalidPort(t *testing.T) {
-	defer func() { recover() }()
-	_, _ = parseAndValidateConfigBytes([]byte(`
+	_, err := parseAndValidateConfigBytes([]byte(`
 web:
   port: 65536
   address: 127.0.0.1
@@ -232,7 +231,9 @@ services:
     conditions:
       - "[STATUS] == 200"
 `))
-	t.Fatal("Should've panicked because the configuration specifies an invalid port value")
+	if err == nil {
+		t.Fatal("Should've returned an error because the configuration specifies an invalid port value")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithMetricsAndCustomUserAgentHeader(t *testing.T) {
@@ -1028,8 +1029,7 @@ services:
 }
 
 func TestParseAndValidateConfigBytesWithInvalidSecurityConfig(t *testing.T) {
-	defer func() { recover() }()
-	_, _ = parseAndValidateConfigBytes([]byte(`
+	_, err := parseAndValidateConfigBytes([]byte(`
 security:
   basic:
     username: "admin"
@@ -1040,7 +1040,9 @@ services:
     conditions:
       - "[STATUS] == 200"
 `))
-	t.Error("Function should've panicked")
+	if err == nil {
+		t.Error("Function should've returned an error")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithValidSecurityConfig(t *testing.T) {
@@ -1161,8 +1163,7 @@ kubernetes:
 }
 
 func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryButNoServiceTemplate(t *testing.T) {
-	defer func() { recover() }()
-	_, _ = parseAndValidateConfigBytes([]byte(`
+	_, err := parseAndValidateConfigBytes([]byte(`
 kubernetes:
   cluster-mode: "mock"
   auto-discover: true
@@ -1171,12 +1172,13 @@ kubernetes:
       hostname-suffix: ".default.svc.cluster.local"
       target-path: "/health"
 `))
-	t.Error("Function should've panicked because providing a service-template is mandatory")
+	if err == nil {
+		t.Error("Function should've returned an error because providing a service-template is mandatory")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryUsingClusterModeIn(t *testing.T) {
-	defer func() { recover() }()
-	_, _ = parseAndValidateConfigBytes([]byte(`
+	_, err := parseAndValidateConfigBytes([]byte(`
 kubernetes:
   cluster-mode: "in"
   auto-discover: true
@@ -1189,8 +1191,9 @@ kubernetes:
       hostname-suffix: ".default.svc.cluster.local"
       target-path: "/health"
 `))
-	// TODO: find a way to test this?
-	t.Error("Function should've panicked because testing with ClusterModeIn isn't supported")
+	if err == nil {
+		t.Error("Function should've returned an error because testing with ClusterModeIn isn't supported")
+	}
 }
 
 func TestGetAlertingProviderByAlertType(t *testing.T) {

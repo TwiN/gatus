@@ -49,8 +49,10 @@ func TestService_ValidateAndSetDefaultsWithNoName(t *testing.T) {
 		URL:        "http://example.com",
 		Conditions: []*Condition{&condition},
 	}
-	service.ValidateAndSetDefaults()
-	t.Fatal("Should've panicked because service didn't have a name, which is a mandatory field")
+	err := service.ValidateAndSetDefaults()
+	if err == nil {
+		t.Fatal("Should've returned an error because service didn't have a name, which is a mandatory field")
+	}
 }
 
 func TestService_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
@@ -61,8 +63,10 @@ func TestService_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
 		URL:        "",
 		Conditions: []*Condition{&condition},
 	}
-	service.ValidateAndSetDefaults()
-	t.Fatal("Should've panicked because service didn't have an url, which is a mandatory field")
+	err := service.ValidateAndSetDefaults()
+	if err == nil {
+		t.Fatal("Should've returned an error because service didn't have an url, which is a mandatory field")
+	}
 }
 
 func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
@@ -72,8 +76,10 @@ func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 		URL:        "http://example.com",
 		Conditions: nil,
 	}
-	service.ValidateAndSetDefaults()
-	t.Fatal("Should've panicked because service didn't have at least 1 condition")
+	err := service.ValidateAndSetDefaults()
+	if err == nil {
+		t.Fatal("Should've returned an error because service didn't have at least 1 condition")
+	}
 }
 
 func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
@@ -87,7 +93,10 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 		},
 		Conditions: []*Condition{&conditionSuccess},
 	}
-	service.ValidateAndSetDefaults()
+	err := service.ValidateAndSetDefaults()
+	if err != nil {
+
+	}
 	if service.DNS.QueryName != "example.com." {
 		t.Error("Service.dns.query-name should be formatted with . suffix")
 	}
