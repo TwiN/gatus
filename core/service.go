@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/TwinProduction/gatus/security"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -65,6 +66,9 @@ type Service struct {
 
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
+
+	// Basic HTTP Authentication
+	Security *security.Config `yaml:"security"`
 
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`
@@ -245,6 +249,12 @@ func (service *Service) buildHTTPRequest() *http.Request {
 		bodyBuffer = bytes.NewBuffer([]byte(service.Body))
 	}
 	request, _ := http.NewRequest(service.Method, service.URL, bodyBuffer)
+
+	// sets Basic Authentication Header to request if found in Service Configuration
+	if service.Security != nil {
+		request.SetBasicAuth(service.Security.Basic.Username, service.Security.Basic.Password)
+	}
+
 	for k, v := range service.Headers {
 		request.Header.Set(k, v)
 		if k == HostHeader {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/TwinProduction/gatus/security"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -188,6 +189,29 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	}
 	if request.Host != "example.com" {
 		t.Error("request.Host should've been example.com, but was", request.Host)
+	}
+}
+
+func TestService_buildHTTPRequestWithBasicAuthentication(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	service := Service{
+		Name:       "twinnation-health",
+		URL:        "https://twinnation.org/health",
+		Method:     "POST",
+		Conditions: []*Condition{&condition},
+		Security: &security.Config{Basic: &security.BasicConfig{
+			Username: "testusername",
+			Password: "testpassword",
+		}},
+	}
+	service.ValidateAndSetDefaults()
+	request := service.buildHTTPRequest()
+	if request.Method != "POST" {
+		t.Error("request.Method should've been POST, but was", request.Method)
+	}
+	username, password, _ := request.BasicAuth()
+	if username != "testusername" || password != "testpassword" {
+		t.Error("Basic Authentication header should have return username: 'testusername' and password: 'testpassword, but was", username, password)
 	}
 }
 

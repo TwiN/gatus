@@ -17,6 +17,9 @@ type BasicConfig struct {
 
 	// PasswordSha512Hash is the SHA512 hash of the password which will need to be used for a successful authentication
 	PasswordSha512Hash string `yaml:"password-sha512"`
+
+	// Clear Text Password
+	Password string `yaml:"password"`
 }
 
 // IsValid returns whether the basic security configuration is valid or not
