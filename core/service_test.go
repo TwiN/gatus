@@ -102,31 +102,6 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	}
 }
 
-func TestService_GetAlertsTriggered(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
-	enabled := true
-	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
-		Conditions: []*Condition{&condition},
-		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty, Enabled: &enabled}},
-	}
-	service.ValidateAndSetDefaults()
-	if service.NumberOfFailuresInARow != 0 {
-		t.Error("Service.NumberOfFailuresInARow should start with 0")
-	}
-	if service.NumberOfSuccessesInARow != 0 {
-		t.Error("Service.NumberOfSuccessesInARow should start with 0")
-	}
-	if len(service.GetAlertsTriggered()) > 0 {
-		t.Error("No alerts should've been triggered, because service.NumberOfFailuresInARow is 0, which is below the failure threshold")
-	}
-	service.NumberOfFailuresInARow = service.Alerts[0].FailureThreshold
-	if len(service.GetAlertsTriggered()) != 1 {
-		t.Error("Alert should've been triggered")
-	}
-}
-
 func TestService_buildHTTPRequest(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{

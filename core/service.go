@@ -155,21 +155,6 @@ func (service *Service) EvaluateHealth() *Result {
 	return result
 }
 
-// GetAlertsTriggered returns a slice of alerts that have been triggered
-func (service *Service) GetAlertsTriggered() []alert.Alert {
-	var alerts []alert.Alert
-	if service.NumberOfFailuresInARow == 0 {
-		return alerts
-	}
-	for _, alert := range service.Alerts {
-		if alert.IsEnabled() && alert.FailureThreshold == service.NumberOfFailuresInARow {
-			alerts = append(alerts, *alert)
-			continue
-		}
-	}
-	return alerts
-}
-
 func (service *Service) getIP(result *Result) {
 	if service.DNS != nil {
 		result.Hostname = strings.TrimSuffix(service.URL, ":53")
