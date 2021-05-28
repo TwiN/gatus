@@ -1,24 +1,20 @@
 <template>
-  <div id="settings">
-    <div class="flex">
-      <div class="flex bg-gray-200 border-gray-300 rounded border shadow dark:text-gray-200 dark:bg-gray-800 dark:border-gray-500">
-        <div class="text-xs text-gray-600 rounded-xl py-1 px-2 dark:text-gray-200">
-          &#x21bb;
-        </div>
-        <select class="text-center text-gray-500 text-xs dark:text-gray-200 dark:bg-gray-800 border-r border-l border-gray-300 dark:border-gray-500" id="refresh-rate" ref="refreshInterval" @change="handleChangeRefreshInterval">
-          <option value="10" :selected="refreshInterval === 10">10s</option>
-          <option value="30" :selected="refreshInterval === 30">30s</option>
-          <option value="60" :selected="refreshInterval === 60">1m</option>
-          <option value="120" :selected="refreshInterval === 120">2m</option>
-          <option value="300" :selected="refreshInterval === 300">5m</option>
-          <option value="600" :selected="refreshInterval === 600">10m</option>
-        </select>
-        <button @click="toggleDarkMode" class="text-xs p-1">
-          <slot v-if="darkMode">☀</slot>
-          <slot v-else>🌙</slot>
-        </button>
-      </div>
+  <div id="settings" class="flex bg-gray-200 border-gray-300 rounded border shadow dark:text-gray-200 dark:bg-gray-800 dark:border-gray-500">
+    <div class="text-xs text-gray-600 rounded-xl py-1 px-2 dark:text-gray-200">
+      &#x21bb;
     </div>
+    <select class="text-center text-gray-500 text-xs dark:text-gray-200 dark:bg-gray-800 border-r border-l border-gray-300 dark:border-gray-500" id="refresh-rate" ref="refreshInterval" @change="handleChangeRefreshInterval">
+      <option value="10" :selected="refreshInterval === 10">10s</option>
+      <option value="30" :selected="refreshInterval === 30">30s</option>
+      <option value="60" :selected="refreshInterval === 60">1m</option>
+      <option value="120" :selected="refreshInterval === 120">2m</option>
+      <option value="300" :selected="refreshInterval === 300">5m</option>
+      <option value="600" :selected="refreshInterval === 600">10m</option>
+    </select>
+    <button @click="toggleDarkMode" class="text-xs p-1">
+      <slot v-if="darkMode">☀</slot>
+      <slot v-else>🌙</slot>
+    </button>
   </div>
 </template>
 
@@ -83,12 +79,11 @@ export default {
 </script>
 
 
-<style scoped>
+<style>
 #settings {
   position: fixed;
-  left: 5px;
-  bottom: 5px;
-  padding: 5px;
+  left: 10px;
+  bottom: 10px;
 }
 
 #settings select:focus {
