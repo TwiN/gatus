@@ -16,6 +16,8 @@ checks can be paired with alerting via Slack, PagerDuty and even Twilio.
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twinnation.org/
 
+![Gatus dark mode](.github/assets/dark-mode.png)
+
 
 ## Table of Contents
 
