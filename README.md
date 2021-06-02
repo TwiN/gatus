@@ -16,6 +16,15 @@ checks can be paired with alerting via Slack, PagerDuty, Discord and even Twilio
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twinnation.org/
 
+<details>
+  <summary><b>Quick start</b></summary>
+
+```
+docker run -p 8080:8080 --name gatus twinproduction/gatus
+```
+For more details, see [Usage](#usage)
+</details>
+
 
 ## Table of Contents
 
@@ -120,6 +129,8 @@ This example would look like this:
 ![Simple example](.github/assets/example.png)
 
 Note that you can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+
+If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
@@ -631,8 +642,13 @@ See [example/kubernetes-with-auto-discovery](example/kubernetes-with-auto-discov
 
 ## Docker
 
+To run Gatus locally with Docker:
+```
+docker run -p 8080:8080 --name gatus twinproduction/gatus
+```
+
 Other than using one of the examples provided in the `examples` folder, you can also try it out locally by 
-creating a configuration file - we'll call it `config.yaml` for this example - and running the following 
+creating a configuration file, we'll call it `config.yaml` for this example, and running the following 
 command:
 ```
 docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
