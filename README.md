@@ -11,12 +11,10 @@
 Gatus is a health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
-checks can be paired with alerting via Slack, PagerDuty and even Twilio.
+checks can be paired with alerting via Slack, PagerDuty, Discord and even Twilio.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twinnation.org/
-
-![Gatus dark mode](.github/assets/dark-mode.png)
 
 
 ## Table of Contents
@@ -79,6 +77,8 @@ fixing the issue before they even know about it.
 
 
 ## Features
+
+![Gatus dark mode](.github/assets/dark-mode.png)
 
 The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
