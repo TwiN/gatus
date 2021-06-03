@@ -52,3 +52,10 @@ services:
     interval: 1m
     conditions:
       - "[CONNECTED] == true"
+
+  - name: smtp-starttls
+    url: "starttls://smtp.gmail.com:587"
+    interval: 10m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"

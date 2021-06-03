@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -178,9 +179,11 @@ func (service *Service) call(result *Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error
+	var certificate *x509.Certificate
 	isServiceDNS := service.DNS != nil
 	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	isServiceICMP := strings.HasPrefix(service.URL, "icmp://")
+	isServiceStartTLS := strings.HasPrefix(service.URL, "starttls://")
 	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP
 	if isServiceHTTP {
 		request = service.buildHTTPRequest()
@@ -189,6 +192,14 @@ func (service *Service) call(result *Result) {
 	if isServiceDNS {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
+	} else if isServiceStartTLS {
+		result.Connected, certificate, err = client.CanPerformStartTls(strings.TrimPrefix(service.URL, "starttls://"), service.Insecure)
+		if err != nil {
+			result.Errors = append(result.Errors, err.Error())
+			return
+		}
+		result.Duration = time.Since(startTime)
+		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if isServiceTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(service.URL, "tcp://"))
 		result.Duration = time.Since(startTime)
@@ -203,7 +214,7 @@ func (service *Service) call(result *Result) {
 		}
 		defer response.Body.Close()
 		if response.TLS != nil && len(response.TLS.PeerCertificates) > 0 {
-			certificate := response.TLS.PeerCertificates[0]
+			certificate = response.TLS.PeerCertificates[0]
 			result.CertificateExpiration = time.Until(certificate.NotAfter)
 		}
 		result.HTTPStatus = response.StatusCode
