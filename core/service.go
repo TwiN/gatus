@@ -184,7 +184,7 @@ func (service *Service) call(result *Result) {
 	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	isServiceICMP := strings.HasPrefix(service.URL, "icmp://")
 	isServiceStartTLS := strings.HasPrefix(service.URL, "starttls://")
-	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP
+	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP && !isServiceStartTLS
 	if isServiceHTTP {
 		request = service.buildHTTPRequest()
 	}
