@@ -52,7 +52,7 @@ func (d *DNS) query(url string, result *Result) {
 	m.SetQuestion(d.QueryName, queryType)
 	r, _, err := c.Exchange(m, url)
 	if err != nil {
-		result.Errors = append(result.Errors, err.Error())
+		result.AddError(err.Error())
 		return
 	}
 	result.Connected = true

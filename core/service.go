@@ -195,7 +195,7 @@ func (service *Service) call(result *Result) {
 	} else if isServiceStartTLS {
 		result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.Insecure)
 		if err != nil {
-			result.Errors = append(result.Errors, err.Error())
+			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
