@@ -223,7 +223,7 @@ func (service *Service) call(result *Result) {
 			// way of smuggling the required state into the condition evaluation
 			// that I could think of without substantial re-architecturing.
 			result.previousEtag = service.previousEtag
-			result.etag = response.Header.Get("Etag")
+			result.etag = response.Header.Get("ETag")
 			service.previousEtag = result.etag
 		}
 	}
