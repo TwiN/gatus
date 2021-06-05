@@ -119,7 +119,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "partially-invalid-path",
+			Name:                 "partially-invalid-path-issue122",
 			Path:                 "data.name.invalid",
 			Data:                 `{"data": {"name": "john"}}`,
 			ExpectedOutput:       "",
