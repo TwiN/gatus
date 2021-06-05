@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/x509"
 	"testing"
 	"time"
 )
@@ -47,5 +48,58 @@ func TestPing(t *testing.T) {
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
+	}
+}
+
+func TestCanPerformStartTls(t *testing.T) {
+	type args struct {
+		address  string
+		insecure bool
+	}
+	tests := []struct {
+		name            string
+		args            args
+		wantConnected   bool
+		wantCertificate *x509.Certificate
+		wantErr         bool
+	}{
+		{
+			name: "invalid address",
+			args: args{
+				address: "test",
+			},
+			wantConnected:   false,
+			wantCertificate: nil,
+			wantErr:         true,
+		},
+		{
+			name: "error dial",
+			args: args{
+				address: "test:1234",
+			},
+			wantConnected:   false,
+			wantCertificate: nil,
+			wantErr:         true,
+		},
+		{
+			name: "valid starttls",
+			args: args{
+				address: "smtp.gmail.com:587",
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotConnected, _, err := CanPerformStartTls(tt.args.address, tt.args.insecure)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CanPerformStartTls() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotConnected != tt.wantConnected {
+				t.Errorf("CanPerformStartTls() gotConnected = %v, want %v", gotConnected, tt.wantConnected)
+			}
+		})
 	}
 }

@@ -2,10 +2,14 @@ package client
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
+	"net/smtp"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -72,6 +76,36 @@ func CanCreateTCPConnection(address string) bool {
 	}
 	_ = conn.Close()
 	return true
+}
+
+func CanPerformStartTls(address string, insecure bool) (connected bool, certificate *x509.Certificate, err error) {
+	tokens := strings.Split(address, ":")
+	if len(tokens) != 2 {
+		err = fmt.Errorf("invalid address for starttls, must HOST:PORT")
+		return
+	}
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: insecure,
+		ServerName:         tokens[0],
+	}
+
+	c, err := smtp.Dial(address)
+	if err != nil {
+		return
+	}
+
+	err = c.StartTLS(tlsconfig)
+	if err != nil {
+		return
+	}
+	if state, ok := c.TLSConnectionState(); ok {
+		certificate = state.PeerCertificates[0]
+	} else {
+		err = fmt.Errorf("could not get TLS connection state")
+		return
+	}
+	connected = true
+	return
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
