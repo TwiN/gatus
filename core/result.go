@@ -25,7 +25,7 @@ type Result struct {
 	Duration time.Duration `json:"duration"`
 
 	// Errors encountered during the evaluation of the service's health
-	Errors []string `json:"errors"`
+	Errors []string `json:"errors"` // XXX: find a way to filter out duplicate errors
 
 	// ConditionResults results of the service's conditions
 	ConditionResults []*ConditionResult `json:"conditionResults"`
@@ -45,4 +45,16 @@ type Result struct {
 	// This means that the call Service.EvaluateHealth both populates the body (if necessary)
 	// and sets it to nil after the evaluation has been completed.
 	body []byte
+}
+
+// AddError adds an error to the result's list of errors.
+// It also ensures that there are no duplicates.
+func (r *Result) AddError(error string) {
+	for _, resultError := range r.Errors {
+		if resultError == error {
+			// If the error already exists, don't add it
+			return
+		}
+	}
+	r.Errors = append(r.Errors, error)
 }

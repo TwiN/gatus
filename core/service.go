@@ -162,14 +162,14 @@ func (service *Service) getIP(result *Result) {
 	} else {
 		urlObject, err := url.Parse(service.URL)
 		if err != nil {
-			result.Errors = append(result.Errors, err.Error())
+			result.AddError(err.Error())
 			return
 		}
 		result.Hostname = urlObject.Hostname()
 	}
 	ips, err := net.LookupIP(result.Hostname)
 	if err != nil {
-		result.Errors = append(result.Errors, err.Error())
+		result.AddError(err.Error())
 		return
 	}
 	result.IP = ips[0].String()
@@ -193,7 +193,7 @@ func (service *Service) call(result *Result) {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
 	} else if isServiceStartTLS {
-		result.Connected, certificate, err = client.CanPerformStartTls(strings.TrimPrefix(service.URL, "starttls://"), service.Insecure)
+		result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.Insecure)
 		if err != nil {
 			result.Errors = append(result.Errors, err.Error())
 			return
@@ -209,7 +209,7 @@ func (service *Service) call(result *Result) {
 		response, err = client.GetHTTPClient(service.Insecure).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
-			result.Errors = append(result.Errors, err.Error())
+			result.AddError(err.Error())
 			return
 		}
 		defer response.Body.Close()
@@ -223,7 +223,7 @@ func (service *Service) call(result *Result) {
 		if service.needsToReadBody() {
 			result.body, err = ioutil.ReadAll(response.Body)
 			if err != nil {
-				result.Errors = append(result.Errors, err.Error())
+				result.AddError(err.Error())
 			}
 		}
 	}

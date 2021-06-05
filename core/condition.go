@@ -126,7 +126,7 @@ func (c Condition) evaluate(result *Result) bool {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
-		result.Errors = append(result.Errors, fmt.Sprintf("invalid condition '%s' has been provided", condition))
+		result.AddError(fmt.Sprintf("invalid condition '%s' has been provided", condition))
 		return false
 	}
 	if !success {
@@ -242,7 +242,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 				} else {
 					if err != nil {
 						if err.Error() != "unexpected end of JSON input" {
-							result.Errors = append(result.Errors, err.Error())
+							result.AddError(err.Error())
 						}
 						if checkingForLength {
 							element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix

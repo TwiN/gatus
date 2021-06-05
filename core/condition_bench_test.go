@@ -38,6 +38,15 @@ func BenchmarkCondition_evaluateWithBodyStringFailure(b *testing.B) {
 	b.ReportAllocs()
 }
 
+func BenchmarkCondition_evaluateWithBodyStringFailureInvalidPath(b *testing.B) {
+	condition := Condition("[BODY].user.name == bob.doe")
+	for n := 0; n < b.N; n++ {
+		result := &Result{body: []byte("{\"name\": \"bob.doe\"}")}
+		condition.evaluate(result)
+	}
+	b.ReportAllocs()
+}
+
 func BenchmarkCondition_evaluateWithBodyStringLen(b *testing.B) {
 	condition := Condition("len([BODY].name) == 8")
 	for n := 0; n < b.N; n++ {
