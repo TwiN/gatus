@@ -36,6 +36,11 @@ const (
 	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
 	BodyPlaceholder = "[BODY]"
 
+	// ModifiedPlaceholder is a placeholder for the whether the ETag header changed since the previous request
+	//
+	// Values that could replace the placeholder: true, false
+	ModifiedPlaceholder = "[MODIFIED]"
+
 	// ConnectedPlaceholder is a placeholder for whether a connection was successfully established.
 	//
 	// Values that could replace the placeholder: true, false
@@ -142,6 +147,12 @@ func (c Condition) hasBodyPlaceholder() bool {
 	return strings.Contains(string(c), BodyPlaceholder)
 }
 
+// hasModifiedPlaceholder checks whether the condition has a ModifiedPlaceholder
+// Used for determining whether the response ETag header should be read or not
+func (c Condition) hasModifiedPlaceholder() bool {
+	return strings.Contains(string(c), ModifiedPlaceholder)
+}
+
 // isEqual compares two strings.
 //
 // Supports the pattern and the any functions.
@@ -217,6 +228,8 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 			element = result.DNSRCode
 		case ConnectedPlaceholder:
 			element = strconv.FormatBool(result.Connected)
+		case ModifiedPlaceholder:
+			element = strconv.FormatBool(result.etag != result.previousEtag)
 		case CertificateExpirationPlaceholder:
 			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		default:
