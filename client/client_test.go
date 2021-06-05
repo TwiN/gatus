@@ -1,7 +1,6 @@
 package client
 
 import (
-	"crypto/x509"
 	"testing"
 	"time"
 )
@@ -51,35 +50,32 @@ func TestPing(t *testing.T) {
 	}
 }
 
-func TestCanPerformStartTls(t *testing.T) {
+func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
 		address  string
 		insecure bool
 	}
 	tests := []struct {
-		name            string
-		args            args
-		wantConnected   bool
-		wantCertificate *x509.Certificate
-		wantErr         bool
+		name          string
+		args          args
+		wantConnected bool
+		wantErr       bool
 	}{
 		{
 			name: "invalid address",
 			args: args{
 				address: "test",
 			},
-			wantConnected:   false,
-			wantCertificate: nil,
-			wantErr:         true,
+			wantConnected: false,
+			wantErr:       true,
 		},
 		{
 			name: "error dial",
 			args: args{
 				address: "test:1234",
 			},
-			wantConnected:   false,
-			wantCertificate: nil,
-			wantErr:         true,
+			wantConnected: false,
+			wantErr:       true,
 		},
 		{
 			name: "valid starttls",
@@ -92,13 +88,13 @@ func TestCanPerformStartTls(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotConnected, _, err := CanPerformStartTls(tt.args.address, tt.args.insecure)
+			connected, _, err := CanPerformStartTLS(tt.args.address, tt.args.insecure)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("CanPerformStartTls() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
-			if gotConnected != tt.wantConnected {
-				t.Errorf("CanPerformStartTls() gotConnected = %v, want %v", gotConnected, tt.wantConnected)
+			if connected != tt.wantConnected {
+				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
 			}
 		})
 	}

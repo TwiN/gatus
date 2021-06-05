@@ -3,7 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
+	"errors"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -78,34 +78,29 @@ func CanCreateTCPConnection(address string) bool {
 	return true
 }
 
-func CanPerformStartTls(address string, insecure bool) (connected bool, certificate *x509.Certificate, err error) {
-	tokens := strings.Split(address, ":")
-	if len(tokens) != 2 {
-		err = fmt.Errorf("invalid address for starttls, must HOST:PORT")
+// CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
+func CanPerformStartTLS(address string, insecure bool) (connected bool, certificate *x509.Certificate, err error) {
+	hostAndPort := strings.Split(address, ":")
+	if len(hostAndPort) != 2 {
+		return false, nil, errors.New("invalid address for starttls, format must be host:port")
+	}
+	smtpClient, err := smtp.Dial(address)
+	if err != nil {
 		return
 	}
-	tlsconfig := &tls.Config{
+	err = smtpClient.StartTLS(&tls.Config{
 		InsecureSkipVerify: insecure,
-		ServerName:         tokens[0],
-	}
-
-	c, err := smtp.Dial(address)
+		ServerName:         hostAndPort[0],
+	})
 	if err != nil {
 		return
 	}
-
-	err = c.StartTLS(tlsconfig)
-	if err != nil {
-		return
-	}
-	if state, ok := c.TLSConnectionState(); ok {
+	if state, ok := smtpClient.TLSConnectionState(); ok {
 		certificate = state.PeerCertificates[0]
 	} else {
-		err = fmt.Errorf("could not get TLS connection state")
-		return
+		return false, nil, errors.New("could not get TLS connection state")
 	}
-	connected = true
-	return
+	return true, certificate, nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
