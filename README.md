@@ -57,6 +57,7 @@ For more details, see [Usage](#usage)
   - [Monitoring a TCP service](#monitoring-a-tcp-service)
   - [Monitoring a service using ICMP](#monitoring-a-service-using-icmp)
   - [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries)
+  - [Monitoring a service using STARTTLS](#monitoring-a-service-using-starttls)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
@@ -810,10 +811,24 @@ There are two placeholders that can be used in the conditions for services of ty
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
 
+### Monitoring a service using STARTTLS
+
+If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS 
+will serve as a good initial indicator:
+```yaml
+services:
+  - name: starttls-smtp-example
+    url: "starttls://smtp.gmail.com:587"
+    interval: 30m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+```
+
+
 ### Basic authentication
 
 You can require Basic authentication by leveraging the `security.basic` configuration:
-
 ```yaml
 security:
   basic:
