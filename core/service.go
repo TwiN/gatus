@@ -84,8 +84,8 @@ type Service struct {
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int
 
-	// PreviousETag is the ETag that was received in the last request to the service.
-	PreviousEtag string
+	// previousEtag is the ETag that was received in the last request to the service.
+	previousEtag string
 }
 
 // ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one
@@ -222,9 +222,9 @@ func (service *Service) call(result *Result) {
 			// This is pretty sub-prime, but it's the most straightforward
 			// way of smuggling the required state into the condition evaluation
 			// that I could think of without substantial re-architecturing.
-			result.previousEtag = service.PreviousEtag
+			result.previousEtag = service.previousEtag
 			result.etag = response.Header.Get("Etag")
-			service.PreviousEtag = result.etag
+			service.previousEtag = result.etag
 		}
 	}
 }
