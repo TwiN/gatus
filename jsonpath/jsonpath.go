@@ -25,6 +25,9 @@ func walk(path string, object interface{}) (string, int, error) {
 	case map[string]interface{}:
 		return walk(strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1), value)
 	case string:
+		if len(keys) > 1 {
+			return "", 0, fmt.Errorf("couldn't walk through '%s', because '%s' was a string instead of an object", keys[1], currentKey)
+		}
 		return value, len(value), nil
 	case []interface{}:
 		return fmt.Sprintf("%v", value), len(value), nil
