@@ -12,7 +12,7 @@ docker-run-max-memory-usage:
 	docker run -p 6666:6379 -e AUTOSAVE=true -e MAX_CACHE_SIZE=0 -e MAX_MEMORY_USAGE=524288000 --name gocache-server -d gocache-server
 
 run:
-	PORT=6666 go run gocacheserver/main/server.go
+	PORT=6666 go run cmd/server/main.go
 
 start-redis:
 	docker run -p 6379:6379 --name redis -d redis

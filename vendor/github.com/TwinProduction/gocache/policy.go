@@ -1,5 +1,6 @@
 package gocache
 
+// EvictionPolicy is what dictates how evictions are handled
 type EvictionPolicy string
 
 var (

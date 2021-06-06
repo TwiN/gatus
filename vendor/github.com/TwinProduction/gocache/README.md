@@ -5,6 +5,7 @@
 [![codecov](https://codecov.io/gh/TwinProduction/gocache/branch/master/graph/badge.svg)](https://codecov.io/gh/TwinProduction/gocache)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwinProduction/gocache.svg)](https://github.com/TwinProduction/gocache)
 [![Go Reference](https://pkg.go.dev/badge/github.com/TwinProduction/gocache.svg)](https://pkg.go.dev/github.com/TwinProduction/gocache)
+[![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/44p4TRep)
 
 gocache is an easy-to-use, high-performance, lightweight and thread-safe (goroutine-safe) in-memory key-value cache 
 with support for LRU and FIFO eviction policies as well as expiration, bulk operations and even persistence to file.
@@ -33,6 +34,8 @@ with support for LRU and FIFO eviction policies as well as expiration, bulk oper
   - [Summary](#summary)
   - [Results](#results)
 - [FAQ](#faq)
+  - [How can I persist the data on application termination?](#how-can-i-persist-the-data-on-application-termination)
+  - [How can I automatically save the cache to a file every 5 minutes?](#how-can-i-automatically-save-the-cache-to-a-file-every-5-minutes)
   - [Why does the memory usage not go down?](#why-does-the-memory-usage-not-go-down)
 
 
@@ -57,6 +60,9 @@ It may also serve as a good reference to use in order to implement gocache in yo
 ```
 go get -u github.com/TwinProduction/gocache
 ```
+
+If you're interested in using gocache as a server rather than an embedded library, see [Server](#server)
+
 
 ### Initializing the cache
 ```go
@@ -125,52 +131,52 @@ You can also delete multiple entries by using `cache.DeleteAll([]string{"key1", 
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 
     "github.com/TwinProduction/gocache"
 )
 
 func main() {
-	cache := gocache.NewCache().WithEvictionPolicy(gocache.LeastRecentlyUsed).WithMaxSize(10000)
-	cache.StartJanitor() // Passively manages expired entries
+    cache := gocache.NewCache().WithEvictionPolicy(gocache.LeastRecentlyUsed).WithMaxSize(10000)
+    cache.StartJanitor() // Passively manages expired entries
 
-	cache.Set("key", "value")
-	cache.SetWithTTL("key-with-ttl", "value", 60*time.Minute)
-	cache.SetAll(map[string]interface{}{"k1": "v1", "k2": "v2", "k3": "v3"})
+    cache.Set("key", "value")
+    cache.SetWithTTL("key-with-ttl", "value", 60*time.Minute)
+    cache.SetAll(map[string]interface{}{"k1": "v1", "k2": "v2", "k3": "v3"})
 
-	value, exists := cache.Get("key")
-	fmt.Printf("[Get] key=key; value=%s; exists=%v\n", value, exists)
-	for key, value := range cache.GetByKeys([]string{"k1", "k2", "k3"}) {
-		fmt.Printf("[GetByKeys] key=%s; value=%s\n", key, value)
-	}
-	for _, key := range cache.GetKeysByPattern("key*", 0) {
-		fmt.Printf("[GetKeysByPattern] key=%s\n", key)
-	}
+    value, exists := cache.Get("key")
+    fmt.Printf("[Get] key=key; value=%s; exists=%v\n", value, exists)
+    for key, value := range cache.GetByKeys([]string{"k1", "k2", "k3"}) {
+        fmt.Printf("[GetByKeys] key=%s; value=%s\n", key, value)
+    }
+    for _, key := range cache.GetKeysByPattern("key*", 0) {
+        fmt.Printf("[GetKeysByPattern] key=%s\n", key)
+    }
 
-	fmt.Println("Cache size before persisting cache to file:", cache.Count())
-	err := cache.SaveToFile("cache.bak")
-	if err != nil {
-		panic(fmt.Sprintf("failed to persist cache to file: %s", err.Error()))
-	}
+    fmt.Println("Cache size before persisting cache to file:", cache.Count())
+    err := cache.SaveToFile("cache.bak")
+    if err != nil {
+        panic(fmt.Sprintf("failed to persist cache to file: %s", err.Error()))
+    }
 
-	cache.Expire("key", time.Hour)
-	time.Sleep(500*time.Millisecond)
-	timeUntilExpiration, _ := cache.TTL("key")
-	fmt.Println("Number of minutes before 'key' expires:", int(timeUntilExpiration.Seconds()))
+    cache.Expire("key", time.Hour)
+    time.Sleep(500*time.Millisecond)
+    timeUntilExpiration, _ := cache.TTL("key")
+    fmt.Println("Number of minutes before 'key' expires:", int(timeUntilExpiration.Seconds()))
 
-	cache.Delete("key")
-	cache.DeleteAll([]string{"k1", "k2", "k3"})
+    cache.Delete("key")
+    cache.DeleteAll([]string{"k1", "k2", "k3"})
 
-	fmt.Println("Cache size before restoring cache from file:", cache.Count())
-	_, err = cache.ReadFromFile("cache.bak")
-	if err != nil {
-		panic(fmt.Sprintf("failed to restore cache from file: %s", err.Error()))
-	}
+    fmt.Println("Cache size before restoring cache from file:", cache.Count())
+    _, err = cache.ReadFromFile("cache.bak")
+    if err != nil {
+        panic(fmt.Sprintf("failed to restore cache from file: %s", err.Error()))
+    }
 
-	fmt.Println("Cache size after restoring cache from file:", cache.Count())
-	cache.Clear()
-	fmt.Println("Cache size after clearing the cache:", cache.Count())
+    fmt.Println("Cache size after restoring cache from file:", cache.Count())
+    cache.Clear()
+    fmt.Println("Cache size after clearing the cache:", cache.Count())
 }
 ```
 
@@ -215,8 +221,8 @@ While you can cache structs in memory out of the box, persisting structs to a fi
 
 ```go
 type YourCustomStruct struct {
-	A string
-	B int
+    A string
+    B int
 }
 
 // ...
@@ -250,6 +256,13 @@ every key that cannot be parsed are not populated into the cache by `ReadFromFil
 
 In other words, if you're falling back to a database or something similar when the cache doesn't have the key requested,
 you'll be fine.
+
+Note that if you need to modify the type of a variable in a struct, you should change the name of that variable as well.
+For instance, if the struct has a `CreatedAt` variable with the type `time.Time` and that variable type is later
+modified to `uint64`, decoding the struct would fail, however, if you rename the variable to `CreatedAtUnixTimeInMs`,
+there won't be any decoding issues other than the loss of data for that field. You could also obviously handle the 
+migration gracefully by keeping both variables, populating the `CreatedAtUnixTimeInMs` variable with the `CreatedAt`
+value and then removing the `CreatedAt` field.
 
 
 ## Eviction
@@ -303,29 +316,35 @@ If you do not start the janitor, there will be no passive deletion of expired ke
 
 
 ## Server
-For the sake of convenience, a ready-to-go cache server is available 
-through the `gocacheserver` package. 
+For the sake of convenience, a ready-to-go cache server is available through the `server` package.
 
-The reason why the server is in a different package is because `gocache` limit its external dependencies to the strict 
-minimum (e.g. boltdb for persistence), however, rather than re-inventing the wheel, the server implementation uses
-redcon, which is a very good Redis server framework for Go.
-
-That way, those who desire to use gocache without the server will not add any extra dependencies
-as long as they don't import the `gocacheserver` package. 
-
+#### As an application
 ```go
 package main
 
 import (
-	"github.com/TwinProduction/gocache"
-	"github.com/TwinProduction/gocache/gocacheserver"
+    "github.com/TwinProduction/gocache"
+    gocacheserver "github.com/TwinProduction/gocache/server"
 )
 
 func main() {
-	cache := gocache.NewCache().WithEvictionPolicy(gocache.LeastRecentlyUsed).WithMaxSize(100000)
-	server := gocacheserver.NewServer(cache).WithPort(6379)
-	server.Start()
+    cache := gocache.NewCache().WithEvictionPolicy(gocache.LeastRecentlyUsed).WithMaxSize(100000)
+    server := gocacheserver.NewServer(cache).WithPort(6379)
+    // This is a blocking function, therefore, you are expected to run this on a goroutine
+    server.Start()
 }
+```
+
+The reason why the server is in a different package is because `gocache` limit its external dependencies to the strict
+minimum (e.g. boltdb for persistence), however, rather than re-inventing the wheel, the server implementation uses
+redcon, which is a very good Redis server framework for Go.
+
+That way, those who desire to use gocache without the server will not add any extra dependencies
+as long as they don't import the `server` package.
+
+If you'd like to run it through the CLI:
+```
+go run cmd/server/main.go
 ```
 
 Any Redis client should be able to interact with the server, though only the following instructions are supported:
@@ -350,13 +369,11 @@ Any Redis client should be able to interact with the server, though only the fol
 ## Running the server with Docker
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gocache-server.svg)](https://cloud.docker.com/repository/docker/twinproduction/gocache-server)
 
-To build it locally, refer to the Makefile's `docker-build` and `docker-run` steps.
-
-Note that the server version of gocache is still under development.
-
 ```
 docker run --name gocache-server -p 6379:6379 twinproduction/gocache-server
 ```
+
+To build it locally, refer to the Makefile's `docker-build` and `docker-run` steps.
 
 
 ## Performance
@@ -448,9 +465,96 @@ WithForceNilInterfaceOnNilPointerWithConcurrency/false-8                        
 
 ## FAQ
 
+### How can I persist the data on application termination?
+
+Because this library doesn't persist immediately after every write operations, persistence is instead expected to be
+done on a schedule, like for instance, every 10 minutes.
+
+While this prevents you from losing all of your data, you may still lose some data if the application stopped 9 minutes
+after the previous "auto save".
+
+To increase your odds of not losing any data, you can use Go's `signal` package, more specifically its `Notify` function
+which allows listening for termination signals like SIGTERM and SIGINT. Once a termination signal is caught, you can
+add the necessary logic for a graceful shutdown.
+
+In the following example, the code that would usually be present in the `main` function is moved to a different function
+named `Start` which is launched on a different goroutine so that listening for a termination signals is what blocks the
+main goroutine instead:
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+    "os/signal"
+    "syscall"
+
+    "github.com/TwinProduction/gocache"
+)
+
+const CacheFile = "gocache.data"
+
+var cache = gocache.NewCache()
+
+func main() {
+    // Load persisted data from file
+    cache.ReadFromFile(CacheFile)
+    // Start everything else on another goroutine to prevent blocking the main goroutine
+    go Start()
+    // Wait for termination signal
+    sig := make(chan os.Signal, 1)
+    done := make(chan bool, 1)
+    signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+    go func() {
+        <-sig
+        log.Println("Received termination signal, attempting to gracefully shut down")
+        err := cache.SaveToFile(CacheFile)
+        if err != nil {
+            log.Println("Failed to save storage provider:", err.Error())
+        }
+        done <- true
+    }()
+    <-done
+    log.Println("Shutting down")
+}
+```
+
+Note that this won't protect you from a SIGKILL, as this signal cannot be caught.
+
+
+### How can I automatically save the cache to a file every 5 minutes?
+
+Beside using the suggestion above, automatically persisting the cache on an interval will protect your application from
+sudden terminations triggered by signals that cannot be caught, such as the force kill signal received by an application
+being OOMKilled.
+
+The simplest implementation could be something like this:
+```go
+const CacheFile = "gocache.data"
+
+func main() {
+    cache := gocache.NewCache()
+    cache.ReadFromFile(CacheFile)
+    go autoSave(10*time.Minute)
+    // ...
+}
+
+func autoSave(interval time.Duration) {
+    for {
+        err := cache.SaveToFile(CacheFile)
+        if err != nil {
+            log.Println("Failed to persist cache to file:", err.Error())
+        }
+        time.Sleep(interval)
+    }
+}
+```
+
+
 ### Why does the memory usage not go down?
 
-> **NOTE**: As of Go 1.16, this will no longer apply. See [golang/go#42330](https://github.com/golang/go/issues/42330)
+> **NOTE**: As of Go 1.16, this no longer applies. See [golang/go#42330](https://github.com/golang/go/issues/42330)
 
 By default, Go uses `MADV_FREE` if the kernel supports it to release memory, which is significantly more efficient 
 than using `MADV_DONTNEED`. Unfortunately, this means that RSS doesn't go down unless the OS actually needs the 
@@ -463,7 +567,7 @@ notice the memory usage lowering.
 [reference](https://github.com/golang/go/issues/33376#issuecomment-666455792)
 
 You can reproduce this by following the steps below:
-- Start gocacheserver
+- Start the server
 - Note the memory usage
 - Create 500k keys
 - Note the memory usage

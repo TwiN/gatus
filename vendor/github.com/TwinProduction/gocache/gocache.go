@@ -260,7 +260,7 @@ func (cache *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration)
 			return
 		}
 		if cache.maxMemoryUsage != NoMaxMemoryUsage {
-			// Substract the old entry from the cache's memoryUsage
+			// Subtract the old entry from the cache's memoryUsage
 			cache.memoryUsage -= entry.SizeInBytes()
 		}
 		// Update existing entry's value
@@ -278,8 +278,8 @@ func (cache *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration)
 	} else {
 		entry.Expiration = NoExpiration
 	}
-	// If the cache doesn't have a maxSize/maxMemoryUsage, then there's no point checking if we need to evict
-	// an entry, so we'll just return now
+	// If the cache doesn't have a maxSize/maxMemoryUsage, then there's no point
+	// checking if we need to evict an entry, so we'll just return now
 	if cache.maxSize == NoMaxSize && cache.maxMemoryUsage == NoMaxMemoryUsage {
 		cache.mutex.Unlock()
 		return

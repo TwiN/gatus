@@ -131,8 +131,8 @@ func (cache *Cache) StartJanitor() error {
 func (cache *Cache) StopJanitor() {
 	if cache.stopJanitor != nil {
 		// Tell the janitor to stop, and then wait for the janitor to reply on the same channel that it's stopping
-		// This may seem a bit odd, but this allows us to avoid a data race condition in which setting cache.stopJanitor
-		// to nil
+		// This may seem a bit odd, but this allows us to avoid a data race condition when trying to set
+		// cache.stopJanitor to nil
 		cache.stopJanitor <- true
 		<-cache.stopJanitor
 		cache.stopJanitor = nil

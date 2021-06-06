@@ -2,7 +2,7 @@
 FROM golang:alpine as builder
 WORKDIR /app
 ADD . ./
-RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o bin/gocache-server ./gocacheserver/main
+RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o bin/gocache-server cmd/server/main.go
 RUN apk --update add --no-cache ca-certificates
 
 FROM scratch

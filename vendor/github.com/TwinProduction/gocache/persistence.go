@@ -85,6 +85,12 @@ func (cache *Cache) ReadFromFile(path string) (int, error) {
 			if err != nil {
 				// Failed to decode the value, so we'll skip it.
 				// This is likely due to the fact that the custom struct wasn't registered using gob.Register(...)
+				//
+				// Could also be due to a breaking change in a struct's variable. For instance, if the struct has
+				// a variable with a type map[string]string and that variable is modified to map[string]int,
+				// decoding the struct would fail. This can be avoided by using a different variable name every
+				// time you must change the type of a variable within a struct.
+				//
 				// See [Persistence - Limitations](https://github.com/TwinProduction/gocache#limitations)
 				return err
 			}

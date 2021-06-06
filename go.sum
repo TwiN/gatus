@@ -49,8 +49,8 @@ github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbt
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
-github.com/TwinProduction/gocache v1.2.1 h1:NAdMwO9SQEZFmX69YWx6fzhwb6fHakkLri0451c+V1w=
-github.com/TwinProduction/gocache v1.2.1/go.mod h1:6zkBoLjrFLkIISwkZTgLy67qliCGSon1xpORM4Ri5HM=
+github.com/TwinProduction/gocache v1.2.2 h1:GpIq4HW+oLFlxO8mXapWKx54qT8p7SMWh2tf91jkLDU=
+github.com/TwinProduction/gocache v1.2.2/go.mod h1:Yj2daITit8TTBgiOpc26XCDSbg9xcFskUilHj9u3Mh8=
 github.com/TwinProduction/health v1.0.0 h1:TVyYTAORQQZ8LaptX8jCHZRCGCAO6e+oJx19BUIzQYY=
 github.com/TwinProduction/health v1.0.0/go.mod h1:ys4mYKUeEfYrWmkm60xLtPjTuLIEDQNBZaTZvenLG1c=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
