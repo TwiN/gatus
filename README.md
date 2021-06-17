@@ -5,7 +5,6 @@
 [![codecov](https://codecov.io/gh/TwinProduction/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwinProduction/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwinProduction/gatus.svg)](https://github.com/TwinProduction/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
-[![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/4umDbWSTKN)
 [![Follow TwinProduction](https://img.shields.io/github/followers/TwinProduction?label=Follow&style=social)](https://github.com/TwinProduction)
 
 Gatus is a health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
