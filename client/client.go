@@ -7,8 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -26,16 +24,6 @@ var (
 	// httpTimeout is the timeout for secureHTTPClient and insecureHTTPClient
 	httpTimeout = 10 * time.Second
 )
-
-func init() {
-	// XXX: This is an undocumented feature. See https://github.com/TwinProduction/gatus/issues/104.
-	httpTimeoutInSecondsFromEnvironmentVariable := os.Getenv("HTTP_CLIENT_TIMEOUT_IN_SECONDS")
-	if len(httpTimeoutInSecondsFromEnvironmentVariable) > 0 {
-		if httpTimeoutInSeconds, err := strconv.Atoi(httpTimeoutInSecondsFromEnvironmentVariable); err == nil {
-			httpTimeout = time.Duration(httpTimeoutInSeconds) * time.Second
-		}
-	}
-}
 
 // GetHTTPClient returns the shared HTTP client
 func GetHTTPClient(insecure bool) *http.Client {
