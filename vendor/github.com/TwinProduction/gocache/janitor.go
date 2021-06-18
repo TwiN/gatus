@@ -33,7 +33,7 @@ func (cache *Cache) StartJanitor() error {
 	}
 	cache.stopJanitor = make(chan bool)
 	go func() {
-		// rather than starting from the tail on every run, we can try to start from the last next entry
+		// rather than starting from the tail on every run, we can try to start from the last traversed entry
 		var lastTraversedNode *Entry
 		totalNumberOfExpiredKeysInPreviousRunFromTailToHead := 0
 		backOff := JanitorMinShiftBackOff
@@ -62,13 +62,14 @@ func (cache *Cache) StartJanitor() error {
 						totalNumberOfExpiredKeysInPreviousRunFromTailToHead = 0
 					}
 					for current != nil {
-						var next *Entry
+						// since we're walking from the tail to the head, we get the previous reference
+						var previous *Entry
 						steps++
 						if current.Expired() {
 							expiredEntriesFound++
-							// Because delete will remove the next reference from the entry, we need to store the
-							// next reference before we delete it
-							next = current.next
+							// Because delete will remove the previous reference from the entry, we need to store the
+							// previous reference before we delete it
+							previous = current.previous
 							cache.delete(current.Key)
 							cache.stats.ExpiredKeys++
 						}
@@ -76,11 +77,11 @@ func (cache *Cache) StartJanitor() error {
 							lastTraversedNode = nil
 							break
 						}
-						// Travel to the current node's next node only if no specific next node has been specified
-						if next != nil {
-							current = next
+						// Travel to the current node's previous node only if no specific previous node has been specified
+						if previous != nil {
+							current = previous
 						} else {
-							current = current.next
+							current = current.previous
 						}
 						lastTraversedNode = current
 						if steps == JanitorMaxIterationsPerShift || expiredEntriesFound >= JanitorShiftTarget {

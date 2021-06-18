@@ -120,8 +120,8 @@ func (cache *Cache) ReadFromFile(path string) (int, error) {
 			cache.tail = current
 			cache.head = current
 		} else {
-			previous.next = current
-			current.previous = previous
+			previous.previous = current
+			current.next = previous
 			cache.head = current
 		}
 		previous = entries[i]
