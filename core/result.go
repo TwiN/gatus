@@ -25,7 +25,7 @@ type Result struct {
 	Duration time.Duration `json:"duration"`
 
 	// Errors encountered during the evaluation of the service's health
-	Errors []string `json:"errors"` // XXX: find a way to filter out duplicate errors
+	Errors []string `json:"errors"`
 
 	// ConditionResults results of the service's conditions
 	ConditionResults []*ConditionResult `json:"conditionResults"`
