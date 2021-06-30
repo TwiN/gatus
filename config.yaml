@@ -10,14 +10,15 @@ services:
 
   - name: back-end
     group: core
-    url: "http://example.org/"
+    url: "https://example.org/"
     interval: 5m
     conditions:
       - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
 
   - name: monitoring
     group: internal
-    url: "http://example.com/"
+    url: "https://example.org/"
     interval: 5m
     conditions:
       - "[STATUS] == 200"
