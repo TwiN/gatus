@@ -30,14 +30,6 @@ services:
     conditions:
       - "[STATUS] == 200"
 
-  - name: cat-fact
-    url: "https://cat-fact.herokuapp.com/facts/random"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].deleted == false"
-      - "len([BODY].text) > 0"
-
   - name: example-dns-query
     url: "8.8.8.8" # Address of the DNS server to use
     interval: 5m
