@@ -47,6 +47,7 @@ For more details, see [Usage](#usage)
     - [Auto Discovery](#auto-discovery)
     - [Deploying](#deploying)
 - [Docker](#docker)
+- [Helm Chart](#helm-chart)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -664,6 +665,19 @@ To build the image locally:
 docker build . -t twinproduction/gatus
 ```
 
+## Helm Chart
+
+[Helm](https://helm.sh) must be installed to use the chart.
+Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
+
+Once Helm is set up properly, add the repo as follows:
+
+```console
+helm repo add gatus https://avakarev.github.io/gatus-chart
+```
+
+To get more details, please check chart's [configuration](https://github.com/avakarev/gatus-chart#configuration)
+and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-example)
 
 ## Running the tests
 
