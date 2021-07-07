@@ -39,6 +39,9 @@ func GetHTTPClient(insecure bool) *http.Client {
 						InsecureSkipVerify: true,
 					},
 				},
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse // Don't follow redirects
+				},
 			}
 		}
 		return insecureHTTPClient
@@ -50,6 +53,9 @@ func GetHTTPClient(insecure bool) *http.Client {
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 20,
 				Proxy:               http.ProxyFromEnvironment,
+			},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse // Don't follow redirects
 			},
 		}
 	}
