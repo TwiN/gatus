@@ -26,7 +26,6 @@ For more details, see [Usage](#usage)
 
 
 ## Table of Contents
-
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -45,9 +44,9 @@ For more details, see [Usage](#usage)
     - [Configuring custom alerts](#configuring-custom-alerts)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
-    - [Deploying](#deploying)
-- [Docker](#docker)
-- [Helm Chart](#helm-chart)
+- [Deployment](#deployment)
+  - [Docker](#docker)
+  - [Helm Chart](#helm-chart)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -68,7 +67,6 @@ For more details, see [Usage](#usage)
 
 
 ## Why Gatus?
-
 Before getting into the specifics, I want to address the most common question:
 > Why would I use Gatus when I can just use Prometheus’ Alertmanager, Cloudwatch or even Splunk?
 
@@ -87,7 +85,6 @@ fixing the issue before they even know about it.
 
 
 ## Features
-
 ![Gatus dark mode](.github/assets/dark-mode.png)
 
 The main features of Gatus are:
@@ -101,7 +98,6 @@ The main features of Gatus are:
 
 
 ## Usage
-
 By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
@@ -135,7 +131,6 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
-
 | Parameter                                | Description                                                                   | Default        |
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `debug`                                  | Whether to enable debug logs                                                  | `false`        |
@@ -178,7 +173,6 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ### Conditions
-
 Here are some examples of conditions you can use:
 
 | Condition                    | Description                                             | Passing values             | Failing values |
@@ -205,7 +199,6 @@ Here are some examples of conditions you can use:
 
 
 #### Placeholders
-
 | Placeholder                | Description                                                     | Example of resolved value |
 |:-------------------------- |:--------------------------------------------------------------- |:------------------------- |
 | `[STATUS]`                 | Resolves into the HTTP status of the request                    | 404
@@ -230,7 +223,6 @@ Here are some examples of conditions you can use:
 
 
 ### Alerting
-
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual services with configurable descriptions and thresholds.
 
@@ -274,7 +266,6 @@ ignored.
 
 
 #### Configuring Slack alerts
-
 ```yaml
 alerting:
   slack: 
@@ -306,7 +297,6 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Discord alerts
-
 ```yaml
 alerting:
   discord: 
@@ -329,7 +319,6 @@ services:
 
 
 #### Configuring PagerDuty alerts
-
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts 
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said 
 parameter to `true` will not create another incident, but mark the incident as resolved on 
@@ -359,7 +348,6 @@ services:
 
 
 #### Configuring Twilio alerts
-
 ```yaml
 alerting:
   twilio:
@@ -386,7 +374,6 @@ services:
 
 
 #### Configuring Mattermost alerts
-
 ```yaml
 alerting:
   mattermost: 
@@ -441,7 +428,6 @@ services:
 
 
 #### Configuring Telegram alerts
-
 ```yaml
 alerting:
   telegram: 
@@ -467,7 +453,6 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring custom alerts
-
 While they're called alerts, you can use this feature to call anything. 
 
 For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by 
@@ -525,7 +510,6 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 
 
 #### Setting a default provider alert
-
 While you can specify the alert configuration directly in the service definition, it's tedious and may lead to a very
 long configuration file.
 
@@ -578,7 +562,6 @@ services:
 
 
 ### Kubernetes (ALPHA)
-
 > **WARNING**: This feature is in ALPHA. This means that it is very likely to change in the near future, which means that
 > while you can use this feature as you see fit, there may be breaking changes in future releases.
 
@@ -597,7 +580,6 @@ services:
 
 
 #### Auto Discovery
-
 Auto discovery works by reading all `Service` resources from the configured `namespaces` and appending the `hostname-suffix` as 
 well as the configured `target-path` to the service name and making an HTTP call.
 
@@ -636,13 +618,14 @@ Note that `hostname-suffix` could also be something like `.yourdomain.com`, in w
 monitored would be `potato.example.com/health`, assuming you have a service named `potato` and a matching ingress
 to map `potato.example.com` to the `potato` service.
 
-#### Deploying
-
-See [example/kubernetes-with-auto-discovery](example/kubernetes-with-auto-discovery)
+For a full example, see [example/kubernetes-with-auto-discovery](example/kubernetes-with-auto-discovery)
 
 
-## Docker
+## Deployment
+Many examples can be found in the [example](example) folder, but this section will focus on the most popular ways of deploying Gatus.
 
+
+### Docker
 To run Gatus locally with Docker:
 ```
 docker run -p 8080:8080 --name gatus twinproduction/gatus
@@ -665,12 +648,12 @@ To build the image locally:
 docker build . -t twinproduction/gatus
 ```
 
-## Helm Chart
 
+### Helm Chart
 [Helm](https://helm.sh) must be installed to use the chart.
 Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 
-Once Helm is set up properly, add the repo as follows:
+Once Helm is set up properly, add the repository as follows:
 
 ```console
 helm repo add gatus https://avakarev.github.io/gatus-chart
@@ -679,22 +662,19 @@ helm repo add gatus https://avakarev.github.io/gatus-chart
 To get more details, please check chart's [configuration](https://github.com/avakarev/gatus-chart#configuration)
 and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-example)
 
-## Running the tests
 
+## Running the tests
 ```
 go test ./... -mod vendor
 ```
 
 
 ## Using in Production
-
-See the [example](example) folder.
+See the [Deployment](#deployment) section.
 
 
 ## FAQ
-
 ### Sending a GraphQL request
-
 By setting `services[].graphql` to true, the body will automatically be wrapped by the standard GraphQL `query` parameter.
 
 For instance, the following configuration:
@@ -725,9 +705,8 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-
-**NOTE**: This does not _really_ apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
-tells Gatus to only evaluate one service at a time.
+> **NOTE**: This does not _really_ apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
+> tells Gatus to only evaluate one service at a time.
 
 To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one service at a time
 In other words, even if you have multiple services with the exact same interval, they will not execute at the same time.
@@ -757,7 +736,6 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
 ### Default timeouts
-
 | Protocol | Timeout |
 |:-------- |:------- |
 | HTTP     | 10s
@@ -786,7 +764,6 @@ established.
 
 
 ### Monitoring a service using ICMP
-
 By prefixing `services[].url` with `icmp:\\`, you can monitor services at a very basic level using ICMP, or more 
 commonly known as "ping" or "echo":
 
@@ -803,7 +780,6 @@ You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `ic
 
 
 ### Monitoring a service using DNS queries
-
 Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
 ```yaml
 services:
@@ -825,7 +801,6 @@ There are two placeholders that can be used in the conditions for services of ty
 
 
 ### Monitoring a service using STARTTLS
-
 If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS 
 will serve as a good initial indicator:
 ```yaml
@@ -840,7 +815,6 @@ services:
 
 
 ### Basic authentication
-
 You can require Basic authentication by leveraging the `security.basic` configuration:
 ```yaml
 security:
@@ -853,7 +827,6 @@ The example above will require that you authenticate with the username `john.doe
 
 
 ### disable-monitoring-lock
-
 Setting `disable-monitoring-lock` to `true` means that multiple services could be monitored at the same time.
 
 While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted 
@@ -867,7 +840,6 @@ technically, if you create 100 services with a 1 seconds interval, Gatus will se
 
 
 ### Reloading configuration on the fly
-
 For the sake on convenience, Gatus automatically reloads the configuration on the fly if the loaded configuration file
 is updated while Gatus is running.
 
@@ -891,7 +863,6 @@ the same as restarting the application.
 
 
 ### Service groups
-
 Service groups are used for grouping multiple services together on the dashboard.
 
 ```yaml
@@ -937,7 +908,6 @@ The configuration above will result in a dashboard that looks like this:
 
 
 ### Exposing Gatus on a custom port
-
 By default, Gatus is exposed on port `8080`, but you may specify a different port by setting the `web.port` parameter:
 ```yaml
 web:
