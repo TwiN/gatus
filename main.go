@@ -34,6 +34,12 @@ func main() {
 	log.Println("Shutting down")
 }
 
+func start(cfg *config.Config) {
+	go controller.Handle(cfg.Security, cfg.Web, cfg.Metrics)
+	watchdog.Monitor(cfg)
+	go listenToConfigurationFileChanges(cfg)
+}
+
 func stop() {
 	watchdog.Shutdown()
 	controller.Shutdown()
@@ -44,12 +50,6 @@ func save() {
 	if err != nil {
 		log.Println("Failed to save storage provider:", err.Error())
 	}
-}
-
-func start(cfg *config.Config) {
-	go controller.Handle(cfg.Security, cfg.Web, cfg.Metrics)
-	watchdog.Monitor(cfg)
-	go listenToConfigurationFileChanges(cfg)
 }
 
 func loadConfiguration() (cfg *config.Config, err error) {
