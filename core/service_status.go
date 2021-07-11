@@ -82,7 +82,7 @@ func (ss ServiceStatus) WithResultPagination(page, pageSize int) *ServiceStatus 
 }
 
 // AddResult adds a Result to ServiceStatus.Results and makes sure that there are
-// no more than 20 results in the Results slice
+// no more than MaximumNumberOfResults results in the Results slice
 func (ss *ServiceStatus) AddResult(result *Result) {
 	if len(ss.Results) > 0 {
 		// Check if there's any change since the last result
