@@ -2,8 +2,6 @@ package core
 
 import (
 	"time"
-
-	"github.com/TwinProduction/gatus/util"
 )
 
 const (
@@ -48,7 +46,7 @@ func NewServiceStatus(service *Service) *ServiceStatus {
 	return &ServiceStatus{
 		Name:    service.Name,
 		Group:   service.Group,
-		Key:     util.ConvertGroupAndServiceToKey(service.Group, service.Name),
+		Key:     service.Key(),
 		Results: make([]*Result, 0),
 		Events: []*Event{{
 			Type:      EventStart,
