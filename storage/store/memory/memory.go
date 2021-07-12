@@ -63,7 +63,7 @@ func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
 
 // Insert adds the observed result for the specified service into the store
 func (s *Store) Insert(service *core.Service, result *core.Result) {
-	key := util.ConvertGroupAndServiceToKey(service.Group, service.Name)
+	key := service.Key()
 	serviceStatus, exists := s.cache.Get(key)
 	if !exists {
 		serviceStatus = core.NewServiceStatus(service)

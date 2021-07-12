@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/util"
 )
 
 var (
@@ -181,7 +180,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	serviceStatus := store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(testService.Group, testService.Name))
+	serviceStatus := store.GetServiceStatusByKey(testService.Key())
 	if serviceStatus == nil {
 		t.Fatalf("serviceStatus shouldn't have been nil")
 	}
@@ -212,7 +211,7 @@ func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
 	if len(serviceStatuses) != 1 {
 		t.Fatal("expected 1 service status")
 	}
-	actual, exists := serviceStatuses[util.ConvertGroupAndServiceToKey(testService.Group, testService.Name)]
+	actual, exists := serviceStatuses[testService.Key()]
 	if !exists {
 		t.Fatal("expected service status to exist")
 	}
@@ -234,20 +233,20 @@ func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
 	if store.cache.Count() != 2 {
 		t.Errorf("expected cache to have 2 keys, got %d", store.cache.Count())
 	}
-	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+	if store.GetServiceStatusByKey(firstService.Key()) == nil {
 		t.Fatal("firstService should exist")
 	}
-	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) == nil {
+	if store.GetServiceStatusByKey(secondService.Key()) == nil {
 		t.Fatal("secondService should exist")
 	}
-	store.DeleteAllServiceStatusesNotInKeys([]string{util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)})
+	store.DeleteAllServiceStatusesNotInKeys([]string{firstService.Key()})
 	if store.cache.Count() != 1 {
 		t.Fatalf("expected cache to have 1 keys, got %d", store.cache.Count())
 	}
-	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(firstService.Group, firstService.Name)) == nil {
+	if store.GetServiceStatusByKey(firstService.Key()) == nil {
 		t.Error("secondService should've been deleted")
 	}
-	if store.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(secondService.Group, secondService.Name)) != nil {
+	if store.GetServiceStatusByKey(secondService.Key()) != nil {
 		t.Error("firstService should still exist")
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -186,7 +185,7 @@ func validateStorageConfig(config *Config) error {
 	// Remove all ServiceStatus that represent services which no longer exist in the configuration
 	var keys []string
 	for _, service := range config.Services {
-		keys = append(keys, util.ConvertGroupAndServiceToKey(service.Group, service.Name))
+		keys = append(keys, service.Key())
 	}
 	numberOfServiceStatusesDeleted := storage.Get().DeleteAllServiceStatusesNotInKeys(keys)
 	if numberOfServiceStatusesDeleted > 0 {

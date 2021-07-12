@@ -14,6 +14,7 @@ import (
 
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/util"
 )
 
 const (
@@ -133,6 +134,11 @@ func (service *Service) ValidateAndSetDefaults() error {
 		return err
 	}
 	return nil
+}
+
+// Key returns the unique key for the Service
+func (service Service) Key() string {
+	return util.ConvertGroupAndServiceToKey(service.Group, service.Name)
 }
 
 // EvaluateHealth sends a request to the service's URL and evaluates the conditions of the service.
