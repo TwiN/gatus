@@ -175,13 +175,13 @@ func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, 
 	if err != nil {
 		return nil, err
 	}
-	idConditionResultsMap := make(map[int64]*[]*core.ConditionResult)
+	idResultMap := make(map[int64]*core.Result)
 	for rows.Next() {
 		result := &core.Result{}
 		var id int64
 		_ = rows.Scan(&id, &result.Success, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		results = append(results, result)
-		idConditionResultsMap[id] = &result.ConditionResults
+		idResultMap[id] = result
 	}
 	_ = rows.Close()
 	// Get the conditionResults
@@ -189,7 +189,7 @@ func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, 
 	if err != nil {
 		return
 	}
-	for serviceResultID, conditionResults := range idConditionResultsMap {
+	for serviceResultID, result := range idResultMap {
 		rows, err = transaction.Query(`
 			SELECT service_result_id, condition, success
 			FROM service_result_condition
@@ -201,11 +201,10 @@ func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, 
 			return
 		}
 		for rows.Next() {
-			var id int64
 			conditionResult := &core.ConditionResult{}
-			_ = rows.Scan(&id, &conditionResult.Condition, &conditionResult.Success)
-			*conditionResults = append(*conditionResults, conditionResult)
-			// XXX: profile this ^
+			//var id int64
+			_ = rows.Scan(&conditionResult.Condition, &conditionResult.Success)
+			result.ConditionResults = append(result.ConditionResults, conditionResult)
 		}
 		_ = rows.Close()
 	}
