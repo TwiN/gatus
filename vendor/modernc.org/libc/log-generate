@@ -1,0 +1,27 @@
+mkdir ["-p" "obj/include/bits"]
+sh ["-c" "sed -f ./tools/mkalltypes.sed ./arch/s390x/bits/alltypes.h.in ./include/alltypes.h.in > obj/include/bits/alltypes.h"]
+sh ["-c" "cp arch/s390x/bits/syscall.h.in obj/include/bits/syscall.h"]
+sh ["-c" "sed -n -e s/__NR_/SYS_/p < arch/s390x/bits/syscall.h.in >> obj/include/bits/syscall.h"]
+dirent
+errno
+fcntl
+fts
+grp
+langinfo
+limits
+netdb
+netinet/in
+poll
+pthread
+pwd
+signal
+stdio
+sys/socket
+sys/stat
+sys/types
+termios
+time
+unistd
+utime
+capi_linux_s390x.go
+ccgo.go
