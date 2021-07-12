@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
 )
 
@@ -112,6 +113,11 @@ func BenchmarkStore_Insert(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
+	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
+	if err != nil {
+		b.Fatal("failed to create store:", err.Error())
+	}
+	defer databaseStore.Close()
 	type Scenario struct {
 		Name  string
 		Store Store
@@ -121,14 +127,18 @@ func BenchmarkStore_Insert(b *testing.B) {
 			Name:  "memory",
 			Store: memoryStore,
 		},
+		{
+			Name:  "database",
+			Store: databaseStore,
+		},
 	}
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				if n%100 == 0 {
-					scenario.Store.Insert(&testService, &testSuccessfulResult)
-				} else {
 					scenario.Store.Insert(&testService, &testUnsuccessfulResult)
+				} else {
+					scenario.Store.Insert(&testService, &testSuccessfulResult)
 				}
 			}
 			b.ReportAllocs()
