@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -88,7 +87,7 @@ func TestStore_Insert(t *testing.T) {
 	if store.cache.Count() != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", store.cache.Count())
 	}
-	key := fmt.Sprintf("%s_%s", testService.Group, testService.Name)
+	key := testService.Key()
 	serviceStatus := store.GetServiceStatusByKey(key)
 	if serviceStatus == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", key)
