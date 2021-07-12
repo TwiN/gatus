@@ -97,11 +97,6 @@ func TestNewStore(t *testing.T) {
 func TestStore_Insert(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Insert.db")
 	defer store.db.Close()
-	//store.Insert(&testService, &testSuccessfulResult)
-	//
-	//actual := store.GetServiceStatusByKey(testService.Key())
-	//t.Fatal(actual)
-
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
