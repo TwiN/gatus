@@ -33,6 +33,8 @@ type Store interface {
 	Save() error
 }
 
+// TODO: add method to check state of store (by keeping track of silent errors)
+
 var (
 	// Validate interface implementation on compile
 	_ Store = (*memory.Store)(nil)
