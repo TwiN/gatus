@@ -14,8 +14,6 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
-	timestamp = time.Now()
-
 	testService = core.Service{
 		Name:                    "name",
 		Group:                   "group",
@@ -36,7 +34,6 @@ var (
 		Errors:                nil,
 		Connected:             true,
 		Success:               true,
-		Timestamp:             timestamp,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
 		ConditionResults: []*core.ConditionResult{
@@ -61,7 +58,6 @@ var (
 		Errors:                []string{"error-1", "error-2"},
 		Connected:             true,
 		Success:               false,
-		Timestamp:             timestamp,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
 		ConditionResults: []*core.ConditionResult{
@@ -119,29 +115,64 @@ func BenchmarkStore_Insert(b *testing.B) {
 	}
 	defer databaseStore.Close()
 	type Scenario struct {
-		Name  string
-		Store Store
+		Name     string
+		Store    Store
+		Parallel bool
 	}
 	scenarios := []Scenario{
 		{
-			Name:  "memory",
-			Store: memoryStore,
+			Name:     "memory",
+			Store:    memoryStore,
+			Parallel: false,
 		},
 		{
-			Name:  "database",
-			Store: databaseStore,
+			Name:     "memory-parallel",
+			Store:    memoryStore,
+			Parallel: true,
+		},
+		{
+			Name:     "database",
+			Store:    databaseStore,
+			Parallel: false,
+		},
+		{
+			Name:     "database-parallel",
+			Store:    databaseStore,
+			Parallel: false,
 		},
 	}
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				if n%100 == 0 {
-					scenario.Store.Insert(&testService, &testUnsuccessfulResult)
-				} else {
-					scenario.Store.Insert(&testService, &testSuccessfulResult)
+			if scenario.Parallel {
+				b.RunParallel(func(pb *testing.PB) {
+					n := 0
+					for pb.Next() {
+						var result core.Result
+						if n%10 == 0 {
+							result = testUnsuccessfulResult
+						} else {
+							result = testSuccessfulResult
+						}
+						result.Timestamp = time.Now()
+						scenario.Store.Insert(&testService, &result)
+						n++
+					}
+				})
+			} else {
+				for n := 0; n < b.N; n++ {
+					var result core.Result
+					if n%10 == 0 {
+						result = testUnsuccessfulResult
+					} else {
+						result = testSuccessfulResult
+					}
+					result.Timestamp = time.Now()
+					scenario.Store.Insert(&testService, &result)
+					//wat := scenario.Store.GetServiceStatusByKey(testService.Key())
 				}
 			}
 			b.ReportAllocs()
+			scenario.Store.Clear()
 		})
 	}
 }
