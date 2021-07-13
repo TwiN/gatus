@@ -221,7 +221,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		// This lets us both keep the table clean without impacting performance too much
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
 		if numberOfEvents > core.MaximumNumberOfEvents*2 {
-			err = s.deleteOldEvents(tx, serviceID)
+			err = s.deleteOldServiceEvents(tx, serviceID)
 			if err != nil {
 				log.Printf("[database][Insert] Failed to delete old events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
@@ -239,7 +239,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		return
 	}
 	if numberOfResults > core.MaximumNumberOfResults*2 {
-		err = s.deleteOldResults(tx, serviceID)
+		err = s.deleteOldServiceResults(tx, serviceID)
 		if err != nil {
 			log.Printf("[database][Insert] Failed to delete old results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 		}
@@ -513,8 +513,8 @@ func (s *Store) insertConditionResults(tx *sql.Tx, serviceResultID int64, condit
 	return nil
 }
 
-// deleteOldEvents deletes old service events that are no longer needed
-func (s *Store) deleteOldEvents(tx *sql.Tx, serviceID int64) error {
+// deleteOldServiceEvents deletes old service events that are no longer needed
+func (s *Store) deleteOldServiceEvents(tx *sql.Tx, serviceID int64) error {
 	_, err := tx.Exec(
 		`
 			DELETE FROM service_event 
@@ -538,8 +538,8 @@ func (s *Store) deleteOldEvents(tx *sql.Tx, serviceID int64) error {
 	return nil
 }
 
-// deleteOldResults deletes old service results that are no longer needed
-func (s *Store) deleteOldResults(tx *sql.Tx, serviceID int64) error {
+// deleteOldServiceResults deletes old service results that are no longer needed
+func (s *Store) deleteOldServiceResults(tx *sql.Tx, serviceID int64) error {
 	_, err := tx.Exec(
 		`
 			DELETE FROM service_result 
