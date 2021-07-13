@@ -2,6 +2,7 @@ package memory
 
 import (
 	"encoding/gob"
+	"sync"
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/util"
@@ -17,6 +18,7 @@ func init() {
 
 // Store that leverages gocache
 type Store struct {
+	sync.RWMutex
 	file  string
 	cache *gocache.Cache
 }
@@ -64,12 +66,14 @@ func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
 // Insert adds the observed result for the specified service into the store
 func (s *Store) Insert(service *core.Service, result *core.Result) {
 	key := service.Key()
+	s.Lock()
 	serviceStatus, exists := s.cache.Get(key)
 	if !exists {
 		serviceStatus = core.NewServiceStatus(service)
 	}
 	serviceStatus.(*core.ServiceStatus).AddResult(result)
 	s.cache.Set(key, serviceStatus)
+	s.Unlock()
 }
 
 // DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided
