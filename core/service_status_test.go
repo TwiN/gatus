@@ -7,7 +7,7 @@ import (
 
 func TestNewServiceStatus(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
-	serviceStatus := NewServiceStatus(service)
+	serviceStatus := NewServiceStatus(service.Key(), service.Group, service.Name)
 	if serviceStatus.Name != service.Name {
 		t.Errorf("expected %s, got %s", service.Name, serviceStatus.Name)
 	}
@@ -21,7 +21,7 @@ func TestNewServiceStatus(t *testing.T) {
 
 func TestServiceStatus_AddResult(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
-	serviceStatus := NewServiceStatus(service)
+	serviceStatus := NewServiceStatus(service.Key(), service.Group, service.Name)
 	for i := 0; i < MaximumNumberOfResults+10; i++ {
 		serviceStatus.AddResult(&Result{Timestamp: time.Now()})
 	}
@@ -32,7 +32,7 @@ func TestServiceStatus_AddResult(t *testing.T) {
 
 func TestServiceStatus_WithResultPagination(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
-	serviceStatus := NewServiceStatus(service)
+	serviceStatus := NewServiceStatus(service.Key(), service.Group, service.Name)
 	for i := 0; i < 25; i++ {
 		serviceStatus.AddResult(&Result{Timestamp: time.Now()})
 	}
