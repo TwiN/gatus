@@ -77,30 +77,61 @@ var (
 	}
 )
 
-func BenchmarkStore_GetAllAsJSON(b *testing.B) {
+func BenchmarkStore_GetAllServiceStatusesWithResultPagination(b *testing.B) {
 	memoryStore, err := memory.NewStore("")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
+	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatusesWithResultPagination.db")
+	if err != nil {
+		b.Fatal("failed to create store:", err.Error())
+	}
+	defer databaseStore.Close()
 	type Scenario struct {
-		Name  string
-		Store Store
+		Name     string
+		Store    Store
+		Parallel bool
 	}
 	scenarios := []Scenario{
 		{
-			Name:  "memory",
-			Store: memoryStore,
+			Name:     "memory",
+			Store:    memoryStore,
+			Parallel: false,
+		},
+		{
+			Name:     "memory-parallel",
+			Store:    memoryStore,
+			Parallel: true,
+		},
+		{
+			Name:     "database",
+			Store:    databaseStore,
+			Parallel: false,
+		},
+		{
+			Name:     "database-parallel",
+			Store:    databaseStore,
+			Parallel: true,
 		},
 	}
 	for _, scenario := range scenarios {
 		scenario.Store.Insert(&testService, &testSuccessfulResult)
 		scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 		b.Run(scenario.Name, func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
+			if scenario.Parallel {
+				b.RunParallel(func(pb *testing.PB) {
+					for pb.Next() {
+						scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
+					}
+				})
+			} else {
+				for n := 0; n < b.N; n++ {
+					scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
+				}
 			}
 			b.ReportAllocs()
 		})
+		scenario.Store.Clear()
 	}
 }
 
