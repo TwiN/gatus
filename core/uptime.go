@@ -55,7 +55,7 @@ func (uptime *Uptime) ProcessResult(result *Result) {
 	if uptime.HourlyStatistics == nil {
 		uptime.HourlyStatistics = make(map[int64]*HourlyUptimeStatistics)
 	}
-	unixTimestampFlooredAtHour := result.Timestamp.Unix() - (result.Timestamp.Unix() % 3600)
+	unixTimestampFlooredAtHour := result.Timestamp.Truncate(time.Hour).Unix()
 	hourlyStats, _ := uptime.HourlyStatistics[unixTimestampFlooredAtHour]
 	if hourlyStats == nil {
 		hourlyStats = &HourlyUptimeStatistics{}
@@ -101,7 +101,7 @@ func (uptime *Uptime) recalculate() {
 	// The oldest uptime bracket starts 7 days ago, so we'll start from there
 	timestamp := now.Add(-sevenDays)
 	for now.Sub(timestamp) >= 0 {
-		hourlyUnixTimestamp := timestamp.Unix() - (timestamp.Unix() % 3600)
+		hourlyUnixTimestamp := timestamp.Truncate(time.Hour).Unix()
 		hourlyStats := uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			timestamp = timestamp.Add(time.Hour)
