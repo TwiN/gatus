@@ -201,8 +201,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByServiceID(tx, serviceID)
 	if err != nil {
-		_ = tx.Rollback()
-		return
+		log.Printf("[database][Insert] Failed to retrieve total number of events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -253,14 +252,14 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	// Second, we need to insert the result.
 	err = s.insertResult(tx, serviceID, result)
 	if err != nil {
-		// Silently fail
 		log.Printf("[database][Insert] Failed to insert result for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		_ = tx.Rollback()
+		return
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByServiceID(tx, serviceID)
 	if err != nil {
-		_ = tx.Rollback()
-		return
+		log.Printf("[database][Insert] Failed to retrieve total number of results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	}
 	if numberOfResults > core.MaximumNumberOfResults*2 {
 		err = s.deleteOldServiceResults(tx, serviceID)
