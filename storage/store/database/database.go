@@ -117,6 +117,20 @@ func (s *Store) createSchema() error {
 		    success                      INTEGER
 		)
 	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS service_uptime (
+		    service_uptime_id     INTEGER PRIMARY KEY,
+		    service_id            INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
+		    hour_unix_timestamp   INTEGER,
+		    total_executions      INTEGER,
+		    successful_executions INTEGER,
+		    total_response_time   INTEGER,
+		    UNIQUE(service_id, hour_unix_timestamp)
+		)
+	`)
 	return err
 }
 
@@ -136,7 +150,7 @@ func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) ma
 	}
 	serviceStatuses := make(map[string]*core.ServiceStatus, len(keys))
 	for _, key := range keys {
-		serviceStatus, err := s.getServiceStatusByKey(tx, key, 0, 0, page, pageSize)
+		serviceStatus, err := s.getServiceStatusByKey(tx, key, 0, 0, page, pageSize, false)
 		if err != nil {
 			continue
 		}
@@ -159,7 +173,7 @@ func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
 	if err != nil {
 		return nil
 	}
-	serviceStatus, err := s.getServiceStatusByKey(tx, key, 1, core.MaximumNumberOfEvents, 1, core.MaximumNumberOfResults)
+	serviceStatus, err := s.getServiceStatusByKey(tx, key, 1, core.MaximumNumberOfEvents, 1, core.MaximumNumberOfResults, true)
 	if err != nil {
 		_ = tx.Rollback()
 		return nil
@@ -308,7 +322,7 @@ func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
 	return
 }
 
-func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, eventsPage, eventsPageSize, resultsPage, resultsPageSize int) (*core.ServiceStatus, error) { // TODO: add uptimePage?
+func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, eventsPage, eventsPageSize, resultsPage, resultsPageSize int, includeUptime bool) (*core.ServiceStatus, error) {
 	serviceID, serviceName, serviceGroup, err := s.getServiceIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		return nil, err
@@ -329,8 +343,9 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, eventsPage, events
 			log.Printf("[database][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
-	// TODO: populate Uptime
-	// TODO: add flag to decide whether to retrieve uptime or not
+	if includeUptime {
+		// TODO
+	}
 	return serviceStatus, nil
 }
 
