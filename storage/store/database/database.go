@@ -152,9 +152,11 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		if err == errServiceNotFoundInDatabase {
 			// Service doesn't exist in the database, insert it
 			if serviceID, err = s.insertService(tx, service); err != nil {
+				_ = tx.Rollback()
 				return // failed to insert service
 			}
 		} else {
+			_ = tx.Rollback()
 			return
 		}
 	}
@@ -169,6 +171,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByServiceID(tx, serviceID)
 	if err != nil {
+		_ = tx.Rollback()
 		return
 	}
 	if numberOfEvents == 0 {
@@ -226,6 +229,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByServiceID(tx, serviceID)
 	if err != nil {
+		_ = tx.Rollback()
 		return
 	}
 	if numberOfResults > core.MaximumNumberOfResults*2 {
@@ -261,7 +265,7 @@ func (s *Store) Close() {
 	_ = s.db.Close()
 }
 
-func (s *Store) getAllServiceStatuses(eventsPage, eventsPageSize, resultsPage, resultsPageSize int) []*core.ServiceStatus { // TODO: add uptimePage?
+func (s *Store) getAllServiceStatuses(eventsPage, eventsPageSize, resultsPage, resultsPageSize int) []*core.ServiceStatus {
 	var serviceStatuses []*core.ServiceStatus
 	keys, err := s.getAllServiceKeys()
 	if err != nil {
@@ -375,6 +379,7 @@ func (s *Store) getResultsByServiceID(serviceID int64, page, pageSize int) (resu
 		(page-1)*pageSize,
 	)
 	if err != nil {
+		_ = tx.Rollback()
 		return nil, err
 	}
 	idResultMap := make(map[int64]*core.Result)
@@ -417,11 +422,7 @@ func (s *Store) getResultsByServiceID(serviceID int64, page, pageSize int) (resu
 }
 
 func (s *Store) getServiceID(tx *sql.Tx, service *core.Service) (int64, error) {
-	rows, err := tx.Query(
-		"SELECT service_id FROM service WHERE service_key = $1",
-		service.Key(),
-		service.Group,
-	)
+	rows, err := tx.Query("SELECT service_id FROM service WHERE service_key = $1", service.Key())
 	if err != nil {
 		return 0, err
 	}
