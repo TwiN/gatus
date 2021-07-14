@@ -308,6 +308,79 @@ func (s *Store) Close() {
 	_ = s.db.Close()
 }
 
+// insertService inserts a service in the store and returns the generated id of said service
+func (s *Store) insertService(tx *sql.Tx, service *core.Service) (int64, error) {
+	//log.Printf("[database][insertService] Inserting service with group=%s and name=%s", service.Group, service.Name)
+	result, err := tx.Exec(
+		"INSERT INTO service (service_key, service_name, service_group) VALUES ($1, $2, $3)",
+		service.Key(),
+		service.Name,
+		service.Group,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+// insertEvent inserts a service event in the store
+func (s *Store) insertEvent(tx *sql.Tx, serviceID int64, event *core.Event) error {
+	_, err := tx.Exec(
+		"INSERT INTO service_event (service_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
+		serviceID,
+		event.Type,
+		event.Timestamp,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// insertResult inserts a result in the store
+func (s *Store) insertResult(tx *sql.Tx, serviceID int64, result *core.Result) error {
+	res, err := tx.Exec(
+		`
+			INSERT INTO service_result (service_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`,
+		serviceID,
+		result.Success,
+		strings.Join(result.Errors, arraySeparator),
+		result.Connected,
+		result.HTTPStatus,
+		result.DNSRCode,
+		result.CertificateExpiration,
+		result.Hostname,
+		result.IP,
+		result.Duration,
+		result.Timestamp,
+	)
+	if err != nil {
+		return err
+	}
+	serviceResultID, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	return s.insertConditionResults(tx, serviceResultID, result.ConditionResults)
+}
+
+func (s *Store) insertConditionResults(tx *sql.Tx, serviceResultID int64, conditionResults []*core.ConditionResult) error {
+	var err error
+	for _, cr := range conditionResults {
+		_, err = tx.Exec("INSERT INTO service_result_condition (service_result_id, condition, success) VALUES ($1, $2, $3)",
+			serviceResultID,
+			cr.Condition,
+			cr.Success,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
 	rows, err := tx.Query("SELECT service_key FROM service")
 	if err != nil {
@@ -458,21 +531,6 @@ func (s *Store) getServiceID(tx *sql.Tx, service *core.Service) (int64, error) {
 	return id, nil
 }
 
-// insertService inserts a service in the store and returns the generated id of said service
-func (s *Store) insertService(tx *sql.Tx, service *core.Service) (int64, error) {
-	//log.Printf("[database][insertService] Inserting service with group=%s and name=%s", service.Group, service.Name)
-	result, err := tx.Exec(
-		"INSERT INTO service (service_key, service_name, service_group) VALUES ($1, $2, $3)",
-		service.Key(),
-		service.Name,
-		service.Group,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.LastInsertId()
-}
-
 func (s *Store) getNumberOfEventsByServiceID(tx *sql.Tx, serviceID int64) (int64, error) {
 	rows, err := tx.Query("SELECT COUNT(1) FROM service_event WHERE service_id = $1", serviceID)
 	if err != nil {
@@ -511,20 +569,6 @@ func (s *Store) getNumberOfResultsByServiceID(tx *sql.Tx, serviceID int64) (int6
 	return numberOfResults, nil
 }
 
-// insertEvent inserts a service event in the store
-func (s *Store) insertEvent(tx *sql.Tx, serviceID int64, event *core.Event) error {
-	_, err := tx.Exec(
-		"INSERT INTO service_event (service_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
-		serviceID,
-		event.Type,
-		event.Timestamp,
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *Store) getLastServiceResultSuccessValue(tx *sql.Tx, serviceID int64) (bool, error) {
 	rows, err := tx.Query("SELECT success FROM service_result WHERE service_id = $1 ORDER BY service_result_id DESC LIMIT 1", serviceID)
 	if err != nil {
@@ -542,50 +586,6 @@ func (s *Store) getLastServiceResultSuccessValue(tx *sql.Tx, serviceID int64) (b
 		return false, errNoRowsReturned
 	}
 	return success, nil
-}
-
-// insertResult inserts a result in the store
-func (s *Store) insertResult(tx *sql.Tx, serviceID int64, result *core.Result) error {
-	res, err := tx.Exec(
-		`
-			INSERT INTO service_result (service_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		`,
-		serviceID,
-		result.Success,
-		strings.Join(result.Errors, arraySeparator),
-		result.Connected,
-		result.HTTPStatus,
-		result.DNSRCode,
-		result.CertificateExpiration,
-		result.Hostname,
-		result.IP,
-		result.Duration,
-		result.Timestamp,
-	)
-	if err != nil {
-		return err
-	}
-	serviceResultID, err := res.LastInsertId()
-	if err != nil {
-		return err
-	}
-	return s.insertConditionResults(tx, serviceResultID, result.ConditionResults)
-}
-
-func (s *Store) insertConditionResults(tx *sql.Tx, serviceResultID int64, conditionResults []*core.ConditionResult) error {
-	var err error
-	for _, cr := range conditionResults {
-		_, err = tx.Exec("INSERT INTO service_result_condition (service_result_id, condition, success) VALUES ($1, $2, $3)",
-			serviceResultID,
-			cr.Condition,
-			cr.Success,
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // deleteOldServiceEvents deletes old service events that are no longer needed
