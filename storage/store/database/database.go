@@ -121,7 +121,12 @@ func (s *Store) createSchema() error {
 // GetAllServiceStatusesWithResultPagination returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
 func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus {
-	panic("implement me")
+	serviceStatuses := s.getAllServiceStatuses(0, 0, page, pageSize)
+	m := make(map[string]*core.ServiceStatus, len(serviceStatuses))
+	for _, serviceStatus := range serviceStatuses {
+		m[serviceStatus.Key] = serviceStatus
+	}
+	return m
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
@@ -131,22 +136,7 @@ func (s *Store) GetServiceStatus(groupName, serviceName string) *core.ServiceSta
 
 // GetServiceStatusByKey returns the service status for a given key
 func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
-	serviceID, serviceName, serviceGroup, err := s.getServiceIDNameAndGroupByKey(key)
-	if err != nil {
-		return nil
-	}
-	serviceStatus := &core.ServiceStatus{
-		Name:   serviceName,
-		Group:  serviceGroup,
-		Key:    key,
-		Uptime: nil,
-	}
-	if serviceStatus.Events, err = s.getEventsByServiceID(serviceID); err != nil {
-		log.Printf("[database][GetServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
-	}
-	serviceStatus.Results, err = s.getResultsByServiceID(serviceID)
-	// TODO: populate Uptime
-	// TODO: add flag to decide whether to retrieve uptime or not
+	serviceStatus, _ := s.getServiceStatusByKey(key, 1, core.MaximumNumberOfEvents, 1, core.MaximumNumberOfResults)
 	return serviceStatus
 }
 
@@ -271,13 +261,69 @@ func (s *Store) Close() {
 	_ = s.db.Close()
 }
 
-func (s *Store) getServiceIDNameAndGroupByKey(key string) (id int64, group, name string, err error) {
-	rows, err := s.db.Query("SELECT service_id, service_name, service_group FROM service WHERE service_key = $1 LIMIT 1", key)
+func (s *Store) getAllServiceStatuses(eventsPage, eventsPageSize, resultsPage, resultsPageSize int) []*core.ServiceStatus { // TODO: add uptimePage?
+	var serviceStatuses []*core.ServiceStatus
+	keys, err := s.getAllServiceKeys()
+	if err != nil {
+		return nil
+	}
+	for _, key := range keys {
+		serviceStatus, err := s.getServiceStatusByKey(key, eventsPage, eventsPageSize, resultsPage, resultsPageSize)
+		if err != nil {
+			continue
+		}
+		serviceStatuses = append(serviceStatuses, serviceStatus)
+	}
+	return serviceStatuses
+}
+
+func (s *Store) getAllServiceKeys() (keys []string, err error) {
+	rows, err := s.db.Query("SELECT service_key FROM service")
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var key string
+		_ = rows.Scan(&key)
+		keys = append(keys, key)
+	}
+	_ = rows.Close()
+	return
+}
+
+func (s *Store) getServiceStatusByKey(key string, eventsPage, eventsPageSize, resultsPage, resultsPageSize int) (*core.ServiceStatus, error) { // TODO: add uptimePage?
+	serviceID, serviceName, serviceGroup, err := s.getServiceIDGroupAndNameByKey(key)
+	if err != nil {
+		return nil, err
+	}
+	serviceStatus := &core.ServiceStatus{
+		Name:   serviceName,
+		Group:  serviceGroup,
+		Key:    key,
+		Uptime: nil,
+	}
+	if eventsPageSize > 0 {
+		if serviceStatus.Events, err = s.getEventsByServiceID(serviceID, eventsPage, eventsPageSize); err != nil {
+			log.Printf("[database][getServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
+		}
+	}
+	if resultsPageSize > 0 {
+		if serviceStatus.Results, err = s.getResultsByServiceID(serviceID, resultsPage, resultsPageSize); err != nil {
+			log.Printf("[database][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
+		}
+	}
+	// TODO: populate Uptime
+	// TODO: add flag to decide whether to retrieve uptime or not
+	return serviceStatus, nil
+}
+
+func (s *Store) getServiceIDGroupAndNameByKey(key string) (id int64, group, name string, err error) {
+	rows, err := s.db.Query("SELECT service_id, service_group, service_name FROM service WHERE service_key = $1 LIMIT 1", key)
 	if err != nil {
 		return 0, "", "", err
 	}
 	for rows.Next() {
-		_ = rows.Scan(&id, &name, &group)
+		_ = rows.Scan(&id, &group, &name)
 	}
 	_ = rows.Close()
 	if id == 0 {
@@ -286,8 +332,19 @@ func (s *Store) getServiceIDNameAndGroupByKey(key string) (id int64, group, name
 	return
 }
 
-func (s *Store) getEventsByServiceID(serviceID int64) (events []*core.Event, err error) {
-	rows, err := s.db.Query("SELECT event_type, event_timestamp FROM service_event WHERE service_id = $1 ORDER BY service_event_id DESC LIMIT $2", serviceID, core.MaximumNumberOfEvents)
+func (s *Store) getEventsByServiceID(serviceID int64, page, pageSize int) (events []*core.Event, err error) {
+	rows, err := s.db.Query(
+		`
+			SELECT event_type, event_timestamp
+			FROM service_event
+			WHERE service_id = $1
+			ORDER BY service_event_id DESC
+			LIMIT $2 OFFSET $3
+		`,
+		serviceID,
+		pageSize,
+		(page-1)*pageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -300,17 +357,22 @@ func (s *Store) getEventsByServiceID(serviceID int64) (events []*core.Event, err
 	return
 }
 
-func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, err error) {
-	rows, err := s.db.Query(
+func (s *Store) getResultsByServiceID(serviceID int64, page, pageSize int) (results []*core.Result, err error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return
+	}
+	rows, err := tx.Query(
 		`
 			SELECT service_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp
 			FROM service_result
 			WHERE service_id = $1
 			ORDER BY timestamp DESC
-			LIMIT $2
+			LIMIT $2 OFFSET $3
 		`,
 		serviceID,
-		core.MaximumNumberOfResults,
+		pageSize,
+		(page-1)*pageSize,
 	)
 	if err != nil {
 		return nil, err
@@ -327,12 +389,8 @@ func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, 
 	}
 	_ = rows.Close()
 	// Get the conditionResults
-	transaction, err := s.db.Begin()
-	if err != nil {
-		return
-	}
 	for serviceResultID, result := range idResultMap {
-		rows, err = transaction.Query(
+		rows, err = tx.Query(
 			`
 				SELECT service_result_id, condition, success
 				FROM service_result_condition
@@ -341,19 +399,18 @@ func (s *Store) getResultsByServiceID(serviceID int64) (results []*core.Result, 
 			serviceResultID,
 		)
 		if err != nil {
-			_ = transaction.Rollback()
+			_ = tx.Rollback()
 			return
 		}
 		for rows.Next() {
 			conditionResult := &core.ConditionResult{}
-			//var id int64
 			_ = rows.Scan(&conditionResult.Condition, &conditionResult.Success)
 			result.ConditionResults = append(result.ConditionResults, conditionResult)
 		}
 		_ = rows.Close()
 	}
-	if err = transaction.Commit(); err != nil {
-		_ = transaction.Rollback()
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
 		return
 	}
 	return
