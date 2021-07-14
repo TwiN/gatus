@@ -7,7 +7,7 @@ import (
 
 func TestUptime_ProcessResult(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
-	serviceStatus := NewServiceStatus(service)
+	serviceStatus := NewServiceStatus(service.Key(), service.Group, service.Name)
 	uptime := serviceStatus.Uptime
 
 	checkUptimes(t, serviceStatus, 0.00, 0.00, 0.00)
@@ -50,7 +50,7 @@ func TestUptime_ProcessResult(t *testing.T) {
 
 func TestServiceStatus_AddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	service := &Service{Name: "name", Group: "group"}
-	serviceStatus := NewServiceStatus(service)
+	serviceStatus := NewServiceStatus(service.Key(), service.Group, service.Name)
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	// Start 12 days ago

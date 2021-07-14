@@ -3,6 +3,7 @@ package memory
 import (
 	"encoding/gob"
 	"sync"
+	"time"
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/util"
@@ -69,7 +70,11 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	s.Lock()
 	serviceStatus, exists := s.cache.Get(key)
 	if !exists {
-		serviceStatus = core.NewServiceStatus(service)
+		serviceStatus = core.NewServiceStatus(key, service.Group, service.Name)
+		serviceStatus.(*core.ServiceStatus).Events = append(serviceStatus.(*core.ServiceStatus).Events, &core.Event{
+			Type:      core.EventStart,
+			Timestamp: time.Now(),
+		})
 	}
 	serviceStatus.(*core.ServiceStatus).AddResult(result)
 	s.cache.Set(key, serviceStatus)

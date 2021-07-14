@@ -444,12 +444,7 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, eventsPage, events
 	if err != nil {
 		return nil, err
 	}
-	serviceStatus := &core.ServiceStatus{
-		Name:   serviceName,
-		Group:  serviceGroup,
-		Key:    key,
-		Uptime: &core.Uptime{},
-	}
+	serviceStatus := core.NewServiceStatus(key, serviceGroup, serviceName)
 	if eventsPageSize > 0 {
 		if serviceStatus.Events, err = s.getEventsByServiceID(tx, serviceID, eventsPage, eventsPageSize); err != nil {
 			log.Printf("[database][getServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())

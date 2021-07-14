@@ -1,9 +1,5 @@
 package core
 
-import (
-	"time"
-)
-
 const (
 	// MaximumNumberOfResults is the maximum number of results that ServiceStatus.Results can have
 	MaximumNumberOfResults = 100
@@ -42,17 +38,14 @@ type ServiceStatus struct {
 }
 
 // NewServiceStatus creates a new ServiceStatus
-func NewServiceStatus(service *Service) *ServiceStatus {
+func NewServiceStatus(serviceKey, serviceGroup, serviceName string) *ServiceStatus {
 	return &ServiceStatus{
-		Name:    service.Name,
-		Group:   service.Group,
-		Key:     service.Key(),
+		Name:    serviceName,
+		Group:   serviceGroup,
+		Key:     serviceKey,
 		Results: make([]*Result, 0),
-		Events: []*Event{{
-			Type:      EventStart,
-			Timestamp: time.Now(),
-		}},
-		Uptime: NewUptime(),
+		Events:  make([]*Event, 0),
+		Uptime:  NewUptime(),
 	}
 }
 
