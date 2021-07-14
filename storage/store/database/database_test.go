@@ -145,3 +145,153 @@ func TestStore_Insert(t *testing.T) {
 		}
 	}
 }
+
+func TestStore_GetServiceStatus(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatus.db")
+	defer store.db.Close()
+	store.Insert(&testService, &testSuccessfulResult)
+	store.Insert(&testService, &testUnsuccessfulResult)
+
+	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name)
+	if serviceStatus == nil {
+		t.Fatalf("serviceStatus shouldn't have been nil")
+	}
+	if serviceStatus.Uptime == nil {
+		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
+	}
+	if serviceStatus.Uptime.LastHour != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastSevenDays != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
+	}
+}
+
+func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusForMissingStatusReturnsNil.db")
+	defer store.db.Close()
+	store.Insert(&testService, &testSuccessfulResult)
+
+	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname")
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
+	}
+	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname")
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
+	}
+	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name)
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
+	}
+}
+
+func TestStore_GetServiceStatusByKey(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusByKey.db")
+	defer store.db.Close()
+	store.Insert(&testService, &testSuccessfulResult)
+	store.Insert(&testService, &testUnsuccessfulResult)
+
+	serviceStatus := store.GetServiceStatusByKey(testService.Key())
+	if serviceStatus == nil {
+		t.Fatalf("serviceStatus shouldn't have been nil")
+	}
+	if serviceStatus.Uptime == nil {
+		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
+	}
+	if serviceStatus.Uptime.LastHour != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastSevenDays != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
+	}
+}
+
+func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatusesWithResultPagination.db")
+	defer store.db.Close()
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	store.Insert(&testService, firstResult)
+	store.Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	serviceStatuses := store.GetAllServiceStatusesWithResultPagination(1, 20)
+	if len(serviceStatuses) != 1 {
+		t.Fatal("expected 1 service status")
+	}
+	actual, exists := serviceStatuses[testService.Key()]
+	if !exists {
+		t.Fatal("expected service status to exist")
+	}
+	if len(actual.Results) != 2 {
+		t.Error("expected 2 results, got", len(actual.Results))
+	}
+	if len(actual.Events) != 0 {
+		t.Error("expected 0 events, got", len(actual.Events))
+	}
+}
+
+func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db")
+	defer store.db.Close()
+	now := time.Now().Round(time.Minute)
+	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+
+	store.Insert(&testService, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
+
+	tx, _ := store.db.Begin()
+	oldest, _ := store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	_ = tx.Commit()
+	if oldest.Truncate(time.Hour) != 5*time.Hour {
+		t.Errorf("oldest service uptime entry should've been ~5 hours old, was %s", oldest)
+	}
+
+	// The oldest cache entry should remain at ~5 hours old, because this entry is more recent
+	store.Insert(&testService, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
+
+	tx, _ = store.db.Begin()
+	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	_ = tx.Commit()
+	if oldest.Truncate(time.Hour) != 5*time.Hour {
+		t.Errorf("oldest service uptime entry should've been ~5 hours old, was %s", oldest)
+	}
+
+	// The oldest cache entry should now become at ~8 hours old, because this entry is older
+	store.Insert(&testService, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+
+	tx, _ = store.db.Begin()
+	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	_ = tx.Commit()
+	if oldest.Truncate(time.Hour) != 8*time.Hour {
+		t.Errorf("oldest service uptime entry should've been ~8 hours old, was %s", oldest)
+	}
+
+	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
+	store.Insert(&testService, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+
+	tx, _ = store.db.Begin()
+	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	_ = tx.Commit()
+	if oldest.Truncate(time.Hour) != uptimeCleanUpThreshold-time.Hour {
+		t.Errorf("oldest service uptime entry should've been ~%s hours old, was %s", uptimeCleanUpThreshold-time.Hour, oldest)
+	}
+
+	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
+	// one should be deleted since they both surpass uptimeRetention
+	store.Insert(&testService, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+
+	tx, _ = store.db.Begin()
+	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	_ = tx.Commit()
+	if oldest.Truncate(time.Hour) != 8*time.Hour {
+		t.Errorf("oldest service uptime entry should've been ~8 hours old, was %s", oldest)
+	}
+}
