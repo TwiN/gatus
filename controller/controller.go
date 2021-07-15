@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gocache"
 	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
@@ -115,7 +117,7 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err = json.Marshal(storage.Get().GetAllServiceStatusesWithResultPagination(page, pageSize))
+		data, err = json.Marshal(storage.Get().GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(page, pageSize)))
 		if err != nil {
 			log.Printf("[controller][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -142,7 +144,7 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	vars := mux.Vars(r)
-	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"])
+	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, core.MaximumNumberOfEvents).WithUptime())
 	if serviceStatus == nil {
 		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
 		writer.WriteHeader(http.StatusNotFound)
@@ -150,7 +152,7 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := map[string]interface{}{
-		"serviceStatus": serviceStatus.WithResultPagination(page, pageSize),
+		"serviceStatus": serviceStatus,
 		// The following fields, while present on core.ServiceStatus, are annotated to remain hidden so that we can
 		// expose only the necessary data on /api/v1/statuses.
 		// Since the /api/v1/statuses/{key} endpoint does need this data, however, we explicitly expose it here

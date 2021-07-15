@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 )
 
 var (
@@ -88,7 +89,7 @@ func TestStore_Insert(t *testing.T) {
 		t.Fatalf("expected 1 ServiceStatus, got %d", store.cache.Count())
 	}
 	key := testService.Key()
-	serviceStatus := store.GetServiceStatusByKey(key)
+	serviceStatus := store.GetServiceStatusByKey(key, paging.NewServiceStatusParams())
 	if serviceStatus == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", key)
 	}
@@ -96,7 +97,7 @@ func TestStore_Insert(t *testing.T) {
 		t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", serviceStatus.Name, len(serviceStatus.Results))
 	}
 	for i, r := range serviceStatus.Results {
-		expectedResult := store.GetServiceStatus(testService.Group, testService.Name).Results[i]
+		expectedResult := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20)).Results[i]
 		if r.HTTPStatus != expectedResult.HTTPStatus {
 			t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
 		}
@@ -138,7 +139,7 @@ func TestStore_GetServiceStatus(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name)
+	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams())
 	if serviceStatus == nil {
 		t.Fatalf("serviceStatus shouldn't have been nil")
 	}
@@ -160,15 +161,15 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 
-	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname")
+	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
 	}
-	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname")
+	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
 	}
-	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name)
+	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
 	}
@@ -179,7 +180,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	serviceStatus := store.GetServiceStatusByKey(testService.Key())
+	serviceStatus := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams())
 	if serviceStatus == nil {
 		t.Fatalf("serviceStatus shouldn't have been nil")
 	}
@@ -197,7 +198,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	}
 }
 
-func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
+func TestStore_GetAllServiceStatusesWithResults(t *testing.T) {
 	store, _ := NewStore("")
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
@@ -206,7 +207,32 @@ func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	serviceStatuses := store.GetAllServiceStatusesWithResultPagination(1, 20)
+	serviceStatuses := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+	if len(serviceStatuses) != 1 {
+		t.Fatal("expected 1 service status")
+	}
+	actual, exists := serviceStatuses[testService.Key()]
+	if !exists {
+		t.Fatal("expected service status to exist")
+	}
+	if len(actual.Results) != 2 {
+		t.Error("expected 2 results, got", len(actual.Results))
+	}
+	if len(actual.Events) != 0 {
+		t.Error("expected 0 events, got", len(actual.Events))
+	}
+}
+
+func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
+	store, _ := NewStore("")
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	store.Insert(&testService, firstResult)
+	store.Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	serviceStatuses := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 50))
 	if len(serviceStatuses) != 1 {
 		t.Fatal("expected 1 service status")
 	}
@@ -232,20 +258,20 @@ func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
 	if store.cache.Count() != 2 {
 		t.Errorf("expected cache to have 2 keys, got %d", store.cache.Count())
 	}
-	if store.GetServiceStatusByKey(firstService.Key()) == nil {
+	if store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
 		t.Fatal("firstService should exist")
 	}
-	if store.GetServiceStatusByKey(secondService.Key()) == nil {
+	if store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) == nil {
 		t.Fatal("secondService should exist")
 	}
 	store.DeleteAllServiceStatusesNotInKeys([]string{firstService.Key()})
 	if store.cache.Count() != 1 {
 		t.Fatalf("expected cache to have 1 keys, got %d", store.cache.Count())
 	}
-	if store.GetServiceStatusByKey(firstService.Key()) == nil {
+	if store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
 		t.Error("secondService should've been deleted")
 	}
-	if store.GetServiceStatusByKey(secondService.Key()) != nil {
+	if store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) != nil {
 		t.Error("firstService should still exist")
 	}
 }

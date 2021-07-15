@@ -7,6 +7,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 )
 
 var (
@@ -77,12 +78,12 @@ var (
 	}
 )
 
-func BenchmarkStore_GetAllServiceStatusesWithResultPagination(b *testing.B) {
+func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 	memoryStore, err := memory.NewStore("")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatusesWithResultPagination.db")
+	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -121,12 +122,12 @@ func BenchmarkStore_GetAllServiceStatusesWithResultPagination(b *testing.B) {
 			if scenario.Parallel {
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
-						scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
+						scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
 					}
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					scenario.Store.GetAllServiceStatusesWithResultPagination(1, 20)
+					scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
 				}
 			}
 			b.ReportAllocs()
@@ -136,10 +137,10 @@ func BenchmarkStore_GetAllServiceStatusesWithResultPagination(b *testing.B) {
 }
 
 func BenchmarkStore_Insert(b *testing.B) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		b.Fatal("failed to create store:", err.Error())
-	}
+	//memoryStore, err := memory.NewStore("")
+	//if err != nil {
+	//	b.Fatal("failed to create store:", err.Error())
+	//}
 	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
@@ -151,16 +152,16 @@ func BenchmarkStore_Insert(b *testing.B) {
 		Parallel bool
 	}
 	scenarios := []Scenario{
-		{
-			Name:     "memory",
-			Store:    memoryStore,
-			Parallel: false,
-		},
-		{
-			Name:     "memory-parallel",
-			Store:    memoryStore,
-			Parallel: true,
-		},
+		//{
+		//	Name:     "memory",
+		//	Store:    memoryStore,
+		//	Parallel: false,
+		//},
+		//{
+		//	Name:     "memory-parallel",
+		//	Store:    memoryStore,
+		//	Parallel: true,
+		//},
 		{
 			Name:     "database",
 			Store:    databaseStore,

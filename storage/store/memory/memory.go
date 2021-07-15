@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gatus/util"
 	"github.com/TwinProduction/gocache"
 )
@@ -39,24 +40,24 @@ func NewStore(file string) (*Store, error) {
 	return store, nil
 }
 
-// GetAllServiceStatusesWithResultPagination returns all monitored core.ServiceStatus
+// GetAllServiceStatuses returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus {
+func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus {
 	serviceStatuses := s.cache.GetAll()
 	pagedServiceStatuses := make(map[string]*core.ServiceStatus, len(serviceStatuses))
 	for k, v := range serviceStatuses {
-		pagedServiceStatuses[k] = v.(*core.ServiceStatus).WithResultPagination(page, pageSize)
+		pagedServiceStatuses[k] = ShallowCopyServiceStatus(v.(*core.ServiceStatus), params)
 	}
 	return pagedServiceStatuses
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (s *Store) GetServiceStatus(groupName, serviceName string) *core.ServiceStatus {
-	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName))
+func (s *Store) GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) *core.ServiceStatus {
+	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), params)
 }
 
 // GetServiceStatusByKey returns the service status for a given key
-func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
+func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) *core.ServiceStatus {
 	serviceStatus := s.cache.GetValue(key)
 	if serviceStatus == nil {
 		return nil
@@ -76,7 +77,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 			Timestamp: time.Now(),
 		})
 	}
-	serviceStatus.(*core.ServiceStatus).AddResult(result)
+	AddResult(serviceStatus.(*core.ServiceStatus), result)
 	s.cache.Set(key, serviceStatus)
 	s.Unlock()
 }

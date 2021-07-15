@@ -4,19 +4,20 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 )
 
 // Store is the interface that each stores should implement
 type Store interface {
-	// GetAllServiceStatusesWithResultPagination returns the JSON encoding of all monitored core.ServiceStatus
+	// GetAllServiceStatuses returns the JSON encoding of all monitored core.ServiceStatus
 	// with a subset of core.Result defined by the page and pageSize parameters
-	GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus
+	GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus
 
 	// GetServiceStatus returns the service status for a given service name in the given group
-	GetServiceStatus(groupName, serviceName string) *core.ServiceStatus
+	GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) *core.ServiceStatus
 
 	// GetServiceStatusByKey returns the service status for a given key
-	GetServiceStatusByKey(key string) *core.ServiceStatus
+	GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) *core.ServiceStatus
 
 	// Insert adds the observed result for the specified service into the store
 	Insert(service *core.Service, result *core.Result)
