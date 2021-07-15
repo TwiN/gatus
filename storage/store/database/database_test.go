@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 )
 
 var (
@@ -101,7 +102,7 @@ func TestStore_Insert(t *testing.T) {
 	store.Insert(&testService, &testUnsuccessfulResult)
 
 	key := fmt.Sprintf("%s_%s", testService.Group, testService.Name)
-	serviceStatus := store.GetServiceStatusByKey(key)
+	serviceStatus := store.GetServiceStatusByKey(key, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", key)
 	}
@@ -109,7 +110,7 @@ func TestStore_Insert(t *testing.T) {
 		t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", serviceStatus.Name, len(serviceStatus.Results))
 	}
 	for i, r := range serviceStatus.Results {
-		expectedResult := store.GetServiceStatus(testService.Group, testService.Name).Results[i]
+		expectedResult := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime()).Results[i]
 		if r.HTTPStatus != expectedResult.HTTPStatus {
 			t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
 		}
@@ -152,7 +153,7 @@ func TestStore_GetServiceStatus(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name)
+	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus == nil {
 		t.Fatalf("serviceStatus shouldn't have been nil")
 	}
@@ -175,15 +176,15 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	defer store.db.Close()
 	store.Insert(&testService, &testSuccessfulResult)
 
-	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname")
+	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
 	}
-	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname")
+	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
 	}
-	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name)
+	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
 	}
@@ -195,7 +196,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
-	serviceStatus := store.GetServiceStatusByKey(testService.Key())
+	serviceStatus := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus == nil {
 		t.Fatalf("serviceStatus shouldn't have been nil")
 	}
@@ -213,8 +214,8 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	}
 }
 
-func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatusesWithResultPagination.db")
+func TestStore_GetAllServiceStatuses(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatuses.db")
 	defer store.db.Close()
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
@@ -223,7 +224,7 @@ func TestStore_GetAllServiceStatusesWithResultPagination(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	serviceStatuses := store.GetAllServiceStatusesWithResultPagination(1, 20)
+	serviceStatuses := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
 	if len(serviceStatuses) != 1 {
 		t.Fatal("expected 1 service status")
 	}

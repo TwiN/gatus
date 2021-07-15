@@ -8,6 +8,7 @@ import (
 
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/gorilla/mux"
 )
 
@@ -25,7 +26,7 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 	identifier := variables["identifier"]
 	key := strings.TrimSuffix(identifier, ".svg")
-	serviceStatus := storage.Get().GetServiceStatusByKey(key)
+	serviceStatus := storage.Get().GetServiceStatusByKey(key, paging.NewServiceStatusParams().WithUptime())
 	if serviceStatus == nil {
 		writer.WriteHeader(http.StatusNotFound)
 		_, _ = writer.Write([]byte("Requested service not found"))

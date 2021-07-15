@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gatus/util"
 	_ "modernc.org/sqlite"
 )
@@ -140,11 +141,9 @@ func (s *Store) createSchema() error {
 	return err
 }
 
-// TODO: add parameter event and uptime & only fetch them if necessary
-
-// GetAllServiceStatusesWithResultPagination returns all monitored core.ServiceStatus
+// GetAllServiceStatuses returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) map[string]*core.ServiceStatus {
+func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil
@@ -156,7 +155,7 @@ func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) ma
 	}
 	serviceStatuses := make(map[string]*core.ServiceStatus, len(keys))
 	for _, key := range keys {
-		serviceStatus, err := s.getServiceStatusByKey(tx, key, 0, 0, page, pageSize, false)
+		serviceStatus, err := s.getServiceStatusByKey(tx, key, params)
 		if err != nil {
 			continue
 		}
@@ -169,17 +168,17 @@ func (s *Store) GetAllServiceStatusesWithResultPagination(page, pageSize int) ma
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (s *Store) GetServiceStatus(groupName, serviceName string) *core.ServiceStatus {
-	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName))
+func (s *Store) GetServiceStatus(groupName, serviceName string, parameters *paging.ServiceStatusParams) *core.ServiceStatus {
+	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), parameters)
 }
 
 // GetServiceStatusByKey returns the service status for a given key
-func (s *Store) GetServiceStatusByKey(key string) *core.ServiceStatus {
+func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) *core.ServiceStatus {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil
 	}
-	serviceStatus, err := s.getServiceStatusByKey(tx, key, 1, core.MaximumNumberOfEvents, 1, core.MaximumNumberOfResults, true)
+	serviceStatus, err := s.getServiceStatusByKey(tx, key, params)
 	if err != nil {
 		_ = tx.Rollback()
 		return nil
@@ -439,23 +438,23 @@ func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
 	return
 }
 
-func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, eventsPage, eventsPageSize, resultsPage, resultsPageSize int, includeUptime bool) (*core.ServiceStatus, error) {
+func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
 	serviceID, serviceName, serviceGroup, err := s.getServiceIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		return nil, err
 	}
 	serviceStatus := core.NewServiceStatus(key, serviceGroup, serviceName)
-	if eventsPageSize > 0 {
-		if serviceStatus.Events, err = s.getEventsByServiceID(tx, serviceID, eventsPage, eventsPageSize); err != nil {
+	if parameters.EventsPageSize > 0 {
+		if serviceStatus.Events, err = s.getEventsByServiceID(tx, serviceID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
 			log.Printf("[database][getServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
 		}
 	}
-	if resultsPageSize > 0 {
-		if serviceStatus.Results, err = s.getResultsByServiceID(tx, serviceID, resultsPage, resultsPageSize); err != nil {
+	if parameters.ResultsPageSize > 0 {
+		if serviceStatus.Results, err = s.getResultsByServiceID(tx, serviceID, parameters.ResultsPage, parameters.ResultsPageSize); err != nil {
 			log.Printf("[database][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
-	if includeUptime {
+	if parameters.IncludeUptime {
 		now := time.Now()
 		serviceStatus.Uptime.LastHour, _, _ = s.getServiceUptime(tx, serviceID, now.Add(-time.Hour), now)
 		serviceStatus.Uptime.LastTwentyFourHours, _, _ = s.getServiceUptime(tx, serviceID, now.Add(-24*time.Hour), now)
