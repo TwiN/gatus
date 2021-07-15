@@ -20,9 +20,9 @@ import (
 const (
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour             // Maximum uptime age before triggering a clean up
-	eventsCleanUpThreshold  = core.MaximumNumberOfEvents * 2  // Maximum number of events before triggering a clean up
-	resultsCleanUpThreshold = core.MaximumNumberOfResults * 2 // Maximum number of results before triggering a clean up
+	uptimeCleanUpThreshold  = 10 * 24 * time.Hour              // Maximum uptime age before triggering a clean up
+	eventsCleanUpThreshold  = core.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
+	resultsCleanUpThreshold = core.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
 
 	uptimeRetention = 7 * 24 * time.Hour
 )
@@ -258,7 +258,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		// Clean up old events if there's more than twice the maximum number of events
 		// This lets us both keep the table clean without impacting performance too much
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
-		if numberOfEvents > resultsCleanUpThreshold {
+		if numberOfEvents > eventsCleanUpThreshold {
 			if err = s.deleteOldServiceEvents(tx, serviceID); err != nil {
 				log.Printf("[database][Insert] Failed to delete old events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
@@ -275,7 +275,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	if err != nil {
 		log.Printf("[database][Insert] Failed to retrieve total number of results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	} else {
-		if numberOfResults > eventsCleanUpThreshold {
+		if numberOfResults > resultsCleanUpThreshold {
 			if err = s.deleteOldServiceResults(tx, serviceID); err != nil {
 				log.Printf("[database][Insert] Failed to delete old results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}

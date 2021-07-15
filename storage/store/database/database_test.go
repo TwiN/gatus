@@ -296,3 +296,19 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 		t.Errorf("oldest service uptime entry should've been ~8 hours old, was %s", oldest)
 	}
 }
+
+func TestStore_InsertCleansUpProperly(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_deleteOldServiceResults.db")
+	defer store.db.Close()
+	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
+		store.Insert(&testService, &testSuccessfulResult)
+		store.Insert(&testService, &testUnsuccessfulResult)
+		ss := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, core.MaximumNumberOfResults*5).WithEvents(1, core.MaximumNumberOfEvents*5))
+		if len(ss.Results) > resultsCleanUpThreshold+1 {
+			t.Errorf("number of results shouldn't have exceeded %d, reached %d", resultsCleanUpThreshold, len(ss.Results))
+		}
+		if len(ss.Events) > eventsCleanUpThreshold+1 {
+			t.Errorf("number of events shouldn't have exceeded %d, reached %d", eventsCleanUpThreshold, len(ss.Events))
+		}
+	}
+}
