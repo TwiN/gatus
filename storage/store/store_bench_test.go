@@ -137,10 +137,10 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 }
 
 func BenchmarkStore_Insert(b *testing.B) {
-	//memoryStore, err := memory.NewStore("")
-	//if err != nil {
-	//	b.Fatal("failed to create store:", err.Error())
-	//}
+	memoryStore, err := memory.NewStore("")
+	if err != nil {
+		b.Fatal("failed to create store:", err.Error())
+	}
 	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
@@ -152,16 +152,16 @@ func BenchmarkStore_Insert(b *testing.B) {
 		Parallel bool
 	}
 	scenarios := []Scenario{
-		//{
-		//	Name:     "memory",
-		//	Store:    memoryStore,
-		//	Parallel: false,
-		//},
-		//{
-		//	Name:     "memory-parallel",
-		//	Store:    memoryStore,
-		//	Parallel: true,
-		//},
+		{
+			Name:     "memory",
+			Store:    memoryStore,
+			Parallel: false,
+		},
+		{
+			Name:     "memory-parallel",
+			Store:    memoryStore,
+			Parallel: true,
+		},
 		{
 			Name:     "database",
 			Store:    databaseStore,
@@ -200,7 +200,6 @@ func BenchmarkStore_Insert(b *testing.B) {
 					}
 					result.Timestamp = time.Now()
 					scenario.Store.Insert(&testService, &result)
-					//wat := scenario.Store.GetServiceStatusByKey(testService.Key())
 				}
 			}
 			b.ReportAllocs()
