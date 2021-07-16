@@ -242,7 +242,7 @@ func TestStore_GetServiceStatus(t *testing.T) {
 		t.Fatalf("serviceStatus.Results should've had 2 entries")
 	}
 	if serviceStatus.Results[0].Timestamp.After(serviceStatus.Results[1].Timestamp) {
-		t.Fatalf("The result at index 0 should've been older than the result at index 1")
+		t.Error("The result at index 0 should've been older than the result at index 1")
 	}
 	if serviceStatus.Uptime.LastHour != 0.5 {
 		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
@@ -271,6 +271,36 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
 	if serviceStatus != nil {
 		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
+	}
+}
+
+func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2.db")
+	defer store.Close()
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = timestamp.Add(-time.Minute)
+	secondResult := testUnsuccessfulResult
+	secondResult.Timestamp = timestamp
+	store.Insert(&testService, &firstResult)
+	store.Insert(&testService, &secondResult)
+
+	serviceStatusPage1 := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 1))
+	if serviceStatusPage1 == nil {
+		t.Fatalf("serviceStatusPage1 shouldn't have been nil")
+	}
+	if len(serviceStatusPage1.Results) != 1 {
+		t.Fatalf("serviceStatusPage1 should've had 1 result")
+	}
+	serviceStatusPage2 := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(2, 1))
+	if serviceStatusPage2 == nil {
+		t.Fatalf("serviceStatusPage2 shouldn't have been nil")
+	}
+	if len(serviceStatusPage2.Results) != 1 {
+		t.Fatalf("serviceStatusPage2 should've had 1 result")
+	}
+	// Compare the timestamp of both pages
+	if !serviceStatusPage1.Results[0].Timestamp.After(serviceStatusPage2.Results[0].Timestamp) {
+		t.Errorf("The result from the first page should've been more recent than the results from the second page")
 	}
 }
 

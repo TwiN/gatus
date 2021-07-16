@@ -521,9 +521,19 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 			SELECT service_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp
 			FROM service_result
 			WHERE service_id = $1
-			ORDER BY timestamp ASC
+			ORDER BY service_result_id DESC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
 			LIMIT $2 OFFSET $3
 		`,
+		//`
+		//	SELECT * FROM (
+		//	    SELECT service_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp
+		//		FROM service_result
+		//		WHERE service_id = $1
+		//		ORDER BY service_result_id DESC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
+		//		LIMIT $2 OFFSET $3
+		//	)
+		//	ORDER BY service_result_id ASC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
+		//`,
 		serviceID,
 		pageSize,
 		(page-1)*pageSize,
@@ -540,7 +550,9 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 		if len(joinedErrors) != 0 {
 			result.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
-		results = append(results, result)
+		//results = append(results, result)
+		// This is faster than using a subselect
+		results = append([]*core.Result{result}, results...)
 		idResultMap[id] = result
 	}
 	_ = rows.Close()
