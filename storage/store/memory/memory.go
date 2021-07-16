@@ -62,7 +62,7 @@ func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusPa
 	if serviceStatus == nil {
 		return nil
 	}
-	return serviceStatus.(*core.ServiceStatus)
+	return ShallowCopyServiceStatus(serviceStatus.(*core.ServiceStatus), params)
 }
 
 // Insert adds the observed result for the specified service into the store
