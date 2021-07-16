@@ -169,8 +169,8 @@ func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[st
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (s *Store) GetServiceStatus(groupName, serviceName string, parameters *paging.ServiceStatusParams) *core.ServiceStatus {
-	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), parameters)
+func (s *Store) GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) *core.ServiceStatus {
+	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), params)
 }
 
 // GetServiceStatusByKey returns the service status for a given key
@@ -468,9 +468,9 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging
 	}
 	if parameters.IncludeUptime {
 		now := time.Now()
-		serviceStatus.Uptime.LastHour, _, _ = s.getServiceUptime(tx, serviceID, now.Add(-time.Hour), now)
-		serviceStatus.Uptime.LastTwentyFourHours, _, _ = s.getServiceUptime(tx, serviceID, now.Add(-24*time.Hour), now)
-		serviceStatus.Uptime.LastSevenDays, _, _ = s.getServiceUptime(tx, serviceID, now.Add(-7*24*time.Hour), now)
+		serviceStatus.Uptime.LastHour, _, err = s.getServiceUptime(tx, serviceID, now.Add(-time.Hour), now)
+		serviceStatus.Uptime.LastTwentyFourHours, _, err = s.getServiceUptime(tx, serviceID, now.Add(-24*time.Hour), now)
+		serviceStatus.Uptime.LastSevenDays, _, err = s.getServiceUptime(tx, serviceID, now.Add(-7*24*time.Hour), now)
 	}
 	return serviceStatus, nil
 }
