@@ -62,7 +62,7 @@ func AddResult(ss *core.ServiceStatus, result *core.Result) {
 	if len(ss.Results) > 0 {
 		// Check if there's any change since the last result
 		if ss.Results[len(ss.Results)-1].Success != result.Success {
-			ss.Events = append(ss.Events, generateEventBasedOnResultSuccess(result))
+			ss.Events = append(ss.Events, core.NewEventFromResult(result))
 			if len(ss.Events) > core.MaximumNumberOfEvents {
 				// Doing ss.Events[1:] would usually be sufficient, but in the case where for some reason, the slice has
 				// more than one extra element, we can get rid of all of them at once and thus returning the slice to a
@@ -72,7 +72,7 @@ func AddResult(ss *core.ServiceStatus, result *core.Result) {
 		}
 	} else {
 		// This is the first result, so we need to add the first healthy/unhealthy event
-		ss.Events = append(ss.Events, generateEventBasedOnResultSuccess(result))
+		ss.Events = append(ss.Events, core.NewEventFromResult(result))
 	}
 	ss.Results = append(ss.Results, result)
 	if len(ss.Results) > core.MaximumNumberOfResults {
@@ -82,14 +82,4 @@ func AddResult(ss *core.ServiceStatus, result *core.Result) {
 		ss.Results = ss.Results[len(ss.Results)-core.MaximumNumberOfResults:]
 	}
 	processUptimeAfterResult(ss.Uptime, result)
-}
-
-func generateEventBasedOnResultSuccess(result *core.Result) *core.Event {
-	event := &core.Event{Timestamp: result.Timestamp}
-	if result.Success {
-		event.Type = core.EventHealthy
-	} else {
-		event.Type = core.EventUnhealthy
-	}
-	return event
 }

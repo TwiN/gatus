@@ -24,3 +24,14 @@ var (
 	// EventUnhealthy is a type of event that represents a service failing one or more of its conditions
 	EventUnhealthy EventType = "UNHEALTHY"
 )
+
+// NewEventFromResult creates an Event from a Result
+func NewEventFromResult(result *Result) *Event {
+	event := &Event{Timestamp: result.Timestamp}
+	if result.Success {
+		event.Type = EventHealthy
+	} else {
+		event.Type = EventUnhealthy
+	}
+	return event
+}

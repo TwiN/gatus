@@ -233,7 +233,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 			// Silently fail
 			log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", core.EventStart, service.Group, service.Name, err.Error())
 		}
-		event := generateEventBasedOnResult(result)
+		event := core.NewEventFromResult(result)
 		if err = s.insertEvent(tx, serviceID, event); err != nil {
 			// Silently fail
 			log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
@@ -249,7 +249,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 			// that the service either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
 			// an event to mark the change in state
 			if lastResultSuccess != result.Success {
-				event := generateEventBasedOnResult(result)
+				event := core.NewEventFromResult(result)
 				if err = s.insertEvent(tx, serviceID, event); err != nil {
 					// Silently fail
 					log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
