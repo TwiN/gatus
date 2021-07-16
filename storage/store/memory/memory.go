@@ -112,3 +112,8 @@ func (s *Store) Save() error {
 	}
 	return nil
 }
+
+// Close does nothing, because there's nothing to close
+func (s *Store) Close() {
+	return
+}

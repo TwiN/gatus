@@ -37,6 +37,9 @@ func ShallowCopyServiceStatus(ss *core.ServiceStatus, params *paging.ServiceStat
 }
 
 func getStartAndEndIndex(numberOfResults int, page, pageSize int) (int, int) {
+	if page < 1 || pageSize < 0 {
+		return -1, -1
+	}
 	start := numberOfResults - (page * pageSize)
 	end := numberOfResults - ((page - 1) * pageSize)
 	if start > numberOfResults {

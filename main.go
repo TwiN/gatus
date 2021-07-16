@@ -42,6 +42,7 @@ func start(cfg *config.Config) {
 
 func stop() {
 	watchdog.Shutdown()
+	storage.Get().Close()
 	controller.Shutdown()
 }
 
