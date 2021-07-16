@@ -97,7 +97,7 @@ func TestNewStore(t *testing.T) {
 
 func TestStore_Insert(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Insert.db")
-	defer store.db.Close()
+	defer store.Close()
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 
@@ -147,102 +147,9 @@ func TestStore_Insert(t *testing.T) {
 	}
 }
 
-func TestStore_GetServiceStatus(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatus.db")
-	defer store.db.Close()
-	store.Insert(&testService, &testSuccessfulResult)
-	store.Insert(&testService, &testUnsuccessfulResult)
-
-	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-	if serviceStatus == nil {
-		t.Fatalf("serviceStatus shouldn't have been nil")
-	}
-	if serviceStatus.Uptime == nil {
-		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
-	}
-	if serviceStatus.Uptime.LastHour != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
-	}
-	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
-	}
-	if serviceStatus.Uptime.LastSevenDays != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
-	}
-}
-
-func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusForMissingStatusReturnsNil.db")
-	defer store.db.Close()
-	store.Insert(&testService, &testSuccessfulResult)
-
-	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-	if serviceStatus != nil {
-		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
-	}
-	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-	if serviceStatus != nil {
-		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
-	}
-	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-	if serviceStatus != nil {
-		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
-	}
-}
-
-func TestStore_GetServiceStatusByKey(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusByKey.db")
-	defer store.db.Close()
-	store.Insert(&testService, &testSuccessfulResult)
-	store.Insert(&testService, &testUnsuccessfulResult)
-
-	serviceStatus := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-	if serviceStatus == nil {
-		t.Fatalf("serviceStatus shouldn't have been nil")
-	}
-	if serviceStatus.Uptime == nil {
-		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
-	}
-	if serviceStatus.Uptime.LastHour != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
-	}
-	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
-	}
-	if serviceStatus.Uptime.LastSevenDays != 0.5 {
-		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
-	}
-}
-
-func TestStore_GetAllServiceStatuses(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatuses.db")
-	defer store.db.Close()
-	firstResult := &testSuccessfulResult
-	secondResult := &testUnsuccessfulResult
-	store.Insert(&testService, firstResult)
-	store.Insert(&testService, secondResult)
-	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
-	firstResult.Timestamp = time.Time{}
-	secondResult.Timestamp = time.Time{}
-	serviceStatuses := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
-	if len(serviceStatuses) != 1 {
-		t.Fatal("expected 1 service status")
-	}
-	actual, exists := serviceStatuses[testService.Key()]
-	if !exists {
-		t.Fatal("expected service status to exist")
-	}
-	if len(actual.Results) != 2 {
-		t.Error("expected 2 results, got", len(actual.Results))
-	}
-	if len(actual.Events) != 0 {
-		t.Error("expected 0 events, got", len(actual.Events))
-	}
-}
-
 func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db")
-	defer store.db.Close()
+	defer store.Close()
 	now := time.Now().Round(time.Minute)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
@@ -297,9 +204,9 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 }
 
-func TestStore_InsertCleansUpProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_deleteOldServiceResults.db")
-	defer store.db.Close()
+func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db")
+	defer store.Close()
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testService, &testSuccessfulResult)
 		store.Insert(&testService, &testUnsuccessfulResult)
@@ -310,5 +217,138 @@ func TestStore_InsertCleansUpProperly(t *testing.T) {
 		if len(ss.Events) > eventsCleanUpThreshold+1 {
 			t.Errorf("number of events shouldn't have exceeded %d, reached %d", eventsCleanUpThreshold, len(ss.Events))
 		}
+	}
+	store.Clear()
+}
+
+func TestStore_GetServiceStatus(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatus.db")
+	defer store.Close()
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = timestamp.Add(-time.Minute)
+	secondResult := testUnsuccessfulResult
+	secondResult.Timestamp = timestamp
+	store.Insert(&testService, &firstResult)
+	store.Insert(&testService, &secondResult)
+
+	serviceStatus := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+	if serviceStatus == nil {
+		t.Fatalf("serviceStatus shouldn't have been nil")
+	}
+	if serviceStatus.Uptime == nil {
+		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
+	}
+	if len(serviceStatus.Results) != 2 {
+		t.Fatalf("serviceStatus.Results should've had 2 entries")
+	}
+	if serviceStatus.Results[0].Timestamp.After(serviceStatus.Results[1].Timestamp) {
+		t.Fatalf("The result at index 0 should've been older than the result at index 1")
+	}
+	if serviceStatus.Uptime.LastHour != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastSevenDays != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
+	}
+}
+
+func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusForMissingStatusReturnsNil.db")
+	defer store.Close()
+	store.Insert(&testService, &testSuccessfulResult)
+
+	serviceStatus := store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
+	}
+	serviceStatus = store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
+	}
+	serviceStatus = store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+	if serviceStatus != nil {
+		t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
+	}
+}
+
+func TestStore_GetServiceStatusByKey(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusByKey.db")
+	defer store.Close()
+	store.Insert(&testService, &testSuccessfulResult)
+	store.Insert(&testService, &testUnsuccessfulResult)
+
+	serviceStatus := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+	if serviceStatus == nil {
+		t.Fatalf("serviceStatus shouldn't have been nil")
+	}
+	if serviceStatus.Name != testService.Name {
+		t.Fatalf("serviceStatus.Name should've been %s, got %s", testService.Name, serviceStatus.Name)
+	}
+	if serviceStatus.Group != testService.Group {
+		t.Fatalf("serviceStatus.Group should've been %s, got %s", testService.Group, serviceStatus.Group)
+	}
+	if serviceStatus.Uptime == nil {
+		t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
+	}
+	if serviceStatus.Uptime.LastHour != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5")
+	}
+	if serviceStatus.Uptime.LastSevenDays != 0.5 {
+		t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5")
+	}
+}
+
+func TestStore_GetAllServiceStatuses(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatuses.db")
+	defer store.Close()
+	firstResult := &testSuccessfulResult
+	secondResult := &testUnsuccessfulResult
+	store.Insert(&testService, firstResult)
+	store.Insert(&testService, secondResult)
+	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+	firstResult.Timestamp = time.Time{}
+	secondResult.Timestamp = time.Time{}
+	serviceStatuses := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+	if len(serviceStatuses) != 1 {
+		t.Fatal("expected 1 service status")
+	}
+	actual, exists := serviceStatuses[testService.Key()]
+	if !exists {
+		t.Fatal("expected service status to exist")
+	}
+	if len(actual.Results) != 2 {
+		t.Error("expected 2 results, got", len(actual.Results))
+	}
+	if len(actual.Events) != 0 {
+		t.Error("expected 0 events, got", len(actual.Events))
+	}
+}
+
+func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllServiceStatusesNotInKeys.db")
+	defer store.Close()
+	firstService := core.Service{Name: "service-1", Group: "group"}
+	secondService := core.Service{Name: "service-2", Group: "group"}
+	result := &testSuccessfulResult
+	store.Insert(&firstService, result)
+	store.Insert(&secondService, result)
+	if store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
+		t.Fatal("firstService should exist")
+	}
+	if store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) == nil {
+		t.Fatal("secondService should exist")
+	}
+	store.DeleteAllServiceStatusesNotInKeys([]string{firstService.Key()})
+	if store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
+		t.Error("secondService should've been deleted")
+	}
+	if store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) != nil {
+		t.Error("firstService should still exist")
 	}
 }

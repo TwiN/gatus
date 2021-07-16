@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -306,7 +307,18 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 
 // DeleteAllServiceStatusesNotInKeys removes all rows owned by a service whose key is not within the keys provided
 func (s *Store) DeleteAllServiceStatusesNotInKeys(keys []string) int {
-	panic("implement me")
+	if len(keys) == 0 {
+		return 0
+	}
+	args := make([]interface{}, 0, len(keys))
+	for i := range keys {
+		args = append(args, keys[i])
+	}
+	_, err := s.db.Exec(fmt.Sprintf("DELETE FROM service WHERE service_key NOT IN (%s)", strings.Trim(strings.Repeat("?,", len(keys)), ",")), args...)
+	if err != nil {
+		log.Printf("err: %v", err)
+	}
+	return 0
 }
 
 // Clear deletes everything from the store
@@ -439,7 +451,7 @@ func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
 }
 
 func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
-	serviceID, serviceName, serviceGroup, err := s.getServiceIDGroupAndNameByKey(tx, key)
+	serviceID, serviceGroup, serviceName, err := s.getServiceIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -484,7 +496,7 @@ func (s *Store) getEventsByServiceID(tx *sql.Tx, serviceID int64, page, pageSize
 			SELECT event_type, event_timestamp
 			FROM service_event
 			WHERE service_id = $1
-			ORDER BY service_event_id DESC
+			ORDER BY service_event_id ASC
 			LIMIT $2 OFFSET $3
 		`,
 		serviceID,
@@ -509,7 +521,7 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 			SELECT service_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp
 			FROM service_result
 			WHERE service_id = $1
-			ORDER BY timestamp DESC
+			ORDER BY timestamp ASC
 			LIMIT $2 OFFSET $3
 		`,
 		serviceID,
@@ -525,7 +537,9 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 		var id int64
 		var joinedErrors string
 		_ = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
-		result.Errors = strings.Split(joinedErrors, arraySeparator)
+		if len(joinedErrors) != 0 {
+			result.Errors = strings.Split(joinedErrors, arraySeparator)
+		}
 		results = append(results, result)
 		idResultMap[id] = result
 	}
@@ -534,7 +548,7 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 	for serviceResultID, result := range idResultMap {
 		rows, err = tx.Query(
 			`
-				SELECT service_result_id, condition, success
+				SELECT condition, success
 				FROM service_result_condition
 				WHERE service_result_id = $1
 			`,
@@ -545,7 +559,9 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 		}
 		for rows.Next() {
 			conditionResult := &core.ConditionResult{}
-			_ = rows.Scan(&conditionResult.Condition, &conditionResult.Success)
+			if err = rows.Scan(&conditionResult.Condition, &conditionResult.Success); err != nil {
+				return
+			}
 			result.ConditionResults = append(result.ConditionResults, conditionResult)
 		}
 		_ = rows.Close()

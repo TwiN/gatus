@@ -1028,6 +1028,49 @@ services:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithInvalidServiceName(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+services:
+  - name: ""
+    url: https://twinnation.org/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != core.ErrServiceWithNoName {
+		t.Error("should've returned an error")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidStorageConfig(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+storage:
+  type: sqlite
+services:
+  - name: example
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err == nil {
+		t.Error("should've returned an error, because a file must be specified for a storage of type sqlite")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidYAML(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+storage:
+  invalid yaml
+services:
+  - name: example
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err == nil {
+		t.Error("should've returned an error")
+	}
+}
+
 func TestParseAndValidateConfigBytesWithInvalidSecurityConfig(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 security:
@@ -1041,7 +1084,7 @@ services:
       - "[STATUS] == 200"
 `))
 	if err == nil {
-		t.Error("Function should've returned an error")
+		t.Error("should've returned an error")
 	}
 }
 
@@ -1173,7 +1216,7 @@ kubernetes:
       target-path: "/health"
 `))
 	if err == nil {
-		t.Error("Function should've returned an error because providing a service-template is mandatory")
+		t.Error("should've returned an error because providing a service-template is mandatory")
 	}
 }
 
@@ -1192,7 +1235,7 @@ kubernetes:
       target-path: "/health"
 `))
 	if err == nil {
-		t.Error("Function should've returned an error because testing with ClusterModeIn isn't supported")
+		t.Error("should've returned an error because testing with ClusterModeIn isn't supported")
 	}
 }
 

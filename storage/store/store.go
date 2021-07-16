@@ -32,6 +32,10 @@ type Store interface {
 
 	// Save persists the data if and where it needs to be persisted
 	Save() error
+
+	// Close terminates every connections and closes the store, if applicable.
+	// Should only be used before stopping the application.
+	Close()
 }
 
 // TODO: add method to check state of store (by keeping track of silent errors)
