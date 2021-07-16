@@ -82,21 +82,21 @@ var (
 	}
 )
 
-func TestStore_GetServiceStatusByKey(t *testing.T) {
+type Scenario struct {
+	Name  string
+	Store Store
+}
+
+func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	memoryStore, err := memory.NewStore("")
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusByKey.db")
+	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
+	return []*Scenario{
 		{
 			Name:  "memory",
 			Store: memoryStore,
@@ -106,6 +106,17 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 			Store: databaseStore,
 		},
 	}
+}
+
+func cleanUp(scenarios []*Scenario) {
+	for _, scenario := range scenarios {
+		scenario.Store.Close()
+	}
+}
+
+func TestStore_GetServiceStatusByKey(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusByKey")
+	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	firstResult.Timestamp = now.Add(-time.Minute)
 	secondResult := testUnsuccessfulResult
@@ -149,29 +160,8 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 }
 
 func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusForMissingStatusReturnsNil.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusForMissingStatusReturnsNil")
+	defer cleanUp(scenarios)
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
@@ -192,29 +182,8 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 }
 
 func TestStore_GetAllServiceStatuses(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatuses.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllServiceStatuses")
+	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	secondResult := testUnsuccessfulResult
 	for _, scenario := range scenarios {
@@ -242,29 +211,8 @@ func TestStore_GetAllServiceStatuses(t *testing.T) {
 }
 
 func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_GetAllServiceStatusesWithResultsAndEvents.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllServiceStatusesWithResultsAndEvents")
+	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	secondResult := testUnsuccessfulResult
 	for _, scenario := range scenarios {
@@ -292,29 +240,8 @@ func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
 }
 
 func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2")
+	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	firstResult.Timestamp = now.Add(-time.Minute)
 	secondResult := testUnsuccessfulResult
@@ -347,29 +274,8 @@ func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T
 }
 
 func TestStore_Insert(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_Insert.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_Insert")
+	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	firstResult.Timestamp = now.Add(-time.Minute)
 	secondResult := testUnsuccessfulResult
@@ -427,29 +333,8 @@ func TestStore_Insert(t *testing.T) {
 }
 
 func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
-	memoryStore, err := memory.NewStore("")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllServiceStatusesNotInKeys.db")
-	if err != nil {
-		t.Fatal("failed to create store:", err.Error())
-	}
-	defer databaseStore.Close()
-	type Scenario struct {
-		Name  string
-		Store Store
-	}
-	scenarios := []Scenario{
-		{
-			Name:  "memory",
-			Store: memoryStore,
-		},
-		{
-			Name:  "database",
-			Store: databaseStore,
-		},
-	}
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_DeleteAllServiceStatusesNotInKeys")
+	defer cleanUp(scenarios)
 	firstService := core.Service{Name: "service-1", Group: "group"}
 	secondService := core.Service{Name: "service-2", Group: "group"}
 	result := &testSuccessfulResult
