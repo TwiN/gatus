@@ -85,5 +85,5 @@ func TestAutoSave(t *testing.T) {
 	go autoSaveStore(ctx, provider, 3*time.Millisecond)
 	time.Sleep(15 * time.Millisecond)
 	cancelFunc()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 }
