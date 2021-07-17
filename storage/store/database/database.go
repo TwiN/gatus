@@ -62,6 +62,7 @@ func NewStore(driver, path string) (*Store, error) {
 	if driver == "sqlite" {
 		_, _ = store.db.Exec("PRAGMA foreign_keys=ON")
 		_, _ = store.db.Exec("PRAGMA journal_mode=WAL")
+		_, _ = store.db.Exec("PRAGMA synchronous=NORMAL")
 		// Prevents driver from running into "database is locked" errors
 		// This is because we're using WAL to improve performance
 		store.db.SetMaxOpenConns(1)
