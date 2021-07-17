@@ -72,7 +72,6 @@ func TestInitialize(t *testing.T) {
 				return
 			}
 			provider.Close()
-			provider = nil
 		})
 	}
 }
