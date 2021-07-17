@@ -161,24 +161,24 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 			Store:    memoryStore,
 			Parallel: false,
 		},
-		//{
-		//	Name:     "memory-parallel",
-		//	Store:    memoryStore,
-		//	Parallel: true,
-		//},
+		{
+			Name:     "memory-parallel",
+			Store:    memoryStore,
+			Parallel: true,
+		},
 		{
 			Name:     "database",
 			Store:    databaseStore,
 			Parallel: false,
 		},
-		//{
-		//	Name:     "database-parallel",
-		//	Store:    databaseStore,
-		//	Parallel: true,
-		//},
+		{
+			Name:     "database-parallel",
+			Store:    databaseStore,
+			Parallel: true,
+		},
 	}
 	for _, scenario := range scenarios {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 50; i++ {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
 			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 		}
