@@ -99,3 +99,9 @@ func TestCanPerformStartTLS(t *testing.T) {
 		})
 	}
 }
+
+func TestCanCreateTCPConnection(t *testing.T) {
+	if CanCreateTCPConnection("127.0.0.1") {
+		t.Error("should've failed, because there's no port in the address")
+	}
+}
