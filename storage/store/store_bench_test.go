@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
 	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 
 func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
@@ -15,11 +15,11 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
+	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	defer databaseStore.Close()
+	defer sqliteStore.Close()
 	type Scenario struct {
 		Name     string
 		Store    Store
@@ -37,13 +37,13 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 			Parallel: true,
 		},
 		{
-			Name:     "database",
-			Store:    databaseStore,
+			Name:     "sqlite",
+			Store:    sqliteStore,
 			Parallel: false,
 		},
 		{
-			Name:     "database-parallel",
-			Store:    databaseStore,
+			Name:     "sqlite-parallel",
+			Store:    sqliteStore,
 			Parallel: true,
 		},
 	}
@@ -73,11 +73,11 @@ func BenchmarkStore_Insert(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
+	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	defer databaseStore.Close()
+	defer sqliteStore.Close()
 	type Scenario struct {
 		Name     string
 		Store    Store
@@ -95,13 +95,13 @@ func BenchmarkStore_Insert(b *testing.B) {
 			Parallel: true,
 		},
 		{
-			Name:     "database",
-			Store:    databaseStore,
+			Name:     "sqlite",
+			Store:    sqliteStore,
 			Parallel: false,
 		},
 		{
-			Name:     "database-parallel",
-			Store:    databaseStore,
+			Name:     "sqlite-parallel",
+			Store:    sqliteStore,
 			Parallel: false,
 		},
 	}
@@ -145,11 +145,11 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db")
+	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	defer databaseStore.Close()
+	defer sqliteStore.Close()
 	type Scenario struct {
 		Name     string
 		Store    Store
@@ -167,13 +167,13 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 			Parallel: true,
 		},
 		{
-			Name:     "database",
-			Store:    databaseStore,
+			Name:     "sqlite",
+			Store:    sqliteStore,
 			Parallel: false,
 		},
 		{
-			Name:     "database-parallel",
-			Store:    databaseStore,
+			Name:     "sqlite-parallel",
+			Store:    sqliteStore,
 			Parallel: true,
 		},
 	}
