@@ -39,12 +39,6 @@ var (
 	server *http.Server
 )
 
-//func init() { XXX: Don't think there's any value in using the janitor since the cache max size is this small
-//	if err := cache.StartJanitor(); err != nil {
-//		log.Fatal("[controller][init] Failed to start cache janitor:", err.Error())
-//	}
-//}
-
 // Handle creates the router and starts the server
 func Handle(securityConfig *security.Config, webConfig *config.WebConfig, enableMetrics bool) {
 	var router http.Handler = CreateRouter(securityConfig, enableMetrics)
