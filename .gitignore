@@ -3,3 +3,5 @@
 gatus
 db.db
 config/config.yml
+db.db-shm
+db.db-wal
