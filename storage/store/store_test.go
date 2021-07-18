@@ -355,7 +355,11 @@ func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
 			if scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) != nil {
 				t.Error("firstService should still exist")
 			}
-			scenario.Store.Clear()
+			// Delete everything
+			scenario.Store.DeleteAllServiceStatusesNotInKeys([]string{})
+			if len(scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams())) != 0 {
+				t.Errorf("everything should've been deleted")
+			}
 		})
 	}
 }
