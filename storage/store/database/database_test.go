@@ -167,3 +167,77 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	}
 	store.Clear()
 }
+
+func TestStore_Persistence(t *testing.T) {
+	file := t.TempDir() + "/TestStore_Persistence.db"
+	store, _ := NewStore("sqlite", file)
+	store.Insert(&testService, &testSuccessfulResult)
+	store.Insert(&testService, &testUnsuccessfulResult)
+	ssFromOldStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, core.MaximumNumberOfResults).WithEvents(1, core.MaximumNumberOfEvents).WithUptime())
+	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 || ssFromOldStore.Uptime.LastHour != 0.5 || ssFromOldStore.Uptime.LastTwentyFourHours != 0.5 || ssFromOldStore.Uptime.LastSevenDays != 0.5 {
+		store.Close()
+		t.Fatal("sanity check failed")
+	}
+	store.Close()
+	store, _ = NewStore("sqlite", file)
+	defer store.Close()
+	ssFromNewStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, core.MaximumNumberOfResults).WithEvents(1, core.MaximumNumberOfEvents).WithUptime())
+	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 || ssFromNewStore.Uptime.LastHour != 0.5 || ssFromNewStore.Uptime.LastTwentyFourHours != 0.5 || ssFromNewStore.Uptime.LastSevenDays != 0.5 {
+		t.Fatal("failed sanity check")
+	}
+	if ssFromNewStore == ssFromOldStore {
+		t.Fatal("ss from the old and new store should have a different memory address")
+	}
+	for i := range ssFromNewStore.Events {
+		if ssFromNewStore.Events[i].Timestamp != ssFromOldStore.Events[i].Timestamp {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Events[i].Type != ssFromOldStore.Events[i].Type {
+			t.Error("new and old should've been the same")
+		}
+	}
+	for i := range ssFromOldStore.Results {
+		if ssFromNewStore.Results[i].Timestamp != ssFromOldStore.Results[i].Timestamp {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].Success != ssFromOldStore.Results[i].Success {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].Connected != ssFromOldStore.Results[i].Connected {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].IP != ssFromOldStore.Results[i].IP {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].Hostname != ssFromOldStore.Results[i].Hostname {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].HTTPStatus != ssFromOldStore.Results[i].HTTPStatus {
+			t.Error("new and old should've been the same")
+		}
+		if ssFromNewStore.Results[i].DNSRCode != ssFromOldStore.Results[i].DNSRCode {
+			t.Error("new and old should've been the same")
+		}
+		if len(ssFromNewStore.Results[i].Errors) != len(ssFromOldStore.Results[i].Errors) {
+			t.Error("new and old should've been the same")
+		} else {
+			for j := range ssFromOldStore.Results[i].Errors {
+				if ssFromNewStore.Results[i].Errors[j] != ssFromOldStore.Results[i].Errors[j] {
+					t.Error("new and old should've been the same")
+				}
+			}
+		}
+		if len(ssFromNewStore.Results[i].ConditionResults) != len(ssFromOldStore.Results[i].ConditionResults) {
+			t.Error("new and old should've been the same")
+		} else {
+			for j := range ssFromOldStore.Results[i].ConditionResults {
+				if ssFromNewStore.Results[i].ConditionResults[j].Condition != ssFromOldStore.Results[i].ConditionResults[j].Condition {
+					t.Error("new and old should've been the same")
+				}
+				if ssFromNewStore.Results[i].ConditionResults[j].Success != ssFromOldStore.Results[i].ConditionResults[j].Success {
+					t.Error("new and old should've been the same")
+				}
+			}
+		}
+	}
+}
