@@ -308,18 +308,24 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 
 // DeleteAllServiceStatusesNotInKeys removes all rows owned by a service whose key is not within the keys provided
 func (s *Store) DeleteAllServiceStatusesNotInKeys(keys []string) int {
+	var err error
+	var result sql.Result
 	if len(keys) == 0 {
+		// Delete everything
+		result, err = s.db.Exec("DELETE FROM service")
+	} else {
+		args := make([]interface{}, 0, len(keys))
+		for i := range keys {
+			args = append(args, keys[i])
+		}
+		result, err = s.db.Exec(fmt.Sprintf("DELETE FROM service WHERE service_key NOT IN (%s)", strings.Trim(strings.Repeat("?,", len(keys)), ",")), args...)
+	}
+	if err != nil {
+		log.Printf("[database][DeleteAllServiceStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
 		return 0
 	}
-	args := make([]interface{}, 0, len(keys))
-	for i := range keys {
-		args = append(args, keys[i])
-	}
-	_, err := s.db.Exec(fmt.Sprintf("DELETE FROM service WHERE service_key NOT IN (%s)", strings.Trim(strings.Repeat("?,", len(keys)), ",")), args...)
-	if err != nil {
-		log.Printf("err: %v", err)
-	}
-	return 0
+	rowsAffects, _ := result.RowsAffected()
+	return int(rowsAffects)
 }
 
 // Clear deletes everything from the store

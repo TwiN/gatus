@@ -242,12 +242,23 @@ func TestStore_Persistence(t *testing.T) {
 	}
 }
 
+func TestStore_Save(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db")
+	defer store.Close()
+	if store.Save() != nil {
+		t.Error("Save shouldn't do anything for this store")
+	}
+}
+
 // TestStore_InvalidTransaction tests what happens if an invalid transaction is passed as parameter
 func TestStore_InvalidTransaction(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db")
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
+	if _, err := store.insertService(tx, &testService); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
 	if err := store.insertEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
