@@ -299,7 +299,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 			}
 		}
 	}
-	//log.Printf("[sqlite][Insert] Successfully inserted result in duration=%dns", time.Since(start).Nanoseconds())
+	//log.Printf("[sqlite][Insert] Successfully inserted result in duration=%dms", time.Since(start).Milliseconds())
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
 	}

@@ -209,7 +209,6 @@ Here are some examples of conditions you can use:
 
 
 #### Functions
-
 | Function   | Description                                                                                                      | Example                    |
 |:-----------|:---------------------------------------------------------------------------------------------------------------- |:-------------------------- |
 | `len`      | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                                | `len([BODY].username) > 8`
@@ -229,18 +228,20 @@ Here are some examples of conditions you can use:
 
 - If `storage.type` is `inmemory` (default) and `storage.file` is set to a non-blank value.
   Furthermore, the data is periodically persisted, but everything remains in memory.
-- If `storage.type` is `sqlite`, `storage.file` must not be blank. 
-  Furthermore, the data is persisted and accessed through SQLite.
-  
-For normal use, both storage types will work without a hitch, however, if you're using Gatus for stress testing purposes
-(see [disable-monitoring-lock](#disable-monitoring-lock)), you may want to use 
+- If `storage.type` is `sqlite`, `storage.file` must not be blank.
+
+```yaml
+storage:
+  type: sqlite
+  file: data.db
+```
 
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual services with configurable descriptions and thresholds.
 
-Note that if an alerting provider is not configured properly, all alerts configured with the provider's type will be
+Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
 | Parameter                                | Description                                                                   | Default        |
