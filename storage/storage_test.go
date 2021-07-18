@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/storage/store/database"
+	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 
 func TestInitialize(t *testing.T) {
@@ -38,7 +38,7 @@ func TestInitialize(t *testing.T) {
 		{
 			Name:        "sqlite-no-file",
 			Cfg:         &Config{Type: TypeSQLite},
-			ExpectedErr: database.ErrFilePathNotSpecified,
+			ExpectedErr: sqlite.ErrFilePathNotSpecified,
 		},
 		{
 			Name:        "sqlite-with-file",

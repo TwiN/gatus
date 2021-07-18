@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
 	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 
 var (
@@ -92,7 +92,7 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	databaseStore, err := database.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
+	sqliteStore, err := sqlite.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -102,8 +102,8 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 			Store: memoryStore,
 		},
 		{
-			Name:  "database",
-			Store: databaseStore,
+			Name:  "sqlite",
+			Store: sqliteStore,
 		},
 	}
 }

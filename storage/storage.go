@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/storage/store"
-	"github.com/TwinProduction/gatus/storage/store/database"
 	"github.com/TwinProduction/gatus/storage/store/memory"
+	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 
 var (
@@ -53,7 +53,7 @@ func Initialize(cfg *Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case TypeSQLite:
-		provider, err = database.NewStore(string(cfg.Type), cfg.File)
+		provider, err = sqlite.NewStore(string(cfg.Type), cfg.File)
 		if err != nil {
 			return err
 		}

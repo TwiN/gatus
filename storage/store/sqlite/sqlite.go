@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -222,7 +222,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByServiceID(tx, serviceID)
 	if err != nil {
-		log.Printf("[database][Insert] Failed to retrieve total number of events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		log.Printf("[sqlite][Insert] Failed to retrieve total number of events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -232,18 +232,18 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		})
 		if err != nil {
 			// Silently fail
-			log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", core.EventStart, service.Group, service.Name, err.Error())
+			log.Printf("[sqlite][Insert] Failed to insert event=%s for group=%s; service=%s: %s", core.EventStart, service.Group, service.Name, err.Error())
 		}
 		event := core.NewEventFromResult(result)
 		if err = s.insertEvent(tx, serviceID, event); err != nil {
 			// Silently fail
-			log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
+			log.Printf("[sqlite][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
 		}
 	} else {
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastServiceResultSuccessValue(tx, serviceID); err != nil {
-			log.Printf("[database][Insert] Failed to retrieve outcome of previous result for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+			log.Printf("[sqlite][Insert] Failed to retrieve outcome of previous result for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
@@ -253,7 +253,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 				event := core.NewEventFromResult(result)
 				if err = s.insertEvent(tx, serviceID, event); err != nil {
 					// Silently fail
-					log.Printf("[database][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
+					log.Printf("[sqlite][Insert] Failed to insert event=%s for group=%s; service=%s: %s", event.Type, service.Group, service.Name, err.Error())
 				}
 			}
 		}
@@ -262,44 +262,44 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
 		if numberOfEvents > eventsCleanUpThreshold {
 			if err = s.deleteOldServiceEvents(tx, serviceID); err != nil {
-				log.Printf("[database][Insert] Failed to delete old events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+				log.Printf("[sqlite][Insert] Failed to delete old events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
 		}
 	}
 	// Second, we need to insert the result.
 	if err = s.insertResult(tx, serviceID, result); err != nil {
-		log.Printf("[database][Insert] Failed to insert result for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		log.Printf("[sqlite][Insert] Failed to insert result for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByServiceID(tx, serviceID)
 	if err != nil {
-		log.Printf("[database][Insert] Failed to retrieve total number of results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		log.Printf("[sqlite][Insert] Failed to retrieve total number of results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	} else {
 		if numberOfResults > resultsCleanUpThreshold {
 			if err = s.deleteOldServiceResults(tx, serviceID); err != nil {
-				log.Printf("[database][Insert] Failed to delete old results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+				log.Printf("[sqlite][Insert] Failed to delete old results for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
 		}
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
 	if err = s.updateServiceUptime(tx, serviceID, result); err != nil {
-		log.Printf("[database][Insert] Failed to update uptime for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		log.Printf("[sqlite][Insert] Failed to update uptime for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	}
 	// Clean up old uptime entries
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestServiceUptimeEntry(tx, serviceID)
 	if err != nil {
-		log.Printf("[database][Insert] Failed to retrieve oldest service uptime entry for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+		log.Printf("[sqlite][Insert] Failed to retrieve oldest service uptime entry for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	} else {
 		if ageOfOldestUptimeEntry > uptimeCleanUpThreshold {
 			if err = s.deleteOldUptimeEntries(tx, serviceID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
-				log.Printf("[database][Insert] Failed to delete old uptime entries for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
+				log.Printf("[sqlite][Insert] Failed to delete old uptime entries for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
 		}
 	}
-	//log.Printf("[database][Insert] Successfully inserted result in duration=%dns", time.Since(start).Nanoseconds())
+	//log.Printf("[sqlite][Insert] Successfully inserted result in duration=%dns", time.Since(start).Nanoseconds())
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
 	}
@@ -321,7 +321,7 @@ func (s *Store) DeleteAllServiceStatusesNotInKeys(keys []string) int {
 		result, err = s.db.Exec(fmt.Sprintf("DELETE FROM service WHERE service_key NOT IN (%s)", strings.Trim(strings.Repeat("?,", len(keys)), ",")), args...)
 	}
 	if err != nil {
-		log.Printf("[database][DeleteAllServiceStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
+		log.Printf("[sqlite][DeleteAllServiceStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
 		return 0
 	}
 	rowsAffects, _ := result.RowsAffected()
@@ -345,7 +345,7 @@ func (s *Store) Close() {
 
 // insertService inserts a service in the store and returns the generated id of said service
 func (s *Store) insertService(tx *sql.Tx, service *core.Service) (int64, error) {
-	//log.Printf("[database][insertService] Inserting service with group=%s and name=%s", service.Group, service.Name)
+	//log.Printf("[sqlite][insertService] Inserting service with group=%s and name=%s", service.Group, service.Name)
 	result, err := tx.Exec(
 		"INSERT INTO service (service_key, service_name, service_group) VALUES ($1, $2, $3)",
 		service.Key(),
@@ -465,12 +465,12 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging
 	serviceStatus := core.NewServiceStatus(key, serviceGroup, serviceName)
 	if parameters.EventsPageSize > 0 {
 		if serviceStatus.Events, err = s.getEventsByServiceID(tx, serviceID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
-			log.Printf("[database][getServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
+			log.Printf("[sqlite][getServiceStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
 		}
 	}
 	if parameters.ResultsPageSize > 0 {
 		if serviceStatus.Results, err = s.getResultsByServiceID(tx, serviceID, parameters.ResultsPage, parameters.ResultsPageSize); err != nil {
-			log.Printf("[database][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
+			log.Printf("[sqlite][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
 	if parameters.IncludeUptime {
