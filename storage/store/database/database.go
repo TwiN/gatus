@@ -477,7 +477,15 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging
 }
 
 func (s *Store) getServiceIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, err error) {
-	rows, err := tx.Query("SELECT service_id, service_group, service_name FROM service WHERE service_key = $1 LIMIT 1", key)
+	rows, err := tx.Query(
+		`
+			SELECT service_id, service_group, service_name
+			FROM service
+			WHERE service_key = $1
+			LIMIT 1
+		`,
+		key,
+	)
 	if err != nil {
 		return 0, "", "", err
 	}

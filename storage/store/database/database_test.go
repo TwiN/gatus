@@ -241,3 +241,69 @@ func TestStore_Persistence(t *testing.T) {
 		}
 	}
 }
+
+// TestStore_InvalidTransaction tests what happens if an invalid transaction is passed as parameter
+func TestStore_InvalidTransaction(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db")
+	defer store.Close()
+	tx, _ := store.db.Begin()
+	tx.Commit()
+	if err := store.insertResult(tx, 1, &testSuccessfulResult); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if err := store.insertConditionResults(tx, 1, testSuccessfulResult.ConditionResults); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if err := store.updateServiceUptime(tx, 1, &testSuccessfulResult); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getAllServiceKeys(tx); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getServiceStatusByKey(tx, testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20)); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getEventsByServiceID(tx, 1, 1, 50); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getResultsByServiceID(tx, 1, 1, 50); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if err := store.deleteOldServiceEvents(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if err := store.deleteOldServiceResults(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, _, err := store.getServiceUptime(tx, 1, time.Now(), time.Now()); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getServiceID(tx, &testService); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getNumberOfEventsByServiceID(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getNumberOfResultsByServiceID(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getAgeOfOldestServiceUptimeEntry(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+	if _, err := store.getLastServiceResultSuccessValue(tx, 1); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
+}
+
+func TestStore_NoRows(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db")
+	defer store.Close()
+	tx, _ := store.db.Begin()
+	defer tx.Rollback()
+	if _, err := store.getLastServiceResultSuccessValue(tx, 1); err != errNoRowsReturned {
+		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
+	}
+	if _, err := store.getAgeOfOldestServiceUptimeEntry(tx, 1); err != errNoRowsReturned {
+		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
+	}
+}
