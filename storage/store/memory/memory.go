@@ -25,7 +25,10 @@ type Store struct {
 	cache *gocache.Cache
 }
 
-// NewStore creates a new store
+// NewStore creates a new store using gocache.Cache
+//
+// This store holds everything in memory, and if the file parameter is not blank,
+// supports eventual persistence.
 func NewStore(file string) (*Store, error) {
 	store := &Store{
 		file:  file,
