@@ -133,43 +133,41 @@ If you want to test it locally, see [Docker](#docker).
 ## Configuration
 | Parameter                                | Description                                                                   | Default        |
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `debug`                                  | Whether to enable debug logs                                                  | `false`        |
-| `metrics`                                | Whether to expose metrics at /metrics                                         | `false`        |
-| `storage`                                | Storage configuration                                                         | `{}`           |
-| `storage.file`                           | File to persist the data in. If not set, storage is in-memory only.           | `""`           |
-| `services`                               | List of services to monitor                                                   | Required `[]`  |
+| `debug`                                  | Whether to enable debug logs.                                                 | `false`        |
+| `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
+| `storage`                                | Storage configuration. See [Storage](#storage).                               | `{}`           |
+| `services`                               | List of services to monitor.                                                  | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].group`                       | Group name. Used to group multiple services together on the dashboard. See [Service groups](#service-groups). | `""`           |
-| `services[].url`                         | URL to send the request to                                                    | Required `""`  |
-| `services[].method`                      | Request method                                                                | `GET`          |
-| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `services[].url`                         | URL to send the request to.                                                   | Required `""`  |
+| `services[].method`                      | Request method.                                                               | `GET`          |
+| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name.       | `false`        |
 | `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions). | `[]`           |
-| `services[].interval`                    | Duration to wait between every status check                                   | `60s`          |
-| `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`)               | `false`        |
-| `services[].body`                        | Request body                                                                  | `""`           |
-| `services[].headers`                     | Request headers                                                               | `{}`           |
+| `services[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
+| `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
+| `services[].body`                        | Request body.                                                                 | `""`           |
+| `services[].headers`                     | Request headers.                                                              | `{}`           |
 | `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
-| `services[].dns.query-type`              | Query type for DNS service                                                    | `""`           |
-| `services[].dns.query-name`              | Query name for DNS service                                                    | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom` | Required `""`  |
-| `services[].alerts[].enabled`            | Whether to enable the alert                                                   | `false`        |
-| `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert                | `3`            |
-| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | `2`            |
-| `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | `false`        |
-| `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent                  | `""`           |
+| `services[].dns.query-type`              | Query type for DNS service.                                                   | `""`           |
+| `services[].dns.query-name`              | Query name for DNS service.                                                   | `""`           |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom`. | Required `""`  |
+| `services[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
+| `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
+| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`            |
+| `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
+| `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
 | `alerting`                               | Configuration for alerting. See [Alerting](#alerting).                        | `{}`           |
-| `security`                               | Security configuration                                                        | `{}`           |
-| `security.basic`                         | Basic authentication security configuration                                   | `{}`           |
-| `security.basic.username`                | Username for Basic authentication                                             | Required `""`  |
-| `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication                               | Required `""`  |
-| `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock)            | `false`        |
-| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).
-| `web`                                    | Web configuration                                                             | `{}`           |
-| `web.address`                            | Address to listen on                                                          | `0.0.0.0`      |
-| `web.port`                               | Port to listen on                                                             | `8080`         |
+| `security`                               | Security configuration.                                                       | `{}`           |
+| `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
+| `security.basic.username`                | Username for Basic authentication.                                            | Required `""`  |
+| `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication.                              | Required `""`  |
+| `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock).           | `false`        |
+| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false` |
+| `web`                                    | Web configuration.                                                            | `{}`           |
+| `web.address`                            | Address to listen on.                                                         | `0.0.0.0`      |
+| `web.port`                               | Port to listen on.                                                            | `8080`         |
 
-- For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha).
-- For alerting configuration, see [Alerting](#alerting).
+For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha).
 
 
 ### Conditions
@@ -220,6 +218,22 @@ Here are some examples of conditions you can use:
 | `any`      | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.       | `[BODY].ip == any(127.0.0.1, ::1)`
 
 **NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+
+
+### Storage
+| Parameter          | Description                                                                            | Default        |
+|:------------------ |:-------------------------------------------------------------------------------------- |:-------------- |
+| `storage`          | Storage configuration                                                                  | `{}`           |
+| `storage.file`     | File to persist the data in. If the type is `inmemory`, data is persisted on interval. | `""`           |
+| `storage.type`     | Type of storage. Valid types: `inmemory`, `sqlite`.                                    | `"inmemory"`   |
+
+- If `storage.type` is `inmemory` (default) and `storage.file` is set to a non-blank value.
+  Furthermore, the data is periodically persisted, but everything remains in memory.
+- If `storage.type` is `sqlite`, `storage.file` must not be blank. 
+  Furthermore, the data is persisted and accessed through SQLite.
+  
+For normal use, both storage types will work without a hitch, however, if you're using Gatus for stress testing purposes
+(see [disable-monitoring-lock](#disable-monitoring-lock)), you may want to use 
 
 
 ### Alerting
