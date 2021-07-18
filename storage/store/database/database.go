@@ -644,16 +644,10 @@ func (s *Store) getNumberOfEventsByServiceID(tx *sql.Tx, serviceID int64) (int64
 		return 0, err
 	}
 	var numberOfEvents int64
-	var found bool
 	for rows.Next() {
 		_ = rows.Scan(&numberOfEvents)
-		found = true
-		break
 	}
 	_ = rows.Close()
-	if !found {
-		return 0, errNoRowsReturned
-	}
 	return numberOfEvents, nil
 }
 
@@ -663,16 +657,10 @@ func (s *Store) getNumberOfResultsByServiceID(tx *sql.Tx, serviceID int64) (int6
 		return 0, err
 	}
 	var numberOfResults int64
-	var found bool
 	for rows.Next() {
 		_ = rows.Scan(&numberOfResults)
-		found = true
-		break
 	}
 	_ = rows.Close()
-	if !found {
-		return 0, errNoRowsReturned
-	}
 	return numberOfResults, nil
 }
 

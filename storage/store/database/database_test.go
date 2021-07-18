@@ -248,6 +248,9 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
+	if err := store.insertEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
+		t.Error("should've returned an error, because the transaction was already committed")
+	}
 	if err := store.insertResult(tx, 1, &testSuccessfulResult); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
