@@ -1,12 +1,18 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
+
+func TestGet(t *testing.T) {
+	store := Get()
+	if store == nil {
+		t.Error("store should've been automatically initialized")
+	}
+}
 
 func TestInitialize(t *testing.T) {
 	type Scenario struct {
@@ -62,7 +68,7 @@ func TestInitialize(t *testing.T) {
 				t.Error("ctx shouldn't have been nil")
 			}
 			if provider == nil {
-				fmt.Println("wtf?")
+				t.Fatal("provider shouldn't have been nit")
 			}
 			provider.Close()
 			// Try to initialize it again
