@@ -285,47 +285,64 @@ func TestStore_Insert(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
 			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 
-			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
-			if serviceStatus == nil {
+			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			if ss == nil {
 				t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 			}
-			if len(serviceStatus.Results) != 2 {
-				t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", serviceStatus.Name, len(serviceStatus.Results))
+			if len(ss.Events) != 3 {
+				t.Fatalf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 			}
-			for i, r := range serviceStatus.Results {
-				expectedResult := scenario.Store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime()).Results[i]
-				if r.HTTPStatus != expectedResult.HTTPStatus {
-					t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
+			if len(ss.Results) != 2 {
+				t.Fatalf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+			}
+			for i, expectedResult := range []core.Result{testSuccessfulResult, testUnsuccessfulResult} {
+				if expectedResult.HTTPStatus != ss.Results[i].HTTPStatus {
+					t.Errorf("Result at index %d should've had a HTTPStatus of %d, got %d", i, ss.Results[i].HTTPStatus, expectedResult.HTTPStatus)
 				}
-				if r.DNSRCode != expectedResult.DNSRCode {
-					t.Errorf("Result at index %d should've had a DNSRCode of %s, but was actually %s", i, expectedResult.DNSRCode, r.DNSRCode)
+				if expectedResult.DNSRCode != ss.Results[i].DNSRCode {
+					t.Errorf("Result at index %d should've had a DNSRCode of %s, got %s", i, ss.Results[i].DNSRCode, expectedResult.DNSRCode)
 				}
-				if r.Hostname != expectedResult.Hostname {
-					t.Errorf("Result at index %d should've had a Hostname of %s, but was actually %s", i, expectedResult.Hostname, r.Hostname)
+				if expectedResult.Hostname != ss.Results[i].Hostname {
+					t.Errorf("Result at index %d should've had a Hostname of %s, got %s", i, ss.Results[i].Hostname, expectedResult.Hostname)
 				}
-				if r.IP != expectedResult.IP {
-					t.Errorf("Result at index %d should've had a IP of %s, but was actually %s", i, expectedResult.IP, r.IP)
+				if expectedResult.IP != ss.Results[i].IP {
+					t.Errorf("Result at index %d should've had a IP of %s, got %s", i, ss.Results[i].IP, expectedResult.IP)
 				}
-				if r.Connected != expectedResult.Connected {
-					t.Errorf("Result at index %d should've had a Connected value of %t, but was actually %t", i, expectedResult.Connected, r.Connected)
+				if expectedResult.Connected != ss.Results[i].Connected {
+					t.Errorf("Result at index %d should've had a Connected value of %t, got %t", i, ss.Results[i].Connected, expectedResult.Connected)
 				}
-				if r.Duration != expectedResult.Duration {
-					t.Errorf("Result at index %d should've had a Duration of %s, but was actually %s", i, expectedResult.Duration.String(), r.Duration.String())
+				if expectedResult.Duration != ss.Results[i].Duration {
+					t.Errorf("Result at index %d should've had a Duration of %s, got %s", i, ss.Results[i].Duration.String(), expectedResult.Duration.String())
 				}
-				if len(r.Errors) != len(expectedResult.Errors) {
-					t.Errorf("Result at index %d should've had %d errors, but actually had %d errors", i, len(expectedResult.Errors), len(r.Errors))
+				if len(expectedResult.Errors) != len(ss.Results[i].Errors) {
+					t.Errorf("Result at index %d should've had %d errors, but actually had %d errors", i, len(ss.Results[i].Errors), len(expectedResult.Errors))
+				} else {
+					for j := range expectedResult.Errors {
+						if ss.Results[i].Errors[j] != expectedResult.Errors[j] {
+							t.Error("should've been the same")
+						}
+					}
 				}
-				if len(r.ConditionResults) != len(expectedResult.ConditionResults) {
-					t.Errorf("Result at index %d should've had %d ConditionResults, but actually had %d ConditionResults", i, len(expectedResult.ConditionResults), len(r.ConditionResults))
+				if len(expectedResult.ConditionResults) != len(ss.Results[i].ConditionResults) {
+					t.Errorf("Result at index %d should've had %d ConditionResults, but actually had %d ConditionResults", i, len(ss.Results[i].ConditionResults), len(expectedResult.ConditionResults))
+				} else {
+					for j := range expectedResult.ConditionResults {
+						if ss.Results[i].ConditionResults[j].Condition != expectedResult.ConditionResults[j].Condition {
+							t.Error("should've been the same")
+						}
+						if ss.Results[i].ConditionResults[j].Success != expectedResult.ConditionResults[j].Success {
+							t.Error("should've been the same")
+						}
+					}
 				}
-				if r.Success != expectedResult.Success {
-					t.Errorf("Result at index %d should've had a Success of %t, but was actually %t", i, expectedResult.Success, r.Success)
+				if expectedResult.Success != ss.Results[i].Success {
+					t.Errorf("Result at index %d should've had a Success of %t, got %t", i, ss.Results[i].Success, expectedResult.Success)
 				}
-				if r.Timestamp != expectedResult.Timestamp {
-					t.Errorf("Result at index %d should've had a Timestamp of %s, but was actually %s", i, expectedResult.Timestamp.String(), r.Timestamp.String())
+				if expectedResult.Timestamp.Unix() != ss.Results[i].Timestamp.Unix() {
+					t.Errorf("Result at index %d should've had a Timestamp of %d, got %d", i, ss.Results[i].Timestamp.Unix(), expectedResult.Timestamp.Unix())
 				}
-				if r.CertificateExpiration != expectedResult.CertificateExpiration {
-					t.Errorf("Result at index %d should've had a CertificateExpiration of %s, but was actually %s", i, expectedResult.CertificateExpiration.String(), r.CertificateExpiration.String())
+				if expectedResult.CertificateExpiration != ss.Results[i].CertificateExpiration {
+					t.Errorf("Result at index %d should've had a CertificateExpiration of %s, got %s", i, ss.Results[i].CertificateExpiration.String(), expectedResult.CertificateExpiration.String())
 				}
 			}
 		})

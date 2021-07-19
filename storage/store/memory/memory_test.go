@@ -80,56 +80,28 @@ var (
 	}
 )
 
+// Note that there is a much more extensive test in /storage/store/store_test.go.
+// This test is simply an extra sanity check
 func TestStore_Insert(t *testing.T) {
 	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
-	store.Insert(&testService, &testUnsuccessfulResult)
-
-	if store.cache.Count() != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", store.cache.Count())
+	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
-	serviceStatus := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20))
-	if serviceStatus == nil {
+	store.Insert(&testService, &testUnsuccessfulResult)
+	// Both results inserted are for the same service, therefore, the count shouldn't have increased
+	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	}
+	ss := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 	}
-	if len(serviceStatus.Results) != 2 {
-		t.Fatalf("Service '%s' should've had 2 results, but actually returned %d", serviceStatus.Name, len(serviceStatus.Results))
+	if len(ss.Events) != 3 {
+		t.Fatalf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 	}
-	for i, r := range serviceStatus.Results {
-		expectedResult := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20)).Results[i]
-		if r.HTTPStatus != expectedResult.HTTPStatus {
-			t.Errorf("Result at index %d should've had a HTTPStatus of %d, but was actually %d", i, expectedResult.HTTPStatus, r.HTTPStatus)
-		}
-		if r.DNSRCode != expectedResult.DNSRCode {
-			t.Errorf("Result at index %d should've had a DNSRCode of %s, but was actually %s", i, expectedResult.DNSRCode, r.DNSRCode)
-		}
-		if r.Hostname != expectedResult.Hostname {
-			t.Errorf("Result at index %d should've had a Hostname of %s, but was actually %s", i, expectedResult.Hostname, r.Hostname)
-		}
-		if r.IP != expectedResult.IP {
-			t.Errorf("Result at index %d should've had a IP of %s, but was actually %s", i, expectedResult.IP, r.IP)
-		}
-		if r.Connected != expectedResult.Connected {
-			t.Errorf("Result at index %d should've had a Connected value of %t, but was actually %t", i, expectedResult.Connected, r.Connected)
-		}
-		if r.Duration != expectedResult.Duration {
-			t.Errorf("Result at index %d should've had a Duration of %s, but was actually %s", i, expectedResult.Duration.String(), r.Duration.String())
-		}
-		if len(r.Errors) != len(expectedResult.Errors) {
-			t.Errorf("Result at index %d should've had %d errors, but actually had %d errors", i, len(expectedResult.Errors), len(r.Errors))
-		}
-		if len(r.ConditionResults) != len(expectedResult.ConditionResults) {
-			t.Errorf("Result at index %d should've had %d ConditionResults, but actually had %d ConditionResults", i, len(expectedResult.ConditionResults), len(r.ConditionResults))
-		}
-		if r.Success != expectedResult.Success {
-			t.Errorf("Result at index %d should've had a Success of %t, but was actually %t", i, expectedResult.Success, r.Success)
-		}
-		if r.Timestamp != expectedResult.Timestamp {
-			t.Errorf("Result at index %d should've had a Timestamp of %s, but was actually %s", i, expectedResult.Timestamp.String(), r.Timestamp.String())
-		}
-		if r.CertificateExpiration != expectedResult.CertificateExpiration {
-			t.Errorf("Result at index %d should've had a CertificateExpiration of %s, but was actually %s", i, expectedResult.CertificateExpiration.String(), r.CertificateExpiration.String())
-		}
+	if len(ss.Results) != 2 {
+		t.Fatalf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 	}
 }
 
