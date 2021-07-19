@@ -28,6 +28,6 @@ jobs:
         # was configured by the "Set up Go 1.15" step (otherwise, it'd use sudo's "go" executable)
         run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
-        uses: codecov/codecov-action@v1.0.14
+        uses: codecov/codecov-action@v1.5.2
         with:
           file: ./coverage.txt
