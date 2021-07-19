@@ -234,7 +234,7 @@ storage:
   type: sqlite
   file: data.db
 ```
-See [example/docker-compose-sqlite-storage](example/docker-compose-sqlite-storage) for an example.
+See [examples/docker-compose-sqlite-storage](examples/docker-compose-sqlite-storage) for an example.
 
 
 ### Alerting
@@ -633,11 +633,11 @@ Note that `hostname-suffix` could also be something like `.yourdomain.com`, in w
 monitored would be `potato.example.com/health`, assuming you have a service named `potato` and a matching ingress
 to map `potato.example.com` to the `potato` service.
 
-For a full example, see [example/kubernetes-with-auto-discovery](example/kubernetes-with-auto-discovery)
+For a full example, see [examples/kubernetes-with-auto-discovery](examples/kubernetes-with-auto-discovery)
 
 
 ## Deployment
-Many examples can be found in the [example](example) folder, but this section will focus on the most popular ways of deploying Gatus.
+Many examples can be found in the [examples](examples) folder, but this section will focus on the most popular ways of deploying Gatus.
 
 
 ### Docker
