@@ -229,12 +229,12 @@ Here are some examples of conditions you can use:
 - If `storage.type` is `inmemory` (default) and `storage.file` is set to a non-blank value.
   Furthermore, the data is periodically persisted, but everything remains in memory.
 - If `storage.type` is `sqlite`, `storage.file` must not be blank.
-
 ```yaml
 storage:
   type: sqlite
   file: data.db
 ```
+See [example/docker-compose-sqlite-storage](example/docker-compose-sqlite-storage) for an example.
 
 
 ### Alerting
