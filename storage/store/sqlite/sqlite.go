@@ -78,11 +78,11 @@ func NewStore(driver, path string) (*Store, error) {
 func (s *Store) createSchema() error {
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS service (
-		    service_id    INTEGER PRIMARY KEY,
+			service_id    INTEGER PRIMARY KEY,
 			service_key   TEXT UNIQUE,
 			service_name  TEXT,
 			service_group TEXT,
-		    UNIQUE(service_name, service_group)
+			UNIQUE(service_name, service_group)
 		)
 	`)
 	if err != nil {
@@ -90,8 +90,8 @@ func (s *Store) createSchema() error {
 	}
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS service_event (
-		    service_event_id   INTEGER PRIMARY KEY,
-		    service_id         INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
+			service_event_id   INTEGER PRIMARY KEY,
+			service_id         INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
 			event_type         TEXT,
 			event_timestamp    TIMESTAMP
 		)
@@ -101,18 +101,18 @@ func (s *Store) createSchema() error {
 	}
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS service_result (
-		    service_result_id      INTEGER PRIMARY KEY,
-		    service_id             INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
+			service_result_id      INTEGER PRIMARY KEY,
+			service_id             INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
 			success                INTEGER,
-		    errors                 TEXT,
-		    connected              INTEGER,
-		    status                 INTEGER,
-		    dns_rcode              TEXT,
-		    certificate_expiration INTEGER,
-		    hostname               TEXT,
-		    ip                     TEXT,
-		    duration               INTEGER,
-		    timestamp              TIMESTAMP
+			errors                 TEXT,
+			connected              INTEGER,
+			status                 INTEGER,
+			dns_rcode              TEXT,
+			certificate_expiration INTEGER,
+			hostname               TEXT,
+			ip                     TEXT,
+			duration               INTEGER,
+			timestamp              TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -120,10 +120,10 @@ func (s *Store) createSchema() error {
 	}
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS service_result_condition (
-		    service_result_condition_id  INTEGER PRIMARY KEY,
-		    service_result_id            INTEGER REFERENCES service_result(service_result_id) ON DELETE CASCADE,
-		    condition                    TEXT,
-		    success                      INTEGER
+			service_result_condition_id  INTEGER PRIMARY KEY,
+			service_result_id            INTEGER REFERENCES service_result(service_result_id) ON DELETE CASCADE,
+			condition                    TEXT,
+			success                      INTEGER
 		)
 	`)
 	if err != nil {
@@ -131,13 +131,13 @@ func (s *Store) createSchema() error {
 	}
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS service_uptime (
-		    service_uptime_id     INTEGER PRIMARY KEY,
-		    service_id            INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
-		    hour_unix_timestamp   INTEGER,
-		    total_executions      INTEGER,
-		    successful_executions INTEGER,
-		    total_response_time   INTEGER,
-		    UNIQUE(service_id, hour_unix_timestamp)
+			service_uptime_id     INTEGER PRIMARY KEY,
+			service_id            INTEGER REFERENCES service(service_id) ON DELETE CASCADE,
+			hour_unix_timestamp   INTEGER,
+			total_executions      INTEGER,
+			successful_executions INTEGER,
+			total_response_time   INTEGER,
+			UNIQUE(service_id, hour_unix_timestamp)
 		)
 	`)
 	return err
@@ -428,8 +428,8 @@ func (s *Store) updateServiceUptime(tx *sql.Tx, serviceID int64, result *core.Re
 			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT(service_id, hour_unix_timestamp) DO UPDATE SET
 				total_executions = excluded.total_executions + total_executions,
-			    successful_executions = excluded.successful_executions + successful_executions,
-			    total_response_time = excluded.total_response_time + total_response_time
+				successful_executions = excluded.successful_executions + successful_executions,
+				total_response_time = excluded.total_response_time + total_response_time
 		`,
 		serviceID,
 		unixTimestampFlooredAtHour,
@@ -722,14 +722,14 @@ func (s *Store) deleteOldServiceEvents(tx *sql.Tx, serviceID int64) error {
 	_, err := tx.Exec(
 		`
 			DELETE FROM service_event 
-			WHERE service_id = $1 
-			  AND service_event_id NOT IN (
-			      SELECT service_event_id 
-			      FROM service_event
-			      WHERE service_id = $1
-			      ORDER BY service_event_id DESC
-			      LIMIT $2
-			  	)
+			WHERE service_id = $1
+				AND service_event_id NOT IN (
+					SELECT service_event_id 
+					FROM service_event
+					WHERE service_id = $1
+					ORDER BY service_event_id DESC
+					LIMIT $2
+				)
 		`,
 		serviceID,
 		core.MaximumNumberOfEvents,
@@ -748,13 +748,13 @@ func (s *Store) deleteOldServiceResults(tx *sql.Tx, serviceID int64) error {
 		`
 			DELETE FROM service_result 
 			WHERE service_id = $1 
-			  AND service_result_id NOT IN (
-			      SELECT service_result_id
-			      FROM service_result
-			      WHERE service_id = $1
-			      ORDER BY service_result_id DESC
-			      LIMIT $2
-			  	)
+				AND service_result_id NOT IN (
+					SELECT service_result_id
+					FROM service_result
+					WHERE service_id = $1
+					ORDER BY service_result_id DESC
+					LIMIT $2
+				)
 		`,
 		serviceID,
 		core.MaximumNumberOfResults,
