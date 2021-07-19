@@ -80,9 +80,9 @@ var (
 	}
 )
 
-// Note that there is a much more extensive test in /storage/store/store_test.go.
+// Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
-func TestStore_Insert(t *testing.T) {
+func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("")
 	store.Insert(&testService, &testSuccessfulResult)
 	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
@@ -93,15 +93,18 @@ func TestStore_Insert(t *testing.T) {
 	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
-	ss := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 	}
 	if len(ss.Events) != 3 {
-		t.Fatalf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
+		t.Errorf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 	}
 	if len(ss.Results) != 2 {
-		t.Fatalf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+		t.Errorf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+	}
+	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{}); deleted != 1 {
+		t.Errorf("%d entries should've been deleted, got %d", 1, deleted)
 	}
 }
 
