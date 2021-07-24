@@ -15,7 +15,7 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
-	now = time.Now()
+	now = time.Now().Truncate(time.Minute)
 
 	testService = core.Service{
 		Name:                    "name",
