@@ -64,7 +64,7 @@ For more details, see [Usage](#usage)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
   - [API](#API)
-
+- [Sponsors](#sponsors)
 
 ## Why Gatus?
 Before getting into the specifics, I want to address the most common question:
@@ -992,3 +992,10 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`. 
 No such header is required to query the API.
+
+
+## Sponsors
+View my full list of sponsors [here](https://github.com/sponsors/TwinProduction)
+
+[<img src="https://github.com/math280h.png" width="35" />](https://github.com/math280h)
+[<img src="https://github.com/mateothegreat.png" width="35" />](https://github.com/mateothegreat)
