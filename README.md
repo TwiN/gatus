@@ -995,7 +995,7 @@ No such header is required to query the API.
 
 
 ## Sponsors
-View my full list of sponsors [here](https://github.com/sponsors/TwinProduction)
+You can find the full list of sponsors [here](https://github.com/sponsors/TwinProduction).
 
 [<img src="https://github.com/math280h.png" width="35" />](https://github.com/math280h)
 [<img src="https://github.com/mateothegreat.png" width="35" />](https://github.com/mateothegreat)
