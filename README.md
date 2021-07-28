@@ -47,6 +47,7 @@ For more details, see [Usage](#usage)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
+  - [Terraform](#terraform)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -678,6 +679,11 @@ helm repo add gatus https://avakarev.github.io/gatus-chart
 
 To get more details, please check chart's [configuration](https://github.com/avakarev/gatus-chart#configuration)
 and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-example)
+
+
+### Terraform
+Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwinProduction/terraform-kubernetes-gatus).
+
 
 
 ## Running the tests
