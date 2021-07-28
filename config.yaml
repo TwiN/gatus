@@ -1,19 +1,47 @@
-alerting:
-  teams:
-    webhook-url: "https://quartum.webhook.office.com/webhookb2/fa1bd615-fe85-4248-ab47-c775c6269f66@e4945be5-4b78-49eb-ac7e-de2875b58a6f/IncomingWebhook/b2333e8489f44f23ac020b5b3d8d314e/4e96d5d6-e1d3-42fc-a022-cc4608ac4d9f"
-    default-alert:
-      enabled: true
-      failure-threshold: 1
-      success-threshold: 1
-      send-on-resolved: true
 services:
   - name: front-end
     group: core
     url: "https://twinnation.org/health"
-    alerts:
-      - type: teams
     interval: 1m
     conditions:
-      - "[STATUS] == 201"
+      - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 150"
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: monitoring
+    group: internal
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: nas
+    group: internal
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: example-dns-query
+    url: "8.8.8.8" # Address of the DNS server to use
+    interval: 5m
+    dns:
+      query-name: "example.com"
+      query-type: "A"
+    conditions:
+      - "[BODY] == 93.184.216.34"
+      - "[DNS_RCODE] == NOERROR"
+
+  - name: icmp-ping
+    url: "icmp://example.org"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
