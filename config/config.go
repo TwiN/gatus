@@ -209,6 +209,7 @@ func validateWebConfig(config *Config) error {
 // I don't like the current implementation.
 func validateKubernetesConfig(config *Config) error {
 	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
+		log.Println("WARNING - The Kubernetes integration is planned to be removed in v3.0.0. If you're seeing this message, it's because you're currently using it, and you may want to give your opinion at https://github.com/TwinProduction/gatus/discussions/135")
 		if config.Kubernetes.ServiceTemplate == nil {
 			return errors.New("kubernetes.service-template cannot be nil")
 		}
