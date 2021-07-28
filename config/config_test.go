@@ -16,6 +16,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
 	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
+	"github.com/TwinProduction/gatus/alerting/provider/teams"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
 	v1 "k8s.io/api/core/v1"
@@ -351,6 +352,8 @@ alerting:
     token: "5678"
     from: "+1-234-567-8901"
     to: "+1-234-567-8901"
+  teams:
+    webhook-url: "http://example.com"
 
 services:
   - name: twinnation
@@ -375,6 +378,8 @@ services:
         enabled: true
         failure-threshold: 12
         success-threshold: 15
+      - type: teams
+        enabled: true
     conditions:
       - "[STATUS] == 200"
 `))
@@ -401,8 +406,8 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 7 {
-		t.Fatal("There should've been 7 alerts configured")
+	if len(config.Services[0].Alerts) != 8 {
+		t.Fatal("There should've been 8 alerts configured")
 	}
 
 	if config.Services[0].Alerts[0].Type != alert.TypeSlack {
@@ -489,6 +494,19 @@ services:
 	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
 	}
+
+	if config.Services[0].Alerts[7].Type != alert.TypeTeams {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Services[0].Alerts[7].Type)
+	}
+	if !config.Services[0].Alerts[7].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[7].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[7].FailureThreshold)
+	}
+	if config.Services[0].Alerts[7].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[7].SuccessThreshold)
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -538,6 +556,10 @@ alerting:
       enabled: true
       failure-threshold: 12
       success-threshold: 15
+  teams:
+    webhook-url: "http://example.com"
+    default-alert:
+      enabled: true
 
 services:
  - name: twinnation
@@ -551,6 +573,7 @@ services:
        success-threshold: 2 # test service alert override
      - type: telegram
      - type: twilio
+     - type: teams
    conditions:
      - "[STATUS] == 200"
 `))
@@ -642,6 +665,14 @@ services:
 	if config.Alerting.Twilio.GetDefaultAlert() == nil {
 		t.Fatal("Twilio.GetDefaultAlert() shouldn't have returned nil")
 	}
+
+	if config.Alerting.Teams == nil || !config.Alerting.Teams.IsValid() {
+		t.Fatal("Teams alerting config should've been valid")
+	}
+	if config.Alerting.Teams.GetDefaultAlert() == nil {
+		t.Fatal("Teams.GetDefaultAlert() shouldn't have returned nil")
+	}
+
 	// Services
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
@@ -652,8 +683,8 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 7 {
-		t.Fatal("There should've been 7 alerts configured")
+	if len(config.Services[0].Alerts) != 8 {
+		t.Fatal("There should've been 8 alerts configured")
 	}
 
 	if config.Services[0].Alerts[0].Type != alert.TypeSlack {
@@ -743,6 +774,20 @@ services:
 	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
 	}
+
+	if config.Services[0].Alerts[7].Type != alert.TypeTeams {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Services[0].Alerts[7].Type)
+	}
+	if !config.Services[0].Alerts[7].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Services[0].Alerts[7].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[7].FailureThreshold)
+	}
+	if config.Services[0].Alerts[7].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[7].SuccessThreshold)
+	}
+
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlertAndMultipleAlertsOfSameTypeWithOverriddenParameters(t *testing.T) {
@@ -1249,6 +1294,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Slack:       &slack.AlertProvider{},
 		Telegram:    &telegram.AlertProvider{},
 		Twilio:      &twilio.AlertProvider{},
+		Teams:      &teams.AlertProvider{},
 	}
 	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeCustom) != alertingConfig.Custom {
 		t.Error("expected Custom configuration")
@@ -1273,5 +1319,8 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}
 	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTwilio) != alertingConfig.Twilio {
 		t.Error("expected Twilio configuration")
+	}
+	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTeams) != alertingConfig.Teams {
+		t.Error("expected Teams configuration")
 	}
 }
