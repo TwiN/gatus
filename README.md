@@ -579,6 +579,8 @@ services:
 ### Kubernetes (ALPHA)
 > **WARNING**: This feature is in ALPHA. This means that it is very likely to change in the near future, which means that
 > while you can use this feature as you see fit, there may be breaking changes in future releases.
+> 
+> **NOTICE**: This feature may be removed. To give your opinion on the subject, see https://github.com/TwinProduction/gatus/discussions/135. 
 
 | Parameter                                   | Description                                                                   | Default        |
 |:------------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
