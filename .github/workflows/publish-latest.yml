@@ -1,11 +1,13 @@
-name: publish
+name: publish-latest
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
 jobs:
-  build:
-    name: Publish
+  publish-latest:
+    name: Publish latest
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 30
     steps:
       - name: Check out code
@@ -26,7 +28,7 @@ jobs:
       - name: Build and push docker image
         uses: docker/build-push-action@v2
         with:
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: linux/amd64
           pull: true
           push: true
           tags: |
