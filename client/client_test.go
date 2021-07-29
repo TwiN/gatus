@@ -6,43 +6,28 @@ import (
 )
 
 func TestGetHTTPClient(t *testing.T) {
-	if secureHTTPClient != nil {
-		t.Error("secureHTTPClient should've been nil since it hasn't been called a single time yet")
-	}
-	if insecureHTTPClient != nil {
-		t.Error("insecureHTTPClient should've been nil since it hasn't been called a single time yet")
-	}
-	_ = GetHTTPClient(false)
-	if secureHTTPClient == nil {
-		t.Error("secureHTTPClient shouldn't have been nil, since it has been called once")
-	}
-	if insecureHTTPClient != nil {
-		t.Error("insecureHTTPClient should've been nil since it hasn't been called a single time yet")
-	}
-	_ = GetHTTPClient(true)
-	if secureHTTPClient == nil {
-		t.Error("secureHTTPClient shouldn't have been nil, since it has been called once")
-	}
-	if insecureHTTPClient == nil {
-		t.Error("insecureHTTPClient shouldn't have been nil, since it has been called once")
-	}
+	GetHTTPClient(&Config{
+		Insecure:       false,
+		IgnoreRedirect: false,
+		Timeout:        0,
+		httpClient:     nil,
+	})
 }
 
 func TestPing(t *testing.T) {
-	pingTimeout = 500 * time.Millisecond
-	if success, rtt := Ping("127.0.0.1"); !success {
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond}); !success {
 		t.Error("expected true")
 		if rtt == 0 {
 			t.Error("Round-trip time returned on success should've higher than 0")
 		}
 	}
-	if success, rtt := Ping("256.256.256.256"); success {
+	if success, rtt := Ping("256.256.256.256", &Config{Timeout: 500 * time.Millisecond}); success {
 		t.Error("expected false, because the IP is invalid")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("192.168.152.153"); success {
+	if success, rtt := Ping("192.168.152.153", &Config{Timeout: 500 * time.Millisecond}); success {
 		t.Error("expected false, because the IP is valid but the host should be unreachable")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
@@ -88,7 +73,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			connected, _, err := CanPerformStartTLS(tt.args.address, tt.args.insecure)
+			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -101,7 +86,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 }
 
 func TestCanCreateTCPConnection(t *testing.T) {
-	if CanCreateTCPConnection("127.0.0.1") {
+	if CanCreateTCPConnection("127.0.0.1", &Config{Timeout: 5 * time.Second}) {
 		t.Error("should've failed, because there's no port in the address")
 	}
 }

@@ -14,58 +14,14 @@ import (
 	"github.com/go-ping/ping"
 )
 
-var (
-	secureHTTPClient   *http.Client
-	insecureHTTPClient *http.Client
-
-	// pingTimeout is the timeout for the Ping function
-	// This is mainly exposed for testing purposes
-	pingTimeout = 5 * time.Second
-
-	// httpTimeout is the timeout for secureHTTPClient and insecureHTTPClient
-	httpTimeout = 10 * time.Second
-)
-
 // GetHTTPClient returns the shared HTTP client
-func GetHTTPClient(insecure bool) *http.Client {
-	if insecure {
-		if insecureHTTPClient == nil {
-			insecureHTTPClient = &http.Client{
-				Timeout: httpTimeout,
-				Transport: &http.Transport{
-					MaxIdleConns:        100,
-					MaxIdleConnsPerHost: 20,
-					Proxy:               http.ProxyFromEnvironment,
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
-				CheckRedirect: func(req *http.Request, via []*http.Request) error {
-					return http.ErrUseLastResponse // Don't follow redirects
-				},
-			}
-		}
-		return insecureHTTPClient
-	}
-	if secureHTTPClient == nil {
-		secureHTTPClient = &http.Client{
-			Timeout: httpTimeout,
-			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 20,
-				Proxy:               http.ProxyFromEnvironment,
-			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse // Don't follow redirects
-			},
-		}
-	}
-	return secureHTTPClient
+func GetHTTPClient(config *Config) *http.Client {
+	return config.GetHTTPClient()
 }
 
 // CanCreateTCPConnection checks whether a connection can be established with a TCP service
-func CanCreateTCPConnection(address string) bool {
-	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+func CanCreateTCPConnection(address string, config *Config) bool {
+	conn, err := net.DialTimeout("tcp", address, config.Timeout)
 	if err != nil {
 		return false
 	}
@@ -74,7 +30,7 @@ func CanCreateTCPConnection(address string) bool {
 }
 
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
-func CanPerformStartTLS(address string, insecure bool) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformStartTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
 	hostAndPort := strings.Split(address, ":")
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
@@ -84,7 +40,7 @@ func CanPerformStartTLS(address string, insecure bool) (connected bool, certific
 		return
 	}
 	err = smtpClient.StartTLS(&tls.Config{
-		InsecureSkipVerify: insecure,
+		InsecureSkipVerify: config.Insecure,
 		ServerName:         hostAndPort[0],
 	})
 	if err != nil {
@@ -101,13 +57,13 @@ func CanPerformStartTLS(address string, insecure bool) (connected bool, certific
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
-func Ping(address string) (bool, time.Duration) {
+func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger, err := ping.NewPinger(address)
 	if err != nil {
 		return false, 0
 	}
 	pinger.Count = 1
-	pinger.Timeout = pingTimeout
+	pinger.Timeout = config.Timeout
 	// Set the pinger's privileged mode to true for every operating system except darwin
 	// https://github.com/TwinProduction/gatus/issues/132
 	pinger.SetPrivileged(runtime.GOOS != "darwin")

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,10 +20,13 @@ import (
 type AlertProvider struct {
 	URL          string                       `yaml:"url"`
 	Method       string                       `yaml:"method,omitempty"`
-	Insecure     bool                         `yaml:"insecure,omitempty"`
+	Insecure     bool                         `yaml:"insecure,omitempty"` // deprecated
 	Body         string                       `yaml:"body,omitempty"`
 	Headers      map[string]string            `yaml:"headers,omitempty"`
 	Placeholders map[string]map[string]string `yaml:"placeholders,omitempty"`
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client"`
 
 	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
@@ -30,7 +34,15 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.URL) > 0
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+		// XXX: remove the next 3 lines in v3.0.0
+		if provider.Insecure {
+			log.Println("WARNING: alerting.*.insecure has been deprecated and will be removed in v3.0.0 in favor of alerting.*.client.insecure")
+			provider.ClientConfig.Insecure = true
+		}
+	}
+	return len(provider.URL) > 0 && provider.ClientConfig != nil
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
@@ -103,7 +115,7 @@ func (provider *AlertProvider) Send(serviceName, alertDescription string, resolv
 		return []byte("{}"), nil
 	}
 	request := provider.buildHTTPRequest(serviceName, alertDescription, resolved)
-	response, err := client.GetHTTPClient(provider.Insecure).Do(request)
+	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return nil, err
 	}
