@@ -42,6 +42,7 @@ For more details, see [Usage](#usage)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)    
+    - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
@@ -94,7 +95,7 @@ The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
-- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty and Twilio are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks. 
+- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 - **GitHub uptime badges**: ![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/core_twinnation-external.svg) ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/core_twinnation-external.svg) ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_twinnation-external.svg)
@@ -152,7 +153,7 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service.                                                   | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service.                                                   | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `custom`. | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`            |
@@ -303,6 +304,8 @@ ignored.
 | `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
 | `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
 | `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
+| `alerting.teams`                         | Configuration for alerts of type `teams`                                      | `{}`           |
+| `alerting.teams.webhook-url`             | Teams Webhook URL                                                             | Required `""`  |
 | `alerting.telegram`                      | Configuration for alerts of type `telegram`                                   | `{}`           |
 | `alerting.telegram.token`                | Telegram Bot Token                                                            | Required `""`  |
 | `alerting.telegram.id`                   | Telegram User ID                                                              | Required `""`  |
@@ -481,6 +484,30 @@ services:
       - "[RESPONSE_TIME] < 300"
 ```
 
+#### Configuring Teams alerts
+```yaml
+alerting:
+  teams:
+    webhook-url: "https://********.webhook.office.com/webhookb2/************"
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    alerts:
+      - type: teams
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+```
+
+Here's an example of what the notifications look like:
+
+![Teams notifications](.github/assets/teams-alerts.png)
 
 #### Configuring Telegram alerts
 ```yaml
