@@ -2,17 +2,22 @@ package mattermost
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/client"
 	"github.com/TwinProduction/gatus/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Mattermost
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
-	Insecure   bool   `yaml:"insecure,omitempty"`
+	Insecure   bool   `yaml:"insecure,omitempty"` // deprecated
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client"`
 
 	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
@@ -20,6 +25,14 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+		// XXX: remove the next 3 lines in v3.0.0
+		if provider.Insecure {
+			log.Println("WARNING: alerting.mattermost.insecure has been deprecated and will be removed in v3.0.0 in favor of alerting.mattermost.client.insecure")
+			provider.ClientConfig.Insecure = true
+		}
+	}
 	return len(provider.WebhookURL) > 0
 }
 
@@ -45,9 +58,9 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
 	}
 	return &custom.AlertProvider{
-		URL:      provider.WebhookURL,
-		Method:   http.MethodPost,
-		Insecure: provider.Insecure,
+		URL:          provider.WebhookURL,
+		Method:       http.MethodPost,
+		ClientConfig: provider.ClientConfig,
 		Body: fmt.Sprintf(`{
   "text": "",
   "username": "gatus",
