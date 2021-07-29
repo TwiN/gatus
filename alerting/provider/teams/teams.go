@@ -37,21 +37,25 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
-            prefix = "&#x2705;"
+			prefix = "&#x2705;"
 		} else {
 			prefix = "&#x274C;"
 		}
 		results += fmt.Sprintf("%s - `%s`<br/>", prefix, conditionResult.Condition)
 	}
+	var description string
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		description = ":\\n> " + alertDescription
+	}
 	return &custom.AlertProvider{
-		URL:      provider.WebhookURL,
-		Method:   http.MethodPost,
+		URL:    provider.WebhookURL,
+		Method: http.MethodPost,
 		Body: fmt.Sprintf(`{
   "@type": "MessageCard",
   "@context": "http://schema.org/extensions",
   "themeColor": "%s",
   "title": "&#x1F6A8; Gatus",
-  "text": "%s:\n> %s",
+  "text": "%s%s",
   "sections": [
     {
       "activityTitle": "URL",
@@ -62,7 +66,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
       "text": "%s"
     }
   ]
-}`, color, message, alert.GetDescription(), service.URL, results),
+}`, color, message, description, service.URL, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
 }

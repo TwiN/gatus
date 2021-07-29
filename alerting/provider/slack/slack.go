@@ -41,6 +41,10 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		}
 		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
 	}
+	var description string
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		description = ":\\n> " + alertDescription
+	}
 	return &custom.AlertProvider{
 		URL:    provider.WebhookURL,
 		Method: http.MethodPost,
@@ -49,7 +53,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
   "attachments": [
     {
       "title": ":helmet_with_white_cross: Gatus",
-      "text": "%s:\n> %s",
+      "text": "%s%s",
       "short": false,
       "color": "%s",
       "fields": [
@@ -61,7 +65,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
       ]
     }
   ]
-}`, message, alert.GetDescription(), color, results),
+}`, message, description, color, results),
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
 }

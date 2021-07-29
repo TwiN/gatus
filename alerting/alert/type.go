@@ -23,12 +23,12 @@ const (
 	// TypeSlack is the Type for the slack alerting provider
 	TypeSlack Type = "slack"
 
+	// TypeTeams is the Type for the teams alerting provider
+	TypeTeams Type = "teams"
+
 	// TypeTelegram is the Type for the telegram alerting provider
 	TypeTelegram Type = "telegram"
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
-
-	// Teams is the Type for the teams alerting provider
-	TypeTeams Type = "teams"
 )

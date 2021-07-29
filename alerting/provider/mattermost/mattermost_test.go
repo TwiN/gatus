@@ -23,7 +23,8 @@ func TestAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	provider := AlertProvider{WebhookURL: "http://example.org"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "SUCCESSFUL_CONDITION", Success: true}}}, true)
+	alertDescription := "test"
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "svc"}, &alert.Alert{Description: &alertDescription}, &core.Result{ConditionResults: []*core.ConditionResult{{Condition: "SUCCESSFUL_CONDITION", Success: true}}}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -40,6 +41,9 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
 	if err != nil {
 		t.Error("expected body to be valid JSON, got error:", err.Error())
+	}
+	if expected := "An alert for *svc* has been resolved after passing successfully 0 time(s) in a row:\n> test"; expected != body["attachments"].([]interface{})[0].(map[string]interface{})["text"] {
+		t.Errorf("expected $.attachments[0].description to be %s, got %s", expected, body["attachments"].([]interface{})[0].(map[string]interface{})["text"])
 	}
 }
 

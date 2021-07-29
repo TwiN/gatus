@@ -332,6 +332,10 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: slack
         enabled: true
@@ -342,10 +346,6 @@ services:
         failure-threshold: 5
         description: "healthcheck failed 5 times in a row"
         send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 Here's an example of what the notifications look like:
@@ -363,15 +363,15 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: discord
         enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 
@@ -390,6 +390,10 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: pagerduty
         enabled: true
@@ -397,10 +401,6 @@ services:
         success-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 
@@ -417,16 +417,16 @@ services:
   - name: twinnation
     interval: 30s
     url: "https://twinnation.org/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: twilio
         enabled: true
         failure-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 
@@ -442,15 +442,15 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: mattermost
         enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 Here's an example of what the notifications look like:
@@ -459,9 +459,7 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Messagebird alerts
-
 Example of sending **SMS** text message alert using Messagebird:
-
 ```yaml
 alerting:
   messagebird:
@@ -472,16 +470,16 @@ services:
   - name: twinnation
     interval: 30s
     url: "https://twinnation.org/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: messagebird
         enabled: true
         failure-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 #### Configuring Teams alerts
@@ -494,15 +492,15 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: teams
         enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 Here's an example of what the notifications look like:
@@ -520,13 +518,13 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
     alerts:
       - type: telegram
         enabled: true
         send-on-resolved: true
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
 ```
 
 Here's an example of what the notifications look like:
@@ -564,6 +562,10 @@ services:
   - name: twinnation
     url: "https://twinnation.org/health"
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: custom
         enabled: true
@@ -571,10 +573,6 @@ services:
         success-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
 ```
 
 Note that you can customize the resolved values for the `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder like so:
@@ -612,17 +610,17 @@ As a result, your service configuration looks a lot tidier:
 services:
   - name: example
     url: "https://example.org"
-    alerts:
-      - type: slack
     conditions:
       - "[STATUS] == 200"
+    alerts:
+      - type: slack
 
   - name: other-example
     url: "https://example.com"
-    alerts:
-      - type: slack
     conditions:
       - "[STATUS] == 200"
+    alerts:
+      - type: slack
 ```
 
 It also allows you to do things like this:
@@ -630,6 +628,8 @@ It also allows you to do things like this:
 services:
   - name: twinnation
     url: "https://twinnation.org/health"
+    conditions:
+      - "[STATUS] == 200"
     alerts:
       - type: slack
         failure-threshold: 5
@@ -637,8 +637,6 @@ services:
         failure-threshold: 10
       - type: slack
         failure-threshold: 15
-    conditions:
-      - "[STATUS] == 200"
 ```
 
 
