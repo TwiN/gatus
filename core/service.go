@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -78,7 +79,12 @@ type Service struct {
 	Alerts []*alert.Alert `yaml:"alerts"`
 
 	// Insecure is whether to skip verifying the server's certificate chain and host name
+	//
+	// deprecated
 	Insecure bool `yaml:"insecure,omitempty"`
+
+	// ClientConfig is the configuration of the client used to communicate with the service's target
+	ClientConfig *client.Config `yaml:"client"`
 
 	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
 	NumberOfFailuresInARow int
@@ -90,6 +96,16 @@ type Service struct {
 // ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one
 func (service *Service) ValidateAndSetDefaults() error {
 	// Set default values
+	if service.ClientConfig == nil {
+		service.ClientConfig = client.GetDefaultConfig()
+		// XXX: remove the next 3 lines in v3.0.0
+		if service.Insecure {
+			log.Println("WARNING: services[].insecure has been deprecated and will be removed in v3.0.0 in favor of services[].client.insecure")
+			service.ClientConfig.Insecure = true
+		}
+	} else {
+		service.ClientConfig.ValidateAndSetDefaults()
+	}
 	if service.Interval == 0 {
 		service.Interval = 1 * time.Minute
 	}
@@ -199,7 +215,7 @@ func (service *Service) call(result *Result) {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
 	} else if isServiceStartTLS {
-		result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.Insecure)
+		result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
@@ -207,12 +223,12 @@ func (service *Service) call(result *Result) {
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if isServiceTCP {
-		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(service.URL, "tcp://"))
+		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(service.URL, "tcp://"), service.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if isServiceICMP {
-		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(service.URL, "icmp://"))
+		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(service.URL, "icmp://"), service.ClientConfig)
 	} else {
-		response, err = client.GetHTTPClient(service.Insecure).Do(request)
+		response, err = client.GetHTTPClient(service.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
 			result.AddError(err.Error())

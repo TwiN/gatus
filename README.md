@@ -33,6 +33,8 @@ For more details, see [Usage](#usage)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Storage](#storage)
+  - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
@@ -143,7 +145,6 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].group`                       | Group name. Used to group multiple services together on the dashboard. See [Service groups](#service-groups). | `""`           |
 | `services[].url`                         | URL to send the request to.                                                   | Required `""`  |
 | `services[].method`                      | Request method.                                                               | `GET`          |
-| `services[].insecure`                    | Whether to skip verifying the server's certificate chain and host name.       | `false`        |
 | `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions). | `[]`           |
 | `services[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
@@ -158,6 +159,7 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`            |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
+| `services[].client`                      | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
 | `alerting`                               | Configuration for alerting. See [Alerting](#alerting).                        | `{}`           |
 | `security`                               | Security configuration.                                                       | `{}`           |
 | `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
@@ -239,6 +241,42 @@ storage:
 See [examples/docker-compose-sqlite-storage](examples/docker-compose-sqlite-storage) for an example.
 
 
+### Client configuration
+In order to support a wide range of environments, each monitored service has a unique configuration for 
+the client used to send the request.
+
+| Parameter                | Description                                                                   | Default        |
+|:-------------------------|:----------------------------------------------------------------------------- |:-------------- |
+| `client.insecure`        | Whether to skip verifying the server's certificate chain and host name.       | `false`        |
+| `client.ignore-follow`   | Whether to ignore redirects (true) or follow them (false, default).           | `false`        |
+| `client.timeout`         | Duration before timing out.                                                   | `10s`          |
+
+Note that some of these parameters are ignored based on the type of service. For instance, there's no certificate involved
+in ICMP requests (ping), therefore, setting `client.insecure` to `true` for a service of that type will not do anything.
+
+This default configuration is as follows:
+```yaml
+client:
+  insecure: false
+  ignore-follow: false
+  timeout: 10s
+```
+Note that this configuration is only available under `services[]`, `alerting.mattermost` and `alerting.custom`.
+
+Here's an example with the client configuration under `service[]`:
+```yaml
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    client:
+      insecure: false
+      ignore-follow: false
+      timeout: 10s
+    conditions:
+      - "[STATUS] == 200"
+```
+
+
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual services with configurable descriptions and thresholds.
@@ -261,7 +299,7 @@ ignored.
 | `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
 | `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
 | `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
-| `alerting.mattermost.insecure`           | Whether to skip verifying the server's certificate chain and host name        | `false`        |
+| `alerting.mattermost.client`             | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
 | `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
 | `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
 | `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
@@ -274,9 +312,9 @@ ignored.
 | `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
 | `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
 | `alerting.custom.method`                 | Request method                                                                | `GET`          |
-| `alerting.custom.insecure`               | Whether to skip verifying the server's certificate chain and host name        | `false`        |
 | `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
+| `alerting.custom.client`                 | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
 | `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A       |
 | `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A       |
 | `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A       |
@@ -397,7 +435,8 @@ services:
 alerting:
   mattermost: 
     webhook-url: "http://**********/hooks/**********"
-    insecure: true
+    client:
+      insecure: true
 
 services:
   - name: twinnation
@@ -517,7 +556,6 @@ alerting:
   custom:
     url: "https://hooks.slack.com/services/**********/**********/**********"
     method: "POST"
-    insecure: true
     body: |
       {
         "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
@@ -766,7 +804,7 @@ such as 1ms. You'll notice that the response time does not fluctuate - that is b
 different goroutines, there's a global lock that prevents multiple services from running at the same time.
 
 Unfortunately, there is a drawback. If you have a lot of services, including some that are very slow or prone to time out (the default
-time out is 10s for HTTP and 5s for TCP), then it means that for the entire duration of the request, no other services can be evaluated.
+timeout is 10s), then it means that for the entire duration of the request, no other services can be evaluated.
 
 **This does mean that Gatus will be unable to evaluate the health of other services**. 
 The interval does not include the duration of the request itself, which means that if a service has an interval of 30s 
@@ -789,11 +827,13 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 | Protocol | Timeout |
 |:-------- |:------- |
 | HTTP     | 10s
-| TCP      | 5s
+| TCP      | 10s
+| ICMP     | 10s
+
+To modify the timeout, see [Client configuration](#client-configuration).
 
 
 ### Monitoring a TCP service
-
 By prefixing `services[].url` with `tcp:\\`, you can monitor TCP services at a very basic level:
 
 ```yaml
@@ -1033,4 +1073,3 @@ No such header is required to query the API.
 You can find the full list of sponsors [here](https://github.com/sponsors/TwinProduction).
 
 [<img src="https://github.com/math280h.png" width="35" />](https://github.com/math280h)
-[<img src="https://github.com/mateothegreat.png" width="35" />](https://github.com/mateothegreat)

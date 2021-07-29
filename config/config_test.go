@@ -17,6 +17,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 	"github.com/TwinProduction/gatus/alerting/provider/teams"
+	"github.com/TwinProduction/gatus/client"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/k8stest"
 	v1 "k8s.io/api/core/v1"
@@ -41,17 +42,31 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
   file: %s
+
 services:
   - name: twinnation
     url: https://twinnation.org/health
     interval: 15s
     conditions:
       - "[STATUS] == 200"
+
   - name: github
     url: https://api.github.com/healthz
+    client:
+      insecure: true
+      ignore-redirect: true
+      timeout: 5s
     conditions:
       - "[STATUS] != 400"
       - "[STATUS] != 500"
+
+  - name: example
+    url: https://example.com/
+    interval: 30m
+    client:
+      insecure: true
+    conditions:
+      - "[STATUS] == 200"
 `, file)))
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
@@ -59,32 +74,74 @@ services:
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
 	}
-	if len(config.Services) != 2 {
+	if len(config.Services) != 3 {
 		t.Error("Should have returned two services")
 	}
+
 	if config.Services[0].URL != "https://twinnation.org/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
-	if config.Services[1].URL != "https://api.github.com/healthz" {
-		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
-	}
 	if config.Services[0].Method != "GET" {
-		t.Errorf("Method should have been %s (default)", "GET")
-	}
-	if config.Services[1].Method != "GET" {
 		t.Errorf("Method should have been %s (default)", "GET")
 	}
 	if config.Services[0].Interval != 15*time.Second {
 		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
-	if config.Services[1].Interval != 60*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
+	if config.Services[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[0].ClientConfig.Insecure)
+	}
+	if config.Services[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Services[0].ClientConfig.IgnoreRedirect)
+	}
+	if config.Services[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+		t.Errorf("ClientConfig.Timeout should have been %v, got %v", client.GetDefaultConfig().Timeout, config.Services[0].ClientConfig.Timeout)
 	}
 	if len(config.Services[0].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
 	}
+
+	if config.Services[1].URL != "https://api.github.com/healthz" {
+		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
+	}
+	if config.Services[1].Method != "GET" {
+		t.Errorf("Method should have been %s (default)", "GET")
+	}
+	if config.Services[1].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
+	}
+	if !config.Services[1].ClientConfig.Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[1].ClientConfig.Insecure)
+	}
+	if !config.Services[1].ClientConfig.IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Services[1].ClientConfig.IgnoreRedirect)
+	}
+	if config.Services[1].ClientConfig.Timeout != 5*time.Second {
+		t.Errorf("ClientConfig.Timeout should have been %v, got %v", 5*time.Second, config.Services[1].ClientConfig.Timeout)
+	}
 	if len(config.Services[1].Conditions) != 2 {
 		t.Errorf("There should have been %d conditions", 2)
+	}
+
+	if config.Services[2].URL != "https://example.com/" {
+		t.Errorf("URL should have been %s", "https://example.com/")
+	}
+	if config.Services[2].Method != "GET" {
+		t.Errorf("Method should have been %s (default)", "GET")
+	}
+	if config.Services[2].Interval != 30*time.Minute {
+		t.Errorf("Interval should have been %s, because it is the default value", 30*time.Minute)
+	}
+	if !config.Services[2].ClientConfig.Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[2].ClientConfig.Insecure)
+	}
+	if config.Services[2].ClientConfig.IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", false, config.Services[2].ClientConfig.IgnoreRedirect)
+	}
+	if config.Services[2].ClientConfig.Timeout != 10*time.Second {
+		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", 10*time.Second, config.Services[2].ClientConfig.Timeout)
+	}
+	if len(config.Services[2].Conditions) != 1 {
+		t.Errorf("There should have been %d conditions", 1)
 	}
 }
 
@@ -105,17 +162,26 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
+	if config.Web.Address != DefaultAddress {
+		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
+	}
+	if config.Web.Port != DefaultPort {
+		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
+	}
 	if config.Services[0].URL != "https://twinnation.org/health" {
 		t.Errorf("URL should have been %s", "https://twinnation.org/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Web.Address != DefaultAddress {
-		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
+	if config.Services[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v by default, got %v", true, config.Services[0].ClientConfig.Insecure)
 	}
-	if config.Web.Port != DefaultPort {
-		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
+	if config.Services[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", true, config.Services[0].ClientConfig.IgnoreRedirect)
+	}
+	if config.Services[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", client.GetDefaultConfig().Timeout, config.Services[0].ClientConfig.Timeout)
 	}
 }
 
@@ -144,11 +210,9 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-
 	if config.Web.Address != "127.0.0.1" {
 		t.Errorf("Bind address should have been %s, because it is specified in config", "127.0.0.1")
 	}
-
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
@@ -340,6 +404,8 @@ alerting:
     integration-key: "00000000000000000000000000000000"
   mattermost:
     webhook-url: "http://example.com"
+    client:
+      insecure: true
   messagebird:
     access-key: "1"
     originator: "31619191918"
@@ -939,6 +1005,9 @@ services:
 	}
 	if config.Alerting.Custom.Insecure {
 		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
+	}
+	if config.Alerting.Custom.ClientConfig.Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", false, config.Alerting.Custom.ClientConfig.Insecure)
 	}
 }
 
