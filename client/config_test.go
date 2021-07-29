@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func TestConfig_GetHTTPClient(t *testing.T) {
+func TestConfig_getHTTPClient(t *testing.T) {
 	insecureConfig := &Config{Insecure: true}
 	insecureConfig.ValidateAndSetDefaults()
-	insecureClient := insecureConfig.GetHTTPClient()
+	insecureClient := insecureConfig.getHTTPClient()
 	if !(insecureClient.Transport).(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Error("expected Config.Insecure set to true to cause the HTTP client to skip certificate verification")
 	}
@@ -23,7 +23,7 @@ func TestConfig_GetHTTPClient(t *testing.T) {
 
 	secureConfig := &Config{IgnoreRedirect: true, Timeout: 5 * time.Second}
 	secureConfig.ValidateAndSetDefaults()
-	secureClient := secureConfig.GetHTTPClient()
+	secureClient := secureConfig.getHTTPClient()
 	if (secureClient.Transport).(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Error("expected Config.Insecure set to false to cause the HTTP client to not skip certificate verification")
 	}

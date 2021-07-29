@@ -6,12 +6,18 @@ import (
 )
 
 func TestGetHTTPClient(t *testing.T) {
-	GetHTTPClient(&Config{
+	cfg := &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        0,
-		httpClient:     nil,
-	})
+	}
+	cfg.ValidateAndSetDefaults()
+	if GetHTTPClient(cfg) == nil {
+		t.Error("expected client to not be nil")
+	}
+	if GetHTTPClient(nil) == nil {
+		t.Error("expected client to not be nil")
+	}
 }
 
 func TestPing(t *testing.T) {

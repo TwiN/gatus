@@ -16,7 +16,10 @@ import (
 
 // GetHTTPClient returns the shared HTTP client
 func GetHTTPClient(config *Config) *http.Client {
-	return config.GetHTTPClient()
+	if config == nil {
+		return defaultConfig.getHTTPClient()
+	}
+	return config.getHTTPClient()
 }
 
 // CanCreateTCPConnection checks whether a connection can be established with a TCP service

@@ -47,7 +47,7 @@ func (c *Config) ValidateAndSetDefaults() {
 }
 
 // GetHTTPClient return a HTTP client matching the Config's parameters.
-func (c *Config) GetHTTPClient() *http.Client {
+func (c *Config) getHTTPClient() *http.Client {
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{
 			Timeout: c.Timeout,

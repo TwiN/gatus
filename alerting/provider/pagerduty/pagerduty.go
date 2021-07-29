@@ -9,6 +9,10 @@ import (
 	"github.com/TwinProduction/gatus/core"
 )
 
+const (
+	restAPIURL = "https://events.pagerduty.com/v2/enqueue"
+)
+
 // AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
@@ -37,7 +41,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		resolveKey = ""
 	}
 	return &custom.AlertProvider{
-		URL:    "https://events.pagerduty.com/v2/enqueue",
+		URL:    restAPIURL,
 		Method: http.MethodPost,
 		Body: fmt.Sprintf(`{
   "routing_key": "%s",
