@@ -488,7 +488,7 @@ services:
 ```yaml
 alerting:
   teams:
-    webhook-url: "http://**********/hooks/**********"
+    webhook-url: "https://********.webhook.office.com/webhookb2/************"
 
 services:
   - name: twinnation
