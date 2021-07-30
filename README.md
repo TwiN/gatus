@@ -329,7 +329,7 @@ services:
 
 #### Configuring Mattermost alerts
 | Parameter                           | Description                                                                                 | Default        |
-|:----------------------------------- |:----------------------------------------------------------------------------------------- - |:-------------- |
+|:----------------------------------- |:------------------------------------------------------------------------------------------- |:-------------- |
 | `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`           |
 | `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""`  |
 | `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`           |
