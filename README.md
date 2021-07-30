@@ -68,7 +68,7 @@ For more details, see [Usage](#usage)
   - [Service groups](#service-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
-  - [API](#API)
+  - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
 
@@ -141,18 +141,18 @@ If you want to test it locally, see [Docker](#docker).
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `debug`                                  | Whether to enable debug logs.                                                 | `false`        |
 | `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
-| `storage`                                | Storage configuration. See [Storage](#storage).                               | `{}`           |
+| `storage`                                | Storage configuration. <br />See [Storage](#storage).                               | `{}`           |
 | `services`                               | List of services to monitor.                                                  | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
-| `services[].group`                       | Group name. Used to group multiple services together on the dashboard. See [Service groups](#service-groups). | `""`           |
+| `services[].group`                       | Group name. Used to group multiple services together on the dashboard. <br />See [Service groups](#service-groups). | `""`           |
 | `services[].url`                         | URL to send the request to.                                                   | Required `""`  |
 | `services[].method`                      | Request method.                                                               | `GET`          |
-| `services[].conditions`                  | Conditions used to determine the health of the service. See [Conditions](#conditions). | `[]`           |
+| `services[].conditions`                  | Conditions used to determine the health of the service. <br />See [Conditions](#conditions). | `[]`           |
 | `services[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
 | `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
 | `services[].body`                        | Request body.                                                                 | `""`           |
 | `services[].headers`                     | Request headers.                                                              | `{}`           |
-| `services[].dns`                         | Configuration for a service of type DNS. See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
+| `services[].dns`                         | Configuration for a service of type DNS. <br />See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service.                                                   | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service.                                                   | `""`           |
 | `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
@@ -161,14 +161,14 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`            |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
-| `services[].client`                      | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting`                               | Configuration for alerting. See [Alerting](#alerting).                        | `{}`           |
+| `services[].client`                      | Client configuration. <br />See [Client configuration](#client-configuration).      | `{}`           |
+| `alerting`                               | Configuration for alerting. <br />See [Alerting](#alerting).                        | `{}`           |
 | `security`                               | Security configuration.                                                       | `{}`           |
 | `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
 | `security.basic.username`                | Username for Basic authentication.                                            | Required `""`  |
 | `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication.                              | Required `""`  |
 | `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock).           | `false`        |
-| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false` |
+| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false` |
 | `web`                                    | Web configuration.                                                            | `{}`           |
 | `web.address`                            | Address to listen on.                                                         | `0.0.0.0`      |
 | `web.port`                               | Port to listen on.                                                            | `8080`         |
@@ -288,15 +288,15 @@ ignored.
 
 | Parameter              | Description                                                                                                            | Default        |
 |:-----------------------|:---------------------------------------------------------------------------------------------------------------------- |:-------|
-| `alerting.discord`     | Configuration for alerts of type `discord`. See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`   |
-| `alerting.mattermost`  | Configuration for alerts of type `mattermost`.  See [Configuring Mattermost alerts](#configuring-mattermost-alerts).   | `{}`   |
-| `alerting.messagebird` | Configuration for alerts of type `messagebird`. See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`   |
-| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`   |
-| `alerting.slack`       | Configuration for alerts of type `slack`. See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`   |
-| `alerting.teams`       | Configuration for alerts of type `teams`. See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`   |
-| `alerting.telegram`    | Configuration for alerts of type `telegram`. See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`   |
-| `alerting.twilio`      | Settings for alerts of type `twilio`. See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`   |
-| `alerting.custom`      | Configuration for custom actions on failure or alerts. See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`   |
+| `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`   |
+| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).   | `{}`   |
+| `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`   |
+| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`   |
+| `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`   |
+| `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`   |
+| `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`   |
+| `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`   |
+| `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`   |
 
 
 #### Configuring Discord alerts
@@ -304,7 +304,7 @@ ignored.
 |:---------------------------------------- |:-------------------------------------------- |:-------------- |
 | `alerting.discord`                       | Configuration for alerts of type `discord`   | `{}`           |
 | `alerting.discord.webhook-url`           | Discord Webhook URL                          | Required `""`  |
-| `alerting.discord.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.discord.default-alert`         | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 ```yaml
 alerting:
@@ -328,12 +328,12 @@ services:
 
 
 #### Configuring Mattermost alerts
-| Parameter                                | Description                                                                   | Default        |
-|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
-| `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
-| `alerting.mattermost.client`             | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting.mattermost.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                           | Description                                                                                 | Default        |
+|:----------------------------------- |:----------------------------------------------------------------------------------------- - |:-------------- |
+| `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`           |
+| `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""`  |
+| `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`           |
+| `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A            |
 
 ```yaml
 alerting:
@@ -363,13 +363,13 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Messagebird alerts
-| Parameter                                | Description                                                                   | Default        |
-|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
-| `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
-| `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
-| `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
-| `alerting.messagebird.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                            | Description                                                                   | Default        |
+|:-------------------------------------|:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.messagebird`               | Settings for alerts of type `messagebird`                                     | `{}`           |
+| `alerting.messagebird.access-key`    | Messagebird access key                                                        | Required `""`  |
+| `alerting.messagebird.originator`    | The sender of the message                                                     | Required `""`  |
+| `alerting.messagebird.recipients`    | The recipients of the message                                                 | Required `""`  |
+| `alerting.messagebird.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 Example of sending **SMS** text message alert using Messagebird:
 ```yaml
@@ -400,7 +400,7 @@ services:
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
-| `alerting.pagerduty.default-alert`       | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.pagerduty.default-alert`       | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
@@ -435,7 +435,7 @@ services:
 |:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `alerting.slack`                 | Configuration for alerts of type `slack`                                      | `{}`           |
 | `alerting.slack.webhook-url`     | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.slack.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.slack.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 ```yaml
 alerting:
@@ -472,7 +472,7 @@ Here's an example of what the notifications look like:
 |:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `alerting.teams`                 | Configuration for alerts of type `teams`                                      | `{}`           |
 | `alerting.teams.webhook-url`     | Teams Webhook URL                                                             | Required `""`  |
-| `alerting.teams.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.teams.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 ```yaml
 alerting:
@@ -504,7 +504,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                 | Configuration for alerts of type `telegram`                                   | `{}`           |
 | `alerting.telegram.token`           | Telegram Bot Token                                                            | Required `""`  |
 | `alerting.telegram.id`              | Telegram User ID                                                              | Required `""`  |
-| `alerting.telegram.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.telegram.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 ```yaml
 alerting:
@@ -538,7 +538,7 @@ Here's an example of what the notifications look like:
 | `alerting.twilio.token`           | Twilio auth token                                                             | Required `""`  |
 | `alerting.twilio.from`            | Number to send Twilio alerts from                                             | Required `""`  |
 | `alerting.twilio.to`              | Number to send twilio alerts to                                               | Required `""`  |
-| `alerting.twilio.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.twilio.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 ```yaml
 alerting:
@@ -573,8 +573,8 @@ services:
 | `alerting.custom.method`          | Request method                                                                | `GET`          |
 | `alerting.custom.body`            | Custom alerting request body.                                                 | `""`           |
 | `alerting.custom.headers`         | Custom alerting request headers                                               | `{}`           |
-| `alerting.custom.client`          | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting.custom.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.custom.client`          | Client configuration. <br />See [Client configuration](#client-configuration).      | `{}`           |
+| `alerting.custom.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 
 While they're called alerts, you can use this feature to call anything. 
 
@@ -734,7 +734,7 @@ services:
 | `kubernetes`                                | Kubernetes configuration                                                      | `{}`           |
 | `kubernetes.auto-discover`                  | Whether to enable auto discovery                                              | `false`        |
 | `kubernetes.cluster-mode`                   | Cluster mode to use for authenticating. Supported values: `in`, `out`         | Required `""`  |
-| `kubernetes.service-template`               | Service template. See `services[]` in [Configuration](#configuration)         | Required `nil` |
+| `kubernetes.service-template`               | Service template. <br />See `services[]` in [Configuration](#configuration)         | Required `nil` |
 | `kubernetes.excluded-service-suffixes`      | List of service suffixes to not monitor (e.g. `canary`)                       | `[]`           |
 | `kubernetes.namespaces`                     | List of configurations for the namespaces from which services will be discovered | `[]`        |
 | `kubernetes.namespaces[].name`              | Namespace name                                                                | Required `""`  |
@@ -1092,6 +1092,7 @@ web:
   port: ${PORT}
 ```
 
+
 ### Uptime badges
 ![Uptime 1h](https://status.twinnation.org/api/v1/badges/uptime/1h/core_twinnation-external.svg)
 ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/core_twinnation-external.svg)
@@ -1126,6 +1127,7 @@ Example: ![Uptime 24h](https://status.twinnation.org/api/v1/badges/uptime/24h/co
 ```
 
 If you'd like to see a visual example of each badges available, you can simply navigate to the service's detail page.
+
 
 ### API
 Gatus provides a simple read-only API which can be queried in order to programmatically determine service status and history.
