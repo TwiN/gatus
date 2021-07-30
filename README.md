@@ -249,7 +249,7 @@ the client used to send the request.
 | Parameter                | Description                                                                   | Default        |
 |:-------------------------|:----------------------------------------------------------------------------- |:-------------- |
 | `client.insecure`        | Whether to skip verifying the server's certificate chain and host name.       | `false`        |
-| `client.ignore-follow`   | Whether to ignore redirects (true) or follow them (false, default).           | `false`        |
+| `client.ignore-redirect` | Whether to ignore redirects (true) or follow them (false, default).           | `false`        |
 | `client.timeout`         | Duration before timing out.                                                   | `10s`          |
 
 Note that some of these parameters are ignored based on the type of service. For instance, there's no certificate involved
@@ -259,7 +259,7 @@ This default configuration is as follows:
 ```yaml
 client:
   insecure: false
-  ignore-follow: false
+  ignore-redirect: false
   timeout: 10s
 ```
 Note that this configuration is only available under `services[]`, `alerting.mattermost` and `alerting.custom`.
@@ -271,7 +271,7 @@ services:
     url: "https://twinnation.org/health"
     client:
       insecure: false
-      ignore-follow: false
+      ignore-redirect: false
       timeout: 10s
     conditions:
       - "[STATUS] == 200"
