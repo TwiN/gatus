@@ -36,15 +36,16 @@ For more details, see [Usage](#usage)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
-    - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
-    - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
-    - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
-    - [Configuring Messagebird alerts](#configuring-messagebird-alerts)    
+    - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
+    - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
+    - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
+    - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+    - [Setting a default alert](#setting-a-default-alert)
   - [Kubernetes (ALPHA)](#kubernetes-alpha)
     - [Auto Discovery](#auto-discovery)
 - [Deployment](#deployment)
@@ -285,45 +286,157 @@ individual services with configurable descriptions and thresholds.
 Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
+| Parameter              | Description                                                                                                            | Default        |
+|:-----------------------|:---------------------------------------------------------------------------------------------------------------------- |:-------|
+| `alerting.discord`     | Configuration for alerts of type `discord`. See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`   |
+| `alerting.mattermost`  | Configuration for alerts of type `mattermost`.  See [Configuring Mattermost alerts](#configuring-mattermost-alerts).   | `{}`   |
+| `alerting.messagebird` | Configuration for alerts of type `messagebird`. See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`   |
+| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`   |
+| `alerting.slack`       | Configuration for alerts of type `slack`. See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`   |
+| `alerting.teams`       | Configuration for alerts of type `teams`. See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`   |
+| `alerting.telegram`    | Configuration for alerts of type `telegram`. See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`   |
+| `alerting.twilio`      | Settings for alerts of type `twilio`. See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`   |
+| `alerting.custom`      | Configuration for custom actions on failure or alerts. See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`   |
+
+
+#### Configuring Discord alerts
+| Parameter                                | Description                                  | Default        |
+|:---------------------------------------- |:-------------------------------------------- |:-------------- |
+| `alerting.discord`                       | Configuration for alerts of type `discord`   | `{}`           |
+| `alerting.discord.webhook-url`           | Discord Webhook URL                          | Required `""`  |
+| `alerting.discord.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
+```yaml
+alerting:
+  discord: 
+    webhook-url: "https://discord.com/api/webhooks/**********/**********"
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: discord
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+
+#### Configuring Mattermost alerts
 | Parameter                                | Description                                                                   | Default        |
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.slack`                         | Configuration for alerts of type `slack`                                      | `{}`           |
-| `alerting.slack.webhook-url`             | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.discord`                       | Configuration for alerts of type `discord`                                    | `{}`           |
-| `alerting.discord.webhook-url`           | Discord Webhook URL                                                           | Required `""`  |
-| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
-| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
-| `alerting.twilio`                        | Settings for alerts of type `twilio`                                          | `{}`           |
-| `alerting.twilio.sid`                    | Twilio account SID                                                            | Required `""`  |
-| `alerting.twilio.token`                  | Twilio auth token                                                             | Required `""`  |
-| `alerting.twilio.from`                   | Number to send Twilio alerts from                                             | Required `""`  |
-| `alerting.twilio.to`                     | Number to send twilio alerts to                                               | Required `""`  |
 | `alerting.mattermost`                    | Configuration for alerts of type `mattermost`                                 | `{}`           |
 | `alerting.mattermost.webhook-url`        | Mattermost Webhook URL                                                        | Required `""`  |
 | `alerting.mattermost.client`             | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
+| `alerting.mattermost.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
+```yaml
+alerting:
+  mattermost: 
+    webhook-url: "http://**********/hooks/**********"
+    client:
+      insecure: true
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: mattermost
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![Mattermost notifications](.github/assets/mattermost-alerts.png)
+
+
+#### Configuring Messagebird alerts
+| Parameter                                | Description                                                                   | Default        |
+|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `alerting.messagebird`                   | Settings for alerts of type `messagebird`                                     | `{}`           |
 | `alerting.messagebird.access-key`        | Messagebird access key                                                        | Required `""`  |
 | `alerting.messagebird.originator`        | The sender of the message                                                     | Required `""`  |
 | `alerting.messagebird.recipients`        | The recipients of the message                                                 | Required `""`  |
-| `alerting.teams`                         | Configuration for alerts of type `teams`                                      | `{}`           |
-| `alerting.teams.webhook-url`             | Teams Webhook URL                                                             | Required `""`  |
-| `alerting.telegram`                      | Configuration for alerts of type `telegram`                                   | `{}`           |
-| `alerting.telegram.token`                | Telegram Bot Token                                                            | Required `""`  |
-| `alerting.telegram.id`                   | Telegram User ID                                                              | Required `""`  |
-| `alerting.custom`                        | Configuration for custom actions on failure or alerts                         | `{}`           |
-| `alerting.custom.url`                    | Custom alerting request url                                                   | Required `""`  |
-| `alerting.custom.method`                 | Request method                                                                | `GET`          |
-| `alerting.custom.body`                   | Custom alerting request body.                                                 | `""`           |
-| `alerting.custom.headers`                | Custom alerting request headers                                               | `{}`           |
-| `alerting.custom.client`                 | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A       |
-| `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A       |
-| `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A       |
-| `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A       |
-| `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A       |
+| `alerting.messagebird.default-alert`         | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
+Example of sending **SMS** text message alert using Messagebird:
+```yaml
+alerting:
+  messagebird:
+    access-key: "..."
+    originator: "31619191918"
+    recipients: "31619191919,31619191920"
+services:
+  - name: twinnation
+    interval: 30s
+    url: "https://twinnation.org/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: messagebird
+        enabled: true
+        failure-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
+#### Configuring PagerDuty alerts
+| Parameter                                | Description                                                                   | Default        |
+|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
+| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
+| `alerting.pagerduty.default-alert`       | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
+It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts
+of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
+parameter to `true` will not create another incident, but mark the incident as resolved on
+PagerDuty instead.
+
+```yaml
+alerting:
+  pagerduty: 
+    integration-key: "********************************"
+
+services:
+  - name: twinnation
+    url: "https://twinnation.org/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: pagerduty
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 
 #### Configuring Slack alerts
+| Parameter                        | Description                                                                   | Default        |
+|:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.slack`                 | Configuration for alerts of type `slack`                                      | `{}`           |
+| `alerting.slack.webhook-url`     | Slack Webhook URL                                                             | Required `""`  |
+| `alerting.slack.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
 ```yaml
 alerting:
   slack: 
@@ -354,136 +467,13 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
-#### Configuring Discord alerts
-```yaml
-alerting:
-  discord: 
-    webhook-url: "https://discord.com/api/webhooks/**********/**********"
-
-services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: discord
-        enabled: true
-        description: "healthcheck failed"
-        send-on-resolved: true
-```
-
-
-#### Configuring PagerDuty alerts
-It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts 
-of type `pagerduty`, because unlike other alerts, the operation resulting from setting said 
-parameter to `true` will not create another incident, but mark the incident as resolved on 
-PagerDuty instead. 
-
-```yaml
-alerting:
-  pagerduty: 
-    integration-key: "********************************"
-
-services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: pagerduty
-        enabled: true
-        failure-threshold: 3
-        success-threshold: 5
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
-
-
-#### Configuring Twilio alerts
-```yaml
-alerting:
-  twilio:
-    sid: "..."
-    token: "..."
-    from: "+1-234-567-8901"
-    to: "+1-234-567-8901"
-
-services:
-  - name: twinnation
-    interval: 30s
-    url: "https://twinnation.org/health"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: twilio
-        enabled: true
-        failure-threshold: 5
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
-
-
-#### Configuring Mattermost alerts
-```yaml
-alerting:
-  mattermost: 
-    webhook-url: "http://**********/hooks/**********"
-    client:
-      insecure: true
-
-services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: mattermost
-        enabled: true
-        description: "healthcheck failed"
-        send-on-resolved: true
-```
-
-Here's an example of what the notifications look like:
-
-![Mattermost notifications](.github/assets/mattermost-alerts.png)
-
-
-#### Configuring Messagebird alerts
-Example of sending **SMS** text message alert using Messagebird:
-```yaml
-alerting:
-  messagebird:
-    access-key: "..."
-    originator: "31619191918"
-    recipients: "31619191919,31619191920"
-services:
-  - name: twinnation
-    interval: 30s
-    url: "https://twinnation.org/health"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: messagebird
-        enabled: true
-        failure-threshold: 3
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
-
 #### Configuring Teams alerts
+| Parameter                        | Description                                                                   | Default        |
+|:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.teams`                 | Configuration for alerts of type `teams`                                      | `{}`           |
+| `alerting.teams.webhook-url`     | Teams Webhook URL                                                             | Required `""`  |
+| `alerting.teams.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
 ```yaml
 alerting:
   teams:
@@ -509,6 +499,13 @@ Here's an example of what the notifications look like:
 ![Teams notifications](.github/assets/teams-alerts.png)
 
 #### Configuring Telegram alerts
+| Parameter                           | Description                                                                   | Default        |
+|:----------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.telegram`                 | Configuration for alerts of type `telegram`                                   | `{}`           |
+| `alerting.telegram.token`           | Telegram Bot Token                                                            | Required `""`  |
+| `alerting.telegram.id`              | Telegram User ID                                                              | Required `""`  |
+| `alerting.telegram.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
 ```yaml
 alerting:
   telegram: 
@@ -533,7 +530,52 @@ Here's an example of what the notifications look like:
 ![Telegram notifications](.github/assets/telegram-alerts.png)
 
 
+#### Configuring Twilio alerts
+| Parameter                         | Description                                                                   | Default        |
+|:--------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.twilio`                 | Settings for alerts of type `twilio`                                          | `{}`           |
+| `alerting.twilio.sid`             | Twilio account SID                                                            | Required `""`  |
+| `alerting.twilio.token`           | Twilio auth token                                                             | Required `""`  |
+| `alerting.twilio.from`            | Number to send Twilio alerts from                                             | Required `""`  |
+| `alerting.twilio.to`              | Number to send twilio alerts to                                               | Required `""`  |
+| `alerting.twilio.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
+```yaml
+alerting:
+  twilio:
+    sid: "..."
+    token: "..."
+    from: "+1-234-567-8901"
+    to: "+1-234-567-8901"
+
+services:
+  - name: twinnation
+    interval: 30s
+    url: "https://twinnation.org/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: twilio
+        enabled: true
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring custom alerts
+| Parameter                         | Description                                                                   | Default        |
+|:----------------------------------|:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.custom`                 | Configuration for custom actions on failure or alerts                         | `{}`           |
+| `alerting.custom.url`             | Custom alerting request url                                                   | Required `""`  |
+| `alerting.custom.method`          | Request method                                                                | `GET`          |
+| `alerting.custom.body`            | Custom alerting request body.                                                 | `""`           |
+| `alerting.custom.headers`         | Custom alerting request headers                                               | `{}`           |
+| `alerting.custom.client`          | Client configuration. See [Client configuration](#client-configuration).      | `{}`           |
+| `alerting.custom.default-alert`   | Default alert configuration. See [Setting a default alert](#setting-a-default-alert) | N/A       |
+
 While they're called alerts, you can use this feature to call anything. 
 
 For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by 
@@ -589,7 +631,15 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
 
 
-#### Setting a default provider alert
+#### Setting a default alert
+| Parameter                                     | Description                                                                   | Default |
+|:----------------------------------------------|:------------------------------------------------------------------------------|:--------|
+| `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A     |
+| `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A     |
+| `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A     |
+| `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
+| `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A     |
+
 While you can specify the alert configuration directly in the service definition, it's tedious and may lead to a very
 long configuration file.
 
@@ -627,8 +677,8 @@ services:
 It also allows you to do things like this:
 ```yaml
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: example
+    url: "https://example.org"
     conditions:
       - "[STATUS] == 200"
     alerts:
@@ -638,6 +688,38 @@ services:
         failure-threshold: 10
       - type: slack
         failure-threshold: 15
+```
+
+Of course, you can also mix alert types:
+```yaml
+alerting:
+  slack:
+    webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+  pagerduty:
+    integration-key: "********************************"
+    default-alert:
+      enabled: true
+      failure-threshold: 5
+
+services:
+  - name: service-1
+    url: "https://example.org"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: slack
+      - type: pagerduty
+
+  - name: service-2
+    url: "https://example.org"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: slack
+      - type: pagerduty
 ```
 
 
