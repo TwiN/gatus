@@ -68,6 +68,7 @@ For more details, see [Usage](#usage)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Uptime Badges (ALPHA)](#uptime-badges)
   - [API](#API)
+  - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
 
 ## Why Gatus?
@@ -1065,6 +1066,10 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`. 
 No such header is required to query the API.
+
+
+### High level design overview
+![Gatus diagram](.github/assets/gatus-diagram.png)
 
 
 ## Sponsors
