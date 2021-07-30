@@ -36,7 +36,7 @@ type AlertProvider struct {
 func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
-		// XXX: remove the next 3 lines in v3.0.0
+		// XXX: remove the next 4 lines in v3.0.0
 		if provider.Insecure {
 			log.Println("WARNING: alerting.*.insecure has been deprecated and will be removed in v3.0.0 in favor of alerting.*.client.insecure")
 			provider.ClientConfig.Insecure = true
