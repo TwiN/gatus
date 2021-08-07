@@ -229,10 +229,10 @@ Here are some examples of conditions you can use:
 | Parameter          | Description                                                                            | Default        |
 |:------------------ |:-------------------------------------------------------------------------------------- |:-------------- |
 | `storage`          | Storage configuration                                                                  | `{}`           |
-| `storage.file`     | File to persist the data in. If the type is `inmemory`, data is persisted on interval. | `""`           |
-| `storage.type`     | Type of storage. Valid types: `inmemory`, `sqlite`.                                    | `"inmemory"`   |
+| `storage.file`     | File to persist the data in. If the type is `memory`, data is persisted on interval.   | `""`           |
+| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`.                                      | `"memory"`     |
 
-- If `storage.type` is `inmemory` (default) and `storage.file` is set to a non-blank value.
+- If `storage.type` is `memory` (default) and `storage.file` is set to a non-blank value.
   Furthermore, the data is periodically persisted, but everything remains in memory.
 - If `storage.type` is `sqlite`, `storage.file` must not be blank.
 ```yaml

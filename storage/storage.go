@@ -57,7 +57,7 @@ func Initialize(cfg *Config) error {
 		if err != nil {
 			return err
 		}
-	case TypeInMemory:
+	case TypeMemory:
 		fallthrough
 	default:
 		if len(cfg.File) > 0 {

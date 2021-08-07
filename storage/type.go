@@ -4,6 +4,6 @@ package storage
 type Type string
 
 const (
-	TypeInMemory Type = "inmemory" // In-memory store
-	TypeSQLite   Type = "sqlite"   // SQLite store
+	TypeMemory Type = "memory" // In-memory store
+	TypeSQLite Type = "sqlite" // SQLite store
 )

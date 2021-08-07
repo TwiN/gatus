@@ -32,13 +32,13 @@ func TestInitialize(t *testing.T) {
 			ExpectedErr: nil,
 		},
 		{
-			Name:        "inmemory-no-file",
-			Cfg:         &Config{Type: TypeInMemory},
+			Name:        "memory-no-file",
+			Cfg:         &Config{Type: TypeMemory},
 			ExpectedErr: nil,
 		},
 		{
-			Name:        "inmemory-with-file",
-			Cfg:         &Config{Type: TypeInMemory, File: t.TempDir() + "/TestInitialize_inmemory-with-file.db"},
+			Name:        "memory-with-file",
+			Cfg:         &Config{Type: TypeMemory, File: t.TempDir() + "/TestInitialize_memory-with-file.db"},
 			ExpectedErr: nil,
 		},
 		{

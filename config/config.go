@@ -177,7 +177,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 func validateStorageConfig(config *Config) error {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{
-			Type: storage.TypeInMemory,
+			Type: storage.TypeMemory,
 		}
 	}
 	err := storage.Initialize(config.Storage)
