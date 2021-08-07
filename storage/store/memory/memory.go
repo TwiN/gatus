@@ -13,6 +13,7 @@ import (
 
 func init() {
 	gob.Register(&core.ServiceStatus{})
+	gob.Register(&core.HourlyUptimeStatistics{})
 	gob.Register(&core.Uptime{})
 	gob.Register(&core.Result{})
 	gob.Register(&core.Event{})
