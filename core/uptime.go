@@ -1,14 +1,5 @@
 package core
 
-import (
-	"time"
-)
-
-const (
-	numberOfHoursInTenDays = 10 * 24
-	sevenDays              = 7 * 24 * time.Hour
-)
-
 // Uptime is the struct that contains the relevant data for calculating the uptime as well as the uptime itself
 // and some other statistics
 type Uptime struct {
