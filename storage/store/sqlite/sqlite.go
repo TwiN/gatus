@@ -19,6 +19,9 @@ import (
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 const (
+	// arraySeparator is the separator used to separate multiple strings in a single column.
+	// It's a dirty hack, but it's only used for persisting errors, and since this data will likely only ever be used
+	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
 	uptimeCleanUpThreshold  = 10 * 24 * time.Hour              // Maximum uptime age before triggering a clean up
