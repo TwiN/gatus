@@ -62,6 +62,7 @@ func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
 	}
 }
 
+// recalculateUptime calculates the uptime over the past 7 days, 24 hours and 1 hour.
 func recalculateUptime(uptime *core.Uptime) {
 	uptimeBrackets := make(map[string]uint64)
 	now := time.Now()
