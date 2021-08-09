@@ -1159,4 +1159,5 @@ No such header is required to query the API.
 ## Sponsors
 You can find the full list of sponsors [here](https://github.com/sponsors/TwinProduction).
 
-[<img src="https://github.com/math280h.png" width="35" />](https://github.com/math280h)
+[<img src="https://github.com/math280h.png" width="50" />](https://github.com/math280h)
+[<img src="https://github.com/pyroscope-io.png" width="50" />](https://github.com/pyroscope-io)
