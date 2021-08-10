@@ -18,6 +18,8 @@ type Uptime struct {
 	TotalExecutionsPerHour map[int64]uint64 `json:"-"`
 
 	// HourlyStatistics is a map containing metrics collected (value) for every hourly unix timestamps (key)
+	//
+	// Used only if the storage type is memory
 	HourlyStatistics map[int64]*HourlyUptimeStatistics `json:"-"`
 }
 
