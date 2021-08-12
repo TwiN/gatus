@@ -47,7 +47,6 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 
 func generateSVG(duration string, uptime *core.Uptime) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
-	var color string
 	var value float64
 	switch duration {
 	case "7d":
@@ -61,11 +60,7 @@ func generateSVG(duration string, uptime *core.Uptime) []byte {
 		value = uptime.LastHour
 	default:
 	}
-	if value >= 0.8 {
-		color = "#40cc11"
-	} else {
-		color = "#c7130a"
-	}
+	color := getBadgeColorFromUptime(value)
 	sanitizedValue := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", value*100), "0"), ".") + "%"
 	if strings.Contains(sanitizedValue, ".") {
 		valueWidthAdjustment = -10
@@ -103,4 +98,19 @@ func generateSVG(duration string, uptime *core.Uptime) []byte {
   </g>
 </svg>`, width, width, labelWidth, color, labelWidth, valueWidth, labelWidth, width, labelX, duration, labelX, duration, valueX, sanitizedValue, valueX, sanitizedValue))
 	return svg
+}
+
+func getBadgeColorFromUptime(uptime float64) string {
+	if uptime >= 0.975 {
+		return "#40cc11"
+	} else if uptime >= 0.95 {
+		return "#94cc11"
+	} else if uptime >= 0.9 {
+		return "#ccc311"
+	} else if uptime >= 0.8 {
+		return "#ccb311"
+	} else if uptime >= 0.5 {
+		return "#cc8111"
+	}
+	return "#c7130a"
 }
