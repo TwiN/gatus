@@ -14,33 +14,20 @@
       />
       <Pagination @page="changePage"/>
     </slot>
-    <div v-if="uptime" class="mt-12">
+    <div class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">UPTIME</h1>
       <hr />
-      <div class="flex space-x-4 text-center text-xl xl:text-2xl mt-3">
+      <div v-if="serviceStatus && serviceStatus.key" class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
-          {{ prettifyUptime(uptime['7d']) }}
-          <h2 class="text-sm text-gray-400">Last 7 days</h2>
-        </div>
-        <div class="flex-1">
-          {{ prettifyUptime(uptime['24h']) }}
-          <h2 class="text-sm text-gray-400">Last 24 hours</h2>
-        </div>
-        <div class="flex-1">
-          {{ prettifyUptime(uptime['1h']) }}
-          <h2 class="text-sm text-gray-400">Last hour</h2>
-        </div>
-      </div>
-      <hr class="mt-1"/>
-      <h3 class="text-xl font-mono text-gray-400 mt-1 text-right">BADGES</h3>
-      <div v-if="serviceStatus && serviceStatus.key" class="flex space-x-4 text-center text-2xl mt-6 relative bottom-12">
-        <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
           <img :src="generateBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
         </div>
         <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
           <img :src="generateBadgeImageURL('24h')" alt="24h uptime badge" class="mx-auto" />
         </div>
         <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last hour</h2>
           <img :src="generateBadgeImageURL('1h')" alt="1h uptime badge" class="mx-auto" />
         </div>
       </div>
@@ -159,7 +146,6 @@ export default {
     return {
       serviceStatus: {},
       events: [],
-      uptime: {"7d": 0, "24h": 0, "1h": 0},
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,

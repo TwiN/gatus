@@ -174,16 +174,25 @@ func TestStore_Persistence(t *testing.T) {
 	store, _ := NewStore("sqlite", file)
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
-	ssFromOldStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents).WithUptime())
-	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 || ssFromOldStore.Uptime.LastHour != 0.5 || ssFromOldStore.Uptime.LastTwentyFourHours != 0.5 || ssFromOldStore.Uptime.LastSevenDays != 0.5 {
+	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
+		t.Errorf("the uptime over the past 1h should've been 0.5, got %f", uptime)
+	}
+	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24), time.Now()); uptime != 0.5 {
+		t.Errorf("the uptime over the past 24h should've been 0.5, got %f", uptime)
+	}
+	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
+		t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
+	}
+	ssFromOldStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
 	store, _ = NewStore("sqlite", file)
 	defer store.Close()
-	ssFromNewStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents).WithUptime())
-	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 || ssFromNewStore.Uptime.LastHour != 0.5 || ssFromNewStore.Uptime.LastTwentyFourHours != 0.5 || ssFromNewStore.Uptime.LastSevenDays != 0.5 {
+	ssFromNewStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
 	if ssFromNewStore == ssFromOldStore {

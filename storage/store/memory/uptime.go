@@ -45,57 +45,6 @@ func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
 			}
 		}
 	}
-	if result.Success {
-		// Recalculate uptime if at least one of the 1h, 24h or 7d uptime are not 100%
-		// If they're all 100%, then recalculating the uptime would be useless unless
-		// the result added was a failure (!result.Success)
-		if uptime.LastSevenDays != 1 || uptime.LastTwentyFourHours != 1 || uptime.LastHour != 1 {
-			recalculateUptime(uptime)
-		}
-	} else {
-		// Recalculate uptime if at least one of the 1h, 24h or 7d uptime are not 0%
-		// If they're all 0%, then recalculating the uptime would be useless unless
-		// the result added was a success (result.Success)
-		if uptime.LastSevenDays != 0 || uptime.LastTwentyFourHours != 0 || uptime.LastHour != 0 {
-			recalculateUptime(uptime)
-		}
-	}
-}
-
-// recalculateUptime calculates the uptime over the past 7 days, 24 hours and 1 hour.
-func recalculateUptime(uptime *core.Uptime) {
-	uptimeBrackets := make(map[string]uint64)
-	now := time.Now()
-	// The oldest uptime bracket starts 7 days ago, so we'll start from there
-	timestamp := now.Add(-sevenDays)
-	for now.Sub(timestamp) >= 0 {
-		hourlyUnixTimestamp := timestamp.Truncate(time.Hour).Unix()
-		hourlyStats := uptime.HourlyStatistics[hourlyUnixTimestamp]
-		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
-			timestamp = timestamp.Add(time.Hour)
-			continue
-		}
-		uptimeBrackets["7d_success"] += hourlyStats.SuccessfulExecutions
-		uptimeBrackets["7d_total"] += hourlyStats.TotalExecutions
-		if now.Sub(timestamp) <= 24*time.Hour {
-			uptimeBrackets["24h_success"] += hourlyStats.SuccessfulExecutions
-			uptimeBrackets["24h_total"] += hourlyStats.TotalExecutions
-		}
-		if now.Sub(timestamp) <= time.Hour {
-			uptimeBrackets["1h_success"] += hourlyStats.SuccessfulExecutions
-			uptimeBrackets["1h_total"] += hourlyStats.TotalExecutions
-		}
-		timestamp = timestamp.Add(time.Hour)
-	}
-	if uptimeBrackets["7d_total"] > 0 {
-		uptime.LastSevenDays = float64(uptimeBrackets["7d_success"]) / float64(uptimeBrackets["7d_total"])
-	}
-	if uptimeBrackets["24h_total"] > 0 {
-		uptime.LastTwentyFourHours = float64(uptimeBrackets["24h_success"]) / float64(uptimeBrackets["24h_total"])
-	}
-	if uptimeBrackets["1h_total"] > 0 {
-		uptime.LastHour = float64(uptimeBrackets["1h_success"]) / float64(uptimeBrackets["1h_total"])
-	}
 }
 
 // XXX: Remove this on v3.0.0

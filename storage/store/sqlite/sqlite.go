@@ -501,12 +501,12 @@ func (s *Store) getServiceStatusByKey(tx *sql.Tx, key string, parameters *paging
 			log.Printf("[sqlite][getServiceStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
-	if parameters.IncludeUptime {
-		now := time.Now()
-		serviceStatus.Uptime.LastHour, _, err = s.getServiceUptime(tx, serviceID, now.Add(-time.Hour), now)
-		serviceStatus.Uptime.LastTwentyFourHours, _, err = s.getServiceUptime(tx, serviceID, now.Add(-24*time.Hour), now)
-		serviceStatus.Uptime.LastSevenDays, _, err = s.getServiceUptime(tx, serviceID, now.Add(-7*24*time.Hour), now)
-	}
+	//if parameters.IncludeUptime {
+	//	now := time.Now()
+	//	serviceStatus.Uptime.LastHour, _, err = s.getServiceUptime(tx, serviceID, now.Add(-time.Hour), now)
+	//	serviceStatus.Uptime.LastTwentyFourHours, _, err = s.getServiceUptime(tx, serviceID, now.Add(-24*time.Hour), now)
+	//	serviceStatus.Uptime.LastSevenDays, _, err = s.getServiceUptime(tx, serviceID, now.Add(-7*24*time.Hour), now)
+	//}
 	return serviceStatus, nil
 }
 
