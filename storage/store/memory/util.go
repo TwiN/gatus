@@ -2,7 +2,8 @@ package memory
 
 import (
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 )
 
 // ShallowCopyServiceStatus returns a shallow copy of a ServiceStatus with only the results
@@ -63,11 +64,11 @@ func AddResult(ss *core.ServiceStatus, result *core.Result) {
 		// Check if there's any change since the last result
 		if ss.Results[len(ss.Results)-1].Success != result.Success {
 			ss.Events = append(ss.Events, core.NewEventFromResult(result))
-			if len(ss.Events) > core.MaximumNumberOfEvents {
+			if len(ss.Events) > common.MaximumNumberOfEvents {
 				// Doing ss.Events[1:] would usually be sufficient, but in the case where for some reason, the slice has
 				// more than one extra element, we can get rid of all of them at once and thus returning the slice to a
 				// length of MaximumNumberOfEvents by using ss.Events[len(ss.Events)-MaximumNumberOfEvents:] instead
-				ss.Events = ss.Events[len(ss.Events)-core.MaximumNumberOfEvents:]
+				ss.Events = ss.Events[len(ss.Events)-common.MaximumNumberOfEvents:]
 			}
 		}
 	} else {
@@ -75,11 +76,11 @@ func AddResult(ss *core.ServiceStatus, result *core.Result) {
 		ss.Events = append(ss.Events, core.NewEventFromResult(result))
 	}
 	ss.Results = append(ss.Results, result)
-	if len(ss.Results) > core.MaximumNumberOfResults {
+	if len(ss.Results) > common.MaximumNumberOfResults {
 		// Doing ss.Results[1:] would usually be sufficient, but in the case where for some reason, the slice has more
 		// than one extra element, we can get rid of all of them at once and thus returning the slice to a length of
 		// MaximumNumberOfResults by using ss.Results[len(ss.Results)-MaximumNumberOfResults:] instead
-		ss.Results = ss.Results[len(ss.Results)-core.MaximumNumberOfResults:]
+		ss.Results = ss.Results[len(ss.Results)-common.MaximumNumberOfResults:]
 	}
 	processUptimeAfterResult(ss.Uptime, result)
 }

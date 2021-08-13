@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 
@@ -126,7 +127,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
 
-			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
 			if serviceStatus == nil {
 				t.Fatalf("serviceStatus shouldn't have been nil")
 			}
@@ -165,15 +166,15 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			serviceStatus := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			serviceStatus := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
 			}
-			serviceStatus = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			serviceStatus = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
 			}
-			serviceStatus = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			serviceStatus = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
 			}
@@ -273,6 +274,36 @@ func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T
 	}
 }
 
+func TestStore_GetUptimeByKey(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetUptimeByKey")
+	defer cleanUp(scenarios)
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = now.Add(-time.Minute)
+	secondResult := testUnsuccessfulResult
+	secondResult.Timestamp = now
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err != common.ErrServiceNotFound {
+				t.Errorf("should've returned not found because there's nothing yet, got %v", err)
+			}
+			scenario.Store.Insert(&testService, &firstResult)
+			scenario.Store.Insert(&testService, &secondResult)
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
+				t.Errorf("the uptime over the past 1h should've been 0.5, got %f", uptime)
+			}
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24), time.Now()); uptime != 0.5 {
+				t.Errorf("the uptime over the past 24h should've been 0.5, got %f", uptime)
+			}
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
+				t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
+			}
+			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), time.Now(), time.Now().Add(-time.Hour)); err == nil {
+				t.Error("should've returned an error because the parameter 'from' cannot be older than 'to'")
+			}
+		})
+	}
+}
+
 func TestStore_Insert(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_Insert")
 	defer cleanUp(scenarios)
@@ -285,7 +316,7 @@ func TestStore_Insert(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
 			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 
-			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, core.MaximumNumberOfEvents).WithResults(1, core.MaximumNumberOfResults).WithUptime())
+			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
 			if ss == nil {
 				t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 			}

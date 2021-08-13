@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gocache"
 	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
@@ -138,7 +138,7 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	vars := mux.Vars(r)
-	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, core.MaximumNumberOfEvents).WithUptime())
+	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents).WithUptime())
 	if serviceStatus == nil {
 		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
 		writer.WriteHeader(http.StatusNotFound)

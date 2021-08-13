@@ -2,9 +2,10 @@ package store
 
 import (
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gatus/storage/store/sqlite"
+	"time"
 )
 
 // Store is the interface that each stores should implement
@@ -18,6 +19,9 @@ type Store interface {
 
 	// GetServiceStatusByKey returns the service status for a given key
 	GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) *core.ServiceStatus
+
+	// GetUptimeByKey returns the uptime percentage during a time range
+	GetUptimeByKey(key string, from, to time.Time) (float64, error)
 
 	// Insert adds the observed result for the specified service into the store
 	Insert(service *core.Service, result *core.Result)
