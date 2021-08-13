@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/paging"
 	"github.com/TwinProduction/gatus/storage/store/sqlite"
 )
 

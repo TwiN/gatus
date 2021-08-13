@@ -5,20 +5,21 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 )
 
 func TestAddResult(t *testing.T) {
 	service := &core.Service{Name: "name", Group: "group"}
 	serviceStatus := core.NewServiceStatus(service.Key(), service.Group, service.Name)
-	for i := 0; i < (core.MaximumNumberOfResults+core.MaximumNumberOfEvents)*2; i++ {
+	for i := 0; i < (common.MaximumNumberOfResults+common.MaximumNumberOfEvents)*2; i++ {
 		AddResult(serviceStatus, &core.Result{Success: i%2 == 0, Timestamp: time.Now()})
 	}
-	if len(serviceStatus.Results) != core.MaximumNumberOfResults {
-		t.Errorf("expected serviceStatus.Results to not exceed a length of %d", core.MaximumNumberOfResults)
+	if len(serviceStatus.Results) != common.MaximumNumberOfResults {
+		t.Errorf("expected serviceStatus.Results to not exceed a length of %d", common.MaximumNumberOfResults)
 	}
-	if len(serviceStatus.Events) != core.MaximumNumberOfEvents {
-		t.Errorf("expected serviceStatus.Events to not exceed a length of %d", core.MaximumNumberOfEvents)
+	if len(serviceStatus.Events) != common.MaximumNumberOfEvents {
+		t.Errorf("expected serviceStatus.Events to not exceed a length of %d", common.MaximumNumberOfEvents)
 	}
 	// Try to add nil serviceStatus
 	AddResult(nil, &core.Result{Timestamp: time.Now()})

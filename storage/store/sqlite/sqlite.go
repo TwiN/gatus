@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/util"
 	_ "modernc.org/sqlite"
 )
@@ -24,9 +25,9 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour              // Maximum uptime age before triggering a clean up
-	eventsCleanUpThreshold  = core.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
-	resultsCleanUpThreshold = core.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
+	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a clean up
+	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
+	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
 
 	uptimeRetention = 7 * 24 * time.Hour
 )
@@ -38,8 +39,7 @@ var (
 	// ErrDatabaseDriverNotSpecified is the error returned when the driver parameter passed in NewStore is blank
 	ErrDatabaseDriverNotSpecified = errors.New("database driver cannot be empty")
 
-	errServiceNotFoundInDatabase = errors.New("service does not exist in database")
-	errNoRowsReturned            = errors.New("expected a row to be returned, but none was")
+	errNoRowsReturned = errors.New("expected a row to be returned, but none was")
 )
 
 // Store that leverages a database
@@ -194,6 +194,31 @@ func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusPa
 	return serviceStatus
 }
 
+// GetUptimeByKey returns the uptime percentage during a time range
+func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
+	if from.After(to) {
+		return 0, common.ErrInvalidTimeRange
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	serviceID, _, _, err := s.getServiceIDGroupAndNameByKey(tx, key)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+	uptime, _, err := s.getServiceUptime(tx, serviceID, from, to)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return uptime, nil
+}
+
 // Insert adds the observed result for the specified service into the store
 func (s *Store) Insert(service *core.Service, result *core.Result) {
 	tx, err := s.db.Begin()
@@ -203,7 +228,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	//start := time.Now()
 	serviceID, err := s.getServiceID(tx, service)
 	if err != nil {
-		if err == errServiceNotFoundInDatabase {
+		if err == common.ErrServiceNotFound {
 			// Service doesn't exist in the database, insert it
 			if serviceID, err = s.insertService(tx, service); err != nil {
 				_ = tx.Rollback()
@@ -503,7 +528,7 @@ func (s *Store) getServiceIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64,
 	}
 	_ = rows.Close()
 	if id == 0 {
-		return 0, "", "", errServiceNotFoundInDatabase
+		return 0, "", "", common.ErrServiceNotFound
 	}
 	return
 }
@@ -642,7 +667,7 @@ func (s *Store) getServiceID(tx *sql.Tx, service *core.Service) (int64, error) {
 	}
 	_ = rows.Close()
 	if !found {
-		return 0, errServiceNotFoundInDatabase
+		return 0, common.ErrServiceNotFound
 	}
 	return id, nil
 }
@@ -735,7 +760,7 @@ func (s *Store) deleteOldServiceEvents(tx *sql.Tx, serviceID int64) error {
 				)
 		`,
 		serviceID,
-		core.MaximumNumberOfEvents,
+		common.MaximumNumberOfEvents,
 	)
 	if err != nil {
 		return err
@@ -760,7 +785,7 @@ func (s *Store) deleteOldServiceResults(tx *sql.Tx, serviceID int64) error {
 				)
 		`,
 		serviceID,
-		core.MaximumNumberOfResults,
+		common.MaximumNumberOfResults,
 	)
 	if err != nil {
 		return err

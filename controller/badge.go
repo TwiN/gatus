@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
 	"github.com/gorilla/mux"
 )
 
@@ -19,22 +18,31 @@ import (
 func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
-	if duration != "7d" && duration != "24h" && duration != "1h" {
+	var from time.Time
+	switch duration {
+	case "7d":
+		from = time.Now().Add(-time.Hour * 24 * 7)
+	case "24h":
+		from = time.Now().Add(-time.Hour * 24)
+	case "1h":
+		from = time.Now().Add(-time.Hour)
+	default:
 		writer.WriteHeader(http.StatusBadRequest)
 		_, _ = writer.Write([]byte("Durations supported: 7d, 24h, 1h"))
 		return
 	}
 	identifier := variables["identifier"]
 	key := strings.TrimSuffix(identifier, ".svg")
-	serviceStatus := storage.Get().GetServiceStatusByKey(key, paging.NewServiceStatusParams().WithUptime())
-	if serviceStatus == nil {
-		writer.WriteHeader(http.StatusNotFound)
-		_, _ = writer.Write([]byte("Requested service not found"))
-		return
-	}
-	if serviceStatus.Uptime == nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte("Failed to compute uptime"))
+	uptime, err := storage.Get().GetUptimeByKey(key, from, time.Now())
+	if err != nil {
+		if err == common.ErrServiceNotFound {
+			writer.WriteHeader(http.StatusNotFound)
+		} else if err == common.ErrInvalidTimeRange {
+			writer.WriteHeader(http.StatusBadRequest)
+		} else {
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+		_, _ = writer.Write([]byte(err.Error()))
 		return
 	}
 	formattedDate := time.Now().Format(http.TimeFormat)
@@ -42,26 +50,22 @@ func badgeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Date", formattedDate)
 	writer.Header().Set("Expires", formattedDate)
 	writer.Header().Set("Content-Type", "image/svg+xml")
-	_, _ = writer.Write(generateSVG(duration, serviceStatus.Uptime))
+	_, _ = writer.Write(generateSVG(duration, uptime))
 }
 
-func generateSVG(duration string, uptime *core.Uptime) []byte {
+func generateSVG(duration string, uptime float64) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
-	var value float64
 	switch duration {
 	case "7d":
 		labelWidth = 65
-		value = uptime.LastSevenDays
 	case "24h":
 		labelWidth = 70
-		value = uptime.LastTwentyFourHours
 	case "1h":
 		labelWidth = 65
-		value = uptime.LastHour
 	default:
 	}
-	color := getBadgeColorFromUptime(value)
-	sanitizedValue := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", value*100), "0"), ".") + "%"
+	color := getBadgeColorFromUptime(uptime)
+	sanitizedValue := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", uptime*100), "0"), ".") + "%"
 	if strings.Contains(sanitizedValue, ".") {
 		valueWidthAdjustment = -10
 	}

@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/paging"
+	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/util"
 	"github.com/TwinProduction/gocache"
 )
@@ -67,6 +68,35 @@ func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusPa
 		return nil
 	}
 	return ShallowCopyServiceStatus(serviceStatus.(*core.ServiceStatus), params)
+}
+
+// GetUptimeByKey returns the uptime percentage during a time range
+func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
+	if from.After(to) {
+		return 0, common.ErrInvalidTimeRange
+	}
+	serviceStatus := s.cache.GetValue(key)
+	if serviceStatus == nil || serviceStatus.(*core.ServiceStatus).Uptime == nil {
+		return 0, common.ErrServiceNotFound
+	}
+	successfulExecutions := uint64(0)
+	totalExecutions := uint64(0)
+	current := from
+	for to.Sub(current) >= 0 {
+		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
+		hourlyStats := serviceStatus.(*core.ServiceStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
+			current = current.Add(time.Hour)
+			continue
+		}
+		successfulExecutions += hourlyStats.SuccessfulExecutions
+		totalExecutions += hourlyStats.TotalExecutions
+		current = current.Add(time.Hour)
+	}
+	if totalExecutions == 0 {
+		return 0, nil
+	}
+	return float64(successfulExecutions) / float64(totalExecutions), nil
 }
 
 // Insert adds the observed result for the specified service into the store

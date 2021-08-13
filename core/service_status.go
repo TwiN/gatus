@@ -1,13 +1,5 @@
 package core
 
-const (
-	// MaximumNumberOfResults is the maximum number of results that ServiceStatus.Results can have
-	MaximumNumberOfResults = 100
-
-	// MaximumNumberOfEvents is the maximum number of events that ServiceStatus.Events can have
-	MaximumNumberOfEvents = 50
-)
-
 // ServiceStatus contains the evaluation Results of a Service
 type ServiceStatus struct {
 	// Name of the service
@@ -34,6 +26,10 @@ type ServiceStatus struct {
 	// We don't expose this through JSON, because the main dashboard doesn't need to have this data.
 	// However, the detailed service page does leverage this by including it to a map that will be
 	// marshalled alongside the ServiceStatus.
+	//
+	// TODO: Get rid of this in favor of using the new store.GetUptimeByKey.
+	// TODO: For memory, store the uptime in a different map? (is that possible, given that we need to persist it through gocache?)
+	// Deprecated
 	Uptime *Uptime `json:"-"`
 }
 
