@@ -2,11 +2,10 @@ package paging
 
 // ServiceStatusParams represents all parameters that can be used for paging purposes
 type ServiceStatusParams struct {
-	EventsPage      int  // Number of the event page
-	EventsPageSize  int  // Size of the event page
-	ResultsPage     int  // Number of the result page
-	ResultsPageSize int  // Size of the result page
-	IncludeUptime   bool // Whether to include uptime data
+	EventsPage      int // Number of the event page
+	EventsPageSize  int // Size of the event page
+	ResultsPage     int // Number of the result page
+	ResultsPageSize int // Size of the result page
 }
 
 // NewServiceStatusParams creates a new ServiceStatusParams
@@ -25,11 +24,5 @@ func (params *ServiceStatusParams) WithEvents(page, pageSize int) *ServiceStatus
 func (params *ServiceStatusParams) WithResults(page, pageSize int) *ServiceStatusParams {
 	params.ResultsPage = page
 	params.ResultsPageSize = pageSize
-	return params
-}
-
-// WithUptime sets the value IncludeUptime to true
-func (params *ServiceStatusParams) WithUptime() *ServiceStatusParams {
-	params.IncludeUptime = true
 	return params
 }

@@ -29,11 +29,6 @@ func ShallowCopyServiceStatus(ss *core.ServiceStatus, params *paging.ServiceStat
 	} else {
 		shallowCopy.Events = ss.Events[eventsStart:eventsEnd]
 	}
-	if params.IncludeUptime {
-		shallowCopy.Uptime.LastHour = ss.Uptime.LastHour
-		shallowCopy.Uptime.LastTwentyFourHours = ss.Uptime.LastTwentyFourHours
-		shallowCopy.Uptime.LastSevenDays = ss.Uptime.LastSevenDays
-	}
 	return shallowCopy
 }
 

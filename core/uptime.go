@@ -3,10 +3,6 @@ package core
 // Uptime is the struct that contains the relevant data for calculating the uptime as well as the uptime itself
 // and some other statistics
 type Uptime struct {
-	LastSevenDays       float64 `json:"7d"`  // Uptime percentage over the past 7 days
-	LastTwentyFourHours float64 `json:"24h"` // Uptime percentage over the past 24 hours
-	LastHour            float64 `json:"1h"`  // Uptime percentage over the past hour
-
 	// SuccessfulExecutionsPerHour is a map containing the number of successes (value)
 	// for every hourly unix timestamps (key)
 	// Deprecated

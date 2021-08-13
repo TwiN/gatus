@@ -63,18 +63,4 @@ func TestShallowCopyServiceStatus(t *testing.T) {
 	if len(ShallowCopyServiceStatus(serviceStatus, paging.NewServiceStatusParams().WithResults(1, 50)).Results) != 25 {
 		t.Error("expected to have 25 results, because there's only 25 results")
 	}
-	uptime := ShallowCopyServiceStatus(serviceStatus, paging.NewServiceStatusParams().WithUptime()).Uptime
-	if uptime == nil {
-		t.Error("expected uptime to not be nil")
-	} else {
-		if uptime.LastHour != 1 {
-			t.Error("expected uptime.LastHour to not be 1, got", uptime.LastHour)
-		}
-		if uptime.LastTwentyFourHours != 0.5 {
-			t.Error("expected uptime.LastTwentyFourHours to not be 0.5, got", uptime.LastTwentyFourHours)
-		}
-		if uptime.LastSevenDays != 0.52 {
-			t.Error("expected uptime.LastSevenDays to not be 0.52, got", uptime.LastSevenDays)
-		}
-	}
 }

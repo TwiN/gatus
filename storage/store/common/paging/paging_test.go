@@ -10,7 +10,6 @@ func TestNewServiceStatusParams(t *testing.T) {
 		ExpectedEventsPageSize  int
 		ExpectedResultsPage     int
 		ExpectedResultsPageSize int
-		ExpectedIncludeUptime   bool
 	}
 	scenarios := []Scenario{
 		{
@@ -20,7 +19,6 @@ func TestNewServiceStatusParams(t *testing.T) {
 			ExpectedEventsPageSize:  0,
 			ExpectedResultsPage:     0,
 			ExpectedResultsPageSize: 0,
-			ExpectedIncludeUptime:   false,
 		},
 		{
 			Name:                    "with-events-page-2-size-7",
@@ -29,25 +27,22 @@ func TestNewServiceStatusParams(t *testing.T) {
 			ExpectedEventsPageSize:  7,
 			ExpectedResultsPage:     0,
 			ExpectedResultsPageSize: 0,
-			ExpectedIncludeUptime:   false,
 		},
 		{
 			Name:                    "with-events-page-4-size-3-uptime",
-			Params:                  NewServiceStatusParams().WithEvents(4, 3).WithUptime(),
+			Params:                  NewServiceStatusParams().WithEvents(4, 3),
 			ExpectedEventsPage:      4,
 			ExpectedEventsPageSize:  3,
 			ExpectedResultsPage:     0,
 			ExpectedResultsPageSize: 0,
-			ExpectedIncludeUptime:   true,
 		},
 		{
 			Name:                    "with-results-page-1-size-20-uptime",
-			Params:                  NewServiceStatusParams().WithResults(1, 20).WithUptime(),
+			Params:                  NewServiceStatusParams().WithResults(1, 20),
 			ExpectedEventsPage:      0,
 			ExpectedEventsPageSize:  0,
 			ExpectedResultsPage:     1,
 			ExpectedResultsPageSize: 20,
-			ExpectedIncludeUptime:   true,
 		},
 		{
 			Name:                    "with-results-page-2-size-10-events-page-3-size-50",
@@ -56,7 +51,6 @@ func TestNewServiceStatusParams(t *testing.T) {
 			ExpectedEventsPageSize:  50,
 			ExpectedResultsPage:     2,
 			ExpectedResultsPageSize: 10,
-			ExpectedIncludeUptime:   false,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -72,9 +66,6 @@ func TestNewServiceStatusParams(t *testing.T) {
 			}
 			if scenario.Params.ResultsPageSize != scenario.ExpectedResultsPageSize {
 				t.Errorf("expected ResultsPageSize to be %d, was %d", scenario.ExpectedResultsPageSize, scenario.Params.ResultsPageSize)
-			}
-			if scenario.Params.IncludeUptime != scenario.ExpectedIncludeUptime {
-				t.Errorf("expected IncludeUptime to be %v, was %v", scenario.ExpectedIncludeUptime, scenario.Params.IncludeUptime)
 			}
 		})
 	}

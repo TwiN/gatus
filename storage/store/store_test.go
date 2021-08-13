@@ -127,7 +127,7 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
 
-			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
+			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if serviceStatus == nil {
 				t.Fatalf("serviceStatus shouldn't have been nil")
 			}
@@ -143,18 +143,6 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 			if serviceStatus.Results[0].Timestamp.After(serviceStatus.Results[1].Timestamp) {
 				t.Error("The result at index 0 should've been older than the result at index 1")
 			}
-			if serviceStatus.Uptime == nil {
-				t.Fatalf("serviceStatus.Uptime shouldn't have been nil")
-			}
-			if serviceStatus.Uptime.LastHour != 0.5 {
-				t.Errorf("serviceStatus.Uptime.LastHour should've been 0.5, got %f", serviceStatus.Uptime.LastHour)
-			}
-			if serviceStatus.Uptime.LastTwentyFourHours != 0.5 {
-				t.Errorf("serviceStatus.Uptime.LastTwentyFourHours should've been 0.5, got %f", serviceStatus.Uptime.LastTwentyFourHours)
-			}
-			if serviceStatus.Uptime.LastSevenDays != 0.5 {
-				t.Errorf("serviceStatus.Uptime.LastSevenDays should've been 0.5, got %f", serviceStatus.Uptime.LastSevenDays)
-			}
 			scenario.Store.Clear()
 		})
 	}
@@ -166,15 +154,15 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			serviceStatus := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
+			serviceStatus := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
 			}
-			serviceStatus = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
+			serviceStatus = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
 			}
-			serviceStatus = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
+			serviceStatus = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
 			}
@@ -316,7 +304,7 @@ func TestStore_Insert(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
 			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
 
-			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults).WithUptime())
+			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if ss == nil {
 				t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 			}
