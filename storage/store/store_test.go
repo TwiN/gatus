@@ -16,7 +16,7 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
-	now = time.Now().Truncate(time.Minute)
+	now = time.Now().Truncate(time.Hour)
 
 	testService = core.Service{
 		Name:                    "name",
@@ -276,16 +276,16 @@ func TestStore_GetUptimeByKey(t *testing.T) {
 			}
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 1h should've been 0.5, got %f", uptime)
 			}
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24), time.Now()); uptime != 0.5 {
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour*24), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 24h should've been 0.5, got %f", uptime)
 			}
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
+			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
 			}
-			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), time.Now(), time.Now().Add(-time.Hour)); err == nil {
+			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), now, time.Now().Add(-time.Hour)); err == nil {
 				t.Error("should've returned an error because the parameter 'from' cannot be older than 'to'")
 			}
 		})
@@ -320,11 +320,11 @@ func TestStore_GetHourlyAverageResponseTimeByKey(t *testing.T) {
 			if key := now.Truncate(time.Hour).Unix(); hourlyAverageResponseTime[key] != 500 {
 				t.Errorf("expected average response time to be 500ms at %d, got %v", key, hourlyAverageResponseTime[key])
 			}
-			if key := now.Truncate(time.Hour).Add(-time.Hour).Unix(); hourlyAverageResponseTime[key] != 175 {
-				t.Errorf("expected average response time to be 175ms at %d, got %v", key, hourlyAverageResponseTime[key])
+			if key := now.Truncate(time.Hour).Add(-time.Hour).Unix(); hourlyAverageResponseTime[key] != 200 {
+				t.Errorf("expected average response time to be 200ms at %d, got %v", key, hourlyAverageResponseTime[key])
 			}
-			if key := now.Truncate(time.Hour).Add(-2 * time.Hour).Unix(); hourlyAverageResponseTime[key] != 300 {
-				t.Errorf("expected average response time to be 300ms at %d, got %v", key, hourlyAverageResponseTime[key])
+			if key := now.Truncate(time.Hour).Add(-2 * time.Hour).Unix(); hourlyAverageResponseTime[key] != 225 {
+				t.Errorf("expected average response time to be 225ms at %d, got %v", key, hourlyAverageResponseTime[key])
 			}
 			scenario.Store.Clear()
 		})
