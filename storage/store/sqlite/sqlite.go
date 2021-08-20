@@ -219,6 +219,31 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	return uptime, nil
 }
 
+// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
+func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error) {
+	if from.After(to) {
+		return nil, common.ErrInvalidTimeRange
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	serviceID, _, _, err := s.getServiceIDGroupAndNameByKey(tx, key)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	hourlyAverageResponseTimes, err := s.getServiceHourlyAverageResponseTimes(tx, serviceID, from, to)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return hourlyAverageResponseTimes, nil
+}
+
 // Insert adds the observed result for the specified service into the store
 func (s *Store) Insert(service *core.Service, result *core.Result) {
 	tx, err := s.db.Begin()
@@ -651,6 +676,34 @@ func (s *Store) getServiceUptime(tx *sql.Tx, serviceID int64, from, to time.Time
 		avgResponseTime = time.Duration(float64(totalResponseTime)/float64(totalExecutions)) * time.Millisecond
 	}
 	return
+}
+
+func (s *Store) getServiceHourlyAverageResponseTimes(tx *sql.Tx, serviceID int64, from, to time.Time) (map[int64]int, error) {
+	rows, err := tx.Query(
+		`
+			SELECT hour_unix_timestamp, total_executions, total_response_time
+			FROM service_uptime
+			WHERE service_id = $1
+				AND total_executions > 0
+				AND hour_unix_timestamp >= $2
+				AND hour_unix_timestamp <= $3
+		`,
+		serviceID,
+		from.Unix(),
+		to.Unix(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var totalExecutions, totalResponseTime int
+	var unixTimestampFlooredAtHour int64
+	hourlyAverageResponseTimes := make(map[int64]int)
+	for rows.Next() {
+		_ = rows.Scan(&unixTimestampFlooredAtHour, &totalExecutions, &totalResponseTime)
+		hourlyAverageResponseTimes[unixTimestampFlooredAtHour] = int(float64(totalResponseTime) / float64(totalExecutions))
+	}
+	_ = rows.Close()
+	return hourlyAverageResponseTimes, nil
 }
 
 func (s *Store) getServiceID(tx *sql.Tx, service *core.Service) (int64, error) {
