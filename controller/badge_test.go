@@ -20,8 +20,8 @@ func TestGetBadgeColorFromUptime(t *testing.T) {
 	if getBadgeColorFromUptime(0.75) != "#cc8111" {
 		t.Error("expected #cc8111 from an uptime of 0.75, got", getBadgeColorFromUptime(0.75))
 	}
-	if getBadgeColorFromUptime(0.6) != "#cc8111" {
-		t.Error("expected #cc8111 from an uptime of 0.6, got", getBadgeColorFromUptime(0.6))
+	if getBadgeColorFromUptime(0.6) != "#c7130a" {
+		t.Error("expected #c7130a from an uptime of 0.6, got", getBadgeColorFromUptime(0.6))
 	}
 	if getBadgeColorFromUptime(0.25) != "#c7130a" {
 		t.Error("expected #c7130a from an uptime of 0.25, got", getBadgeColorFromUptime(0.25))
