@@ -274,6 +274,11 @@ func TestStore_SanityCheck(t *testing.T) {
 	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
+	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	} else if len(hourlyAverageResponseTime) != 1 {
+		t.Errorf("expected 1 hour to have had a result in the past 24 hours, got %d", len(hourlyAverageResponseTime))
+	}
 	ss := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())

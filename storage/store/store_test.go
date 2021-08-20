@@ -292,6 +292,45 @@ func TestStore_GetUptimeByKey(t *testing.T) {
 	}
 }
 
+func TestStore_GetHourlyAverageResponseTimeByKey(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetHourlyAverageResponseTimeByKey")
+	defer cleanUp(scenarios)
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = now.Add(-(2 * time.Hour))
+	firstResult.Duration = 300 * time.Millisecond
+	secondResult := testSuccessfulResult
+	secondResult.Duration = 150 * time.Millisecond
+	secondResult.Timestamp = now.Add(-(1*time.Hour + 30*time.Minute))
+	thirdResult := testUnsuccessfulResult
+	thirdResult.Duration = 200 * time.Millisecond
+	thirdResult.Timestamp = now.Add(-(1 * time.Hour))
+	fourthResult := testSuccessfulResult
+	fourthResult.Duration = 500 * time.Millisecond
+	fourthResult.Timestamp = now
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			scenario.Store.Insert(&testService, &firstResult)
+			scenario.Store.Insert(&testService, &secondResult)
+			scenario.Store.Insert(&testService, &thirdResult)
+			scenario.Store.Insert(&testService, &fourthResult)
+			hourlyAverageResponseTime, err := scenario.Store.GetHourlyAverageResponseTimeByKey(testService.Key(), now.Add(-24*time.Hour), now)
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err)
+			}
+			if key := now.Truncate(time.Hour).Unix(); hourlyAverageResponseTime[key] != 500 {
+				t.Errorf("expected average response time to be 500ms at %d, got %v", key, hourlyAverageResponseTime[key])
+			}
+			if key := now.Truncate(time.Hour).Add(-time.Hour).Unix(); hourlyAverageResponseTime[key] != 175 {
+				t.Errorf("expected average response time to be 175ms at %d, got %v", key, hourlyAverageResponseTime[key])
+			}
+			if key := now.Truncate(time.Hour).Add(-2 * time.Hour).Unix(); hourlyAverageResponseTime[key] != 300 {
+				t.Errorf("expected average response time to be 300ms at %d, got %v", key, hourlyAverageResponseTime[key])
+			}
+			scenario.Store.Clear()
+		})
+	}
+}
+
 func TestStore_Insert(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_Insert")
 	defer cleanUp(scenarios)

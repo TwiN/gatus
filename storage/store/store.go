@@ -1,11 +1,12 @@
 package store
 
 import (
+	"time"
+
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
 	"github.com/TwinProduction/gatus/storage/store/sqlite"
-	"time"
 )
 
 // Store is the interface that each stores should implement
@@ -22,6 +23,9 @@ type Store interface {
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
+
+	// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
+	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
 	// Insert adds the observed result for the specified service into the store
 	Insert(service *core.Service, result *core.Result)

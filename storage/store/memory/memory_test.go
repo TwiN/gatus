@@ -13,7 +13,7 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
-	timestamp = time.Now()
+	now = time.Now()
 
 	testService = core.Service{
 		Name:                    "name",
@@ -35,7 +35,7 @@ var (
 		Errors:                nil,
 		Connected:             true,
 		Success:               true,
-		Timestamp:             timestamp,
+		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
 		ConditionResults: []*core.ConditionResult{
@@ -60,7 +60,7 @@ var (
 		Errors:                []string{"error-1", "error-2"},
 		Connected:             true,
 		Success:               false,
-		Timestamp:             timestamp,
+		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
 		ConditionResults: []*core.ConditionResult{
@@ -84,6 +84,7 @@ var (
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("")
+	defer store.Close()
 	store.Insert(&testService, &testSuccessfulResult)
 	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
@@ -92,6 +93,11 @@ func TestStore_SanityCheck(t *testing.T) {
 	// Both results inserted are for the same service, therefore, the count shouldn't have increased
 	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	}
+	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	} else if len(hourlyAverageResponseTime) != 1 {
+		t.Errorf("expected 1 hour to have had a result in the past 24 hours, got %d", len(hourlyAverageResponseTime))
 	}
 	ss := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
@@ -123,6 +129,8 @@ func TestStore_Save(t *testing.T) {
 			if err != nil {
 				t.Fatal("expected no error, got", err.Error())
 			}
+			store.Clear()
+			store.Close()
 		})
 	}
 }
