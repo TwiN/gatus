@@ -113,7 +113,7 @@ func getBadgeColorFromUptime(uptime float64) string {
 		return "#ccc311"
 	} else if uptime >= 0.8 {
 		return "#ccb311"
-	} else if uptime >= 0.5 {
+	} else if uptime >= 0.65 {
 		return "#cc8111"
 	}
 	return "#c7130a"
