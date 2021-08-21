@@ -99,6 +99,34 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	return float64(successfulExecutions) / float64(totalExecutions), nil
 }
 
+// GetAverageResponseTimeByKey returns the average response time in milliseconds (value) during a time range
+func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int, error) {
+	if from.After(to) {
+		return 0, common.ErrInvalidTimeRange
+	}
+	serviceStatus := s.cache.GetValue(key)
+	if serviceStatus == nil || serviceStatus.(*core.ServiceStatus).Uptime == nil {
+		return 0, common.ErrServiceNotFound
+	}
+	current := from
+	var totalExecutions, totalResponseTime uint64
+	for to.Sub(current) >= 0 {
+		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
+		hourlyStats := serviceStatus.(*core.ServiceStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
+			current = current.Add(time.Hour)
+			continue
+		}
+		totalExecutions += hourlyStats.TotalExecutions
+		totalResponseTime += hourlyStats.TotalExecutionsResponseTime
+		current = current.Add(time.Hour)
+	}
+	if totalExecutions == 0 {
+		return 0, nil
+	}
+	return int(float64(totalResponseTime) / float64(totalExecutions)), nil
+}
+
 // GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error) {
 	if from.After(to) {
