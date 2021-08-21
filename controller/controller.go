@@ -75,9 +75,18 @@ func CreateRouter(securityConfig *security.Config, enabledMetrics bool) *mux.Rou
 	}
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET")
-	router.HandleFunc("/api/v1/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content
+	// Deprecated endpoints
+	router.HandleFunc("/api/v1/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
-	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", badgeHandler).Methods("GET")
+	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", uptimeBadgeHandler).Methods("GET")
+	// New endpoints
+	router.HandleFunc("/api/v1/services/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
+	router.HandleFunc("/api/v1/services/{key}/statuses", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
+	// TODO: router.HandleFunc("/api/v1/services/{key}/uptimes", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceUptimesHandler))).Methods("GET")
+	// TODO: router.HandleFunc("/api/v1/services/{key}/events", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceEventsHandler))).Methods("GET")
+	router.HandleFunc("/api/v1/services/{key}/uptimes/{duration}/badge.svg", uptimeBadgeHandler).Methods("GET")
+	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/badge.svg", responseTimeBadgeHandler).Methods("GET")
+	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/chart.svg", responseTimeChartHandler).Methods("GET")
 	// SPA
 	router.HandleFunc("/services/{service}", spaHandler).Methods("GET")
 	// Everything else falls back on static content

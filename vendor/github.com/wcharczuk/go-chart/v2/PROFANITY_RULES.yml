@@ -1,0 +1,4 @@
+go-sdk:
+  excludeFiles: [ "*_test.go" ]
+  importsContain: [ github.com/blend/go-sdk/* ]
+  description: "please don't use go-sdk in this repo"

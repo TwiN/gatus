@@ -19,6 +19,9 @@ github.com/go-ping/ping
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
+# github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+github.com/golang/freetype/raster
+github.com/golang/freetype/truetype
 # github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -74,6 +77,12 @@ github.com/prometheus/procfs/internal/util
 github.com/remyoudompheng/bigfft
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
+# github.com/wcharczuk/go-chart/v2 v2.1.0
+## explicit
+github.com/wcharczuk/go-chart/v2
+github.com/wcharczuk/go-chart/v2/drawing
+github.com/wcharczuk/go-chart/v2/matrix
+github.com/wcharczuk/go-chart/v2/roboto
 # go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
@@ -81,6 +90,12 @@ go.etcd.io/bbolt
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
+## explicit
+golang.org/x/image/draw
+golang.org/x/image/font
+golang.org/x/image/math/f64
+golang.org/x/image/math/fixed
 # golang.org/x/mod v0.4.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20201224014010-6772e930b67b
@@ -111,7 +126,7 @@ golang.org/x/sys/windows
 # golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 ## explicit
 golang.org/x/term
-# golang.org/x/text v0.3.4
+# golang.org/x/text v0.3.6
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
