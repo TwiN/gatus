@@ -16,45 +16,44 @@
       />
       <Pagination @page="changePage"/>
     </slot>
-    <div class="mt-12">
+    <div v-if="serviceStatus && serviceStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">UPTIME</h1>
       <hr/>
-      <div v-if="serviceStatus && serviceStatus.key"
-           class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
+      <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
-          <img :src="generateBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto"/>
+          <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
-          <img :src="generateBadgeImageURL('24h')" alt="24h uptime badge" class="mx-auto"/>
+          <img :src="generateUptimeBadgeImageURL('24h')" alt="24h uptime badge" class="mx-auto" />
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last hour</h2>
-          <img :src="generateBadgeImageURL('1h')" alt="1h uptime badge" class="mx-auto"/>
+          <img :src="generateUptimeBadgeImageURL('1h')" alt="1h uptime badge" class="mx-auto" />
         </div>
       </div>
     </div>
-    <div class="mt-12">
+    <div v-if="serviceStatus && serviceStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
       <hr/>
-      <Chart
-          :data="
-            {
-              labels: this.chartLabels,
-              datasets: [
-                {
-                  label: 'Average response time (ms)',
-                  borderColor: '#28a745',
-                  fill: false,
-                  tension: 0.05,
-                  data: this.chartValues
-                }
-              ]
-            }"
-      />
+      <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6" />
+      <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
+        <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
+          <img :src="generateResponseTimeBadgeImageURL('7d')" alt="7d response time badge" class="mx-auto mt-2" />
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
+          <img :src="generateResponseTimeBadgeImageURL('24h')" alt="24h response time badge" class="mx-auto mt-2" />
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last hour</h2>
+          <img :src="generateResponseTimeBadgeImageURL('1h')" alt="1h response time badge" class="mx-auto mt-2" />
+        </div>
+      </div>
     </div>
-    <div>
+    <div v-if="serviceStatus && serviceStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
       <hr class="mb-4"/>
       <div>
@@ -92,12 +91,10 @@ import Service from '@/components/Service.vue';
 import {SERVER_URL} from "@/main.js";
 import {helper} from "@/mixins/helper.js";
 import Pagination from "@/components/Pagination";
-import Chart from "@/components/Chart";
 
 export default {
   name: 'Details',
   components: {
-    Chart,
     Pagination,
     Service,
     Settings,
@@ -113,15 +110,6 @@ export default {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
               this.serviceStatus = data.serviceStatus;
               this.uptime = data.uptime;
-              let labels = [];
-              let values = [];
-              for (let key in data.hourlyAverageResponseTime) {
-                labels.push(new Date(key*1000));
-                values.push(data.hourlyAverageResponseTime[key]);
-              }
-              this.chartLabels = labels;
-              this.chartValues = values;
-
               let events = [];
               for (let i = data.events.length - 1; i >= 0; i--) {
                 let event = data.events[i];
@@ -154,8 +142,14 @@ export default {
             }
           });
     },
-    generateBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/badges/uptime/${duration}/${this.serviceStatus.key}.svg`;
+    generateUptimeBadgeImageURL(duration) {
+      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/uptimes/${duration}/badge.svg`;
+    },
+    generateResponseTimeBadgeImageURL(duration) {
+      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/response-times/${duration}/badge.svg`;
+    },
+    generateResponseTimeChartImageURL() {
+      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/response-times/24h/chart.svg`;
     },
     prettifyUptime(uptime) {
       if (!uptime) {
@@ -183,6 +177,7 @@ export default {
       serviceStatus: {},
       uptime: {},
       events: [],
+      hourlyAverageResponseTime: {},
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
