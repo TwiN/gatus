@@ -292,6 +292,63 @@ func TestStore_GetUptimeByKey(t *testing.T) {
 	}
 }
 
+func TestStore_GetAverageResponseTimeByKey(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAverageResponseTimeByKey")
+	defer cleanUp(scenarios)
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = now.Add(-(2 * time.Hour))
+	firstResult.Duration = 300 * time.Millisecond
+	secondResult := testSuccessfulResult
+	secondResult.Duration = 150 * time.Millisecond
+	secondResult.Timestamp = now.Add(-(1*time.Hour + 30*time.Minute))
+	thirdResult := testUnsuccessfulResult
+	thirdResult.Duration = 200 * time.Millisecond
+	thirdResult.Timestamp = now.Add(-(1 * time.Hour))
+	fourthResult := testSuccessfulResult
+	fourthResult.Duration = 500 * time.Millisecond
+	fourthResult.Timestamp = now
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			scenario.Store.Insert(&testService, &firstResult)
+			scenario.Store.Insert(&testService, &secondResult)
+			scenario.Store.Insert(&testService, &thirdResult)
+			scenario.Store.Insert(&testService, &fourthResult)
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-48*time.Hour), now.Add(-24*time.Hour)); err == nil {
+				if averageResponseTime != 0 {
+					t.Errorf("expected average response time to be 0ms, got %v", averageResponseTime)
+				}
+			} else {
+				t.Error("shouldn't have returned an error, got", err)
+			}
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-24*time.Hour), now); err == nil {
+				if averageResponseTime != 287 {
+					t.Errorf("expected average response time to be 287ms, got %v", averageResponseTime)
+				}
+			} else {
+				t.Error("shouldn't have returned an error, got", err)
+			}
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-time.Hour), now); err == nil {
+				if averageResponseTime != 350 {
+					t.Errorf("expected average response time to be 350ms, got %v", averageResponseTime)
+				}
+			} else {
+				t.Error("shouldn't have returned an error, got", err)
+			}
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-2*time.Hour), now.Add(-time.Hour)); err == nil {
+				if averageResponseTime != 216 {
+					t.Errorf("expected average response time to be 216ms, got %v", averageResponseTime)
+				}
+			} else {
+				t.Error("shouldn't have returned an error, got", err)
+			}
+			if _, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now, now.Add(-2*time.Hour)); err == nil {
+				t.Error("expected an error because from > to, got nil")
+			}
+			scenario.Store.Clear()
+		})
+	}
+}
+
 func TestStore_GetHourlyAverageResponseTimeByKey(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetHourlyAverageResponseTimeByKey")
 	defer cleanUp(scenarios)
