@@ -219,6 +219,31 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	return uptime, nil
 }
 
+// GetAverageResponseTimeByKey returns the average response time in milliseconds (value) during a time range
+func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int, error) {
+	if from.After(to) {
+		return 0, common.ErrInvalidTimeRange
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	serviceID, _, _, err := s.getServiceIDGroupAndNameByKey(tx, key)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+	averageResponseTime, err := s.getServiceAverageResponseTime(tx, serviceID, from, to)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return averageResponseTime, nil
+}
+
 // GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error) {
 	if from.After(to) {
@@ -676,6 +701,34 @@ func (s *Store) getServiceUptime(tx *sql.Tx, serviceID int64, from, to time.Time
 		avgResponseTime = time.Duration(float64(totalResponseTime)/float64(totalExecutions)) * time.Millisecond
 	}
 	return
+}
+
+func (s *Store) getServiceAverageResponseTime(tx *sql.Tx, serviceID int64, from, to time.Time) (int, error) {
+	rows, err := tx.Query(
+		`
+			SELECT SUM(total_executions), SUM(total_response_time)
+			FROM service_uptime
+			WHERE service_id = $1
+				AND total_executions > 0
+				AND hour_unix_timestamp >= $2
+				AND hour_unix_timestamp <= $3
+		`,
+		serviceID,
+		from.Unix(),
+		to.Unix(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	var totalExecutions, totalResponseTime int
+	for rows.Next() {
+		_ = rows.Scan(&totalExecutions, &totalResponseTime)
+	}
+	_ = rows.Close()
+	if totalExecutions == 0 {
+		return 0, nil
+	}
+	return int(float64(totalResponseTime) / float64(totalExecutions)), nil
 }
 
 func (s *Store) getServiceHourlyAverageResponseTimes(tx *sql.Tx, serviceID int64, from, to time.Time) (map[int64]int, error) {
