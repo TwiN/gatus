@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -34,9 +35,9 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 	var from time.Time
 	switch duration {
 	case "7d":
-		from = time.Now().Add(-24 * 7 * time.Hour)
+		from = time.Now().Truncate(time.Hour).Add(-24 * 7 * time.Hour)
 	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
+		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
 		writer.WriteHeader(http.StatusBadRequest)
 		_, _ = writer.Write([]byte("Durations supported: 7d, 24h"))
@@ -54,6 +55,11 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 		_, _ = writer.Write([]byte(err.Error()))
 		return
 	}
+	if len(hourlyAverageResponseTime) == 0 {
+		writer.WriteHeader(http.StatusNoContent)
+		_, _ = writer.Write(nil)
+		return
+	}
 	series := chart.TimeSeries{
 		Name: "Average response time per hour",
 		Style: chart.Style{
@@ -62,8 +68,16 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 		},
 	}
 	keys := make([]int, 0, len(hourlyAverageResponseTime))
+	earliestTimestamp := int64(0)
 	for hourlyTimestamp := range hourlyAverageResponseTime {
 		keys = append(keys, int(hourlyTimestamp))
+		if earliestTimestamp == 0 || hourlyTimestamp < earliestTimestamp {
+			earliestTimestamp = hourlyTimestamp
+		}
+	}
+	for earliestTimestamp > from.Unix() {
+		earliestTimestamp -= int64(time.Hour.Seconds())
+		keys = append(keys, int(earliestTimestamp))
 	}
 	sort.Ints(keys)
 	var maxAverageResponseTime float64
@@ -102,9 +116,7 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 	}
 	writer.Header().Set("Content-Type", "image/svg+xml")
 	if err := graph.Render(chart.SVG, writer); err != nil {
-		writer.Header().Set("Content-Type", "text/plain")
-		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte(err.Error()))
+		log.Println("[controller][responseTimeChartHandler] Failed to render response time chart:", err.Error())
 		return
 	}
 }
