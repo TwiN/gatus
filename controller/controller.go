@@ -157,7 +157,6 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	uptime7Days, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-24*7*time.Hour), time.Now())
 	uptime24Hours, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-24*time.Hour), time.Now())
 	uptime1Hour, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-time.Hour), time.Now())
-	hourlyAverageResponseTime, _ := storage.Get().GetHourlyAverageResponseTimeByKey(vars["key"], time.Now().Add(-24*time.Hour), time.Now())
 	data := map[string]interface{}{
 		"serviceStatus": serviceStatus,
 		// The following fields, while present on core.ServiceStatus, are annotated to remain hidden so that we can
@@ -170,7 +169,6 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 			"24h": uptime24Hours,
 			"1h":  uptime1Hour,
 		},
-		"hourlyAverageResponseTime": hourlyAverageResponseTime,
 	}
 	output, err := json.Marshal(data)
 	if err != nil {
