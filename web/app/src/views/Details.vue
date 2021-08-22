@@ -104,7 +104,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/statuses/${this.$route.params.key}?page=${this.currentPage}`)
+      fetch(`${this.serverUrl}/api/v1/services/${this.$route.params.key}/statuses?page=${this.currentPage}`)
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
