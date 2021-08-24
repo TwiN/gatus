@@ -1149,13 +1149,13 @@ All services are available via a GET request to the following endpoint:
 ```
 /api/v1/services/statuses
 ````
-Example: https://status.twinnation.org/api/v1/statuses
+Example: https://status.twinnation.org/api/v1/services/statuses
 
 Specific services can also be queried by using the following pattern:
 ```
 /api/v1/services/{group}_{service}/statuses
 ```
-Example: https://status.twinnation.org/api/v1/statuses/core_twinnation-home
+Example: https://status.twinnation.org/api/v1/services/core_twinnation-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
