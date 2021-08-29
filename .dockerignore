@@ -1,6 +1,7 @@
-example
+examples
 Dockerfile
 .github
 .idea
 .git
 web/app
+*.db
