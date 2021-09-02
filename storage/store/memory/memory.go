@@ -47,11 +47,11 @@ func NewStore(file string) (*Store, error) {
 
 // GetAllServiceStatuses returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus {
+func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) []*core.ServiceStatus {
 	serviceStatuses := s.cache.GetAll()
-	pagedServiceStatuses := make(map[string]*core.ServiceStatus, len(serviceStatuses))
-	for k, v := range serviceStatuses {
-		pagedServiceStatuses[k] = ShallowCopyServiceStatus(v.(*core.ServiceStatus), params)
+	pagedServiceStatuses := make([]*core.ServiceStatus, 0, len(serviceStatuses))
+	for _, v := range serviceStatuses {
+		pagedServiceStatuses = append(pagedServiceStatuses, ShallowCopyServiceStatus(v.(*core.ServiceStatus), params))
 	}
 	return pagedServiceStatuses
 }

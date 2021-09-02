@@ -13,7 +13,7 @@ import (
 type Store interface {
 	// GetAllServiceStatuses returns the JSON encoding of all monitored core.ServiceStatus
 	// with a subset of core.Result defined by the page and pageSize parameters
-	GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus
+	GetAllServiceStatuses(params *paging.ServiceStatusParams) []*core.ServiceStatus
 
 	// GetServiceStatus returns the service status for a given service name in the given group
 	GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) *core.ServiceStatus
