@@ -103,7 +103,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **[Badges](#badges)**: ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_twinnation-external.svg) ![Response time 24h](https://status.twinnation.org/api/v1/services/core_twinnation-external/response-times/24h/badge.svg)
+- **[Badges](#badges)**: ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_website-external.svg) ![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
 
 
 ## Usage
@@ -1097,9 +1097,9 @@ web:
 
 ### Badges
 ### Uptime
-![Uptime 1h](https://status.twinnation.org/api/v1/services/core_twinnation-external/uptimes/1h/badge.svg)
-![Uptime 24h](https://status.twinnation.org/api/v1/services/core_twinnation-external/uptimes/24h/badge.svg)
-![Uptime 7d](https://status.twinnation.org/api/v1/services/core_twinnation-external/uptimes/7d/badge.svg)
+![Uptime 1h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/1h/badge.svg)
+![Uptime 24h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/24h/badge.svg)
+![Uptime 7d](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/7d/badge.svg)
 
 Gatus can automatically generate a SVG badge for one of your monitored services.
 This allows you to put badges in your individual services' README or even create your own status page, if you 
@@ -1124,15 +1124,15 @@ https://example.com/api/v1/services/_frontend/uptimes/7d/badge.svg
 ```
 Example:
 ```
-![Uptime 24h](https://status.twinnation.org/api/v1/services/core_twinnation-external/uptimes/24h/badge.svg)
+![Uptime 24h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/24h/badge.svg)
 ```
 If you'd like to see a visual example of each badges available, you can simply navigate to the service's detail page.
 
 
 ### Response time
-![Response time 1h](https://status.twinnation.org/api/v1/services/core_twinnation-external/response-times/1h/badge.svg)
-![Response time 24h](https://status.twinnation.org/api/v1/services/core_twinnation-external/response-times/24h/badge.svg)
-![Response time 7d](https://status.twinnation.org/api/v1/services/core_twinnation-external/response-times/7d/badge.svg)
+![Response time 1h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/1h/badge.svg)
+![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
+![Response time 7d](https://status.twinnation.org/api/v1/services/core_website-external/response-times/7d/badge.svg)
 
 The endpoint to generate a badge is the following:
 ```
@@ -1156,7 +1156,7 @@ Specific services can also be queried by using the following pattern:
 ```
 /api/v1/services/{group}_{service}/statuses
 ```
-Example: https://status.twinnation.org/api/v1/services/core_twinnation-home/statuses
+Example: https://status.twinnation.org/api/v1/services/core_website-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
