@@ -154,23 +154,7 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 		_, _ = writer.Write([]byte("not found"))
 		return
 	}
-	uptime7Days, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-24*7*time.Hour), time.Now())
-	uptime24Hours, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-24*time.Hour), time.Now())
-	uptime1Hour, _ := storage.Get().GetUptimeByKey(vars["key"], time.Now().Add(-time.Hour), time.Now())
-	data := map[string]interface{}{
-		"serviceStatus": serviceStatus,
-		// The following fields, while present on core.ServiceStatus, are annotated to remain hidden so that we can
-		// expose only the necessary data on /api/v1/statuses.
-		// Since the /api/v1/statuses/{key} endpoint does need this data, however, we explicitly expose it here
-		"events": serviceStatus.Events,
-		// TODO: remove this in v3.0.0. Not used by front-end, only used for API. Left here for v2.x.x backward compatibility
-		"uptime": map[string]float64{
-			"7d":  uptime7Days,
-			"24h": uptime24Hours,
-			"1h":  uptime1Hour,
-		},
-	}
-	output, err := json.Marshal(data)
+	output, err := json.Marshal(serviceStatus)
 	if err != nil {
 		log.Printf("[controller][serviceStatusHandler] Unable to marshal object to JSON: %s", err.Error())
 		writer.WriteHeader(http.StatusInternalServerError)

@@ -15,21 +15,13 @@ type ServiceStatus struct {
 	Results []*Result `json:"results"`
 
 	// Events is a list of events
-	//
-	// We don't expose this through JSON, because the main dashboard doesn't need to have this data.
-	// However, the detailed service page does leverage this by including it to a map that will be
-	// marshalled alongside the ServiceStatus.
-	Events []*Event `json:"-"`
+	Events []*Event `json:"events"`
 
 	// Uptime information on the service's uptime
 	//
-	// We don't expose this through JSON, because the main dashboard doesn't need to have this data.
-	// However, the detailed service page does leverage this by including it to a map that will be
-	// marshalled alongside the ServiceStatus.
+	// Used by the memory store.
 	//
-	// TODO: Get rid of this in favor of using the new store.GetUptimeByKey.
-	// TODO: For memory, store the uptime in a different map? (is that possible, given that we need to persist it through gocache?)
-	// Deprecated
+	// To retrieve the uptime between two time, use store.GetUptimeByKey.
 	Uptime *Uptime `json:"-"`
 }
 
