@@ -108,7 +108,7 @@ export default {
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
-              this.serviceStatus = data.serviceStatus;
+              this.serviceStatus = data;
               this.uptime = data.uptime;
               let events = [];
               for (let i = data.events.length - 1; i >= 0; i--) {
