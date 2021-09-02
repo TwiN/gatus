@@ -47,7 +47,7 @@ export default {
   },
   data() {
     return {
-      serviceStatuses: {},
+      serviceStatuses: [],
       currentPage: 1,
       showAverageResponseTime: true
     }

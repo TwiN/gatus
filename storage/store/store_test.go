@@ -184,8 +184,8 @@ func TestStore_GetAllServiceStatuses(t *testing.T) {
 			if len(serviceStatuses) != 1 {
 				t.Fatal("expected 1 service status")
 			}
-			actual, exists := serviceStatuses[testService.Key()]
-			if !exists {
+			actual := serviceStatuses[0]
+			if actual == nil {
 				t.Fatal("expected service status to exist")
 			}
 			if len(actual.Results) != 2 {
@@ -213,8 +213,8 @@ func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
 			if len(serviceStatuses) != 1 {
 				t.Fatal("expected 1 service status")
 			}
-			actual, exists := serviceStatuses[testService.Key()]
-			if !exists {
+			actual := serviceStatuses[0]
+			if actual == nil {
 				t.Fatal("expected service status to exist")
 			}
 			if len(actual.Results) != 2 {

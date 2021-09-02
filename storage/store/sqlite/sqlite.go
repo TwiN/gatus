@@ -148,7 +148,7 @@ func (s *Store) createSchema() error {
 
 // GetAllServiceStatuses returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[string]*core.ServiceStatus {
+func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) []*core.ServiceStatus {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil
@@ -158,13 +158,13 @@ func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) map[st
 		_ = tx.Rollback()
 		return nil
 	}
-	serviceStatuses := make(map[string]*core.ServiceStatus, len(keys))
+	serviceStatuses := make([]*core.ServiceStatus, 0, len(keys))
 	for _, key := range keys {
 		serviceStatus, err := s.getServiceStatusByKey(tx, key, params)
 		if err != nil {
 			continue
 		}
-		serviceStatuses[key] = serviceStatus
+		serviceStatuses = append(serviceStatuses, serviceStatus)
 	}
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
