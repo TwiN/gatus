@@ -75,10 +75,6 @@ func CreateRouter(securityConfig *security.Config, enabledMetrics bool) *mux.Rou
 	}
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET")
-	// Deprecated endpoints
-	router.HandleFunc("/api/v1/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
-	router.HandleFunc("/api/v1/statuses/{key}", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
-	router.HandleFunc("/api/v1/badges/uptime/{duration}/{identifier}", uptimeBadgeHandler).Methods("GET")
 	// New endpoints
 	router.HandleFunc("/api/v1/services/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	router.HandleFunc("/api/v1/services/{key}/statuses", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
