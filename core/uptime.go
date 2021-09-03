@@ -3,16 +3,6 @@ package core
 // Uptime is the struct that contains the relevant data for calculating the uptime as well as the uptime itself
 // and some other statistics
 type Uptime struct {
-	// SuccessfulExecutionsPerHour is a map containing the number of successes (value)
-	// for every hourly unix timestamps (key)
-	// Deprecated
-	SuccessfulExecutionsPerHour map[int64]uint64 `json:"-"`
-
-	// TotalExecutionsPerHour is a map containing the total number of checks (value)
-	// for every hourly unix timestamps (key)
-	// Deprecated
-	TotalExecutionsPerHour map[int64]uint64 `json:"-"`
-
 	// HourlyStatistics is a map containing metrics collected (value) for every hourly unix timestamps (key)
 	//
 	// Used only if the storage type is memory
