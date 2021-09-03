@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -79,11 +78,6 @@ type Service struct {
 	// Alerts is the alerting configuration for the service in case of failure
 	Alerts []*alert.Alert `yaml:"alerts"`
 
-	// Insecure is whether to skip verifying the server's certificate chain and host name
-	//
-	// deprecated
-	Insecure bool `yaml:"insecure,omitempty"`
-
 	// ClientConfig is the configuration of the client used to communicate with the service's target
 	ClientConfig *client.Config `yaml:"client"`
 
@@ -102,11 +96,6 @@ func (service *Service) ValidateAndSetDefaults() error {
 	// Set default values
 	if service.ClientConfig == nil {
 		service.ClientConfig = client.GetDefaultConfig()
-		// XXX: remove the next 3 lines in v3.0.0
-		if service.Insecure {
-			log.Println("WARNING: services[].insecure has been deprecated and will be removed in v3.0.0 in favor of services[].client.insecure")
-			service.ClientConfig.Insecure = true
-		}
 	} else {
 		service.ClientConfig.ValidateAndSetDefaults()
 	}
