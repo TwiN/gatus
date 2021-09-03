@@ -40,13 +40,7 @@ func uptimeBadgeHandler(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte("Durations supported: 7d, 24h, 1h"))
 		return
 	}
-	var key string
-	if identifier := variables["identifier"]; len(identifier) > 0 {
-		// XXX: Remove this conditional statement in v3.0.0 and rely on variables["key"] instead
-		key = strings.TrimSuffix(identifier, ".svg")
-	} else {
-		key = variables["key"]
-	}
+	key := variables["key"]
 	uptime, err := storage.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrServiceNotFound {
