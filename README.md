@@ -47,8 +47,6 @@ For more details, see [Usage](#usage)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
-  - [Kubernetes (ALPHA)](#kubernetes-alpha)
-    - [Auto Discovery](#auto-discovery)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
@@ -177,8 +175,6 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                    | Web configuration.                                                            | `{}`           |
 | `web.address`                            | Address to listen on.                                                         | `0.0.0.0`      |
 | `web.port`                               | Port to listen on.                                                            | `8080`         |
-
-For Kubernetes configuration, see [Kubernetes](#kubernetes-alpha).
 
 
 ### Conditions
@@ -726,68 +722,6 @@ services:
       - type: slack
       - type: pagerduty
 ```
-
-
-### Kubernetes (ALPHA)
-> **WARNING**: This feature is in ALPHA. This means that it is very likely to change in the near future, which means that
-> while you can use this feature as you see fit, there may be breaking changes in future releases.
-> 
-> **NOTICE**: This feature may be removed. To give your opinion on the subject, see https://github.com/TwinProduction/gatus/discussions/135. 
-
-| Parameter                                   | Description                                                                   | Default        |
-|:------------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `kubernetes`                                | Kubernetes configuration                                                      | `{}`           |
-| `kubernetes.auto-discover`                  | Whether to enable auto discovery                                              | `false`        |
-| `kubernetes.cluster-mode`                   | Cluster mode to use for authenticating. Supported values: `in`, `out`         | Required `""`  |
-| `kubernetes.service-template`               | Service template. <br />See `services[]` in [Configuration](#configuration)         | Required `nil` |
-| `kubernetes.excluded-service-suffixes`      | List of service suffixes to not monitor (e.g. `canary`)                       | `[]`           |
-| `kubernetes.namespaces`                     | List of configurations for the namespaces from which services will be discovered | `[]`        |
-| `kubernetes.namespaces[].name`              | Namespace name                                                                | Required `""`  |
-| `kubernetes.namespaces[].hostname-suffix`   | Suffix to append to the service name before calling `target-path`             | Required `""`  |
-| `kubernetes.namespaces[].target-path`       | Path that will be called on the discovered service for the health check       | `""`           |
-| `kubernetes.namespaces[].excluded-services` | List of services to not monitor in the given namespace                        | `[]`           |
-
-
-#### Auto Discovery
-Auto discovery works by reading all `Service` resources from the configured `namespaces` and appending the `hostname-suffix` as 
-well as the configured `target-path` to the service name and making an HTTP call.
-
-All auto-discovered services will have the service configuration populated from the `service-template`.
-
-You can exclude certain services from the dashboard by using `kubernetes.excluded-service-suffixes` or `kubernetes.namespaces[].excluded-services`.
-
-```yaml
-kubernetes:
-  auto-discover: true
-  # out: Gatus is deployed outside of the K8s cluster.
-  # in: Gatus is deployed in the K8s cluster
-  cluster-mode: "out"                                              
-  excluded-service-suffixes:
-    - canary
-  service-template:
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-  namespaces:
-    - name: default
-      # If cluster-mode is out, you should use an externally accessible hostname suffix (e.g.. .example.com)
-      # This will result in gatus generating services with URLs like <service-name>.example.com
-      # If cluster-mode is in, you can use either an externally accessible hostname suffix (e.g.. .example.com)
-      # or an internally accessible hostname suffix (e.g. .default.svc.cluster.local)
-      hostname-suffix: ".default.svc.cluster.local"
-      target-path: "/health"
-      # If some services cannot be or do not need to be monitored, you can exclude them by explicitly defining them
-      # in the following list.
-      excluded-services:
-        - gatus
-        - kubernetes
-```
-
-Note that `hostname-suffix` could also be something like `.yourdomain.com`, in which case the endpoint that would be 
-monitored would be `potato.example.com/health`, assuming you have a service named `potato` and a matching ingress
-to map `potato.example.com` to the `potato` service.
-
-For a full example, see [examples/kubernetes-with-auto-discovery](examples/kubernetes-with-auto-discovery)
 
 
 ## Deployment
