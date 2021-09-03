@@ -161,11 +161,13 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
-| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`            |
+| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
-| `services[].client`                      | Client configuration. <br />See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting`                               | Configuration for alerting. <br />See [Alerting](#alerting).                        | `{}`           |
+| `services[].client`                      | Client configuration. <br />See [Client configuration](#client-configuration). | `{}`          |
+| `services[].ui`                          | UI configuration.                                                             | `{}`           |
+| `services[].ui.hide-hostname`            | Whether to include the hostname in the result.                                | `false`        |
+| `alerting`                               | Configuration for alerting. <br />See [Alerting](#alerting).                  | `{}`           |
 | `security`                               | Security configuration.                                                       | `{}`           |
 | `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
 | `security.basic.username`                | Username for Basic authentication.                                            | Required `""`  |

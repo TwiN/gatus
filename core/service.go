@@ -15,6 +15,7 @@ import (
 
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/core/ui"
 	"github.com/TwinProduction/gatus/util"
 )
 
@@ -86,6 +87,9 @@ type Service struct {
 	// ClientConfig is the configuration of the client used to communicate with the service's target
 	ClientConfig *client.Config `yaml:"client"`
 
+	// UIConfig is the configuration for the UI
+	UIConfig *ui.Config `yaml:"ui"`
+
 	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
 	NumberOfFailuresInARow int
 
@@ -105,6 +109,9 @@ func (service *Service) ValidateAndSetDefaults() error {
 		}
 	} else {
 		service.ClientConfig.ValidateAndSetDefaults()
+	}
+	if service.UIConfig == nil {
+		service.UIConfig = ui.GetDefaultConfig()
 	}
 	if service.Interval == 0 {
 		service.Interval = 1 * time.Minute
@@ -175,6 +182,10 @@ func (service *Service) EvaluateHealth() *Result {
 	result.Timestamp = time.Now()
 	// No need to keep the body after the service has been evaluated
 	result.body = nil
+	// Clean up parameters that we don't need to keep in the results
+	if service.UIConfig.HideHostname {
+		result.Hostname = ""
+	}
 	return result
 }
 

@@ -5,7 +5,7 @@
         <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline dark:hover:text-blue-400" title="View detailed service health">
           {{ data.name }}
         </router-link>
-        <span v-if="data.results && data.results.length" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
+        <span v-if="data.results && data.results.length && data.results[data.results.length - 1].hostname" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light overflow-x-hidden cursor-pointer select-none' v-if="data.results && data.results.length" @click="toggleShowAverageResponseTime" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">
