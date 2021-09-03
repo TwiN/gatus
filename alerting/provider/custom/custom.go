@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -20,7 +19,6 @@ import (
 type AlertProvider struct {
 	URL          string                       `yaml:"url"`
 	Method       string                       `yaml:"method,omitempty"`
-	Insecure     bool                         `yaml:"insecure,omitempty"` // deprecated
 	Body         string                       `yaml:"body,omitempty"`
 	Headers      map[string]string            `yaml:"headers,omitempty"`
 	Placeholders map[string]map[string]string `yaml:"placeholders,omitempty"`
@@ -36,11 +34,6 @@ type AlertProvider struct {
 func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
-		// XXX: remove the next 4 lines in v3.0.0
-		if provider.Insecure {
-			log.Println("WARNING: alerting.*.insecure has been deprecated and will be removed in v3.0.0 in favor of alerting.*.client.insecure")
-			provider.ClientConfig.Insecure = true
-		}
 	}
 	return len(provider.URL) > 0 && provider.ClientConfig != nil
 }
