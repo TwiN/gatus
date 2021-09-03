@@ -24,7 +24,6 @@ var (
 		Interval:                30 * time.Second,
 		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
 		Alerts:                  nil,
-		Insecure:                false,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}

@@ -522,7 +522,7 @@ func (s *Store) updateServiceUptime(tx *sql.Tx, serviceID int64, result *core.Re
 }
 
 func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
-	rows, err := tx.Query("SELECT service_key FROM service")
+	rows, err := tx.Query("SELECT service_key FROM service ORDER BY service_key")
 	if err != nil {
 		return nil, err
 	}
