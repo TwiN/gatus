@@ -2,6 +2,7 @@ package memory
 
 import (
 	"encoding/gob"
+	"sort"
 	"sync"
 	"time"
 
@@ -53,6 +54,9 @@ func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) []*cor
 	for _, v := range serviceStatuses {
 		pagedServiceStatuses = append(pagedServiceStatuses, ShallowCopyServiceStatus(v.(*core.ServiceStatus), params))
 	}
+	sort.Slice(pagedServiceStatuses, func(i, j int) bool {
+		return pagedServiceStatuses[i].Key < pagedServiceStatuses[j].Key
+	})
 	return pagedServiceStatuses
 }
 
