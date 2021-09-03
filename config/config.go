@@ -11,7 +11,6 @@ import (
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/k8s"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
 	"gopkg.in/yaml.v2"
@@ -69,9 +68,6 @@ type Config struct {
 
 	// Services List of services to monitor
 	Services []*core.Service `yaml:"services"`
-
-	// Kubernetes is the Kubernetes configuration
-	Kubernetes *k8s.Config `yaml:"kubernetes"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage"`
@@ -148,8 +144,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	// Check if the configuration file at least has services configured or Kubernetes auto discovery enabled
-	if config == nil || ((config.Services == nil || len(config.Services) == 0) && (config.Kubernetes == nil || !config.Kubernetes.AutoDiscover)) {
+	// Check if the configuration file at least has services configured
+	if config == nil || config.Services == nil || len(config.Services) == 0 {
 		err = ErrNoServiceInConfig
 	} else {
 		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
@@ -159,9 +155,6 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 			return nil, err
 		}
 		if err := validateServicesConfig(config); err != nil {
-			return nil, err
-		}
-		if err := validateKubernetesConfig(config); err != nil {
 			return nil, err
 		}
 		if err := validateWebConfig(config); err != nil {
@@ -201,27 +194,6 @@ func validateWebConfig(config *Config) error {
 		config.Web = &WebConfig{Address: DefaultAddress, Port: DefaultPort}
 	} else {
 		return config.Web.validateAndSetDefaults()
-	}
-	return nil
-}
-
-// deprecated
-// I don't like the current implementation.
-func validateKubernetesConfig(config *Config) error {
-	if config.Kubernetes != nil && config.Kubernetes.AutoDiscover {
-		log.Println("WARNING - The Kubernetes integration is planned to be removed in v3.0.0. If you're seeing this message, it's because you're currently using it, and you may want to give your opinion at https://github.com/TwinProduction/gatus/discussions/135")
-		if config.Kubernetes.ServiceTemplate == nil {
-			return errors.New("kubernetes.service-template cannot be nil")
-		}
-		if config.Debug {
-			log.Println("[config][validateKubernetesConfig] Automatically discovering Kubernetes services...")
-		}
-		discoveredServices, err := k8s.DiscoverServices(config.Kubernetes)
-		if err != nil {
-			return err
-		}
-		config.Services = append(config.Services, discoveredServices...)
-		log.Printf("[config][validateKubernetesConfig] Discovered %d Kubernetes services", len(discoveredServices))
 	}
 	return nil
 }

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,13 +13,11 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
 	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
 	"github.com/TwinProduction/gatus/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/alerting/provider/teams"
 	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
-	"github.com/TwinProduction/gatus/alerting/provider/teams"
 	"github.com/TwinProduction/gatus/client"
 	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/k8stest"
-	v1 "k8s.io/api/core/v1"
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
@@ -1003,9 +1000,6 @@ services:
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'TRIGGERED', got", config.Alerting.Custom.GetAlertStatePlaceholderValue(false))
 	}
-	if config.Alerting.Custom.Insecure {
-		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
-	}
 	if config.Alerting.Custom.ClientConfig.Insecure {
 		t.Errorf("ClientConfig.Insecure should have been %v, got %v", false, config.Alerting.Custom.ClientConfig.Insecure)
 	}
@@ -1051,9 +1045,6 @@ services:
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "partial_outage" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'partial_outage'")
 	}
-	if !config.Alerting.Custom.Insecure {
-		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
-	}
 }
 
 func TestParseAndValidateConfigBytesWithCustomAlertingConfigAndOneCustomPlaceholderValue(t *testing.T) {
@@ -1064,7 +1055,6 @@ alerting:
       ALERT_TRIGGERED_OR_RESOLVED:
         TRIGGERED: "partial_outage"
     url: "https://example.com"
-    insecure: true
     body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
 services:
   - name: twinnation
@@ -1094,51 +1084,6 @@ services:
 	}
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(false) != "partial_outage" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for TRIGGERED should've been 'partial_outage'")
-	}
-	if !config.Alerting.Custom.Insecure {
-		t.Fatal("config.Alerting.Custom.Insecure shouldn't have been true")
-	}
-}
-
-func TestParseAndValidateConfigBytesWithCustomAlertingConfigThatHasInsecureSetToTrue(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
-alerting:
-  custom:
-    url: "https://example.com"
-    method: "POST"
-    insecure: true
-    body: |
-      {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
-      }
-services:
-  - name: twinnation
-    url: https://twinnation.org/health
-    alerts:
-      - type: custom
-    conditions:
-      - "[STATUS] == 200"
-`))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Alerting == nil {
-		t.Fatal("config.Alerting shouldn't have been nil")
-	}
-	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
-	}
-	if !config.Alerting.Custom.IsValid() {
-		t.Error("Custom alerting config should've been valid")
-	}
-	if config.Alerting.Custom.Method != "POST" {
-		t.Error("config.Alerting.Custom.Method should've been POST")
-	}
-	if !config.Alerting.Custom.Insecure {
-		t.Error("config.Alerting.Custom.Insecure shouldn't have been true")
 	}
 }
 
@@ -1246,113 +1191,6 @@ func TestParseAndValidateConfigBytesWithNoServicesOrAutoDiscovery(t *testing.T) 
 	}
 }
 
-func TestParseAndValidateConfigBytesWithKubernetesAutoDiscovery(t *testing.T) {
-	var kubernetesServices []v1.Service
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-1", "default", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2", "default", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-2-canary", "default", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-3", "kube-system", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-4", "tools", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-5", "tools", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-6", "tools", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7", "metrics", 8080))
-	kubernetesServices = append(kubernetesServices, k8stest.CreateTestServices("service-7-canary", "metrics", 8080))
-	k8stest.InitializeMockedKubernetesClient(kubernetesServices)
-	config, err := parseAndValidateConfigBytes([]byte(`
-debug: true
-
-kubernetes:
-  cluster-mode: "mock"
-  auto-discover: true
-  excluded-service-suffixes:
-    - canary
-  service-template:
-    interval: 29s
-    conditions:
-      - "[STATUS] == 200"
-  namespaces:
-    - name: default
-      hostname-suffix: ".default.svc.cluster.local"
-      target-path: "/health"
-    - name: tools
-      hostname-suffix: ".tools.svc.cluster.local"
-      target-path: "/health"
-      excluded-services:
-        - service-6
-    - name: metrics
-      hostname-suffix: ".metrics.svc.cluster.local"
-      target-path: "/health"
-`))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Kubernetes == nil {
-		t.Fatal("Kuberbetes config shouldn't have been nil")
-	}
-	if len(config.Services) != 5 {
-		t.Error("Expected 5 services to have been added through k8s auto discovery, got", len(config.Services))
-	}
-	for _, service := range config.Services {
-		if service.Name == "service-2-canary" || service.Name == "service-7-canary" {
-			t.Errorf("service '%s' should've been excluded because excluded-service-suffixes has 'canary'", service.Name)
-		} else if service.Name == "service-6" {
-			t.Errorf("service '%s' should've been excluded because excluded-services has 'service-6'", service.Name)
-		} else if service.Name == "service-3" {
-			t.Errorf("service '%s' should've been excluded because the namespace 'kube-system' is not configured for auto discovery", service.Name)
-		} else {
-			if service.Interval != 29*time.Second {
-				t.Errorf("service '%s' should've had an interval of 29s, because the template is configured for it", service.Name)
-			}
-			if len(service.Conditions) != 1 {
-				t.Errorf("service '%s' should've had 1 condition", service.Name)
-			}
-			if len(service.Conditions) == 1 && *service.Conditions[0] != "[STATUS] == 200" {
-				t.Errorf("service '%s' should've had the condition '[STATUS] == 200', because the template is configured for it", service.Name)
-			}
-			if !strings.HasSuffix(service.URL, ".svc.cluster.local:8080/health") {
-				t.Errorf("service '%s' should've had an URL with the suffix '.svc.cluster.local:8080/health'", service.Name)
-			}
-		}
-	}
-}
-
-func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryButNoServiceTemplate(t *testing.T) {
-	_, err := parseAndValidateConfigBytes([]byte(`
-kubernetes:
-  cluster-mode: "mock"
-  auto-discover: true
-  namespaces:
-    - name: default
-      hostname-suffix: ".default.svc.cluster.local"
-      target-path: "/health"
-`))
-	if err == nil {
-		t.Error("should've returned an error because providing a service-template is mandatory")
-	}
-}
-
-func TestParseAndValidateConfigBytesWithKubernetesAutoDiscoveryUsingClusterModeIn(t *testing.T) {
-	_, err := parseAndValidateConfigBytes([]byte(`
-kubernetes:
-  cluster-mode: "in"
-  auto-discover: true
-  service-template:
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-  namespaces:
-    - name: default
-      hostname-suffix: ".default.svc.cluster.local"
-      target-path: "/health"
-`))
-	if err == nil {
-		t.Error("should've returned an error because testing with ClusterModeIn isn't supported")
-	}
-}
-
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		Custom:      &custom.AlertProvider{},
@@ -1363,7 +1201,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Slack:       &slack.AlertProvider{},
 		Telegram:    &telegram.AlertProvider{},
 		Twilio:      &twilio.AlertProvider{},
-		Teams:      &teams.AlertProvider{},
+		Teams:       &teams.AlertProvider{},
 	}
 	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeCustom) != alertingConfig.Custom {
 		t.Error("expected Custom configuration")

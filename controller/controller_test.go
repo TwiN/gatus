@@ -123,31 +123,6 @@ func TestCreateRouter(t *testing.T) {
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "old-badge-1h",
-			Path:         "/api/v1/badges/uptime/1h/core_frontend.svg",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-badge-24h",
-			Path:         "/api/v1/badges/uptime/24h/core_backend.svg",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-badge-7d",
-			Path:         "/api/v1/badges/uptime/7d/core_frontend.svg",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-badge-with-invalid-duration",
-			Path:         "/api/v1/badges/uptime/3d/core_backend.svg",
-			ExpectedCode: http.StatusBadRequest,
-		},
-		{
-			Name:         "old-badge-for-invalid-key",
-			Path:         "/api/v1/badges/uptime/7d/invalid_key.svg",
-			ExpectedCode: http.StatusNotFound,
-		},
-		{
 			Name:         "badge-uptime-1h",
 			Path:         "/api/v1/services/core_frontend/uptimes/1h/badge.svg",
 			ExpectedCode: http.StatusOK,
@@ -215,38 +190,6 @@ func TestCreateRouter(t *testing.T) {
 		{
 			Name:         "chart-response-time-for-invalid-key",
 			Path:         "/api/v1/services/invalid_key/response-times/7d/chart.svg",
-			ExpectedCode: http.StatusNotFound,
-		},
-		{
-			Name:         "old-service-statuses",
-			Path:         "/api/v1/statuses",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-service-statuses-gzip",
-			Path:         "/api/v1/statuses",
-			ExpectedCode: http.StatusOK,
-			Gzip:         true,
-		},
-		{
-			Name:         "old-service-statuses-pagination",
-			Path:         "/api/v1/statuses?page=1&pageSize=20",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-service-status",
-			Path:         "/api/v1/statuses/core_frontend",
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			Name:         "old-service-status-gzip",
-			Path:         "/api/v1/statuses/core_frontend",
-			ExpectedCode: http.StatusOK,
-			Gzip:         true,
-		},
-		{
-			Name:         "old-service-status-for-invalid-key",
-			Path:         "/api/v1/statuses/invalid_key",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
