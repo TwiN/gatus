@@ -2,7 +2,6 @@ package mattermost
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/TwinProduction/gatus/alerting/alert"
@@ -14,7 +13,6 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using Mattermost
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
-	Insecure   bool   `yaml:"insecure,omitempty"` // deprecated
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client"`
@@ -27,11 +25,6 @@ type AlertProvider struct {
 func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
-		// XXX: remove the next 3 lines in v3.0.0
-		if provider.Insecure {
-			log.Println("WARNING: alerting.mattermost.insecure has been deprecated and will be removed in v3.0.0 in favor of alerting.mattermost.client.insecure")
-			provider.ClientConfig.Insecure = true
-		}
 	}
 	return len(provider.WebhookURL) > 0
 }
