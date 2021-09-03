@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"log"
 	"time"
 
 	"github.com/TwinProduction/gatus/core"
@@ -15,10 +14,6 @@ const (
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
 func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
-	// XXX: Remove this on v3.0.0
-	if len(uptime.SuccessfulExecutionsPerHour) != 0 || len(uptime.TotalExecutionsPerHour) != 0 {
-		migrateUptimeToHourlyStatistics(uptime)
-	}
 	if uptime.HourlyStatistics == nil {
 		uptime.HourlyStatistics = make(map[int64]*core.HourlyUptimeStatistics)
 	}
@@ -45,25 +40,4 @@ func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
 			}
 		}
 	}
-}
-
-// XXX: Remove this on v3.0.0
-// Deprecated
-func migrateUptimeToHourlyStatistics(uptime *core.Uptime) {
-	log.Println("[migrateUptimeToHourlyStatistics] Got", len(uptime.SuccessfulExecutionsPerHour), "entries for successful executions and", len(uptime.TotalExecutionsPerHour), "entries for total executions")
-	uptime.HourlyStatistics = make(map[int64]*core.HourlyUptimeStatistics)
-	for hourlyUnixTimestamp, totalExecutions := range uptime.TotalExecutionsPerHour {
-		if totalExecutions == 0 {
-			log.Println("[migrateUptimeToHourlyStatistics] Skipping entry at", hourlyUnixTimestamp, "because total number of executions is 0")
-			continue
-		}
-		uptime.HourlyStatistics[hourlyUnixTimestamp] = &core.HourlyUptimeStatistics{
-			TotalExecutions:             totalExecutions,
-			SuccessfulExecutions:        uptime.SuccessfulExecutionsPerHour[hourlyUnixTimestamp],
-			TotalExecutionsResponseTime: 0,
-		}
-	}
-	log.Println("[migrateUptimeToHourlyStatistics] Migrated", len(uptime.HourlyStatistics), "entries")
-	uptime.SuccessfulExecutionsPerHour = nil
-	uptime.TotalExecutionsPerHour = nil
 }
