@@ -96,6 +96,8 @@ func (config *Config) UpdateLastFileModTime() {
 		if !fileInfo.ModTime().IsZero() {
 			config.lastFileModTime = fileInfo.ModTime()
 		}
+	} else {
+		log.Println("[config][UpdateLastFileModTime] Ran into error updating lastFileModTime:", err.Error())
 	}
 }
 
