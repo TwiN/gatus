@@ -968,8 +968,10 @@ Failure to do so may result in Gatus being unable to start if the application is
 I recommend not setting `skip-invalid-config-update` to `true` to avoid a situation like this, but the choice is yours
 to make.
 
-Note that if you are not using a file storage, updating the configuration while Gatus is running is effectively
+**If you are not using a file storage**, updating the configuration while Gatus is running is effectively
 the same as restarting the application.
+
+**NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwinProduction/gatus/issues/151).
 
 
 ### Service groups
