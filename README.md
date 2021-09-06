@@ -101,7 +101,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **[Badges](#badges)**: ![Uptime 7d](https://status.twinnation.org/api/v1/badges/uptime/7d/core_website-external.svg) ![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
+- **[Badges](#badges)**: ![Uptime 7d](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
 
 
 ## Usage
