@@ -230,18 +230,25 @@ Here are some examples of conditions you can use:
 | Parameter          | Description                                                                            | Default        |
 |:------------------ |:-------------------------------------------------------------------------------------- |:-------------- |
 | `storage`          | Storage configuration                                                                  | `{}`           |
-| `storage.file`     | File to persist the data in. If the type is `memory`, data is persisted on interval.   | `""`           |
-| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`.                                      | `"memory"`     |
+| `storage.file`     | Path to persist the data in. If the type is `memory`, data is persisted on interval.   | `""`           |
+| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`, `postgres` (ALPHA).                  | `"memory"`     |
 
 - If `storage.type` is `memory` (default) and `storage.file` is set to a non-blank value.
   Furthermore, the data is periodically persisted, but everything remains in memory.
-- If `storage.type` is `sqlite`, `storage.file` must not be blank.
+- If `storage.type` is `sqlite`, `storage.file` must not be blank:
 ```yaml
 storage:
   type: sqlite
   file: data.db
 ```
 See [examples/docker-compose-sqlite-storage](examples/docker-compose-sqlite-storage) for an example.
+
+- If `storage.type` is `postgres`, `storage.file` must be the connection URL:
+```yaml
+storage:
+  type: postgres
+  file: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
+```
 
 
 ### Client configuration

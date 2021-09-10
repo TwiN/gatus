@@ -8,7 +8,7 @@ import (
 	"github.com/TwinProduction/gatus/storage/store/common"
 	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/sqlite"
+	"github.com/TwinProduction/gatus/storage/store/sql"
 )
 
 var (
@@ -92,7 +92,7 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sqlite.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
+	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -125,8 +125,10 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
-
-			serviceStatus := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			serviceStatus, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != nil {
+				t.Fatal("shouldn't have returned an error, got", err.Error())
+			}
 			if serviceStatus == nil {
 				t.Fatalf("serviceStatus shouldn't have been nil")
 			}
@@ -153,15 +155,24 @@ func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			serviceStatus := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			serviceStatus, err := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrServiceNotFound {
+				t.Error("should've returned ErrServiceNotFound, got", err)
+			}
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
 			}
-			serviceStatus = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			serviceStatus, err = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrServiceNotFound {
+				t.Error("should've returned ErrServiceNotFound, got", err)
+			}
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
 			}
-			serviceStatus = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			serviceStatus, err = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrServiceNotFound {
+				t.Error("should've returned ErrServiceNotFound, got", err)
+			}
 			if serviceStatus != nil {
 				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
 			}
@@ -179,7 +190,10 @@ func TestStore_GetAllServiceStatuses(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
 			// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
-			serviceStatuses := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+			serviceStatuses, err := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
 			if len(serviceStatuses) != 1 {
 				t.Fatal("expected 1 service status")
 			}
@@ -208,7 +222,10 @@ func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
 			// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
-			serviceStatuses := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 50))
+			serviceStatuses, err := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 50))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
 			if len(serviceStatuses) != 1 {
 				t.Fatal("expected 1 service status")
 			}
@@ -238,14 +255,20 @@ func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &firstResult)
 			scenario.Store.Insert(&testService, &secondResult)
-			serviceStatusPage1 := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 1))
+			serviceStatusPage1, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 1))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
 			if serviceStatusPage1 == nil {
 				t.Fatalf("serviceStatusPage1 shouldn't have been nil")
 			}
 			if len(serviceStatusPage1.Results) != 1 {
 				t.Fatalf("serviceStatusPage1 should've had 1 result")
 			}
-			serviceStatusPage2 := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(2, 1))
+			serviceStatusPage2, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(2, 1))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
 			if serviceStatusPage2 == nil {
 				t.Fatalf("serviceStatusPage2 shouldn't have been nil")
 			}
@@ -398,8 +421,10 @@ func TestStore_Insert(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testService, &testSuccessfulResult)
 			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
-
-			ss := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			ss, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err)
+			}
 			if ss == nil {
 				t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 			}
@@ -473,22 +498,23 @@ func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&firstService, result)
 			scenario.Store.Insert(&secondService, result)
-			if scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
+			if ss, _ := scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()); ss == nil {
 				t.Fatal("firstService should exist")
 			}
-			if scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) == nil {
+			if ss, _ := scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()); ss == nil {
 				t.Fatal("secondService should exist")
 			}
 			scenario.Store.DeleteAllServiceStatusesNotInKeys([]string{firstService.Key()})
-			if scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()) == nil {
+			if ss, _ := scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()); ss == nil {
 				t.Error("secondService should've been deleted")
 			}
-			if scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()) != nil {
+			if ss, _ := scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()); ss != nil {
 				t.Error("firstService should still exist")
 			}
 			// Delete everything
 			scenario.Store.DeleteAllServiceStatusesNotInKeys([]string{})
-			if len(scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams())) != 0 {
+			serviceStatuses, _ := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams())
+			if len(serviceStatuses) != 0 {
 				t.Errorf("everything should've been deleted")
 			}
 		})

@@ -48,7 +48,7 @@ func NewStore(file string) (*Store, error) {
 
 // GetAllServiceStatuses returns all monitored core.ServiceStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) []*core.ServiceStatus {
+func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) ([]*core.ServiceStatus, error) {
 	serviceStatuses := s.cache.GetAll()
 	pagedServiceStatuses := make([]*core.ServiceStatus, 0, len(serviceStatuses))
 	for _, v := range serviceStatuses {
@@ -57,21 +57,21 @@ func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) []*cor
 	sort.Slice(pagedServiceStatuses, func(i, j int) bool {
 		return pagedServiceStatuses[i].Key < pagedServiceStatuses[j].Key
 	})
-	return pagedServiceStatuses
+	return pagedServiceStatuses, nil
 }
 
 // GetServiceStatus returns the service status for a given service name in the given group
-func (s *Store) GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) *core.ServiceStatus {
+func (s *Store) GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
 	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), params)
 }
 
 // GetServiceStatusByKey returns the service status for a given key
-func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) *core.ServiceStatus {
+func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
 	serviceStatus := s.cache.GetValue(key)
 	if serviceStatus == nil {
-		return nil
+		return nil, common.ErrServiceNotFound
 	}
-	return ShallowCopyServiceStatus(serviceStatus.(*core.ServiceStatus), params)
+	return ShallowCopyServiceStatus(serviceStatus.(*core.ServiceStatus), params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -156,7 +156,7 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified service into the store
-func (s *Store) Insert(service *core.Service, result *core.Result) {
+func (s *Store) Insert(service *core.Service, result *core.Result) error {
 	key := service.Key()
 	s.Lock()
 	serviceStatus, exists := s.cache.Get(key)
@@ -170,6 +170,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) {
 	AddResult(serviceStatus.(*core.ServiceStatus), result)
 	s.cache.Set(key, serviceStatus)
 	s.Unlock()
+	return nil
 }
 
 // DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided

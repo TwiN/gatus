@@ -27,6 +27,11 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/gorilla/mux
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 github.com/kballard/go-shellquote
+# github.com/lib/pq v1.10.3
+## explicit
+github.com/lib/pq
+github.com/lib/pq/oid
+github.com/lib/pq/scram
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
