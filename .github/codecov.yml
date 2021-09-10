@@ -1,5 +1,6 @@
 ignore:
   - "watchdog/watchdog.go"
+  - "storage/store/sql/specific_postgres.go" # Can't test for postgres
 
 coverage:
   status:
