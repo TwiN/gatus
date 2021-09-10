@@ -296,8 +296,11 @@ func TestStore_SanityCheck(t *testing.T) {
 	if len(ss.Results) != 2 {
 		t.Errorf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 	}
-	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{}); deleted != 1 {
+	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{"invalid-key-which-means-everything-should-get-deleted"}); deleted != 1 {
 		t.Errorf("%d entries should've been deleted, got %d", 1, deleted)
+	}
+	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{}); deleted != 0 {
+		t.Errorf("There should've been no entries left to delete, got %d", deleted)
 	}
 }
 
@@ -370,5 +373,107 @@ func TestStore_NoRows(t *testing.T) {
 	}
 	if _, err := store.getAgeOfOldestServiceUptimeEntry(tx, 1); err != errNoRowsReturned {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
+	}
+}
+
+// This tests very unlikely cases where a table is deleted.
+func TestStore_BrokenSchema(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db")
+	defer store.Close()
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams()); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Break
+	_, _ = store.db.Exec("DROP TABLE service")
+	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams()); err == nil {
+		t.Fatal("expected an error")
+	}
+	// Repair
+	if err := store.createSchema(); err != nil {
+		t.Fatal("schema should've been repaired")
+	}
+	store.Clear()
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Break
+	_, _ = store.db.Exec("DROP TABLE service_event")
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, because this should silently fails, got", err.Error())
+	}
+	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
+		t.Fatal("expected no error, because this should silently fail, got", err.Error())
+	}
+	// Repair
+	if err := store.createSchema(); err != nil {
+		t.Fatal("schema should've been repaired")
+	}
+	store.Clear()
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Break
+	_, _ = store.db.Exec("DROP TABLE service_result")
+	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
+		t.Fatal("expected no error, because this should silently fail, got", err.Error())
+	}
+	// Repair
+	if err := store.createSchema(); err != nil {
+		t.Fatal("schema should've been repaired")
+	}
+	store.Clear()
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Break
+	_, _ = store.db.Exec("DROP TABLE service_result_condition")
+	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+		t.Fatal("expected an error")
+	}
+	// Repair
+	if err := store.createSchema(); err != nil {
+		t.Fatal("schema should've been repaired")
+	}
+	store.Clear()
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Break
+	_, _ = store.db.Exec("DROP TABLE service_uptime")
+	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, because this should silently fails, got", err.Error())
+	}
+	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, err := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+		t.Fatal("expected an error")
 	}
 }
