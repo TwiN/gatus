@@ -249,6 +249,7 @@ storage:
   type: postgres
   file: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
+See [examples/docker-compose-postgres-storage](examples/docker-compose-postgres-storage) for an example.
 
 
 ### Client configuration

@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=gatus
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+    networks:
+      - web
+
+  gatus:
+    image: twinproduction/gatus:latest
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/config/config.yaml
+    networks:
+      - web
+    depends_on:
+      - postgres
+
+networks:
+  web:
