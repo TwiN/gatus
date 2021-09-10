@@ -242,6 +242,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) error {
 	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByServiceID(tx, serviceID)
 	if err != nil {
+		// Silently fail
 		log.Printf("[sql][Insert] Failed to retrieve total number of events for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	}
 	if numberOfEvents == 0 {
