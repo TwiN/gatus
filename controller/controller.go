@@ -116,7 +116,14 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		data, err = json.Marshal(storage.Get().GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(page, pageSize)))
+		serviceStatuses, err := storage.Get().GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(page, pageSize))
+		if err != nil {
+			log.Printf("[controller][serviceStatusesHandler] Failed to retrieve service statuses: %s", err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+			_, _ = writer.Write([]byte(err.Error()))
+			return
+		}
+		data, err = json.Marshal(serviceStatuses)
 		if err != nil {
 			log.Printf("[controller][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -143,7 +150,17 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	vars := mux.Vars(r)
-	serviceStatus := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
+	serviceStatus, err := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
+	if err != nil {
+		if err == common.ErrServiceNotFound {
+			writer.WriteHeader(http.StatusNotFound)
+		} else {
+			log.Printf("[controller][serviceStatusHandler] Failed to retrieve service status: %s", err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+		_, _ = writer.Write([]byte(err.Error()))
+		return
+	}
 	if serviceStatus == nil {
 		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
 		writer.WriteHeader(http.StatusNotFound)

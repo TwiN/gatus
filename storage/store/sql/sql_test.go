@@ -1,4 +1,4 @@
-package sqlite
+package sql
 
 import (
 	"testing"
@@ -157,7 +157,7 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testService, &testSuccessfulResult)
 		store.Insert(&testService, &testUnsuccessfulResult)
-		ss := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults*5).WithEvents(1, common.MaximumNumberOfEvents*5))
+		ss, _ := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults*5).WithEvents(1, common.MaximumNumberOfEvents*5))
 		if len(ss.Results) > resultsCleanUpThreshold+1 {
 			t.Errorf("number of results shouldn't have exceeded %d, reached %d", resultsCleanUpThreshold, len(ss.Results))
 		}
@@ -182,7 +182,7 @@ func TestStore_Persistence(t *testing.T) {
 	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
 	}
-	ssFromOldStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromOldStore, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
@@ -190,7 +190,7 @@ func TestStore_Persistence(t *testing.T) {
 	store.Close()
 	store, _ = NewStore("sqlite", file)
 	defer store.Close()
-	ssFromNewStore := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromNewStore, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
@@ -265,12 +265,14 @@ func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db")
 	defer store.Close()
 	store.Insert(&testService, &testSuccessfulResult)
-	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+	serviceStatuses, _ := store.GetAllServiceStatuses(paging.NewServiceStatusParams())
+	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
 	store.Insert(&testService, &testUnsuccessfulResult)
 	// Both results inserted are for the same service, therefore, the count shouldn't have increased
-	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+	serviceStatuses, _ = store.GetAllServiceStatuses(paging.NewServiceStatusParams())
+	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
 	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
@@ -284,7 +286,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 	}

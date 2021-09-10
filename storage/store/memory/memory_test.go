@@ -85,12 +85,14 @@ func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("")
 	defer store.Close()
 	store.Insert(&testService, &testSuccessfulResult)
-	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+	serviceStatuses, _ := store.GetAllServiceStatuses(paging.NewServiceStatusParams())
+	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
 	store.Insert(&testService, &testUnsuccessfulResult)
 	// Both results inserted are for the same service, therefore, the count shouldn't have increased
-	if numberOfServiceStatuses := len(store.GetAllServiceStatuses(paging.NewServiceStatusParams())); numberOfServiceStatuses != 1 {
+	serviceStatuses, _ = store.GetAllServiceStatuses(paging.NewServiceStatusParams())
+	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
 		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
 	}
 	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
@@ -104,7 +106,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
 	}

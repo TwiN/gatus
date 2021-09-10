@@ -7,7 +7,7 @@ import (
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/storage/store/common/paging"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/sqlite"
+	"github.com/TwinProduction/gatus/storage/store/sql"
 )
 
 func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
@@ -15,7 +15,7 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -73,7 +73,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -145,7 +145,7 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sqlite.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}

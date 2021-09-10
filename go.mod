@@ -8,6 +8,7 @@ require (
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/lib/pq v1.10.3
 	github.com/miekg/dns v1.1.35
 	github.com/prometheus/client_golang v1.9.0
 	github.com/wcharczuk/go-chart/v2 v2.1.0

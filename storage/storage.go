@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwinProduction/gatus/storage/store"
 	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/sqlite"
+	"github.com/TwinProduction/gatus/storage/store/sql"
 )
 
 var (
@@ -45,15 +45,15 @@ func Initialize(cfg *Config) error {
 	if cfg == nil {
 		cfg = &Config{}
 	}
-	if len(cfg.File) == 0 {
-		log.Printf("[storage][Initialize] Creating storage provider with type=%s", cfg.Type)
-	} else {
+	if len(cfg.File) == 0 && cfg.Type != TypePostgres {
 		log.Printf("[storage][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.File)
+	} else {
+		log.Printf("[storage][Initialize] Creating storage provider with type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
-	case TypeSQLite:
-		provider, err = sqlite.NewStore(string(cfg.Type), cfg.File)
+	case TypeSQLite, TypePostgres:
+		provider, err = sql.NewStore(string(cfg.Type), cfg.File)
 		if err != nil {
 			return err
 		}
