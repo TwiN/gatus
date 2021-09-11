@@ -1,12 +1,11 @@
-version: '3.7'
-
+version: "3.9"
 services:
   gatus:
     container_name: gatus
     image: twinproduction/gatus
     restart: always
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
       - ./config.yaml:/config/config.yaml
     networks:
@@ -18,7 +17,7 @@ services:
     restart: always
     command: --config.file=/etc/prometheus/prometheus.yml
     ports:
-      - 9090:9090
+      - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
@@ -31,7 +30,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: secret
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - ./grafana/grafana.ini/:/etc/grafana/grafana.ini:ro
       - ./grafana/provisioning/:/etc/grafana/provisioning/:ro
