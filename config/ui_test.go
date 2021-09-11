@@ -18,4 +18,7 @@ func TestGetDefaultUIConfig(t *testing.T) {
 	if defaultUIConfig.Title != defaultTitle {
 		t.Error("expected GetDefaultUIConfig() to return defaultTitle, got", defaultUIConfig.Title)
 	}
+	if defaultUIConfig.Logo != defaultLogo {
+		t.Error("expected GetDefaultUIConfig() to return defaultLogo, got", defaultUIConfig.Logo)
+	}
 }

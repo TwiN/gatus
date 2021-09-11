@@ -5,17 +5,22 @@ import (
 	"html/template"
 )
 
-const defaultTitle = "Health Dashboard | Gatus"
+const (
+	defaultTitle = "Health Dashboard | Gatus"
+	defaultLogo  = ""
+)
 
 // UIConfig is the configuration for the UI of Gatus
 type UIConfig struct {
 	Title string `yaml:"title"` // Title of the page
+	Logo  string `yaml:"logo"`  // Logo to display on the page
 }
 
 // GetDefaultUIConfig returns a UIConfig struct with the default values
 func GetDefaultUIConfig() *UIConfig {
 	return &UIConfig{
 		Title: defaultTitle,
+		Logo:  defaultLogo,
 	}
 }
 

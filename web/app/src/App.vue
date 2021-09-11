@@ -6,7 +6,8 @@
           <div class="text-3xl xl:text-5xl lg:text-4xl font-light">Health Status</div>
         </div>
         <div class="w-1/4 flex justify-end">
-          <img src="./assets/logo.png" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+          <img v-if="getLogo" :src="getLogo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+          <img v-if="!getLogo" src="./assets/logo.png" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
         </div>
       </div>
     </div>
@@ -30,6 +31,11 @@ export default {
   methods: {
     showTooltip(result, event) {
       this.tooltip = {result: result, event: event};
+    }
+  },
+  computed: {
+    getLogo() {
+      return window.config && window.config.logo && window.config.logo !== '{{ .Logo }}' ? window.config.logo : "";
     }
   },
   data() {

@@ -175,6 +175,9 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                    | Web configuration.                                                            | `{}`           |
 | `web.address`                            | Address to listen on.                                                         | `0.0.0.0`      |
 | `web.port`                               | Port to listen on.                                                            | `8080`         |
+| `ui`                                     | UI configuration.                                                             | `{}`           |
+| `ui.title`                               | Title of the page.                                                            | `Health Dashboard ǀ Gatus`      |
+| `ui.logo`                                | URL to the logo to display                                                    | `""`         |
 
 
 ### Conditions

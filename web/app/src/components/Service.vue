@@ -16,6 +16,9 @@
             {{ (minResponseTime === maxResponseTime ? minResponseTime : (minResponseTime + '-' + maxResponseTime)) }}ms
           </slot>
         </span>
+<!--        <span class="text-sm font-bold cursor-pointer">-->
+<!--          ⋯-->
+<!--        </span>-->
       </div>
     </div>
     <div>
