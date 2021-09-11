@@ -30,18 +30,14 @@ const (
 var (
 	cache = gocache.NewCache().WithMaxSize(100).WithEvictionPolicy(gocache.FirstInFirstOut)
 
-	// staticFolder is the path to the location of the static folder from the root path of the project
-	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
-	staticFolder = "./web/static"
-
 	// server is the http.Server created by Handle.
 	// The only reason it exists is for testing purposes.
 	server *http.Server
 )
 
 // Handle creates the router and starts the server
-func Handle(securityConfig *security.Config, webConfig *config.WebConfig, enableMetrics bool) {
-	var router http.Handler = CreateRouter(securityConfig, enableMetrics)
+func Handle(securityConfig *security.Config, webConfig *config.WebConfig, uiConfig *config.UIConfig, enableMetrics bool) {
+	var router http.Handler = CreateRouter(config.StaticFolder, securityConfig, uiConfig, enableMetrics)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = developmentCorsHandler(router)
 	}
@@ -68,14 +64,14 @@ func Shutdown() {
 }
 
 // CreateRouter creates the router for the http server
-func CreateRouter(securityConfig *security.Config, enabledMetrics bool) *mux.Router {
+func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig *config.UIConfig, enabledMetrics bool) *mux.Router {
 	router := mux.NewRouter()
 	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
-	router.HandleFunc("/favicon.ico", favIconHandler).Methods("GET")
-	// New endpoints
+	router.HandleFunc("/favicon.ico", favIconHandler(staticFolder)).Methods("GET")
+	// Endpoints
 	router.HandleFunc("/api/v1/services/statuses", secureIfNecessary(securityConfig, serviceStatusesHandler)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	router.HandleFunc("/api/v1/services/{key}/statuses", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceStatusHandler))).Methods("GET")
 	// TODO: router.HandleFunc("/api/v1/services/{key}/uptimes", secureIfNecessary(securityConfig, GzipHandlerFunc(serviceUptimesHandler))).Methods("GET")
@@ -84,7 +80,8 @@ func CreateRouter(securityConfig *security.Config, enabledMetrics bool) *mux.Rou
 	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/badge.svg", responseTimeBadgeHandler).Methods("GET")
 	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/chart.svg", responseTimeChartHandler).Methods("GET")
 	// SPA
-	router.HandleFunc("/services/{service}", spaHandler).Methods("GET")
+	router.HandleFunc("/services/{service}", spaHandler(staticFolder, uiConfig)).Methods("GET")
+	router.HandleFunc("/", spaHandler(staticFolder, uiConfig)).Methods("GET")
 	// Everything else falls back on static content
 	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir(staticFolder))))
 	return router

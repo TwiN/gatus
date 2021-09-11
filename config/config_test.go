@@ -36,10 +36,15 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
+	StaticFolder = "../web/static"
+	defer func() {
+		StaticFolder = "./web/static"
+	}()
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
   file: %s
-
+ui:
+  title: Test
 services:
   - name: twinnation
     url: https://twinnation.org/health
@@ -70,6 +75,9 @@ services:
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.UI == nil || config.UI.Title != "Test" {
+		t.Error("Expected Config.UI.Title to be Test")
 	}
 	if len(config.Services) != 3 {
 		t.Error("Should have returned two services")

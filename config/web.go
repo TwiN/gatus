@@ -15,6 +15,11 @@ type WebConfig struct {
 	Port int `yaml:"port"`
 }
 
+// GetDefaultWebConfig returns a WebConfig struct with the default values
+func GetDefaultWebConfig() *WebConfig {
+	return &WebConfig{Address: DefaultAddress, Port: DefaultPort}
+}
+
 // validateAndSetDefaults checks and sets the default values for fields that are not set
 func (web *WebConfig) validateAndSetDefaults() error {
 	// Validate the Address

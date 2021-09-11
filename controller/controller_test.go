@@ -88,7 +88,6 @@ var (
 func TestCreateRouter(t *testing.T) {
 	defer storage.Get().Clear()
 	defer cache.Clear()
-	staticFolder = "../web/static"
 	cfg := &config.Config{
 		Metrics: true,
 		Services: []*core.Service{
@@ -104,7 +103,7 @@ func TestCreateRouter(t *testing.T) {
 	}
 	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter(cfg.Security, cfg.Metrics)
+	router := CreateRouter("../web/static", cfg.Security, nil, cfg.Metrics)
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -287,7 +286,7 @@ func TestHandle(t *testing.T) {
 	_ = os.Setenv("ROUTER_TEST", "true")
 	_ = os.Setenv("ENVIRONMENT", "dev")
 	defer os.Clearenv()
-	Handle(cfg.Security, cfg.Web, cfg.Metrics)
+	Handle(cfg.Security, cfg.Web, cfg.UI, cfg.Metrics)
 	defer Shutdown()
 	request, _ := http.NewRequest("GET", "/health", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -312,7 +311,6 @@ func TestShutdown(t *testing.T) {
 func TestServiceStatusesHandler(t *testing.T) {
 	defer storage.Get().Clear()
 	defer cache.Clear()
-	staticFolder = "../web/static"
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
 	storage.Get().Insert(&testService, firstResult)
@@ -320,7 +318,7 @@ func TestServiceStatusesHandler(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	router := CreateRouter(nil, false)
+	router := CreateRouter("../web/static", nil, nil, false)
 
 	type Scenario struct {
 		Name         string

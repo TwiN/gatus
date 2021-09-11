@@ -41,6 +41,10 @@ var (
 
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
+
+	// StaticFolder is the path to the location of the static folder from the root path of the project
+	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
+	StaticFolder = "./web/static"
 )
 
 // Config is the main configuration structure
@@ -74,6 +78,9 @@ type Config struct {
 
 	// Web is the configuration for the web listener
 	Web *WebConfig `yaml:"web"`
+
+	// UI is the configuration for the UI
+	UI *UIConfig `yaml:"ui"`
 
 	filePath        string    // path to the file from which config was loaded from
 	lastFileModTime time.Time // last modification time
@@ -162,6 +169,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateWebConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateUIConfig(config); err != nil {
+			return nil, err
+		}
 		if err := validateStorageConfig(config); err != nil {
 			return nil, err
 		}
@@ -191,9 +201,20 @@ func validateStorageConfig(config *Config) error {
 	return nil
 }
 
+func validateUIConfig(config *Config) error {
+	if config.UI == nil {
+		config.UI = GetDefaultUIConfig()
+	} else {
+		if err := config.UI.validateAndSetDefaults(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func validateWebConfig(config *Config) error {
 	if config.Web == nil {
-		config.Web = &WebConfig{Address: DefaultAddress, Port: DefaultPort}
+		config.Web = GetDefaultWebConfig()
 	} else {
 		return config.Web.validateAndSetDefaults()
 	}
