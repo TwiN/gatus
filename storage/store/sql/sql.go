@@ -215,7 +215,6 @@ func (s *Store) Insert(service *core.Service, result *core.Result) error {
 	if err != nil {
 		return err
 	}
-	//start := time.Now()
 	serviceID, err := s.getServiceID(tx, service)
 	if err != nil {
 		if err == common.ErrServiceNotFound {
@@ -320,7 +319,6 @@ func (s *Store) Insert(service *core.Service, result *core.Result) error {
 			}
 		}
 	}
-	//log.Printf("[sql][Insert] Successfully inserted result in duration=%dms", time.Since(start).Milliseconds())
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
 	}
@@ -558,16 +556,6 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 			ORDER BY service_result_id DESC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
 			LIMIT $2 OFFSET $3
 		`,
-		//`
-		//	SELECT * FROM (
-		//	    SELECT service_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, hostname, ip, duration, timestamp
-		//		FROM service_result
-		//		WHERE service_id = $1
-		//		ORDER BY service_result_id DESC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
-		//		LIMIT $2 OFFSET $3
-		//	)
-		//	ORDER BY service_result_id ASC -- Normally, we'd sort by timestamp, but sorting by service_result_id is faster
-		//`,
 		serviceID,
 		pageSize,
 		(page-1)*pageSize,
@@ -584,33 +572,34 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 		if len(joinedErrors) != 0 {
 			result.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
-		//results = append(results, result)
 		// This is faster than using a subselect
 		results = append([]*core.Result{result}, results...)
 		idResultMap[id] = result
 	}
 	_ = rows.Close()
-	// Get the conditionResults
-	for serviceResultID, result := range idResultMap {
-		rows, err = tx.Query(
-			`
-				SELECT condition, success
+	// Get condition results
+	args := make([]interface{}, 0, len(idResultMap))
+	query := `SELECT service_result_id, condition, success
 				FROM service_result_condition
-				WHERE service_result_id = $1
-			`,
-			serviceResultID,
-		)
-		if err != nil {
+				WHERE service_result_id IN (`
+	index := 1
+	for serviceResultID := range idResultMap {
+		query += fmt.Sprintf("$%d,", index)
+		args = append(args, serviceResultID)
+		index++
+	}
+	query = query[:len(query)-1] + ")"
+	rows, err = tx.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		conditionResult := &core.ConditionResult{}
+		var serviceResultID int64
+		if err = rows.Scan(&serviceResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
 			return
 		}
-		for rows.Next() {
-			conditionResult := &core.ConditionResult{}
-			if err = rows.Scan(&conditionResult.Condition, &conditionResult.Success); err != nil {
-				return
-			}
-			result.ConditionResults = append(result.ConditionResults, conditionResult)
-		}
-		_ = rows.Close()
+		idResultMap[serviceResultID].ConditionResults = append(idResultMap[serviceResultID].ConditionResults, conditionResult)
 	}
 	return
 }
