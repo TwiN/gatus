@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"fmt"
@@ -21,10 +21,10 @@ const (
 	badgeColorHexVeryBad  = "#c7130a"
 )
 
-// uptimeBadgeHandler handles the automatic generation of badge based on the group name and service name passed.
+// UptimeBadge handles the automatic generation of badge based on the group name and service name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
-func uptimeBadgeHandler(writer http.ResponseWriter, request *http.Request) {
+func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
 	var from time.Time
@@ -58,6 +58,45 @@ func uptimeBadgeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Expires", formattedDate)
 	writer.Header().Set("Content-Type", "image/svg+xml")
 	_, _ = writer.Write(generateUptimeBadgeSVG(duration, uptime))
+}
+
+// ResponseTimeBadge handles the automatic generation of badge based on the group name and service name passed.
+//
+// Valid values for {duration}: 7d, 24h, 1h
+func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
+	variables := mux.Vars(request)
+	duration := variables["duration"]
+	var from time.Time
+	switch duration {
+	case "7d":
+		from = time.Now().Add(-7 * 24 * time.Hour)
+	case "24h":
+		from = time.Now().Add(-24 * time.Hour)
+	case "1h":
+		from = time.Now().Add(-time.Hour)
+	default:
+		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
+		return
+	}
+	key := variables["key"]
+	averageResponseTime, err := storage.Get().GetAverageResponseTimeByKey(key, from, time.Now())
+	if err != nil {
+		if err == common.ErrServiceNotFound {
+			writer.WriteHeader(http.StatusNotFound)
+		} else if err == common.ErrInvalidTimeRange {
+			writer.WriteHeader(http.StatusBadRequest)
+		} else {
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+		_, _ = writer.Write([]byte(err.Error()))
+		return
+	}
+	formattedDate := time.Now().Format(http.TimeFormat)
+	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writer.Header().Set("Date", formattedDate)
+	writer.Header().Set("Expires", formattedDate)
+	writer.Header().Set("Content-Type", "image/svg+xml")
+	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -124,46 +163,6 @@ func getBadgeColorFromUptime(uptime float64) string {
 		return badgeColorHexBad
 	}
 	return badgeColorHexVeryBad
-}
-
-// responseTimeBadgeHandler handles the automatic generation of badge based on the group name and service name passed.
-//
-// Valid values for {duration}: 7d, 24h, 1h
-func responseTimeBadgeHandler(writer http.ResponseWriter, request *http.Request) {
-	variables := mux.Vars(request)
-	duration := variables["duration"]
-	var from time.Time
-	switch duration {
-	case "7d":
-		from = time.Now().Add(-7 * 24 * time.Hour)
-	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
-	case "1h":
-		from = time.Now().Add(-time.Hour)
-	default:
-		writer.WriteHeader(http.StatusBadRequest)
-		_, _ = writer.Write([]byte("Durations supported: 7d, 24h, 1h"))
-		return
-	}
-	key := variables["key"]
-	averageResponseTime, err := storage.Get().GetAverageResponseTimeByKey(key, from, time.Now())
-	if err != nil {
-		if err == common.ErrServiceNotFound {
-			writer.WriteHeader(http.StatusNotFound)
-		} else if err == common.ErrInvalidTimeRange {
-			writer.WriteHeader(http.StatusBadRequest)
-		} else {
-			writer.WriteHeader(http.StatusInternalServerError)
-		}
-		_, _ = writer.Write([]byte(err.Error()))
-		return
-	}
-	formattedDate := time.Now().Format(http.TimeFormat)
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Date", formattedDate)
-	writer.Header().Set("Expires", formattedDate)
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
 }
 
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int) []byte {

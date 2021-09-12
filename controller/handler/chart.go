@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"log"
@@ -29,7 +29,7 @@ var (
 	}
 )
 
-func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
+func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	duration := vars["duration"]
 	var from time.Time
@@ -115,7 +115,7 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 	}
 	writer.Header().Set("Content-Type", "image/svg+xml")
 	if err := graph.Render(chart.SVG, writer); err != nil {
-		log.Println("[controller][responseTimeChartHandler] Failed to render response time chart:", err.Error())
+		log.Println("[handler][ResponseTimeChart] Failed to render response time chart:", err.Error())
 		return
 	}
 }
