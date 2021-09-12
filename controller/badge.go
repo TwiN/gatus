@@ -36,8 +36,7 @@ func uptimeBadgeHandler(writer http.ResponseWriter, request *http.Request) {
 	case "1h":
 		from = time.Now().Add(-time.Hour)
 	default:
-		writer.WriteHeader(http.StatusBadRequest)
-		_, _ = writer.Write([]byte("Durations supported: 7d, 24h, 1h"))
+		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
 		return
 	}
 	key := variables["key"]

@@ -39,8 +39,7 @@ func responseTimeChartHandler(writer http.ResponseWriter, r *http.Request) {
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		writer.WriteHeader(http.StatusBadRequest)
-		_, _ = writer.Write([]byte("Durations supported: 7d, 24h"))
+		http.Error(writer, "Durations supported: 7d, 24h", http.StatusBadRequest)
 		return
 	}
 	hourlyAverageResponseTime, err := storage.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())

@@ -116,15 +116,13 @@ func serviceStatusesHandler(writer http.ResponseWriter, r *http.Request) {
 		serviceStatuses, err := storage.Get().GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(page, pageSize))
 		if err != nil {
 			log.Printf("[controller][serviceStatusesHandler] Failed to retrieve service statuses: %s", err.Error())
-			writer.WriteHeader(http.StatusInternalServerError)
-			_, _ = writer.Write([]byte(err.Error()))
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		data, err = json.Marshal(serviceStatuses)
 		if err != nil {
 			log.Printf("[controller][serviceStatusesHandler] Unable to marshal object to JSON: %s", err.Error())
-			writer.WriteHeader(http.StatusInternalServerError)
-			_, _ = writer.Write([]byte("Unable to marshal object to JSON"))
+			http.Error(writer, "unable to marshal object to JSON", http.StatusInternalServerError)
 			return
 		}
 		_, _ = gzipWriter.Write(data)
@@ -150,25 +148,22 @@ func serviceStatusHandler(writer http.ResponseWriter, r *http.Request) {
 	serviceStatus, err := storage.Get().GetServiceStatusByKey(vars["key"], paging.NewServiceStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
 	if err != nil {
 		if err == common.ErrServiceNotFound {
-			writer.WriteHeader(http.StatusNotFound)
-		} else {
-			log.Printf("[controller][serviceStatusHandler] Failed to retrieve service status: %s", err.Error())
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusNotFound)
+			return
 		}
-		_, _ = writer.Write([]byte(err.Error()))
+		log.Printf("[controller][serviceStatusHandler] Failed to retrieve service status: %s", err.Error())
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if serviceStatus == nil {
 		log.Printf("[controller][serviceStatusHandler] Service with key=%s not found", vars["key"])
-		writer.WriteHeader(http.StatusNotFound)
-		_, _ = writer.Write([]byte("not found"))
+		http.Error(writer, "not found", http.StatusNotFound)
 		return
 	}
 	output, err := json.Marshal(serviceStatus)
 	if err != nil {
 		log.Printf("[controller][serviceStatusHandler] Unable to marshal object to JSON: %s", err.Error())
-		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte("unable to marshal object to JSON"))
+		http.Error(writer, "unable to marshal object to JSON", http.StatusInternalServerError)
 		return
 	}
 	writer.Header().Add("Content-Type", "application/json")
