@@ -163,7 +163,7 @@ func (service *Service) EvaluateHealth() *Result {
 		result.Success = false
 	}
 	for _, condition := range service.Conditions {
-		success := condition.evaluate(result)
+		success := condition.evaluate(result, service.UIConfig.DontResolveFailedConditions)
 		if !success {
 			result.Success = false
 		}

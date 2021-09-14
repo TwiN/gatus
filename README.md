@@ -142,7 +142,7 @@ If you want to test it locally, see [Docker](#docker).
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `debug`                                  | Whether to enable debug logs.                                                 | `false`        |
 | `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
-| `storage`                                | Storage configuration. <br />See [Storage](#storage).                               | `{}`           |
+| `storage`                                | [Storage configuration](#storage)                               | `{}`           |
 | `services`                               | List of services to monitor.                                                  | Required `[]`  |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].group`                       | Group name. Used to group multiple services together on the dashboard. <br />See [Service groups](#service-groups). | `""`           |
@@ -156,16 +156,17 @@ If you want to test it locally, see [Docker](#docker).
 | `services[].dns`                         | Configuration for a service of type DNS. <br />See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
 | `services[].dns.query-type`              | Query type for DNS service.                                                   | `""`           |
 | `services[].dns.query-name`              | Query name for DNS service.                                                   | `""`           |
-| `services[].alerts[].type`               | Type of alert. Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
+| `services[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
 | `services[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
 | `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
 | `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
 | `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
 | `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
-| `services[].client`                      | Client configuration. <br />See [Client configuration](#client-configuration). | `{}`          |
-| `services[].ui`                          | UI configuration.                                                             | `{}`           |
+| `services[].client`                      | [Client configuration](#client-configuration).                                | `{}`          |
+| `services[].ui`                          | UI configuration at the service level.                                        | `{}`           |
 | `services[].ui.hide-hostname`            | Whether to include the hostname in the result.                                | `false`        |
-| `alerting`                               | Configuration for alerting. <br />See [Alerting](#alerting).                  | `{}`           |
+| `services[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                        | `false`        |
+| `alerting`                               | [Alerting configuration](#alerting).                                          | `{}`           |
 | `security`                               | Security configuration.                                                       | `{}`           |
 | `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
 | `security.basic.username`                | Username for Basic authentication.                                            | Required `""`  |

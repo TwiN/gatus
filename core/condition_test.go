@@ -8,11 +8,12 @@ import (
 
 func TestCondition_evaluate(t *testing.T) {
 	type scenario struct {
-		Name            string
-		Condition       Condition
-		Result          *Result
-		ExpectedSuccess bool
-		ExpectedOutput  string
+		Name                        string
+		Condition                   Condition
+		Result                      *Result
+		DontResolveFailedConditions bool
+		ExpectedSuccess             bool
+		ExpectedOutput              string
 	}
 	scenarios := []scenario{
 		{
@@ -373,6 +374,14 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[STATUS] (404) == any(200, 429)",
 		},
 		{
+			Name:                        "status-any-failure-but-dont-resolve",
+			Condition:                   Condition("[STATUS] == any(200, 429)"),
+			Result:                      &Result{HTTPStatus: 404},
+			DontResolveFailedConditions: true,
+			ExpectedSuccess:             false,
+			ExpectedOutput:              "[STATUS] == any(200, 429)",
+		},
+		{
 			Name:            "connected",
 			Condition:       Condition("[CONNECTED] == true"),
 			Result:          &Result{Connected: true},
@@ -436,6 +445,14 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "has([BODY].errors) (true) == false",
 		},
 		{
+			Name:                        "has-failure-but-dont-resolve",
+			Condition:                   Condition("has([BODY].errors) == false"),
+			Result:                      &Result{body: []byte("{\"errors\": [\"1\"]}")},
+			DontResolveFailedConditions: true,
+			ExpectedSuccess:             false,
+			ExpectedOutput:              "has([BODY].errors) == false",
+		},
+		{
 			Name:            "no-placeholders",
 			Condition:       Condition("1 == 2"),
 			Result:          &Result{},
@@ -445,7 +462,7 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Condition.evaluate(scenario.Result)
+			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
 			}
@@ -459,7 +476,7 @@ func TestCondition_evaluate(t *testing.T) {
 func TestCondition_evaluateWithInvalidOperator(t *testing.T) {
 	condition := Condition("[STATUS] ? 201")
 	result := &Result{HTTPStatus: 201}
-	condition.evaluate(result)
+	condition.evaluate(result, false)
 	if result.Success {
 		t.Error("condition was invalid, result should've been a failure")
 	}

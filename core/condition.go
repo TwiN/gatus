@@ -85,44 +85,44 @@ type Condition string
 
 // evaluate the Condition with the Result of the health check
 // TODO: Add a mandatory space between each operators (e.g. " == " instead of "==") (BREAKING CHANGE)
-func (c Condition) evaluate(result *Result) bool {
+func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, "==") {
 		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "=="), result)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, "!=") {
 		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "!="), result)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, "<=") {
 		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<="), result)
 		success = resolvedParameters[0] <= resolvedParameters[1]
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, ">=") {
 		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">="), result)
 		success = resolvedParameters[0] >= resolvedParameters[1]
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, ">") {
 		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">"), result)
 		success = resolvedParameters[0] > resolvedParameters[1]
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, "<") {
 		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<"), result)
 		success = resolvedParameters[0] < resolvedParameters[1]
-		if !success {
+		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
