@@ -34,7 +34,7 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	case "24h":
 		from = time.Now().Add(-24 * time.Hour)
 	case "1h":
-		from = time.Now().Add(-time.Hour)
+		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
 		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
 		return
@@ -73,7 +73,7 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 	case "24h":
 		from = time.Now().Add(-24 * time.Hour)
 	case "1h":
-		from = time.Now().Add(-time.Hour)
+		from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
 	default:
 		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
 		return
