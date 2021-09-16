@@ -26,9 +26,11 @@ var (
 func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	for _, service := range cfg.Services {
-		// To prevent multiple requests from running at the same time, we'll wait for a little bit before each iteration
-		time.Sleep(1111 * time.Millisecond)
-		go monitor(service, cfg.Alerting, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
+		if *service.Enabled {
+			// To prevent multiple requests from running at the same time, we'll wait for a little bit before each iteration
+			time.Sleep(1111 * time.Millisecond)
+			go monitor(service, cfg.Alerting, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
+		}
 	}
 }
 

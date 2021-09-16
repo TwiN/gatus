@@ -45,6 +45,9 @@ var (
 
 // Service is the configuration of a monitored endpoint
 type Service struct {
+	// Enabled defines whether to enable the service
+	Enabled *bool `yaml:"enabled,omitempty"`
+
 	// Name of the service. Can be anything.
 	Name string `yaml:"name"`
 
@@ -110,6 +113,10 @@ func (service *Service) ValidateAndSetDefaults() error {
 	}
 	if len(service.Headers) == 0 {
 		service.Headers = make(map[string]string)
+	}
+	if service.Enabled == nil {
+		t := true
+		service.Enabled = &t
 	}
 	// Automatically add user agent header if there isn't one specified in the service configuration
 	if _, userAgentHeaderExists := service.Headers[UserAgentHeader]; !userAgentHeaderExists {

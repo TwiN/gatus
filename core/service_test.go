@@ -19,6 +19,9 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
 	service.ValidateAndSetDefaults()
+	if *service.Enabled != true {
+		t.Error("Service enabled should've defaulted to true")
+	}
 	if service.ClientConfig == nil {
 		t.Error("client configuration should've been set to the default configuration")
 	} else {
