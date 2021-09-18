@@ -3,12 +3,12 @@ data:
   config.yaml: |
     metrics: true
     services:
-      - name: TwiNNatioN
+      - name: website
         url: https://twin.sh/health
         interval: 1m
         conditions:
           - "[STATUS] == 200"
-      - name: GitHub
+      - name: github
         url: https://api.github.com/healthz
         interval: 5m
         conditions:
@@ -23,7 +23,7 @@ data:
           - "[BODY].text == pat(*cat*)"
           - "[STATUS] == pat(2*)"
           - "[CONNECTED] == true"
-      - name: Example
+      - name: example
         url: https://example.com/
         conditions:
           - "[STATUS] == 200"

@@ -1,16 +1,16 @@
 metrics: true
 services:
-  - name: TwiNNatioN
+  - name: website
     url: https://twin.sh/health
     interval: 30s
     conditions:
       - "[STATUS] == 200"
-  - name: GitHub
+  - name: github
     url: https://api.github.com/healthz
     interval: 5m
     conditions:
       - "[STATUS] == 200"
-  - name: Example
+  - name: example
     url: https://example.com/
     conditions:
       - "[STATUS] == 200"
