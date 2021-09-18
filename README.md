@@ -14,7 +14,7 @@ the response time, the certificate expiration, the body and many others. The ici
 checks can be paired with alerting via Slack, PagerDuty, Discord and even Twilio.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
-core applications: https://status.twinnation.org/
+core applications: https://status.twin.sh/
 
 <details>
   <summary><b>Quick start</b></summary>
@@ -101,7 +101,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **[Badges](#badges)**: ![Uptime 7d](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
+- **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/services/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/services/core_website-external/response-times/24h/badge.svg)
 
 
 ## Usage
@@ -114,8 +114,8 @@ Here's a simple example:
 ```yaml
 metrics: true         # Whether to expose metrics at /metrics
 services:
-  - name: twinnation  # Name of your service, can be anything
-    url: "https://twinnation.org/health"
+  - name: website  # Name of your service, can be anything
+    url: "https://twin.sh/health"
     interval: 30s     # Duration to wait between every status check (default: 60s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
@@ -282,8 +282,8 @@ Note that this configuration is only available under `services[]`, `alerting.mat
 Here's an example with the client configuration under `service[]`:
 ```yaml
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     client:
       insecure: false
       ignore-redirect: false
@@ -326,8 +326,8 @@ alerting:
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -357,8 +357,8 @@ alerting:
       insecure: true
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -393,9 +393,9 @@ alerting:
     originator: "31619191918"
     recipients: "31619191919,31619191920"
 services:
-  - name: twinnation
+  - name: website
     interval: 30s
-    url: "https://twinnation.org/health"
+    url: "https://twin.sh/health"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -427,8 +427,8 @@ alerting:
     integration-key: "********************************"
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -457,8 +457,8 @@ alerting:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -494,8 +494,8 @@ alerting:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -527,8 +527,8 @@ alerting:
     id: "0123456789"
 
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -563,9 +563,9 @@ alerting:
     to: "+1-234-567-8901"
 
 services:
-  - name: twinnation
+  - name: website
     interval: 30s
-    url: "https://twinnation.org/health"
+    url: "https://twin.sh/health"
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -616,8 +616,8 @@ alerting:
         "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
       }
 services:
-  - name: twinnation
-    url: "https://twinnation.org/health"
+  - name: website
+    url: "https://twin.sh/health"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
@@ -1048,9 +1048,9 @@ web:
 
 ### Badges
 ### Uptime
-![Uptime 1h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/1h/badge.svg)
-![Uptime 24h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/24h/badge.svg)
-![Uptime 7d](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/7d/badge.svg)
+![Uptime 1h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/1h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/24h/badge.svg)
+![Uptime 7d](https://status.twin.sh/api/v1/services/core_website-external/uptimes/7d/badge.svg)
 
 Gatus can automatically generate a SVG badge for one of your monitored services.
 This allows you to put badges in your individual services' README or even create your own status page, if you 
@@ -1075,15 +1075,15 @@ https://example.com/api/v1/services/_frontend/uptimes/7d/badge.svg
 ```
 Example:
 ```
-![Uptime 24h](https://status.twinnation.org/api/v1/services/core_website-external/uptimes/24h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/24h/badge.svg)
 ```
 If you'd like to see a visual example of each badges available, you can simply navigate to the service's detail page.
 
 
 ### Response time
-![Response time 1h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/1h/badge.svg)
-![Response time 24h](https://status.twinnation.org/api/v1/services/core_website-external/response-times/24h/badge.svg)
-![Response time 7d](https://status.twinnation.org/api/v1/services/core_website-external/response-times/7d/badge.svg)
+![Response time 1h](https://status.twin.sh/api/v1/services/core_website-external/response-times/1h/badge.svg)
+![Response time 24h](https://status.twin.sh/api/v1/services/core_website-external/response-times/24h/badge.svg)
+![Response time 7d](https://status.twin.sh/api/v1/services/core_website-external/response-times/7d/badge.svg)
 
 The endpoint to generate a badge is the following:
 ```
@@ -1101,13 +1101,13 @@ All services are available via a GET request to the following endpoint:
 ```
 /api/v1/services/statuses
 ````
-Example: https://status.twinnation.org/api/v1/services/statuses
+Example: https://status.twin.sh/api/v1/services/statuses
 
 Specific services can also be queried by using the following pattern:
 ```
 /api/v1/services/{group}_{service}/statuses
 ```
-Example: https://status.twinnation.org/api/v1/services/core_website-home/statuses
+Example: https://status.twin.sh/api/v1/services/core_website-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 

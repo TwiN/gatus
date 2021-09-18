@@ -25,8 +25,8 @@ func TestService_IsEnabled(t *testing.T) {
 func TestService_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
@@ -70,8 +70,8 @@ func TestService_ValidateAndSetDefaults(t *testing.T) {
 func TestService_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 		ClientConfig: &client.Config{
 			Insecure:       true,
@@ -159,8 +159,8 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 func TestService_buildHTTPRequest(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 	}
 	service.ValidateAndSetDefaults()
@@ -168,8 +168,8 @@ func TestService_buildHTTPRequest(t *testing.T) {
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
 	}
-	if request.Host != "twinnation.org" {
-		t.Error("request.Host should've been twinnation.org, but was", request.Host)
+	if request.Host != "twin.sh" {
+		t.Error("request.Host should've been twin.sh, but was", request.Host)
 	}
 	if userAgent := request.Header.Get("User-Agent"); userAgent != GatusUserAgent {
 		t.Errorf("request.Header.Get(User-Agent) should've been %s, but was %s", GatusUserAgent, userAgent)
@@ -179,8 +179,8 @@ func TestService_buildHTTPRequest(t *testing.T) {
 func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 		Headers: map[string]string{
 			"User-Agent": "Test/2.0",
@@ -191,8 +191,8 @@ func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
 	}
-	if request.Host != "twinnation.org" {
-		t.Error("request.Host should've been twinnation.org, but was", request.Host)
+	if request.Host != "twin.sh" {
+		t.Error("request.Host should've been twin.sh, but was", request.Host)
 	}
 	if userAgent := request.Header.Get("User-Agent"); userAgent != "Test/2.0" {
 		t.Errorf("request.Header.Get(User-Agent) should've been %s, but was %s", "Test/2.0", userAgent)
@@ -202,8 +202,8 @@ func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Method:     "POST",
 		Conditions: []*Condition{&condition},
 		Headers: map[string]string{
@@ -223,8 +223,8 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
-		Name:       "twinnation-graphql",
-		URL:        "https://twinnation.org/graphql",
+		Name:       "website-graphql",
+		URL:        "https://twin.sh/graphql",
 		Method:     "POST",
 		Conditions: []*Condition{&condition},
 		GraphQL:    true,
@@ -255,8 +255,8 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition, &bodyCondition},
 	}
 	service.ValidateAndSetDefaults()
@@ -275,8 +275,8 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 500")
 	service := Service{
-		Name:       "twinnation-health",
-		URL:        "https://twinnation.org/health",
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 	}
 	service.ValidateAndSetDefaults()

@@ -1,7 +1,7 @@
 metrics: true
 services:
   - name: TwiNNatioN
-    url: https://twinnation.org/health
+    url: https://twin.sh/health
     interval: 30s
     conditions:
       - "[STATUS] == 200"

@@ -46,8 +46,8 @@ storage:
 ui:
   title: Test
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     interval: 15s
     conditions:
       - "[STATUS] == 200"
@@ -83,8 +83,8 @@ services:
 		t.Error("Should have returned two services")
 	}
 
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Method != "GET" {
 		t.Errorf("Method should have been %s (default)", "GET")
@@ -153,8 +153,8 @@ services:
 func TestParseAndValidateConfigBytesDefault(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -173,8 +173,8 @@ services:
 	if config.Web.Port != DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -195,8 +195,8 @@ func TestParseAndValidateConfigBytesWithAddress(t *testing.T) {
 web:
   address: 127.0.0.1
 services:
-  - name: twinnation
-    url: https://twinnation.org/actuator/health
+  - name: website
+    url: https://twin.sh/actuator/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -209,8 +209,8 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/actuator/health")
+	if config.Services[0].URL != "https://twin.sh/actuator/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/actuator/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -228,8 +228,8 @@ func TestParseAndValidateConfigBytesWithPort(t *testing.T) {
 web:
   port: 12345
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -242,8 +242,8 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -262,8 +262,8 @@ web:
   port: 12345
   address: 127.0.0.1
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -276,8 +276,8 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -296,8 +296,8 @@ web:
   port: 65536
   address: 127.0.0.1
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -310,8 +310,8 @@ func TestParseAndValidateConfigBytesWithMetricsAndCustomUserAgentHeader(t *testi
 	config, err := parseAndValidateConfigBytes([]byte(`
 metrics: true
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     headers:
       User-Agent: Test/2.0
     conditions:
@@ -326,8 +326,8 @@ services:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -350,8 +350,8 @@ web:
   address: 192.168.0.1
   port: 9090
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -370,8 +370,8 @@ services:
 	if config.Web.Port != 9090 {
 		t.Errorf("Port should have been %d, because it is specified in config", 9090)
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -427,8 +427,8 @@ alerting:
     webhook-url: "http://example.com"
 
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     alerts:
       - type: slack
         enabled: true
@@ -471,8 +471,8 @@ services:
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -633,8 +633,8 @@ alerting:
       enabled: true
 
 services:
- - name: twinnation
-   url: https://twinnation.org/health
+ - name: website
+   url: https://twin.sh/health
    alerts:
      - type: slack
      - type: pagerduty
@@ -748,8 +748,8 @@ services:
 	if len(config.Services) != 1 {
 		t.Error("There should've been 1 service")
 	}
-	if config.Services[0].URL != "https://twinnation.org/health" {
-		t.Errorf("URL should have been %s", "https://twinnation.org/health")
+	if config.Services[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
@@ -871,8 +871,8 @@ alerting:
       description: "description"
 
 services:
- - name: twinnation
-   url: https://twinnation.org/health
+ - name: website
+   url: https://twin.sh/health
    alerts:
      - type: slack
        failure-threshold: 10
@@ -946,8 +946,8 @@ alerting:
   pagerduty:
     integration-key: "INVALID_KEY"
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     alerts:
       - type: pagerduty
     conditions:
@@ -980,8 +980,8 @@ alerting:
         "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
       }
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     alerts:
       - type: custom
     conditions:
@@ -1025,8 +1025,8 @@ alerting:
     insecure: true
     body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     alerts:
       - type: custom
     conditions:
@@ -1065,8 +1065,8 @@ alerting:
     url: "https://example.com"
     body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     alerts:
       - type: custom
     conditions:
@@ -1099,7 +1099,7 @@ func TestParseAndValidateConfigBytesWithInvalidServiceName(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 services:
   - name: ""
-    url: https://twinnation.org/health
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -1145,8 +1145,8 @@ security:
     username: "admin"
     password-sha512: "invalid-sha512-hash"
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
@@ -1164,8 +1164,8 @@ security:
     username: "%s"
     password-sha512: "%s"
 services:
-  - name: twinnation
-    url: https://twinnation.org/health
+  - name: website
+    url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `, expectedUsername, expectedPasswordHash)))

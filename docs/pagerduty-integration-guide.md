@@ -39,9 +39,9 @@ alerting:
 You can now add alerts of type `pagerduty` in the services you've defined, like so:
 ```yaml
 services:
-  - name: twinnation
+  - name: website
     interval: 30s
-    url: "https://twinnation.org/health"
+    url: "https://twin.sh/health"
     alerts:
       - type: pagerduty
         enabled: true
@@ -56,7 +56,7 @@ services:
 ```
 
 The sample above will do the following:
-- Send a request to the `https://twinnation.org/health` (`services[].url`) specified every **30s** (`services[].interval`)
+- Send a request to the `https://twin.sh/health` (`services[].url`) specified every **30s** (`services[].interval`)
 - Evaluate the conditions to determine whether the service is "healthy" or not
 - **If all conditions are not met 3 (`services[].alerts[].failure-threshold`) times in a row**: Gatus will create a new incident
 - **If, after an incident has been triggered, all conditions are met 5 (`services[].alerts[].success-threshold`) times in a row _AND_ `services[].alerts[].send-on-resolved` is set to `true`**: Gatus will resolve the triggered incident

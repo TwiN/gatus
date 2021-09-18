@@ -20,7 +20,7 @@ func TestHandleAlerting(t *testing.T) {
 		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twinnation.org/health",
+				URL:    "https://twin.sh/health",
 				Method: "GET",
 			},
 		},
@@ -99,7 +99,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButServiceStartFailingA
 		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twinnation.org/health",
+				URL:    "https://twin.sh/health",
 				Method: "GET",
 			},
 		},
@@ -133,7 +133,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twinnation.org/health",
+				URL:    "https://twin.sh/health",
 				Method: "GET",
 			},
 		},
@@ -202,7 +202,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twinnation.org/health",
+				URL:    "https://twin.sh/health",
 				Method: "GET",
 			},
 		},
@@ -260,7 +260,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twinnation.org/health",
+				URL:    "https://twin.sh/health",
 				Method: "GET",
 			},
 		},

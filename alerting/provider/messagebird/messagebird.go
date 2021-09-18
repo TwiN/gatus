@@ -37,7 +37,6 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 	} else {
 		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.GetDescription())
 	}
-
 	return &custom.AlertProvider{
 		URL:    restAPIURL,
 		Method: http.MethodPost,
