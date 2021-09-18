@@ -94,6 +94,14 @@ type Service struct {
 	NumberOfSuccessesInARow int
 }
 
+// IsEnabled returns whether the service is enabled or not
+func (service Service) IsEnabled() bool {
+	if service.Enabled == nil {
+		return true
+	}
+	return *service.Enabled
+}
+
 // ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one
 func (service *Service) ValidateAndSetDefaults() error {
 	// Set default values
@@ -113,10 +121,6 @@ func (service *Service) ValidateAndSetDefaults() error {
 	}
 	if len(service.Headers) == 0 {
 		service.Headers = make(map[string]string)
-	}
-	if service.Enabled == nil {
-		t := true
-		service.Enabled = &t
 	}
 	// Automatically add user agent header if there isn't one specified in the service configuration
 	if _, userAgentHeaderExists := service.Headers[UserAgentHeader]; !userAgentHeaderExists {
