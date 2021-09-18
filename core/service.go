@@ -45,6 +45,9 @@ var (
 
 // Service is the configuration of a monitored endpoint
 type Service struct {
+	// Enabled defines whether to enable the service
+	Enabled *bool `yaml:"enabled,omitempty"`
+
 	// Name of the service. Can be anything.
 	Name string `yaml:"name"`
 
@@ -89,6 +92,14 @@ type Service struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int
+}
+
+// IsEnabled returns whether the service is enabled or not
+func (service Service) IsEnabled() bool {
+	if service.Enabled == nil {
+		return true
+	}
+	return *service.Enabled
 }
 
 // ValidateAndSetDefaults validates the service's configuration and sets the default value of fields that have one

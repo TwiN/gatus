@@ -144,6 +144,7 @@ If you want to test it locally, see [Docker](#docker).
 | `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
 | `storage`                                | [Storage configuration](#storage)                               | `{}`           |
 | `services`                               | List of services to monitor.                                                  | Required `[]`  |
+| `services[].enabled`                     | Whether to enable the service.                                                | `true`         |
 | `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
 | `services[].group`                       | Group name. Used to group multiple services together on the dashboard. <br />See [Service groups](#service-groups). | `""`           |
 | `services[].url`                         | URL to send the request to.                                                   | Required `""`  |

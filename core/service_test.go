@@ -10,6 +10,18 @@ import (
 	"github.com/TwinProduction/gatus/client"
 )
 
+func TestService_IsEnabled(t *testing.T) {
+	if !(Service{Enabled: nil}).IsEnabled() {
+		t.Error("service.IsEnabled() should've returned true, because Enabled was set to nil")
+	}
+	if value := false; (Service{Enabled: &value}).IsEnabled() {
+		t.Error("service.IsEnabled() should've returned false, because Enabled was set to false")
+	}
+	if value := true; !(Service{Enabled: &value}).IsEnabled() {
+		t.Error("Service.IsEnabled() should've returned true, because Enabled was set to true")
+	}
+}
+
 func TestService_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	service := Service{
