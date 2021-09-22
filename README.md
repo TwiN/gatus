@@ -750,7 +750,6 @@ To do that, you'll have to use the maintenance configuration:
 
 **Note that the maintenance configuration uses UTC.**
 
-
 Here's an example:
 ```yaml
 maintenance:
