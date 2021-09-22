@@ -14,7 +14,7 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 }
 
-func TestConfig_Validate(t *testing.T) {
+func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	yes, no := true, false
 	scenarios := []struct {
 		name          string

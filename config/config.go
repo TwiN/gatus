@@ -11,6 +11,8 @@ import (
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider"
 	"github.com/TwinProduction/gatus/config/maintenance"
+	"github.com/TwinProduction/gatus/config/ui"
+	"github.com/TwinProduction/gatus/config/web"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
@@ -25,12 +27,6 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
-
-	// DefaultAddress is the default address the service will bind to
-	DefaultAddress = "0.0.0.0"
-
-	// DefaultPort is the default port the service will listen on
-	DefaultPort = 8080
 )
 
 var (
@@ -42,10 +38,6 @@ var (
 
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
-
-	// StaticFolder is the path to the location of the static folder from the root path of the project
-	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
-	StaticFolder = "./web/static"
 )
 
 // Config is the main configuration structure
@@ -78,10 +70,10 @@ type Config struct {
 	Storage *storage.Config `yaml:"storage"`
 
 	// Web is the configuration for the web listener
-	Web *WebConfig `yaml:"web"`
+	Web *web.Config `yaml:"web"`
 
 	// UI is the configuration for the UI
-	UI *UIConfig `yaml:"ui"`
+	UI *ui.Config `yaml:"ui"`
 
 	// Maintenance is the configuration for creating a maintenance window in which no alerts are sent
 	Maintenance *maintenance.Config `yaml:"maintenance"`
@@ -221,9 +213,9 @@ func validateMaintenanceConfig(config *Config) error {
 
 func validateUIConfig(config *Config) error {
 	if config.UI == nil {
-		config.UI = GetDefaultUIConfig()
+		config.UI = ui.GetDefaultConfig()
 	} else {
-		if err := config.UI.validateAndSetDefaults(); err != nil {
+		if err := config.UI.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
@@ -232,9 +224,9 @@ func validateUIConfig(config *Config) error {
 
 func validateWebConfig(config *Config) error {
 	if config.Web == nil {
-		config.Web = GetDefaultWebConfig()
+		config.Web = web.GetDefaultConfig()
 	} else {
-		return config.Web.validateAndSetDefaults()
+		return config.Web.ValidateAndSetDefaults()
 	}
 	return nil
 }

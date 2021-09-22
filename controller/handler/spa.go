@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/config/ui"
 )
 
-func SinglePageApplication(staticFolder string, ui *config.UIConfig) http.HandlerFunc {
+func SinglePageApplication(staticFolder string, ui *ui.Config) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		t, err := template.ParseFiles(staticFolder + "/index.html")
 		if err != nil {

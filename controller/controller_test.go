@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/config/web"
 	"github.com/TwinProduction/gatus/core"
 )
 
 func TestHandle(t *testing.T) {
 	cfg := &config.Config{
-		Web: &config.WebConfig{
+		Web: &web.Config{
 			Address: "0.0.0.0",
 			Port:    rand.Intn(65534),
 		},

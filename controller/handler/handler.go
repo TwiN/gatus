@@ -3,14 +3,14 @@ package handler
 import (
 	"net/http"
 
-	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/config/ui"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/health"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig *config.UIConfig, enabledMetrics bool) *mux.Router {
+func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig *ui.Config, enabledMetrics bool) *mux.Router {
 	router := mux.NewRouter()
 	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")

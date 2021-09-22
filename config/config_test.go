@@ -17,6 +17,8 @@ import (
 	"github.com/TwinProduction/gatus/alerting/provider/telegram"
 	"github.com/TwinProduction/gatus/alerting/provider/twilio"
 	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/config/ui"
+	"github.com/TwinProduction/gatus/config/web"
 	"github.com/TwinProduction/gatus/core"
 )
 
@@ -36,9 +38,9 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
-	StaticFolder = "../web/static"
+	ui.StaticFolder = "../web/static"
 	defer func() {
-		StaticFolder = "./web/static"
+		ui.StaticFolder = "./web/static"
 	}()
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
@@ -175,11 +177,11 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Web.Address != DefaultAddress {
-		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
+	if config.Web.Address != web.DefaultAddress {
+		t.Errorf("Bind address should have been %s, because it is the default value", web.DefaultAddress)
 	}
-	if config.Web.Port != DefaultPort {
-		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
+	if config.Web.Port != web.DefaultPort {
+		t.Errorf("Port should have been %d, because it is the default value", web.DefaultPort)
 	}
 	if config.Services[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
@@ -226,8 +228,8 @@ services:
 	if config.Web.Address != "127.0.0.1" {
 		t.Errorf("Bind address should have been %s, because it is specified in config", "127.0.0.1")
 	}
-	if config.Web.Port != DefaultPort {
-		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
+	if config.Web.Port != web.DefaultPort {
+		t.Errorf("Port should have been %d, because it is the default value", web.DefaultPort)
 	}
 }
 
@@ -256,8 +258,8 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Web.Address != DefaultAddress {
-		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
+	if config.Web.Address != web.DefaultAddress {
+		t.Errorf("Bind address should have been %s, because it is the default value", web.DefaultAddress)
 	}
 	if config.Web.Port != 12345 {
 		t.Errorf("Port should have been %d, because it is specified in config", 12345)
@@ -340,11 +342,11 @@ services:
 	if config.Services[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Web.Address != DefaultAddress {
-		t.Errorf("Bind address should have been %s, because it is the default value", DefaultAddress)
+	if config.Web.Address != web.DefaultAddress {
+		t.Errorf("Bind address should have been %s, because it is the default value", web.DefaultAddress)
 	}
-	if config.Web.Port != DefaultPort {
-		t.Errorf("Port should have been %d, because it is the default value", DefaultPort)
+	if config.Web.Port != web.DefaultPort {
+		t.Errorf("Port should have been %d, because it is the default value", web.DefaultPort)
 	}
 	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != "Test/2.0" {
 		t.Errorf("User-Agent should've been %s, got %s", "Test/2.0", userAgent)
