@@ -47,6 +47,7 @@ For more details, see [Usage](#usage)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
+  - [Maintenance](#maintenance)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
@@ -735,6 +736,37 @@ services:
       - type: slack
       - type: pagerduty
 ```
+
+### Maintenance
+If you have maintenance windows, you may not want to be annoyed by alerts. 
+To do that, you'll have to use the maintenance configuration:
+
+| Parameter               | Description                                                                   | Default         |
+|:----------------------- |:----------------------------------------------------------------------------- |:--------------- |
+| `maintenance.enabled`   | Whether the maintenance period is enabled                                     | `true`          |
+| `maintenance.start`     | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)  | Required `""`   |
+| `maintenance.duration`  | Duration of the maintenance window (e.g. `1h`, `30m`)                         | Required `""`   |
+| `maintenance.every`     | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]` |
+**Note that the maintenance configuration uses UTC.**
+
+
+Here's an example:
+```yaml
+maintenance:
+  start: 23:00
+  duration: 1h
+  every: [Monday, Thursday]
+```
+Note that you can also specify each day on separate lines:
+```yaml
+maintenance:
+  start: 23:00
+  duration: 1h
+  every:
+    - Monday
+    - Thursday
+```
+
 
 
 ## Deployment

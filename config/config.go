@@ -10,6 +10,7 @@ import (
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/alerting/alert"
 	"github.com/TwinProduction/gatus/alerting/provider"
+	"github.com/TwinProduction/gatus/config/maintenance"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/security"
 	"github.com/TwinProduction/gatus/storage"
@@ -81,6 +82,9 @@ type Config struct {
 
 	// UI is the configuration for the UI
 	UI *UIConfig `yaml:"ui"`
+
+	// Maintenance is the configuration for creating a maintenance window in which no alerts are sent
+	Maintenance *maintenance.Config `yaml:"maintenance"`
 
 	filePath        string    // path to the file from which config was loaded from
 	lastFileModTime time.Time // last modification time
@@ -172,6 +176,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateUIConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateMaintenanceConfig(config); err != nil {
+			return nil, err
+		}
 		if err := validateStorageConfig(config); err != nil {
 			return nil, err
 		}
@@ -197,6 +204,17 @@ func validateStorageConfig(config *Config) error {
 	numberOfServiceStatusesDeleted := storage.Get().DeleteAllServiceStatusesNotInKeys(keys)
 	if numberOfServiceStatusesDeleted > 0 {
 		log.Printf("[config][validateStorageConfig] Deleted %d service statuses because their matching services no longer existed", numberOfServiceStatusesDeleted)
+	}
+	return nil
+}
+
+func validateMaintenanceConfig(config *Config) error {
+	if config.Maintenance == nil {
+		config.Maintenance = maintenance.GetDefaultConfig()
+	} else {
+		if err := config.Maintenance.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

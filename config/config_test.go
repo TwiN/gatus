@@ -43,6 +43,11 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
   file: %s
+maintenance:
+  enabled: true
+  start: 00:00
+  duration: 4h
+  every: [Monday, Thursday]
 ui:
   title: Test
 services:
@@ -78,6 +83,9 @@ services:
 	}
 	if config.UI == nil || config.UI.Title != "Test" {
 		t.Error("Expected Config.UI.Title to be Test")
+	}
+	if mc := config.Maintenance; mc == nil || mc.Start != "00:00" || !mc.IsEnabled() || mc.Duration != 4*time.Hour || len(mc.Every) != 2 {
+		t.Error("Expected Config.Maintenance to be configured properly")
 	}
 	if len(config.Services) != 3 {
 		t.Error("Should have returned two services")

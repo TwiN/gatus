@@ -8,6 +8,7 @@ import (
 
 	"github.com/TwinProduction/gatus/alerting"
 	"github.com/TwinProduction/gatus/config"
+	"github.com/TwinProduction/gatus/config/maintenance"
 	"github.com/TwinProduction/gatus/core"
 	"github.com/TwinProduction/gatus/metric"
 	"github.com/TwinProduction/gatus/storage"
@@ -27,17 +28,17 @@ func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	for _, service := range cfg.Services {
 		if service.IsEnabled() {
-			// To prevent multiple requests from running at the same time, we'll wait for a little bit before each iteration
+			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(1111 * time.Millisecond)
-			go monitor(service, cfg.Alerting, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
+			go monitor(service, cfg.Alerting, cfg.Maintenance, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
 		}
 	}
 }
 
 // monitor monitors a single service in a loop
-func monitor(service *core.Service, alertingConfig *alerting.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
+func monitor(service *core.Service, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
 	// Run it immediately on start
-	execute(service, alertingConfig, disableMonitoringLock, enabledMetrics, debug)
+	execute(service, alertingConfig, maintenanceConfig, disableMonitoringLock, enabledMetrics, debug)
 	// Loop for the next executions
 	for {
 		select {
@@ -45,12 +46,12 @@ func monitor(service *core.Service, alertingConfig *alerting.Config, disableMoni
 			log.Printf("[watchdog][monitor] Canceling current execution of group=%s; service=%s", service.Group, service.Name)
 			return
 		case <-time.After(service.Interval):
-			execute(service, alertingConfig, disableMonitoringLock, enabledMetrics, debug)
+			execute(service, alertingConfig, maintenanceConfig, disableMonitoringLock, enabledMetrics, debug)
 		}
 	}
 }
 
-func execute(service *core.Service, alertingConfig *alerting.Config, disableMonitoringLock, enabledMetrics, debug bool) {
+func execute(service *core.Service, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, disableMonitoringLock, enabledMetrics, debug bool) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple services from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -72,7 +73,11 @@ func execute(service *core.Service, alertingConfig *alerting.Config, disableMoni
 		len(result.Errors),
 		result.Duration.Round(time.Millisecond),
 	)
-	HandleAlerting(service, result, alertingConfig, debug)
+	if !maintenanceConfig.IsUnderMaintenance() {
+		HandleAlerting(service, result, alertingConfig, debug)
+	} else if debug {
+		log.Println("[watchdog][execute] Not handling alerting because currently in the maintenance window")
+	}
 	if debug {
 		log.Printf("[watchdog][execute] Waiting for interval=%s before monitoring group=%s service=%s again", service.Interval, service.Group, service.Name)
 	}
@@ -83,7 +88,9 @@ func execute(service *core.Service, alertingConfig *alerting.Config, disableMoni
 
 // UpdateServiceStatuses updates the slice of service statuses
 func UpdateServiceStatuses(service *core.Service, result *core.Result) {
-	storage.Get().Insert(service, result)
+	if err := storage.Get().Insert(service, result); err != nil {
+		log.Println("[watchdog][UpdateServiceStatuses] Failed to insert data in storage:", err.Error())
+	}
 }
 
 // Shutdown stops monitoring all services
