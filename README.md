@@ -62,6 +62,7 @@ For more details, see [Usage](#usage)
   - [Monitoring a service using ICMP](#monitoring-a-service-using-icmp)
   - [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries)
   - [Monitoring a service using STARTTLS](#monitoring-a-service-using-starttls)
+  - [Monitoring a service using TLS](#monitoring-a-service-using-tls)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
@@ -962,6 +963,22 @@ will serve as a good initial indicator:
 services:
   - name: starttls-smtp-example
     url: "starttls://smtp.gmail.com:587"
+    interval: 30m
+    client:
+        timeout: 5s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+```
+
+
+### Monitoring a service using TLS
+Monitoring services using SSL/TLS encryption, such as LDAP over TLS, can help
+detecting certificate expiration:
+```yaml
+services:
+  - name: tls-ldaps-example
+    url: "tls://ldap.example.com:636"
     interval: 30m
     client:
         timeout: 5s

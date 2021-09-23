@@ -61,6 +61,28 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	return true, certificate, nil
 }
 
+// CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
+func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, nil)
+	if err != nil {
+	    return
+	}
+	defer conn.Close()
+
+	verifiedChains := conn.ConnectionState().VerifiedChains
+	if len(verifiedChains) == 0 {
+	    return
+	}
+
+	chain := verifiedChains[0] // VerifiedChains[0] == PeerCertificates[0]
+	if len(chain) == 0 {
+	    return
+	}
+
+	certificate = chain[0]
+	return true, certificate, nil
+}
+
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
