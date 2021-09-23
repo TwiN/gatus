@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net/http"
 
 	"github.com/TwinProduction/gatus/jsonpath"
 	"github.com/TwinProduction/gatus/pattern"
@@ -45,6 +46,11 @@ const (
 	//
 	// Values that could replace the placeholder: 4461677039 (~52 days)
 	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
+
+	// HeaderPlaceholder is a placeholder for a HTTP header
+	//
+	// Values that could replace the placeholder: []
+	HeaderPlaceholder = "[HEADER]"
 
 	// LengthFunctionPrefix is the prefix for the length function
 	//
@@ -220,40 +226,47 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 		case CertificateExpirationPlaceholder:
 			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		default:
-			// if contains the BodyPlaceholder, then evaluate json path
-			if strings.Contains(element, BodyPlaceholder) {
-				checkingForLength := false
-				checkingForExistence := false
-				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForLength = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
-				}
-				if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForExistence = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
-				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
-				if checkingForExistence {
-					if err != nil {
-						element = "false"
-					} else {
-						element = "true"
+			// if contains the HeaderPlaceholder
+			if strings.HasPrefix(strings.ToUpper(element), HeaderPlaceholder) {
+				headerName := http.CanonicalHeaderKey(strings.Split(element, ".")[1])
+				// TODO: Iterate over Header values instead of getting first one
+				element = result.Headers[headerName][0]
+			} else {
+				// if contains the BodyPlaceholder, then evaluate json path
+				if strings.Contains(element, BodyPlaceholder) {
+					checkingForLength := false
+					checkingForExistence := false
+					if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
+						checkingForLength = true
+						element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
 					}
-				} else {
-					if err != nil {
-						if err.Error() != "unexpected end of JSON input" {
-							result.AddError(err.Error())
-						}
-						if checkingForLength {
-							element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
+					if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
+						checkingForExistence = true
+						element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
+					}
+					resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
+					if checkingForExistence {
+						if err != nil {
+							element = "false"
 						} else {
-							element = element + " " + InvalidConditionElementSuffix
+							element = "true"
 						}
 					} else {
-						if checkingForLength {
-							element = strconv.Itoa(resolvedElementLength)
+						if err != nil {
+							if err.Error() != "unexpected end of JSON input" {
+								result.AddError(err.Error())
+							}
+							if checkingForLength {
+								element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
+							} else {
+								element = element + " " + InvalidConditionElementSuffix
+							}
 						} else {
-							element = resolvedElement
+							if checkingForLength {
+								element = strconv.Itoa(resolvedElementLength)
+							} else {
+								element = resolvedElement
+							}
 						}
 					}
 				}

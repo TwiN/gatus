@@ -39,6 +39,9 @@ type Result struct {
 	// CertificateExpiration is the duration before the certificate expires
 	CertificateExpiration time.Duration `json:"-"`
 
+	// Headers headers of HTTP response
+	Headers map[string][]string `json:"headers"`
+
 	// body is the response body
 	//
 	// Note that this variable is only used during the evaluation of a service's health.

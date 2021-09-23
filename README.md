@@ -207,6 +207,8 @@ Here are some examples of conditions you can use:
 | `[BODY].name == pat(john*)`  | String at JSONPath `$.name` matches pattern `john*`     | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].id == any(1, 2)`     | Value at JSONPath `$.id` is equal to `1` or `2`         | 1, 2                       | 3, 4, 5 |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ... |
+| `[HEADER].Content-Type == text/html` | HTTP response header `Content-Type` must be `text/html` | `text/html`        | `application/json`, ...  |
+| `[HEADER].Server == pat(nginx/1.*)` | HTTP response header `Server` matches parrern `nginx/1.*` | `nginx/1.21.1`, `nginx/1.19.7`, ... | `nginx/0.9.1`, ...  |
 
 
 #### Placeholders
@@ -219,6 +221,7 @@ Here are some examples of conditions you can use:
 | `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not using HTTPS)
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
+| `[HEADER].<header_name>`   | Resolves into the HTTP response specified header   | `text/html`
 
 
 #### Functions

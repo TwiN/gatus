@@ -252,6 +252,7 @@ func (service *Service) call(result *Result) {
 		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
+		result.Headers = response.Header
 		// Only read the body if there's a condition that uses the BodyPlaceholder
 		if service.needsToReadBody() {
 			result.body, err = ioutil.ReadAll(response.Body)
