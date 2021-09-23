@@ -229,8 +229,15 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 			// if contains the HeaderPlaceholder
 			if strings.HasPrefix(strings.ToUpper(element), HeaderPlaceholder) {
 				headerName := http.CanonicalHeaderKey(strings.Split(element, ".")[1])
-				// TODO: Iterate over Header values instead of getting first one
-				element = result.Headers[headerName][0]
+				headerValues, headerExists := result.Headers[headerName]
+				if headerExists {
+					headerValuesFormatted := strings.Join(headerValues, ", ")
+					element = "any(" + headerValuesFormatted + ")"
+					fmt.Println(element)
+				} else {
+					// Specified header key isn't present in response headers
+					element = "any()"
+				}
 			} else {
 				// if contains the BodyPlaceholder, then evaluate json path
 				if strings.Contains(element, BodyPlaceholder) {
