@@ -963,6 +963,8 @@ services:
   - name: starttls-smtp-example
     url: "starttls://smtp.gmail.com:587"
     interval: 30m
+    client:
+        timeout: 5s
     conditions:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"

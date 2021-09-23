@@ -38,7 +38,11 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
-	smtpClient, err := smtp.Dial(address)
+	conn, err := net.DialTimeout("tcp", address, config.Timeout)
+	if err != nil {
+	    return
+	}
+	smtpClient, err := smtp.NewClient(conn, hostAndPort[0])
 	if err != nil {
 		return
 	}
