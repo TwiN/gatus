@@ -3,7 +3,6 @@ package maintenance
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -98,7 +97,7 @@ func (c Config) IsUnderMaintenance() bool {
 	now := time.Now().UTC()
 	dayWhereMaintenancePeriodWouldStart := now.Add(-c.Duration).Truncate(24 * time.Hour)
 	hasMaintenanceEveryDay := len(c.Every) == 0
-	hasMaintenancePeriodScheduledForThatWeekday := sort.SearchStrings(c.Every, dayWhereMaintenancePeriodWouldStart.Weekday().String()) != len(c.Every)
+	hasMaintenancePeriodScheduledForThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
 	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledForThatWeekday {
 		// The day when the maintenance period would start is not scheduled
 		// to have any maintenance, so we can just return false.
@@ -107,6 +106,15 @@ func (c Config) IsUnderMaintenance() bool {
 	startOfMaintenancePeriod := dayWhereMaintenancePeriodWouldStart.Add(c.durationToStartFromMidnight)
 	endOfMaintenancePeriod := startOfMaintenancePeriod.Add(c.Duration)
 	return now.After(startOfMaintenancePeriod) && now.Before(endOfMaintenancePeriod)
+}
+
+func (c Config) hasDay(day string) bool {
+	for _, d := range c.Every {
+		if d == day {
+			return true
+		}
+	}
+	return false
 }
 
 func hhmmToDuration(s string) (time.Duration, error) {
