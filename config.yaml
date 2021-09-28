@@ -1,7 +1,7 @@
 services:
   - name: front-end
     group: core
-    url: "https://twinnation.org/health"
+    url: "https://twin.sh/health"
     interval: 1m
     conditions:
       - "[STATUS] == 200"
