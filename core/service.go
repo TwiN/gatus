@@ -217,7 +217,8 @@ func (service *Service) call(result *Result) {
 	isServiceTCP := strings.HasPrefix(service.URL, "tcp://")
 	isServiceICMP := strings.HasPrefix(service.URL, "icmp://")
 	isServiceStartTLS := strings.HasPrefix(service.URL, "starttls://")
-	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP && !isServiceStartTLS
+	isServiceTLS := strings.HasPrefix(service.URL, "tls://")
+	isServiceHTTP := !isServiceDNS && !isServiceTCP && !isServiceICMP && !isServiceStartTLS && !isServiceTLS
 	if isServiceHTTP {
 		request = service.buildHTTPRequest()
 	}
@@ -225,8 +226,18 @@ func (service *Service) call(result *Result) {
 	if isServiceDNS {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
-	} else if isServiceStartTLS {
-		result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.ClientConfig)
+	} else if isServiceStartTLS || isServiceTLS {
+		var clientFunction func(address string, config *client.Config) (connected bool, certificate *x509.Certificate, err error)
+		var addressPrefix string
+		if isServiceStartTLS {
+		    clientFunction = client.CanPerformStartTLS
+		    addressPrefix = "starttls://"
+		} else if isServiceTLS {
+		    clientFunction = client.CanPerformTLS
+		    addressPrefix = "tls://"
+		}
+
+		result.Connected, certificate, err = clientFunction(strings.TrimPrefix(service.URL, addressPrefix), service.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return

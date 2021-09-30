@@ -38,7 +38,11 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
-	smtpClient, err := smtp.Dial(address)
+	conn, err := net.DialTimeout("tcp", address, config.Timeout)
+	if err != nil {
+	    return
+	}
+	smtpClient, err := smtp.NewClient(conn, hostAndPort[0])
 	if err != nil {
 		return
 	}
@@ -54,6 +58,28 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	} else {
 		return false, nil, errors.New("could not get TLS connection state")
 	}
+	return true, certificate, nil
+}
+
+// CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
+func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, nil)
+	if err != nil {
+	    return
+	}
+	defer conn.Close()
+
+	verifiedChains := conn.ConnectionState().VerifiedChains
+	if len(verifiedChains) == 0 {
+	    return
+	}
+
+	chain := verifiedChains[0] // VerifiedChains[0] == PeerCertificates[0]
+	if len(chain) == 0 {
+	    return
+	}
+
+	certificate = chain[0]
 	return true, certificate, nil
 }
 
