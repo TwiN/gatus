@@ -95,10 +95,15 @@ func (c Config) IsUnderMaintenance() bool {
 		return false
 	}
 	now := time.Now().UTC()
-	dayWhereMaintenancePeriodWouldStart := now.Add(-c.Duration).Truncate(24 * time.Hour)
+	var dayWhereMaintenancePeriodWouldStart time.Time
+	if now.Hour() >= int(c.durationToStartFromMidnight.Hours()) {
+		dayWhereMaintenancePeriodWouldStart = now.Truncate(24 * time.Hour)
+	} else {
+		dayWhereMaintenancePeriodWouldStart = now.Add(-c.Duration).Truncate(24 * time.Hour)
+	}
 	hasMaintenanceEveryDay := len(c.Every) == 0
-	hasMaintenancePeriodScheduledForThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
-	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledForThatWeekday {
+	hasMaintenancePeriodScheduledToStartOnThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
+	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledToStartOnThatWeekday {
 		// The day when the maintenance period would start is not scheduled
 		// to have any maintenance, so we can just return false.
 		return false

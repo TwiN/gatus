@@ -153,7 +153,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "under-maintenance",
+			name: "under-maintenance-starting-now-for-2h",
 			cfg: &Config{
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 2 * time.Hour,
@@ -161,9 +161,33 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "not-under-maintenance",
+			name: "under-maintenance-starting-now-for-8h",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Add(-5*time.Hour).Hour()),
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 8 * time.Hour,
+			},
+			expected: true,
+		},
+		{
+			name: "under-maintenance-starting-4h-ago-for-8h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()-4),
+				Duration: 8 * time.Hour,
+			},
+			expected: true,
+		},
+		{
+			name: "under-maintenance-starting-4h-ago-for-3h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()-4),
+				Duration: 3 * time.Hour,
+			},
+			expected: false,
+		},
+		{
+			name: "under-maintenance-starting-5h-ago-for-1h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()-5),
 				Duration: time.Hour,
 			},
 			expected: false,
