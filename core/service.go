@@ -44,6 +44,7 @@ var (
 )
 
 // Service is the configuration of a monitored endpoint
+// XXX: Rename this to Endpoint in v4.0.0?
 type Service struct {
 	// Enabled defines whether to enable the service
 	Enabled *bool `yaml:"enabled,omitempty"`
@@ -227,17 +228,11 @@ func (service *Service) call(result *Result) {
 		service.DNS.query(service.URL, result)
 		result.Duration = time.Since(startTime)
 	} else if isServiceStartTLS || isServiceTLS {
-		var clientFunction func(address string, config *client.Config) (connected bool, certificate *x509.Certificate, err error)
-		var addressPrefix string
 		if isServiceStartTLS {
-		    clientFunction = client.CanPerformStartTLS
-		    addressPrefix = "starttls://"
-		} else if isServiceTLS {
-		    clientFunction = client.CanPerformTLS
-		    addressPrefix = "tls://"
+			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.ClientConfig)
+		} else {
+			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "tls://"), service.ClientConfig)
 		}
-
-		result.Connected, certificate, err = clientFunction(strings.TrimPrefix(service.URL, addressPrefix), service.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
