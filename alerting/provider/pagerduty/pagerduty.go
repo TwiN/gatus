@@ -13,22 +13,52 @@ const (
 	restAPIURL = "https://events.pagerduty.com/v2/enqueue"
 )
 
+type Integrations struct {
+	IntegrationKey string `yaml:"integration-key"`
+	Group          string `yaml:"group"`
+}
+
 // AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
 
 	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
+
+	Integrations []Integrations `yaml:"integrations"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.IntegrationKey) == 32
+	groups := make(map[string]int)
+	if provider.Integrations != nil {
+		for _, integration := range provider.Integrations {
+			if _, present := groups[integration.Group]; present || integration.Group == "" || len(integration.IntegrationKey) != 32 {
+				return false
+			}
+			groups[integration.Group] = 1
+		}
+	}
+	return len(provider.IntegrationKey) == 32 || provider.Integrations != nil
+}
+
+// GetPagerDutyIntegrationKey returns the appropriate pagerduty integration key
+
+func (provider *AlertProvider) GetPagerDutyIntegrationKey(group string) string {
+	if provider.Integrations != nil {
+		for _, itegration := range provider.Integrations {
+			if group == itegration.Group {
+				return itegration.IntegrationKey
+			}
+		}
+	}
+	return provider.IntegrationKey
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
 //
 // relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
+
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message, eventAction, resolveKey string
 	if resolved {
@@ -52,7 +82,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
     "source": "%s",
     "severity": "critical"
   }
-}`, provider.IntegrationKey, resolveKey, eventAction, message, service.Name),
+}`, provider.GetPagerDutyIntegrationKey(service.Group), resolveKey, eventAction, message, service.Name),
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
