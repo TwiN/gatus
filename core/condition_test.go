@@ -7,15 +7,14 @@ import (
 )
 
 func TestCondition_evaluate(t *testing.T) {
-	type scenario struct {
+	scenarios := []struct {
 		Name                        string
 		Condition                   Condition
 		Result                      *Result
 		DontResolveFailedConditions bool
 		ExpectedSuccess             bool
 		ExpectedOutput              string
-	}
-	scenarios := []scenario{
+	}{
 		{
 			Name:            "ip",
 			Condition:       Condition("[IP] == 127.0.0.1"),
