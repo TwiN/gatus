@@ -461,10 +461,7 @@ func (s *Store) updateServiceUptime(tx *sql.Tx, serviceID int64, result *core.Re
 		successfulExecutions,
 		result.Duration.Milliseconds(),
 	)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
@@ -477,7 +474,6 @@ func (s *Store) getAllServiceKeys(tx *sql.Tx) (keys []string, err error) {
 		_ = rows.Scan(&key)
 		keys = append(keys, key)
 	}
-	_ = rows.Close()
 	return
 }
 
@@ -546,7 +542,6 @@ func (s *Store) getEventsByServiceID(tx *sql.Tx, serviceID int64, page, pageSize
 		_ = rows.Scan(&event.Type, &event.Timestamp)
 		events = append(events, event)
 	}
-	_ = rows.Close()
 	return
 }
 
@@ -579,7 +574,6 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 		results = append([]*core.Result{result}, results...)
 		idResultMap[id] = result
 	}
-	_ = rows.Close()
 	// Get condition results
 	args := make([]interface{}, 0, len(idResultMap))
 	query := `SELECT service_result_id, condition, success
@@ -596,6 +590,7 @@ func (s *Store) getResultsByServiceID(tx *sql.Tx, serviceID int64, page, pageSiz
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close() // explicitly defer the close in case an error happens during the scan
 	for rows.Next() {
 		conditionResult := &core.ConditionResult{}
 		var serviceResultID int64
@@ -626,9 +621,7 @@ func (s *Store) getServiceUptime(tx *sql.Tx, serviceID int64, from, to time.Time
 	var totalExecutions, totalSuccessfulExecutions, totalResponseTime int
 	for rows.Next() {
 		_ = rows.Scan(&totalExecutions, &totalSuccessfulExecutions, &totalResponseTime)
-		break
 	}
-	_ = rows.Close()
 	if totalExecutions > 0 {
 		uptime = float64(totalSuccessfulExecutions) / float64(totalExecutions)
 		avgResponseTime = time.Duration(float64(totalResponseTime)/float64(totalExecutions)) * time.Millisecond
@@ -657,7 +650,6 @@ func (s *Store) getServiceAverageResponseTime(tx *sql.Tx, serviceID int64, from,
 	for rows.Next() {
 		_ = rows.Scan(&totalExecutions, &totalResponseTime)
 	}
-	_ = rows.Close()
 	if totalExecutions == 0 {
 		return 0, nil
 	}
@@ -688,7 +680,6 @@ func (s *Store) getServiceHourlyAverageResponseTimes(tx *sql.Tx, serviceID int64
 		_ = rows.Scan(&unixTimestampFlooredAtHour, &totalExecutions, &totalResponseTime)
 		hourlyAverageResponseTimes[unixTimestampFlooredAtHour] = int(float64(totalResponseTime) / float64(totalExecutions))
 	}
-	_ = rows.Close()
 	return hourlyAverageResponseTimes, nil
 }
 
@@ -735,9 +726,7 @@ func (s *Store) getAgeOfOldestServiceUptimeEntry(tx *sql.Tx, serviceID int64) (t
 	for rows.Next() {
 		_ = rows.Scan(&oldestServiceUptimeUnixTimestamp)
 		found = true
-		break
 	}
-	_ = rows.Close()
 	if !found {
 		return 0, errNoRowsReturned
 	}
