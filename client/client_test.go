@@ -92,53 +92,53 @@ func TestCanPerformStartTLS(t *testing.T) {
 }
 
 func TestCanPerformTLS(t *testing.T) {
-       type args struct {
-               address  string
-               insecure bool
-       }
-       tests := []struct {
-               name          string
-               args          args
-               wantConnected bool
-               wantErr       bool
-       }{
-               {
-                       name: "invalid address",
-                       args: args{
-                               address: "test",
-                       },
-                       wantConnected: false,
-                       wantErr:       true,
-               },
-               {
-                       name: "error dial",
-                       args: args{
-                               address: "test:1234",
-                       },
-                       wantConnected: false,
-                       wantErr:       true,
-               },
-               {
-                       name: "valid tls",
-                       args: args{
-                               address: "smtp.gmail.com:465",
-                       },
-                       wantConnected: true,
-                       wantErr:       false,
-               },
-       }
-       for _, tt := range tests {
-               t.Run(tt.name, func(t *testing.T) {
-                       connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
-                       if (err != nil) != tt.wantErr {
-                               t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
-                               return
-                       }
-                       if connected != tt.wantConnected {
-                               t.Errorf("CanPerformTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
-                       }
-               })
-       }
+	type args struct {
+		address  string
+		insecure bool
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantConnected bool
+		wantErr       bool
+	}{
+		{
+			name: "invalid address",
+			args: args{
+				address: "test",
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
+		{
+			name: "error dial",
+			args: args{
+				address: "test:1234",
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
+		{
+			name: "valid tls",
+			args: args{
+				address: "smtp.gmail.com:465",
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
+				return
+			}
+			if connected != tt.wantConnected {
+				t.Errorf("CanPerformTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			}
+		})
+	}
 }
 
 func TestCanCreateTCPConnection(t *testing.T) {

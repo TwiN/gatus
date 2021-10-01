@@ -40,7 +40,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	}
 	conn, err := net.DialTimeout("tcp", address, config.Timeout)
 	if err != nil {
-	    return
+		return
 	}
 	smtpClient, err := smtp.NewClient(conn, hostAndPort[0])
 	if err != nil {
@@ -63,24 +63,16 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
 func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
-	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, nil)
+	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, nil)
 	if err != nil {
-	    return
+		return
 	}
-	defer conn.Close()
-
-	verifiedChains := conn.ConnectionState().VerifiedChains
-	if len(verifiedChains) == 0 {
-	    return
+	defer connection.Close()
+	verifiedChains := connection.ConnectionState().VerifiedChains
+	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
+		return
 	}
-
-	chain := verifiedChains[0] // VerifiedChains[0] == PeerCertificates[0]
-	if len(chain) == 0 {
-	    return
-	}
-
-	certificate = chain[0]
-	return true, certificate, nil
+	return true, verifiedChains[0][0], nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
