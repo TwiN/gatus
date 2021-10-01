@@ -85,9 +85,9 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	}
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
-	// Set the pinger's privileged mode to true for every operating system except darwin
+	// Set the pinger's privileged mode to true for windows
 	// https://github.com/TwinProduction/gatus/issues/132
-	pinger.SetPrivileged(runtime.GOOS != "darwin")
+	pinger.SetPrivileged(runtime.GOOS == "windows")
 	err = pinger.Run()
 	if err != nil {
 		return false, 0
