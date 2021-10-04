@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/TwinProduction/gatus/pattern"
+	"github.com/TwinProduction/gatus/v3/pattern"
 )
 
 func TestIntegrationQuery(t *testing.T) {

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/storage/store/common"
-	"github.com/TwinProduction/gatus/storage/store/common/paging"
+	"github.com/TwinProduction/gatus/v3/storage"
+	"github.com/TwinProduction/gatus/v3/storage/store/common"
+	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
 	"github.com/TwinProduction/gocache"
 	"github.com/gorilla/mux"
 )

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/alerting/alert"
-	"github.com/TwinProduction/gatus/client"
-	"github.com/TwinProduction/gatus/core/ui"
-	"github.com/TwinProduction/gatus/util"
+	"github.com/TwinProduction/gatus/v3/alerting/alert"
+	"github.com/TwinProduction/gatus/v3/client"
+	"github.com/TwinProduction/gatus/v3/core/ui"
+	"github.com/TwinProduction/gatus/v3/util"
 )
 
 const (

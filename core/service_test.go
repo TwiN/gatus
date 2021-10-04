@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/alerting/alert"
-	"github.com/TwinProduction/gatus/client"
+	"github.com/TwinProduction/gatus/v3/alerting/alert"
+	"github.com/TwinProduction/gatus/v3/client"
 )
 
 func TestService_IsEnabled(t *testing.T) {

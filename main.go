@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/TwinProduction/gatus/config"
-	"github.com/TwinProduction/gatus/controller"
-	"github.com/TwinProduction/gatus/storage"
-	"github.com/TwinProduction/gatus/watchdog"
+	"github.com/TwinProduction/gatus/v3/config"
+	"github.com/TwinProduction/gatus/v3/controller"
+	"github.com/TwinProduction/gatus/v3/storage"
+	"github.com/TwinProduction/gatus/v3/watchdog"
 )
 
 func main() {

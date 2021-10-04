@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/TwinProduction/gatus/config/ui"
+	"github.com/TwinProduction/gatus/v3/config/ui"
 )
 
 func SinglePageApplication(staticFolder string, ui *ui.Config) http.HandlerFunc {

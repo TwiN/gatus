@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/common"
-	"github.com/TwinProduction/gatus/storage/store/common/paging"
-	"github.com/TwinProduction/gatus/storage/store/memory"
-	"github.com/TwinProduction/gatus/storage/store/sql"
+	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwinProduction/gatus/v3/storage/store/common"
+	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
+	"github.com/TwinProduction/gatus/v3/storage/store/memory"
+	"github.com/TwinProduction/gatus/v3/storage/store/sql"
 )
 
 var (

@@ -1,9 +1,9 @@
 package memory
 
 import (
-	"github.com/TwinProduction/gatus/core"
-	"github.com/TwinProduction/gatus/storage/store/common"
-	"github.com/TwinProduction/gatus/storage/store/common/paging"
+	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwinProduction/gatus/v3/storage/store/common"
+	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
 )
 
 // ShallowCopyServiceStatus returns a shallow copy of a ServiceStatus with only the results

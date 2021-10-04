@@ -1,4 +1,4 @@
-module github.com/TwinProduction/gatus
+module github.com/TwinProduction/gatus/v3
 
 go 1.17
 

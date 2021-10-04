@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TwinProduction/gatus/storage/store/common"
+	"github.com/TwinProduction/gatus/v3/storage/store/common"
 )
 
 const (

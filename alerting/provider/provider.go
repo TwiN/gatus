@@ -1,17 +1,17 @@
 package provider
 
 import (
-	"github.com/TwinProduction/gatus/alerting/alert"
-	"github.com/TwinProduction/gatus/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/alerting/provider/discord"
-	"github.com/TwinProduction/gatus/alerting/provider/mattermost"
-	"github.com/TwinProduction/gatus/alerting/provider/messagebird"
-	"github.com/TwinProduction/gatus/alerting/provider/pagerduty"
-	"github.com/TwinProduction/gatus/alerting/provider/slack"
-	"github.com/TwinProduction/gatus/alerting/provider/teams"
-	"github.com/TwinProduction/gatus/alerting/provider/telegram"
-	"github.com/TwinProduction/gatus/alerting/provider/twilio"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/v3/alerting/alert"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/custom"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/discord"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/mattermost"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/messagebird"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/pagerduty"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/slack"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/teams"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/telegram"
+	"github.com/TwinProduction/gatus/v3/alerting/provider/twilio"
+	"github.com/TwinProduction/gatus/v3/core"
 )
 
 // AlertProvider is the interface that each providers should implement

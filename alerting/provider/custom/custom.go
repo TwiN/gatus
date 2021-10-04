@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TwinProduction/gatus/alerting/alert"
-	"github.com/TwinProduction/gatus/client"
-	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/v3/alerting/alert"
+	"github.com/TwinProduction/gatus/v3/client"
+	"github.com/TwinProduction/gatus/v3/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request

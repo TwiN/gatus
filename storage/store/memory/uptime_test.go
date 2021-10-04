@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/core"
+	"github.com/TwinProduction/gatus/v3/core"
 )
 
 func TestProcessUptimeAfterResult(t *testing.T) {
