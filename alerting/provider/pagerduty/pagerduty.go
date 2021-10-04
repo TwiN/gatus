@@ -52,7 +52,10 @@ func (provider *AlertProvider) GetPagerDutyIntegrationKey(group string) string {
 			}
 		}
 	}
-	return provider.IntegrationKey
+	if provider.IntegrationKey != "" {
+		return provider.IntegrationKey
+	}
+	return provider.Integrations[0].IntegrationKey
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
