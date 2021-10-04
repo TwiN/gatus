@@ -171,7 +171,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 		{
 			name: "under-maintenance-starting-4h-ago-for-8h",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()-4),
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
 				Duration: 8 * time.Hour,
 			},
 			expected: true,
@@ -179,7 +179,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 		{
 			name: "under-maintenance-starting-4h-ago-for-3h",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()-4),
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
 				Duration: 3 * time.Hour,
 			},
 			expected: false,
@@ -187,7 +187,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 		{
 			name: "under-maintenance-starting-5h-ago-for-1h",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()-5),
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-5)),
 				Duration: time.Hour,
 			},
 			expected: false,
@@ -204,8 +204,10 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			if scenario.cfg.ValidateAndSetDefaults() != nil {
-				t.Fatal("validation shouldn't have returned an error")
+			t.Log(scenario.cfg.Start)
+			t.Log(now)
+			if err := scenario.cfg.ValidateAndSetDefaults(); err != nil {
+				t.Fatal("validation shouldn't have returned an error, got", err)
 			}
 			isUnderMaintenance := scenario.cfg.IsUnderMaintenance()
 			if isUnderMaintenance != scenario.expected {
@@ -214,4 +216,11 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			}
 		})
 	}
+}
+
+func normalizeHour(hour int) int {
+	if hour < 0 {
+		return hour + 24
+	}
+	return hour
 }
