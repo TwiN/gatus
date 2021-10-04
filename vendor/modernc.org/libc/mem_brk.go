@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build libc.membrk && !libc.memgrind
 // +build libc.membrk,!libc.memgrind
 
 // This is a debug-only version of the memory handling functions. When a

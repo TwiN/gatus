@@ -7,11 +7,38 @@
 // SQLite is an in-process implementation of a self-contained, serverless,
 // zero-configuration, transactional SQL database engine.
 //
+// Supported platforms and architectures
+//
+// These combinations of GOOS and GOARCH are currently supported
+//
+// 	darwin	amd64
+// 	darwin	arm64
+// 	freebsd	amd64
+// 	linux	386
+// 	linux	amd64
+// 	linux	arm
+// 	linux	arm64
+// 	windows	amd64
+//
+// The windows/amd64 has currently experimental/preview status. Tcl tests
+// report an unresolved yet memory leak, see
+// https://gitlab.com/cznic/sqlite/-/issues/23 for more details.
+//
+// Planned platforms and architectures
+//
+// 	windows	386
+//
 // Builders
 //
 // Builder results available at
 //
 //	https://modern-c.appspot.com/-/builder/?importpath=modernc.org%2fsqlite
+//
+// Changelog
+//
+// 2021-09-07 v1.13.0:
+//
+// Support freebsd/amd64.
 //
 // Changelog
 //
@@ -118,26 +145,6 @@
 //	db, err := sql.Open("sqlite", dsnURI)
 //
 //	...
-//
-// Supported platforms and architectures
-//
-// These combinations of GOOS and GOARCH are currently supported
-//
-// 	darwin	amd64
-// 	darwin	arm64
-// 	linux	386
-// 	linux	amd64
-// 	linux	arm
-// 	linux	arm64
-// 	windows	amd64
-//
-// The windows/amd64 has currently experimental/preview status. Tcl tests
-// report an unresolved yet memory leak, see
-// https://gitlab.com/cznic/sqlite/-/issues/23 for more details.
-//
-// Planned platforms and architectures
-//
-// 	windows	386
 //
 // Debug and development versions
 //

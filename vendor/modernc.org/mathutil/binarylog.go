@@ -6,8 +6,6 @@ package mathutil // import "modernc.org/mathutil"
 
 import (
 	"math/big"
-
-	"github.com/remyoudompheng/bigfft"
 )
 
 type float struct {
@@ -52,12 +50,6 @@ func (f *float) ge2() bool { return f.n.BitLen() > f.fracBits+1 }
 
 func (f *float) div2() {
 	f.fracBits++
-	f.normalize()
-}
-
-func (f *float) sqr() {
-	f.n = bigfft.Mul(f.n, f.n)
-	f.fracBits *= 2
 	f.normalize()
 }
 

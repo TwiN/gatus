@@ -50,10 +50,9 @@ func NewABI(os, arch string) (ABI, error) {
 		return ABI{}, fmt.Errorf("unsupported os/arch pair: %s-%s", os, arch)
 	}
 	abi := ABI{
-		ByteOrder: order,
-		Types:     make(map[Kind]ABIType, len(types)),
-		//TODO: depends on the OS?
-		SignedChar: true,
+		ByteOrder:  order,
+		Types:      make(map[Kind]ABIType, len(types)),
+		SignedChar: abiSignedChar[[2]string{os, arch}],
 		os:         os,
 		arch:       arch,
 	}
@@ -276,10 +275,10 @@ func (a *ABI) layout(ctx *context, n Node, t *structType) *structType {
 			off := f.offset
 			m[off] = append(m[off], f)
 		}
-		for _, a := range m {
+		for _, s := range m {
 			var first *field
 			var w byte
-			for _, f := range a {
+			for _, f := range s {
 				if first == nil {
 					first = f
 				}
@@ -291,10 +290,14 @@ func (a *ABI) layout(ctx *context, n Node, t *structType) *structType {
 				}
 			}
 			w = normalizeBitFieldWidth(w)
-			for _, f := range a {
+			for _, f := range s {
 				if f.isBitField {
 					f.blockStart = first
 					f.blockWidth = w
+				}
+				if a.ByteOrder == binary.BigEndian {
+					f.bitFieldOffset = w - f.bitFieldWidth - f.bitFieldOffset
+					f.bitFieldMask = (uint64(1)<<f.bitFieldWidth - 1) << f.bitFieldOffset
 				}
 			}
 		}

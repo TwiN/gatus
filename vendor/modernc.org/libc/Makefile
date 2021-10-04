@@ -25,11 +25,13 @@ all:
 	go test 2>&1 -timeout 1h | tee -a $(log)
 	GOOS=darwin GOARCH=amd64 go build
 	GOOS=darwin GOARCH=arm64 go build
+	GOOS=freebsd GOARCH=amd64 go build
 	GOOS=linux GOARCH=386 go build
 	GOOS=linux GOARCH=amd64 go build
 	GOOS=linux GOARCH=arm go build
 	GOOS=linux GOARCH=arm64 go build
 	GOOS=linux GOARCH=s390x go build
+	GOOS=netbsd GOARCH=amd64 go build
 	GOOS=windows GOARCH=386 go build
 	GOOS=windows GOARCH=amd64 go build
 	go vet -unsafeptr=false 2>&1 | grep -v $(ngrep) || true
@@ -49,6 +51,16 @@ darwin_amd64:
 darwin_arm64:
 	TARGET_GOOS=darwin TARGET_GOARCH=arm64 go generate
 	GOOS=darwin GOARCH=arm64 go build -v ./...
+
+# only on netbsd/amd64
+netbsd_amd64:
+	TARGET_GOOS=netbsd TARGET_GOARCH=amd64 go generate
+	GOOS=netbsd GOARCH=amd64 go build -v ./...
+
+# only on freebsd/amd64
+freebsd_amd64:
+	TARGET_GOOS=freebsd TARGET_GOARCH=amd64 go generate
+	GOOS=freebsd GOARCH=amd64 go build -v ./...
 
 linux_amd64:
 	TARGET_GOOS=linux TARGET_GOARCH=amd64 go generate
@@ -84,11 +96,13 @@ all_targets: linux_amd64 linux_386 linux_arm linux_arm64 windows_amd64 windows_3
 build_all_targets:
 	GOOS=darwin GOARCH=amd64 go build -v ./...
 	GOOS=darwin GOARCH=arm64 go build -v ./...
+	GOOS=freebsd GOARCH=amd64 go build -v ./...
 	GOOS=linux GOARCH=386 go build -v ./...
 	GOOS=linux GOARCH=amd64 go build -v ./...
 	GOOS=linux GOARCH=arm go build -v ./...
 	GOOS=linux GOARCH=arm64 go build -v ./...
 	GOOS=linux GOARCH=s390x go build -v ./...
+	GOOS=netbsd GOARCH=amd64 go build -v ./...
 	GOOS=windows GOARCH=386 go build -v ./...
 	GOOS=windows GOARCH=amd64 go build -v ./...
 	echo done
@@ -119,10 +133,10 @@ edit:
 	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile *.go & fi
 
 editor:
-	GO111MODULE=off go generate 2>&1 | tee log
+	go generate 2>&1 | tee log
 	gofmt -l -s -w *.go
-	GO111MODULE=off go test -short 2>&1 | tee -a log
-	GO111MODULE=off go install -v ./...
+	go test -short 2>&1 | tee -a log
+	go install -v ./...
 
 later:
 	@grep -n $(grep) LATER * || true

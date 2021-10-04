@@ -34,7 +34,7 @@ pp-number			({digit}|\.{digit})({digit}|{identifier-nondigit}|[eEpP]{sign}|\.)*
 s-char				[^\x22\n\x80\\]|{escape-sequence}
 s-char-sequence			{s-char}+
 sign				[-+]
-simple-sequence			\\['\x22?\\abfnrtv]
+simple-sequence			\\['\x22?\\abefnrtv]
 string-literal			\x22{s-char-sequence}?\x22
 universal-character-name	\\u{hex-quad}|\\U{hex-quad}{hex-quad}
 white-space			[ \t\f\v]

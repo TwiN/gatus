@@ -653,14 +653,21 @@ start:
 					}
 
 					arg := ap[0][0].value.String()
-					arg = arg[1 : len(arg)-1] // `"<x>"` -> `<x>`, `""y""` -> `"y"`
+					switch {
+					case strings.HasPrefix(arg, `"\"`): // `"\"stdio.h\""`
+						arg = arg[2:len(arg)-3] + `"` // -> `"stdio.h"`
+					case strings.HasPrefix(arg, `"<`): // `"<stdio.h>"`
+						arg = arg[1 : len(arg)-1] // -> `<stdio.h>`
+					default:
+						arg = ""
+					}
 					var tok3 token3
 					tok3.char = PPNUMBER
-					switch _, err := c.hasInclude(&tok, arg); {
-					case err != nil:
-						tok3.value = idZero
-					default:
-						tok3.value = idOne
+					tok3.value = idZero
+					if arg != "" {
+						if _, err := c.hasInclude(&tok, arg); err == nil {
+							tok3.value = idOne
+						}
 					}
 					tok := cppToken{token4{token3: tok3, file: c.file}, nil}
 					ts.ungets([]cppToken{tok})
@@ -702,7 +709,11 @@ start:
 	goto start
 }
 
-func (c *cpp) hasInclude(n Node, nm string) (string, error) {
+func (c *cpp) hasInclude(n Node, nm string) (rs string, err error) {
+	// nm0 := nm
+	// defer func() { //TODO-
+	// 	trc("nm0 %q nm %q rs %q err %v", nm0, nm, rs, err)
+	// }()
 	var (
 		b     byte
 		paths []string
@@ -2171,6 +2182,8 @@ func decodeEscapeSequence(ctx *context, tok cppToken, s string) (rune, int) {
 		return 7, 2
 	case 'b':
 		return 8, 2
+	case 'e':
+		return 0x1b, 2
 	case 'f':
 		return 12, 2
 	case 'n':
@@ -2433,21 +2446,7 @@ func (n *ppIncludeDirective) translationPhase4(c *cpp) {
 				v = dir
 			}
 
-			var p string
-			switch {
-			case strings.HasPrefix(nm, "./"):
-				wd := c.ctx.cfg.WorkingDir
-				if wd == "" {
-					var err error
-					if wd, err = os.Getwd(); err != nil {
-						c.err(toks[0], "cannot determine working dir: %v", err)
-						return
-					}
-				}
-				p = filepath.Join(wd, nm)
-			default:
-				p = filepath.Join(v, nm)
-			}
+			p := filepath.Join(v, nm)
 			fi, err := c.ctx.statFile(p, sys)
 			if err != nil || fi.IsDir() {
 				continue
@@ -2732,8 +2731,9 @@ func (n *ppTextLine) getToks() []token3 { return n.toks }
 func (n *ppTextLine) translationPhase4(c *cpp) { c.send(n.toks) }
 
 type ppLineDirective struct {
-	toks []token3
-	args []token3
+	toks    []token3
+	args    []token3
+	nextPos int
 }
 
 func (n *ppLineDirective) getToks() []token3 { return n.toks }
@@ -2756,7 +2756,7 @@ func (n *ppLineDirective) translationPhase4(c *cpp) {
 			toks = toks[1:]
 		}
 		if len(toks) == 1 {
-			c.file.AddLineInfo(int(n.toks[len(n.toks)-1].pos), c.file.Name(), int(ln))
+			c.file.AddLineInfo(int(n.nextPos)-1, c.file.Name(), int(ln))
 			return
 		}
 
@@ -2765,7 +2765,7 @@ func (n *ppLineDirective) translationPhase4(c *cpp) {
 			toks = toks[1:]
 		}
 		if len(toks) == 0 {
-			c.file.AddLineInfo(int(n.toks[len(n.toks)-1].pos), c.file.Name(), int(ln))
+			c.file.AddLineInfo(int(n.nextPos)-1, c.file.Name(), int(ln))
 			return
 		}
 
@@ -2773,7 +2773,7 @@ func (n *ppLineDirective) translationPhase4(c *cpp) {
 		case STRINGLITERAL:
 			s := t.String()
 			s = s[1 : len(s)-1]
-			c.file.AddLineInfo(int(n.toks[len(n.toks)-1].pos), s, int(ln))
+			c.file.AddLineInfo(int(n.nextPos)-1, s, int(ln))
 			c.fileMacro.repl[0].value = t.value
 			for len(toks) != 0 && toks[0].char == ' ' {
 				toks = toks[1:]

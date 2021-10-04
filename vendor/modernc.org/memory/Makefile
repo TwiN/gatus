@@ -34,11 +34,15 @@ edit:
 
 editor:
 	gofmt -l -s -w *.go
+	GOOS=darwin GOARCH=amd64 go build
+	GOOS=darwin GOARCH=arm64 go build
 	GOOS=linux GOARCH=386 go build
 	GOOS=linux GOARCH=amd64 go build
+	GOOS=linux GOARCH=arm go build
+	GOOS=linux GOARCH=arm64 go build
+	GOOS=linux GOARCH=s390x go build
 	GOOS=windows GOARCH=386 go build
 	GOOS=windows GOARCH=amd64 go build
-	go test -i
 	go test 2>&1 | tee log
 
 internalError:

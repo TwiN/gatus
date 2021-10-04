@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build generator
 // +build generator
 
 package main
@@ -161,6 +162,7 @@ var (
 		"-DSQLITE_ENABLE_PREUPDATE_HOOK",
 		"-DSQLITE_ENABLE_RBU",
 		"-DSQLITE_ENABLE_RTREE",
+		"-DSQLITE_ENABLE_SESSION",
 		"-DSQLITE_ENABLE_SNAPSHOT",
 		"-DSQLITE_ENABLE_STAT4",
 		"-DSQLITE_ENABLE_UNLOCK_NOTIFY", // Adds sqlite3_unlock_notify().
@@ -170,7 +172,6 @@ var (
 		"-DSQLITE_THREADSAFE=1",
 		//DONT "-DNDEBUG", // To enable GO_GENERATE=-DSQLITE_DEBUG
 		//DONT "-DSQLITE_DQS=0", // testfixture
-		//DONT "-DSQLITE_ENABLE_SESSION", // Needs UTF16
 		//DONT "-DSQLITE_NO_SYNC=1",
 		//DONT "-DSQLITE_OMIT_DECLTYPE", // testfixture
 		//DONT "-DSQLITE_OMIT_DEPRECATED", // mptest
@@ -212,6 +213,7 @@ var (
 		"-DSQLITE_ENABLE_PREUPDATE_HOOK",
 		"-DSQLITE_ENABLE_RBU",
 		"-DSQLITE_ENABLE_RTREE",
+		"-DSQLITE_ENABLE_SESSION",
 		"-DSQLITE_ENABLE_SNAPSHOT",
 		"-DSQLITE_ENABLE_STAT4",
 		"-DSQLITE_ENABLE_STMTVTAB",      // testfixture
@@ -225,7 +227,6 @@ var (
 		"-DSQLITE_THREADSAFE=1",
 		//DONT "-DNDEBUG", // To enable GO_GENERATE=-DSQLITE_DEBUG
 		//DONT "-DSQLITE_DQS=0", // testfixture
-		//DONT "-DSQLITE_ENABLE_SESSION", // Needs UTF16
 		//DONT "-DSQLITE_NO_SYNC=1",
 		//DONT "-DSQLITE_OMIT_DECLTYPE", // testfixture
 		//DONT "-DSQLITE_OMIT_DEPRECATED", // mptest
@@ -398,7 +399,7 @@ func main() {
 		configTest = append(configTest, "-DSQLITE_MUTEX_NOOP")
 	}
 	switch goos {
-	case "linux":
+	case "linux", "freebsd":
 		configProduction = append(configProduction, "-DSQLITE_OS_UNIX=1")
 	case "darwin":
 		configProduction = append(configProduction,
@@ -446,7 +447,7 @@ func configure(goos, goarch string) {
 	cmd.Run()
 	var args []string
 	switch goos {
-	case "linux":
+	case "linux", "freebsd":
 		// nop
 	case "darwin":
 		args = append(args, "--with-tcl=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Tcl.framework")
@@ -520,7 +521,7 @@ func makeTestfixture(goos, goarch string, more []string) {
 		"ext/misc/wholenumber.c",
 		"ext/misc/zipfile.c",
 		"ext/rbu/test_rbu.c",
-		// "ext/session/test_session.c", // Needs UTF16
+		"ext/session/test_session.c",
 		"ext/userauth/userauth.c",
 		"src/tclsqlite.c",
 		"src/test1.c",

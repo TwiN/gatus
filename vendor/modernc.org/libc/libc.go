@@ -222,6 +222,7 @@ func X__builtin_clzll(t *TLS, n uint64) int32                        { return in
 func X__builtin_constant_p_impl()                                    { panic(todo("internal error: should never be called")) }
 func X__builtin_copysign(t *TLS, x, y float64) float64               { return Xcopysign(t, x, y) }
 func X__builtin_copysignf(t *TLS, x, y float32) float32              { return Xcopysignf(t, x, y) }
+func X__builtin_copysignl(t *TLS, x, y float64) float64              { return Xcopysign(t, x, y) }
 func X__builtin_exit(t *TLS, status int32)                           { Xexit(t, status) }
 func X__builtin_expect(t *TLS, exp, c long) long                     { return exp }
 func X__builtin_fabs(t *TLS, x float64) float64                      { return Xfabs(t, x) }
@@ -230,9 +231,12 @@ func X__builtin_huge_val(t *TLS) float64                             { return ma
 func X__builtin_huge_valf(t *TLS) float32                            { return float32(math.Inf(1)) }
 func X__builtin_inf(t *TLS) float64                                  { return math.Inf(1) }
 func X__builtin_inff(t *TLS) float32                                 { return float32(math.Inf(1)) }
+func X__builtin_infl(t *TLS) float64                                 { return math.Inf(1) }
 func X__builtin_malloc(t *TLS, size types.Size_t) uintptr            { return Xmalloc(t, size) }
 func X__builtin_memcmp(t *TLS, s1, s2 uintptr, n types.Size_t) int32 { return Xmemcmp(t, s1, s2, n) }
+func X__builtin_nan(t *TLS, s uintptr) float64                       { return math.NaN() }
 func X__builtin_nanf(t *TLS, s uintptr) float32                      { return float32(math.NaN()) }
+func X__builtin_nanl(t *TLS, s uintptr) float64                      { return math.NaN() }
 func X__builtin_prefetch(t *TLS, addr, args uintptr)                 {}
 func X__builtin_printf(t *TLS, s, args uintptr) int32                { return Xprintf(t, s, args) }
 func X__builtin_strchr(t *TLS, s uintptr, c int32) uintptr           { return Xstrchr(t, s, c) }
@@ -243,7 +247,8 @@ func X__builtin_trap(t *TLS)                                         { Xabort(t)
 func X__isnan(t *TLS, arg float64) int32                             { return X__builtin_isnan(t, arg) }
 func X__isnanf(t *TLS, arg float32) int32                            { return Xisnanf(t, arg) }
 func X__isnanl(t *TLS, arg float64) int32                            { return Xisnanl(t, arg) }
-func Xvfprintf(t *TLS, stream, format, ap uintptr) int32             { return Xfprintf(t, stream, format, ap) }
+
+func Xvfprintf(t *TLS, stream, format, ap uintptr) int32 { return Xfprintf(t, stream, format, ap) }
 
 // int __builtin_popcount (unsigned int x)
 func X__builtin_popcount(t *TLS, x uint32) int32 {
@@ -751,8 +756,8 @@ func Xmemset(t *TLS, s uintptr, c int32, n types.Size_t) uintptr {
 	if n != 0 {
 		c := byte(c & 0xff)
 
-		//this will make sure that on platforms where they are not equally alligned
-		//we clear out the first few bytes until allignment
+		// This will make sure that on platforms where they are not equally aligned we
+		// clear out the first few bytes until allignment
 		bytesBeforeAllignment := s % unsafe.Alignof(uint64(0))
 		if bytesBeforeAllignment > uintptr(n) {
 			bytesBeforeAllignment = uintptr(n)
@@ -781,13 +786,9 @@ func Xmemset(t *TLS, s uintptr, c int32, n types.Size_t) uintptr {
 
 // void *memcpy(void *dest, const void *src, size_t n);
 func Xmemcpy(t *TLS, dest, src uintptr, n types.Size_t) (r uintptr) {
-	if n == 0 {
-		return dest
+	if n != 0 {
+		copy((*RawMem)(unsafe.Pointer(dest))[:n:n], (*RawMem)(unsafe.Pointer(src))[:n:n])
 	}
-
-	s := (*RawMem)(unsafe.Pointer(src))[:n:n]
-	d := (*RawMem)(unsafe.Pointer(dest))[:n:n]
-	copy(d, s)
 	return dest
 }
 
@@ -1001,40 +1002,6 @@ func Xstrcasecmp(t *TLS, s1, s2 uintptr) int32 {
 			return r
 		}
 	}
-}
-
-var __ctype_b_table = [...]uint16{ //TODO use symbolic constants
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002,
-	0x0002, 0x2003, 0x2002, 0x2002, 0x2002, 0x2002, 0x0002, 0x0002,
-	0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002,
-	0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002,
-	0x6001, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004,
-	0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004,
-	0xd808, 0xd808, 0xd808, 0xd808, 0xd808, 0xd808, 0xd808, 0xd808,
-	0xd808, 0xd808, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004,
-	0xc004, 0xd508, 0xd508, 0xd508, 0xd508, 0xd508, 0xd508, 0xc508,
-	0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508,
-	0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508, 0xc508,
-	0xc508, 0xc508, 0xc508, 0xc004, 0xc004, 0xc004, 0xc004, 0xc004,
-	0xc004, 0xd608, 0xd608, 0xd608, 0xd608, 0xd608, 0xd608, 0xc608,
-	0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608,
-	0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608, 0xc608,
-	0xc608, 0xc608, 0xc608, 0xc004, 0xc004, 0xc004, 0xc004, 0x0002,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-}
-
-var ptable = uintptr(unsafe.Pointer(&__ctype_b_table[128]))
-
-// const unsigned short * * __ctype_b_loc (void);
-func X__ctype_b_loc(t *TLS) uintptr {
-	return uintptr(unsafe.Pointer(&ptable))
 }
 
 func Xntohs(t *TLS, netshort uint16) uint16 {
@@ -1290,4 +1257,10 @@ func AtExit(f func()) {
 	atExitMu.Lock()
 	atExit = append(atExit, f)
 	atExitMu.Unlock()
+}
+
+func X__ccgo_dmesg(t *TLS, fmt uintptr, va uintptr) {
+	if dmesgs {
+		dmesg("%s", printf(fmt, va))
+	}
 }

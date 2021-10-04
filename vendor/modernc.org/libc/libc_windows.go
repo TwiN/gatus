@@ -226,24 +226,21 @@ func newFile(t *TLS, fd int32) uintptr {
 		if err != nil {
 			panic("no console")
 		}
-		f := addFile(h, fd)
-		return uintptr(unsafe.Pointer(f))
+		return addFile(h, fd)
 	}
 	if fd == unistd.STDOUT_FILENO {
 		h, err := syscall.GetStdHandle(syscall.STD_OUTPUT_HANDLE)
 		if err != nil {
 			panic("no console")
 		}
-		f := addFile(h, fd)
-		return uintptr(unsafe.Pointer(f))
+		return addFile(h, fd)
 	}
 	if fd == unistd.STDERR_FILENO {
 		h, err := syscall.GetStdHandle(syscall.STD_ERROR_HANDLE)
 		if err != nil {
 			panic("no console")
 		}
-		f := addFile(h, fd)
-		return uintptr(unsafe.Pointer(f))
+		return addFile(h, fd)
 	}
 
 	// should not get here -- unless newFile
@@ -483,7 +480,7 @@ func Xopen64(t *TLS, pathname uintptr, flags int32, cmode uintptr) int32 {
 
 	var mode types.Mode_t
 	if cmode != 0 {
-		mode = *(*types.Mode_t)(unsafe.Pointer(cmode))
+		mode = (types.Mode_t)(VaUint32(&cmode))
 	}
 	// 	fdcwd := fcntl.AT_FDCWD
 	h, err := syscall.Open(GoString(pathname), int(flags), uint32(mode))
@@ -5354,4 +5351,19 @@ func Xsscanf(t *TLS, str, format, va uintptr) int32 {
 
 func Xstrtod(tls *TLS, s uintptr, p uintptr) float64 { /* strtod.c:22:8: */
 	panic(todo(""))
+}
+
+func Xrint(tls *TLS, x float64) float64 {
+	switch {
+	case x == 0: // also +0 and -0
+		return 0
+	case math.IsInf(x, 0), math.IsNaN(x):
+		return x
+	case x >= math.MinInt64 && x <= math.MaxInt64 && float64(int64(x)) == x:
+		return x
+	case x >= 0:
+		return math.Floor(x + 0.5)
+	default:
+		return math.Ceil(x - 0.5)
+	}
 }

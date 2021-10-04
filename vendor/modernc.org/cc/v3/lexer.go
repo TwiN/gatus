@@ -360,7 +360,7 @@ yystate20:
 	switch {
 	default:
 		goto yyabort
-	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
+	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'e' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
 		goto yystate18
 	case c == 'U':
 		goto yystate21
@@ -662,7 +662,7 @@ yystate53:
 	switch {
 	default:
 		goto yyabort
-	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
+	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'e' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
 		goto yystate51
 	case c == 'U':
 		goto yystate54
@@ -1137,7 +1137,7 @@ yystate105:
 	switch {
 	default:
 		goto yyabort
-	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
+	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'e' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
 		goto yystate103
 	case c == 'U':
 		goto yystate106
@@ -1254,7 +1254,7 @@ yystate117:
 	switch {
 	default:
 		goto yyabort
-	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
+	case c == '"' || c == '\'' || c >= '0' && c <= '7' || c == '?' || c == '\\' || c == 'a' || c == 'b' || c == 'e' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v':
 		goto yystate115
 	case c == 'U':
 		goto yystate118

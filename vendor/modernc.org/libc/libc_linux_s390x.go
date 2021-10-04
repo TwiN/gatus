@@ -465,3 +465,16 @@ func Xuuid_unparse(t *TLS, uu uuid.Uuid_t, out uintptr) {
 func Xuuid_parse(t *TLS, in uintptr, uu uuid.Uuid_t) int32 {
 	panic(todo(""))
 }
+
+//TODO-
+func __syscall1(t *TLS, trap, p1 long) long {
+	return __syscall(unix.Syscall(uintptr(trap), uintptr(p1), 0, 0))
+}
+
+func __syscall3(t *TLS, trap, p1, p2, p3 long) long {
+	return __syscall(unix.Syscall(uintptr(trap), uintptr(p1), uintptr(p2), uintptr(p3)))
+}
+
+func __syscall4(t *TLS, trap, p1, p2, p3, p4 long) long {
+	return __syscall(unix.Syscall6(uintptr(trap), uintptr(p1), uintptr(p2), uintptr(p3), uintptr(p4), 0, 0))
+}

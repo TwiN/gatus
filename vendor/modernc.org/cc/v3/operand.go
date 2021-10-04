@@ -275,7 +275,7 @@ func (v Float32Value) ge(b Value) Value  { return boolValue(v >= b.(Float32Value
 func (v Float32Value) gt(b Value) Value  { return boolValue(v > b.(Float32Value)) }
 func (v Float32Value) IsConst() bool     { return true }
 func (v Float32Value) IsNonZero() bool   { return v != 0 }
-func (v Float32Value) IsZero() bool      { return v == 0 }
+func (v Float32Value) IsZero() bool      { return !math.Signbit(float64(v)) && v == 0 }
 func (v Float32Value) le(b Value) Value  { return boolValue(v <= b.(Float32Value)) }
 func (v Float32Value) lsh(b Value) Value { panic(todo("")) }
 func (v Float32Value) lt(b Value) Value  { return boolValue(v < b.(Float32Value)) }
@@ -299,7 +299,7 @@ func (v Float64Value) ge(b Value) Value  { return boolValue(v >= b.(Float64Value
 func (v Float64Value) gt(b Value) Value  { return boolValue(v > b.(Float64Value)) }
 func (v Float64Value) IsConst() bool     { return true }
 func (v Float64Value) IsNonZero() bool   { return v != 0 }
-func (v Float64Value) IsZero() bool      { return v == 0 }
+func (v Float64Value) IsZero() bool      { return !math.Signbit(float64(v)) && v == 0 }
 func (v Float64Value) le(b Value) Value  { return boolValue(v <= b.(Float64Value)) }
 func (v Float64Value) lsh(b Value) Value { panic(todo("")) }
 func (v Float64Value) lt(b Value) Value  { return boolValue(v < b.(Float64Value)) }
@@ -328,7 +328,7 @@ func (v *Float128Value) ge(b Value) Value  { panic(todo("")) }
 func (v *Float128Value) gt(b Value) Value  { return boolValue(v.cmp(b, -1, 0)) }
 func (v *Float128Value) IsNonZero() bool   { panic(todo("")) }
 func (v *Float128Value) IsConst() bool     { return true }
-func (v *Float128Value) IsZero() bool      { return v.cmp(float128Zero, 0) }
+func (v *Float128Value) IsZero() bool      { return !v.NaN && !v.N.Signbit() && v.cmp(float128Zero, 0) }
 func (v *Float128Value) le(b Value) Value  { panic(todo("")) }
 func (v *Float128Value) lsh(b Value) Value { panic(todo("")) }
 func (v *Float128Value) lt(b Value) Value  { panic(todo("")) }

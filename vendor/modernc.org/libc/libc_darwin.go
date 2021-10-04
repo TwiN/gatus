@@ -332,7 +332,7 @@ func Xlocaltime_r(_ *TLS, timep, result uintptr) uintptr {
 func Xopen(t *TLS, pathname uintptr, flags int32, args uintptr) int32 {
 	var mode types.Mode_t
 	if args != 0 {
-		mode = *(*types.Mode_t)(unsafe.Pointer(args))
+		mode = (types.Mode_t)(VaUint32(&args))
 	}
 	fd, err := unix.Open(GoString(pathname), int(flags), uint32(mode))
 	if err != nil {

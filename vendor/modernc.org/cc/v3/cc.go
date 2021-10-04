@@ -154,8 +154,16 @@ func trc(s string, args ...interface{}) string { //TODO-
 	default:
 		s = fmt.Sprintf(s, args...)
 	}
-	_, fn, fl, _ := runtime.Caller(1)
-	r := fmt.Sprintf("%s:%d: TRC %s", fn, fl, s)
+	pc, fn, fl, _ := runtime.Caller(1)
+	f := runtime.FuncForPC(pc)
+	var fns string
+	if f != nil {
+		fns = f.Name()
+		if x := strings.LastIndex(fns, "."); x > 0 {
+			fns = fns[x+1:]
+		}
+	}
+	r := fmt.Sprintf("%s:%d:%s: TRC %s", fn, fl, fns, s)
 	fmt.Fprintf(os.Stdout, "%s\n", r)
 	os.Stdout.Sync()
 	return r

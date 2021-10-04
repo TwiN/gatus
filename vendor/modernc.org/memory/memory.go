@@ -20,7 +20,7 @@
 //
 // Benchmarks
 //
-// AMD Ryzen 9 3900X 12-Core Processor × 24 
+// AMD Ryzen 9 3900X 12-Core Processor × 24
 //
 //  jnml@3900x:~/src/modernc.org/memory$ date ; go version ; go test -run @ -bench . -benchmem |& tee log
 //  Fri Nov 20 17:23:04 CET 2020
@@ -51,7 +51,7 @@
 //  BenchmarkUintptrMalloc64-24    	213706227	         5.47 ns/op	       0 B/op	       0 allocs/op
 //  PASS
 //  ok  	modernc.org/memory	70.528s
-//  jnml@3900x:~/src/modernc.org/memory$ 
+//  jnml@3900x:~/src/modernc.org/memory$
 //
 // Intel® Core™ i5-4670 CPU @ 3.40GHz × 4
 //

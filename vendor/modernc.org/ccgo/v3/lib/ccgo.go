@@ -32,17 +32,20 @@ import (
 	"github.com/kballard/go-shellquote"
 	"golang.org/x/tools/go/packages"
 	"modernc.org/cc/v3"
+	"modernc.org/libc"
 	"modernc.org/opt"
 )
 
 const (
-	Version = "3.9.2-20210323171250"
+	Version = "3.12.6-20210922111124"
 
 	experimentsEnvVar = "CCGO_EXPERIMENT"
 	maxSourceLine     = 1 << 20
 )
 
 var (
+	_ = libc.Xstdin
+
 	coverExperiment bool
 )
 
@@ -201,9 +204,11 @@ char *__builtin___strncpy_chk(char *dest, char *src, size_t n, size_t os);
 char *__builtin_strchr(const char *s, int c);
 char *__builtin_strcpy(char *dest, const char *src);
 double __builtin_copysign ( double x, double y );
+double __builtin_copysignl (long double x, long double y );
 double __builtin_fabs(double x);
 double __builtin_huge_val (void);
 double __builtin_inf (void);
+double __builtin_nan (const char *str);
 float __builtin_copysignf ( float x, float y );
 float __builtin_huge_valf (void);
 float __builtin_inff (void);
@@ -226,6 +231,7 @@ int __builtin_sprintf(char *str, const char *format, ...);
 int __builtin_strcmp(const char *s1, const char *s2);
 int __builtin_sub_overflow();
 long __builtin_expect (long exp, long c);
+long double __builtin_nanl (const char *str);
 long long __builtin_llabs(long long j);
 size_t __builtin_object_size (void * ptr, int type);
 size_t __builtin_strlen(const char *s);
@@ -243,6 +249,7 @@ void __builtin_free(void *ptr);
 void __builtin_prefetch (const void *addr, ...);
 void __builtin_trap (void);
 void __builtin_unreachable (void);
+void __ccgo_dmesg(char*, ...);
 void __ccgo_va_end(__builtin_va_list ap);
 void __ccgo_va_start(__builtin_va_list ap);
 
@@ -370,6 +377,7 @@ type Task struct {
 	exportStructsValid    bool // -export-structs present
 	exportTypedefsValid   bool // -export-typedefs present
 	fullPathComments      bool // -full-path-comments
+	funcSig               bool // -func-sig
 	header                bool // -header
 	isScripted            bool
 	mingw                 bool
@@ -627,12 +635,13 @@ func (t *Task) Main() (err error) {
 	opts.Opt("cover-instrumentation-c", func(opt string) error { t.coverC = true; return nil })
 	opts.Opt("err-trace", func(opt string) error { t.errTrace = true; return nil })
 	opts.Opt("full-path-comments", func(opt string) error { t.fullPathComments = true; return nil })
+	opts.Opt("func-sig", func(opt string) error { t.funcSig = true; return nil })
 	opts.Opt("header", func(opt string) error { t.header = true; return nil })
 	opts.Opt("nocapi", func(opt string) error { t.noCapi = true; return nil })
 	opts.Opt("nostdinc", func(opt string) error { t.nostdinc = true; return nil })
 	opts.Opt("panic-stubs", func(opt string) error { t.panicStubs = true; return nil })
-	opts.Opt("trace-translation-units", func(opt string) error { t.traceTranslationUnits = true; return nil })
 	opts.Opt("trace-pinning", func(opt string) error { t.tracePinning = true; return nil })
+	opts.Opt("trace-translation-units", func(opt string) error { t.traceTranslationUnits = true; return nil })
 	opts.Opt("unexported-by-default", func(opt string) error { t.defaultUnExport = true; return nil })
 	opts.Opt("verify-structs", func(opt string) error { t.verifyStructs = true; return nil })
 	opts.Opt("version", func(opt string) error { t.version = true; return nil })
@@ -719,6 +728,20 @@ func (t *Task) Main() (err error) {
 	}
 
 	if t.version {
+		gobin, err := exec.LookPath("go")
+		var b []byte
+		if err == nil {
+			var bin string
+			bin, err = exec.LookPath(os.Args[0])
+			if err == nil {
+				b, err = exec.Command(gobin, "version", "-m", bin).CombinedOutput()
+			}
+		}
+		if err == nil {
+			fmt.Fprintf(t.stdout, "%s", b)
+			return nil
+		}
+
 		fmt.Fprintf(t.stdout, "%s\n", Version)
 		return nil
 	}
@@ -745,6 +768,7 @@ func (t *Task) Main() (err error) {
 		t.imported[len(t.imported)-1].used = true // crt is always imported
 	}
 	abi, err := cc.NewABI(t.goos, t.goarch)
+	abi.Types[cc.LongDouble] = abi.Types[cc.Double]
 	if err != nil {
 		return err
 	}
@@ -1210,8 +1234,8 @@ func (t *Task) createCompileDB(command []string) (rerr error) {
 	var cmd *exec.Cmd
 	var parser func(s string) ([]string, error)
 out:
-	switch {
-	case t.goos == "darwin":
+	switch t.goos {
+	case "darwin", "freebsd", "netbsd":
 		if command[0] != "make" {
 			return fmt.Errorf("usupported build command: %s", command[0])
 		}
@@ -1224,7 +1248,7 @@ out:
 		command = append([]string{sh, "-c"}, join(" ", command[0], "SHELL='sh -x'", command[1:]))
 		cmd = exec.Command(command[0], command[1:]...)
 		parser = makeXParser
-	case t.goos == "windows":
+	case "windows":
 		if command[0] != "make" {
 			return fmt.Errorf("usupported build command: %s", command[0])
 		}
@@ -1397,6 +1421,7 @@ func (it *cdbItem) ccgoArgs(cc string) (r []string, err error) {
 		set.Opt("pedantic", func(opt string) error { return nil })
 		set.Opt("pipe", func(opt string) error { return nil })
 		set.Opt("pthread", func(opt string) error { return nil })
+		set.Opt("s", func(opt string) error { return nil })
 		if err := set.Parse(it.Arguments[1:], func(arg string) error {
 			switch {
 			case strings.HasSuffix(arg, ".c"):
@@ -1564,6 +1589,7 @@ func (w *cdbMakeWriter) Write(b []byte) (int, error) {
 			w.fail(err)
 			continue
 		}
+
 		if len(args) == 0 {
 			continue
 		}
@@ -1575,15 +1601,15 @@ func (w *cdbMakeWriter) Write(b []byte) (int, error) {
 		err = nil
 		switch args[0] {
 		case w.cc:
-			fmt.Println(args)
+			fmt.Printf("CCGO CC: %q\n", args)
 			err = w.handleGCC(args)
 		case w.ar:
 			if isCreateArchive(args[1]) {
-				fmt.Println(args)
+				fmt.Printf("CCGO AR: %q\n", args)
 				err = w.handleAR(args)
 			}
 		case "libtool":
-			fmt.Println(args)
+			fmt.Printf("CCGO LIBTOOL: %q\n", args)
 			err = w.handleLibtool(args)
 		}
 		if err != nil {

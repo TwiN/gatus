@@ -38,7 +38,7 @@ func (p *project) initializer(f *function, n *cc.Initializer, t cc.Type, sc cc.S
 		}
 
 		if a.Field == nil || b.Field == nil || !a.Field.IsBitField() || !b.Field.IsBitField() {
-			panic(todo("%v: internal error: %#x, %v: %#x", a.Position(), a.Offset, b.Position(), b.Offset))
+			panic(todo("%v: internal error: off %#x, %v: off %#x, t %v", a.Position(), a.Offset, b.Position(), b.Offset, t))
 		}
 
 		return a.Field.BitFieldOffset() < b.Field.BitFieldOffset()
@@ -292,10 +292,6 @@ func (p *project) initializerStructField(off uintptr, s []*cc.Initializer, t cc.
 	bits := false
 	for i := []int{0}; i[0] < nf; i[0]++ {
 		fld2 := t.FieldByIndex(i)
-		if fld2.Name() == 0 {
-			continue
-		}
-
 		if fld == nil {
 			fld = fld2
 		}

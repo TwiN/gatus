@@ -42,9 +42,9 @@ func printf(format, args uintptr) []byte {
 		case '%':
 			format = printfConversion(buf, format, &args)
 		case 0:
-			// if dmesgs {
-			// 	dmesg("%v: %q", origin(1), buf.Bytes())
-			// }
+			if dmesgs {
+				dmesg("%v: %q", origin(1), buf.Bytes())
+			}
 			return buf.Bytes()
 		default:
 			format++

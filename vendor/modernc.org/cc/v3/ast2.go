@@ -414,16 +414,16 @@ func Preprocess(cfg *Config, includePaths, sysIncludePaths []string, sources []S
 func wTok(w io.Writer, tok Token) (err error) {
 	switch tok.Rune {
 	case STRINGLITERAL, LONGSTRINGLITERAL:
-		_, err = fmt.Fprintf(w, `%s"%s"`, tok.Sep, cQuotedString(tok.String()))
+		_, err = fmt.Fprintf(w, `%s"%s"`, tok.Sep, cQuotedString(tok.String(), true))
 	case CHARCONST, LONGCHARCONST:
-		_, err = fmt.Fprintf(w, `%s'%s'`, tok.Sep, cQuotedString(tok.String()))
+		_, err = fmt.Fprintf(w, `%s'%s'`, tok.Sep, cQuotedString(tok.String(), false))
 	default:
 		_, err = fmt.Fprintf(w, "%s%s", tok.Sep, tok)
 	}
 	return err
 }
 
-func cQuotedString(s string) []byte {
+func cQuotedString(s string, isString bool) []byte {
 	var b []byte
 	for i := 0; i < len(s); i++ {
 		c := s[i]
@@ -447,7 +447,20 @@ func cQuotedString(s string) []byte {
 			b = append(b, '\\', '\\')
 			continue
 		case '"':
-			b = append(b, '\\', '"')
+			switch {
+			case isString:
+				b = append(b, '\\', '"')
+			default:
+				b = append(b, '"')
+			}
+			continue
+		case '\'':
+			switch {
+			case isString:
+				b = append(b, '\'')
+			default:
+				b = append(b, '\\', '\'')
+			}
 			continue
 		}
 

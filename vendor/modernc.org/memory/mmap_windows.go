@@ -5,6 +5,7 @@
 package memory // import "modernc.org/memory"
 
 import (
+	"os"
 	"syscall"
 )
 
@@ -22,6 +23,8 @@ const pageSizeLog = 16
 
 var (
 	modkernel32      = syscall.NewLazyDLL("kernel32.dll")
+	osPageMask       = osPageSize - 1
+	osPageSize       = os.Getpagesize()
 	procVirtualAlloc = modkernel32.NewProc("VirtualAlloc")
 	procVirtualFree  = modkernel32.NewProc("VirtualFree")
 )

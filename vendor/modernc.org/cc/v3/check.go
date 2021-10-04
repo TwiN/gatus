@@ -283,6 +283,11 @@ func (n *InitializerList) setConstZero() {
 
 // [0], 6.7.8 Initialization
 func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc StorageClass, fld Field, off uintptr, il *InitializerList, designatorList *DesignatorList) *InitializerList {
+	// trc("Initializer.check: %v: t %v, off %v, designatorList != nil %v", n.Position(), t, off, designatorList != nil)
+	// if fld != nil {
+	// 	trc("\tfld %q", fld.Name())
+	// }
+
 	// 3 - The type of the entity to be initialized shall be an array of
 	// unknown size or an object type that is not a variable length array
 	// type.
@@ -464,9 +469,13 @@ func (n *InitializerList) checkArray(ctx *context, list *[]*Initializer, t Type,
 	esz := elem.Size()
 	length := t.Len()
 	var i, maxI uintptr
+	nestedDesignator := designatorList != nil
+	retOnDesignator := false
 loop:
 	for n != nil {
 		switch {
+		case retOnDesignator && n.Designation != nil:
+			return n
 		case designatorList == nil && n.Designation != nil:
 			designatorList = n.Designation.DesignatorList
 			fallthrough
@@ -490,14 +499,12 @@ loop:
 				panic(todo(""))
 			}
 
-			designatorList = designatorList.DesignatorList
-			next := n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, designatorList)
-			if designatorList != nil {
-				panic(todo("", n.Position(), d.Position()))
+			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, designatorList.DesignatorList)
+			designatorList = nil
+			if nestedDesignator {
+				retOnDesignator = true
 			}
-
 			i++
-			n = next
 		default:
 			if !t.IsIncomplete() && i >= length {
 				break loop
@@ -506,9 +513,8 @@ loop:
 			if i > maxI {
 				maxI = i
 			}
-			next := n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, nil)
+			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, nil)
 			i++
-			n = next
 		}
 	}
 	if t.IsIncomplete() {
@@ -518,13 +524,19 @@ loop:
 }
 
 func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList) *InitializerList {
+	// trc("InitializerList.checkStruct: %v: t %v, off %v, dl %v", n.Position(), t, off, designatorList != nil)
 	t = t.underlyingType()
 	// trc("==== struct %v: %v, off %v", n.Position(), t, off) //TODO-
 	nf := t.NumField()
 	i := []int{0}
 	var f Field
+	nestedDesignator := designatorList != nil
+	retOnDesignator := false
 	for n != nil {
+		// trc("---- %v: t %v, dl %v", n.Position(), t, designatorList != nil)
 		switch {
+		case retOnDesignator && n.Designation != nil:
+			return n
 		case designatorList == nil && n.Designation != nil:
 			designatorList = n.Designation.DesignatorList
 			fallthrough
@@ -544,22 +556,32 @@ func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type
 
 			f, xa, ok := t.FieldByName2(nm)
 			if !ok {
-				panic(todo("%v: %q", d.Position(), nm))
+				panic(todo("%v: t %v %q", d.Position(), t, nm))
 			}
 
+			t0 := t
 			switch {
 			case len(xa) != 1:
-				panic(todo("", d.Position()))
-			default:
-				designatorList = designatorList.DesignatorList
-				next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList)
-				if designatorList != nil && designatorList.DesignatorList != nil {
-					panic(todo("", d.Position()))
+				var f2 Field
+				var off2 uintptr
+				for len(xa) != 1 {
+					f2 = t.FieldByIndex(xa[:1])
+					off2 += f2.Offset()
+					t = f2.Type()
+					xa = xa[1:]
 				}
-
-				i[0] = xa[0] + 1
-				n = next
+				n = n.Initializer.check(ctx, list, t, sc, f, off+off2, n, designatorList)
+				if t.Kind() == Union {
+					t = t0
+				}
+			default:
+				n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList.DesignatorList)
 			}
+			designatorList = nil
+			if nestedDesignator {
+				retOnDesignator = true
+			}
+			i[0] = xa[0] + 1
 		default:
 			// [0], 6.7.8 Initialization
 			//
@@ -575,9 +597,8 @@ func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type
 
 				f = t.FieldByIndex(i)
 				if f.Name() != 0 || !f.Type().IsBitFieldType() {
-					next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil)
+					n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil)
 					i[0]++
-					n = next
 					break
 				}
 			}
@@ -1437,13 +1458,13 @@ func (n *PostfixExpression) addrOf(ctx *context) Operand {
 	case PostfixExpressionCall: // PostfixExpression '(' ArgumentExpressionList ')'
 		panic(n.Position().String())
 	case PostfixExpressionSelect: // PostfixExpression '.' IDENTIFIER
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.addrOf(ctx)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree
 		if d := n.PostfixExpression.Declarator(); d != nil {
 			setAddressTaken(n, d, "PostfixExpression '.' IDENTIFIER")
 			d.Read += ctx.readDelta
 		}
-		st := op.Type()
+		st := op.Type().Elem()
 		if k := st.Kind(); k == Invalid || k != Struct && k != Union {
 			//TODO report error
 			break
