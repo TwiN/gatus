@@ -43,19 +43,18 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // GetPagerDutyIntegrationKey returns the appropriate pagerduty integration key
-
 func (provider *AlertProvider) GetPagerDutyIntegrationKey(group string) string {
 	if provider.Integrations != nil {
-		for _, itegration := range provider.Integrations {
-			if group == itegration.Group {
-				return itegration.IntegrationKey
+		for _, integration := range provider.Integrations {
+			if group == integration.Group {
+				return integration.IntegrationKey
 			}
 		}
 	}
 	if provider.IntegrationKey != "" {
 		return provider.IntegrationKey
 	}
-	return provider.Integrations[0].IntegrationKey
+	return ""
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
