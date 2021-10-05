@@ -416,8 +416,6 @@ services:
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
 | `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | `""`           |
 | `alerting.pagerduty.default-alert`       | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
-| `alerting.pagerduty.integrations`        | Pagerduty integrations per team configurations                                |                |
-| `alerting.pagerduty.integrations`        | Pagerduty integrations per team configurations                                |   `[]`         |
 | `alerting.pagerduty.integrations`        | Pagerduty integrations per team configurations                                |   `[]`         |
 | `alerting.pagerduty.integrations[].integration-key` | Pagerduty integrationkey for a perticular team                     |   `""`         |
 | `alerting.pagerduty.integrations[].group`           | the group that the integration key belongs to                      |   `""`         |
