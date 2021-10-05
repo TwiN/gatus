@@ -30,13 +30,13 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	groups := make(map[string]int)
+	registeredGroups := make(map[string]bool)
 	if provider.Integrations != nil {
 		for _, integration := range provider.Integrations {
-			if _, present := groups[integration.Group]; present || integration.Group == "" || len(integration.IntegrationKey) != 32 {
+			if isAlreadyRegistered := registeredGroups[integration.Group]; isAlreadyRegistered || integration.Group == "" || len(integration.IntegrationKey) != 32 {
 				return false
 			}
-			groups[integration.Group] = 1
+			registeredGroups[integration.Group] = true
 		}
 	}
 	return len(provider.IntegrationKey) == 32 || provider.Integrations != nil
