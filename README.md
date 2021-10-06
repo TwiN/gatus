@@ -428,7 +428,7 @@ PagerDuty instead.
 
 Behavior:
 - By default, `alerting.pagerduty.integration-key` is used as the integration key
-- If there is a `services[].group` matching the value of `alerting.pagerduty.overrides[].group`, it will take precedence over `alerting.pagerduty.integration-key`
+- If the service being evaluated belongs to a group (`services[].group`) matching the value of `alerting.pagerduty.overrides[].group`, the provider will use that override's integration key instead of `alerting.pagerduty.integration-key`'s
 
 
 ```yaml
