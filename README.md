@@ -412,14 +412,14 @@ services:
 
 
 #### Configuring PagerDuty alerts
-| Parameter                                | Description                                                                   | Default        |
-|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
-| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | `""`           |
-| `alerting.pagerduty.default-alert`       | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
-| `alerting.pagerduty.integrations`        | Pagerduty integrations per team configurations                                |   `[]`         |
-| `alerting.pagerduty.integrations[].integration-key` | Pagerduty integrationkey for a perticular team                     |   `""`         |
-| `alerting.pagerduty.integrations[].group`           | the group that the integration key belongs to                      |   `""`         |
+| Parameter                                              | Description                                                                   | Default        |
+|:------------------------------------------------------ |:----------------------------------------------------------------------------- |:-------------- |
+| `alerting.pagerduty`                                   | Configuration for alerts of type `pagerduty`                                  | `{}`           |
+| `alerting.pagerduty.integration-key`                   | PagerDuty Events API v2 integration key                                       | `""`           |
+| `alerting.pagerduty.default-alert`                     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.pagerduty.overrides`                         | List of overrides that may be prioritized over the default configuration      |   `[]`         |
+| `alerting.pagerduty.overrides[].group`                 | Service group for which the configuration will be overridden by this configuration |   `""`         |
+| `alerting.pagerduty.overrides[].integration-key`       | PagerDuty Events API v2 integration key                                       |   `""`         |
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
@@ -427,18 +427,20 @@ parameter to `true` will not create another incident, but mark the incident as r
 PagerDuty instead.
 
 Behavior:
-- Team integration have priority over the general integration
-- If no team integration is provided it will defaults to the general pagerduty integration 
-- If no team integration and no general integration were provided it defaults to the first team integration provided
+- By default, `alerting.pagerduty.integration-key` is used as the integration key
+- If there is a `services[].group` matching the value of `alerting.pagerduty.overrides[].group`, it will take precedence over `alerting.pagerduty.integration-key`
 
 
 ```yaml
 alerting:
   pagerduty: 
     integration-key: "********************************"
-    intergrations:
-     - integration-key: "********************************"
-       group: "core"
+    # You can also add group-specific integration keys, which will 
+    # override the integration key above for the specified groups
+    overrides:
+     - group: "core"
+       integration-key: "********************************"
+       
 
 services:
   - name: website
@@ -455,6 +457,7 @@ services:
         success-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
+
   - name: back-end
     group: core
     url: "https://example.org/"

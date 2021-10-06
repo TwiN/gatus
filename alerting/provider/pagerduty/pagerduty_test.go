@@ -10,7 +10,7 @@ import (
 	"github.com/TwinProduction/gatus/v3/core"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{IntegrationKey: ""}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
@@ -20,41 +20,39 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 		t.Error("provider should've been valid")
 	}
 }
-func TestAlertPerGroupProvider_IsValid(t *testing.T) {
-	invalidGroup := Integrations{
-		IntegrationKey: "00000000000000000000000000000000",
-		Group:          "",
+
+func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+	providerWithInvalidOverrideGroup := AlertProvider{
+		Overrides: []Override{
+			{
+				IntegrationKey: "00000000000000000000000000000000",
+				Group:          "",
+			},
+		},
 	}
-	integrations := []Integrations{}
-	integrations = append(integrations, invalidGroup)
-	invalidProviderGroupNameError := AlertProvider{
-		Integrations: integrations,
-	}
-	if invalidProviderGroupNameError.IsValid() {
+	if providerWithInvalidOverrideGroup.IsValid() {
 		t.Error("provider Group shouldn't have been valid")
 	}
-	invalidIntegrationKey := Integrations{
-		IntegrationKey: "",
-		Group:          "group",
+	providerWithInvalidOverrideIntegrationKey := AlertProvider{
+		Overrides: []Override{
+			{
+				IntegrationKey: "",
+				Group:          "group",
+			},
+		},
 	}
-	integrations = []Integrations{}
-	integrations = append(integrations, invalidIntegrationKey)
-	invalidProviderIntegrationKey := AlertProvider{
-		Integrations: integrations,
-	}
-	if invalidProviderIntegrationKey.IsValid() {
+	if providerWithInvalidOverrideIntegrationKey.IsValid() {
 		t.Error("provider integration key shouldn't have been valid")
 	}
-	validIntegration := Integrations{
-		IntegrationKey: "00000000000000000000000000000000",
-		Group:          "group",
+	providerWithValidOverride := AlertProvider{
+		Overrides: []Override{
+			{
+				IntegrationKey: "00000000000000000000000000000000",
+				Group:          "group",
+			},
+		},
 	}
-	integrations = []Integrations{}
-	integrations = append(integrations, validIntegration)
-	validProvider := AlertProvider{
-		Integrations: integrations,
-	}
-	if !validProvider.IsValid() {
+	if !providerWithValidOverride.IsValid() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -81,16 +79,15 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	}
 }
 
-func TestAlertPerGroupProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
-	validIntegration := Integrations{
-		IntegrationKey: "00000000000000000000000000000000",
-		Group:          "group",
-	}
-	integrations := []Integrations{}
-	integrations = append(integrations, validIntegration)
+func TestAlertProvider_ToCustomAlertProviderWithResolvedAlertAndOverride(t *testing.T) {
 	provider := AlertProvider{
 		IntegrationKey: "",
-		Integrations:   integrations,
+		Overrides: []Override{
+			{
+				IntegrationKey: "00000000000000000000000000000000",
+				Group:          "group",
+			},
+		},
 	}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
@@ -134,16 +131,15 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	}
 }
 
-func TestAlertPerGroupProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
-	validIntegration := Integrations{
-		IntegrationKey: "00000000000000000000000000000000",
-		Group:          "group",
-	}
-	integrations := []Integrations{}
-	integrations = append(integrations, validIntegration)
+func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlertAndOverride(t *testing.T) {
 	provider := AlertProvider{
 		IntegrationKey: "",
-		Integrations:   integrations,
+		Overrides: []Override{
+			{
+				IntegrationKey: "00000000000000000000000000000000",
+				Group:          "group",
+			},
+		},
 	}
 	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, false)
 	if customAlertProvider == nil {
@@ -162,5 +158,68 @@ func TestAlertPerGroupProvider_ToCustomAlertProviderWithTriggeredAlert(t *testin
 	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
 	if err != nil {
 		t.Error("expected body to be valid JSON, got error:", err.Error())
+	}
+}
+
+func TestAlertProvider_getPagerDutyIntegrationKey(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		ExpectedOutput string
+	}{
+		{
+			Name: "provider-no-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				IntegrationKey: "00000000000000000000000000000001",
+				Overrides:      nil,
+			},
+			InputGroup:     "",
+			ExpectedOutput: "00000000000000000000000000000001",
+		},
+		{
+			Name: "provider-no-override-specify-group-should-default",
+			Provider: AlertProvider{
+				IntegrationKey: "00000000000000000000000000000001",
+				Overrides:      nil,
+			},
+			InputGroup:     "group",
+			ExpectedOutput: "00000000000000000000000000000001",
+		},
+		{
+			Name: "provider-with-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				IntegrationKey: "00000000000000000000000000000001",
+				Overrides: []Override{
+					{
+						Group:          "group",
+						IntegrationKey: "00000000000000000000000000000002",
+					},
+				},
+			},
+			InputGroup:     "",
+			ExpectedOutput: "00000000000000000000000000000001",
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				IntegrationKey: "00000000000000000000000000000001",
+				Overrides: []Override{
+					{
+						Group:          "group",
+						IntegrationKey: "00000000000000000000000000000002",
+					},
+				},
+			},
+			InputGroup:     "group",
+			ExpectedOutput: "00000000000000000000000000000002",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			if output := scenario.Provider.getPagerDutyIntegrationKeyForGroup(scenario.InputGroup); output != scenario.ExpectedOutput {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput, output)
+			}
+		})
 	}
 }

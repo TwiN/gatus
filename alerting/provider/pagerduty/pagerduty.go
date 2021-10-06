@@ -13,11 +13,6 @@ const (
 	restAPIURL = "https://events.pagerduty.com/v2/enqueue"
 )
 
-type Integrations struct {
-	IntegrationKey string `yaml:"integration-key"`
-	Group          string `yaml:"group"`
-}
-
 // AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
@@ -25,42 +20,34 @@ type AlertProvider struct {
 	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 
-	Integrations []Integrations `yaml:"integrations"`
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group          string `yaml:"group"`
+	IntegrationKey string `yaml:"integration-key"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
 	registeredGroups := make(map[string]bool)
-	if provider.Integrations != nil {
-		for _, integration := range provider.Integrations {
-			if isAlreadyRegistered := registeredGroups[integration.Group]; isAlreadyRegistered || integration.Group == "" || len(integration.IntegrationKey) != 32 {
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.IntegrationKey) != 32 {
 				return false
 			}
-			registeredGroups[integration.Group] = true
+			registeredGroups[override.Group] = true
 		}
 	}
-	return len(provider.IntegrationKey) == 32 || provider.Integrations != nil
-}
-
-// GetPagerDutyIntegrationKey returns the appropriate pagerduty integration key
-func (provider *AlertProvider) GetPagerDutyIntegrationKey(group string) string {
-	if provider.Integrations != nil {
-		for _, integration := range provider.Integrations {
-			if group == integration.Group {
-				return integration.IntegrationKey
-			}
-		}
-	}
-	if provider.IntegrationKey != "" {
-		return provider.IntegrationKey
-	}
-	return ""
+	// Either the default integration key has the right length, or there are overrides who are properly configured.
+	return len(provider.IntegrationKey) == 32 || len(provider.Overrides) != 0
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
 //
 // relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-
 func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message, eventAction, resolveKey string
 	if resolved {
@@ -84,11 +71,26 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
     "source": "%s",
     "severity": "critical"
   }
-}`, provider.GetPagerDutyIntegrationKey(service.Group), resolveKey, eventAction, message, service.Name),
+}`, provider.getPagerDutyIntegrationKeyForGroup(service.Group), resolveKey, eventAction, message, service.Name),
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
 	}
+}
+
+// getPagerDutyIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group
+func (provider *AlertProvider) getPagerDutyIntegrationKeyForGroup(group string) string {
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				return override.IntegrationKey
+			}
+		}
+	}
+	if provider.IntegrationKey != "" {
+		return provider.IntegrationKey
+	}
+	return ""
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
