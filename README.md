@@ -415,18 +415,30 @@ services:
 | Parameter                                | Description                                                                   | Default        |
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `alerting.pagerduty`                     | Configuration for alerts of type `pagerduty`                                  | `{}`           |
-| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | Required `""`  |
+| `alerting.pagerduty.integration-key`     | PagerDuty Events API v2 integration key.                                      | `""`           |
 | `alerting.pagerduty.default-alert`       | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.pagerduty.integrations`        | Pagerduty integrations per team configurations                                |   `[]`         |
+| `alerting.pagerduty.integrations[].integration-key` | Pagerduty integrationkey for a perticular team                     |   `""`         |
+| `alerting.pagerduty.integrations[].group`           | the group that the integration key belongs to                      |   `""`         |
 
 It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
 parameter to `true` will not create another incident, but mark the incident as resolved on
 PagerDuty instead.
 
+Behavior:
+- Team integration have priority over the general integration
+- If no team integration is provided it will defaults to the general pagerduty integration 
+- If no team integration and no general integration were provided it defaults to the first team integration provided
+
+
 ```yaml
 alerting:
   pagerduty: 
     integration-key: "********************************"
+    intergrations:
+     - integration-key: "********************************"
+       group: "core"
 
 services:
   - name: website
@@ -436,6 +448,20 @@ services:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: pagerduty
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: pagerduty
         enabled: true
