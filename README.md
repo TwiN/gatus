@@ -218,7 +218,7 @@ Here are some examples of conditions you can use:
 | `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`
 | `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
-| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not using a protocol with certificates)
+| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not protocol with certs)
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
 
 
