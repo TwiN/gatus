@@ -231,7 +231,7 @@ func (service *Service) call(result *Result) {
 		if isServiceStartTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "starttls://"), service.ClientConfig)
 		} else {
-			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(service.URL, "tls://"), service.ClientConfig)
+			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(service.URL, "tls://"), service.ClientConfig)
 		}
 		if err != nil {
 			result.AddError(err.Error())
