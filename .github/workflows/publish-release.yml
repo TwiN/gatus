@@ -11,7 +11,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Get image repository
-        run: echo IMAGE_REPOSITORY=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        run: echo IMAGE_REPOSITORY=$(echo ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Get the release
         run: echo RELEASE=${GITHUB_REF/refs\/tags\//} >> $GITHUB_ENV
       - name: Set up QEMU
