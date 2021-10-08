@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/config/ui"
-	"github.com/TwinProduction/gatus/v3/config/web"
-	"github.com/TwinProduction/gatus/v3/controller/handler"
-	"github.com/TwinProduction/gatus/v3/security"
+	"github.com/TwiN/gatus/v3/config/ui"
+	"github.com/TwiN/gatus/v3/config/web"
+	"github.com/TwiN/gatus/v3/controller/handler"
+	"github.com/TwiN/gatus/v3/security"
 )
 
 var (

@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/TwinProduction/gatus/v3/config/ui"
-	"github.com/TwinProduction/gatus/v3/security"
-	"github.com/TwinProduction/health"
+	"github.com/TwiN/gatus/v3/config/ui"
+	"github.com/TwiN/gatus/v3/security"
+	"github.com/TwiN/health"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

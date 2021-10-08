@@ -13,7 +13,7 @@
 
 
 # Support
-If you need help with this integration, please create an issue at https://github.com/TwinProduction/gatus/issues
+If you need help with this integration, please create an issue at https://github.com/TwiN/gatus/issues
 
 
 # Integration Walkthrough
@@ -26,7 +26,7 @@ If you need help with this integration, please create an issue at https://github
 3. Enter an **Integration Name** in the format `gatus-service-name` (e.g. `Gatus-Shopping-Cart`) and select **Gatus** from the Integration Type menu.
 4. Click the **Add Integration** button to save your new integration. You will be redirected to the Integrations tab for your service.
 5. An **Integration Key** will be generated on this screen. Keep this key saved in a safe place, as it will be used when you configure the integration with **Gatus** in the next section.
-![PagerDuty Integration Key](https://raw.githubusercontent.com/TwinProduction/gatus/master/.github/assets/pagerduty-integration-key.png)
+![PagerDuty Integration Key](https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/pagerduty-integration-key.png)
 
 
 ## In Gatus

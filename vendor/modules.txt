@@ -1,9 +1,9 @@
-# github.com/TwinProduction/gocache v1.2.3
+# github.com/TwiN/gocache v1.2.4
 ## explicit; go 1.16
-github.com/TwinProduction/gocache
-# github.com/TwinProduction/health v1.0.0
-## explicit; go 1.15
-github.com/TwinProduction/health
+github.com/TwiN/gocache
+# github.com/TwiN/health v1.0.1
+## explicit; go 1.17
+github.com/TwiN/health
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile

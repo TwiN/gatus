@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/storage"
-	"github.com/TwinProduction/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/gorilla/mux"
 )
 

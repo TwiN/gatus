@@ -42,7 +42,7 @@ func (cache *Cache) SaveToFile(path string) error {
 			if err != nil {
 				// Failed to encode the value, so we'll skip it.
 				// This is likely due to the fact that the custom struct wasn't registered using gob.Register(...)
-				// See [Persistence - Limitations](https://github.com/TwinProduction/gocache#limitations)
+				// See [Persistence - Limitations](https://github.com/TwiN/gocache#limitations)
 				continue
 			}
 			bucket.Put([]byte(bulkEntry.Key), buffer.Bytes())
@@ -91,7 +91,7 @@ func (cache *Cache) ReadFromFile(path string) (int, error) {
 				// decoding the struct would fail. This can be avoided by using a different variable name every
 				// time you must change the type of a variable within a struct.
 				//
-				// See [Persistence - Limitations](https://github.com/TwinProduction/gocache#limitations)
+				// See [Persistence - Limitations](https://github.com/TwiN/gocache#limitations)
 				return err
 			}
 			cache.entries[string(k)] = &entry

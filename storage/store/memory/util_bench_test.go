@@ -3,9 +3,9 @@ package memory
 import (
 	"testing"
 
-	"github.com/TwinProduction/gatus/v3/core"
-	"github.com/TwinProduction/gatus/v3/storage/store/common"
-	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
+	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 )
 
 func BenchmarkShallowCopyServiceStatus(b *testing.B) {

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/storage/store"
-	"github.com/TwinProduction/gatus/v3/storage/store/memory"
-	"github.com/TwinProduction/gatus/v3/storage/store/sql"
+	"github.com/TwiN/gatus/v3/storage/store"
+	"github.com/TwiN/gatus/v3/storage/store/memory"
+	"github.com/TwiN/gatus/v3/storage/store/sql"
 )
 
 var (

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TwinProduction/gatus/v3/alerting/alert"
-	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/core"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {

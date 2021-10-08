@@ -1,17 +1,17 @@
 package alerting
 
 import (
-	"github.com/TwinProduction/gatus/v3/alerting/alert"
-	"github.com/TwinProduction/gatus/v3/alerting/provider"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/discord"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/mattermost"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/messagebird"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/pagerduty"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/slack"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/teams"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/telegram"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/alerting/provider"
+	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/alerting/provider/discord"
+	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v3/alerting/provider/slack"
+	"github.com/TwiN/gatus/v3/alerting/provider/teams"
+	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
 )
 
 // Config is the configuration for alerting providers

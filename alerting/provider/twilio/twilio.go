@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/TwinProduction/gatus/v3/alerting/alert"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Twilio

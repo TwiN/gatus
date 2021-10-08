@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/storage/store/sql"
+	"github.com/TwiN/gatus/v3/storage/store/sql"
 )
 
 func TestGet(t *testing.T) {

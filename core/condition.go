@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/jsonpath"
-	"github.com/TwinProduction/gatus/v3/pattern"
+	"github.com/TwiN/gatus/v3/jsonpath"
+	"github.com/TwiN/gatus/v3/pattern"
 )
 
 const (

@@ -1,10 +1,10 @@
-module github.com/TwinProduction/gatus/v3
+module github.com/TwiN/gatus/v3
 
 go 1.17
 
 require (
-	github.com/TwinProduction/gocache v1.2.3
-	github.com/TwinProduction/health v1.0.0
+	github.com/TwiN/gocache v1.2.4
+	github.com/TwiN/health v1.0.1
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871

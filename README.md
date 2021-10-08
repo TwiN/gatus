@@ -1,12 +1,12 @@
 ![Gatus](.github/assets/logo-with-name.png)
 
-![build](https://github.com/TwinProduction/gatus/workflows/build/badge.svg?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/TwinProduction/gatus?)](https://goreportcard.com/report/github.com/TwinProduction/gatus)
-[![codecov](https://codecov.io/gh/TwinProduction/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwinProduction/gatus)
-[![Go version](https://img.shields.io/github/go-mod/go-version/TwinProduction/gatus.svg)](https://github.com/TwinProduction/gatus)
+![build](https://github.com/TwiN/gatus/workflows/build/badge.svg?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
+[![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
+[![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/TDfjeHmXDQ)
-[![Follow TwinProduction](https://img.shields.io/github/followers/TwinProduction?label=Follow&style=social)](https://github.com/TwinProduction)
+[![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
 
 Gatus is a health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
@@ -842,7 +842,7 @@ and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-exam
 
 
 ### Terraform
-Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwinProduction/terraform-kubernetes-gatus).
+Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
 
 
@@ -1064,7 +1064,7 @@ to make.
 **If you are not using a file storage**, updating the configuration while Gatus is running is effectively
 the same as restarting the application.
 
-**NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwinProduction/gatus/issues/151).
+**NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
 
 ### Service groups
@@ -1200,7 +1200,7 @@ No such header is required to query the API.
 
 
 ## Sponsors
-You can find the full list of sponsors [here](https://github.com/sponsors/TwinProduction).
+You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
 
 [<img src="https://github.com/math280h.png" width="50" />](https://github.com/math280h)
 [<img src="https://github.com/pyroscope-io.png" width="50" />](https://github.com/pyroscope-io)

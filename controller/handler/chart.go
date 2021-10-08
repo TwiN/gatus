@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/storage"
-	"github.com/TwinProduction/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/gorilla/mux"
 	"github.com/wcharczuk/go-chart/v2"
 	"github.com/wcharczuk/go-chart/v2/drawing"

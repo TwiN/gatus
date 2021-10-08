@@ -9,6 +9,7 @@ var (
 	}
 )
 
+// healthHandler is the HTTP handler for serving the health endpoint
 type healthHandler struct {
 	useJSON bool
 	status  Status
@@ -22,7 +23,8 @@ func (h *healthHandler) WithJSON(v bool) *healthHandler {
 	return h
 }
 
-func (h healthHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+// ServeHTTP serves the HTTP request for the health handler
+func (h healthHandler) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
 	var status int
 	var body []byte
 	if h.status == Up {

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/config"
-	"github.com/TwinProduction/gatus/v3/core"
-	"github.com/TwinProduction/gatus/v3/storage"
-	"github.com/TwinProduction/gatus/v3/watchdog"
+	"github.com/TwiN/gatus/v3/config"
+	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/watchdog"
 )
 
 func TestUptimeBadge(t *testing.T) {

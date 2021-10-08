@@ -1,11 +1,11 @@
 # gocache
 
-![build](https://github.com/TwinProduction/gocache/workflows/build/badge.svg?branch=master) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/TwinProduction/gocache)](https://goreportcard.com/report/github.com/TwinProduction/gocache)
-[![codecov](https://codecov.io/gh/TwinProduction/gocache/branch/master/graph/badge.svg)](https://codecov.io/gh/TwinProduction/gocache)
-[![Go version](https://img.shields.io/github/go-mod/go-version/TwinProduction/gocache.svg)](https://github.com/TwinProduction/gocache)
-[![Go Reference](https://pkg.go.dev/badge/github.com/TwinProduction/gocache.svg)](https://pkg.go.dev/github.com/TwinProduction/gocache)
-[![Follow TwinProduction](https://img.shields.io/github/followers/TwinProduction?label=Follow&style=social)](https://github.com/TwinProduction)
+![build](https://github.com/TwiN/gocache/workflows/build/badge.svg?branch=master) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gocache)](https://goreportcard.com/report/github.com/TwiN/gocache)
+[![codecov](https://codecov.io/gh/TwiN/gocache/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gocache)
+[![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gocache.svg)](https://github.com/TwiN/gocache)
+[![Go Reference](https://pkg.go.dev/badge/github.com/TwiN/gocache.svg)](https://pkg.go.dev/github.com/TwiN/gocache)
+[![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
 
 gocache is an easy-to-use, high-performance, lightweight and thread-safe (goroutine-safe) in-memory key-value cache 
 with support for LRU and FIFO eviction policies as well as expiration, bulk operations and even persistence to file.
@@ -58,7 +58,7 @@ It may also serve as a good reference to use in order to implement gocache in yo
 
 ## Usage
 ```
-go get -u github.com/TwinProduction/gocache
+go get -u github.com/TwiN/gocache
 ```
 
 If you're interested in using gocache as a server rather than an embedded library, see [Server](#server)
@@ -101,7 +101,7 @@ cache.StartJanitor()
 | SaveToFile                        | Stores the content of the cache to a file so that it can be read using `ReadFromFile`. See [persistence](#persistence).
 | ReadFromFile                      | Populates the cache using a file created using `SaveToFile`. See [persistence](#persistence).
 
-For further documentation, please refer to [Go Reference](https://pkg.go.dev/github.com/TwinProduction/gocache)
+For further documentation, please refer to [Go Reference](https://pkg.go.dev/github.com/TwiN/gocache)
 
 
 ### Examples
@@ -134,7 +134,7 @@ import (
     "fmt"
     "time"
 
-    "github.com/TwinProduction/gocache"
+    "github.com/TwiN/gocache"
 )
 
 func main() {
@@ -323,8 +323,8 @@ For the sake of convenience, a ready-to-go cache server is available through the
 package main
 
 import (
-    "github.com/TwinProduction/gocache"
-    gocacheserver "github.com/TwinProduction/gocache/server"
+    "github.com/TwiN/gocache"
+    gocacheserver "github.com/TwiN/gocache/server"
 )
 
 func main() {
@@ -490,7 +490,7 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/TwinProduction/gocache"
+    "github.com/TwiN/gocache"
 )
 
 const CacheFile = "gocache.data"

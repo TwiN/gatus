@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/core"
-	"github.com/TwinProduction/gatus/v3/storage/store/common"
-	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
-	"github.com/TwinProduction/gatus/v3/util"
+	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage/store/common/paging"
+	"github.com/TwiN/gatus/v3/util"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )

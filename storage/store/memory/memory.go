@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TwinProduction/gatus/v3/core"
-	"github.com/TwinProduction/gatus/v3/storage/store/common"
-	"github.com/TwinProduction/gatus/v3/storage/store/common/paging"
-	"github.com/TwinProduction/gatus/v3/util"
-	"github.com/TwinProduction/gocache"
+	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage/store/common/paging"
+	"github.com/TwiN/gatus/v3/util"
+	"github.com/TwiN/gocache"
 )
 
 func init() {

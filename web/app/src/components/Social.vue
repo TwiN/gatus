@@ -1,6 +1,6 @@
 <template>
   <div id="social">
-    <a href="https://github.com/TwinProduction/gatus" target="_blank" title="Gatus on GitHub">
+    <a href="https://github.com/TwiN/gatus" target="_blank" title="Gatus on GitHub">
       <img src="../assets/github.png" alt="GitHub" width="32" height="auto"/>
     </a>
   </div>

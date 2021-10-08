@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TwinProduction/gatus/v3/config"
-	"github.com/TwinProduction/gatus/v3/config/web"
-	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/config"
+	"github.com/TwiN/gatus/v3/config/web"
+	"github.com/TwiN/gatus/v3/core"
 )
 
 func TestHandle(t *testing.T) {

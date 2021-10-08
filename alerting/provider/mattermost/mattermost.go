@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/TwinProduction/gatus/v3/alerting/alert"
-	"github.com/TwinProduction/gatus/v3/alerting/provider/custom"
-	"github.com/TwinProduction/gatus/v3/client"
-	"github.com/TwinProduction/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/client"
+	"github.com/TwiN/gatus/v3/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Mattermost
@@ -61,7 +61,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
 		Body: fmt.Sprintf(`{
   "text": "",
   "username": "gatus",
-  "icon_url": "https://raw.githubusercontent.com/TwinProduction/gatus/master/static/logo.png",
+  "icon_url": "https://raw.githubusercontent.com/TwiN/gatus/master/static/logo.png",
   "attachments": [
     {
       "title": ":rescue_worker_helmet: Gatus",
