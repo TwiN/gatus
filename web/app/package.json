@@ -1,6 +1,6 @@
 {
   "name": "gatus",
-  "version": "3.0.0",
+  "version": "3.2.2",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --mode development",
@@ -40,6 +40,7 @@
     "rules": {}
   },
   "browserslist": [
+    "defaults",
     "> 1%",
     "last 2 versions",
     "not dead"
