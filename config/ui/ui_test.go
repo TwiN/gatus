@@ -5,10 +5,6 @@ import (
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
-	StaticFolder = "../../web/static"
-	defer func() {
-		StaticFolder = "./web/static"
-	}()
 	cfg := &Config{Title: ""}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())

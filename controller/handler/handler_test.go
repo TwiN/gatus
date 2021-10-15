@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreateRouter(t *testing.T) {
-	router := CreateRouter("../../web/static", nil, nil, true)
+	router := CreateRouter(nil, nil, true)
 	type Scenario struct {
 		Name         string
 		Path         string
