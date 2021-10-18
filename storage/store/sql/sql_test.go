@@ -81,13 +81,13 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", "TestNewStore.db"); err != ErrDatabaseDriverNotSpecified {
+	if _, err := NewStore("", "TestNewStore.db",7); err != ErrDatabaseDriverNotSpecified {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", ""); err != ErrFilePathNotSpecified {
+	if _, err := NewStore("sqlite", "",7); err != ErrFilePathNotSpecified {
 		t.Error("expected error due to blank path parameter")
 	}
-	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db"); err != nil {
+	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db",7); err != nil {
 		t.Error("shouldn't have returned any error, got", err.Error())
 	} else {
 		_ = store.db.Close()
@@ -95,7 +95,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db",7)
 	defer store.Close()
 	now := time.Now().Round(time.Minute)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
@@ -152,7 +152,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db",7)
 	defer store.Close()
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testService, &testSuccessfulResult)
@@ -170,7 +170,7 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 
 func TestStore_Persistence(t *testing.T) {
 	file := t.TempDir() + "/TestStore_Persistence.db"
-	store, _ := NewStore("sqlite", file)
+	store, _ := NewStore("sqlite", file, 7)
 	store.Insert(&testService, &testSuccessfulResult)
 	store.Insert(&testService, &testUnsuccessfulResult)
 	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
@@ -188,7 +188,7 @@ func TestStore_Persistence(t *testing.T) {
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
-	store, _ = NewStore("sqlite", file)
+	store, _ = NewStore("sqlite", file, 7)
 	defer store.Close()
 	ssFromNewStore, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
@@ -252,7 +252,7 @@ func TestStore_Persistence(t *testing.T) {
 }
 
 func TestStore_Save(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db",7)
 	defer store.Close()
 	if store.Save() != nil {
 		t.Error("Save shouldn't do anything for this store")
@@ -262,7 +262,7 @@ func TestStore_Save(t *testing.T) {
 // Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db",7)
 	defer store.Close()
 	store.Insert(&testService, &testSuccessfulResult)
 	serviceStatuses, _ := store.GetAllServiceStatuses(paging.NewServiceStatusParams())
@@ -306,7 +306,7 @@ func TestStore_SanityCheck(t *testing.T) {
 
 // TestStore_InvalidTransaction tests what happens if an invalid transaction is passed as parameter
 func TestStore_InvalidTransaction(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db",7)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
@@ -364,7 +364,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 }
 
 func TestStore_NoRows(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db",7)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
@@ -378,7 +378,7 @@ func TestStore_NoRows(t *testing.T) {
 
 // This tests very unlikely cases where a table is deleted.
 func TestStore_BrokenSchema(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db",7)
 	defer store.Close()
 	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())

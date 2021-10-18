@@ -30,11 +30,11 @@ const (
 	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
 	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
 
-	uptimeRetention = 7 * 24 * time.Hour
+	uptimeRetentionDefaultDays = 7
 )
 
 var (
-	// ErrFilePathNotSpecified is the error returned when path parameter passed in NewStore is blank
+	// ErrFilePathNotSpecified is the error returned when path parameter passed in `NewStor`e is blank
 	ErrFilePathNotSpecified = errors.New("file path cannot be empty")
 
 	// ErrDatabaseDriverNotSpecified is the error returned when the driver parameter passed in NewStore is blank
@@ -46,19 +46,27 @@ var (
 // Store that leverages a database
 type Store struct {
 	driver, file string
+	uptimeRetention time.Duration
 
 	db *sql.DB
 }
 
 // NewStore initializes the database and creates the schema if it doesn't already exist in the file specified
-func NewStore(driver, path string) (*Store, error) {
+func NewStore(driver, path string, uptimeRetentionDays int) (*Store, error) {
 	if len(driver) == 0 {
 		return nil, ErrDatabaseDriverNotSpecified
 	}
 	if len(path) == 0 {
 		return nil, ErrFilePathNotSpecified
 	}
-	store := &Store{driver: driver, file: path}
+	if uptimeRetentionDays == 0 {
+		uptimeRetentionDays = uptimeRetentionDefaultDays
+	}
+	store := &Store{
+		driver: driver,
+		file: path,
+		uptimeRetention: time.Duration(uptimeRetentionDays) * 24 * time.Hour,
+	}
 	var err error
 	if store.db, err = sql.Open(driver, path); err != nil {
 		return nil, err
@@ -317,7 +325,7 @@ func (s *Store) Insert(service *core.Service, result *core.Result) error {
 		log.Printf("[sql][Insert] Failed to retrieve oldest service uptime entry for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 	} else {
 		if ageOfOldestUptimeEntry > uptimeCleanUpThreshold {
-			if err = s.deleteOldUptimeEntries(tx, serviceID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
+			if err = s.deleteOldUptimeEntries(tx, serviceID, time.Now().Add(-(s.uptimeRetention + time.Hour))); err != nil {
 				log.Printf("[sql][Insert] Failed to delete old uptime entries for group=%s; service=%s: %s", service.Group, service.Name, err.Error())
 			}
 		}

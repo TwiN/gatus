@@ -53,7 +53,7 @@ func Initialize(cfg *Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case TypeSQLite, TypePostgres:
-		provider, err = sql.NewStore(string(cfg.Type), cfg.File)
+		provider, err = sql.NewStore(string(cfg.Type), cfg.File, cfg.Retention.UptimeRetentionDays)
 		if err != nil {
 			return err
 		}

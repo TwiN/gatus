@@ -92,7 +92,7 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
+	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", 7)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}

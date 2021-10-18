@@ -15,7 +15,7 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db",7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -73,7 +73,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db",7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -145,7 +145,7 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db")
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db",7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}

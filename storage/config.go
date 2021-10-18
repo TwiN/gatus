@@ -11,4 +11,7 @@ type Config struct {
 	// Type of store
 	// If blank, uses the default in-memory store
 	Type Type `yaml:"type"`
+
+	// Retention configuration
+	Retention Retention `yaml:"retention"`
 }
