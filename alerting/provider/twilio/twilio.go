@@ -18,7 +18,7 @@ type AlertProvider struct {
 	From  string `yaml:"from"`
 	To    string `yaml:"to"`
 
-	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 }
 
@@ -28,12 +28,12 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.Name, alert.GetDescription())
 	}
 	return &custom.AlertProvider{
 		URL:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),

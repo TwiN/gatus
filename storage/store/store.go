@@ -11,15 +11,15 @@ import (
 
 // Store is the interface that each stores should implement
 type Store interface {
-	// GetAllServiceStatuses returns the JSON encoding of all monitored core.ServiceStatus
+	// GetAllEndpointStatuses returns the JSON encoding of all monitored core.EndpointStatus
 	// with a subset of core.Result defined by the page and pageSize parameters
-	GetAllServiceStatuses(params *paging.ServiceStatusParams) ([]*core.ServiceStatus, error)
+	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*core.EndpointStatus, error)
 
-	// GetServiceStatus returns the service status for a given service name in the given group
-	GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error)
+	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
+	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
 
-	// GetServiceStatusByKey returns the service status for a given key
-	GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error)
+	// GetEndpointStatusByKey returns the endpoint status for a given key
+	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -30,13 +30,13 @@ type Store interface {
 	// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
-	// Insert adds the observed result for the specified service into the store
-	Insert(service *core.Service, result *core.Result) error
+	// Insert adds the observed result for the specified endpoint into the store
+	Insert(endpoint *core.Endpoint, result *core.Result) error
 
-	// DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided
+	// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
 	//
-	// Used to delete services that have been persisted but are no longer part of the configured services
-	DeleteAllServiceStatusesNotInKeys(keys []string) int
+	// Used to delete endpoints that have been persisted but are no longer part of the configured endpoints
+	DeleteAllEndpointStatusesNotInKeys(keys []string) int
 
 	// Clear deletes everything from the store
 	Clear()

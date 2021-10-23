@@ -33,7 +33,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 		To:    "4",
 	}
 	description := "alert-description"
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &alert.Alert{Description: &description}, &core.Result{}, true)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{Name: "endpoint-name"}, &alert.Alert{Description: &description}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -46,8 +46,8 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	if customAlertProvider.Method != http.MethodPost {
 		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
 	}
-	if customAlertProvider.Body != "Body=RESOLVED%3A+service-name+-+alert-description&From=3&To=4" {
-		t.Errorf("expected body to be %s, got %s", "Body=RESOLVED%3A+service-name+-+alert-description&From=3&To=4", customAlertProvider.Body)
+	if customAlertProvider.Body != "Body=RESOLVED%3A+endpoint-name+-+alert-description&From=3&To=4" {
+		t.Errorf("expected body to be %s, got %s", "Body=RESOLVED%3A+endpoint-name+-+alert-description&From=3&To=4", customAlertProvider.Body)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 		To:    "1",
 	}
 	description := "alert-description"
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{Name: "service-name"}, &alert.Alert{Description: &description}, &core.Result{}, false)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{Name: "endpoint-name"}, &alert.Alert{Description: &description}, &core.Result{}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -72,7 +72,7 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	if customAlertProvider.Method != http.MethodPost {
 		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
 	}
-	if customAlertProvider.Body != "Body=TRIGGERED%3A+service-name+-+alert-description&From=2&To=1" {
-		t.Errorf("expected body to be %s, got %s", "Body=TRIGGERED%3A+service-name+-+alert-description&From=2&To=1", customAlertProvider.Body)
+	if customAlertProvider.Body != "Body=TRIGGERED%3A+endpoint-name+-+alert-description&From=2&To=1" {
+		t.Errorf("expected body to be %s, got %s", "Body=TRIGGERED%3A+endpoint-name+-+alert-description&From=2&To=1", customAlertProvider.Body)
 	}
 }

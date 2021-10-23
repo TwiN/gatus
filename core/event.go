@@ -15,13 +15,13 @@ type Event struct {
 type EventType string
 
 var (
-	// EventStart is a type of event that represents when a service starts being monitored
+	// EventStart is a type of event that represents when an endpoint starts being monitored
 	EventStart EventType = "START"
 
-	// EventHealthy is a type of event that represents a service passing all of its conditions
+	// EventHealthy is a type of event that represents an endpoint passing all of its conditions
 	EventHealthy EventType = "HEALTHY"
 
-	// EventUnhealthy is a type of event that represents a service failing one or more of its conditions
+	// EventUnhealthy is a type of event that represents an endpoint failing one or more of its conditions
 	EventUnhealthy EventType = "UNHEALTHY"
 )
 

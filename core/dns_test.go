@@ -103,7 +103,7 @@ func TestIntegrationQuery(t *testing.T) {
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithNoDNSQueryName(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithNoDNSQueryName(t *testing.T) {
 	defer func() { recover() }()
 	dns := &DNS{
 		QueryType: "A",
@@ -111,11 +111,11 @@ func TestService_ValidateAndSetDefaultsWithNoDNSQueryName(t *testing.T) {
 	}
 	err := dns.validateAndSetDefault()
 	if err == nil {
-		t.Fatal("Should've returned an error because service`s dns didn't have a query name, which is a mandatory field for dns")
+		t.Fatal("Should've returned an error because endpoint's dns didn't have a query name, which is a mandatory field for dns")
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
 	defer func() { recover() }()
 	dns := &DNS{
 		QueryType: "B",
@@ -123,6 +123,6 @@ func TestService_ValidateAndSetDefaultsWithInvalidDNSQueryType(t *testing.T) {
 	}
 	err := dns.validateAndSetDefault()
 	if err == nil {
-		t.Fatal("Should've returned an error because service`s dns query type is invalid, it needs to be a valid query name like A, AAAA, CNAME...")
+		t.Fatal("Should've returned an error because endpoint's dns query type is invalid, it needs to be a valid query name like A, AAAA, CNAME...")
 	}
 }

@@ -2,7 +2,7 @@ storage:
   type: postgres
   file: "postgres://username:password@postgres:5432/gatus?sslmode=disable"
 
-services:
+endpoints:
   - name: back-end
     group: core
     url: "https://example.org/"

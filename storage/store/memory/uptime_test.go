@@ -8,9 +8,9 @@ import (
 )
 
 func TestProcessUptimeAfterResult(t *testing.T) {
-	service := &core.Service{Name: "name", Group: "group"}
-	serviceStatus := core.NewServiceStatus(service.Key(), service.Group, service.Name)
-	uptime := serviceStatus.Uptime
+	endpoint := &core.Endpoint{Name: "name", Group: "group"}
+	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	uptime := status.Uptime
 
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
@@ -43,18 +43,18 @@ func TestProcessUptimeAfterResult(t *testing.T) {
 }
 
 func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
-	service := &core.Service{Name: "name", Group: "group"}
-	serviceStatus := core.NewServiceStatus(service.Key(), service.Group, service.Name)
+	endpoint := &core.Endpoint{Name: "name", Group: "group"}
+	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	// Start 12 days ago
 	timestamp := now.Add(-12 * 24 * time.Hour)
 	for timestamp.Unix() <= now.Unix() {
-		AddResult(serviceStatus, &core.Result{Timestamp: timestamp, Success: true})
-		if len(serviceStatus.Uptime.HourlyStatistics) > numberOfHoursInTenDays {
-			t.Errorf("At no point in time should there be more than %d entries in serviceStatus.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(serviceStatus.Uptime.HourlyStatistics))
+		AddResult(status, &core.Result{Timestamp: timestamp, Success: true})
+		if len(status.Uptime.HourlyStatistics) > numberOfHoursInTenDays {
+			t.Errorf("At no point in time should there be more than %d entries in status.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(status.Uptime.HourlyStatistics))
 		}
-		// Simulate service with an interval of 3 minutes
+		// Simulate endpoint with an interval of 3 minutes
 		timestamp = timestamp.Add(3 * time.Minute)
 	}
 }

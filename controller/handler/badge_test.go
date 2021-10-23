@@ -18,7 +18,7 @@ func TestUptimeBadge(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Services: []*core.Service{
+		Endpoints: []*core.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -29,8 +29,8 @@ func TestUptimeBadge(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
 	type Scenario struct {
 		Name         string
@@ -41,56 +41,66 @@ func TestUptimeBadge(t *testing.T) {
 	scenarios := []Scenario{
 		{
 			Name:         "badge-uptime-1h",
-			Path:         "/api/v1/services/core_frontend/uptimes/1h/badge.svg",
+			Path:         "/api/v1/endpoints/core_frontend/uptimes/1h/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-uptime-24h",
-			Path:         "/api/v1/services/core_backend/uptimes/24h/badge.svg",
+			Path:         "/api/v1/endpoints/core_backend/uptimes/24h/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-uptime-7d",
-			Path:         "/api/v1/services/core_frontend/uptimes/7d/badge.svg",
+			Path:         "/api/v1/endpoints/core_frontend/uptimes/7d/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-uptime-with-invalid-duration",
-			Path:         "/api/v1/services/core_backend/uptimes/3d/badge.svg",
+			Path:         "/api/v1/endpoints/core_backend/uptimes/3d/badge.svg",
 			ExpectedCode: http.StatusBadRequest,
 		},
 		{
 			Name:         "badge-uptime-for-invalid-key",
-			Path:         "/api/v1/services/invalid_key/uptimes/7d/badge.svg",
+			Path:         "/api/v1/endpoints/invalid_key/uptimes/7d/badge.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
 			Name:         "badge-response-time-1h",
-			Path:         "/api/v1/services/core_frontend/response-times/1h/badge.svg",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/1h/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-response-time-24h",
-			Path:         "/api/v1/services/core_backend/response-times/24h/badge.svg",
+			Path:         "/api/v1/endpoints/core_backend/response-times/24h/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-response-time-7d",
-			Path:         "/api/v1/services/core_frontend/response-times/7d/badge.svg",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/7d/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "badge-response-time-with-invalid-duration",
-			Path:         "/api/v1/services/core_backend/response-times/3d/badge.svg",
+			Path:         "/api/v1/endpoints/core_backend/response-times/3d/badge.svg",
 			ExpectedCode: http.StatusBadRequest,
 		},
 		{
 			Name:         "badge-response-time-for-invalid-key",
-			Path:         "/api/v1/services/invalid_key/response-times/7d/badge.svg",
+			Path:         "/api/v1/endpoints/invalid_key/response-times/7d/badge.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
 			Name:         "chart-response-time-24h",
+			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{ // XXX: Remove this in v4.0.0
+			Name:         "backward-compatible-services-badge-uptime-1h",
+			Path:         "/api/v1/services/core_frontend/uptimes/1h/badge.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{ // XXX: Remove this in v4.0.0
+			Name:         "backward-compatible-services-chart-response-time-24h",
 			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},

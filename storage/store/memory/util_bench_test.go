@@ -8,14 +8,14 @@ import (
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 )
 
-func BenchmarkShallowCopyServiceStatus(b *testing.B) {
-	service := &testService
-	serviceStatus := core.NewServiceStatus(service.Key(), service.Group, service.Name)
+func BenchmarkShallowCopyEndpointStatus(b *testing.B) {
+	endpoint := &testEndpoint
+	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
 	for i := 0; i < common.MaximumNumberOfResults; i++ {
-		AddResult(serviceStatus, &testSuccessfulResult)
+		AddResult(status, &testSuccessfulResult)
 	}
 	for n := 0; n < b.N; n++ {
-		ShallowCopyServiceStatus(serviceStatus, paging.NewServiceStatusParams().WithResults(1, 20))
+		ShallowCopyEndpointStatus(status, paging.NewEndpointStatusParams().WithResults(1, 20))
 	}
 	b.ReportAllocs()
 }

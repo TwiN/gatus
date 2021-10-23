@@ -1,8 +1,8 @@
-services:
+endpoints:
   - name: front-end
     group: core
     url: "https://twin.sh/health"
-    interval: 1m
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"

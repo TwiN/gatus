@@ -44,7 +44,7 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 	}
 	hourlyAverageResponseTime, err := storage.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())
 	if err != nil {
-		if err == common.ErrServiceNotFound {
+		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
 			writer.WriteHeader(http.StatusBadRequest)

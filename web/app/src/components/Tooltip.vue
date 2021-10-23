@@ -26,7 +26,7 @@
 
 <script>
 export default {
-  name: 'Services',
+  name: 'Endpoints',
   props: {
     event: Event,
     result: Object

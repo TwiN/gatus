@@ -2,10 +2,10 @@ package paging
 
 import "testing"
 
-func TestNewServiceStatusParams(t *testing.T) {
+func TestNewEndpointStatusParams(t *testing.T) {
 	type Scenario struct {
 		Name                    string
-		Params                  *ServiceStatusParams
+		Params                  *EndpointStatusParams
 		ExpectedEventsPage      int
 		ExpectedEventsPageSize  int
 		ExpectedResultsPage     int
@@ -14,7 +14,7 @@ func TestNewServiceStatusParams(t *testing.T) {
 	scenarios := []Scenario{
 		{
 			Name:                    "empty-params",
-			Params:                  NewServiceStatusParams(),
+			Params:                  NewEndpointStatusParams(),
 			ExpectedEventsPage:      0,
 			ExpectedEventsPageSize:  0,
 			ExpectedResultsPage:     0,
@@ -22,7 +22,7 @@ func TestNewServiceStatusParams(t *testing.T) {
 		},
 		{
 			Name:                    "with-events-page-2-size-7",
-			Params:                  NewServiceStatusParams().WithEvents(2, 7),
+			Params:                  NewEndpointStatusParams().WithEvents(2, 7),
 			ExpectedEventsPage:      2,
 			ExpectedEventsPageSize:  7,
 			ExpectedResultsPage:     0,
@@ -30,7 +30,7 @@ func TestNewServiceStatusParams(t *testing.T) {
 		},
 		{
 			Name:                    "with-events-page-4-size-3-uptime",
-			Params:                  NewServiceStatusParams().WithEvents(4, 3),
+			Params:                  NewEndpointStatusParams().WithEvents(4, 3),
 			ExpectedEventsPage:      4,
 			ExpectedEventsPageSize:  3,
 			ExpectedResultsPage:     0,
@@ -38,7 +38,7 @@ func TestNewServiceStatusParams(t *testing.T) {
 		},
 		{
 			Name:                    "with-results-page-1-size-20-uptime",
-			Params:                  NewServiceStatusParams().WithResults(1, 20),
+			Params:                  NewEndpointStatusParams().WithResults(1, 20),
 			ExpectedEventsPage:      0,
 			ExpectedEventsPageSize:  0,
 			ExpectedResultsPage:     1,
@@ -46,7 +46,7 @@ func TestNewServiceStatusParams(t *testing.T) {
 		},
 		{
 			Name:                    "with-results-page-2-size-10-events-page-3-size-50",
-			Params:                  NewServiceStatusParams().WithResults(2, 10).WithEvents(3, 50),
+			Params:                  NewEndpointStatusParams().WithResults(2, 10).WithEvents(3, 50),
 			ExpectedEventsPage:      3,
 			ExpectedEventsPageSize:  50,
 			ExpectedResultsPage:     2,

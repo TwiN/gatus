@@ -15,18 +15,19 @@ var (
 	rwLock sync.RWMutex
 )
 
-// PublishMetricsForService publishes metrics for the given service and its result.
+// PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
-func PublishMetricsForService(service *core.Service, result *core.Result) {
+func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
 	rwLock.Lock()
-	gauge, exists := gauges[fmt.Sprintf("%s_%s", service.Name, service.URL)]
+	gauge, exists := gauges[fmt.Sprintf("%s_%s", endpoint.Name, endpoint.URL)]
 	if !exists {
 		gauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Subsystem:   "gatus",
-			Name:        "tasks",
-			ConstLabels: prometheus.Labels{"service": service.Name, "url": service.URL},
+			Subsystem: "gatus",
+			Name:      "tasks",
+			// TODO: remove the "service" key in v4.0.0, as it is only kept for backward compatibility
+			ConstLabels: prometheus.Labels{"service": endpoint.Name, "endpoint": endpoint.Name, "url": endpoint.URL},
 		}, []string{"status", "success"})
-		gauges[fmt.Sprintf("%s_%s", service.Name, service.URL)] = gauge
+		gauges[fmt.Sprintf("%s_%s", endpoint.Name, endpoint.URL)] = gauge
 	}
 	rwLock.Unlock()
 	gauge.WithLabelValues(strconv.Itoa(result.HTTPStatus), strconv.FormatBool(result.Success)).Inc()

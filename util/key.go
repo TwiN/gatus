@@ -2,9 +2,9 @@ package util
 
 import "strings"
 
-// ConvertGroupAndServiceToKey converts a group and a service to a key
-func ConvertGroupAndServiceToKey(group, service string) string {
-	return sanitize(group) + "_" + sanitize(service)
+// ConvertGroupAndEndpointNameToKey converts a group and an endpoint to a key
+func ConvertGroupAndEndpointNameToKey(group, endpoint string) string {
+	return sanitize(group) + "_" + sanitize(endpoint)
 }
 
 func sanitize(s string) string {

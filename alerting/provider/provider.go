@@ -20,31 +20,31 @@ type AlertProvider interface {
 	IsValid() bool
 
 	// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-	ToCustomAlertProvider(service *core.Service, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider
+	ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider
 
 	// GetDefaultAlert returns the provider's default alert configuration
 	GetDefaultAlert() *alert.Alert
 }
 
-// ParseWithDefaultAlert parses a service alert by using the provider's default alert as a baseline
-func ParseWithDefaultAlert(providerDefaultAlert, serviceAlert *alert.Alert) {
-	if providerDefaultAlert == nil || serviceAlert == nil {
+// ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
+func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
+	if providerDefaultAlert == nil || endpointAlert == nil {
 		return
 	}
-	if serviceAlert.Enabled == nil {
-		serviceAlert.Enabled = providerDefaultAlert.Enabled
+	if endpointAlert.Enabled == nil {
+		endpointAlert.Enabled = providerDefaultAlert.Enabled
 	}
-	if serviceAlert.SendOnResolved == nil {
-		serviceAlert.SendOnResolved = providerDefaultAlert.SendOnResolved
+	if endpointAlert.SendOnResolved == nil {
+		endpointAlert.SendOnResolved = providerDefaultAlert.SendOnResolved
 	}
-	if serviceAlert.Description == nil {
-		serviceAlert.Description = providerDefaultAlert.Description
+	if endpointAlert.Description == nil {
+		endpointAlert.Description = providerDefaultAlert.Description
 	}
-	if serviceAlert.FailureThreshold == 0 {
-		serviceAlert.FailureThreshold = providerDefaultAlert.FailureThreshold
+	if endpointAlert.FailureThreshold == 0 {
+		endpointAlert.FailureThreshold = providerDefaultAlert.FailureThreshold
 	}
-	if serviceAlert.SuccessThreshold == 0 {
-		serviceAlert.SuccessThreshold = providerDefaultAlert.SuccessThreshold
+	if endpointAlert.SuccessThreshold == 0 {
+		endpointAlert.SuccessThreshold = providerDefaultAlert.SuccessThreshold
 	}
 }
 

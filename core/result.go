@@ -4,18 +4,18 @@ import (
 	"time"
 )
 
-// Result of the evaluation of a Service
+// Result of the evaluation of a Endpoint
 type Result struct {
 	// HTTPStatus is the HTTP response status code
 	HTTPStatus int `json:"status"`
 
-	// DNSRCode is the response code of a DNS query in a human readable format
+	// DNSRCode is the response code of a DNS query in a human-readable format
 	DNSRCode string `json:"-"`
 
-	// Hostname extracted from Service.URL
+	// Hostname extracted from Endpoint.URL
 	Hostname string `json:"hostname"`
 
-	// IP resolved from the Service URL
+	// IP resolved from the Endpoint URL
 	IP string `json:"-"`
 
 	// Connected whether a connection to the host was established successfully
@@ -24,10 +24,10 @@ type Result struct {
 	// Duration time that the request took
 	Duration time.Duration `json:"duration"`
 
-	// Errors encountered during the evaluation of the service's health
+	// Errors encountered during the evaluation of the Endpoint's health
 	Errors []string `json:"errors"`
 
-	// ConditionResults results of the service's conditions
+	// ConditionResults results of the Endpoint's conditions
 	ConditionResults []*ConditionResult `json:"conditionResults"`
 
 	// Success whether the result signifies a success or not
@@ -41,8 +41,8 @@ type Result struct {
 
 	// body is the response body
 	//
-	// Note that this variable is only used during the evaluation of a service's health.
-	// This means that the call Service.EvaluateHealth both populates the body (if necessary)
+	// Note that this variable is only used during the evaluation of an Endpoint's health.
+	// This means that the call Endpoint.EvaluateHealth both populates the body (if necessary)
 	// and sets it to nil after the evaluation has been completed.
 	body []byte
 }

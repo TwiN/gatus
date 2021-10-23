@@ -17,7 +17,7 @@ const (
 type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
 
-	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
@@ -48,14 +48,14 @@ func (provider *AlertProvider) IsValid() bool {
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
 //
 // relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message, eventAction, resolveKey string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 		eventAction = "resolve"
 		resolveKey = alert.ResolveKey
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.Name, alert.GetDescription())
 		eventAction = "trigger"
 		resolveKey = ""
 	}
@@ -71,7 +71,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, aler
     "source": "%s",
     "severity": "critical"
   }
-}`, provider.getPagerDutyIntegrationKeyForGroup(service.Group), resolveKey, eventAction, message, service.Name),
+}`, provider.getPagerDutyIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name),
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},

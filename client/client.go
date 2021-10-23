@@ -22,7 +22,7 @@ func GetHTTPClient(config *Config) *http.Client {
 	return config.getHTTPClient()
 }
 
-// CanCreateTCPConnection checks whether a connection can be established with a TCP service
+// CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
 func CanCreateTCPConnection(address string, config *Config) bool {
 	conn, err := net.DialTimeout("tcp", address, config.Timeout)
 	if err != nil {
