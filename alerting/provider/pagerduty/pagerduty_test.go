@@ -59,7 +59,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 
 func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
 	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -89,7 +89,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlertAndOverride(t *test
 			},
 		},
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -111,7 +111,7 @@ func TestAlertProvider_ToCustomAlertProviderWithResolvedAlertAndOverride(t *test
 
 func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
 	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, false)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
@@ -141,7 +141,7 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlertAndOverride(t *tes
 			},
 		},
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, false)
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, false)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}

@@ -1,11 +1,11 @@
 package alert
 
-// Alert is the service's alert configuration
+// Alert is a core.Endpoint's alert configuration
 type Alert struct {
 	// Type of alert (required)
 	Type Type `yaml:"type"`
 
-	// Enabled defines whether or not the alert is enabled
+	// Enabled defines whether the alert is enabled
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.

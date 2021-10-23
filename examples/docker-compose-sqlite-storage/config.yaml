@@ -2,7 +2,7 @@ storage:
   type: sqlite
   file: /data/data.db
 
-services:
+endpoints:
   - name: back-end
     group: core
     url: "https://example.org/"

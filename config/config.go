@@ -30,8 +30,8 @@ const (
 )
 
 var (
-	// ErrNoServiceInConfig is an error returned when a configuration file has no services configured
-	ErrNoServiceInConfig = errors.New("configuration file should contain at least 1 service")
+	// ErrNoEndpointInConfig is an error returned when a configuration file has no endpoints configured
+	ErrNoEndpointInConfig = errors.New("configuration file should contain at least 1 endpoint")
 
 	// ErrConfigFileNotFound is an error returned when the configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
@@ -53,7 +53,7 @@ type Config struct {
 	SkipInvalidConfigUpdate bool `yaml:"skip-invalid-config-update"`
 
 	// DisableMonitoringLock Whether to disable the monitoring lock
-	// The monitoring lock is what prevents multiple services from being processed at the same time.
+	// The monitoring lock is what prevents multiple endpoints from being processed at the same time.
 	// Disabling this may lead to inaccurate response times
 	DisableMonitoringLock bool `yaml:"disable-monitoring-lock"`
 
@@ -63,13 +63,21 @@ type Config struct {
 	// Alerting Configuration for alerting
 	Alerting *alerting.Config `yaml:"alerting"`
 
-	// Services List of services to monitor
-	Services []*core.Service `yaml:"services"`
+	// Endpoints List of endpoints to monitor
+	Endpoints []*core.Endpoint `yaml:"endpoints"`
+
+	// Services List of endpoints to monitor
+	//
+	// XXX: Remove this in v5.0.0
+	// XXX: This is not a typo -- not v4.0.0, but v5.0.0 -- I want to give enough time for people to migrate
+	//
+	// Deprecated in favor of Endpoints
+	Services []*core.Endpoint `yaml:"services"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage"`
 
-	// Web is the configuration for the web listener
+	// Web is the web configuration for the application
 	Web *web.Config `yaml:"web"`
 
 	// UI is the configuration for the UI
@@ -149,17 +157,23 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	// Check if the configuration file at least has services configured
-	if config == nil || config.Services == nil || len(config.Services) == 0 {
-		err = ErrNoServiceInConfig
+	if config != nil && len(config.Services) > 0 { // XXX: Remove this in v5.0.0
+		log.Println("WARNING: Your configuration is using 'services:', which is deprecated in favor of 'endpoints:'.")
+		log.Println("WARNING: See https://github.com/TwiN/gatus/issues/191 for more information")
+		config.Endpoints = append(config.Endpoints, config.Services...)
+		config.Services = nil
+	}
+	// Check if the configuration file at least has endpoints configured
+	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
+		err = ErrNoEndpointInConfig
 	} else {
 		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
 		// invalid configurations
-		validateAlertingConfig(config.Alerting, config.Services, config.Debug)
+		validateAlertingConfig(config.Alerting, config.Endpoints, config.Debug)
 		if err := validateSecurityConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateServicesConfig(config); err != nil {
+		if err := validateEndpointsConfig(config); err != nil {
 			return nil, err
 		}
 		if err := validateWebConfig(config); err != nil {
@@ -188,14 +202,14 @@ func validateStorageConfig(config *Config) error {
 	if err != nil {
 		return err
 	}
-	// Remove all ServiceStatus that represent services which no longer exist in the configuration
+	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
-	for _, service := range config.Services {
-		keys = append(keys, service.Key())
+	for _, endpoint := range config.Endpoints {
+		keys = append(keys, endpoint.Key())
 	}
-	numberOfServiceStatusesDeleted := storage.Get().DeleteAllServiceStatusesNotInKeys(keys)
-	if numberOfServiceStatusesDeleted > 0 {
-		log.Printf("[config][validateStorageConfig] Deleted %d service statuses because their matching services no longer existed", numberOfServiceStatusesDeleted)
+	numberOfEndpointStatusesDeleted := storage.Get().DeleteAllEndpointStatusesNotInKeys(keys)
+	if numberOfEndpointStatusesDeleted > 0 {
+		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
 	return nil
 }
@@ -231,16 +245,16 @@ func validateWebConfig(config *Config) error {
 	return nil
 }
 
-func validateServicesConfig(config *Config) error {
-	for _, service := range config.Services {
+func validateEndpointsConfig(config *Config) error {
+	for _, endpoint := range config.Endpoints {
 		if config.Debug {
-			log.Printf("[config][validateServicesConfig] Validating service '%s'", service.Name)
+			log.Printf("[config][validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
 		}
-		if err := service.ValidateAndSetDefaults(); err != nil {
+		if err := endpoint.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
-	log.Printf("[config][validateServicesConfig] Validated %d services", len(config.Services))
+	log.Printf("[config][validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	return nil
 }
 
@@ -260,10 +274,10 @@ func validateSecurityConfig(config *Config) error {
 }
 
 // validateAlertingConfig validates the alerting configuration
-// Note that the alerting configuration has to be validated before the service configuration, because the default alert
-// returned by provider.AlertProvider.GetDefaultAlert() must be parsed before core.Service.ValidateAndSetDefaults()
+// Note that the alerting configuration has to be validated before the endpoint configuration, because the default alert
+// returned by provider.AlertProvider.GetDefaultAlert() must be parsed before core.Endpoint.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(alertingConfig *alerting.Config, services []*core.Service, debug bool) {
+func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.Endpoint, debug bool) {
 	if alertingConfig == nil {
 		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
 		return
@@ -286,13 +300,13 @@ func validateAlertingConfig(alertingConfig *alerting.Config, services []*core.Se
 			if alertProvider.IsValid() {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
-					for _, service := range services {
-						for alertIndex, serviceAlert := range service.Alerts {
-							if alertType == serviceAlert.Type {
+					for _, endpoint := range endpoints {
+						for alertIndex, endpointAlert := range endpoint.Alerts {
+							if alertType == endpointAlert.Type {
 								if debug {
-									log.Printf("[config][validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in service=%s", alertIndex, alertType, service.Name)
+									log.Printf("[config][validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, endpoint.Name)
 								}
-								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), serviceAlert)
+								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}
 						}
 					}

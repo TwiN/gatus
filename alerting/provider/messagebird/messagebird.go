@@ -19,7 +19,7 @@ type AlertProvider struct {
 	Originator string `yaml:"originator"`
 	Recipients string `yaml:"recipients"`
 
-	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 }
 
@@ -30,12 +30,12 @@ func (provider *AlertProvider) IsValid() bool {
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
 // Reference doc for messagebird https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", service.Name, alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.Name, alert.GetDescription())
 	}
 	return &custom.AlertProvider{
 		URL:    restAPIURL,

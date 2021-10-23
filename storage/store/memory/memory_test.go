@@ -15,7 +15,7 @@ var (
 
 	now = time.Now()
 
-	testService = core.Service{
+	testEndpoint = core.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
@@ -84,39 +84,39 @@ var (
 func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("")
 	defer store.Close()
-	store.Insert(&testService, &testSuccessfulResult)
-	serviceStatuses, _ := store.GetAllServiceStatuses(paging.NewServiceStatusParams())
-	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
-	store.Insert(&testService, &testUnsuccessfulResult)
-	// Both results inserted are for the same service, therefore, the count shouldn't have increased
-	serviceStatuses, _ = store.GetAllServiceStatuses(paging.NewServiceStatusParams())
-	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	// Both results inserted are for the same endpoint, therefore, the count shouldn't have increased
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
-	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
+	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	} else if len(hourlyAverageResponseTime) != 1 {
 		t.Errorf("expected 1 hour to have had a result in the past 24 hours, got %d", len(hourlyAverageResponseTime))
 	}
-	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); uptime != 0.5 {
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); uptime != 0.5 {
 		t.Errorf("expected uptime of last 24h to be 0.5, got %f", uptime)
 	}
-	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
+	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
-		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
+		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
 	if len(ss.Events) != 3 {
-		t.Errorf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
+		t.Errorf("Endpoint '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 	}
 	if len(ss.Results) != 2 {
-		t.Errorf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+		t.Errorf("Endpoint '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 	}
-	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{}); deleted != 1 {
+	if deleted := store.DeleteAllEndpointStatusesNotInKeys([]string{}); deleted != 1 {
 		t.Errorf("%d entries should've been deleted, got %d", 1, deleted)
 	}
 }

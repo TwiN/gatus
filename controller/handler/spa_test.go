@@ -17,7 +17,7 @@ func TestSinglePageApplication(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Services: []*core.Service{
+		Endpoints: []*core.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -28,8 +28,8 @@ func TestSinglePageApplication(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
 	type Scenario struct {
 		Name         string
@@ -44,6 +44,11 @@ func TestSinglePageApplication(t *testing.T) {
 			ExpectedCode: http.StatusOK,
 		},
 		{
+			Name:         "frontend-endpoint",
+			Path:         "/endpoints/core_frontend",
+			ExpectedCode: http.StatusOK,
+		},
+		{ // XXX: Remove this in v4.0.0
 			Name:         "frontend-service",
 			Path:         "/services/core_frontend",
 			ExpectedCode: http.StatusOK,

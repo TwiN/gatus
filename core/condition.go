@@ -80,7 +80,7 @@ const (
 	maximumLengthBeforeTruncatingWhenComparedWithPattern = 25
 )
 
-// Condition is a condition that needs to be met in order for a Service to be considered healthy.
+// Condition is a condition that needs to be met in order for a Endpoint to be considered healthy.
 type Condition string
 
 // evaluate the Condition with the Result of the health check

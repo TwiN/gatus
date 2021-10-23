@@ -1,5 +1,5 @@
 metrics: true
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     interval: 30s

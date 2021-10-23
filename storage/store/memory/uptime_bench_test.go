@@ -19,7 +19,7 @@ func BenchmarkProcessUptimeAfterResult(b *testing.B) {
 			Success:   n%15 == 0,
 			Timestamp: timestamp,
 		})
-		// Simulate service with an interval of 3 minutes
+		// Simulate an endpoint with an interval of 3 minutes
 		timestamp = timestamp.Add(3 * time.Minute)
 	}
 	b.ReportAllocs()

@@ -16,7 +16,7 @@ var (
 
 	now = time.Now()
 
-	testService = core.Service{
+	testEndpoint = core.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
@@ -100,54 +100,54 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	now := time.Now().Round(time.Minute)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
-	store.Insert(&testService, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
 
 	tx, _ := store.db.Begin()
-	oldest, _ := store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	oldest, _ := store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
 	if oldest.Truncate(time.Hour) != 5*time.Hour {
-		t.Errorf("oldest service uptime entry should've been ~5 hours old, was %s", oldest)
+		t.Errorf("oldest endpoint uptime entry should've been ~5 hours old, was %s", oldest)
 	}
 
 	// The oldest cache entry should remain at ~5 hours old, because this entry is more recent
-	store.Insert(&testService, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
-	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
 	if oldest.Truncate(time.Hour) != 5*time.Hour {
-		t.Errorf("oldest service uptime entry should've been ~5 hours old, was %s", oldest)
+		t.Errorf("oldest endpoint uptime entry should've been ~5 hours old, was %s", oldest)
 	}
 
 	// The oldest cache entry should now become at ~8 hours old, because this entry is older
-	store.Insert(&testService, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
-	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
 	if oldest.Truncate(time.Hour) != 8*time.Hour {
-		t.Errorf("oldest service uptime entry should've been ~8 hours old, was %s", oldest)
+		t.Errorf("oldest endpoint uptime entry should've been ~8 hours old, was %s", oldest)
 	}
 
 	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
-	store.Insert(&testService, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
-	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
 	if oldest.Truncate(time.Hour) != uptimeCleanUpThreshold-time.Hour {
-		t.Errorf("oldest service uptime entry should've been ~%s hours old, was %s", uptimeCleanUpThreshold-time.Hour, oldest)
+		t.Errorf("oldest endpoint uptime entry should've been ~%s hours old, was %s", uptimeCleanUpThreshold-time.Hour, oldest)
 	}
 
 	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
 	// one should be deleted since they both surpass uptimeRetention
-	store.Insert(&testService, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
-	oldest, _ = store.getAgeOfOldestServiceUptimeEntry(tx, 1)
+	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
 	if oldest.Truncate(time.Hour) != 8*time.Hour {
-		t.Errorf("oldest service uptime entry should've been ~8 hours old, was %s", oldest)
+		t.Errorf("oldest endpoint uptime entry should've been ~8 hours old, was %s", oldest)
 	}
 }
 
@@ -155,9 +155,9 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db")
 	defer store.Close()
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
-		store.Insert(&testService, &testSuccessfulResult)
-		store.Insert(&testService, &testUnsuccessfulResult)
-		ss, _ := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults*5).WithEvents(1, common.MaximumNumberOfEvents*5))
+		store.Insert(&testEndpoint, &testSuccessfulResult)
+		store.Insert(&testEndpoint, &testUnsuccessfulResult)
+		ss, _ := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults*5).WithEvents(1, common.MaximumNumberOfEvents*5))
 		if len(ss.Results) > resultsCleanUpThreshold+1 {
 			t.Errorf("number of results shouldn't have exceeded %d, reached %d", resultsCleanUpThreshold, len(ss.Results))
 		}
@@ -171,18 +171,18 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 func TestStore_Persistence(t *testing.T) {
 	file := t.TempDir() + "/TestStore_Persistence.db"
 	store, _ := NewStore("sqlite", file)
-	store.Insert(&testService, &testSuccessfulResult)
-	store.Insert(&testService, &testUnsuccessfulResult)
-	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 1h should've been 0.5, got %f", uptime)
 	}
-	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24), time.Now()); uptime != 0.5 {
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 24h should've been 0.5, got %f", uptime)
 	}
-	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
 	}
-	ssFromOldStore, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
@@ -190,7 +190,7 @@ func TestStore_Persistence(t *testing.T) {
 	store.Close()
 	store, _ = NewStore("sqlite", file)
 	defer store.Close()
-	ssFromNewStore, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
@@ -264,42 +264,42 @@ func TestStore_Save(t *testing.T) {
 func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db")
 	defer store.Close()
-	store.Insert(&testService, &testSuccessfulResult)
-	serviceStatuses, _ := store.GetAllServiceStatuses(paging.NewServiceStatusParams())
-	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
-	store.Insert(&testService, &testUnsuccessfulResult)
-	// Both results inserted are for the same service, therefore, the count shouldn't have increased
-	serviceStatuses, _ = store.GetAllServiceStatuses(paging.NewServiceStatusParams())
-	if numberOfServiceStatuses := len(serviceStatuses); numberOfServiceStatuses != 1 {
-		t.Fatalf("expected 1 ServiceStatus, got %d", numberOfServiceStatuses)
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	// Both results inserted are for the same endpoint, therefore, the count shouldn't have increased
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
-	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
+	if hourlyAverageResponseTime, err := store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	} else if len(hourlyAverageResponseTime) != 1 {
 		t.Errorf("expected 1 hour to have had a result in the past 24 hours, got %d", len(hourlyAverageResponseTime))
 	}
-	if uptime, _ := store.GetUptimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); uptime != 0.5 {
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); uptime != 0.5 {
 		t.Errorf("expected uptime of last 24h to be 0.5, got %f", uptime)
 	}
-	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
+	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetServiceStatus(testService.Group, testService.Name, paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
-		t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
+		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
 	if len(ss.Events) != 3 {
-		t.Errorf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
+		t.Errorf("Endpoint '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 	}
 	if len(ss.Results) != 2 {
-		t.Errorf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+		t.Errorf("Endpoint '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 	}
-	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{"invalid-key-which-means-everything-should-get-deleted"}); deleted != 1 {
+	if deleted := store.DeleteAllEndpointStatusesNotInKeys([]string{"invalid-key-which-means-everything-should-get-deleted"}); deleted != 1 {
 		t.Errorf("%d entries should've been deleted, got %d", 1, deleted)
 	}
-	if deleted := store.DeleteAllServiceStatusesNotInKeys([]string{}); deleted != 0 {
+	if deleted := store.DeleteAllEndpointStatusesNotInKeys([]string{}); deleted != 0 {
 		t.Errorf("There should've been no entries left to delete, got %d", deleted)
 	}
 }
@@ -310,55 +310,55 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
-	if _, err := store.insertService(tx, &testService); err == nil {
+	if _, err := store.insertEndpoint(tx, &testEndpoint); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.insertEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
+	if err := store.insertEndpointEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.insertResult(tx, 1, &testSuccessfulResult); err == nil {
+	if err := store.insertEndpointResult(tx, 1, &testSuccessfulResult); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 	if err := store.insertConditionResults(tx, 1, testSuccessfulResult.ConditionResults); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.updateServiceUptime(tx, 1, &testSuccessfulResult); err == nil {
+	if err := store.updateEndpointUptime(tx, 1, &testSuccessfulResult); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getAllServiceKeys(tx); err == nil {
+	if _, err := store.getAllEndpointKeys(tx); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getServiceStatusByKey(tx, testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20)); err == nil {
+	if _, err := store.getEndpointStatusByKey(tx, testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 20)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getEventsByServiceID(tx, 1, 1, 50); err == nil {
+	if _, err := store.getEndpointEventsByEndpointID(tx, 1, 1, 50); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getResultsByServiceID(tx, 1, 1, 50); err == nil {
+	if _, err := store.getEndpointResultsByEndpointID(tx, 1, 1, 50); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.deleteOldServiceEvents(tx, 1); err == nil {
+	if err := store.deleteOldEndpointEvents(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.deleteOldServiceResults(tx, 1); err == nil {
+	if err := store.deleteOldEndpointResults(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, _, err := store.getServiceUptime(tx, 1, time.Now(), time.Now()); err == nil {
+	if _, _, err := store.getEndpointUptime(tx, 1, time.Now(), time.Now()); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getServiceID(tx, &testService); err == nil {
+	if _, err := store.getEndpointID(tx, &testEndpoint); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getNumberOfEventsByServiceID(tx, 1); err == nil {
+	if _, err := store.getNumberOfEventsByEndpointID(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getNumberOfResultsByServiceID(tx, 1); err == nil {
+	if _, err := store.getNumberOfResultsByEndpointID(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getAgeOfOldestServiceUptimeEntry(tx, 1); err == nil {
+	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getLastServiceResultSuccessValue(tx, 1); err == nil {
+	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 }
@@ -368,10 +368,10 @@ func TestStore_NoRows(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
-	if _, err := store.getLastServiceResultSuccessValue(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); err != errNoRowsReturned {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
-	if _, err := store.getAgeOfOldestServiceUptimeEntry(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); err != errNoRowsReturned {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
 }
@@ -380,33 +380,33 @@ func TestStore_NoRows(t *testing.T) {
 func TestStore_BrokenSchema(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db")
 	defer store.Close()
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
-	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err != nil {
+	if _, err := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
-	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams()); err != nil {
+	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams()); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
-	_, _ = store.db.Exec("DROP TABLE service")
-	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+	_, _ = store.db.Exec("DROP TABLE endpoints")
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams()); err == nil {
+	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams()); err == nil {
+	if _, err := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams()); err == nil {
 		t.Fatal("expected an error")
 	}
 	// Repair
@@ -414,15 +414,15 @@ func TestStore_BrokenSchema(t *testing.T) {
 		t.Fatal("schema should've been repaired")
 	}
 	store.Clear()
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
-	_, _ = store.db.Exec("DROP TABLE service_event")
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	_, _ = store.db.Exec("DROP TABLE endpoint_events")
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, because this should silently fails, got", err.Error())
 	}
-	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
+	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
 		t.Fatal("expected no error, because this should silently fail, got", err.Error())
 	}
 	// Repair
@@ -430,15 +430,15 @@ func TestStore_BrokenSchema(t *testing.T) {
 		t.Fatal("schema should've been repaired")
 	}
 	store.Clear()
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
-	_, _ = store.db.Exec("DROP TABLE service_result")
-	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+	_, _ = store.db.Exec("DROP TABLE endpoint_results")
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
+	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
 		t.Fatal("expected no error, because this should silently fail, got", err.Error())
 	}
 	// Repair
@@ -446,12 +446,12 @@ func TestStore_BrokenSchema(t *testing.T) {
 		t.Fatal("schema should've been repaired")
 	}
 	store.Clear()
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
-	_, _ = store.db.Exec("DROP TABLE service_result_condition")
-	if err := store.Insert(&testService, &testSuccessfulResult); err == nil {
+	_, _ = store.db.Exec("DROP TABLE endpoint_result_conditions")
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err == nil {
 		t.Fatal("expected an error")
 	}
 	// Repair
@@ -459,21 +459,21 @@ func TestStore_BrokenSchema(t *testing.T) {
 		t.Fatal("schema should've been repaired")
 	}
 	store.Clear()
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
-	_, _ = store.db.Exec("DROP TABLE service_uptime")
-	if err := store.Insert(&testService, &testSuccessfulResult); err != nil {
+	_, _ = store.db.Exec("DROP TABLE endpoint_uptimes")
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, because this should silently fails, got", err.Error())
 	}
-	if _, err := store.GetAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetHourlyAverageResponseTimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
+	if _, err := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
 }

@@ -13,7 +13,7 @@ import (
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
 
-	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 }
 
@@ -23,14 +23,14 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
 	var message, results string
 	var colorCode int
 	if resolved {
-		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", service.Name, alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", endpoint.Name, alert.SuccessThreshold)
 		colorCode = 3066993
 	} else {
-		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", service.Name, alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.Name, alert.FailureThreshold)
 		colorCode = 15158332
 	}
 	for _, conditionResult := range result.ConditionResults {

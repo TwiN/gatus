@@ -21,7 +21,7 @@ const (
 	badgeColorHexVeryBad  = "#c7130a"
 )
 
-// UptimeBadge handles the automatic generation of badge based on the group name and service name passed.
+// UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
 func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
@@ -42,7 +42,7 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	key := variables["key"]
 	uptime, err := storage.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
-		if err == common.ErrServiceNotFound {
+		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
 			writer.WriteHeader(http.StatusBadRequest)
@@ -60,7 +60,7 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	_, _ = writer.Write(generateUptimeBadgeSVG(duration, uptime))
 }
 
-// ResponseTimeBadge handles the automatic generation of badge based on the group name and service name passed.
+// ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
 func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
@@ -81,7 +81,7 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 	key := variables["key"]
 	averageResponseTime, err := storage.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
-		if err == common.ErrServiceNotFound {
+		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
 			writer.WriteHeader(http.StatusBadRequest)

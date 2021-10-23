@@ -26,7 +26,7 @@ type AlertProvider struct {
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client"`
 
-	// DefaultAlert is the default alert configuration to use for services with an alert of the appropriate type
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
 }
 
@@ -39,7 +39,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(service *core.Service, alert *alert.Alert, result *core.Result, resolved bool) *AlertProvider {
+func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *AlertProvider {
 	return provider
 }
 
@@ -57,7 +57,7 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription string, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription string, resolved bool) *http.Request {
 	body := provider.Body
 	providerURL := provider.URL
 	method := provider.Method
@@ -65,8 +65,11 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
 		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
 	}
-	if strings.Contains(body, "[SERVICE_NAME]") {
-		body = strings.ReplaceAll(body, "[SERVICE_NAME]", serviceName)
+	if strings.Contains(body, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
+		body = strings.ReplaceAll(body, "[SERVICE_NAME]", endpointName)
+	}
+	if strings.Contains(body, "[ENDPOINT_NAME]") {
+		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpointName)
 	}
 	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
@@ -78,8 +81,11 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
 		providerURL = strings.ReplaceAll(providerURL, "[ALERT_DESCRIPTION]", alertDescription)
 	}
-	if strings.Contains(providerURL, "[SERVICE_NAME]") {
-		providerURL = strings.ReplaceAll(providerURL, "[SERVICE_NAME]", serviceName)
+	if strings.Contains(providerURL, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
+		providerURL = strings.ReplaceAll(providerURL, "[SERVICE_NAME]", endpointName)
+	}
+	if strings.Contains(providerURL, "[ENDPOINT_NAME]") {
+		providerURL = strings.ReplaceAll(providerURL, "[ENDPOINT_NAME]", endpointName)
 	}
 	if strings.Contains(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
@@ -100,14 +106,14 @@ func (provider *AlertProvider) buildHTTPRequest(serviceName, alertDescription st
 }
 
 // Send a request to the alert provider and return the body
-func (provider *AlertProvider) Send(serviceName, alertDescription string, resolved bool) ([]byte, error) {
+func (provider *AlertProvider) Send(endpointName, alertDescription string, resolved bool) ([]byte, error) {
 	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
 			return nil, errors.New("error")
 		}
 		return []byte("{}"), nil
 	}
-	request := provider.buildHTTPRequest(serviceName, alertDescription, resolved)
+	request := provider.buildHTTPRequest(endpointName, alertDescription, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return nil, err

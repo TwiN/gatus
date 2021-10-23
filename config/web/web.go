@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	// DefaultAddress is the default address the service will bind to
+	// DefaultAddress is the default address the application will bind to
 	DefaultAddress = "0.0.0.0"
 
-	// DefaultPort is the default port the service will listen on
+	// DefaultPort is the default port the application will listen on
 	DefaultPort = 8080
 )
 

@@ -1,21 +1,21 @@
 <template>
-  <div :class="services.length === 0 ? 'mt-3' : 'mt-4'">
+  <div :class="endpoints.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
-      <div class="service-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
+      <div class="endpoint-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
         <h5 class='font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500'>
           <span v-if="healthy" class='text-green-600'>&#10003;</span>
           <span v-else class='text-yellow-400'>~</span>
           {{ name }}
-          <span class='float-right service-group-arrow'>
+          <span class='float-right endpoint-group-arrow'>
             {{ collapsed ? '&#9660;' : '&#9650;' }}
           </span>
         </h5>
       </div>
     </slot>
-    <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'service-group-content'">
-      <slot v-for="service in services" :key="service">
-        <Service
-            :data="service"
+    <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'endpoint-group-content'">
+      <slot v-for="(endpoint, idx) in endpoints" :key="idx">
+        <Endpoint
+            :data="endpoint"
             :maximumNumberOfResults="20"
             @showTooltip="showTooltip"
             @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
@@ -27,26 +27,26 @@
 
 
 <script>
-import Service from './Service.vue';
+import Endpoint from './Endpoint.vue';
 
 export default {
-  name: 'ServiceGroup',
+  name: 'EndpointGroup',
   components: {
-    Service
+    Endpoint
   },
   props: {
     name: String,
-    services: Array,
+    endpoints: Array,
     showAverageResponseTime: Boolean
   },
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     healthCheck() {
-      if (this.services) {
-        for (let i in this.services) {
-          for (let j in this.services[i].results) {
-            if (!this.services[i].results[j].success) {
-              // Set the service group to unhealthy (only if it's currently healthy)
+      if (this.endpoints) {
+        for (let i in this.endpoints) {
+          for (let j in this.endpoints[i].results) {
+            if (!this.endpoints[i].results[j].success) {
+              // Set the endpoint group to unhealthy (only if it's currently healthy)
               if (this.healthy) {
                 this.healthy = false;
               }
@@ -55,14 +55,14 @@ export default {
           }
         }
       }
-      // Set the service group to healthy (only if it's currently unhealthy)
+      // Set the endpoint group to healthy (only if it's currently unhealthy)
       if (!this.healthy) {
         this.healthy = true;
       }
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
-      sessionStorage.setItem(`gatus:service-group:${this.name}:collapsed`, this.collapsed);
+      sessionStorage.setItem(`gatus:endpoint-group:${this.name}:collapsed`, this.collapsed);
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -72,7 +72,7 @@ export default {
     }
   },
   watch: {
-    services: function () {
+    endpoints: function () {
       this.healthCheck();
     }
   },
@@ -82,7 +82,7 @@ export default {
   data() {
     return {
       healthy: true,
-      collapsed: sessionStorage.getItem(`gatus:service-group:${this.name}:collapsed`) === "true"
+      collapsed: sessionStorage.getItem(`gatus:endpoint-group:${this.name}:collapsed`) === "true"
     }
   }
 }
@@ -90,12 +90,12 @@ export default {
 
 
 <style>
-.service-group {
+.endpoint-group {
   cursor: pointer;
   user-select: none;
 }
 
-.service-group h5:hover {
+.endpoint-group h5:hover {
   color: #1b1e21;
 }
 </style>

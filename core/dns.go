@@ -20,7 +20,7 @@ const (
 	dnsPort = 53
 )
 
-// DNS is the configuration for a Service of type DNS
+// DNS is the configuration for a Endpoint of type DNS
 type DNS struct {
 	// QueryType is the type for the DNS records like A, AAAA, CNAME...
 	QueryType string `yaml:"query-type"`

@@ -19,7 +19,7 @@ var (
 
 	timestamp = time.Now()
 
-	testService = core.Service{
+	testEndpoint = core.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
@@ -83,12 +83,12 @@ var (
 	}
 )
 
-func TestServiceStatus(t *testing.T) {
+func TestEndpointStatus(t *testing.T) {
 	defer storage.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Services: []*core.Service{
+		Endpoints: []*core.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -99,8 +99,8 @@ func TestServiceStatus(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
 
 	type Scenario struct {
@@ -111,25 +111,30 @@ func TestServiceStatus(t *testing.T) {
 	}
 	scenarios := []Scenario{
 		{
-			Name:         "service-status",
-			Path:         "/api/v1/services/core_frontend/statuses",
+			Name:         "endpoint-status",
+			Path:         "/api/v1/endpoints/core_frontend/statuses",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "service-status-gzip",
-			Path:         "/api/v1/services/core_frontend/statuses",
+			Name:         "endpoint-status-gzip",
+			Path:         "/api/v1/endpoints/core_frontend/statuses",
 			ExpectedCode: http.StatusOK,
 			Gzip:         true,
 		},
 		{
-			Name:         "service-status-pagination",
-			Path:         "/api/v1/services/core_frontend/statuses?page=1&pageSize=20",
+			Name:         "endpoint-status-pagination",
+			Path:         "/api/v1/endpoints/core_frontend/statuses?page=1&pageSize=20",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "service-status-for-invalid-key",
-			Path:         "/api/v1/services/invalid_key/statuses",
+			Name:         "endpoint-status-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/statuses",
 			ExpectedCode: http.StatusNotFound,
+		},
+		{ // XXX: Remove this in v4.0.0
+			Name:         "backward-compatible-service-status",
+			Path:         "/api/v1/services/core_frontend/statuses",
+			ExpectedCode: http.StatusOK,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -147,13 +152,13 @@ func TestServiceStatus(t *testing.T) {
 	}
 }
 
-func TestServiceStatuses(t *testing.T) {
+func TestEndpointStatuses(t *testing.T) {
 	defer storage.Get().Clear()
 	defer cache.Clear()
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
-	storage.Get().Insert(&testService, firstResult)
-	storage.Get().Insert(&testService, secondResult)
+	storage.Get().Insert(&testEndpoint, firstResult)
+	storage.Get().Insert(&testEndpoint, secondResult)
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
@@ -168,31 +173,37 @@ func TestServiceStatuses(t *testing.T) {
 	scenarios := []Scenario{
 		{
 			Name:         "no-pagination",
-			Path:         "/api/v1/services/statuses",
+			Path:         "/api/v1/endpoints/statuses",
 			ExpectedCode: http.StatusOK,
 			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"events":[]}]`,
 		},
 		{
 			Name:         "pagination-first-result",
-			Path:         "/api/v1/services/statuses?page=1&pageSize=1",
+			Path:         "/api/v1/endpoints/statuses?page=1&pageSize=1",
 			ExpectedCode: http.StatusOK,
 			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"events":[]}]`,
 		},
 		{
 			Name:         "pagination-second-result",
-			Path:         "/api/v1/services/statuses?page=2&pageSize=1",
+			Path:         "/api/v1/endpoints/statuses?page=2&pageSize=1",
 			ExpectedCode: http.StatusOK,
 			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}],"events":[]}]`,
 		},
 		{
 			Name:         "pagination-no-results",
-			Path:         "/api/v1/services/statuses?page=5&pageSize=20",
+			Path:         "/api/v1/endpoints/statuses?page=5&pageSize=20",
 			ExpectedCode: http.StatusOK,
 			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[],"events":[]}]`,
 		},
 		{
 			Name:         "invalid-pagination-should-fall-back-to-default",
-			Path:         "/api/v1/services/statuses?page=INVALID&pageSize=INVALID",
+			Path:         "/api/v1/endpoints/statuses?page=INVALID&pageSize=INVALID",
+			ExpectedCode: http.StatusOK,
+			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"events":[]}]`,
+		},
+		{ // XXX: Remove this in v4.0.0
+			Name:         "backward-compatible-service-status",
+			Path:         "/api/v1/services/statuses",
 			ExpectedCode: http.StatusOK,
 			ExpectedBody: `[{"name":"name","group":"group","key":"group_name","results":[{"status":200,"hostname":"example.org","duration":150000000,"errors":null,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":750000000,"errors":["error-1","error-2"],"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":false},{"condition":"[CERTIFICATE_EXPIRATION] \u003c 72h","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"events":[]}]`,
 		},

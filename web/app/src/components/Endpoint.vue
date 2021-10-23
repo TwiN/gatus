@@ -1,8 +1,8 @@
 <template>
-  <div class='service px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-500' v-if="data">
+  <div class='endpoint px-3 py-3 border-l border-r border-t rounded-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-500' v-if="data">
     <div class='flex flex-wrap mb-2'>
       <div class='w-3/4'>
-        <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline dark:hover:text-blue-400" title="View detailed service health">
+        <router-link :to="generatePath()" class="font-bold hover:text-blue-800 hover:underline dark:hover:text-blue-400" title="View detailed endpoint health">
           {{ data.name }}
         </router-link>
         <span v-if="data.results && data.results.length && data.results[data.results.length - 1].hostname" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
@@ -60,7 +60,7 @@
 import {helper} from "@/mixins/helper";
 
 export default {
-  name: 'Service',
+  name: 'Endpoint',
   props: {
     maximumNumberOfResults: Number,
     data: Object,
@@ -97,7 +97,7 @@ export default {
       if (!this.data) {
         return '/';
       }
-      return `/services/${this.data.key}`;
+      return `/endpoints/${this.data.key}`;
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -126,12 +126,12 @@ export default {
 
 
 <style>
-.service:first-child {
+.endpoint:first-child {
   border-top-left-radius: 3px;
   border-top-right-radius: 3px;
 }
 
-.service:last-child {
+.endpoint:last-child {
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
   border-bottom-width: 3px;

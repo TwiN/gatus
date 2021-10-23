@@ -58,9 +58,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(gatus_tasks[30s])) by (service)",
+          "expr": "sum(rate(gatus_tasks[30s])) by (endpoint)",
           "interval": "30s",
-          "legendFormat": "{{service}}",
+          "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
       ],
@@ -145,9 +145,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(gatus_tasks{success=\"false\"}[30s])) by (service)",
+          "expr": "sum(rate(gatus_tasks{success=\"false\"}[30s])) by (endpoint)",
           "interval": "30s",
-          "legendFormat": "{{service}}",
+          "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
       ],
@@ -232,10 +232,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(gatus_tasks{success=\"true\"}[30s])) by (service)",
+          "expr": "sum(rate(gatus_tasks{success=\"true\"}[30s])) by (endpoint)",
           "instant": false,
           "interval": "30s",
-          "legendFormat": "{{service}}",
+          "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
       ],

@@ -1,11 +1,11 @@
 # PagerDuty + Gatus Integration Benefits
 - Notify on-call responders based on alerts sent from Gatus.
-- Incidents will automatically resolve in PagerDuty when the service that caused the incident in Gatus returns to a healthy state.
+- Incidents will automatically resolve in PagerDuty when the endpoint that caused the incident in Gatus returns to a healthy state.
 
 
 # How it Works
-- Services that do not meet the user-specified conditions and that are configured with alerts of type `pagerduty` will trigger a new incident on the corresponding PagerDuty service when the alert's defined `failure-threshold` has been reached.
-- Once the unhealthy services have returned to a healthy state for the number of executions defined in `success-threshold`, the previously triggered incident will be automatically resolved.
+- Endpoints that do not meet the user-specified conditions and that are configured with alerts of type `pagerduty` will trigger a new incident on the corresponding PagerDuty service when the alert's defined `failure-threshold` has been reached.
+- Once the unhealthy endpoints have returned to a healthy state for the number of executions defined in `success-threshold`, the previously triggered incident will be automatically resolved.
 
 
 # Requirements
@@ -36,9 +36,9 @@ alerting:
   pagerduty: 
     integration-key: "********************************"
 ```
-You can now add alerts of type `pagerduty` in the services you've defined, like so:
+You can now add alerts of type `pagerduty` in the endpoint you've defined, like so:
 ```yaml
-services:
+endpoints:
   - name: website
     interval: 30s
     url: "https://twin.sh/health"
@@ -56,12 +56,12 @@ services:
 ```
 
 The sample above will do the following:
-- Send a request to the `https://twin.sh/health` (`services[].url`) specified every **30s** (`services[].interval`)
-- Evaluate the conditions to determine whether the service is "healthy" or not
-- **If all conditions are not met 3 (`services[].alerts[].failure-threshold`) times in a row**: Gatus will create a new incident
-- **If, after an incident has been triggered, all conditions are met 5 (`services[].alerts[].success-threshold`) times in a row _AND_ `services[].alerts[].send-on-resolved` is set to `true`**: Gatus will resolve the triggered incident
+- Send a request to the `https://twin.sh/health` (`endpoints[].url`) specified every **30s** (`endpoints[].interval`)
+- Evaluate the conditions to determine whether the endpoint is "healthy" or not
+- **If all conditions are not met 3 (`endpoints[].alerts[].failure-threshold`) times in a row**: Gatus will create a new incident
+- **If, after an incident has been triggered, all conditions are met 5 (`endpoints[].alerts[].success-threshold`) times in a row _AND_ `endpoints[].alerts[].send-on-resolved` is set to `true`**: Gatus will resolve the triggered incident
 
-It is highly recommended to set `services[].alerts[].send-on-resolved` to true for alerts of type `pagerduty`.
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to true for alerts of type `pagerduty`.
 
 
 # How to Uninstall

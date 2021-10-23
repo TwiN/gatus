@@ -10,66 +10,66 @@ import (
 	"github.com/TwiN/gatus/v3/client"
 )
 
-func TestService_IsEnabled(t *testing.T) {
-	if !(Service{Enabled: nil}).IsEnabled() {
-		t.Error("service.IsEnabled() should've returned true, because Enabled was set to nil")
+func TestEndpoint_IsEnabled(t *testing.T) {
+	if !(Endpoint{Enabled: nil}).IsEnabled() {
+		t.Error("endpoint.IsEnabled() should've returned true, because Enabled was set to nil")
 	}
-	if value := false; (Service{Enabled: &value}).IsEnabled() {
-		t.Error("service.IsEnabled() should've returned false, because Enabled was set to false")
+	if value := false; (Endpoint{Enabled: &value}).IsEnabled() {
+		t.Error("endpoint.IsEnabled() should've returned false, because Enabled was set to false")
 	}
-	if value := true; !(Service{Enabled: &value}).IsEnabled() {
-		t.Error("Service.IsEnabled() should've returned true, because Enabled was set to true")
+	if value := true; !(Endpoint{Enabled: &value}).IsEnabled() {
+		t.Error("Endpoint.IsEnabled() should've returned true, because Enabled was set to true")
 	}
 }
 
-func TestService_ValidateAndSetDefaults(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
-	service.ValidateAndSetDefaults()
-	if service.ClientConfig == nil {
+	endpoint.ValidateAndSetDefaults()
+	if endpoint.ClientConfig == nil {
 		t.Error("client configuration should've been set to the default configuration")
 	} else {
-		if service.ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
-			t.Errorf("Default client configuration should've set Insecure to %v, got %v", client.GetDefaultConfig().Insecure, service.ClientConfig.Insecure)
+		if endpoint.ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
+			t.Errorf("Default client configuration should've set Insecure to %v, got %v", client.GetDefaultConfig().Insecure, endpoint.ClientConfig.Insecure)
 		}
-		if service.ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
-			t.Errorf("Default client configuration should've set IgnoreRedirect to %v, got %v", client.GetDefaultConfig().IgnoreRedirect, service.ClientConfig.IgnoreRedirect)
+		if endpoint.ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
+			t.Errorf("Default client configuration should've set IgnoreRedirect to %v, got %v", client.GetDefaultConfig().IgnoreRedirect, endpoint.ClientConfig.IgnoreRedirect)
 		}
-		if service.ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
-			t.Errorf("Default client configuration should've set Timeout to %v, got %v", client.GetDefaultConfig().Timeout, service.ClientConfig.Timeout)
+		if endpoint.ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+			t.Errorf("Default client configuration should've set Timeout to %v, got %v", client.GetDefaultConfig().Timeout, endpoint.ClientConfig.Timeout)
 		}
 	}
-	if service.Method != "GET" {
-		t.Error("Service method should've defaulted to GET")
+	if endpoint.Method != "GET" {
+		t.Error("Endpoint method should've defaulted to GET")
 	}
-	if service.Interval != time.Minute {
-		t.Error("Service interval should've defaulted to 1 minute")
+	if endpoint.Interval != time.Minute {
+		t.Error("Endpoint interval should've defaulted to 1 minute")
 	}
-	if service.Headers == nil {
-		t.Error("Service headers should've defaulted to an empty map")
+	if endpoint.Headers == nil {
+		t.Error("Endpoint headers should've defaulted to an empty map")
 	}
-	if len(service.Alerts) != 1 {
-		t.Error("Service should've had 1 alert")
+	if len(endpoint.Alerts) != 1 {
+		t.Error("Endpoint should've had 1 alert")
 	}
-	if service.Alerts[0].IsEnabled() {
-		t.Error("Service alert should've defaulted to disabled")
+	if endpoint.Alerts[0].IsEnabled() {
+		t.Error("Endpoint alert should've defaulted to disabled")
 	}
-	if service.Alerts[0].SuccessThreshold != 2 {
-		t.Error("Service alert should've defaulted to a success threshold of 2")
+	if endpoint.Alerts[0].SuccessThreshold != 2 {
+		t.Error("Endpoint alert should've defaulted to a success threshold of 2")
 	}
-	if service.Alerts[0].FailureThreshold != 3 {
-		t.Error("Service alert should've defaulted to a failure threshold of 3")
+	if endpoint.Alerts[0].FailureThreshold != 3 {
+		t.Error("Endpoint alert should've defaulted to a failure threshold of 3")
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
@@ -79,66 +79,66 @@ func TestService_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 			Timeout:        0,
 		},
 	}
-	service.ValidateAndSetDefaults()
-	if service.ClientConfig == nil {
+	endpoint.ValidateAndSetDefaults()
+	if endpoint.ClientConfig == nil {
 		t.Error("client configuration should've been set to the default configuration")
 	} else {
-		if !service.ClientConfig.Insecure {
-			t.Error("service.ClientConfig.Insecure should've been set to true")
+		if !endpoint.ClientConfig.Insecure {
+			t.Error("endpoint.ClientConfig.Insecure should've been set to true")
 		}
-		if !service.ClientConfig.IgnoreRedirect {
-			t.Error("service.ClientConfig.IgnoreRedirect should've been set to true")
+		if !endpoint.ClientConfig.IgnoreRedirect {
+			t.Error("endpoint.ClientConfig.IgnoreRedirect should've been set to true")
 		}
-		if service.ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
-			t.Error("service.ClientConfig.Timeout should've been set to 10s, because the timeout value entered is not set or invalid")
+		if endpoint.ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+			t.Error("endpoint.ClientConfig.Timeout should've been set to 10s, because the timeout value entered is not set or invalid")
 		}
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithNoName(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithNoName(t *testing.T) {
 	defer func() { recover() }()
 	condition := Condition("[STATUS] == 200")
-	service := &Service{
+	endpoint := &Endpoint{
 		Name:       "",
 		URL:        "http://example.com",
 		Conditions: []*Condition{&condition},
 	}
-	err := service.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
 	if err == nil {
-		t.Fatal("Should've returned an error because service didn't have a name, which is a mandatory field")
+		t.Fatal("Should've returned an error because endpoint didn't have a name, which is a mandatory field")
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
 	defer func() { recover() }()
 	condition := Condition("[STATUS] == 200")
-	service := &Service{
+	endpoint := &Endpoint{
 		Name:       "example",
 		URL:        "",
 		Conditions: []*Condition{&condition},
 	}
-	err := service.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
 	if err == nil {
-		t.Fatal("Should've returned an error because service didn't have an url, which is a mandatory field")
+		t.Fatal("Should've returned an error because endpoint didn't have an url, which is a mandatory field")
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 	defer func() { recover() }()
-	service := &Service{
+	endpoint := &Endpoint{
 		Name:       "example",
 		URL:        "http://example.com",
 		Conditions: nil,
 	}
-	err := service.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
 	if err == nil {
-		t.Fatal("Should've returned an error because service didn't have at least 1 condition")
+		t.Fatal("Should've returned an error because endpoint didn't have at least 1 condition")
 	}
 }
 
-func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
+func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
-	service := &Service{
+	endpoint := &Endpoint{
 		Name: "dns-test",
 		URL:  "http://example.com",
 		DNS: &DNS{
@@ -147,24 +147,24 @@ func TestService_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 		},
 		Conditions: []*Condition{&conditionSuccess},
 	}
-	err := service.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
 	if err != nil {
 
 	}
-	if service.DNS.QueryName != "example.com." {
-		t.Error("Service.dns.query-name should be formatted with . suffix")
+	if endpoint.DNS.QueryName != "example.com." {
+		t.Error("Endpoint.dns.query-name should be formatted with . suffix")
 	}
 }
 
-func TestService_buildHTTPRequest(t *testing.T) {
+func TestEndpoint_buildHTTPRequest(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 	}
-	service.ValidateAndSetDefaults()
-	request := service.buildHTTPRequest()
+	endpoint.ValidateAndSetDefaults()
+	request := endpoint.buildHTTPRequest()
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
 	}
@@ -176,9 +176,9 @@ func TestService_buildHTTPRequest(t *testing.T) {
 	}
 }
 
-func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
+func TestEndpoint_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
@@ -186,8 +186,8 @@ func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 			"User-Agent": "Test/2.0",
 		},
 	}
-	service.ValidateAndSetDefaults()
-	request := service.buildHTTPRequest()
+	endpoint.ValidateAndSetDefaults()
+	request := endpoint.buildHTTPRequest()
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
 	}
@@ -199,9 +199,9 @@ func TestService_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	}
 }
 
-func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
+func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Method:     "POST",
@@ -210,8 +210,8 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 			"Host": "example.com",
 		},
 	}
-	service.ValidateAndSetDefaults()
-	request := service.buildHTTPRequest()
+	endpoint.ValidateAndSetDefaults()
+	request := endpoint.buildHTTPRequest()
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
 	}
@@ -220,9 +220,9 @@ func TestService_buildHTTPRequestWithHostHeader(t *testing.T) {
 	}
 }
 
-func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
+func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-graphql",
 		URL:        "https://twin.sh/graphql",
 		Method:     "POST",
@@ -237,8 +237,8 @@ func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
   }
 }`,
 	}
-	service.ValidateAndSetDefaults()
-	request := service.buildHTTPRequest()
+	endpoint.ValidateAndSetDefaults()
+	request := endpoint.buildHTTPRequest()
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
 	}
@@ -254,13 +254,13 @@ func TestService_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition, &bodyCondition},
 	}
-	service.ValidateAndSetDefaults()
-	result := service.EvaluateHealth()
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
 	}
@@ -274,13 +274,13 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 
 func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	condition := Condition("[STATUS] == 500")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Conditions: []*Condition{&condition},
 	}
-	service.ValidateAndSetDefaults()
-	result := service.EvaluateHealth()
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
 	if result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a failure", condition)
 	}
@@ -295,7 +295,7 @@ func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	conditionBody := Condition("[BODY] == 93.184.216.34")
-	service := Service{
+	endpoint := Endpoint{
 		Name: "example",
 		URL:  "8.8.8.8",
 		DNS: &DNS{
@@ -304,8 +304,8 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 		},
 		Conditions: []*Condition{&conditionSuccess, &conditionBody},
 	}
-	service.ValidateAndSetDefaults()
-	result := service.EvaluateHealth()
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' and %s should have been a success", conditionSuccess, conditionBody)
 	}
@@ -319,13 +319,13 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 
 func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "icmp-test",
 		URL:        "icmp://127.0.0.1",
 		Conditions: []*Condition{&conditionSuccess},
 	}
-	service.ValidateAndSetDefaults()
-	result := service.EvaluateHealth()
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' should have been a success", conditionSuccess)
 	}
@@ -337,40 +337,40 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	}
 }
 
-func TestService_getIP(t *testing.T) {
+func TestEndpoint_getIP(t *testing.T) {
 	conditionSuccess := Condition("[CONNECTED] == true")
-	service := Service{
+	endpoint := Endpoint{
 		Name:       "invalid-url-test",
 		URL:        "",
 		Conditions: []*Condition{&conditionSuccess},
 	}
 	result := &Result{}
-	service.getIP(result)
+	endpoint.getIP(result)
 	if len(result.Errors) == 0 {
-		t.Error("service.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")
+		t.Error("endpoint.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")
 	}
 }
 
-func TestService_NeedsToReadBody(t *testing.T) {
+func TestEndpoint_NeedsToReadBody(t *testing.T) {
 	statusCondition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
 	bodyConditionWithLength := Condition("len([BODY].tags) > 0")
-	if (&Service{Conditions: []*Condition{&statusCondition}}).needsToReadBody() {
+	if (&Endpoint{Conditions: []*Condition{&statusCondition}}).needsToReadBody() {
 		t.Error("expected false, got true")
 	}
-	if !(&Service{Conditions: []*Condition{&bodyCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []*Condition{&bodyCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Service{Conditions: []*Condition{&bodyConditionWithLength}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []*Condition{&bodyConditionWithLength}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Service{Conditions: []*Condition{&statusCondition, &bodyCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []*Condition{&statusCondition, &bodyCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Service{Conditions: []*Condition{&bodyCondition, &statusCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []*Condition{&bodyCondition, &statusCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Service{Conditions: []*Condition{&bodyConditionWithLength, &statusCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []*Condition{&bodyConditionWithLength, &statusCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
 }
