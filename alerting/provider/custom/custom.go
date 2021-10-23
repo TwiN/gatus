@@ -63,19 +63,24 @@ func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription s
 	method := provider.Method
 
 	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
-		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
+		escaped := strings.ReplaceAll(alertDescription, "\"", "\\\"")
+		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", escaped)
 	}
 	if strings.Contains(body, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
-		body = strings.ReplaceAll(body, "[SERVICE_NAME]", endpointName)
+		escaped := strings.ReplaceAll(endpointName, "\"", "\\\"")
+		body = strings.ReplaceAll(body, "[SERVICE_NAME]", escaped)
 	}
 	if strings.Contains(body, "[ENDPOINT_NAME]") {
-		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpointName)
+		escaped := strings.ReplaceAll(endpointName, "\"", "\\\"")
+		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", escaped)
 	}
 	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]",
+				strings.ReplaceAll(provider.GetAlertStatePlaceholderValue(true), "\"", "\\\""))
 		} else {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]",
+				strings.ReplaceAll(provider.GetAlertStatePlaceholderValue(false), "\"", "\\\""))
 		}
 	}
 	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
