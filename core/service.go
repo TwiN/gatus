@@ -44,7 +44,8 @@ var (
 )
 
 // Service is the configuration of a monitored endpoint
-// XXX: Rename this to Endpoint in v4.0.0?
+//
+// XXX: Rename this to Endpoint in v4.0.0
 type Service struct {
 	// Enabled defines whether to enable the service
 	Enabled *bool `yaml:"enabled,omitempty"`
