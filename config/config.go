@@ -149,12 +149,12 @@ func readConfigurationFile(fileName string) (config *Config, err error) {
 	return
 }
 
+// parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Expand environment variables
 	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
 	// Parse configuration file
-	err = yaml.Unmarshal(yamlBytes, &config)
-	if err != nil {
+	if err = yaml.Unmarshal(yamlBytes, &config); err != nil {
 		return
 	}
 	if config != nil && len(config.Services) > 0 { // XXX: Remove this in v5.0.0
@@ -167,8 +167,6 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
 		err = ErrNoEndpointInConfig
 	} else {
-		// Note that the functions below may panic, and this is on purpose to prevent Gatus from starting with
-		// invalid configurations
 		validateAlertingConfig(config.Alerting, config.Endpoints, config.Debug)
 		if err := validateSecurityConfig(config); err != nil {
 			return nil, err
