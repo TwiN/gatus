@@ -38,6 +38,8 @@ var (
 
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
+
+	dontExpandEnv = os.Getenv("GATUS_DONT_EXPAND_ENV") == "true"
 )
 
 // Config is the main configuration structure
@@ -152,7 +154,9 @@ func readConfigurationFile(fileName string) (config *Config, err error) {
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	if !dontExpandEnv {
+		yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	}
 	// Parse configuration file
 	if err = yaml.Unmarshal(yamlBytes, &config); err != nil {
 		return
