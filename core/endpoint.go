@@ -79,19 +79,19 @@ type Endpoint struct {
 	Conditions []*Condition `yaml:"conditions"`
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
-	Alerts []*alert.Alert `yaml:"alerts"`
+	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
 
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
-	ClientConfig *client.Config `yaml:"client"`
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 
 	// UIConfig is the configuration for the UI
-	UIConfig *ui.Config `yaml:"ui"`
+	UIConfig *ui.Config `yaml:"ui,omitempty"`
 
 	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
-	NumberOfFailuresInARow int
+	NumberOfFailuresInARow int `yaml:"-"`
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
-	NumberOfSuccessesInARow int
+	NumberOfSuccessesInARow int `yaml:"-"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not

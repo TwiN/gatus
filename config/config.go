@@ -43,28 +43,28 @@ var (
 // Config is the main configuration structure
 type Config struct {
 	// Debug Whether to enable debug logs
-	Debug bool `yaml:"debug"`
+	Debug bool `yaml:"debug,omitempty"`
 
 	// Metrics Whether to expose metrics at /metrics
-	Metrics bool `yaml:"metrics"`
+	Metrics bool `yaml:"metrics,omitempty"`
 
 	// SkipInvalidConfigUpdate Whether to make the application ignore invalid configuration
 	// if the configuration file is updated while the application is running
-	SkipInvalidConfigUpdate bool `yaml:"skip-invalid-config-update"`
+	SkipInvalidConfigUpdate bool `yaml:"skip-invalid-config-update,omitempty"`
 
 	// DisableMonitoringLock Whether to disable the monitoring lock
 	// The monitoring lock is what prevents multiple endpoints from being processed at the same time.
 	// Disabling this may lead to inaccurate response times
-	DisableMonitoringLock bool `yaml:"disable-monitoring-lock"`
+	DisableMonitoringLock bool `yaml:"disable-monitoring-lock,omitempty"`
 
 	// Security Configuration for securing access to Gatus
-	Security *security.Config `yaml:"security"`
+	Security *security.Config `yaml:"security,omitempty"`
 
 	// Alerting Configuration for alerting
-	Alerting *alerting.Config `yaml:"alerting"`
+	Alerting *alerting.Config `yaml:"alerting,omitempty"`
 
 	// Endpoints List of endpoints to monitor
-	Endpoints []*core.Endpoint `yaml:"endpoints"`
+	Endpoints []*core.Endpoint `yaml:"endpoints,omitempty"`
 
 	// Services List of endpoints to monitor
 	//
@@ -72,19 +72,19 @@ type Config struct {
 	// XXX: This is not a typo -- not v4.0.0, but v5.0.0 -- I want to give enough time for people to migrate
 	//
 	// Deprecated in favor of Endpoints
-	Services []*core.Endpoint `yaml:"services"`
+	Services []*core.Endpoint `yaml:"services,omitempty"`
 
 	// Storage is the configuration for how the data is stored
-	Storage *storage.Config `yaml:"storage"`
+	Storage *storage.Config `yaml:"storage,omitempty"`
 
 	// Web is the web configuration for the application
-	Web *web.Config `yaml:"web"`
+	Web *web.Config `yaml:"web,omitempty"`
 
 	// UI is the configuration for the UI
-	UI *ui.Config `yaml:"ui"`
+	UI *ui.Config `yaml:"ui,omitempty"`
 
 	// Maintenance is the configuration for creating a maintenance window in which no alerts are sent
-	Maintenance *maintenance.Config `yaml:"maintenance"`
+	Maintenance *maintenance.Config `yaml:"maintenance,omitempty"`
 
 	filePath        string    // path to the file from which config was loaded from
 	lastFileModTime time.Time // last modification time
