@@ -28,6 +28,9 @@ type AlertProvider struct {
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert"`
+
+	// EscapeBodyQuotes will cause the variables used in the body to escape quotes.
+	EscapeBodyQuotes bool `yaml:"escape-body-quotes"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -63,24 +66,39 @@ func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription s
 	method := provider.Method
 
 	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
-		escaped := strings.ReplaceAll(alertDescription, "\"", "\\\"")
-		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", escaped)
+		v := alertDescription
+		if provider.EscapeBodyQuotes {
+			v = strings.ReplaceAll(alertDescription, "\"", "\\\"")
+		}
+		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", v)
 	}
 	if strings.Contains(body, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
-		escaped := strings.ReplaceAll(endpointName, "\"", "\\\"")
-		body = strings.ReplaceAll(body, "[SERVICE_NAME]", escaped)
+		v := endpointName
+		if provider.EscapeBodyQuotes {
+			v = strings.ReplaceAll(endpointName, "\"", "\\\"")
+		}
+		body = strings.ReplaceAll(body, "[SERVICE_NAME]", v)
 	}
 	if strings.Contains(body, "[ENDPOINT_NAME]") {
-		escaped := strings.ReplaceAll(endpointName, "\"", "\\\"")
-		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", escaped)
+		v := endpointName
+		if provider.EscapeBodyQuotes {
+			v = strings.ReplaceAll(endpointName, "\"", "\\\"")
+		}
+		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", v)
 	}
 	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
 		if resolved {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]",
-				strings.ReplaceAll(provider.GetAlertStatePlaceholderValue(true), "\"", "\\\""))
+			v := provider.GetAlertStatePlaceholderValue(true)
+			if provider.EscapeBodyQuotes {
+				v = strings.ReplaceAll(v, "\"", "\\\"")
+			}
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", v)
 		} else {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]",
-				strings.ReplaceAll(provider.GetAlertStatePlaceholderValue(false), "\"", "\\\""))
+			v := provider.GetAlertStatePlaceholderValue(false)
+			if provider.EscapeBodyQuotes {
+				v = strings.ReplaceAll(v, "\"", "\\\"")
+			}
+			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", v)
 		}
 	}
 	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
