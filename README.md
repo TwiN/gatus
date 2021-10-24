@@ -19,7 +19,7 @@ core applications: https://status.twin.sh/
 <details>
   <summary><b>Quick start</b></summary>
 
-```
+```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 For more details, see [Usage](#usage)
@@ -246,7 +246,7 @@ storage:
   type: sqlite
   file: data.db
 ```
-See [examples/docker-compose-sqlite-storage](examples/docker-compose-sqlite-storage) for an example.
+See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
 
 - If `storage.type` is `postgres`, `storage.file` must be the connection URL:
 ```yaml
@@ -254,7 +254,7 @@ storage:
   type: postgres
   file: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
-See [examples/docker-compose-postgres-storage](examples/docker-compose-postgres-storage) for an example.
+See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
 
 
 ### Client configuration
@@ -798,29 +798,29 @@ maintenance:
 
 
 ## Deployment
-Many examples can be found in the [examples](examples) folder, but this section will focus on the most popular ways of deploying Gatus.
+Many examples can be found in the [.examples](.examples) folder, but this section will focus on the most popular ways of deploying Gatus.
 
 
 ### Docker
 To run Gatus locally with Docker:
-```
+```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 
-Other than using one of the examples provided in the `examples` folder, you can also try it out locally by 
+Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by 
 creating a configuration file, we'll call it `config.yaml` for this example, and running the following 
 command:
-```
+```console
 docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 If you're on Windows, replace `"$(pwd)"` by the absolute path to your current directory, e.g.:
-```
+```console
 docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 To build the image locally:
-```
+```console
 docker build . -t twinproduction/gatus
 ```
 
@@ -845,7 +845,7 @@ Gatus can be deployed on Terraform by using the following module: [terraform-kub
 
 
 ## Running the tests
-```
+```console
 go test ./... -mod vendor
 ```
 
