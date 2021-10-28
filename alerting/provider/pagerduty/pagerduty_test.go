@@ -161,7 +161,7 @@ func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlertAndOverride(t *tes
 	}
 }
 
-func TestAlertProvider_getPagerDutyIntegrationKey(t *testing.T) {
+func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
@@ -217,7 +217,7 @@ func TestAlertProvider_getPagerDutyIntegrationKey(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if output := scenario.Provider.getPagerDutyIntegrationKeyForGroup(scenario.InputGroup); output != scenario.ExpectedOutput {
+			if output := scenario.Provider.getIntegrationKeyForGroup(scenario.InputGroup); output != scenario.ExpectedOutput {
 				t.Errorf("expected %s, got %s", scenario.ExpectedOutput, output)
 			}
 		})

@@ -71,15 +71,15 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
     "source": "%s",
     "severity": "critical"
   }
-}`, provider.getPagerDutyIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name),
+}`, provider.getIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name),
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
 	}
 }
 
-// getPagerDutyIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group
-func (provider *AlertProvider) getPagerDutyIntegrationKeyForGroup(group string) string {
+// getIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group
+func (provider *AlertProvider) getIntegrationKeyForGroup(group string) string {
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if group == override.Group {
@@ -87,10 +87,7 @@ func (provider *AlertProvider) getPagerDutyIntegrationKeyForGroup(group string) 
 			}
 		}
 	}
-	if provider.IntegrationKey != "" {
-		return provider.IntegrationKey
-	}
-	return ""
+	return provider.IntegrationKey
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
