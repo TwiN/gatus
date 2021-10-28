@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/gorilla/mux"
 	"github.com/wcharczuk/go-chart/v2"
@@ -42,7 +42,7 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 		http.Error(writer, "Durations supported: 7d, 24h", http.StatusBadRequest)
 		return
 	}
-	hourlyAverageResponseTime, err := storage.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)

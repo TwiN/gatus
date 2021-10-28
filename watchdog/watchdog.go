@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v3/config/maintenance"
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/TwiN/gatus/v3/metric"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 )
 
 var (
@@ -29,13 +29,13 @@ func Monitor(cfg *config.Config) {
 	for _, endpoint := range cfg.Endpoints {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
-			time.Sleep(1111 * time.Millisecond)
+			time.Sleep(777 * time.Millisecond)
 			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
 		}
 	}
 }
 
-// monitor monitors a single endpoint in a loop
+// monitor a single endpoint in a loop
 func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
 	// Run it immediately on start
 	execute(endpoint, alertingConfig, maintenanceConfig, disableMonitoringLock, enabledMetrics, debug)
@@ -88,7 +88,7 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
-	if err := storage.Get().Insert(endpoint, result); err != nil {
+	if err := store.Get().Insert(endpoint, result); err != nil {
 		log.Println("[watchdog][UpdateEndpointStatuses] Failed to insert data in storage:", err.Error())
 	}
 }

@@ -8,12 +8,12 @@ import (
 
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/watchdog"
 )
 
 func TestSinglePageApplication(t *testing.T) {
-	defer storage.Get().Clear()
+	defer store.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,

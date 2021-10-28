@@ -195,19 +195,10 @@ func validateStorageConfig(config *Config) error {
 		config.Storage = &storage.Config{
 			Type: storage.TypeMemory,
 		}
-	}
-	err := storage.Initialize(config.Storage)
-	if err != nil {
-		return err
-	}
-	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
-	var keys []string
-	for _, endpoint := range config.Endpoints {
-		keys = append(keys, endpoint.Key())
-	}
-	numberOfEndpointStatusesDeleted := storage.Get().DeleteAllEndpointStatusesNotInKeys(keys)
-	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+	} else {
+		if err := config.Storage.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 	"github.com/TwiN/gocache"
@@ -44,7 +44,7 @@ func EndpointStatuses(writer http.ResponseWriter, r *http.Request) {
 		var err error
 		buffer := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buffer)
-		endpointStatuses, err := storage.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
+		endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
 		if err != nil {
 			log.Printf("[handler][EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -76,7 +76,7 @@ func EndpointStatuses(writer http.ResponseWriter, r *http.Request) {
 func EndpointStatus(writer http.ResponseWriter, r *http.Request) {
 	page, pageSize := extractPageAndPageSizeFromRequest(r)
 	vars := mux.Vars(r)
-	endpointStatus, err := storage.Get().GetEndpointStatusByKey(vars["key"], paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
+	endpointStatus, err := store.Get().GetEndpointStatusByKey(vars["key"], paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
 			http.Error(writer, err.Error(), http.StatusNotFound)

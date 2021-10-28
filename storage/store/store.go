@@ -1,9 +1,12 @@
 package store
 
 import (
+	"context"
+	"log"
 	"time"
 
 	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage"
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 	"github.com/TwiN/gatus/v3/storage/store/memory"
 	"github.com/TwiN/gatus/v3/storage/store/sql"
@@ -56,3 +59,82 @@ var (
 	_ Store = (*memory.Store)(nil)
 	_ Store = (*sql.Store)(nil)
 )
+
+var (
+	store Store
+
+	// initialized keeps track of whether the storage provider was initialized
+	// Because store.Store is an interface, a nil check wouldn't be sufficient, so instead of doing reflection
+	// every single time Get is called, we'll just lazily keep track of its existence through this variable
+	initialized bool
+
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+)
+
+func Get() Store {
+	if !initialized {
+		log.Println("[store][Get] Provider requested before it was initialized, automatically initializing")
+		err := Initialize(nil)
+		if err != nil {
+			panic("failed to automatically initialize store: " + err.Error())
+		}
+	}
+	return store
+}
+
+// Initialize instantiates the storage provider based on the Config provider
+func Initialize(cfg *storage.Config) error {
+	initialized = true
+	var err error
+	if cancelFunc != nil {
+		// Stop the active autoSave task, if there's already one
+		cancelFunc()
+	}
+	if cfg == nil {
+		cfg = &storage.Config{}
+	}
+	if len(cfg.File) == 0 && cfg.Type != storage.TypePostgres {
+		log.Printf("[store][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.File)
+	} else {
+		log.Printf("[store][Initialize] Creating storage provider with type=%s", cfg.Type)
+	}
+	ctx, cancelFunc = context.WithCancel(context.Background())
+	switch cfg.Type {
+	case storage.TypeSQLite, storage.TypePostgres:
+		store, err = sql.NewStore(string(cfg.Type), cfg.File)
+		if err != nil {
+			return err
+		}
+	case storage.TypeMemory:
+		fallthrough
+	default:
+		if len(cfg.File) > 0 {
+			store, err = memory.NewStore(cfg.File)
+			if err != nil {
+				return err
+			}
+			go autoSave(ctx, store, 7*time.Minute)
+		} else {
+			store, _ = memory.NewStore("")
+		}
+	}
+	return nil
+}
+
+// autoSave automatically calls the Save function of the provider at every interval
+func autoSave(ctx context.Context, store Store, interval time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("[store][autoSave] Stopping active job")
+			return
+		case <-time.After(interval):
+			log.Printf("[store][autoSave] Saving")
+			err := store.Save()
+			if err != nil {
+				log.Println("[store][autoSave] Save failed:", err.Error())
+			}
+		}
+	}
+}

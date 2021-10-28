@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/gorilla/mux"
 )
@@ -40,7 +40,7 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	key := variables["key"]
-	uptime, err := storage.Get().GetUptimeByKey(key, from, time.Now())
+	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)
@@ -79,7 +79,7 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	key := variables["key"]
-	averageResponseTime, err := storage.Get().GetAverageResponseTimeByKey(key, from, time.Now())
+	averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
 			writer.WriteHeader(http.StatusNotFound)

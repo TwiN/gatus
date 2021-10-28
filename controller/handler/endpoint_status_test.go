@@ -8,7 +8,7 @@ import (
 
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/watchdog"
 )
 
@@ -84,7 +84,7 @@ var (
 )
 
 func TestEndpointStatus(t *testing.T) {
-	defer storage.Get().Clear()
+	defer store.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
@@ -153,12 +153,12 @@ func TestEndpointStatus(t *testing.T) {
 }
 
 func TestEndpointStatuses(t *testing.T) {
-	defer storage.Get().Clear()
+	defer store.Get().Clear()
 	defer cache.Clear()
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
-	storage.Get().Insert(&testEndpoint, firstResult)
-	storage.Get().Insert(&testEndpoint, secondResult)
+	store.Get().Insert(&testEndpoint, firstResult)
+	store.Get().Insert(&testEndpoint, secondResult)
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
