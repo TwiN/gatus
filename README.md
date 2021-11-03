@@ -11,7 +11,7 @@
 Gatus is a health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
-checks can be paired with alerting via Slack, PagerDuty, Discord and even Twilio.
+checks can be paired with alerting via Slack, PagerDuty, Discord, Twilio and more.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twin.sh/
@@ -19,7 +19,7 @@ core applications: https://status.twin.sh/
 <details>
   <summary><b>Quick start</b></summary>
 
-```
+```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 For more details, see [Usage](#usage)
@@ -58,15 +58,15 @@ For more details, see [Usage](#usage)
   - [Sending a GraphQL request](#sending-a-graphql-request)
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
-  - [Monitoring a TCP service](#monitoring-a-tcp-service)
-  - [Monitoring a service using ICMP](#monitoring-a-service-using-icmp)
-  - [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries)
-  - [Monitoring a service using STARTTLS](#monitoring-a-service-using-starttls)
-  - [Monitoring a service using TLS](#monitoring-a-service-using-tls)
+  - [Monitoring a TCP endpoint](#monitoring-a-tcp-endpoint)
+  - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
+  - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
+  - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
+  - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
-  - [Service groups](#service-groups)
+  - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
     - [Uptime](#uptime)
@@ -103,7 +103,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/services/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/services/core_website-external/response-times/24h/badge.svg)
+- **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/24h/badge.svg)
 
 
 ## Usage
@@ -112,13 +112,11 @@ By default, the configuration file is expected to be at `config/config.yaml`.
 You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
 
 Here's a simple example:
-
 ```yaml
-metrics: true         # Whether to expose metrics at /metrics
-services:
-  - name: website  # Name of your service, can be anything
+endpoints:
+  - name: website                 # Name of your endpoint, can be anything
     url: "https://twin.sh/health"
-    interval: 30s     # Duration to wait between every status check (default: 60s)
+    interval: 30s                 # Duration to wait between every status check (default: 60s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
@@ -144,31 +142,31 @@ If you want to test it locally, see [Docker](#docker).
 |:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
 | `debug`                                  | Whether to enable debug logs.                                                 | `false`        |
 | `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
-| `storage`                                | [Storage configuration](#storage)                               | `{}`           |
-| `services`                               | List of services to monitor.                                                  | Required `[]`  |
-| `services[].enabled`                     | Whether to enable the service.                                                | `true`         |
-| `services[].name`                        | Name of the service. Can be anything.                                         | Required `""`  |
-| `services[].group`                       | Group name. Used to group multiple services together on the dashboard. <br />See [Service groups](#service-groups). | `""`           |
-| `services[].url`                         | URL to send the request to.                                                   | Required `""`  |
-| `services[].method`                      | Request method.                                                               | `GET`          |
-| `services[].conditions`                  | Conditions used to determine the health of the service. <br />See [Conditions](#conditions). | `[]`           |
-| `services[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
-| `services[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
-| `services[].body`                        | Request body.                                                                 | `""`           |
-| `services[].headers`                     | Request headers.                                                              | `{}`           |
-| `services[].dns`                         | Configuration for a service of type DNS. <br />See [Monitoring a service using DNS queries](#monitoring-a-service-using-dns-queries). | `""`           |
-| `services[].dns.query-type`              | Query type for DNS service.                                                   | `""`           |
-| `services[].dns.query-name`              | Query name for DNS service.                                                   | `""`           |
-| `services[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
-| `services[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
-| `services[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
-| `services[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
-| `services[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
-| `services[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
-| `services[].client`                      | [Client configuration](#client-configuration).                                | `{}`          |
-| `services[].ui`                          | UI configuration at the service level.                                        | `{}`           |
-| `services[].ui.hide-hostname`            | Whether to include the hostname in the result.                                | `false`        |
-| `services[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                        | `false`        |
+| `storage`                                | [Storage configuration](#storage)                                              | `{}`           |
+| `endpoints`                               | List of endpoints to monitor.                                                 | Required `[]`  |
+| `endpoints[].enabled`                     | Whether to monitor the endpoint.                                              | `true`         |
+| `endpoints[].name`                        | Name of the endpoint. Can be anything.                                        | Required `""`  |
+| `endpoints[].group`                       | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups). | `""`           |
+| `endpoints[].url`                         | URL to send the request to.                                                   | Required `""`  |
+| `endpoints[].method`                      | Request method.                                                               | `GET`          |
+| `endpoints[].conditions`                  | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions). | `[]`           |
+| `endpoints[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
+| `endpoints[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
+| `endpoints[].body`                        | Request body.                                                                 | `""`           |
+| `endpoints[].headers`                     | Request headers.                                                              | `{}`           |
+| `endpoints[].dns`                         | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`           |
+| `endpoints[].dns.query-type`              | Query type (e.g. MX)                                                          | `""`           |
+| `endpoints[].dns.query-name`              | Query name (e.g. example.com)                                                 | `""`           |
+| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
+| `endpoints[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
+| `endpoints[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
+| `endpoints[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
+| `endpoints[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
+| `endpoints[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
+| `endpoints[].client`                      | [Client configuration](#client-configuration).                                | `{}`          |
+| `endpoints[].ui`                          | UI configuration at the endpoint level.                                       | `{}`           |
+| `endpoints[].ui.hide-hostname`            | Whether to include the hostname in the result.                                | `false`        |
+| `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                        | `false`        |
 | `alerting`                               | [Alerting configuration](#alerting).                                          | `{}`           |
 | `security`                               | Security configuration.                                                       | `{}`           |
 | `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
@@ -248,7 +246,7 @@ storage:
   type: sqlite
   file: data.db
 ```
-See [examples/docker-compose-sqlite-storage](examples/docker-compose-sqlite-storage) for an example.
+See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
 
 - If `storage.type` is `postgres`, `storage.file` must be the connection URL:
 ```yaml
@@ -256,11 +254,11 @@ storage:
   type: postgres
   file: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
-See [examples/docker-compose-postgres-storage](examples/docker-compose-postgres-storage) for an example.
+See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
 
 
 ### Client configuration
-In order to support a wide range of environments, each monitored service has a unique configuration for 
+In order to support a wide range of environments, each monitored endpoint has a unique configuration for 
 the client used to send the request.
 
 | Parameter                | Description                                                                   | Default        |
@@ -269,8 +267,8 @@ the client used to send the request.
 | `client.ignore-redirect` | Whether to ignore redirects (true) or follow them (false, default).           | `false`        |
 | `client.timeout`         | Duration before timing out.                                                   | `10s`          |
 
-Note that some of these parameters are ignored based on the type of service. For instance, there's no certificate involved
-in ICMP requests (ping), therefore, setting `client.insecure` to `true` for a service of that type will not do anything.
+Note that some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
+in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
 ```yaml
@@ -279,11 +277,11 @@ client:
   ignore-redirect: false
   timeout: 10s
 ```
-Note that this configuration is only available under `services[]`, `alerting.mattermost` and `alerting.custom`.
+Note that this configuration is only available under `endpoints[]`, `alerting.mattermost` and `alerting.custom`.
 
-Here's an example with the client configuration under `service[]`:
+Here's an example with the client configuration under `endpoints[]`:
 ```yaml
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     client:
@@ -297,7 +295,7 @@ services:
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
-individual services with configurable descriptions and thresholds.
+individual endpoints with configurable descriptions and thresholds.
 
 Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
@@ -327,7 +325,7 @@ alerting:
   discord: 
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -358,7 +356,7 @@ alerting:
     client:
       insecure: true
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -394,7 +392,8 @@ alerting:
     access-key: "..."
     originator: "31619191918"
     recipients: "31619191919,31619191920"
-services:
+
+endpoints:
   - name: website
     interval: 30s
     url: "https://twin.sh/health"
@@ -418,17 +417,17 @@ services:
 | `alerting.pagerduty.integration-key`                   | PagerDuty Events API v2 integration key                                       | `""`           |
 | `alerting.pagerduty.default-alert`                     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
 | `alerting.pagerduty.overrides`                         | List of overrides that may be prioritized over the default configuration      |   `[]`         |
-| `alerting.pagerduty.overrides[].group`                 | Service group for which the configuration will be overridden by this configuration |   `""`         |
+| `alerting.pagerduty.overrides[].group`                 | Endpoint group for which the configuration will be overridden by this configuration |   `""`         |
 | `alerting.pagerduty.overrides[].integration-key`       | PagerDuty Events API v2 integration key                                       |   `""`         |
 
-It is highly recommended to set `services[].alerts[].send-on-resolved` to `true` for alerts
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
 parameter to `true` will not create another incident, but mark the incident as resolved on
 PagerDuty instead.
 
 Behavior:
 - By default, `alerting.pagerduty.integration-key` is used as the integration key
-- If the service being evaluated belongs to a group (`services[].group`) matching the value of `alerting.pagerduty.overrides[].group`, the provider will use that override's integration key instead of `alerting.pagerduty.integration-key`'s
+- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.pagerduty.overrides[].group`, the provider will use that override's integration key instead of `alerting.pagerduty.integration-key`'s
 
 
 ```yaml
@@ -440,9 +439,8 @@ alerting:
     overrides:
      - group: "core"
        integration-key: "********************************"
-       
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -487,7 +485,7 @@ alerting:
   slack: 
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -524,7 +522,7 @@ alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -557,7 +555,7 @@ alerting:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
 
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -593,7 +591,7 @@ alerting:
     from: "+1-234-567-8901"
     to: "+1-234-567-8901"
 
-services:
+endpoints:
   - name: website
     interval: 30s
     url: "https://twin.sh/health"
@@ -624,12 +622,12 @@ services:
 While they're called alerts, you can use this feature to call anything. 
 
 For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by 
-leveraging Gatus, you could have Gatus call that application endpoint when a service starts failing. Your application
-would then check if the service that started failing was recently deployed, and if it was, then automatically 
-roll it back.
+leveraging Gatus, you could have Gatus call that application endpoint when an endpoint starts failing. Your application
+would then check if the endpoint that started failing was part of the recently deployed application, and if it was,
+then automatically roll it back.
 
-The placeholders `[ALERT_DESCRIPTION]` and `[SERVICE_NAME]` are automatically substituted for the alert description and
-the service name. These placeholders can be used in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`).
+The placeholders `[ALERT_DESCRIPTION]` and `[ENDPOINT_NAME]` are automatically substituted for the alert description and
+the endpoint name. These placeholders can be used in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`).
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications. 
@@ -644,9 +642,9 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
       }
-services:
+endpoints:
   - name: website
     url: "https://twin.sh/health"
     interval: 30s
@@ -660,7 +658,7 @@ services:
         failure-threshold: 10
         success-threshold: 3
         send-on-resolved: true
-        description: "healthcheck failed"
+        description: "health check failed"
 ```
 
 Note that you can customize the resolved values for the `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder like so:
@@ -685,7 +683,7 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 | `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
 | `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A     |
 
-While you can specify the alert configuration directly in the service definition, it's tedious and may lead to a very
+While you can specify the alert configuration directly in the endpoint definition, it's tedious and may lead to a very
 long configuration file.
 
 To avoid such problem, you can use the `default-alert` parameter present in each provider configuration:
@@ -695,15 +693,15 @@ alerting:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
     default-alert:
       enabled: true
-      description: "healthcheck failed"
+      description: "health check failed"
       send-on-resolved: true
       failure-threshold: 5
       success-threshold: 5
 ```
 
-As a result, your service configuration looks a lot tidier:
+As a result, your Gatus configuration looks a lot tidier:
 ```yaml
-services:
+endpoints:
   - name: example
     url: "https://example.org"
     conditions:
@@ -721,7 +719,7 @@ services:
 
 It also allows you to do things like this:
 ```yaml
-services:
+endpoints:
   - name: example
     url: "https://example.org"
     conditions:
@@ -749,8 +747,8 @@ alerting:
       enabled: true
       failure-threshold: 5
 
-services:
-  - name: service-1
+endpoints:
+  - name: endpoint-1
     url: "https://example.org"
     conditions:
       - "[STATUS] == 200"
@@ -758,7 +756,7 @@ services:
       - type: slack
       - type: pagerduty
 
-  - name: service-2
+  - name: endpoint-2
     url: "https://example.org"
     conditions:
       - "[STATUS] == 200"
@@ -800,29 +798,29 @@ maintenance:
 
 
 ## Deployment
-Many examples can be found in the [examples](examples) folder, but this section will focus on the most popular ways of deploying Gatus.
+Many examples can be found in the [.examples](.examples) folder, but this section will focus on the most popular ways of deploying Gatus.
 
 
 ### Docker
 To run Gatus locally with Docker:
-```
+```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 
-Other than using one of the examples provided in the `examples` folder, you can also try it out locally by 
+Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by 
 creating a configuration file, we'll call it `config.yaml` for this example, and running the following 
 command:
-```
+```console
 docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 If you're on Windows, replace `"$(pwd)"` by the absolute path to your current directory, e.g.:
-```
+```console
 docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
 ```
 
 To build the image locally:
-```
+```console
 docker build . -t twinproduction/gatus
 ```
 
@@ -847,7 +845,7 @@ Gatus can be deployed on Terraform by using the following module: [terraform-kub
 
 
 ## Running the tests
-```
+```console
 go test ./... -mod vendor
 ```
 
@@ -858,11 +856,11 @@ See the [Deployment](#deployment) section.
 
 ## FAQ
 ### Sending a GraphQL request
-By setting `services[].graphql` to true, the body will automatically be wrapped by the standard GraphQL `query` parameter.
+By setting `endpoints[].graphql` to true, the body will automatically be wrapped by the standard GraphQL `query` parameter.
 
 For instance, the following configuration:
 ```yaml
-services:
+endpoints:
   - name: filter-users-by-gender
     url: http://localhost:8080/playground
     method: POST
@@ -888,28 +886,27 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-> **NOTE**: This does not _really_ apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
-> tells Gatus to only evaluate one service at a time.
+> **NOTE**: This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
+> tells Gatus to only evaluate one endpoint at a time.
 
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one service at a time
-In other words, even if you have multiple services with the exact same interval, they will not execute at the same time.
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
+In other words, even if you have multiple endpoints with the exact same interval, they will not execute at the same time.
 
-You can test this yourself by running Gatus with several services configured with a very short, unrealistic interval, 
-such as 1ms. You'll notice that the response time does not fluctuate - that is because while services are evaluated on
-different goroutines, there's a global lock that prevents multiple services from running at the same time.
+You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval, 
+such as 1ms. You'll notice that the response time does not fluctuate - that is because while endpoints are evaluated on
+different goroutines, there's a global lock that prevents multiple endpoints from running at the same time.
 
-Unfortunately, there is a drawback. If you have a lot of services, including some that are very slow or prone to time out (the default
-timeout is 10s), then it means that for the entire duration of the request, no other services can be evaluated.
+Unfortunately, there is a drawback. If you have a lot of endpoints, including some that are very slow or prone to timing out 
+(the default timeout is 10s), then it means that for the entire duration of the request, no other endpoint can be evaluated.
 
-**This does mean that Gatus will be unable to evaluate the health of other services**. 
-The interval does not include the duration of the request itself, which means that if a service has an interval of 30s 
+The interval does not include the duration of the request itself, which means that if an endpoint has an interval of 30s 
 and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s. 
 
-While this does not prevent Gatus' from performing health checks on all other services, it may cause Gatus to be unable 
+While this does not prevent Gatus' from performing health checks on all other endpoints, it may cause Gatus to be unable 
 to respect the configured interval, for instance:
-- Service A has an interval of 5s, and times out after 10s to complete 
-- Service B has an interval of 5s, and takes 1ms to complete
-- Service B will be unable to run every 5s, because service A's health evaluation takes longer than its interval
+- Endpoint A has an interval of 5s, and times out after 10s to complete 
+- Endpoint B has an interval of 5s, and takes 1ms to complete
+- Endpoint B will be unable to run every 5s, because endpoint A's health evaluation takes longer than its interval
 
 To sum it up, while Gatus can really handle any interval you throw at it, you're better off having slow requests with 
 higher interval.
@@ -919,20 +916,20 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
 ### Default timeouts
-| Protocol | Timeout |
-|:-------- |:------- |
-| HTTP     | 10s
-| TCP      | 10s
-| ICMP     | 10s
+| Endpoint type | Timeout |
+|:------------- |:------- |
+| HTTP          | 10s
+| TCP           | 10s
+| ICMP          | 10s
 
 To modify the timeout, see [Client configuration](#client-configuration).
 
 
-### Monitoring a TCP service
-By prefixing `services[].url` with `tcp:\\`, you can monitor TCP services at a very basic level:
+### Monitoring a TCP endpoint
+By prefixing `endpoints[].url` with `tcp:\\`, you can monitor TCP endpoints at a very basic level:
 
 ```yaml
-services:
+endpoints:
   - name: redis
     url: "tcp://127.0.0.1:6379"
     interval: 30s
@@ -940,34 +937,34 @@ services:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `services[].body`, `services[].insecure`, 
-`services[].headers`, `services[].method` and `services[].graphql` are not supported for TCP services.
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].insecure`, 
+`endpoints[].headers`, `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
-**NOTE**: `[CONNECTED] == true` does not guarantee that the service itself is healthy - it only guarantees that there's 
+**NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's 
 something at the given address listening to the given port, and that a connection to that address was successfully 
 established.
 
 
-### Monitoring a service using ICMP
-By prefixing `services[].url` with `icmp:\\`, you can monitor services at a very basic level using ICMP, or more 
+### Monitoring an endpoint using ICMP
+By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more 
 commonly known as "ping" or "echo":
 
 ```yaml
-services:
+endpoints:
   - name: ping-example
     url: "icmp://example.com"
     conditions:
       - "[CONNECTED] == true"
 ```
 
-Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for services of type ICMP.
+Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
 
-### Monitoring a service using DNS queries
-Defining a `dns` configuration in a service will automatically mark that service as a service of type DNS:
+### Monitoring an endpoint using DNS queries
+Defining a `dns` configuration in an endpoint will automatically mark said endpoint as an endpoint of type DNS:
 ```yaml
-services:
+endpoints:
   - name: example-dns-query
     url: "8.8.8.8" # Address of the DNS server to use
     interval: 30s
@@ -979,17 +976,17 @@ services:
       - "[DNS_RCODE] == NOERROR"
 ```
 
-There are two placeholders that can be used in the conditions for services of type DNS:
+There are two placeholders that can be used in the conditions for endpoints of type DNS:
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as 
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
 
-### Monitoring a service using STARTTLS
+### Monitoring an endpoint using STARTTLS
 If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS 
 will serve as a good initial indicator:
 ```yaml
-services:
+endpoints:
   - name: starttls-smtp-example
     url: "starttls://smtp.gmail.com:587"
     interval: 30m
@@ -1001,11 +998,10 @@ services:
 ```
 
 
-### Monitoring a service using TLS
-Monitoring services using SSL/TLS encryption, such as LDAP over TLS, can help
-detecting certificate expiration:
+### Monitoring an endpoint using TLS
+Monitoring endpoints using SSL/TLS encryption, such as LDAP over TLS, can help detect certificate expiration:
 ```yaml
-services:
+endpoints:
   - name: tls-ldaps-example
     url: "tls://ldap.example.com:636"
     interval: 30m
@@ -1030,16 +1026,16 @@ The example above will require that you authenticate with the username `john.doe
 
 
 ### disable-monitoring-lock
-Setting `disable-monitoring-lock` to `true` means that multiple services could be monitored at the same time.
+Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time.
 
 While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted 
-by the evaluation of multiple services at the same time, therefore, the default value for this parameter is `false`.
+by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
 
 There are three main reasons why you might want to disable the monitoring lock:
-- You're using Gatus for load testing (each services are periodically evaluated on a different goroutine, so 
-technically, if you create 100 services with a 1 seconds interval, Gatus will send 100 requests per second)
-- You have a _lot_ of services to monitor
-- You want to test multiple services at very short interval (< 5s)
+- You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so 
+technically, if you create 100 endpoints with a 1 seconds interval, Gatus will send 100 requests per second)
+- You have a _lot_ of endpoints to monitor
+- You want to test multiple endpoints at very short interval (< 5s)
 
 
 ### Reloading configuration on the fly
@@ -1067,11 +1063,11 @@ the same as restarting the application.
 **NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
 
-### Service groups
-Service groups are used for grouping multiple services together on the dashboard.
+### Endpoint groups
+Endpoint groups are used for grouping multiple endpoints together on the dashboard.
 
 ```yaml
-services:
+endpoints:
   - name: frontend
     group: core
     url: "https://example.org/"
@@ -1100,7 +1096,7 @@ services:
     conditions:
       - "[STATUS] == 200"
 
-  - name: random service that isn't part of a group
+  - name: random endpoint that isn't part of a group
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -1109,7 +1105,7 @@ services:
 
 The configuration above will result in a dashboard that looks like this:
 
-![Gatus Service Groups](.github/assets/service-groups.png)
+![Gatus Endpoint Groups](.github/assets/endpoint-groups.png)
 
 
 ### Exposing Gatus on a custom port
@@ -1128,66 +1124,66 @@ web:
 
 ### Badges
 ### Uptime
-![Uptime 1h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/1h/badge.svg)
-![Uptime 24h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/24h/badge.svg)
-![Uptime 7d](https://status.twin.sh/api/v1/services/core_website-external/uptimes/7d/badge.svg)
+![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/1h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/24h/badge.svg)
+![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/7d/badge.svg)
 
-Gatus can automatically generate a SVG badge for one of your monitored services.
-This allows you to put badges in your individual services' README or even create your own status page, if you 
+Gatus can automatically generate a SVG badge for one of your monitored endpoints.
+This allows you to put badges in your individual applications' README or even create your own status page, if you 
 desire.
 
-The endpoint to generate a badge is the following:
+The path to generate a badge is the following:
 ```
-/api/v1/services/{key}/uptimes/{duration}/badge.svg
+/api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
 - `{duration}` is `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<SERVICE_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
-For instance, if you want the uptime during the last 24 hours from the service `frontend` in the group `core`, 
+For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`, 
 the URL would look like this:
 ```
-https://example.com/api/v1/services/core_frontend/uptimes/7d/badge.svg
+https://example.com/api/v1/endpoints/core_frontend/uptimes/7d/badge.svg
 ```
-If you want to display a service that is not part of a group, you must leave the group value empty:
+If you want to display an endpoint that is not part of a group, you must leave the group value empty:
 ```
-https://example.com/api/v1/services/_frontend/uptimes/7d/badge.svg
+https://example.com/api/v1/endpoints/_frontend/uptimes/7d/badge.svg
 ```
 Example:
 ```
-![Uptime 24h](https://status.twin.sh/api/v1/services/core_website-external/uptimes/24h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/24h/badge.svg)
 ```
-If you'd like to see a visual example of each badges available, you can simply navigate to the service's detail page.
+If you'd like to see a visual example of each badges available, you can simply navigate to the endpoint's detail page.
 
 
 ### Response time
-![Response time 1h](https://status.twin.sh/api/v1/services/core_website-external/response-times/1h/badge.svg)
-![Response time 24h](https://status.twin.sh/api/v1/services/core_website-external/response-times/24h/badge.svg)
-![Response time 7d](https://status.twin.sh/api/v1/services/core_website-external/response-times/7d/badge.svg)
+![Response time 1h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/1h/badge.svg)
+![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/24h/badge.svg)
+![Response time 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/7d/badge.svg)
 
 The endpoint to generate a badge is the following:
 ```
-/api/v1/services/{key}/response-times/{duration}/badge.svg
+/api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
 - `{duration}` is `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<SERVICE_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 
 ### API
-Gatus provides a simple read-only API which can be queried in order to programmatically determine service status and history.
+Gatus provides a simple read-only API which can be queried in order to programmatically determine endpoint status and history.
 
-All services are available via a GET request to the following endpoint:
+All endpoints are available via a GET request to the following endpoint:
 ```
-/api/v1/services/statuses
+/api/v1/endpoints/statuses
 ````
-Example: https://status.twin.sh/api/v1/services/statuses
+Example: https://status.twin.sh/api/v1/endpoints/statuses
 
-Specific services can also be queried by using the following pattern:
+Specific endpoints can also be queried by using the following pattern:
 ```
-/api/v1/services/{group}_{service}/statuses
+/api/v1/endpoints/{group}_{endpoint}/statuses
 ```
-Example: https://status.twin.sh/api/v1/services/core_website-home/statuses
+Example: https://status.twin.sh/api/v1/endpoints/core_website-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 

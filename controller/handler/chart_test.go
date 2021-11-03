@@ -8,16 +8,16 @@ import (
 
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/watchdog"
 )
 
 func TestResponseTimeChart(t *testing.T) {
-	defer storage.Get().Clear()
+	defer store.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Services: []*core.Service{
+		Endpoints: []*core.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -28,8 +28,8 @@ func TestResponseTimeChart(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateServiceStatuses(cfg.Services[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateServiceStatuses(cfg.Services[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
 	type Scenario struct {
 		Name         string
@@ -40,23 +40,28 @@ func TestResponseTimeChart(t *testing.T) {
 	scenarios := []Scenario{
 		{
 			Name:         "chart-response-time-24h",
-			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
+			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "chart-response-time-7d",
-			Path:         "/api/v1/services/core_frontend/response-times/7d/chart.svg",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/7d/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			Name:         "chart-response-time-with-invalid-duration",
-			Path:         "/api/v1/services/core_backend/response-times/3d/chart.svg",
+			Path:         "/api/v1/endpoints/core_backend/response-times/3d/chart.svg",
 			ExpectedCode: http.StatusBadRequest,
 		},
 		{
 			Name:         "chart-response-time-for-invalid-key",
-			Path:         "/api/v1/services/invalid_key/response-times/7d/chart.svg",
+			Path:         "/api/v1/endpoints/invalid_key/response-times/7d/chart.svg",
 			ExpectedCode: http.StatusNotFound,
+		},
+		{ // XXX: Remove this in v4.0.0
+			Name:         "backward-compatible-services-chart-response-time-24h",
+			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
+			ExpectedCode: http.StatusOK,
 		},
 	}
 	for _, scenario := range scenarios {

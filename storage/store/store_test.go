@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 	"github.com/TwiN/gatus/v3/storage/store/memory"
@@ -18,7 +19,9 @@ var (
 
 	now = time.Now().Truncate(time.Hour)
 
-	testService = core.Service{
+	testRetentionDays = 7
+
+	testEndpoint = core.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
@@ -92,7 +95,7 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", 7)
+	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", testRetentionDays)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -114,8 +117,8 @@ func cleanUp(scenarios []*Scenario) {
 	}
 }
 
-func TestStore_GetServiceStatusByKey(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusByKey")
+func TestStore_GetEndpointStatusByKey(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetEndpointStatusByKey")
 	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	firstResult.Timestamp = now.Add(-time.Minute)
@@ -123,25 +126,25 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	secondResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
-			serviceStatus, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			endpointStatus, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if err != nil {
 				t.Fatal("shouldn't have returned an error, got", err.Error())
 			}
-			if serviceStatus == nil {
-				t.Fatalf("serviceStatus shouldn't have been nil")
+			if endpointStatus == nil {
+				t.Fatalf("endpointStatus shouldn't have been nil")
 			}
-			if serviceStatus.Name != testService.Name {
-				t.Fatalf("serviceStatus.Name should've been %s, got %s", testService.Name, serviceStatus.Name)
+			if endpointStatus.Name != testEndpoint.Name {
+				t.Fatalf("endpointStatus.Name should've been %s, got %s", testEndpoint.Name, endpointStatus.Name)
 			}
-			if serviceStatus.Group != testService.Group {
-				t.Fatalf("serviceStatus.Group should've been %s, got %s", testService.Group, serviceStatus.Group)
+			if endpointStatus.Group != testEndpoint.Group {
+				t.Fatalf("endpointStatus.Group should've been %s, got %s", testEndpoint.Group, endpointStatus.Group)
 			}
-			if len(serviceStatus.Results) != 2 {
-				t.Fatalf("serviceStatus.Results should've had 2 entries")
+			if len(endpointStatus.Results) != 2 {
+				t.Fatalf("endpointStatus.Results should've had 2 entries")
 			}
-			if serviceStatus.Results[0].Timestamp.After(serviceStatus.Results[1].Timestamp) {
+			if endpointStatus.Results[0].Timestamp.After(endpointStatus.Results[1].Timestamp) {
 				t.Error("The result at index 0 should've been older than the result at index 1")
 			}
 			scenario.Store.Clear()
@@ -149,57 +152,57 @@ func TestStore_GetServiceStatusByKey(t *testing.T) {
 	}
 }
 
-func TestStore_GetServiceStatusForMissingStatusReturnsNil(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusForMissingStatusReturnsNil")
+func TestStore_GetEndpointStatusForMissingStatusReturnsNil(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetEndpointStatusForMissingStatusReturnsNil")
 	defer cleanUp(scenarios)
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			serviceStatus, err := scenario.Store.GetServiceStatus("nonexistantgroup", "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
-			if err != common.ErrServiceNotFound {
-				t.Error("should've returned ErrServiceNotFound, got", err)
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			endpointStatus, err := scenario.Store.GetEndpointStatus("nonexistantgroup", "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrEndpointNotFound {
+				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
-			if serviceStatus != nil {
-				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, testService.Name)
+			if endpointStatus != nil {
+				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, testEndpoint.Name)
 			}
-			serviceStatus, err = scenario.Store.GetServiceStatus(testService.Group, "nonexistantname", paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
-			if err != common.ErrServiceNotFound {
-				t.Error("should've returned ErrServiceNotFound, got", err)
+			endpointStatus, err = scenario.Store.GetEndpointStatus(testEndpoint.Group, "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrEndpointNotFound {
+				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
-			if serviceStatus != nil {
-				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", testService.Group, "nonexistantname")
+			if endpointStatus != nil {
+				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, "nonexistantname")
 			}
-			serviceStatus, err = scenario.Store.GetServiceStatus("nonexistantgroup", testService.Name, paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
-			if err != common.ErrServiceNotFound {
-				t.Error("should've returned ErrServiceNotFound, got", err)
+			endpointStatus, err = scenario.Store.GetEndpointStatus("nonexistantgroup", testEndpoint.Name, paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != common.ErrEndpointNotFound {
+				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
-			if serviceStatus != nil {
-				t.Errorf("Returned service status for group '%s' and name '%s' not nil after inserting the service into the store", "nonexistantgroup", testService.Name)
+			if endpointStatus != nil {
+				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", "nonexistantgroup", testEndpoint.Name)
 			}
 		})
 	}
 }
 
-func TestStore_GetAllServiceStatuses(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllServiceStatuses")
+func TestStore_GetAllEndpointStatuses(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllEndpointStatuses")
 	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	secondResult := testUnsuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
 			// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
-			serviceStatuses, err := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+			endpointStatuses, err := scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err.Error())
 			}
-			if len(serviceStatuses) != 1 {
-				t.Fatal("expected 1 service status")
+			if len(endpointStatuses) != 1 {
+				t.Fatal("expected 1 endpoint status")
 			}
-			actual := serviceStatuses[0]
+			actual := endpointStatuses[0]
 			if actual == nil {
-				t.Fatal("expected service status to exist")
+				t.Fatal("expected endpoint status to exist")
 			}
 			if len(actual.Results) != 2 {
 				t.Error("expected 2 results, got", len(actual.Results))
@@ -212,26 +215,26 @@ func TestStore_GetAllServiceStatuses(t *testing.T) {
 	}
 }
 
-func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllServiceStatusesWithResultsAndEvents")
+func TestStore_GetAllEndpointStatusesWithResultsAndEvents(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllEndpointStatusesWithResultsAndEvents")
 	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	secondResult := testUnsuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
 			// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
-			serviceStatuses, err := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20).WithEvents(1, 50))
+			endpointStatuses, err := scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 50))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err.Error())
 			}
-			if len(serviceStatuses) != 1 {
-				t.Fatal("expected 1 service status")
+			if len(endpointStatuses) != 1 {
+				t.Fatal("expected 1 endpoint status")
 			}
-			actual := serviceStatuses[0]
+			actual := endpointStatuses[0]
 			if actual == nil {
-				t.Fatal("expected service status to exist")
+				t.Fatal("expected endpoint status to exist")
 			}
 			if len(actual.Results) != 2 {
 				t.Error("expected 2 results, got", len(actual.Results))
@@ -244,8 +247,8 @@ func TestStore_GetAllServiceStatusesWithResultsAndEvents(t *testing.T) {
 	}
 }
 
-func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2")
+func TestStore_GetEndpointStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetEndpointStatusPage1IsHasMoreRecentResultsThanPage2")
 	defer cleanUp(scenarios)
 	firstResult := testSuccessfulResult
 	firstResult.Timestamp = now.Add(-time.Minute)
@@ -253,30 +256,30 @@ func TestStore_GetServiceStatusPage1IsHasMoreRecentResultsThanPage2(t *testing.T
 	secondResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
-			serviceStatusPage1, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 1))
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			endpointStatusPage1, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 1))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err.Error())
 			}
-			if serviceStatusPage1 == nil {
-				t.Fatalf("serviceStatusPage1 shouldn't have been nil")
+			if endpointStatusPage1 == nil {
+				t.Fatalf("endpointStatusPage1 shouldn't have been nil")
 			}
-			if len(serviceStatusPage1.Results) != 1 {
-				t.Fatalf("serviceStatusPage1 should've had 1 result")
+			if len(endpointStatusPage1.Results) != 1 {
+				t.Fatalf("endpointStatusPage1 should've had 1 result")
 			}
-			serviceStatusPage2, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(2, 1))
+			endpointStatusPage2, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(2, 1))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err.Error())
 			}
-			if serviceStatusPage2 == nil {
-				t.Fatalf("serviceStatusPage2 shouldn't have been nil")
+			if endpointStatusPage2 == nil {
+				t.Fatalf("endpointStatusPage2 shouldn't have been nil")
 			}
-			if len(serviceStatusPage2.Results) != 1 {
-				t.Fatalf("serviceStatusPage2 should've had 1 result")
+			if len(endpointStatusPage2.Results) != 1 {
+				t.Fatalf("endpointStatusPage2 should've had 1 result")
 			}
 			// Compare the timestamp of both pages
-			if !serviceStatusPage1.Results[0].Timestamp.After(serviceStatusPage2.Results[0].Timestamp) {
+			if !endpointStatusPage1.Results[0].Timestamp.After(endpointStatusPage2.Results[0].Timestamp) {
 				t.Errorf("The result from the first page should've been more recent than the results from the second page")
 			}
 			scenario.Store.Clear()
@@ -293,21 +296,21 @@ func TestStore_GetUptimeByKey(t *testing.T) {
 	secondResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), time.Now().Add(-time.Hour), time.Now()); err != common.ErrServiceNotFound {
+			if _, err := scenario.Store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err != common.ErrEndpointNotFound {
 				t.Errorf("should've returned not found because there's nothing yet, got %v", err)
 			}
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour), time.Now()); uptime != 0.5 {
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			if uptime, _ := scenario.Store.GetUptimeByKey(testEndpoint.Key(), now.Add(-time.Hour), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 1h should've been 0.5, got %f", uptime)
 			}
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour*24), time.Now()); uptime != 0.5 {
+			if uptime, _ := scenario.Store.GetUptimeByKey(testEndpoint.Key(), now.Add(-time.Hour*24), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 24h should've been 0.5, got %f", uptime)
 			}
-			if uptime, _ := scenario.Store.GetUptimeByKey(testService.Key(), now.Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
+			if uptime, _ := scenario.Store.GetUptimeByKey(testEndpoint.Key(), now.Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
 				t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
 			}
-			if _, err := scenario.Store.GetUptimeByKey(testService.Key(), now, time.Now().Add(-time.Hour)); err == nil {
+			if _, err := scenario.Store.GetUptimeByKey(testEndpoint.Key(), now, time.Now().Add(-time.Hour)); err == nil {
 				t.Error("should've returned an error because the parameter 'from' cannot be older than 'to'")
 			}
 		})
@@ -331,39 +334,39 @@ func TestStore_GetAverageResponseTimeByKey(t *testing.T) {
 	fourthResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
-			scenario.Store.Insert(&testService, &thirdResult)
-			scenario.Store.Insert(&testService, &fourthResult)
-			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-48*time.Hour), now.Add(-24*time.Hour)); err == nil {
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			scenario.Store.Insert(&testEndpoint, &thirdResult)
+			scenario.Store.Insert(&testEndpoint, &fourthResult)
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testEndpoint.Key(), now.Add(-48*time.Hour), now.Add(-24*time.Hour)); err == nil {
 				if averageResponseTime != 0 {
 					t.Errorf("expected average response time to be 0ms, got %v", averageResponseTime)
 				}
 			} else {
 				t.Error("shouldn't have returned an error, got", err)
 			}
-			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-24*time.Hour), now); err == nil {
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testEndpoint.Key(), now.Add(-24*time.Hour), now); err == nil {
 				if averageResponseTime != 287 {
 					t.Errorf("expected average response time to be 287ms, got %v", averageResponseTime)
 				}
 			} else {
 				t.Error("shouldn't have returned an error, got", err)
 			}
-			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-time.Hour), now); err == nil {
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testEndpoint.Key(), now.Add(-time.Hour), now); err == nil {
 				if averageResponseTime != 350 {
 					t.Errorf("expected average response time to be 350ms, got %v", averageResponseTime)
 				}
 			} else {
 				t.Error("shouldn't have returned an error, got", err)
 			}
-			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now.Add(-2*time.Hour), now.Add(-time.Hour)); err == nil {
+			if averageResponseTime, err := scenario.Store.GetAverageResponseTimeByKey(testEndpoint.Key(), now.Add(-2*time.Hour), now.Add(-time.Hour)); err == nil {
 				if averageResponseTime != 216 {
 					t.Errorf("expected average response time to be 216ms, got %v", averageResponseTime)
 				}
 			} else {
 				t.Error("shouldn't have returned an error, got", err)
 			}
-			if _, err := scenario.Store.GetAverageResponseTimeByKey(testService.Key(), now, now.Add(-2*time.Hour)); err == nil {
+			if _, err := scenario.Store.GetAverageResponseTimeByKey(testEndpoint.Key(), now, now.Add(-2*time.Hour)); err == nil {
 				t.Error("expected an error because from > to, got nil")
 			}
 			scenario.Store.Clear()
@@ -388,11 +391,11 @@ func TestStore_GetHourlyAverageResponseTimeByKey(t *testing.T) {
 	fourthResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &firstResult)
-			scenario.Store.Insert(&testService, &secondResult)
-			scenario.Store.Insert(&testService, &thirdResult)
-			scenario.Store.Insert(&testService, &fourthResult)
-			hourlyAverageResponseTime, err := scenario.Store.GetHourlyAverageResponseTimeByKey(testService.Key(), now.Add(-24*time.Hour), now)
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			scenario.Store.Insert(&testEndpoint, &thirdResult)
+			scenario.Store.Insert(&testEndpoint, &fourthResult)
+			hourlyAverageResponseTime, err := scenario.Store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), now.Add(-24*time.Hour), now)
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err)
 			}
@@ -419,20 +422,20 @@ func TestStore_Insert(t *testing.T) {
 	secondResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
-			ss, err := scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
+			ss, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err)
 			}
 			if ss == nil {
-				t.Fatalf("Store should've had key '%s', but didn't", testService.Key())
+				t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 			}
 			if len(ss.Events) != 3 {
-				t.Fatalf("Service '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
+				t.Fatalf("Endpoint '%s' should've had 3 events, got %d", ss.Name, len(ss.Events))
 			}
 			if len(ss.Results) != 2 {
-				t.Fatalf("Service '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
+				t.Fatalf("Endpoint '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 			}
 			for i, expectedResult := range []core.Result{testSuccessfulResult, testUnsuccessfulResult} {
 				if expectedResult.HTTPStatus != ss.Results[i].HTTPStatus {
@@ -488,35 +491,121 @@ func TestStore_Insert(t *testing.T) {
 	}
 }
 
-func TestStore_DeleteAllServiceStatusesNotInKeys(t *testing.T) {
-	scenarios := initStoresAndBaseScenarios(t, "TestStore_DeleteAllServiceStatusesNotInKeys")
+func TestStore_DeleteAllEndpointStatusesNotInKeys(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_DeleteAllEndpointStatusesNotInKeys")
 	defer cleanUp(scenarios)
-	firstService := core.Service{Name: "service-1", Group: "group"}
-	secondService := core.Service{Name: "service-2", Group: "group"}
+	firstEndpoint := core.Endpoint{Name: "endpoint-1", Group: "group"}
+	secondEndpoint := core.Endpoint{Name: "endpoint-2", Group: "group"}
 	result := &testSuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&firstService, result)
-			scenario.Store.Insert(&secondService, result)
-			if ss, _ := scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()); ss == nil {
-				t.Fatal("firstService should exist")
+			scenario.Store.Insert(&firstEndpoint, result)
+			scenario.Store.Insert(&secondEndpoint, result)
+			if ss, _ := scenario.Store.GetEndpointStatusByKey(firstEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
+				t.Fatal("firstEndpoint should exist")
 			}
-			if ss, _ := scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()); ss == nil {
-				t.Fatal("secondService should exist")
+			if ss, _ := scenario.Store.GetEndpointStatusByKey(secondEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
+				t.Fatal("secondEndpoint should exist")
 			}
-			scenario.Store.DeleteAllServiceStatusesNotInKeys([]string{firstService.Key()})
-			if ss, _ := scenario.Store.GetServiceStatusByKey(firstService.Key(), paging.NewServiceStatusParams()); ss == nil {
-				t.Error("secondService should've been deleted")
+			scenario.Store.DeleteAllEndpointStatusesNotInKeys([]string{firstEndpoint.Key()})
+			if ss, _ := scenario.Store.GetEndpointStatusByKey(firstEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
+				t.Error("secondEndpoint should've been deleted")
 			}
-			if ss, _ := scenario.Store.GetServiceStatusByKey(secondService.Key(), paging.NewServiceStatusParams()); ss != nil {
-				t.Error("firstService should still exist")
+			if ss, _ := scenario.Store.GetEndpointStatusByKey(secondEndpoint.Key(), paging.NewEndpointStatusParams()); ss != nil {
+				t.Error("firstEndpoint should still exist")
 			}
 			// Delete everything
-			scenario.Store.DeleteAllServiceStatusesNotInKeys([]string{})
-			serviceStatuses, _ := scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams())
-			if len(serviceStatuses) != 0 {
+			scenario.Store.DeleteAllEndpointStatusesNotInKeys([]string{})
+			endpointStatuses, _ := scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+			if len(endpointStatuses) != 0 {
 				t.Errorf("everything should've been deleted")
 			}
 		})
 	}
+}
+
+func TestGet(t *testing.T) {
+	store := Get()
+	if store == nil {
+		t.Error("store should've been automatically initialized")
+	}
+}
+
+func TestInitialize(t *testing.T) {
+	type Scenario struct {
+		Name        string
+		Cfg         *storage.Config
+		ExpectedErr error
+	}
+	scenarios := []Scenario{
+		{
+			Name:        "nil",
+			Cfg:         nil,
+			ExpectedErr: nil,
+		},
+		{
+			Name:        "blank",
+			Cfg:         &storage.Config{},
+			ExpectedErr: nil,
+		},
+		{
+			Name:        "memory-no-file",
+			Cfg:         &storage.Config{Type: storage.TypeMemory},
+			ExpectedErr: nil,
+		},
+		{
+			Name:        "memory-with-file",
+			Cfg:         &storage.Config{Type: storage.TypeMemory, File: t.TempDir() + "/TestInitialize_memory-with-file.db"},
+			ExpectedErr: nil,
+		},
+		{
+			Name:        "sqlite-no-file",
+			Cfg:         &storage.Config{Type: storage.TypeSQLite},
+			ExpectedErr: sql.ErrFilePathNotSpecified,
+		},
+		{
+			Name:        "sqlite-with-file",
+			Cfg:         &storage.Config{Type: storage.TypeSQLite, File: t.TempDir() + "/TestInitialize_sqlite-with-file.db"},
+			ExpectedErr: nil,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			err := Initialize(scenario.Cfg)
+			if err != scenario.ExpectedErr {
+				t.Errorf("expected %v, got %v", scenario.ExpectedErr, err)
+			}
+			if err != nil {
+				return
+			}
+			if cancelFunc == nil {
+				t.Error("cancelFunc shouldn't have been nil")
+			}
+			if ctx == nil {
+				t.Error("ctx shouldn't have been nil")
+			}
+			if store == nil {
+				t.Fatal("provider shouldn't have been nit")
+			}
+			store.Close()
+			// Try to initialize it again
+			err = Initialize(scenario.Cfg)
+			if err != scenario.ExpectedErr {
+				t.Errorf("expected %v, got %v", scenario.ExpectedErr, err)
+				return
+			}
+			store.Close()
+		})
+	}
+}
+
+func TestAutoSave(t *testing.T) {
+	file := t.TempDir() + "/TestAutoSave.db"
+	if err := Initialize(&storage.Config{File: file}); err != nil {
+		t.Fatal("shouldn't have returned an error")
+	}
+	go autoSave(ctx, store, 3*time.Millisecond)
+	time.Sleep(15 * time.Millisecond)
+	cancelFunc()
+	time.Sleep(50 * time.Millisecond)
 }

@@ -89,7 +89,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	return nil
 }
 
-// IsUnderMaintenance checks whether the services that Gatus monitors are within the configured maintenance window
+// IsUnderMaintenance checks whether the endpoints that Gatus monitors are within the configured maintenance window
 func (c Config) IsUnderMaintenance() bool {
 	if !c.IsEnabled() {
 		return false

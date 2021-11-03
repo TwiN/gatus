@@ -1,6 +1,6 @@
 package ui
 
-// Config is the UI configuration for services
+// Config is the UI configuration for core.Endpoint
 type Config struct {
 	// HideHostname whether to hide the hostname in the Result
 	HideHostname bool `yaml:"hide-hostname"`

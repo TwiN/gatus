@@ -13,7 +13,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{URL: "http://example.com"}
+	validProvider := AlertProvider{URL: "https://example.com"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -21,15 +21,15 @@ func TestAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequestWhenResolved(t *testing.T) {
 	const (
-		ExpectedURL  = "http://example.com/service-name?event=RESOLVED&description=alert-description"
-		ExpectedBody = "service-name,alert-description,RESOLVED"
+		ExpectedURL  = "https://example.com/endpoint-name?event=RESOLVED&description=alert-description"
+		ExpectedBody = "endpoint-name,alert-description,RESOLVED"
 	)
 	customAlertProvider := &AlertProvider{
-		URL:     "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		URL:     "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:    "[ENDPOINT_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: nil,
 	}
-	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", true)
+	request := customAlertProvider.buildHTTPRequest("endpoint-name", "alert-description", true)
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
@@ -41,15 +41,15 @@ func TestAlertProvider_buildHTTPRequestWhenResolved(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 	const (
-		ExpectedURL  = "http://example.com/service-name?event=TRIGGERED&description=alert-description"
-		ExpectedBody = "service-name,alert-description,TRIGGERED"
+		ExpectedURL  = "https://example.com/endpoint-name?event=TRIGGERED&description=alert-description"
+		ExpectedBody = "endpoint-name,alert-description,TRIGGERED"
 	)
 	customAlertProvider := &AlertProvider{
-		URL:     "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		URL:     "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:    "[ENDPOINT_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: map[string]string{"Authorization": "Basic hunter2"},
 	}
-	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", false)
+	request := customAlertProvider.buildHTTPRequest("endpoint-name", "alert-description", false)
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
@@ -60,24 +60,24 @@ func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 }
 
 func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
-	provider := AlertProvider{URL: "http://example.com"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Service{}, &alert.Alert{}, &core.Result{}, true)
+	provider := AlertProvider{URL: "https://example.com"}
+	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
 	if customAlertProvider == nil {
 		t.Fatal("customAlertProvider shouldn't have been nil")
 	}
-	if customAlertProvider.URL != "http://example.com" {
-		t.Error("expected URL to be http://example.com, got", customAlertProvider.URL)
+	if customAlertProvider.URL != "https://example.com" {
+		t.Error("expected URL to be https://example.com, got", customAlertProvider.URL)
 	}
 }
 
 func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	const (
-		ExpectedURL  = "http://example.com/service-name?event=test&description=alert-description"
-		ExpectedBody = "service-name,alert-description,test"
+		ExpectedURL  = "https://example.com/endpoint-name?event=test&description=alert-description"
+		ExpectedBody = "endpoint-name,alert-description,test"
 	)
 	customAlertProvider := &AlertProvider{
-		URL:     "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body:    "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		URL:     "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:    "[ENDPOINT_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: nil,
 		Placeholders: map[string]map[string]string{
 			"ALERT_TRIGGERED_OR_RESOLVED": {
@@ -85,7 +85,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 			},
 		},
 	}
-	request := customAlertProvider.buildHTTPRequest("service-name", "alert-description", true)
+	request := customAlertProvider.buildHTTPRequest("endpoint-name", "alert-description", true)
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
@@ -97,8 +97,8 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 
 func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:          "http://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body:         "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		URL:          "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:         "[ENDPOINT_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers:      nil,
 		Placeholders: nil,
 	}
@@ -107,5 +107,28 @@ func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 	}
 	if customAlertProvider.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
 		t.Error("expected TRIGGERED, got", customAlertProvider.GetAlertStatePlaceholderValue(false))
+	}
+}
+
+// TestAlertProvider_isBackwardCompatibleWithServiceRename checks if the custom alerting provider still supports
+// service placeholders after the migration from "service" to "endpoint"
+//
+// XXX: Remove this in v4.0.0
+func TestAlertProvider_isBackwardCompatibleWithServiceRename(t *testing.T) {
+	const (
+		ExpectedURL  = "https://example.com/endpoint-name?event=TRIGGERED&description=alert-description"
+		ExpectedBody = "endpoint-name,alert-description,TRIGGERED"
+	)
+	customAlertProvider := &AlertProvider{
+		URL:  "https://example.com/[SERVICE_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body: "[SERVICE_NAME],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+	}
+	request := customAlertProvider.buildHTTPRequest("endpoint-name", "alert-description", false)
+	if request.URL.String() != ExpectedURL {
+		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
+	}
+	body, _ := ioutil.ReadAll(request.Body)
+	if string(body) != ExpectedBody {
+		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}
 }

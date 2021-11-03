@@ -18,7 +18,7 @@ func TestHandle(t *testing.T) {
 			Address: "0.0.0.0",
 			Port:    rand.Intn(65534),
 		},
-		Services: []*core.Service{
+		Endpoints: []*core.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",

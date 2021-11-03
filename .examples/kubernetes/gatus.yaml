@@ -1,18 +1,25 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatus
+  namespace: kube-system
 data:
   config.yaml: |
     metrics: true
-    services:
+    endpoints:
       - name: website
         url: https://twin.sh/health
-        interval: 1m
+        interval: 5m
         conditions:
           - "[STATUS] == 200"
+          - "[BODY].status == UP"
+
       - name: github
         url: https://api.github.com/healthz
         interval: 5m
         conditions:
           - "[STATUS] == 200"
+
       - name: cat-fact
         url: "https://cat-fact.herokuapp.com/facts/random"
         interval: 5m
@@ -23,11 +30,14 @@ data:
           - "[BODY].text == pat(*cat*)"
           - "[STATUS] == pat(2*)"
           - "[CONNECTED] == true"
+
       - name: example
         url: https://example.com/
         conditions:
           - "[STATUS] == 200"
-kind: ConfigMap
+---
+apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: gatus
   namespace: kube-system
@@ -41,14 +51,16 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: gatus
+      app: gatus
   template:
     metadata:
       labels:
-        k8s-app: gatus
+        app: gatus
       name: gatus
       namespace: kube-system
     spec:
+      serviceAccountName: gatus
+      terminationGracePeriodSeconds: 5
       containers:
         - image: twinproduction/gatus
           imagePullPolicy: IfNotPresent
@@ -84,4 +96,4 @@ spec:
       protocol: TCP
       targetPort: 8080
   selector:
-    k8s-app: gatus
+    app: gatus

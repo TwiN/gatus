@@ -10,12 +10,12 @@ import (
 	"github.com/TwiN/gatus/v3/storage/store/sql"
 )
 
-func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
+func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 	memoryStore, err := memory.NewStore("")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllServiceStatuses.db",7)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllEndpointStatuses.db", 7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -48,18 +48,18 @@ func BenchmarkStore_GetAllServiceStatuses(b *testing.B) {
 		},
 	}
 	for _, scenario := range scenarios {
-		scenario.Store.Insert(&testService, &testSuccessfulResult)
-		scenario.Store.Insert(&testService, &testUnsuccessfulResult)
+		scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+		scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
 		b.Run(scenario.Name, func(b *testing.B) {
 			if scenario.Parallel {
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
-						scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+						scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
 					}
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					scenario.Store.GetAllServiceStatuses(paging.NewServiceStatusParams().WithResults(1, 20))
+					scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
 				}
 			}
 			b.ReportAllocs()
@@ -73,7 +73,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db",7)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db", 7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -118,7 +118,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 							result = testSuccessfulResult
 						}
 						result.Timestamp = time.Now()
-						scenario.Store.Insert(&testService, &result)
+						scenario.Store.Insert(&testEndpoint, &result)
 						n++
 					}
 				})
@@ -131,7 +131,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 						result = testSuccessfulResult
 					}
 					result.Timestamp = time.Now()
-					scenario.Store.Insert(&testService, &result)
+					scenario.Store.Insert(&testEndpoint, &result)
 				}
 			}
 			b.ReportAllocs()
@@ -140,12 +140,12 @@ func BenchmarkStore_Insert(b *testing.B) {
 	}
 }
 
-func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
+func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
 	memoryStore, err := memory.NewStore("")
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetServiceStatusByKey.db",7)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointStatusByKey.db", 7)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -179,19 +179,19 @@ func BenchmarkStore_GetServiceStatusByKey(b *testing.B) {
 	}
 	for _, scenario := range scenarios {
 		for i := 0; i < 50; i++ {
-			scenario.Store.Insert(&testService, &testSuccessfulResult)
-			scenario.Store.Insert(&testService, &testUnsuccessfulResult)
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
 		}
 		b.Run(scenario.Name, func(b *testing.B) {
 			if scenario.Parallel {
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
-						scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20))
+						scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 20))
 					}
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					scenario.Store.GetServiceStatusByKey(testService.Key(), paging.NewServiceStatusParams().WithResults(1, 20))
+					scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 20))
 				}
 			}
 			b.ReportAllocs()

@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/controller"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/watchdog"
 )
 
@@ -18,6 +18,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	initializeStorage(cfg)
 	start(cfg)
 	// Wait for termination signal
 	signalChannel := make(chan os.Signal, 1)
@@ -46,8 +47,7 @@ func stop() {
 }
 
 func save() {
-	err := storage.Get().Save()
-	if err != nil {
+	if err := store.Get().Save(); err != nil {
 		log.Println("Failed to save storage provider:", err.Error())
 	}
 }
@@ -60,6 +60,27 @@ func loadConfiguration() (cfg *config.Config, err error) {
 		cfg, err = config.LoadDefaultConfiguration()
 	}
 	return
+}
+
+// initializeStorage initializes the storage provider
+//
+// Q: "TwiN, why are you putting this here? Wouldn't it make more sense to have this in the config?!"
+// A: Yes. Yes it would make more sense to have it in the config package. But I don't want to import
+//    the massive SQL dependencies just because I want to import the config, so here we are.
+func initializeStorage(cfg *config.Config) {
+	err := store.Initialize(cfg.Storage)
+	if err != nil {
+		panic(err)
+	}
+	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
+	var keys []string
+	for _, endpoint := range cfg.Endpoints {
+		keys = append(keys, endpoint.Key())
+	}
+	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
+	if numberOfEndpointStatusesDeleted > 0 {
+		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+	}
 }
 
 func listenToConfigurationFileChanges(cfg *config.Config) {

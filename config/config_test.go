@@ -54,7 +54,7 @@ maintenance:
   every: [Monday, Thursday]
 ui:
   title: Test
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     interval: 15s
@@ -91,73 +91,73 @@ services:
 	if mc := config.Maintenance; mc == nil || mc.Start != "00:00" || !mc.IsEnabled() || mc.Duration != 4*time.Hour || len(mc.Every) != 2 {
 		t.Error("Expected Config.Maintenance to be configured properly")
 	}
-	if len(config.Services) != 3 {
-		t.Error("Should have returned two services")
+	if len(config.Endpoints) != 3 {
+		t.Error("Should have returned two endpoints")
 	}
 
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Method != "GET" {
+	if config.Endpoints[0].Method != "GET" {
 		t.Errorf("Method should have been %s (default)", "GET")
 	}
-	if config.Services[0].Interval != 15*time.Second {
+	if config.Endpoints[0].Interval != 15*time.Second {
 		t.Errorf("Interval should have been %s", 15*time.Second)
 	}
-	if config.Services[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
-		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[0].ClientConfig.Insecure)
+	if config.Endpoints[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Endpoints[0].ClientConfig.Insecure)
 	}
-	if config.Services[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
-		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Services[0].ClientConfig.IgnoreRedirect)
+	if config.Endpoints[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Endpoints[0].ClientConfig.IgnoreRedirect)
 	}
-	if config.Services[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
-		t.Errorf("ClientConfig.Timeout should have been %v, got %v", client.GetDefaultConfig().Timeout, config.Services[0].ClientConfig.Timeout)
+	if config.Endpoints[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+		t.Errorf("ClientConfig.Timeout should have been %v, got %v", client.GetDefaultConfig().Timeout, config.Endpoints[0].ClientConfig.Timeout)
 	}
-	if len(config.Services[0].Conditions) != 1 {
+	if len(config.Endpoints[0].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
 	}
 
-	if config.Services[1].URL != "https://api.github.com/healthz" {
+	if config.Endpoints[1].URL != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}
-	if config.Services[1].Method != "GET" {
+	if config.Endpoints[1].Method != "GET" {
 		t.Errorf("Method should have been %s (default)", "GET")
 	}
-	if config.Services[1].Interval != 60*time.Second {
+	if config.Endpoints[1].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if !config.Services[1].ClientConfig.Insecure {
-		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[1].ClientConfig.Insecure)
+	if !config.Endpoints[1].ClientConfig.Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Endpoints[1].ClientConfig.Insecure)
 	}
-	if !config.Services[1].ClientConfig.IgnoreRedirect {
-		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Services[1].ClientConfig.IgnoreRedirect)
+	if !config.Endpoints[1].ClientConfig.IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v, got %v", true, config.Endpoints[1].ClientConfig.IgnoreRedirect)
 	}
-	if config.Services[1].ClientConfig.Timeout != 5*time.Second {
-		t.Errorf("ClientConfig.Timeout should have been %v, got %v", 5*time.Second, config.Services[1].ClientConfig.Timeout)
+	if config.Endpoints[1].ClientConfig.Timeout != 5*time.Second {
+		t.Errorf("ClientConfig.Timeout should have been %v, got %v", 5*time.Second, config.Endpoints[1].ClientConfig.Timeout)
 	}
-	if len(config.Services[1].Conditions) != 2 {
+	if len(config.Endpoints[1].Conditions) != 2 {
 		t.Errorf("There should have been %d conditions", 2)
 	}
 
-	if config.Services[2].URL != "https://example.com/" {
+	if config.Endpoints[2].URL != "https://example.com/" {
 		t.Errorf("URL should have been %s", "https://example.com/")
 	}
-	if config.Services[2].Method != "GET" {
+	if config.Endpoints[2].Method != "GET" {
 		t.Errorf("Method should have been %s (default)", "GET")
 	}
-	if config.Services[2].Interval != 30*time.Minute {
+	if config.Endpoints[2].Interval != 30*time.Minute {
 		t.Errorf("Interval should have been %s, because it is the default value", 30*time.Minute)
 	}
-	if !config.Services[2].ClientConfig.Insecure {
-		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Services[2].ClientConfig.Insecure)
+	if !config.Endpoints[2].ClientConfig.Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v, got %v", true, config.Endpoints[2].ClientConfig.Insecure)
 	}
-	if config.Services[2].ClientConfig.IgnoreRedirect {
-		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", false, config.Services[2].ClientConfig.IgnoreRedirect)
+	if config.Endpoints[2].ClientConfig.IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", false, config.Endpoints[2].ClientConfig.IgnoreRedirect)
 	}
-	if config.Services[2].ClientConfig.Timeout != 10*time.Second {
-		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", 10*time.Second, config.Services[2].ClientConfig.Timeout)
+	if config.Endpoints[2].ClientConfig.Timeout != 10*time.Second {
+		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", 10*time.Second, config.Endpoints[2].ClientConfig.Timeout)
 	}
-	if len(config.Services[2].Conditions) != 1 {
+	if len(config.Endpoints[2].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
 	}
 	if config.Storage.Retention.Days != 10 {
@@ -167,7 +167,7 @@ services:
 
 func TestParseAndValidateConfigBytesDefault(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -188,20 +188,20 @@ services:
 	if config.Web.Port != web.DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", web.DefaultPort)
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if config.Services[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
-		t.Errorf("ClientConfig.Insecure should have been %v by default, got %v", true, config.Services[0].ClientConfig.Insecure)
+	if config.Endpoints[0].ClientConfig.Insecure != client.GetDefaultConfig().Insecure {
+		t.Errorf("ClientConfig.Insecure should have been %v by default, got %v", true, config.Endpoints[0].ClientConfig.Insecure)
 	}
-	if config.Services[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
-		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", true, config.Services[0].ClientConfig.IgnoreRedirect)
+	if config.Endpoints[0].ClientConfig.IgnoreRedirect != client.GetDefaultConfig().IgnoreRedirect {
+		t.Errorf("ClientConfig.IgnoreRedirect should have been %v by default, got %v", true, config.Endpoints[0].ClientConfig.IgnoreRedirect)
 	}
-	if config.Services[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
-		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", client.GetDefaultConfig().Timeout, config.Services[0].ClientConfig.Timeout)
+	if config.Endpoints[0].ClientConfig.Timeout != client.GetDefaultConfig().Timeout {
+		t.Errorf("ClientConfig.Timeout should have been %v by default, got %v", client.GetDefaultConfig().Timeout, config.Endpoints[0].ClientConfig.Timeout)
 	}
 }
 
@@ -209,7 +209,7 @@ func TestParseAndValidateConfigBytesWithAddress(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 web:
   address: 127.0.0.1
-services:
+endpoints:
   - name: website
     url: https://twin.sh/actuator/health
     conditions:
@@ -224,10 +224,10 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twin.sh/actuator/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/actuator/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/actuator/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if config.Web.Address != "127.0.0.1" {
@@ -242,7 +242,7 @@ func TestParseAndValidateConfigBytesWithPort(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 web:
   port: 12345
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -257,10 +257,10 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if config.Web.Address != web.DefaultAddress {
@@ -276,7 +276,7 @@ func TestParseAndValidateConfigBytesWithPortAndHost(t *testing.T) {
 web:
   port: 12345
   address: 127.0.0.1
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -291,10 +291,10 @@ services:
 	if config.Metrics {
 		t.Error("Metrics should've been false by default")
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if config.Web.Address != "127.0.0.1" {
@@ -310,7 +310,7 @@ func TestParseAndValidateConfigBytesWithInvalidPort(t *testing.T) {
 web:
   port: 65536
   address: 127.0.0.1
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -324,7 +324,7 @@ services:
 func TestParseAndValidateConfigBytesWithMetricsAndCustomUserAgentHeader(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 metrics: true
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     headers:
@@ -341,10 +341,10 @@ services:
 	if !config.Metrics {
 		t.Error("Metrics should have been true")
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
 	if config.Web.Address != web.DefaultAddress {
@@ -353,7 +353,7 @@ services:
 	if config.Web.Port != web.DefaultPort {
 		t.Errorf("Port should have been %d, because it is the default value", web.DefaultPort)
 	}
-	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != "Test/2.0" {
+	if userAgent := config.Endpoints[0].Headers["User-Agent"]; userAgent != "Test/2.0" {
 		t.Errorf("User-Agent should've been %s, got %s", "Test/2.0", userAgent)
 	}
 }
@@ -364,7 +364,7 @@ metrics: true
 web:
   address: 192.168.0.1
   port: 9090
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -385,13 +385,13 @@ services:
 	if config.Web.Port != 9090 {
 		t.Errorf("Port should have been %d, because it is specified in config", 9090)
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if userAgent := config.Services[0].Headers["User-Agent"]; userAgent != core.GatusUserAgent {
+	if userAgent := config.Endpoints[0].Headers["User-Agent"]; userAgent != core.GatusUserAgent {
 		t.Errorf("User-Agent should've been %s because it's the default value, got %s", core.GatusUserAgent, userAgent)
 	}
 }
@@ -407,8 +407,8 @@ badconfig:
 	if err == nil {
 		t.Error("An error should've been returned")
 	}
-	if err != ErrNoServiceInConfig {
-		t.Error("The error returned should have been of type ErrNoServiceInConfig")
+	if err != ErrNoEndpointInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
 	}
 }
 
@@ -441,7 +441,7 @@ alerting:
   teams:
     webhook-url: "http://example.com"
 
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     alerts:
@@ -482,116 +482,116 @@ services:
 	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
 		t.Fatal("Slack alerting config should've been valid")
 	}
-	// Services
-	if len(config.Services) != 1 {
-		t.Error("There should've been 1 service")
+	// Endpoints
+	if len(config.Endpoints) != 1 {
+		t.Error("There should've been 1 endpoint")
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 8 {
+	if len(config.Endpoints[0].Alerts) != 8 {
 		t.Fatal("There should've been 8 alerts configured")
 	}
 
-	if config.Services[0].Alerts[0].Type != alert.TypeSlack {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Services[0].Alerts[0].Type)
+	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Endpoints[0].Alerts[0].Type)
 	}
-	if !config.Services[0].Alerts[0].IsEnabled() {
+	if !config.Endpoints[0].Alerts[0].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[0].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[0].FailureThreshold)
+	if config.Endpoints[0].Alerts[0].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[0].FailureThreshold)
 	}
-	if config.Services[0].Alerts[0].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
-	}
-
-	if config.Services[0].Alerts[1].Type != alert.TypePagerDuty {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Services[0].Alerts[1].Type)
-	}
-	if config.Services[0].Alerts[1].GetDescription() != "Healthcheck failed 7 times in a row" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Services[0].Alerts[1].GetDescription())
-	}
-	if config.Services[0].Alerts[1].FailureThreshold != 7 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
-	}
-	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
-		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
+	if config.Endpoints[0].Alerts[0].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[0].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[2].Type != alert.TypeMattermost {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMattermost, config.Services[0].Alerts[2].Type)
+	if config.Endpoints[0].Alerts[1].Type != alert.TypePagerDuty {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Endpoints[0].Alerts[1].Type)
 	}
-	if !config.Services[0].Alerts[2].IsEnabled() {
+	if config.Endpoints[0].Alerts[1].GetDescription() != "Healthcheck failed 7 times in a row" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Endpoints[0].Alerts[1].GetDescription())
+	}
+	if config.Endpoints[0].Alerts[1].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Endpoints[0].Alerts[1].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[1].SuccessThreshold != 5 {
+		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Endpoints[0].Alerts[1].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[2].Type != alert.TypeMattermost {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMattermost, config.Endpoints[0].Alerts[2].Type)
+	}
+	if !config.Endpoints[0].Alerts[2].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[2].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[2].FailureThreshold)
+	if config.Endpoints[0].Alerts[2].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[2].FailureThreshold)
 	}
-	if config.Services[0].Alerts[2].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[2].SuccessThreshold)
+	if config.Endpoints[0].Alerts[2].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[2].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[3].Type != alert.TypeMessagebird {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMessagebird, config.Services[0].Alerts[3].Type)
+	if config.Endpoints[0].Alerts[3].Type != alert.TypeMessagebird {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMessagebird, config.Endpoints[0].Alerts[3].Type)
 	}
-	if config.Services[0].Alerts[3].IsEnabled() {
+	if config.Endpoints[0].Alerts[3].IsEnabled() {
 		t.Error("The alert should've been disabled")
 	}
 
-	if config.Services[0].Alerts[4].Type != alert.TypeDiscord {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeDiscord, config.Services[0].Alerts[4].Type)
+	if config.Endpoints[0].Alerts[4].Type != alert.TypeDiscord {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeDiscord, config.Endpoints[0].Alerts[4].Type)
 	}
-	if !config.Services[0].Alerts[4].IsEnabled() {
+	if !config.Endpoints[0].Alerts[4].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[4].FailureThreshold != 10 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[4].FailureThreshold)
+	if config.Endpoints[0].Alerts[4].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[4].FailureThreshold)
 	}
-	if config.Services[0].Alerts[4].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[4].SuccessThreshold)
+	if config.Endpoints[0].Alerts[4].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[4].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[5].Type != alert.TypeTelegram {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTelegram, config.Services[0].Alerts[5].Type)
+	if config.Endpoints[0].Alerts[5].Type != alert.TypeTelegram {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTelegram, config.Endpoints[0].Alerts[5].Type)
 	}
-	if !config.Services[0].Alerts[5].IsEnabled() {
+	if !config.Endpoints[0].Alerts[5].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[5].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[5].FailureThreshold)
+	if config.Endpoints[0].Alerts[5].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[5].FailureThreshold)
 	}
-	if config.Services[0].Alerts[5].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[5].SuccessThreshold)
+	if config.Endpoints[0].Alerts[5].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[5].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[6].Type != alert.TypeTwilio {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTwilio, config.Services[0].Alerts[6].Type)
+	if config.Endpoints[0].Alerts[6].Type != alert.TypeTwilio {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTwilio, config.Endpoints[0].Alerts[6].Type)
 	}
-	if !config.Services[0].Alerts[6].IsEnabled() {
+	if !config.Endpoints[0].Alerts[6].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[6].FailureThreshold != 12 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Services[0].Alerts[6].FailureThreshold)
+	if config.Endpoints[0].Alerts[6].FailureThreshold != 12 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Endpoints[0].Alerts[6].FailureThreshold)
 	}
-	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
+	if config.Endpoints[0].Alerts[6].SuccessThreshold != 15 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Endpoints[0].Alerts[6].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[7].Type != alert.TypeTeams {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Services[0].Alerts[7].Type)
+	if config.Endpoints[0].Alerts[7].Type != alert.TypeTeams {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Endpoints[0].Alerts[7].Type)
 	}
-	if !config.Services[0].Alerts[7].IsEnabled() {
+	if !config.Endpoints[0].Alerts[7].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[7].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[7].FailureThreshold)
+	if config.Endpoints[0].Alerts[7].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[7].FailureThreshold)
 	}
-	if config.Services[0].Alerts[7].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[7].SuccessThreshold)
+	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
 	}
 }
 
@@ -647,7 +647,7 @@ alerting:
     default-alert:
       enabled: true
 
-services:
+endpoints:
  - name: website
    url: https://twin.sh/health
    alerts:
@@ -656,7 +656,7 @@ services:
      - type: mattermost
      - type: messagebird
      - type: discord
-       success-threshold: 2 # test service alert override
+       success-threshold: 2 # test endpoint alert override
      - type: telegram
      - type: twilio
      - type: teams
@@ -759,119 +759,119 @@ services:
 		t.Fatal("Teams.GetDefaultAlert() shouldn't have returned nil")
 	}
 
-	// Services
-	if len(config.Services) != 1 {
-		t.Error("There should've been 1 service")
+	// Endpoints
+	if len(config.Endpoints) != 1 {
+		t.Error("There should've been 1 endpoint")
 	}
-	if config.Services[0].URL != "https://twin.sh/health" {
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
-	if config.Services[0].Interval != 60*time.Second {
+	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Services[0].Alerts) != 8 {
+	if len(config.Endpoints[0].Alerts) != 8 {
 		t.Fatal("There should've been 8 alerts configured")
 	}
 
-	if config.Services[0].Alerts[0].Type != alert.TypeSlack {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Services[0].Alerts[0].Type)
+	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Endpoints[0].Alerts[0].Type)
 	}
-	if !config.Services[0].Alerts[0].IsEnabled() {
+	if !config.Endpoints[0].Alerts[0].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[0].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[0].FailureThreshold)
+	if config.Endpoints[0].Alerts[0].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[0].FailureThreshold)
 	}
-	if config.Services[0].Alerts[0].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[0].SuccessThreshold)
-	}
-
-	if config.Services[0].Alerts[1].Type != alert.TypePagerDuty {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Services[0].Alerts[1].Type)
-	}
-	if config.Services[0].Alerts[1].GetDescription() != "default description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "default description", config.Services[0].Alerts[1].GetDescription())
-	}
-	if config.Services[0].Alerts[1].FailureThreshold != 7 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Services[0].Alerts[1].FailureThreshold)
-	}
-	if config.Services[0].Alerts[1].SuccessThreshold != 5 {
-		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Services[0].Alerts[1].SuccessThreshold)
+	if config.Endpoints[0].Alerts[0].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[0].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[2].Type != alert.TypeMattermost {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMattermost, config.Services[0].Alerts[2].Type)
+	if config.Endpoints[0].Alerts[1].Type != alert.TypePagerDuty {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Endpoints[0].Alerts[1].Type)
 	}
-	if !config.Services[0].Alerts[2].IsEnabled() {
+	if config.Endpoints[0].Alerts[1].GetDescription() != "default description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "default description", config.Endpoints[0].Alerts[1].GetDescription())
+	}
+	if config.Endpoints[0].Alerts[1].FailureThreshold != 7 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Endpoints[0].Alerts[1].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[1].SuccessThreshold != 5 {
+		t.Errorf("The success threshold of the alert should've been %d, but it was %d", 5, config.Endpoints[0].Alerts[1].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[2].Type != alert.TypeMattermost {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMattermost, config.Endpoints[0].Alerts[2].Type)
+	}
+	if !config.Endpoints[0].Alerts[2].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[2].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[2].FailureThreshold)
+	if config.Endpoints[0].Alerts[2].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[2].FailureThreshold)
 	}
-	if config.Services[0].Alerts[2].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[2].SuccessThreshold)
+	if config.Endpoints[0].Alerts[2].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[2].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[3].Type != alert.TypeMessagebird {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMessagebird, config.Services[0].Alerts[3].Type)
+	if config.Endpoints[0].Alerts[3].Type != alert.TypeMessagebird {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeMessagebird, config.Endpoints[0].Alerts[3].Type)
 	}
-	if config.Services[0].Alerts[3].IsEnabled() {
+	if config.Endpoints[0].Alerts[3].IsEnabled() {
 		t.Error("The alert should've been disabled")
 	}
-	if !config.Services[0].Alerts[3].IsSendingOnResolved() {
+	if !config.Endpoints[0].Alerts[3].IsSendingOnResolved() {
 		t.Error("The alert should be sending on resolve")
 	}
 
-	if config.Services[0].Alerts[4].Type != alert.TypeDiscord {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeDiscord, config.Services[0].Alerts[4].Type)
+	if config.Endpoints[0].Alerts[4].Type != alert.TypeDiscord {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeDiscord, config.Endpoints[0].Alerts[4].Type)
 	}
-	if !config.Services[0].Alerts[4].IsEnabled() {
+	if !config.Endpoints[0].Alerts[4].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[4].FailureThreshold != 10 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[4].FailureThreshold)
+	if config.Endpoints[0].Alerts[4].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[4].FailureThreshold)
 	}
-	if config.Services[0].Alerts[4].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[4].SuccessThreshold)
+	if config.Endpoints[0].Alerts[4].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[4].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[5].Type != alert.TypeTelegram {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTelegram, config.Services[0].Alerts[5].Type)
+	if config.Endpoints[0].Alerts[5].Type != alert.TypeTelegram {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTelegram, config.Endpoints[0].Alerts[5].Type)
 	}
-	if !config.Services[0].Alerts[5].IsEnabled() {
+	if !config.Endpoints[0].Alerts[5].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[5].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[5].FailureThreshold)
+	if config.Endpoints[0].Alerts[5].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[5].FailureThreshold)
 	}
-	if config.Services[0].Alerts[5].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[5].SuccessThreshold)
+	if config.Endpoints[0].Alerts[5].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[5].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[6].Type != alert.TypeTwilio {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTwilio, config.Services[0].Alerts[6].Type)
+	if config.Endpoints[0].Alerts[6].Type != alert.TypeTwilio {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTwilio, config.Endpoints[0].Alerts[6].Type)
 	}
-	if !config.Services[0].Alerts[6].IsEnabled() {
+	if !config.Endpoints[0].Alerts[6].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[6].FailureThreshold != 12 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Services[0].Alerts[6].FailureThreshold)
+	if config.Endpoints[0].Alerts[6].FailureThreshold != 12 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 12, config.Endpoints[0].Alerts[6].FailureThreshold)
 	}
-	if config.Services[0].Alerts[6].SuccessThreshold != 15 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Services[0].Alerts[6].SuccessThreshold)
+	if config.Endpoints[0].Alerts[6].SuccessThreshold != 15 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.Endpoints[0].Alerts[6].SuccessThreshold)
 	}
 
-	if config.Services[0].Alerts[7].Type != alert.TypeTeams {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Services[0].Alerts[7].Type)
+	if config.Endpoints[0].Alerts[7].Type != alert.TypeTeams {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeTeams, config.Endpoints[0].Alerts[7].Type)
 	}
-	if !config.Services[0].Alerts[7].IsEnabled() {
+	if !config.Endpoints[0].Alerts[7].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[7].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Services[0].Alerts[7].FailureThreshold)
+	if config.Endpoints[0].Alerts[7].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[7].FailureThreshold)
 	}
-	if config.Services[0].Alerts[7].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Services[0].Alerts[7].SuccessThreshold)
+	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
 	}
 
 }
@@ -880,12 +880,12 @@ func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlertAndMultipleAlerts
 	config, err := parseAndValidateConfigBytes([]byte(`
 alerting:
   slack:
-    webhook-url: "http://example.com"
+    webhook-url: "https://example.com"
     default-alert:
       enabled: true
       description: "description"
 
-services:
+endpoints:
  - name: website
    url: https://twin.sh/health
    alerts:
@@ -913,45 +913,45 @@ services:
 	if config.Alerting.Slack == nil || !config.Alerting.Slack.IsValid() {
 		t.Fatal("Slack alerting config should've been valid")
 	}
-	// Services
-	if len(config.Services) != 1 {
-		t.Error("There should've been 2 services")
+	// Endpoints
+	if len(config.Endpoints) != 1 {
+		t.Error("There should've been 2 endpoints")
 	}
-	if config.Services[0].Alerts[0].Type != alert.TypeSlack {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Services[0].Alerts[0].Type)
+	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Endpoints[0].Alerts[0].Type)
 	}
-	if config.Services[0].Alerts[1].Type != alert.TypeSlack {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Services[0].Alerts[1].Type)
+	if config.Endpoints[0].Alerts[1].Type != alert.TypeSlack {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Endpoints[0].Alerts[1].Type)
 	}
-	if config.Services[0].Alerts[2].Type != alert.TypeSlack {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Services[0].Alerts[2].Type)
+	if config.Endpoints[0].Alerts[2].Type != alert.TypeSlack {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeSlack, config.Endpoints[0].Alerts[2].Type)
 	}
-	if !config.Services[0].Alerts[0].IsEnabled() {
+	if !config.Endpoints[0].Alerts[0].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if !config.Services[0].Alerts[1].IsEnabled() {
+	if !config.Endpoints[0].Alerts[1].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Services[0].Alerts[2].IsEnabled() {
+	if config.Endpoints[0].Alerts[2].IsEnabled() {
 		t.Error("The alert should've been disabled")
 	}
-	if config.Services[0].Alerts[0].GetDescription() != "description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[0].GetDescription())
+	if config.Endpoints[0].Alerts[0].GetDescription() != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[0].GetDescription())
 	}
-	if config.Services[0].Alerts[1].GetDescription() != "wow" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[1].GetDescription())
+	if config.Endpoints[0].Alerts[1].GetDescription() != "wow" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[1].GetDescription())
 	}
-	if config.Services[0].Alerts[2].GetDescription() != "description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Services[0].Alerts[2].GetDescription())
+	if config.Endpoints[0].Alerts[2].GetDescription() != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[2].GetDescription())
 	}
-	if config.Services[0].Alerts[0].FailureThreshold != 10 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Services[0].Alerts[0].FailureThreshold)
+	if config.Endpoints[0].Alerts[0].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[0].FailureThreshold)
 	}
-	if config.Services[0].Alerts[1].FailureThreshold != 20 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 20, config.Services[0].Alerts[1].FailureThreshold)
+	if config.Endpoints[0].Alerts[1].FailureThreshold != 20 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 20, config.Endpoints[0].Alerts[1].FailureThreshold)
 	}
-	if config.Services[0].Alerts[2].FailureThreshold != 30 {
-		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 30, config.Services[0].Alerts[2].FailureThreshold)
+	if config.Endpoints[0].Alerts[2].FailureThreshold != 30 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 30, config.Endpoints[0].Alerts[2].FailureThreshold)
 	}
 }
 
@@ -960,7 +960,7 @@ func TestParseAndValidateConfigBytesWithInvalidPagerDutyAlertingConfig(t *testin
 alerting:
   pagerduty:
     integration-key: "INVALID_KEY"
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     alerts:
@@ -992,9 +992,9 @@ alerting:
     url: "https://example.com"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
       }
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     alerts:
@@ -1038,8 +1038,8 @@ alerting:
         RESOLVED: "operational"
     url: "https://example.com"
     insecure: true
-    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
-services:
+    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+endpoints:
   - name: website
     url: https://twin.sh/health
     alerts:
@@ -1078,8 +1078,8 @@ alerting:
       ALERT_TRIGGERED_OR_RESOLVED:
         TRIGGERED: "partial_outage"
     url: "https://example.com"
-    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [SERVICE_NAME] - [ALERT_DESCRIPTION]"
-services:
+    body: "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+endpoints:
   - name: website
     url: https://twin.sh/health
     alerts:
@@ -1110,15 +1110,15 @@ services:
 	}
 }
 
-func TestParseAndValidateConfigBytesWithInvalidServiceName(t *testing.T) {
+func TestParseAndValidateConfigBytesWithInvalidEndpointName(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
-services:
+endpoints:
   - name: ""
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `))
-	if err != core.ErrServiceWithNoName {
+	if err != core.ErrEndpointWithNoName {
 		t.Error("should've returned an error")
 	}
 }
@@ -1127,7 +1127,7 @@ func TestParseAndValidateConfigBytesWithInvalidStorageConfig(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 storage:
   type: sqlite
-services:
+endpoints:
   - name: example
     url: https://example.org
     conditions:
@@ -1159,7 +1159,7 @@ func TestParseAndValidateConfigBytesWithInvalidYAML(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 storage:
   invalid yaml
-services:
+endpoints:
   - name: example
     url: https://example.org
     conditions:
@@ -1176,7 +1176,7 @@ security:
   basic:
     username: "admin"
     password-sha512: "invalid-sha512-hash"
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -1195,7 +1195,7 @@ security:
   basic:
     username: "%s"
     password-sha512: "%s"
-services:
+endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
@@ -1224,10 +1224,10 @@ services:
 	}
 }
 
-func TestParseAndValidateConfigBytesWithNoServicesOrAutoDiscovery(t *testing.T) {
+func TestParseAndValidateConfigBytesWithNoEndpointsOrAutoDiscovery(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if err != ErrNoServiceInConfig {
-		t.Error("The error returned should have been of type ErrNoServiceInConfig")
+	if err != ErrNoEndpointInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
 	}
 }
 
@@ -1269,5 +1269,53 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}
 	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTeams) != alertingConfig.Teams {
 		t.Error("expected Teams configuration")
+	}
+}
+
+// XXX: Remove this in v5.0.0
+func TestParseAndValidateConfigBytes_backwardCompatibleWithServices(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+services:
+  - name: website
+    url: https://twin.sh/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Endpoints[0].URL != "https://twin.sh/actuator/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/actuator/health")
+	}
+	if config.Endpoints[0].Interval != 60*time.Second {
+		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
+	}
+}
+
+// XXX: Remove this in v5.0.0
+func TestParseAndValidateConfigBytes_backwardCompatibleMergeServicesInEndpoints(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+services:
+  - name: website1
+    url: https://twin.sh/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+endpoints:
+  - name: website2
+    url: https://twin.sh/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if len(config.Endpoints) != 2 {
+		t.Error("services should've been merged in endpoints")
 	}
 }

@@ -1,8 +1,8 @@
 storage:
-  type: postgres
-  file: "postgres://username:password@postgres:5432/gatus?sslmode=disable"
+  type: sqlite
+  file: /data/data.db
 
-services:
+endpoints:
   - name: back-end
     group: core
     url: "https://example.org/"

@@ -4,11 +4,11 @@
     &larr;
   </router-link>
   <div>
-    <slot v-if="serviceStatus">
+    <slot v-if="endpointStatus">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RECENT CHECKS</h1>
       <hr class="mb-4"/>
-      <Service
-          :data="serviceStatus"
+      <Endpoint
+          :data="endpointStatus"
           :maximumNumberOfResults="20"
           @showTooltip="showTooltip"
           @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
@@ -16,7 +16,7 @@
       />
       <Pagination @page="changePage"/>
     </slot>
-    <div v-if="serviceStatus && serviceStatus.key" class="mt-12">
+    <div v-if="endpointStatus && endpointStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">UPTIME</h1>
       <hr/>
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
@@ -34,7 +34,7 @@
         </div>
       </div>
     </div>
-    <div v-if="serviceStatus && serviceStatus.key" class="mt-12">
+    <div v-if="endpointStatus && endpointStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
       <hr/>
       <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6" />
@@ -53,7 +53,7 @@
         </div>
       </div>
     </div>
-    <div v-if="serviceStatus && serviceStatus.key">
+    <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
       <hr class="mb-4"/>
       <div>
@@ -87,7 +87,7 @@
 
 <script>
 import Settings from '@/components/Settings.vue'
-import Service from '@/components/Service.vue';
+import Endpoint from '@/components/Endpoint.vue';
 import {SERVER_URL} from "@/main.js";
 import {helper} from "@/mixins/helper.js";
 import Pagination from "@/components/Pagination";
@@ -96,7 +96,7 @@ export default {
   name: 'Details',
   components: {
     Pagination,
-    Service,
+    Endpoint,
     Settings,
   },
   emits: ['showTooltip'],
@@ -104,32 +104,32 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/services/${this.$route.params.key}/statuses?page=${this.currentPage}`)
+      fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`)
           .then(response => response.json())
           .then(data => {
-            if (JSON.stringify(this.serviceStatus) !== JSON.stringify(data)) {
-              this.serviceStatus = data;
+            if (JSON.stringify(this.endpointStatus) !== JSON.stringify(data)) {
+              this.endpointStatus = data;
               this.uptime = data.uptime;
               let events = [];
               for (let i = data.events.length - 1; i >= 0; i--) {
                 let event = data.events[i];
                 if (i === data.events.length - 1) {
                   if (event.type === 'UNHEALTHY') {
-                    event.fancyText = 'Service is unhealthy';
+                    event.fancyText = 'Endpoint is unhealthy';
                   } else if (event.type === 'HEALTHY') {
-                    event.fancyText = 'Service is healthy';
+                    event.fancyText = 'Endpoint is healthy';
                   } else if (event.type === 'START') {
                     event.fancyText = 'Monitoring started';
                   }
                 } else {
                   let nextEvent = data.events[i + 1];
                   if (event.type === 'HEALTHY') {
-                    event.fancyText = 'Service became healthy';
+                    event.fancyText = 'Endpoint became healthy';
                   } else if (event.type === 'UNHEALTHY') {
                     if (nextEvent) {
-                      event.fancyText = 'Service was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
+                      event.fancyText = 'Endpoint was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
                     } else {
-                      event.fancyText = 'Service became unhealthy';
+                      event.fancyText = 'Endpoint became unhealthy';
                     }
                   } else if (event.type === 'START') {
                     event.fancyText = 'Monitoring started';
@@ -143,13 +143,13 @@ export default {
           });
     },
     generateUptimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/uptimes/${duration}/badge.svg`;
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
     },
     generateResponseTimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/response-times/${duration}/badge.svg`;
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
     },
     generateResponseTimeChartImageURL() {
-      return `${this.serverUrl}/api/v1/services/${this.serviceStatus.key}/response-times/24h/chart.svg`;
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
     },
     prettifyUptime(uptime) {
       if (!uptime) {
@@ -174,7 +174,7 @@ export default {
   },
   data() {
     return {
-      serviceStatus: {},
+      endpointStatus: {},
       uptime: {},
       events: [],
       hourlyAverageResponseTime: {},
@@ -193,7 +193,7 @@ export default {
 </script>
 
 <style scoped>
-.service {
+.endpoint {
   border-radius: 3px;
   border-bottom-width: 3px;
 }

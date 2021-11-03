@@ -2,7 +2,11 @@ package memory
 
 import (
 	"encoding/gob"
+	"io/fs"
+	"io/ioutil"
+	"log"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,7 +18,7 @@ import (
 )
 
 func init() {
-	gob.Register(&core.ServiceStatus{})
+	gob.Register(&core.EndpointStatus{})
 	gob.Register(&core.HourlyUptimeStatistics{})
 	gob.Register(&core.Uptime{})
 	gob.Register(&core.Result{})
@@ -40,38 +44,52 @@ func NewStore(file string) (*Store, error) {
 	if len(file) > 0 {
 		_, err := store.cache.ReadFromFile(file)
 		if err != nil {
+			// XXX: Remove the block below in v4.0.0
+			if data, err2 := ioutil.ReadFile(file); err2 == nil {
+				isFromOldVersion := strings.Contains(string(data), "*core.ServiceStatus")
+				if isFromOldVersion {
+					log.Println("WARNING: Couldn't read file due to recent change in v3.3.0, see https://github.com/TwiN/gatus/issues/191")
+					log.Println("WARNING: Will automatically rename old file to " + file + ".old and overwrite the current file")
+					if err = ioutil.WriteFile(file+".old", data, fs.ModePerm); err != nil {
+						log.Println("WARNING: Tried my best to keep the old file, but it wasn't enough. Sorry, your file will be overwritten :(")
+					}
+					// Return the store regardless of whether there was an error or not
+					return store, nil
+				}
+			}
+			// XXX: Remove the block above in v4.0.0
 			return nil, err
 		}
 	}
 	return store, nil
 }
 
-// GetAllServiceStatuses returns all monitored core.ServiceStatus
+// GetAllEndpointStatuses returns all monitored core.EndpointStatus
 // with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllServiceStatuses(params *paging.ServiceStatusParams) ([]*core.ServiceStatus, error) {
-	serviceStatuses := s.cache.GetAll()
-	pagedServiceStatuses := make([]*core.ServiceStatus, 0, len(serviceStatuses))
-	for _, v := range serviceStatuses {
-		pagedServiceStatuses = append(pagedServiceStatuses, ShallowCopyServiceStatus(v.(*core.ServiceStatus), params))
+func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*core.EndpointStatus, error) {
+	endpointStatuses := s.cache.GetAll()
+	pagedEndpointStatuses := make([]*core.EndpointStatus, 0, len(endpointStatuses))
+	for _, v := range endpointStatuses {
+		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*core.EndpointStatus), params))
 	}
-	sort.Slice(pagedServiceStatuses, func(i, j int) bool {
-		return pagedServiceStatuses[i].Key < pagedServiceStatuses[j].Key
+	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
+		return pagedEndpointStatuses[i].Key < pagedEndpointStatuses[j].Key
 	})
-	return pagedServiceStatuses, nil
+	return pagedEndpointStatuses, nil
 }
 
-// GetServiceStatus returns the service status for a given service name in the given group
-func (s *Store) GetServiceStatus(groupName, serviceName string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
-	return s.GetServiceStatusByKey(util.ConvertGroupAndServiceToKey(groupName, serviceName), params)
+// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
+func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error) {
+	return s.GetEndpointStatusByKey(util.ConvertGroupAndEndpointNameToKey(groupName, endpointName), params)
 }
 
-// GetServiceStatusByKey returns the service status for a given key
-func (s *Store) GetServiceStatusByKey(key string, params *paging.ServiceStatusParams) (*core.ServiceStatus, error) {
-	serviceStatus := s.cache.GetValue(key)
-	if serviceStatus == nil {
-		return nil, common.ErrServiceNotFound
+// GetEndpointStatusByKey returns the endpoint status for a given key
+func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error) {
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil {
+		return nil, common.ErrEndpointNotFound
 	}
-	return ShallowCopyServiceStatus(serviceStatus.(*core.ServiceStatus), params), nil
+	return ShallowCopyEndpointStatus(endpointStatus.(*core.EndpointStatus), params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -79,16 +97,16 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
-	serviceStatus := s.cache.GetValue(key)
-	if serviceStatus == nil || serviceStatus.(*core.ServiceStatus).Uptime == nil {
-		return 0, common.ErrServiceNotFound
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+		return 0, common.ErrEndpointNotFound
 	}
 	successfulExecutions := uint64(0)
 	totalExecutions := uint64(0)
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := serviceStatus.(*core.ServiceStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -108,15 +126,15 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
-	serviceStatus := s.cache.GetValue(key)
-	if serviceStatus == nil || serviceStatus.(*core.ServiceStatus).Uptime == nil {
-		return 0, common.ErrServiceNotFound
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+		return 0, common.ErrEndpointNotFound
 	}
 	current := from
 	var totalExecutions, totalResponseTime uint64
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := serviceStatus.(*core.ServiceStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -136,15 +154,15 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	if from.After(to) {
 		return nil, common.ErrInvalidTimeRange
 	}
-	serviceStatus := s.cache.GetValue(key)
-	if serviceStatus == nil || serviceStatus.(*core.ServiceStatus).Uptime == nil {
-		return nil, common.ErrServiceNotFound
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+		return nil, common.ErrEndpointNotFound
 	}
 	hourlyAverageResponseTimes := make(map[int64]int)
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := serviceStatus.(*core.ServiceStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -155,26 +173,26 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	return hourlyAverageResponseTimes, nil
 }
 
-// Insert adds the observed result for the specified service into the store
-func (s *Store) Insert(service *core.Service, result *core.Result) error {
-	key := service.Key()
+// Insert adds the observed result for the specified endpoint into the store
+func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
+	key := endpoint.Key()
 	s.Lock()
-	serviceStatus, exists := s.cache.Get(key)
+	status, exists := s.cache.Get(key)
 	if !exists {
-		serviceStatus = core.NewServiceStatus(key, service.Group, service.Name)
-		serviceStatus.(*core.ServiceStatus).Events = append(serviceStatus.(*core.ServiceStatus).Events, &core.Event{
+		status = core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+		status.(*core.EndpointStatus).Events = append(status.(*core.EndpointStatus).Events, &core.Event{
 			Type:      core.EventStart,
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(serviceStatus.(*core.ServiceStatus), result)
-	s.cache.Set(key, serviceStatus)
+	AddResult(status.(*core.EndpointStatus), result)
+	s.cache.Set(key, status)
 	s.Unlock()
 	return nil
 }
 
-// DeleteAllServiceStatusesNotInKeys removes all ServiceStatus that are not within the keys provided
-func (s *Store) DeleteAllServiceStatusesNotInKeys(keys []string) int {
+// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
+func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 	var keysToDelete []string
 	for _, existingKey := range s.cache.GetKeysByPattern("*", 0) {
 		shouldDelete := true

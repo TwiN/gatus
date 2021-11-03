@@ -1,6 +1,6 @@
-services:
+endpoints:
   - name: example
-    url: http://example.org
+    url: https://example.org
     interval: 30s
     conditions:
       - "[STATUS] == 200"

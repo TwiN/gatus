@@ -1,6 +1,6 @@
 <template>
-  <Services
-      :serviceStatuses="serviceStatuses"
+  <Endpoints
+      :endpointStatuses="endpointStatuses"
       :showStatusOnHover="true"
       @showTooltip="showTooltip"
       @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
@@ -11,7 +11,7 @@
 
 <script>
 import Settings from '@/components/Settings.vue'
-import Services from '@/components/Services.vue';
+import Endpoints from '@/components/Endpoints.vue';
 import Pagination from "@/components/Pagination";
 import {SERVER_URL} from "@/main.js";
 
@@ -19,18 +19,18 @@ export default {
   name: 'Home',
   components: {
     Pagination,
-    Services,
+    Endpoints,
     Settings,
   },
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     fetchData() {
       //console.log("[Home][fetchData] Fetching data");
-      fetch(`${SERVER_URL}/api/v1/services/statuses?page=${this.currentPage}`)
+      fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`)
           .then(response => response.json())
           .then(data => {
-            if (JSON.stringify(this.serviceStatuses) !== JSON.stringify(data)) {
-              this.serviceStatuses = data;
+            if (JSON.stringify(this.endpointStatuses) !== JSON.stringify(data)) {
+              this.endpointStatuses = data;
             }
           });
     },
@@ -47,7 +47,7 @@ export default {
   },
   data() {
     return {
-      serviceStatuses: [],
+      endpointStatuses: [],
       currentPage: 1,
       showAverageResponseTime: true
     }
