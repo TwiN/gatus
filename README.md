@@ -937,8 +937,8 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].insecure`, 
-`endpoints[].headers`, `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`, 
+`endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
 **NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's 
 something at the given address listening to the given port, and that a connection to that address was successfully 
@@ -991,7 +991,7 @@ endpoints:
     url: "starttls://smtp.gmail.com:587"
     interval: 30m
     client:
-        timeout: 5s
+      timeout: 5s
     conditions:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
@@ -1006,7 +1006,7 @@ endpoints:
     url: "tls://ldap.example.com:636"
     interval: 30m
     client:
-        timeout: 5s
+      timeout: 5s
     conditions:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
