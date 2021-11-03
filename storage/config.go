@@ -1,5 +1,9 @@
 package storage
 
+const (
+	uptimeRetentionDefaultDays = 7
+)
+
 // Config is the configuration for storage
 type Config struct {
 	// File is the path of the file to use for persistence
@@ -13,5 +17,11 @@ type Config struct {
 	Type Type `yaml:"type"`
 
 	// Retention configuration
-	Retention Retention `yaml:"retention"`
+	Retention *Retention `yaml:"retention"`
+}
+
+func GetDefaultRetentionConfig() *Retention {
+	return &Retention{
+		Days: uptimeRetentionDefaultDays,
+	}
 }

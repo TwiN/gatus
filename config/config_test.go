@@ -45,6 +45,8 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
   file: %s
+  retention:
+    days: 10
 maintenance:
   enabled: true
   start: 00:00
@@ -157,6 +159,9 @@ services:
 	}
 	if len(config.Services[2].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
+	}
+	if config.Storage.Retention.Days != 10 {
+		t.Error("Seems the retention days have not been parsed properly")
 	}
 }
 
@@ -1130,6 +1135,23 @@ services:
 `))
 	if err == nil {
 		t.Error("should've returned an error, because a file must be specified for a storage of type sqlite")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidStorageRetentionConfig(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+storage:
+  type: sqlite
+  retention:
+    days: IamWrong
+services:
+  - name: example
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err == nil {
+		t.Error("should've returned an error, because IamWrong is not a real int")
 	}
 }
 

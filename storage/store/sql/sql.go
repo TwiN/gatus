@@ -29,12 +29,10 @@ const (
 	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a clean up
 	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
 	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
-
-	uptimeRetentionDefaultDays = 7
 )
 
 var (
-	// ErrFilePathNotSpecified is the error returned when path parameter passed in `NewStor`e is blank
+	// ErrFilePathNotSpecified is the error returned when path parameter passed in `NewStore` is blank
 	ErrFilePathNotSpecified = errors.New("file path cannot be empty")
 
 	// ErrDatabaseDriverNotSpecified is the error returned when the driver parameter passed in NewStore is blank
@@ -45,7 +43,7 @@ var (
 
 // Store that leverages a database
 type Store struct {
-	driver, file string
+	driver, file    string
 	uptimeRetention time.Duration
 
 	db *sql.DB
@@ -59,12 +57,9 @@ func NewStore(driver, path string, uptimeRetentionDays int) (*Store, error) {
 	if len(path) == 0 {
 		return nil, ErrFilePathNotSpecified
 	}
-	if uptimeRetentionDays == 0 {
-		uptimeRetentionDays = uptimeRetentionDefaultDays
-	}
 	store := &Store{
-		driver: driver,
-		file: path,
+		driver:          driver,
+		file:            path,
 		uptimeRetention: time.Duration(uptimeRetentionDays) * 24 * time.Hour,
 	}
 	var err error

@@ -45,6 +45,11 @@ func Initialize(cfg *Config) error {
 	if cfg == nil {
 		cfg = &Config{}
 	}
+
+	if cfg.Retention == nil {
+		cfg.Retention = GetDefaultRetentionConfig()
+	}
+
 	if len(cfg.File) == 0 && cfg.Type != TypePostgres {
 		log.Printf("[storage][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.File)
 	} else {
@@ -53,7 +58,7 @@ func Initialize(cfg *Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case TypeSQLite, TypePostgres:
-		provider, err = sql.NewStore(string(cfg.Type), cfg.File, cfg.Retention.UptimeRetentionDays)
+		provider, err = sql.NewStore(string(cfg.Type), cfg.File, cfg.Retention.Days)
 		if err != nil {
 			return err
 		}

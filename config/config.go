@@ -197,6 +197,11 @@ func validateStorageConfig(config *Config) error {
 	if numberOfServiceStatusesDeleted > 0 {
 		log.Printf("[config][validateStorageConfig] Deleted %d service statuses because their matching services no longer existed", numberOfServiceStatusesDeleted)
 	}
+
+	if config.Storage.Retention == nil {
+		config.Storage.Retention = storage.GetDefaultRetentionConfig()
+	}
+
 	return nil
 }
 
