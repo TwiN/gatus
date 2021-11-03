@@ -5,5 +5,5 @@ package storage
 type Retention struct {
 	// Uptime Retention Time in Days
 	// Default value is here 7 Days
-	UptimeRetentionDays int `yaml:"uptime_retention_days"`
+	Days int `yaml:"days"`
 }
