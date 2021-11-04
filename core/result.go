@@ -13,7 +13,7 @@ type Result struct {
 	DNSRCode string `json:"-"`
 
 	// Hostname extracted from Endpoint.URL
-	Hostname string `json:"hostname"`
+	Hostname string `json:"hostname,omitempty"`
 
 	// IP resolved from the Endpoint URL
 	IP string `json:"-"`
@@ -25,7 +25,7 @@ type Result struct {
 	Duration time.Duration `json:"duration"`
 
 	// Errors encountered during the evaluation of the Endpoint's health
-	Errors []string `json:"errors"`
+	Errors []string `json:"errors,omitempty"`
 
 	// ConditionResults results of the Endpoint's conditions
 	ConditionResults []*ConditionResult `json:"conditionResults"`
