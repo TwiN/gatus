@@ -342,7 +342,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 			query += fmt.Sprintf("$%d,", i+1)
 			args = append(args, keys[i])
 		}
-		query = query[:len(query)-1] + ")" // Remove the last comma and close the parenthesis
+		query = query[:len(query)-1] + ")" // Remove the last comma and add the closing parenthesis
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {

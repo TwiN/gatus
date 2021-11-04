@@ -80,7 +80,7 @@ const (
 	maximumLengthBeforeTruncatingWhenComparedWithPattern = 25
 )
 
-// Condition is a condition that needs to be met in order for a Endpoint to be considered healthy.
+// Condition is a condition that needs to be met in order for an Endpoint to be considered healthy.
 type Condition string
 
 // evaluate the Condition with the Result of the health check
@@ -283,7 +283,7 @@ func prettifyNumericalParameters(parameters []string, resolvedParameters []int64
 	return prettify(parameters, []string{strconv.Itoa(int(resolvedParameters[0])), strconv.Itoa(int(resolvedParameters[1]))}, operator)
 }
 
-// XXX: make this configurable? i.e. show-resolved-conditions-on-failure
+// prettify returns a string representation of a condition with its parameters resolved between parentheses
 func prettify(parameters []string, resolvedParameters []string, operator string) string {
 	// Since, in the event of an invalid path, the resolvedParameters also contain the condition itself,
 	// we'll return the resolvedParameters as-is.
