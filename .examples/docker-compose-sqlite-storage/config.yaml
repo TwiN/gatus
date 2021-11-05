@@ -1,6 +1,6 @@
 storage:
   type: sqlite
-  file: /data/data.db
+  path: /data/data.db
 
 endpoints:
   - name: back-end

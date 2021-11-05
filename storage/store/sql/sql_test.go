@@ -84,7 +84,7 @@ func TestNewStore(t *testing.T) {
 	if _, err := NewStore("", "TestNewStore.db"); err != ErrDatabaseDriverNotSpecified {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", ""); err != ErrFilePathNotSpecified {
+	if _, err := NewStore("sqlite", ""); err != ErrPathNotSpecified {
 		t.Error("expected error due to blank path parameter")
 	}
 	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db"); err != nil {

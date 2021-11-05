@@ -244,7 +244,7 @@ Here are some examples of conditions you can use:
 ```yaml
 storage:
   type: sqlite
-  file: data.db
+  path: data.db
 ```
 See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
 
@@ -252,7 +252,7 @@ See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-sto
 ```yaml
 storage:
   type: postgres
-  file: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
+  path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
 See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
 

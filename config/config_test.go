@@ -20,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v3/config/ui"
 	"github.com/TwiN/gatus/v3/config/web"
 	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/storage"
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
@@ -44,7 +45,8 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 	}()
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
-  file: %s
+  type: sqlite
+  path: %s
 maintenance:
   enabled: true
   start: 00:00
@@ -82,6 +84,9 @@ endpoints:
 	}
 	if config == nil {
 		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
+		t.Error("expected storage to be set to sqlite, got", config.Storage)
 	}
 	if config.UI == nil || config.UI.Title != "Test" {
 		t.Error("Expected Config.UI.Title to be Test")
@@ -1295,5 +1300,55 @@ endpoints:
 	}
 	if len(config.Endpoints) != 2 {
 		t.Error("services should've been merged in endpoints")
+	}
+}
+
+// XXX: Remove this in v4.0.0
+func TestParseAndValidateConfigBytes_backwardCompatibleWithStorageFile(t *testing.T) {
+	file := t.TempDir() + "/test.db"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+storage:
+  type: sqlite
+  file: %s
+
+endpoints:
+  - name: website
+    url: https://twin.sh/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`, file)))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
+		t.Error("expected storage to be set to sqlite, got", config.Storage)
+	}
+}
+
+// XXX: Remove this in v4.0.0
+func TestParseAndValidateConfigBytes_backwardCompatibleWithStorageTypeMemoryAndFile(t *testing.T) {
+	file := t.TempDir() + "/test.db"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+storage:
+  type: memory
+  file: %s
+
+endpoints:
+  - name: website
+    url: https://twin.sh/actuator/health
+    conditions:
+      - "[STATUS] == 200"
+`, file)))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeMemory {
+		t.Error("expected storage to be set to memory, got", config.Storage)
 	}
 }

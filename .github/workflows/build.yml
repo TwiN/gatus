@@ -17,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build binary to make sure it works
@@ -25,9 +25,9 @@ jobs:
       - name: Test
         # We're using "sudo" because one of the tests leverages ping, which requires super-user privileges.
         # As for the 'env "PATH=$PATH" "GOROOT=$GOROOT"', we need it to use the same "go" executable that
-        # was configured by the "Set up Go 1.15" step (otherwise, it'd use sudo's "go" executable)
+        # was configured by the "Set up Go" step (otherwise, it'd use sudo's "go" executable)
         run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v2.1.0
         with:
-          file: ./coverage.txt
+          files: ./coverage.txt

@@ -94,23 +94,23 @@ func Initialize(cfg *storage.Config) error {
 	if cfg == nil {
 		cfg = &storage.Config{}
 	}
-	if len(cfg.File) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.File)
+	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
+		log.Printf("[store][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.Path)
 	} else {
 		log.Printf("[store][Initialize] Creating storage provider with type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.File)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		if len(cfg.File) > 0 {
-			store, err = memory.NewStore(cfg.File)
+		if len(cfg.Path) > 0 {
+			store, err = memory.NewStore(cfg.Path)
 			if err != nil {
 				return err
 			}

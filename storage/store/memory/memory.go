@@ -28,6 +28,10 @@ func init() {
 // Store that leverages gocache
 type Store struct {
 	sync.RWMutex
+	// Deprecated
+	//
+	// File persistence will no longer be supported as of v4.0.0
+	// XXX: Remove me in v4.0.0
 	file  string
 	cache *gocache.Cache
 }
@@ -41,6 +45,8 @@ func NewStore(file string) (*Store, error) {
 		file:  file,
 		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
 	}
+	// XXX: Remove the block below in v4.0.0 because persistence with the memory store will no longer be supported
+	// XXX: Make sure to also update gocache to v2.0.0
 	if len(file) > 0 {
 		_, err := store.cache.ReadFromFile(file)
 		if err != nil {
@@ -57,7 +63,6 @@ func NewStore(file string) (*Store, error) {
 					return store, nil
 				}
 			}
-			// XXX: Remove the block above in v4.0.0
 			return nil, err
 		}
 	}

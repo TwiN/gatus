@@ -34,8 +34,8 @@ const (
 )
 
 var (
-	// ErrFilePathNotSpecified is the error returned when path parameter passed in NewStore is blank
-	ErrFilePathNotSpecified = errors.New("file path cannot be empty")
+	// ErrPathNotSpecified is the error returned when the path parameter passed in NewStore is blank
+	ErrPathNotSpecified = errors.New("path cannot be empty")
 
 	// ErrDatabaseDriverNotSpecified is the error returned when the driver parameter passed in NewStore is blank
 	ErrDatabaseDriverNotSpecified = errors.New("database driver cannot be empty")
@@ -45,20 +45,20 @@ var (
 
 // Store that leverages a database
 type Store struct {
-	driver, file string
+	driver, path string
 
 	db *sql.DB
 }
 
-// NewStore initializes the database and creates the schema if it doesn't already exist in the file specified
+// NewStore initializes the database and creates the schema if it doesn't already exist in the path specified
 func NewStore(driver, path string) (*Store, error) {
 	if len(driver) == 0 {
 		return nil, ErrDatabaseDriverNotSpecified
 	}
 	if len(path) == 0 {
-		return nil, ErrFilePathNotSpecified
+		return nil, ErrPathNotSpecified
 	}
-	store := &Store{driver: driver, file: path}
+	store := &Store{driver: driver, path: path}
 	var err error
 	if store.db, err = sql.Open(driver, path); err != nil {
 		return nil, err

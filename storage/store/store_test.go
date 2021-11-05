@@ -553,17 +553,17 @@ func TestInitialize(t *testing.T) {
 		},
 		{
 			Name:        "memory-with-file",
-			Cfg:         &storage.Config{Type: storage.TypeMemory, File: t.TempDir() + "/TestInitialize_memory-with-file.db"},
+			Cfg:         &storage.Config{Type: storage.TypeMemory, Path: t.TempDir() + "/TestInitialize_memory-with-file.db"},
 			ExpectedErr: nil,
 		},
 		{
 			Name:        "sqlite-no-file",
 			Cfg:         &storage.Config{Type: storage.TypeSQLite},
-			ExpectedErr: sql.ErrFilePathNotSpecified,
+			ExpectedErr: sql.ErrPathNotSpecified,
 		},
 		{
 			Name:        "sqlite-with-file",
-			Cfg:         &storage.Config{Type: storage.TypeSQLite, File: t.TempDir() + "/TestInitialize_sqlite-with-file.db"},
+			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: t.TempDir() + "/TestInitialize_sqlite-with-file.db"},
 			ExpectedErr: nil,
 		},
 	}
@@ -599,7 +599,7 @@ func TestInitialize(t *testing.T) {
 
 func TestAutoSave(t *testing.T) {
 	file := t.TempDir() + "/TestAutoSave.db"
-	if err := Initialize(&storage.Config{File: file}); err != nil {
+	if err := Initialize(&storage.Config{Path: file}); err != nil {
 		t.Fatal("shouldn't have returned an error")
 	}
 	go autoSave(ctx, store, 3*time.Millisecond)

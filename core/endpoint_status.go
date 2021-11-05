@@ -17,7 +17,7 @@ type EndpointStatus struct {
 	Results []*Result `json:"results"`
 
 	// Events is a list of events
-	Events []*Event `json:"events"`
+	Events []*Event `json:"events,omitempty"`
 
 	// Uptime information on the endpoint's uptime
 	//
