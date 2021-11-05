@@ -547,23 +547,23 @@ func TestInitialize(t *testing.T) {
 			ExpectedErr: nil,
 		},
 		{
-			Name:        "memory-no-file",
+			Name:        "memory-no-path",
 			Cfg:         &storage.Config{Type: storage.TypeMemory},
 			ExpectedErr: nil,
 		},
-		{
-			Name:        "memory-with-file",
-			Cfg:         &storage.Config{Type: storage.TypeMemory, Path: t.TempDir() + "/TestInitialize_memory-with-file.db"},
+		{ // XXX: Remove for v4.0.0. See https://github.com/TwiN/gatus/issues/198
+			Name:        "memory-with-path",
+			Cfg:         &storage.Config{Type: storage.TypeMemory, Path: t.TempDir() + "/TestInitialize_memory-with-path.db"},
 			ExpectedErr: nil,
 		},
 		{
-			Name:        "sqlite-no-file",
+			Name:        "sqlite-no-path",
 			Cfg:         &storage.Config{Type: storage.TypeSQLite},
 			ExpectedErr: sql.ErrPathNotSpecified,
 		},
 		{
-			Name:        "sqlite-with-file",
-			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: t.TempDir() + "/TestInitialize_sqlite-with-file.db"},
+			Name:        "sqlite-with-path",
+			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: t.TempDir() + "/TestInitialize_sqlite-with-path.db"},
 			ExpectedErr: nil,
 		},
 	}

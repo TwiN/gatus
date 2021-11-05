@@ -235,12 +235,17 @@ Here are some examples of conditions you can use:
 | Parameter          | Description                                                                            | Default        |
 |:------------------ |:-------------------------------------------------------------------------------------- |:-------------- |
 | `storage`          | Storage configuration                                                                  | `{}`           |
-| `storage.file`     | Path to persist the data in. If the type is `memory`, data is persisted on interval.   | `""`           |
-| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`, `postgres` (ALPHA).                  | `"memory"`     |
+| `storage.path`     | Path to persist the data in. Only supported for types `sqlite` and `postgres`.         | `""`           |
+| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                          | `"memory"`     |
 
-- If `storage.type` is `memory` (default) and `storage.file` is set to a non-blank value.
-  Furthermore, the data is periodically persisted, but everything remains in memory.
-- If `storage.type` is `sqlite`, `storage.file` must not be blank:
+- If `storage.type` is `memory` (default):
+```yaml
+# Note that this is the default value, and you can omit the storage configuration altogether to achieve the same result.
+# Because the data is stored in memory, the data will not survive a restart.
+storage:
+  type: memory
+```
+- If `storage.type` is `sqlite`, `storage.path` must not be blank:
 ```yaml
 storage:
   type: sqlite
@@ -248,7 +253,7 @@ storage:
 ```
 See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
 
-- If `storage.type` is `postgres`, `storage.file` must be the connection URL:
+- If `storage.type` is `postgres`, `storage.path` must be the connection URL:
 ```yaml
 storage:
   type: postgres

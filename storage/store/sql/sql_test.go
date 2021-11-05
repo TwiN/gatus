@@ -169,8 +169,8 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 }
 
 func TestStore_Persistence(t *testing.T) {
-	file := t.TempDir() + "/TestStore_Persistence.db"
-	store, _ := NewStore("sqlite", file)
+	path := t.TempDir() + "/TestStore_Persistence.db"
+	store, _ := NewStore("sqlite", path)
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	store.Insert(&testEndpoint, &testUnsuccessfulResult)
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
@@ -188,7 +188,7 @@ func TestStore_Persistence(t *testing.T) {
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
-	store, _ = NewStore("sqlite", file)
+	store, _ = NewStore("sqlite", path)
 	defer store.Close()
 	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
