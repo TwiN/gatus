@@ -103,7 +103,7 @@ The main features of Gatus are:
 - **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
-- **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/24h/badge.svg)
+- **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 
 
 ## Usage
@@ -1129,9 +1129,9 @@ web:
 
 ### Badges
 ### Uptime
-![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/1h/badge.svg)
-![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/24h/badge.svg)
-![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/7d/badge.svg)
+![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/1h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
+![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg)
 
 Gatus can automatically generate a SVG badge for one of your monitored endpoints.
 This allows you to put badges in your individual applications' README or even create your own status page, if you 
@@ -1156,15 +1156,15 @@ https://example.com/api/v1/endpoints/_frontend/uptimes/7d/badge.svg
 ```
 Example:
 ```
-![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/uptimes/24h/badge.svg)
+![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ```
 If you'd like to see a visual example of each badges available, you can simply navigate to the endpoint's detail page.
 
 
 ### Response time
-![Response time 1h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/1h/badge.svg)
-![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/24h/badge.svg)
-![Response time 7d](https://status.twin.sh/api/v1/endpoints/core_website-external/response-times/7d/badge.svg)
+![Response time 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/1h/badge.svg)
+![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
+![Response time 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/7d/badge.svg)
 
 The endpoint to generate a badge is the following:
 ```
@@ -1188,7 +1188,7 @@ Specific endpoints can also be queried by using the following pattern:
 ```
 /api/v1/endpoints/{group}_{endpoint}/statuses
 ```
-Example: https://status.twin.sh/api/v1/endpoints/core_website-home/statuses
+Example: https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
