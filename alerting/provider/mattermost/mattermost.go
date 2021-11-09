@@ -61,7 +61,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
 		Body: fmt.Sprintf(`{
   "text": "",
   "username": "gatus",
-  "icon_url": "https://raw.githubusercontent.com/TwiN/gatus/master/static/logo.png",
+  "icon_url": "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
   "attachments": [
     {
       "title": ":rescue_worker_helmet: Gatus",
