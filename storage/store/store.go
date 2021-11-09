@@ -74,6 +74,7 @@ var (
 
 func Get() Store {
 	if !initialized {
+		// This only happens in tests
 		log.Println("[store][Get] Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
@@ -92,12 +93,12 @@ func Initialize(cfg *storage.Config) error {
 		cancelFunc()
 	}
 	if cfg == nil {
+		// This only happens in tests
+		log.Println("[store][Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
 		cfg = &storage.Config{}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store][Initialize] Creating storage provider with type=%s and file=%s", cfg.Type, cfg.Path)
-	} else {
-		log.Printf("[store][Initialize] Creating storage provider with type=%s", cfg.Type)
+		log.Printf("[store][Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {

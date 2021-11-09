@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrSQLStorageRequiresFile          = errors.New("sql storage requires a non-empty file to be defined")
-	ErrMemoryStorageDoesNotSupportFile = errors.New("memory storage does not support persistence, use sqlite if you want persistence on file")
+	ErrSQLStorageRequiresPath          = errors.New("sql storage requires a non-empty path to be defined")
+	ErrMemoryStorageDoesNotSupportPath = errors.New("memory storage does not support persistence, use sqlite if you want persistence on file")
 	ErrCannotSetBothFileAndPath        = errors.New("file has been deprecated in favor of path: you cannot set both of them")
 )
 
@@ -45,7 +45,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 		c.Type = TypeMemory
 	}
 	if (c.Type == TypePostgres || c.Type == TypeSQLite) && len(c.Path) == 0 {
-		return ErrSQLStorageRequiresFile
+		return ErrSQLStorageRequiresPath
 	}
 	if c.Type == TypeMemory && len(c.Path) > 0 {
 		log.Println("WARNING: Your configuration is using a storage of type memory with persistence, which has been deprecated")
@@ -53,7 +53,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 		log.Println("WARNING: If you want persistence, use 'storage.type: sqlite' instead of 'storage.type: memory'")
 		log.Println("WARNING: See https://github.com/TwiN/gatus/issues/198")
 		// XXX: Uncomment the following line for v4.0.0
-		//return ErrMemoryStorageDoesNotSupportFile
+		//return ErrMemoryStorageDoesNotSupportPath
 	}
 	return nil
 }

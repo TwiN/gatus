@@ -493,12 +493,6 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 			log.Printf("[sql][getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
-	//if parameters.IncludeUptime {
-	//	now := time.Now()
-	//	endpointStatus.Uptime.LastHour, _, err = s.getEndpointUptime(tx, endpointID, now.Add(-time.Hour), now)
-	//	endpointStatus.Uptime.LastTwentyFourHours, _, err = s.getEndpointUptime(tx, endpointID, now.Add(-24*time.Hour), now)
-	//	endpointStatus.Uptime.LastSevenDays, _, err = s.getEndpointUptime(tx, endpointID, now.Add(-7*24*time.Hour), now)
-	//}
 	return endpointStatus, nil
 }
 
