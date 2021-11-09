@@ -43,13 +43,12 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			writer.WriteHeader(http.StatusNotFound)
+			http.Error(writer, err.Error(), http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
-			writer.WriteHeader(http.StatusBadRequest)
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 		} else {
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 		}
-		_, _ = writer.Write([]byte(err.Error()))
 		return
 	}
 	formattedDate := time.Now().Format(http.TimeFormat)
@@ -82,13 +81,12 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 	averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			writer.WriteHeader(http.StatusNotFound)
+			http.Error(writer, err.Error(), http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
-			writer.WriteHeader(http.StatusBadRequest)
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 		} else {
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 		}
-		_, _ = writer.Write([]byte(err.Error()))
 		return
 	}
 	formattedDate := time.Now().Format(http.TimeFormat)

@@ -45,18 +45,16 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			writer.WriteHeader(http.StatusNotFound)
+			http.Error(writer, err.Error(), http.StatusNotFound)
 		} else if err == common.ErrInvalidTimeRange {
-			writer.WriteHeader(http.StatusBadRequest)
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 		} else {
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 		}
-		_, _ = writer.Write([]byte(err.Error()))
 		return
 	}
 	if len(hourlyAverageResponseTime) == 0 {
-		writer.WriteHeader(http.StatusNoContent)
-		_, _ = writer.Write(nil)
+		http.Error(writer, "", http.StatusNoContent)
 		return
 	}
 	series := chart.TimeSeries{
