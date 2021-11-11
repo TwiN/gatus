@@ -54,7 +54,7 @@ func TestExtractPageAndPageSizeFromRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run("page-"+scenario.Page+"-pageSize-"+scenario.PageSize, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/statuses?page=%s&pageSize=%s", scenario.Page, scenario.PageSize), nil)
+			request, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/statuses?page=%s&pageSize=%s", scenario.Page, scenario.PageSize), http.NoBody)
 			actualPage, actualPageSize := extractPageAndPageSizeFromRequest(request)
 			if actualPage != scenario.ExpectedPage {
 				t.Errorf("expected %d, got %d", scenario.ExpectedPage, actualPage)

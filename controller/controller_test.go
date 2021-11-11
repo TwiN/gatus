@@ -34,7 +34,7 @@ func TestHandle(t *testing.T) {
 	defer os.Clearenv()
 	Handle(cfg.Security, cfg.Web, cfg.UI, cfg.Metrics)
 	defer Shutdown()
-	request, _ := http.NewRequest("GET", "/health", nil)
+	request, _ := http.NewRequest("GET", "/health", http.NoBody)
 	responseRecorder := httptest.NewRecorder()
 	server.Handler.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusOK {

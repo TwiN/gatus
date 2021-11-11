@@ -22,7 +22,7 @@ func TestFavIcon(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, nil)
+			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
 			responseRecorder := httptest.NewRecorder()
 			router.ServeHTTP(responseRecorder, request)
 			if responseRecorder.Code != scenario.ExpectedCode {

@@ -56,7 +56,7 @@ func TestSinglePageApplication(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, nil)
+			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
 			}
