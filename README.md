@@ -25,6 +25,7 @@ docker run -p 8080:8080 --name gatus twinproduction/gatus
 For more details, see [Usage](#usage)
 </details>
 
+Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
 - [Why Gatus?](#why-gatus)
