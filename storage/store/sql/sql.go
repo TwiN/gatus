@@ -568,6 +568,10 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		results = append([]*core.Result{result}, results...)
 		idResultMap[id] = result
 	}
+	if len(idResultMap) == 0 {
+		// If there's no result, we'll just return an empty/nil slice
+		return
+	}
 	// Get condition results
 	args := make([]interface{}, 0, len(idResultMap))
 	query := `SELECT endpoint_result_id, condition, success

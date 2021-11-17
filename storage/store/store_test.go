@@ -184,13 +184,10 @@ func TestStore_GetEndpointStatusForMissingStatusReturnsNil(t *testing.T) {
 func TestStore_GetAllEndpointStatuses(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetAllEndpointStatuses")
 	defer cleanUp(scenarios)
-	firstResult := testSuccessfulResult
-	secondResult := testUnsuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testEndpoint, &firstResult)
-			scenario.Store.Insert(&testEndpoint, &secondResult)
-			// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
 			endpointStatuses, err := scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err.Error())
@@ -207,6 +204,37 @@ func TestStore_GetAllEndpointStatuses(t *testing.T) {
 			}
 			if len(actual.Events) != 0 {
 				t.Error("expected 0 events, got", len(actual.Events))
+			}
+			scenario.Store.Clear()
+		})
+		t.Run(scenario.Name+"-page-2", func(t *testing.T) {
+			otherEndpoint := testEndpoint
+			otherEndpoint.Name = testEndpoint.Name + "-other"
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&otherEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&otherEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&otherEndpoint, &testSuccessfulResult)
+			endpointStatuses, err := scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(2, 2))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
+			if len(endpointStatuses) != 2 {
+				t.Fatal("expected 2 endpoint statuses")
+			}
+			if endpointStatuses[0] == nil || endpointStatuses[1] == nil {
+				t.Fatal("expected endpoint status to exist")
+			}
+			if len(endpointStatuses[0].Results) != 0 {
+				t.Error("expected 0 results on the first endpoint, got", len(endpointStatuses[0].Results))
+			}
+			if len(endpointStatuses[1].Results) != 1 {
+				t.Error("expected 1 result on the second endpoint, got", len(endpointStatuses[1].Results))
+			}
+			if len(endpointStatuses[0].Events) != 0 {
+				t.Error("expected 0 events on the first endpoint, got", len(endpointStatuses[0].Events))
+			}
+			if len(endpointStatuses[1].Events) != 0 {
+				t.Error("expected 0 events on the second endpoint, got", len(endpointStatuses[1].Events))
 			}
 			scenario.Store.Clear()
 		})
