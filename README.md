@@ -25,6 +25,8 @@ docker run -p 8080:8080 --name gatus twinproduction/gatus
 For more details, see [Usage](#usage)
 </details>
 
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+
 Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
@@ -95,8 +97,6 @@ fixing the issue before they even know about it.
 
 
 ## Features
-![Gatus dark mode](.github/assets/dark-mode.png)
-
 The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
@@ -105,7 +105,9 @@ The main features of Gatus are:
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
+- **Dark mode**
 
+![Gatus dashboard dark mode](.github/assets/dashboard-dark.png)
 
 ## Usage
 By default, the configuration file is expected to be at `config/config.yaml`.
@@ -117,19 +119,19 @@ Here's a simple example:
 endpoints:
   - name: website                 # Name of your endpoint, can be anything
     url: "https://twin.sh/health"
-    interval: 30s                 # Duration to wait between every status check (default: 60s)
+    interval: 5m                  # Duration to wait between every status check (default: 60s)
     conditions:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
   - name: example
     url: "https://example.org/"
-    interval: 5m
+    interval: 60s
     conditions:
       - "[STATUS] == 200"
 ```
 
-This example would look like this:
+This example would look similar to this:
 
 ![Simple example](.github/assets/example.png)
 
