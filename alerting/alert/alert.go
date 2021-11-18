@@ -9,7 +9,7 @@ type Alert struct {
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.
-	Enabled *bool `yaml:"enabled"`
+	Enabled *bool `yaml:"enabled,omitempty"`
 
 	// FailureThreshold is the number of failures in a row needed before triggering the alert
 	FailureThreshold int `yaml:"failure-threshold"`
@@ -31,7 +31,7 @@ type Alert struct {
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
-	ResolveKey string
+	ResolveKey string `yaml:"-"`
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value
 	// should be set back to false. It is used to prevent the same alert from going out twice.
@@ -41,7 +41,7 @@ type Alert struct {
 	// applied for alerts that are already triggered and has become "healthy" again is to prevent a case where, for
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
-	Triggered bool
+	Triggered bool `yaml:"-"`
 }
 
 // GetDescription retrieves the description of the alert
