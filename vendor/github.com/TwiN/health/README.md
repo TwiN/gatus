@@ -33,15 +33,23 @@ If you prefer using JSON, however, you may initialize the health handler like so
 ```go
 router.Handle("/health", health.Handler().WithJSON(true))
 ```
-The above will cause the response body to become `{"status":"UP"}` and `{"status":"DOWN"}` for both status respectively.
+The above will cause the response body to become `{"status":"UP"}` and `{"status":"DOWN"}` for both status respectively,
+unless there is a reason, in which case a reason set to `because` would return `{"status":"UP", "reason":"because"}`
+and `{"status":"DOWN", "reason":"because"}` respectively.
 
 To change the health of the application, you can use `health.SetStatus(<status>)` where `<status>` is one `health.Up`
 or `health.Down`:
-
 ```go
 health.SetStatus(health.Up)
 health.SetStatus(health.Down)
 ```
+
+As for the reason:
+```go
+health.SetReason("database is unreachable")
+```
+
+Generally speaking, you'd only want to include a reason if the status is `Down`, but you can do as you desire.
 
 
 ### Complete example
