@@ -51,11 +51,10 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	formattedDate := time.Now().Format(http.TimeFormat)
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Date", formattedDate)
-	writer.Header().Set("Expires", formattedDate)
 	writer.Header().Set("Content-Type", "image/svg+xml")
+	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writer.Header().Set("Expires", "0")
+	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(generateUptimeBadgeSVG(duration, uptime))
 }
 
@@ -89,11 +88,10 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	formattedDate := time.Now().Format(http.TimeFormat)
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Date", formattedDate)
-	writer.Header().Set("Expires", formattedDate)
 	writer.Header().Set("Content-Type", "image/svg+xml")
+	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writer.Header().Set("Expires", "0")
+	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
 }
 

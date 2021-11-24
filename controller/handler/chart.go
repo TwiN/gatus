@@ -112,6 +112,9 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 		Series: []chart.Series{series},
 	}
 	writer.Header().Set("Content-Type", "image/svg+xml")
+	writer.Header().Set("Cache-Control", "no-cache, no-store")
+	writer.Header().Set("Expires", "0")
+	writer.WriteHeader(http.StatusOK)
 	if err := graph.Render(chart.SVG, writer); err != nil {
 		log.Println("[handler][ResponseTimeChart] Failed to render response time chart:", err.Error())
 		return
