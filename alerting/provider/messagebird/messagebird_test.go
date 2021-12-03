@@ -2,10 +2,13 @@ package messagebird
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/test"
 )
 
 func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
@@ -20,6 +23,83 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 	}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
+	}
+}
+
+func TestAlertProvider_Send(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	firstDescription := "description-1"
+	secondDescription := "description-2"
+	scenarios := []struct {
+		Name             string
+		Provider         AlertProvider
+		Alert            alert.Alert
+		Resolved         bool
+		MockRoundTripper test.MockRoundTripper
+		ExpectedError    bool
+	}{
+		{
+			Name:     "triggered",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
+		{
+			Name:     "triggered-error",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
+			}),
+			ExpectedError: true,
+		},
+		{
+			Name:     "resolved",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
+		{
+			Name:     "resolved-error",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
+			}),
+			ExpectedError: true,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
+			err := scenario.Provider.Send(
+				&core.Endpoint{Name: "endpoint-name"},
+				&scenario.Alert,
+				&core.Result{
+					ConditionResults: []*core.ConditionResult{
+						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+					},
+				},
+				scenario.Resolved,
+			)
+			if scenario.ExpectedError && err == nil {
+				t.Error("expected error, got none")
+			}
+			if !scenario.ExpectedError && err != nil {
+				t.Error("expected no error, got", err.Error())
+			}
+		})
 	}
 }
 

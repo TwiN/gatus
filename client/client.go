@@ -14,8 +14,14 @@ import (
 	"github.com/go-ping/ping"
 )
 
+// injectedHTTPClient is used for testing purposes
+var injectedHTTPClient *http.Client
+
 // GetHTTPClient returns the shared HTTP client
 func GetHTTPClient(config *Config) *http.Client {
+	if injectedHTTPClient != nil {
+		return injectedHTTPClient
+	}
 	if config == nil {
 		return defaultConfig.getHTTPClient()
 	}
@@ -103,4 +109,9 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 		return true, pinger.Statistics().MaxRtt
 	}
 	return true, 0
+}
+
+// InjectHTTPClient is used to inject a custom HTTP client for testing purposes
+func InjectHTTPClient(httpClient *http.Client) {
+	injectedHTTPClient = httpClient
 }
