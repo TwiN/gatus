@@ -11,6 +11,9 @@ const (
 	// TypeDiscord is the Type for the discord alerting provider
 	TypeDiscord Type = "discord"
 
+	// TypeEmail is the Type for the email alerting provider
+	TypeEmail Type = "email"
+
 	// TypeMattermost is the Type for the mattermost alerting provider
 	TypeMattermost Type = "mattermost"
 

@@ -3,11 +3,12 @@ package pagerduty
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v3/test"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -57,107 +58,118 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
-	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "RESOLVED") {
-		t.Error("customAlertProvider.Body should've contained the substring RESOLVED")
-	}
-	if customAlertProvider.URL != "https://events.pagerduty.com/v2/enqueue" {
-		t.Errorf("expected URL to be %s, got %s", "https://events.pagerduty.com/v2/enqueue", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	body := make(map[string]interface{})
-	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
-	if err != nil {
-		t.Error("expected body to be valid JSON, got error:", err.Error())
-	}
-}
-
-func TestAlertProvider_ToCustomAlertProviderWithResolvedAlertAndOverride(t *testing.T) {
-	provider := AlertProvider{
-		IntegrationKey: "",
-		Overrides: []Override{
-			{
-				IntegrationKey: "00000000000000000000000000000000",
-				Group:          "group",
-			},
+func TestAlertProvider_Send(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	firstDescription := "description-1"
+	secondDescription := "description-2"
+	scenarios := []struct {
+		Name             string
+		Provider         AlertProvider
+		Alert            alert.Alert
+		Resolved         bool
+		MockRoundTripper test.MockRoundTripper
+		ExpectedError    bool
+	}{
+		{
+			Name:     "triggered",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
+		{
+			Name:     "triggered-error",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
+			}),
+			ExpectedError: true,
+		},
+		{
+			Name:     "resolved",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
+		{
+			Name:     "resolved-error",
+			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
+			}),
+			ExpectedError: true,
 		},
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "RESOLVED") {
-		t.Error("customAlertProvider.Body should've contained the substring RESOLVED")
-	}
-	if customAlertProvider.URL != "https://events.pagerduty.com/v2/enqueue" {
-		t.Errorf("expected URL to be %s, got %s", "https://events.pagerduty.com/v2/enqueue", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	body := make(map[string]interface{})
-	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
-	if err != nil {
-		t.Error("expected body to be valid JSON, got error:", err.Error())
-	}
-}
-
-func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
-	provider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, false)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "TRIGGERED") {
-		t.Error("customAlertProvider.Body should've contained the substring TRIGGERED")
-	}
-	if customAlertProvider.URL != "https://events.pagerduty.com/v2/enqueue" {
-		t.Errorf("expected URL to be %s, got %s", "https://events.pagerduty.com/v2/enqueue", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	body := make(map[string]interface{})
-	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
-	if err != nil {
-		t.Error("expected body to be valid JSON, got error:", err.Error())
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
+			err := scenario.Provider.Send(
+				&core.Endpoint{Name: "endpoint-name"},
+				&scenario.Alert,
+				&core.Result{
+					ConditionResults: []*core.ConditionResult{
+						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+					},
+				},
+				scenario.Resolved,
+			)
+			if scenario.ExpectedError && err == nil {
+				t.Error("expected error, got none")
+			}
+			if !scenario.ExpectedError && err != nil {
+				t.Error("expected no error, got", err.Error())
+			}
+		})
 	}
 }
 
-func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlertAndOverride(t *testing.T) {
-	provider := AlertProvider{
-		IntegrationKey: "",
-		Overrides: []Override{
-			{
-				IntegrationKey: "00000000000000000000000000000000",
-				Group:          "group",
-			},
+func TestAlertProvider_buildRequestBody(t *testing.T) {
+	description := "test"
+	scenarios := []struct {
+		Name         string
+		Provider     AlertProvider
+		Alert        alert.Alert
+		Resolved     bool
+		ExpectedBody string
+	}{
+		{
+			Name:         "triggered",
+			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
+			Alert:        alert.Alert{Description: &description},
+			Resolved:     false,
+			ExpectedBody: "{\n  \"routing_key\": \"00000000000000000000000000000000\",\n  \"dedup_key\": \"\",\n  \"event_action\": \"trigger\",\n  \"payload\": {\n    \"summary\": \"TRIGGERED:  - test\",\n    \"source\": \"\",\n    \"severity\": \"critical\"\n  }\n}",
+		},
+		{
+			Name:         "resolved",
+			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
+			Alert:        alert.Alert{Description: &description, ResolveKey: "key"},
+			Resolved:     true,
+			ExpectedBody: "{\n  \"routing_key\": \"00000000000000000000000000000000\",\n  \"dedup_key\": \"key\",\n  \"event_action\": \"resolve\",\n  \"payload\": {\n    \"summary\": \"RESOLVED:  - test\",\n    \"source\": \"\",\n    \"severity\": \"critical\"\n  }\n}",
 		},
 	}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, false)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "TRIGGERED") {
-		t.Error("customAlertProvider.Body should've contained the substring TRIGGERED")
-	}
-	if customAlertProvider.URL != "https://events.pagerduty.com/v2/enqueue" {
-		t.Errorf("expected URL to be %s, got %s", "https://events.pagerduty.com/v2/enqueue", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	body := make(map[string]interface{})
-	err := json.Unmarshal([]byte(customAlertProvider.Body), &body)
-	if err != nil {
-		t.Error("expected body to be valid JSON, got error:", err.Error())
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			body := scenario.Provider.buildRequestBody(&core.Endpoint{}, &scenario.Alert, &core.Result{}, scenario.Resolved)
+			if body != scenario.ExpectedBody {
+				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+			}
+			out := make(map[string]interface{})
+			if err := json.Unmarshal([]byte(body), &out); err != nil {
+				t.Error("expected body to be valid JSON, got error:", err.Error())
+			}
+		})
 	}
 }
 
@@ -221,5 +233,14 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 				t.Errorf("expected %s, got %s", scenario.ExpectedOutput, output)
 			}
 		})
+	}
+}
+
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+		t.Error("expected default alert to be not nil")
+	}
+	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+		t.Error("expected default alert to be nil")
 	}
 }

@@ -1,11 +1,13 @@
 package telegram
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
 )
 
@@ -23,8 +25,27 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Token) > 0 && len(provider.ID) > 0
 }
 
-// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+// Send an alert using the provider
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token), buffer)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.GetHTTPClient(nil).Do(request)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode > 399 {
+		body, _ := ioutil.ReadAll(response.Body)
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+	}
+	return err
+}
+
+// buildRequestBody builds the request body for the provider
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message, results string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved:\\n—\\n    _healthcheck passing successfully %d time(s) in a row_\\n—  ", endpoint.Name, alert.FailureThreshold)
@@ -46,12 +67,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
 	} else {
 		text = fmt.Sprintf("⛑ *Gatus* \\n%s \\n*Condition results*\\n%s", message, results)
 	}
-	return &custom.AlertProvider{
-		URL:     fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token),
-		Method:  http.MethodPost,
-		Body:    fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN"}`, provider.ID, text),
-		Headers: map[string]string{"Content-Type": "application/json"},
-	}
+	return fmt.Sprintf(`{"chat_id": "%s", "text": "%s", "parse_mode": "MARKDOWN"}`, provider.ID, text)
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

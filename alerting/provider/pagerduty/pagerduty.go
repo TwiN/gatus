@@ -1,11 +1,15 @@
 package pagerduty
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
 )
 
@@ -18,10 +22,10 @@ type AlertProvider struct {
 	IntegrationKey string `yaml:"integration-key"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert"`
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides"`
+	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
 // Override is a case under which the default integration is overridden
@@ -45,10 +49,45 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.IntegrationKey) == 32 || len(provider.Overrides) != 0
 }
 
-// ToCustomAlertProvider converts the provider into a custom.AlertProvider
+// Send an alert using the provider
 //
-// relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+// Relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.GetHTTPClient(nil).Do(request)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode > 399 {
+		body, _ := ioutil.ReadAll(response.Body)
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+	}
+	if alert.IsSendingOnResolved() {
+		if resolved {
+			// The alert has been resolved and there's no error, so we can clear the alert's ResolveKey
+			alert.ResolveKey = ""
+		} else {
+			// We need to retrieve the resolve key from the response
+			body, err := ioutil.ReadAll(response.Body)
+			var payload pagerDutyResponsePayload
+			if err = json.Unmarshal(body, &payload); err != nil {
+				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
+				log.Printf("[pagerduty][Send] Ran into error unmarshaling pagerduty response: %s", err.Error())
+			} else {
+				alert.ResolveKey = payload.DedupKey
+			}
+		}
+	}
+	return nil
+}
+
+// buildRequestBody builds the request body for the provider
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message, eventAction, resolveKey string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
@@ -59,10 +98,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
 		eventAction = "trigger"
 		resolveKey = ""
 	}
-	return &custom.AlertProvider{
-		URL:    restAPIURL,
-		Method: http.MethodPost,
-		Body: fmt.Sprintf(`{
+	return fmt.Sprintf(`{
   "routing_key": "%s",
   "dedup_key": "%s",
   "event_action": "%s",
@@ -71,11 +107,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
     "source": "%s",
     "severity": "critical"
   }
-}`, provider.getIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
+}`, provider.getIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name)
 }
 
 // getIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group
@@ -93,4 +125,10 @@ func (provider *AlertProvider) getIntegrationKeyForGroup(group string) string {
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+type pagerDutyResponsePayload struct {
+	Status   string `json:"status"`
+	Message  string `json:"message"`
+	DedupKey string `json:"dedup_key"`
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/alerting/provider/custom"
 	"github.com/TwiN/gatus/v3/alerting/provider/discord"
+	"github.com/TwiN/gatus/v3/alerting/provider/email"
 	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
 	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
@@ -19,11 +20,11 @@ type AlertProvider interface {
 	// IsValid returns whether the provider's configuration is valid
 	IsValid() bool
 
-	// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-	ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider
-
 	// GetDefaultAlert returns the provider's default alert configuration
 	GetDefaultAlert() *alert.Alert
+
+	// Send an alert using the provider
+	Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error
 }
 
 // ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
@@ -52,6 +53,7 @@ var (
 	// Validate interface implementation on compile
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
+	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)

@@ -7,7 +7,15 @@ import (
 	"github.com/TwiN/gatus/v3/alerting"
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/alerting/provider/discord"
+	"github.com/TwiN/gatus/v3/alerting/provider/email"
+	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
 	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v3/alerting/provider/slack"
+	"github.com/TwiN/gatus/v3/alerting/provider/teams"
+	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
 )
@@ -106,7 +114,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	}
 	enabled := true
 	endpoint := &core.Endpoint{
-		URL: "http://example.com",
+		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -141,7 +149,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 	enabled := true
 	disabled := false
 	endpoint := &core.Endpoint{
-		URL: "http://example.com",
+		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -173,7 +181,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	}
 	enabled := true
 	endpoint := &core.Endpoint{
-		URL: "http://example.com",
+		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypePagerDuty,
@@ -197,59 +205,161 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
-
-	cfg := &config.Config{
-		Debug: true,
-		Alerting: &alerting.Config{
-			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
-			},
-		},
-	}
 	enabled := true
-	endpoint := &core.Endpoint{
-		URL: "http://example.com",
-		Alerts: []*alert.Alert{
-			{
-				Type:             alert.TypeCustom,
-				Enabled:          &enabled,
-				FailureThreshold: 2,
-				SuccessThreshold: 2,
-				SendOnResolved:   &enabled,
-				Triggered:        false,
+	scenarios := []struct {
+		Name           string
+		AlertingConfig *alerting.Config
+		AlertType      alert.Type
+	}{
+		{
+			Name:      "custom",
+			AlertType: alert.TypeCustom,
+			AlertingConfig: &alerting.Config{
+				Custom: &custom.AlertProvider{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
+			},
+		},
+		{
+			Name:      "discord",
+			AlertType: alert.TypeDiscord,
+			AlertingConfig: &alerting.Config{
+				Discord: &discord.AlertProvider{
+					WebhookURL: "https://example.com",
+				},
+			},
+		},
+		{
+			Name:      "email",
+			AlertType: alert.TypeEmail,
+			AlertingConfig: &alerting.Config{
+				Email: &email.AlertProvider{
+					From:     "from@example.com",
+					Password: "hunter2",
+					Host:     "mail.example.com",
+					Port:     587,
+					To:       "to@example.com",
+				},
+			},
+		},
+		{
+			Name:      "mattermost",
+			AlertType: alert.TypeMattermost,
+			AlertingConfig: &alerting.Config{
+				Mattermost: &mattermost.AlertProvider{
+					WebhookURL: "https://example.com",
+				},
+			},
+		},
+		{
+			Name:      "messagebird",
+			AlertType: alert.TypeMessagebird,
+			AlertingConfig: &alerting.Config{
+				Messagebird: &messagebird.AlertProvider{
+					AccessKey:  "1",
+					Originator: "2",
+					Recipients: "3",
+				},
+			},
+		},
+		{
+			Name:      "pagerduty",
+			AlertType: alert.TypePagerDuty,
+			AlertingConfig: &alerting.Config{
+				PagerDuty: &pagerduty.AlertProvider{
+					IntegrationKey: "00000000000000000000000000000000",
+				},
+			},
+		},
+		{
+			Name:      "slack",
+			AlertType: alert.TypeSlack,
+			AlertingConfig: &alerting.Config{
+				Slack: &slack.AlertProvider{
+					WebhookURL: "https://example.com",
+				},
+			},
+		},
+		{
+			Name:      "teams",
+			AlertType: alert.TypeTeams,
+			AlertingConfig: &alerting.Config{
+				Teams: &teams.AlertProvider{
+					WebhookURL: "https://example.com",
+				},
+			},
+		},
+		{
+			Name:      "telegram",
+			AlertType: alert.TypeTelegram,
+			AlertingConfig: &alerting.Config{
+				Telegram: &telegram.AlertProvider{
+					Token: "1",
+					ID:    "2",
+				},
+			},
+		},
+		{
+			Name:      "twilio",
+			AlertType: alert.TypeTwilio,
+			AlertingConfig: &alerting.Config{
+				Twilio: &twilio.AlertProvider{
+					SID:   "1",
+					Token: "2",
+					From:  "3",
+					To:    "4",
+				},
 			},
 		},
 	}
 
-	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 1, 0, false, "")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 2, 0, false, "The alert should have failed to trigger, because the alert provider is returning an error")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 3, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 4, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
-	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 5, 0, true, "The alert should've been triggered because the alert provider is no longer returning an error")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 0, 1, true, "The alert should've still been triggered")
-	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
-	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			endpoint := &core.Endpoint{
+				URL: "https://example.com",
+				Alerts: []*alert.Alert{
+					{
+						Type:             scenario.AlertType,
+						Enabled:          &enabled,
+						FailureThreshold: 2,
+						SuccessThreshold: 2,
+						SendOnResolved:   &enabled,
+						Triggered:        false,
+					},
+				},
+			}
+			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 1, 0, false, "")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 2, 0, false, "The alert should have failed to trigger, because the alert provider is returning an error")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 3, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 4, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
+			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 5, 0, true, "The alert should've been triggered because the alert provider is no longer returning an error")
+			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 0, 1, true, "The alert should've still been triggered")
+			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
+			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
+			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
-	// Make sure that everything's working as expected after a rough patch
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 1, 0, false, "")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 2, 0, true, "The alert should have triggered")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 0, 1, true, "The alert should still be triggered")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 0, 2, false, "The alert should have been resolved")
+			// Make sure that everything's working as expected after a rough patch
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 1, 0, false, "")
+			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 2, 0, true, "The alert should have triggered")
+			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 0, 1, true, "The alert should still be triggered")
+			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			verify(t, endpoint, 0, 2, false, "The alert should have been resolved")
+		})
+	}
+
 }
 
 func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
@@ -267,7 +377,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	}
 	enabled := true
 	endpoint := &core.Endpoint{
-		URL: "http://example.com",
+		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -306,19 +416,19 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 
 func verify(t *testing.T, endpoint *core.Endpoint, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
 	if endpoint.NumberOfFailuresInARow != expectedNumberOfFailuresInARow {
-		t.Fatalf("endpoint.NumberOfFailuresInARow should've been %d, got %d", expectedNumberOfFailuresInARow, endpoint.NumberOfFailuresInARow)
+		t.Errorf("endpoint.NumberOfFailuresInARow should've been %d, got %d", expectedNumberOfFailuresInARow, endpoint.NumberOfFailuresInARow)
 	}
 	if endpoint.NumberOfSuccessesInARow != expectedNumberOfSuccessInARow {
-		t.Fatalf("endpoint.NumberOfSuccessesInARow should've been %d, got %d", expectedNumberOfSuccessInARow, endpoint.NumberOfSuccessesInARow)
+		t.Errorf("endpoint.NumberOfSuccessesInARow should've been %d, got %d", expectedNumberOfSuccessInARow, endpoint.NumberOfSuccessesInARow)
 	}
 	if endpoint.Alerts[0].Triggered != expectedTriggered {
 		if len(expectedTriggeredReason) != 0 {
-			t.Fatal(expectedTriggeredReason)
+			t.Error(expectedTriggeredReason)
 		} else {
 			if expectedTriggered {
-				t.Fatal("The alert should've been triggered")
+				t.Error("The alert should've been triggered")
 			} else {
-				t.Fatal("The alert shouldn't have been triggered")
+				t.Error("The alert shouldn't have been triggered")
 			}
 		}
 	}

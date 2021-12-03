@@ -1,11 +1,11 @@
 package watchdog
 
 import (
-	"encoding/json"
+	"errors"
 	"log"
+	"os"
 
 	"github.com/TwiN/gatus/v3/alerting"
-	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/core"
 )
 
@@ -38,23 +38,13 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
 			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
-			customAlertProvider := alertProvider.ToCustomAlertProvider(endpoint, endpointAlert, result, false)
-			// TODO: retry on error
 			var err error
-			// We need to extract the DedupKey from PagerDuty's response
-			if endpointAlert.Type == alert.TypePagerDuty {
-				var body []byte
-				if body, err = customAlertProvider.Send(endpoint.Name, endpointAlert.GetDescription(), false); err == nil {
-					var response pagerDutyResponse
-					if err = json.Unmarshal(body, &response); err != nil {
-						log.Printf("[watchdog][handleAlertsToTrigger] Ran into error unmarshaling pagerduty response: %s", err.Error())
-					} else {
-						endpointAlert.ResolveKey = response.DedupKey
-					}
+			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+					err = errors.New("error")
 				}
 			} else {
-				// All other alert types don't need to extract anything from the body, so we can just send the request right away
-				_, err = customAlertProvider.Send(endpoint.Name, endpointAlert.GetDescription(), false)
+				err = alertProvider.Send(endpoint, endpointAlert, result, false)
 			}
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToTrigger] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
@@ -82,25 +72,13 @@ func handleAlertsToResolve(endpoint *core.Endpoint, result *core.Result, alertin
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
 			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for endpoint=%s with description='%s' has been RESOLVED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
-			customAlertProvider := alertProvider.ToCustomAlertProvider(endpoint, endpointAlert, result, true)
-			// TODO: retry on error
-			_, err := customAlertProvider.Send(endpoint.Name, endpointAlert.GetDescription(), true)
+			err := alertProvider.Send(endpoint, endpointAlert, result, true)
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToResolve] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
-			} else {
-				if endpointAlert.Type == alert.TypePagerDuty {
-					endpointAlert.ResolveKey = ""
-				}
 			}
 		} else {
 			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
 	}
 	endpoint.NumberOfFailuresInARow = 0
-}
-
-type pagerDutyResponse struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	DedupKey string `json:"dedup_key"`
 }

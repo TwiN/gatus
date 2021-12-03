@@ -1,8 +1,6 @@
 package twilio
 
 import (
-	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
@@ -25,54 +23,56 @@ func TestTwilioAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_ToCustomAlertProviderWithResolvedAlert(t *testing.T) {
-	provider := AlertProvider{
-		SID:   "1",
-		Token: "2",
-		From:  "3",
-		To:    "4",
+func TestAlertProvider_buildRequestBody(t *testing.T) {
+	firstDescription := "description-1"
+	secondDescription := "description-2"
+	scenarios := []struct {
+		Name         string
+		Provider     AlertProvider
+		Alert        alert.Alert
+		Resolved     bool
+		ExpectedBody string
+	}{
+		{
+			Name:         "triggered",
+			Provider:     AlertProvider{SID: "1", Token: "2", From: "3", To: "4"},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "Body=TRIGGERED%3A+endpoint-name+-+description-1&From=3&To=4",
+		},
+		{
+			Name:         "resolved",
+			Provider:     AlertProvider{SID: "1", Token: "2", From: "3", To: "4"},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "Body=RESOLVED%3A+endpoint-name+-+description-2&From=3&To=4",
+		},
 	}
-	description := "alert-description"
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{Name: "endpoint-name"}, &alert.Alert{Description: &description}, &core.Result{}, true)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "RESOLVED") {
-		t.Error("customAlertProvider.Body should've contained the substring RESOLVED")
-	}
-	if customAlertProvider.URL != "https://api.twilio.com/2010-04-01/Accounts/1/Messages.json" {
-		t.Errorf("expected URL to be %s, got %s", "https://api.twilio.com/2010-04-01/Accounts/1/Messages.json", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	if customAlertProvider.Body != "Body=RESOLVED%3A+endpoint-name+-+alert-description&From=3&To=4" {
-		t.Errorf("expected body to be %s, got %s", "Body=RESOLVED%3A+endpoint-name+-+alert-description&From=3&To=4", customAlertProvider.Body)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			body := scenario.Provider.buildRequestBody(
+				&core.Endpoint{Name: "endpoint-name"},
+				&scenario.Alert,
+				&core.Result{
+					ConditionResults: []*core.ConditionResult{
+						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+					},
+				},
+				scenario.Resolved,
+			)
+			if body != scenario.ExpectedBody {
+				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+			}
+		})
 	}
 }
 
-func TestAlertProvider_ToCustomAlertProviderWithTriggeredAlert(t *testing.T) {
-	provider := AlertProvider{
-		SID:   "4",
-		Token: "3",
-		From:  "2",
-		To:    "1",
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+		t.Error("expected default alert to be not nil")
 	}
-	description := "alert-description"
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{Name: "endpoint-name"}, &alert.Alert{Description: &description}, &core.Result{}, false)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if !strings.Contains(customAlertProvider.Body, "TRIGGERED") {
-		t.Error("customAlertProvider.Body should've contained the substring TRIGGERED")
-	}
-	if customAlertProvider.URL != "https://api.twilio.com/2010-04-01/Accounts/4/Messages.json" {
-		t.Errorf("expected URL to be %s, got %s", "https://api.twilio.com/2010-04-01/Accounts/4/Messages.json", customAlertProvider.URL)
-	}
-	if customAlertProvider.Method != http.MethodPost {
-		t.Errorf("expected method to be %s, got %s", http.MethodPost, customAlertProvider.Method)
-	}
-	if customAlertProvider.Body != "Body=TRIGGERED%3A+endpoint-name+-+alert-description&From=2&To=1" {
-		t.Errorf("expected body to be %s, got %s", "Body=TRIGGERED%3A+endpoint-name+-+alert-description&From=2&To=1", customAlertProvider.Body)
+	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+		t.Error("expected default alert to be nil")
 	}
 }

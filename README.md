@@ -40,6 +40,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
+    - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
@@ -159,7 +160,7 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns`                         | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`           |
 | `endpoints[].dns.query-type`              | Query type (e.g. MX)                                                          | `""`           |
 | `endpoints[].dns.query-name`              | Query name (e.g. example.com)                                                 | `""`           |
-| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
+| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
 | `endpoints[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
 | `endpoints[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
 | `endpoints[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
@@ -346,6 +347,44 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
+
+
+#### Configuring Email alerts
+| Parameter                          | Description                                       | Default        |
+|:---------------------------------- |:------------------------------------------------- |:-------------- |
+| `alerting.email`                   | Configuration for alerts of type `email`          | `{}`           |
+| `alerting.email.from`              | Email used to send the alert                      | Required `""`  |
+| `alerting.email.password`          | Password of the email used to send the alert      | Required `""`  |
+| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)   | Required `""`  |
+| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`) | Required `0`   |
+| `alerting.email.to`                | Email(s) to send the alerts to                    | Required `""`  |
+| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A |
+
+```yaml
+alerting:
+  email:
+    from: "from@example.com"
+    password: "hunter2"
+    host: "mail.example.com"
+    port: 587
+    to: "recipient1@example.com,recipient2@example.com"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: email
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+**NOTE:** Some mail servers are painfully slow.
 
 
 #### Configuring Mattermost alerts

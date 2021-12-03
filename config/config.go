@@ -274,6 +274,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 	alertTypes := []alert.Type{
 		alert.TypeCustom,
 		alert.TypeDiscord,
+		alert.TypeEmail,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
 		alert.TypePagerDuty,
