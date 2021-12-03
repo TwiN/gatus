@@ -88,6 +88,8 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 		time.Sleep(30 * time.Second)
 		if cfg.HasLoadedConfigurationFileBeenModified() {
 			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
+			stop()
+			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
 			updatedConfig, err := loadConfiguration()
 			if err != nil {
@@ -101,7 +103,7 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 					panic(err)
 				}
 			}
-			stop()
+			initializeStorage(updatedConfig)
 			start(updatedConfig)
 			return
 		}
