@@ -3,9 +3,6 @@ package custom
 import (
 	"io/ioutil"
 	"testing"
-
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/core"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -56,17 +53,6 @@ func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 	body, _ := ioutil.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
-	}
-}
-
-func TestAlertProvider_ToCustomAlertProvider(t *testing.T) {
-	provider := AlertProvider{URL: "https://example.com"}
-	customAlertProvider := provider.ToCustomAlertProvider(&core.Endpoint{}, &alert.Alert{}, &core.Result{}, true)
-	if customAlertProvider == nil {
-		t.Fatal("customAlertProvider shouldn't have been nil")
-	}
-	if customAlertProvider.URL != "https://example.com" {
-		t.Error("expected URL to be https://example.com, got", customAlertProvider.URL)
 	}
 }
 

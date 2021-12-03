@@ -38,11 +38,6 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.URL) > 0 && provider.ClientConfig != nil
 }
 
-// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *AlertProvider {
-	return provider
-}
-
 // GetAlertStatePlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
 func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) string {
 	status := "TRIGGERED"
@@ -105,27 +100,26 @@ func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription s
 	return request
 }
 
-// Send a request to the alert provider and return the body
-func (provider *AlertProvider) Send(endpointName, alertDescription string, resolved bool) ([]byte, error) {
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
-			return nil, errors.New("error")
+			return errors.New("error")
 		}
-		return []byte("{}"), nil
+		return nil
 	}
-	request := provider.buildHTTPRequest(endpointName, alertDescription, resolved)
+	request := provider.buildHTTPRequest(endpoint.Name, alert.GetDescription(), resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if response.StatusCode > 399 {
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
+			return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
 		}
-		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
-	return ioutil.ReadAll(response.Body)
+	return err
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

@@ -39,7 +39,6 @@ type Config struct {
 	Every []string `yaml:"every"`
 
 	durationToStartFromMidnight time.Duration
-	timeLocation                *time.Location
 }
 
 func GetDefaultConfig() *Config {

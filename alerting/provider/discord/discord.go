@@ -1,11 +1,15 @@
 package discord
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
 )
 
@@ -22,8 +26,36 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.WebhookURL) > 0
 }
 
-// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) *custom.AlertProvider {
+// Send an alert using the provider
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+			return errors.New("error")
+		}
+		return nil
+	}
+	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	request, err := http.NewRequest(http.MethodPost, provider.WebhookURL, buffer)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.GetHTTPClient(nil).Do(request)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode > 399 {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
+		}
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+	}
+	return err
+}
+
+// buildRequestBody builds the request body for the provider
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message, results string
 	var colorCode int
 	if resolved {
@@ -46,10 +78,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\\n> " + alertDescription
 	}
-	return &custom.AlertProvider{
-		URL:    provider.WebhookURL,
-		Method: http.MethodPost,
-		Body: fmt.Sprintf(`{
+	return fmt.Sprintf(`{
   "content": "",
   "embeds": [
     {
@@ -65,9 +94,7 @@ func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, al
       ]
     }
   ]
-}`, message, description, colorCode, results),
-		Headers: map[string]string{"Content-Type": "application/json"},
-	}
+}`, message, description, colorCode, results)
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

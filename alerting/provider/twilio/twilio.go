@@ -1,13 +1,17 @@
 package twilio
 
 import (
+	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
 )
 
@@ -27,27 +31,48 @@ func (provider *AlertProvider) IsValid() bool {
 	return len(provider.Token) > 0 && len(provider.SID) > 0 && len(provider.From) > 0 && len(provider.To) > 0
 }
 
-// ToCustomAlertProvider converts the provider into a custom.AlertProvider
-func (provider *AlertProvider) ToCustomAlertProvider(endpoint *core.Endpoint, alert *alert.Alert, _ *core.Result, resolved bool) *custom.AlertProvider {
+// Send an alert using the provider
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+			return errors.New("error")
+		}
+		return nil
+	}
+	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID), buffer)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(provider.SID+":"+provider.Token))))
+	response, err := client.GetHTTPClient(nil).Do(request)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode > 399 {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
+		}
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+	}
+	return err
+}
+
+// buildRequestBody builds the request body for the provider
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 	} else {
 		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.Name, alert.GetDescription())
 	}
-	return &custom.AlertProvider{
-		URL:    fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID),
-		Method: http.MethodPost,
-		Body: url.Values{
-			"To":   {provider.To},
-			"From": {provider.From},
-			"Body": {message},
-		}.Encode(),
-		Headers: map[string]string{
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", provider.SID, provider.Token)))),
-		},
-	}
+	return url.Values{
+		"To":   {provider.To},
+		"From": {provider.From},
+		"Body": {message},
+	}.Encode()
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
