@@ -160,7 +160,7 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns`                         | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`           |
 | `endpoints[].dns.query-type`              | Query type (e.g. MX)                                                          | `""`           |
 | `endpoints[].dns.query-name`              | Query name (e.g. example.com)                                                 | `""`           |
-| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
+| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
 | `endpoints[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
 | `endpoints[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
 | `endpoints[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |

@@ -71,3 +71,12 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+		t.Error("expected default alert to be not nil")
+	}
+	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+		t.Error("expected default alert to be nil")
+	}
+}

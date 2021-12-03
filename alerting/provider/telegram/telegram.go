@@ -2,11 +2,9 @@ package telegram
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
@@ -29,12 +27,6 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
-		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
-			return errors.New("error")
-		}
-		return nil
-	}
 	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token), buffer)
 	if err != nil {
@@ -46,10 +38,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		return err
 	}
 	if response.StatusCode > 399 {
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
-		}
+		body, _ := ioutil.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	return err

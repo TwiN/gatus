@@ -1,10 +1,8 @@
 package email
 
 import (
-	"errors"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
@@ -31,12 +29,6 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
-		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
-			return errors.New("error")
-		}
-		return nil
-	}
 	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", provider.From)

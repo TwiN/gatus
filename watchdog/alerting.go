@@ -1,7 +1,9 @@
 package watchdog
 
 import (
+	"errors"
 	"log"
+	"os"
 
 	"github.com/TwiN/gatus/v3/alerting"
 	"github.com/TwiN/gatus/v3/core"
@@ -36,7 +38,14 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil && alertProvider.IsValid() {
 			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
-			err := alertProvider.Send(endpoint, endpointAlert, result, false)
+			var err error
+			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+					err = errors.New("error")
+				}
+			} else {
+				err = alertProvider.Send(endpoint, endpointAlert, result, false)
+			}
 			if err != nil {
 				log.Printf("[watchdog][handleAlertsToTrigger] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
 			} else {

@@ -3,6 +3,8 @@ package custom
 import (
 	"io/ioutil"
 	"testing"
+
+	"github.com/TwiN/gatus/v3/alerting/alert"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -93,6 +95,15 @@ func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 	}
 	if customAlertProvider.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
 		t.Error("expected TRIGGERED, got", customAlertProvider.GetAlertStatePlaceholderValue(false))
+	}
+}
+
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+		t.Error("expected default alert to be not nil")
+	}
+	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+		t.Error("expected default alert to be nil")
 	}
 }
 

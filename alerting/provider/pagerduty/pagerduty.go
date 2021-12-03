@@ -3,12 +3,10 @@ package pagerduty
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
@@ -55,12 +53,6 @@ func (provider *AlertProvider) IsValid() bool {
 //
 // Relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
-		if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
-			return errors.New("error")
-		}
-		return nil
-	}
 	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
@@ -72,10 +64,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		return err
 	}
 	if response.StatusCode > 399 {
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf("call to provider alert returned status code %d", response.StatusCode)
-		}
+		body, _ := ioutil.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	if alert.IsSendingOnResolved() {
@@ -87,8 +76,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 			body, err := ioutil.ReadAll(response.Body)
 			var payload pagerDutyResponsePayload
 			if err = json.Unmarshal(body, &payload); err != nil {
-				// Silently fail. We don't want to create tons of alerts just because we failed to parse
-				// the body.
+				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
 				log.Printf("[pagerduty][Send] Ran into error unmarshaling pagerduty response: %s", err.Error())
 			} else {
 				alert.ResolveKey = payload.DedupKey
