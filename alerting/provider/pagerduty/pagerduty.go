@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -64,7 +64,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		return err
 	}
 	if response.StatusCode > 399 {
-		body, _ := ioutil.ReadAll(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	if alert.IsSendingOnResolved() {
@@ -73,7 +73,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 			alert.ResolveKey = ""
 		} else {
 			// We need to retrieve the resolve key from the response
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			var payload pagerDutyResponsePayload
 			if err = json.Unmarshal(body, &payload); err != nil {
 				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.

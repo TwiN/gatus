@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -142,7 +141,7 @@ func LoadDefaultConfiguration() (*Config, error) {
 
 func readConfigurationFile(fileName string) (config *Config, err error) {
 	var bytes []byte
-	if bytes, err = ioutil.ReadFile(fileName); err == nil {
+	if bytes, err = os.ReadFile(fileName); err == nil {
 		// file exists, so we'll parse it and return it
 		return parseAndValidateConfigBytes(bytes)
 	}

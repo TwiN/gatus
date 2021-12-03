@@ -1,7 +1,7 @@
 package core
 
 import (
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -245,7 +245,7 @@ func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	if contentType := request.Header.Get(ContentTypeHeader); contentType != "application/json" {
 		t.Error("request.Header.Content-Type should've been application/json, but was", contentType)
 	}
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	if !strings.HasPrefix(string(body), "{\"query\":") {
 		t.Error("request.body should've started with '{\"query\":', but it didn't:", string(body))
 	}

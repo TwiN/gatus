@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -259,7 +259,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.Connected = response.StatusCode > 0
 		// Only read the body if there's a condition that uses the BodyPlaceholder
 		if endpoint.needsToReadBody() {
-			result.body, err = ioutil.ReadAll(response.Body)
+			result.body, err = io.ReadAll(response.Body)
 			if err != nil {
 				result.AddError(err.Error())
 			}
