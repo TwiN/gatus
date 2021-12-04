@@ -1,7 +1,7 @@
 package custom
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -113,7 +113,7 @@ func TestAlertProvider_buildHTTPRequestWhenResolved(t *testing.T) {
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}
@@ -133,7 +133,7 @@ func TestAlertProvider_buildHTTPRequestWhenTriggered(t *testing.T) {
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}
@@ -158,7 +158,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}
@@ -205,7 +205,7 @@ func TestAlertProvider_isBackwardCompatibleWithServiceRename(t *testing.T) {
 	if request.URL.String() != ExpectedURL {
 		t.Error("expected URL to be", ExpectedURL, "was", request.URL.String())
 	}
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	if string(body) != ExpectedBody {
 		t.Error("expected body to be", ExpectedBody, "was", string(body))
 	}

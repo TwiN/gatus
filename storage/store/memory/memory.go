@@ -3,8 +3,8 @@ package memory
 import (
 	"encoding/gob"
 	"io/fs"
-	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -51,12 +51,12 @@ func NewStore(file string) (*Store, error) {
 		_, err := store.cache.ReadFromFile(file)
 		if err != nil {
 			// XXX: Remove the block below in v4.0.0
-			if data, err2 := ioutil.ReadFile(file); err2 == nil {
+			if data, err2 := os.ReadFile(file); err2 == nil {
 				isFromOldVersion := strings.Contains(string(data), "*core.ServiceStatus")
 				if isFromOldVersion {
 					log.Println("WARNING: Couldn't read file due to recent change in v3.3.0, see https://github.com/TwiN/gatus/issues/191")
 					log.Println("WARNING: Will automatically rename old file to " + file + ".old and overwrite the current file")
-					if err = ioutil.WriteFile(file+".old", data, fs.ModePerm); err != nil {
+					if err = os.WriteFile(file+".old", data, fs.ModePerm); err != nil {
 						log.Println("WARNING: Tried my best to keep the old file, but it wasn't enough. Sorry, your file will be overwritten :(")
 					}
 					// Return the store regardless of whether there was an error or not
