@@ -1,8 +1,7 @@
 .idea
 .vscode
+*.db
+*.db-shm
+*.db-wal
 gatus
-db.db
 config/config.yml
-db.db-shm
-db.db-wal
-memory.db
