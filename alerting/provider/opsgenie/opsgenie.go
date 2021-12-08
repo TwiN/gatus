@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v3/core"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -17,13 +18,14 @@ const (
 )
 
 type opsgenieAlertCreateRequest struct {
-	Message     string   `json:"message"`
-	Priority    string   `json:"priority"`
-	Source      string   `json:"source"`
-	Entity      string   `json:"entity"`
-	Alias       string   `json:"alias"`
-	Description string   `json:"description"`
-	Tags        []string `json:"tags,omitempty"`
+	Message     string            `json:"message"`
+	Priority    string            `json:"priority"`
+	Source      string            `json:"source"`
+	Entity      string            `json:"entity"`
+	Alias       string            `json:"alias"`
+	Description string            `json:"description"`
+	Tags        []string          `json:"tags,omitempty"`
+	Details     map[string]string `json:"details"`
 }
 
 type opsgenieAlertCloseRequest struct {
@@ -133,8 +135,8 @@ func (provider *AlertProvider) sendRequest(url, method string, payload interface
 	}
 
 	if res.StatusCode > 399 {
-		body, _ := io.ReadAll(res.Body)
-		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", res.StatusCode, string(body))
+		rBody, _ := io.ReadAll(res.Body)
+		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", res.StatusCode, string(rBody))
 	}
 
 	return res, nil
@@ -165,6 +167,25 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 
 	description = description + "\n" + results
 
+	details := map[string]string{
+		"endpoint:url":    endpoint.URL,
+		"endpoint:group":  endpoint.Group,
+		"result:hostname": result.Hostname,
+		"result:ip":       result.IP,
+		"result:dns_code": result.DNSRCode,
+		"result:errors":   strings.Join(result.Errors, ","),
+	}
+
+	for k, v := range details {
+		if len(v) == 0 {
+			delete(details, k)
+		}
+	}
+
+	if result.HTTPStatus > 0 {
+		details["result:http_status"] = strconv.Itoa(result.HTTPStatus)
+	}
+
 	return opsgenieAlertCreateRequest{
 		Message:     message,
 		Description: description,
@@ -173,6 +194,7 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 		Alias:       provider.alias(key),
 		Entity:      provider.entity(key),
 		Tags:        provider.Tags,
+		Details:     details,
 	}
 }
 

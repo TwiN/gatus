@@ -35,40 +35,40 @@ func TestAlertProvider_Send(t *testing.T) {
 		ExpectedError    bool
 	}{
 		{
-			Name:     "triggered",
-			Provider: AlertProvider{},
-			Alert:    alert.Alert{Description: &description, SuccessThreshold: 1, FailureThreshold: 1},
-			Resolved: false,
+			Name:          "triggered",
+			Provider:      AlertProvider{},
+			Alert:         alert.Alert{Description: &description, SuccessThreshold: 1, FailureThreshold: 1},
+			Resolved:      false,
 			ExpectedError: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
 			}),
 		},
 		{
-			Name:     "triggered-error",
-			Provider: AlertProvider{},
-			Alert:    alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved: false,
+			Name:          "triggered-error",
+			Provider:      AlertProvider{},
+			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:      false,
 			ExpectedError: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
 			}),
 		},
 		{
-			Name:     "resolved",
-			Provider: AlertProvider{},
-			Alert:    alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved: true,
+			Name:          "resolved",
+			Provider:      AlertProvider{},
+			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:      true,
 			ExpectedError: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
 			}),
 		},
 		{
-			Name:     "resolved-error",
-			Provider: AlertProvider{},
-			Alert:    alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved: true,
+			Name:          "resolved-error",
+			Provider:      AlertProvider{},
+			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:      true,
 			ExpectedError: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
@@ -130,6 +130,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Alias:       "gatus-healthcheck-",
 				Description: "An alert for ** has been triggered due to having failed 0 time(s) in a row\n",
 				Tags:        nil,
+				Details:     map[string]string{},
 			},
 		},
 		{
@@ -147,6 +148,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Alias:       "gatus-healthcheck-",
 				Description: "An alert for ** has been resolved after passing successfully 0 time(s) in a row\n",
 				Tags:        nil,
+				Details:     map[string]string{},
 			},
 		},
 		{
@@ -181,7 +183,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Description: "An alert for *my supper app* has been triggered due to having failed 3 time(s) in a row\n" +
 					"▣ - `[STATUS] == 200`\n" +
 					"▢ - `[BODY] == OK`\n",
-				Tags: nil,
+				Tags:    nil,
+				Details: map[string]string{},
 			},
 		},
 		{
@@ -190,7 +193,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Priority:     "P5",
 				EntityPrefix: "oompa-",
 				AliasPrefix:  "loompa-",
-				Source: "gatus-hc",
+				Source:       "gatus-hc",
 				Tags:         []string{"do-ba-dee-doo"},
 			},
 			Alert: &alert.Alert{
@@ -217,7 +220,53 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Alias:    "loompa-my-mega-app",
 				Description: "An alert for *my mega app* has been resolved after passing successfully 4 time(s) in a row\n" +
 					"▣ - `[STATUS] == 200`\n",
-				Tags: []string{"do-ba-dee-doo"},
+				Tags:    []string{"do-ba-dee-doo"},
+				Details: map[string]string{},
+			},
+		},
+		{
+			Name: "with default options and details (unresolved)",
+			Provider: &AlertProvider{
+				Tags: []string{"foo"},
+			},
+			Alert: &alert.Alert{
+				Description:      &description,
+				FailureThreshold: 6,
+			},
+			Endpoint: &core.Endpoint{
+				Name:  "my app",
+				Group: "end game",
+				URL:   "https://my.go/app",
+			},
+			Result: &core.Result{
+				HTTPStatus: 400,
+				Hostname:   "my.go",
+				Errors:     []string{"error 01", "error 02"},
+				Success:    false,
+				ConditionResults: []*core.ConditionResult{
+					{
+						Condition: "[STATUS] == 200",
+						Success:   false,
+					},
+				},
+			},
+			Resolved: false,
+			want: opsgenieAlertCreateRequest{
+				Message:  "my app - " + description,
+				Priority: "P1",
+				Source:   "gatus",
+				Entity:   "gatus-my-app",
+				Alias:    "gatus-healthcheck-my-app",
+				Description: "An alert for *my app* has been triggered due to having failed 6 time(s) in a row\n" +
+					"▢ - `[STATUS] == 200`\n",
+				Tags: []string{"foo"},
+				Details: map[string]string{
+					"endpoint:url":       "https://my.go/app",
+					"endpoint:group":     "end game",
+					"result:hostname":    "my.go",
+					"result:errors":      "error 01,error 02",
+					"result:http_status": "400",
+				},
 			},
 		},
 	}
@@ -280,4 +329,3 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 		})
 	}
 }
-
