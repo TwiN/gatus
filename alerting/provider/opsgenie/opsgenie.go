@@ -16,7 +16,7 @@ const (
 	restAPI = "https://api.opsgenie.com/v2/alerts"
 )
 
-type opsgenieAlertRequest struct {
+type opsgenieAlertCreateRequest struct {
 	Message     string   `json:"message"`
 	Priority    string   `json:"priority"`
 	Source      string   `json:"source"`
@@ -26,10 +26,9 @@ type opsgenieAlertRequest struct {
 	Tags        []string `json:"tags,omitempty"`
 }
 
-type opsgenieAlertResponse struct {
-	Result    string  `json:"result"`
-	Took      float64 `json:"took"`
-	RequestId string  `json:"requestId"`
+type opsgenieAlertCloseRequest struct {
+	Source string `json:"source"`
+	Note   string `json:"note"`
 }
 
 type AlertProvider struct {
@@ -38,6 +37,10 @@ type AlertProvider struct {
 	//Priority define priority to be used in opsgenie alert payload
 	// defaults: P1
 	Priority string `yaml:"priority"`
+
+	//Source define source to be used in opsgenie alert payload
+	// defaults: gatus
+	Source string `yaml:"source"`
 
 	//EntityPrefix is a prefix to be used in entity argument in opsgenie alert payload
 	// defaults: gatus-
@@ -90,25 +93,31 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 }
 
 func (provider *AlertProvider) createAlert(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildCreateRequestBody(endpoint, alert, result, resolved))
+	payload := provider.buildCreateRequestBody(endpoint, alert, result, resolved)
 
-	_, err := provider.sendRequest(restAPI, http.MethodPost,  buffer)
+	_, err := provider.sendRequest(restAPI, http.MethodPost, payload)
 
 	return err
 }
 
 func (provider *AlertProvider) closeAlert(endpoint *core.Endpoint, alert *alert.Alert) error {
-	buffer := bytes.NewBuffer(provider.buildCloseRequestBody(endpoint, alert))
-	url := restAPI + "/" + provider.alias(buildKey(endpoint)) +  "/close?identifierType=alias"
+	payload := provider.buildCloseRequestBody(endpoint, alert)
+	url := restAPI + "/" + provider.alias(buildKey(endpoint)) + "/close?identifierType=alias"
 
-	_, err := provider.sendRequest(url, http.MethodPost,  buffer)
-
+	_, err := provider.sendRequest(url, http.MethodPost, payload)
 
 	return err
 }
 
-func (provider *AlertProvider) sendRequest(url, method string, buffer *bytes.Buffer) (*http.Response, error) {
-	request, err := http.NewRequest(method, url, buffer)
+func (provider *AlertProvider) sendRequest(url, method string, payload interface{}) (*http.Response, error) {
+
+	body, err := json.Marshal(payload)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to build alert payload: %v", payload)
+	}
+
+	request, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -131,7 +140,7 @@ func (provider *AlertProvider) sendRequest(url, method string, buffer *bytes.Buf
 	return res, nil
 }
 
-func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) opsgenieAlertCreateRequest {
 	var message, description, results string
 
 	key := buildKey(endpoint)
@@ -156,30 +165,32 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 
 	description = description + "\n" + results
 
-	payload := opsgenieAlertRequest{
-		Message:     "[TEST] " + message,
-		Source:      key,
+	return opsgenieAlertCreateRequest{
+		Message:     message,
 		Description: description,
+		Source:      provider.source(),
 		Priority:    provider.priority(),
 		Alias:       provider.alias(key),
-		Entity:      provider.alias(key),
+		Entity:      provider.entity(key),
 		Tags:        provider.Tags,
 	}
-
-	b, _ := json.Marshal(payload)
-
-	return b
 }
 
-func (provider *AlertProvider) buildCloseRequestBody(endpoint *core.Endpoint, alert *alert.Alert) []byte {
-	payload := map[string]string{
-		"source": buildKey(endpoint),
-		"note": fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription()),
+func (provider *AlertProvider) buildCloseRequestBody(endpoint *core.Endpoint, alert *alert.Alert) opsgenieAlertCloseRequest {
+	return opsgenieAlertCloseRequest{
+		Source: buildKey(endpoint),
+		Note:   fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription()),
+	}
+}
+
+func (provider *AlertProvider) source() string {
+	source := provider.Source
+
+	if source == "" {
+		return "gatus"
 	}
 
-	b, _ := json.Marshal(payload)
-
-	return b
+	return source
 }
 
 func (provider *AlertProvider) alias(key string) string {
