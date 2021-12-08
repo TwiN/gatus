@@ -252,11 +252,11 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			},
 			Resolved: false,
 			want: opsgenieAlertCreateRequest{
-				Message:  "my app - " + description,
+				Message:  "[end game] my app - " + description,
 				Priority: "P1",
 				Source:   "gatus",
-				Entity:   "gatus-my-app",
-				Alias:    "gatus-healthcheck-my-app",
+				Entity:   "gatus-end-game-my-app",
+				Alias:    "gatus-healthcheck-end-game-my-app",
 				Description: "An alert for *my app* has been triggered due to having failed 6 time(s) in a row\n" +
 					"▢ - `[STATUS] == 200`\n",
 				Tags: []string{"foo"},

@@ -145,14 +145,17 @@ func (provider *AlertProvider) sendRequest(url, method string, payload interface
 func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) opsgenieAlertCreateRequest {
 	var message, description, results string
 
-	key := buildKey(endpoint)
-
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.Name, alert.SuccessThreshold)
 	} else {
 		message = fmt.Sprintf("%s - %s", endpoint.Name, alert.GetDescription())
 		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.Name, alert.FailureThreshold)
+	}
+
+
+	if endpoint.Group != "" {
+		message = fmt.Sprintf("[%s] %s", endpoint.Group, message)
 	}
 
 	for _, conditionResult := range result.ConditionResults {
@@ -167,6 +170,7 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 
 	description = description + "\n" + results
 
+	key := buildKey(endpoint)
 	details := map[string]string{
 		"endpoint:url":    endpoint.URL,
 		"endpoint:group":  endpoint.Group,
@@ -177,7 +181,7 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 	}
 
 	for k, v := range details {
-		if len(v) == 0 {
+		if v == "" {
 			delete(details, k)
 		}
 	}
@@ -249,5 +253,15 @@ func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 func buildKey(endpoint *core.Endpoint) string {
-	return strings.ToLower(strings.ReplaceAll(endpoint.Name, " ", "-"))
+	name := toKebabCase(endpoint.Name)
+
+	if endpoint.Group == "" {
+		return name
+	}
+
+	return toKebabCase(endpoint.Group) + "-" + name
+}
+
+func toKebabCase(val string) string {
+	return strings.ToLower(strings.ReplaceAll(val, " ", "-"))
 }
