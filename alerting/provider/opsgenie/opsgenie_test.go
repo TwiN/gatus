@@ -275,7 +275,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		actual := scenario
 		t.Run(actual.Name, func(t *testing.T) {
 			if got := actual.Provider.buildCreateRequestBody(actual.Endpoint, actual.Alert, actual.Result, actual.Resolved); !reflect.DeepEqual(got, actual.want) {
-				t.Errorf("buildCloseRequestBody() = %v, want %v", got, actual.want)
+				t.Errorf("buildCreateRequestBody() = %v, want %v", got, actual.want)
 			}
 		})
 	}
