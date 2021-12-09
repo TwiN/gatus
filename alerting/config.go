@@ -85,6 +85,12 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Messagebird
+	case alert.TypeOpsgenie:
+		if config.Opsgenie == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Opsgenie
 	case alert.TypePagerDuty:
 		if config.PagerDuty == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
@@ -115,12 +121,6 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Twilio
-	case alert.Opsgenie:
-		if config.Opsgenie == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Opsgenie
 	}
 	return nil
 }

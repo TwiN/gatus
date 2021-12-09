@@ -15,7 +15,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{APIKey: "2f8fe136-27a6-4a79-ab5b-a13cb0e59699"}
+	validProvider := AlertProvider{APIKey: "00000000-0000-0000-0000-000000000000"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
