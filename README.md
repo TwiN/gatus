@@ -90,7 +90,7 @@ Gatus, on the other hand, allows you to configure health checks for each of your
 monitor these features and potentially alert you before any clients are impacted.
 
 A sign you may want to look into Gatus is by simply asking yourself whether you'd receive an alert if your load balancer
-was to go down right now. Will any of your existing alerts by triggered? Your metrics won’t report an increase in errors
+was to go down right now. Will any of your existing alerts be triggered? Your metrics won’t report an increase in errors
 if there’s no traffic that makes it to your applications. This puts you in a situation where your clients are the ones
 that will notify you about the degradation of your services rather than you reassuring them that you're working on
 fixing the issue before they even know about it.
