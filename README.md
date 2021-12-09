@@ -1085,7 +1085,7 @@ technically, if you create 100 endpoints with a 1 seconds interval, Gatus will s
 
 
 ### Reloading configuration on the fly
-For the sake on convenience, Gatus automatically reloads the configuration on the fly if the loaded configuration file
+For the sake of convenience, Gatus automatically reloads the configuration on the fly if the loaded configuration file
 is updated while Gatus is running.
 
 By default, the application will exit if the updating configuration is invalid, but you can configure
