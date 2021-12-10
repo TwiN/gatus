@@ -46,11 +46,15 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message, color, results string
+	name := endpoint.Name
+	if endpoint.Group != "" {
+		name = endpoint.Group + ":" + name
+	}
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.Name, alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", name, alert.SuccessThreshold)
 		color = "#36A64F"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.Name, alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", name, alert.FailureThreshold)
 		color = "#DD0000"
 	}
 	for _, conditionResult := range result.ConditionResults {
