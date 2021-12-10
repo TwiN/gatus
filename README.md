@@ -311,8 +311,10 @@ ignored.
 | Parameter              | Description                                                                                                            | Default        |
 |:-----------------------|:---------------------------------------------------------------------------------------------------------------------- |:-------|
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`   |
-| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).   | `{}`   |
+| `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`   |
+| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`   |
 | `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`   |
+| `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`   |
 | `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`   |
 | `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`   |
 | `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`   |
@@ -455,6 +457,24 @@ endpoints:
         description: "healthcheck failed"
 ```
 
+#### Configuring Opsgenie alerts
+| Parameter                                              | Description                                                                   | Default              |
+|:------------------------------------------------------ |:----------------------------------------------------------------------------- |:-------------------- |
+| `alerting.opsgenie`                                    | Configuration for alerts of type `opsgenie`                                   | `{}`                 |
+| `alerting.opsgenie.api-key`                            | Opsgenie API Key                                                              |  Required `""`       |
+| `alerting.opsgenie.priority`                           | Priority level of the alert.                                                  | `P1`                 |
+| `alerting.opsgenie.source`                             | Source field of the alert.                                                    | `gatus`              |
+| `alerting.opsgenie.entity-prefix`                      | Entity field prefix.                                                          | `gatus-`             |
+| `alerting.opsgenie.alias-prefix`                       | Alias field prefix.                                                           | `gatus-healthcheck-` |
+| `alerting.opsgenie.tags`                               | Tags of alert.                                                                | `[]`                 |
+
+Opsgenie provider will automatically open and close alerts.
+
+```yaml
+alerting:
+  opsgenie:
+    api-key: "00000000-0000-0000-0000-000000000000"
+```
 
 #### Configuring PagerDuty alerts
 | Parameter                                              | Description                                                                   | Default        |

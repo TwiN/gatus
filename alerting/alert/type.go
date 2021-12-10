@@ -34,4 +34,7 @@ const (
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
+
+	// TypeOpsgenie is the Type for the opsgenie alerting provider
+	TypeOpsgenie Type = "opsgenie"
 )
