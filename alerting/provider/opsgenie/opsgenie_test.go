@@ -1,13 +1,14 @@
 package opsgenie
 
 import (
+	"net/http"
+	"reflect"
+	"testing"
+
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/TwiN/gatus/v3/test"
-	"net/http"
-	"reflect"
-	"testing"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -23,9 +24,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
-
 	description := "my bad alert description"
-
 	scenarios := []struct {
 		Name             string
 		Provider         AlertProvider
@@ -79,7 +78,6 @@ func TestAlertProvider_Send(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
-
 			err := scenario.Provider.Send(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
@@ -103,9 +101,7 @@ func TestAlertProvider_Send(t *testing.T) {
 
 func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 	t.Parallel()
-
 	description := "alert description"
-
 	scenarios := []struct {
 		Name     string
 		Provider *AlertProvider
@@ -113,7 +109,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		Endpoint *core.Endpoint
 		Result   *core.Result
 		Resolved bool
-		want     opsgenieAlertCreateRequest
+		want     alertCreateRequest
 	}{
 		{
 			Name:     "missing all params (unresolved)",
@@ -122,7 +118,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Endpoint: &core.Endpoint{},
 			Result:   &core.Result{},
 			Resolved: false,
-			want: opsgenieAlertCreateRequest{
+			want: alertCreateRequest{
 				Message:     " - ",
 				Priority:    "P1",
 				Source:      "gatus",
@@ -140,7 +136,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Endpoint: &core.Endpoint{},
 			Result:   &core.Result{},
 			Resolved: true,
-			want: opsgenieAlertCreateRequest{
+			want: alertCreateRequest{
 				Message:     "RESOLVED:  - ",
 				Priority:    "P1",
 				Source:      "gatus",
@@ -174,7 +170,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				},
 			},
 			Resolved: false,
-			want: opsgenieAlertCreateRequest{
+			want: alertCreateRequest{
 				Message:  "my supper app - " + description,
 				Priority: "P1",
 				Source:   "gatus",
@@ -212,7 +208,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				},
 			},
 			Resolved: true,
-			want: opsgenieAlertCreateRequest{
+			want: alertCreateRequest{
 				Message:  "RESOLVED: my mega app - " + description,
 				Priority: "P5",
 				Source:   "gatus-hc",
@@ -251,7 +247,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				},
 			},
 			Resolved: false,
-			want: opsgenieAlertCreateRequest{
+			want: alertCreateRequest{
 				Message:  "[end game] my app - " + description,
 				Priority: "P1",
 				Source:   "gatus",
@@ -270,7 +266,6 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			},
 		},
 	}
-
 	for _, scenario := range scenarios {
 		actual := scenario
 		t.Run(actual.Name, func(t *testing.T) {
@@ -283,27 +278,24 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 
 func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 	t.Parallel()
-
 	description := "alert description"
-
 	scenarios := []struct {
 		Name     string
 		Provider *AlertProvider
 		Alert    *alert.Alert
 		Endpoint *core.Endpoint
-		want     opsgenieAlertCloseRequest
+		want     alertCloseRequest
 	}{
 		{
 			Name:     "Missing all values",
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
 			Endpoint: &core.Endpoint{},
-			want: opsgenieAlertCloseRequest{
+			want: alertCloseRequest{
 				Source: "",
 				Note:   "RESOLVED:  - ",
 			},
 		},
-
 		{
 			Name:     "Basic values",
 			Provider: &AlertProvider{},
@@ -313,7 +305,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 			Endpoint: &core.Endpoint{
 				Name: "endpoint name",
 			},
-			want: opsgenieAlertCloseRequest{
+			want: alertCloseRequest{
 				Source: "endpoint-name",
 				Note:   "RESOLVED: endpoint name - alert description",
 			},
