@@ -1,5 +1,15 @@
 package alert
 
+import (
+	"errors"
+	"strings"
+)
+
+var (
+	// ErrAlertWithInvalidDescription is the error with which Gatus will panic if an alert has an invalid character
+	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
+)
+
 // Alert is a core.Endpoint's alert configuration
 type Alert struct {
 	// Type of alert (required)
@@ -42,6 +52,20 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool `yaml:"-"`
+}
+
+// ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one
+func (alert *Alert) ValidateAndSetDefaults() error {
+	if alert.FailureThreshold <= 0 {
+		alert.FailureThreshold = 3
+	}
+	if alert.SuccessThreshold <= 0 {
+		alert.SuccessThreshold = 2
+	}
+	if strings.ContainsAny(alert.GetDescription(), "\"\\") {
+		return ErrAlertWithInvalidDescription
+	}
+	return nil
 }
 
 // GetDescription retrieves the description of the alert

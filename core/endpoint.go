@@ -41,6 +41,9 @@ var (
 
 	// ErrEndpointWithNoName is the error with which Gatus will panic if an endpoint is configured with no name
 	ErrEndpointWithNoName = errors.New("you must specify a name for each endpoint")
+
+	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
+	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
 )
 
 // Endpoint is the configuration of a monitored
@@ -132,15 +135,15 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 		endpoint.Headers[ContentTypeHeader] = "application/json"
 	}
 	for _, endpointAlert := range endpoint.Alerts {
-		if endpointAlert.FailureThreshold <= 0 {
-			endpointAlert.FailureThreshold = 3
-		}
-		if endpointAlert.SuccessThreshold <= 0 {
-			endpointAlert.SuccessThreshold = 2
+		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
+			return err
 		}
 	}
 	if len(endpoint.Name) == 0 {
 		return ErrEndpointWithNoName
+	}
+	if strings.ContainsAny(endpoint.Name, "\"\\") || strings.ContainsAny(endpoint.Group, "\"\\") {
+		return ErrEndpointWithInvalidNameOrGroup
 	}
 	if len(endpoint.URL) == 0 {
 		return ErrEndpointWithNoURL
@@ -157,6 +160,14 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 		return err
 	}
 	return nil
+}
+
+// DisplayName returns an identifier made up of the Name and, if not empty, the Group.
+func (endpoint Endpoint) DisplayName() string {
+	if len(endpoint.Group) > 0 {
+		return endpoint.Group + "/" + endpoint.Name
+	}
+	return endpoint.Name
 }
 
 // Key returns the unique key for the Endpoint
