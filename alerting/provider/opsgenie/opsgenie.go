@@ -120,10 +120,10 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 	var message, description, results string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
-		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.Name, alert.SuccessThreshold)
+		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 	} else {
 		message = fmt.Sprintf("%s - %s", endpoint.Name, alert.GetDescription())
-		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.Name, alert.FailureThreshold)
+		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
 	if endpoint.Group != "" {
 		message = fmt.Sprintf("[%s] %s", endpoint.Group, message)

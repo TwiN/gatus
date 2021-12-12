@@ -155,7 +155,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				FailureThreshold: 3,
 			},
 			Endpoint: &core.Endpoint{
-				Name: "my supper app",
+				Name: "my super app",
 			},
 			Result: &core.Result{
 				ConditionResults: []*core.ConditionResult{
@@ -171,16 +171,14 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			},
 			Resolved: false,
 			want: alertCreateRequest{
-				Message:  "my supper app - " + description,
-				Priority: "P1",
-				Source:   "gatus",
-				Entity:   "gatus-my-supper-app",
-				Alias:    "gatus-healthcheck-my-supper-app",
-				Description: "An alert for *my supper app* has been triggered due to having failed 3 time(s) in a row\n" +
-					"▣ - `[STATUS] == 200`\n" +
-					"▢ - `[BODY] == OK`\n",
-				Tags:    nil,
-				Details: map[string]string{},
+				Message:     "my super app - " + description,
+				Priority:    "P1",
+				Source:      "gatus",
+				Entity:      "gatus-my-super-app",
+				Alias:       "gatus-healthcheck-my-super-app",
+				Description: "An alert for *my super app* has been triggered due to having failed 3 time(s) in a row\n▣ - `[STATUS] == 200`\n▢ - `[BODY] == OK`\n",
+				Tags:        nil,
+				Details:     map[string]string{},
 			},
 		},
 		{
@@ -209,15 +207,14 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			},
 			Resolved: true,
 			want: alertCreateRequest{
-				Message:  "RESOLVED: my mega app - " + description,
-				Priority: "P5",
-				Source:   "gatus-hc",
-				Entity:   "oompa-my-mega-app",
-				Alias:    "loompa-my-mega-app",
-				Description: "An alert for *my mega app* has been resolved after passing successfully 4 time(s) in a row\n" +
-					"▣ - `[STATUS] == 200`\n",
-				Tags:    []string{"do-ba-dee-doo"},
-				Details: map[string]string{},
+				Message:     "RESOLVED: my mega app - " + description,
+				Priority:    "P5",
+				Source:      "gatus-hc",
+				Entity:      "oompa-my-mega-app",
+				Alias:       "loompa-my-mega-app",
+				Description: "An alert for *my mega app* has been resolved after passing successfully 4 time(s) in a row\n▣ - `[STATUS] == 200`\n",
+				Tags:        []string{"do-ba-dee-doo"},
+				Details:     map[string]string{},
 			},
 		},
 		{
@@ -248,14 +245,13 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			},
 			Resolved: false,
 			want: alertCreateRequest{
-				Message:  "[end game] my app - " + description,
-				Priority: "P1",
-				Source:   "gatus",
-				Entity:   "gatus-end-game-my-app",
-				Alias:    "gatus-healthcheck-end-game-my-app",
-				Description: "An alert for *my app* has been triggered due to having failed 6 time(s) in a row\n" +
-					"▢ - `[STATUS] == 200`\n",
-				Tags: []string{"foo"},
+				Message:     "[end game] my app - " + description,
+				Priority:    "P1",
+				Source:      "gatus",
+				Entity:      "gatus-end-game-my-app",
+				Alias:       "gatus-healthcheck-end-game-my-app",
+				Description: "An alert for *end game/my app* has been triggered due to having failed 6 time(s) in a row\n▢ - `[STATUS] == 200`\n",
+				Tags:        []string{"foo"},
 				Details: map[string]string{
 					"endpoint:url":       "https://my.go/app",
 					"endpoint:group":     "end game",
