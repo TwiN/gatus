@@ -48,10 +48,10 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	var message, results string
 	var colorCode int
 	if resolved {
-		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", endpoint.Name, alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 		colorCode = 3066993
 	} else {
-		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.Name, alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		colorCode = 15158332
 	}
 	for _, conditionResult := range result.ConditionResults {

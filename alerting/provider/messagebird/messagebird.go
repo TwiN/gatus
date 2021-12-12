@@ -55,9 +55,9 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.Name, alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
 	}
 	return fmt.Sprintf(`{
   "originator": "%s",

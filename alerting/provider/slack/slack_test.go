@@ -16,7 +16,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{WebhookURL: "http://example.com"}
+	validProvider := AlertProvider{WebhookURL: "https://example.com"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
