@@ -183,6 +183,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui`                                     | UI configuration.                                                             | `{}`           |
 | `ui.title`                               | Title of the page.                                                            | `Health Dashboard ǀ Gatus`      |
 | `ui.logo`                                | URL to the logo to display                                                    | `""`         |
+| `Maintenance`                            | [Maintenance](#maintenance).                                                  | `{}`           |
 
 
 ### Conditions
