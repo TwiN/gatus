@@ -3,8 +3,8 @@ package util
 import "strings"
 
 // ConvertGroupAndEndpointNameToKey converts a group and an endpoint to a key
-func ConvertGroupAndEndpointNameToKey(group, endpoint string) string {
-	return sanitize(group) + "_" + sanitize(endpoint)
+func ConvertGroupAndEndpointNameToKey(groupName, endpointName string) string {
+	return sanitize(groupName) + "_" + sanitize(endpointName)
 }
 
 func sanitize(s string) string {
