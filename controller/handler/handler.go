@@ -15,6 +15,11 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
+	if securityConfig != nil {
+		if err := securityConfig.RegisterHandlers(router); err != nil {
+			panic(err)
+		}
+	}
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", FavIcon(staticFolder)).Methods("GET")
 	// Endpoints

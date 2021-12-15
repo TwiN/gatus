@@ -7,7 +7,7 @@ func TestBasicConfig_IsValid(t *testing.T) {
 		Username:           "admin",
 		PasswordSha512Hash: Sha512("test"),
 	}
-	if !basicConfig.IsValid() {
+	if !basicConfig.isValid() {
 		t.Error("basicConfig should've been valid")
 	}
 }
@@ -17,7 +17,7 @@ func TestBasicConfig_IsValidWhenPasswordIsInvalid(t *testing.T) {
 		Username:           "admin",
 		PasswordSha512Hash: "",
 	}
-	if basicConfig.IsValid() {
+	if basicConfig.isValid() {
 		t.Error("basicConfig shouldn't have been valid")
 	}
 }
