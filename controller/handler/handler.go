@@ -40,7 +40,7 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 }
 
 func secureIfNecessary(securityConfig *security.Config, handler http.HandlerFunc) http.HandlerFunc {
-	if securityConfig != nil && securityConfig.IsValid() {
+	if securityConfig != nil {
 		return security.Handler(handler, securityConfig)
 	}
 	return handler
