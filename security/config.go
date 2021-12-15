@@ -1,13 +1,30 @@
 package security
 
+import (
+	"github.com/gorilla/mux"
+)
+
 // Config is the security configuration for Gatus
 type Config struct {
-	Basic *BasicConfig `yaml:"basic"`
+	Basic *BasicConfig `yaml:"basic,omitempty"`
+	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
 }
 
 // IsValid returns whether the security configuration is valid or not
 func (c *Config) IsValid() bool {
-	return c.Basic != nil && c.Basic.IsValid()
+	return (c.Basic != nil && c.Basic.isValid()) || (c.OIDC != nil && c.OIDC.isValid())
+}
+
+// RegisterHandlers registers all handlers required based on the security configuration
+func (c *Config) RegisterHandlers(router *mux.Router) error {
+	if c.OIDC != nil {
+		if err := c.OIDC.initialize(); err != nil {
+			return err
+		}
+		router.HandleFunc("/login", c.OIDC.loginHandler)
+		router.HandleFunc("/authorization-code/callback", c.OIDC.callbackHandler)
+	}
+	return nil
 }
 
 // BasicConfig is the configuration for Basic authentication
@@ -19,7 +36,7 @@ type BasicConfig struct {
 	PasswordSha512Hash string `yaml:"password-sha512"`
 }
 
-// IsValid returns whether the basic security configuration is valid or not
-func (c *BasicConfig) IsValid() bool {
+// isValid returns whether the basic security configuration is valid or not
+func (c *BasicConfig) isValid() bool {
 	return len(c.Username) > 0 && len(c.PasswordSha512Hash) == 128
 }

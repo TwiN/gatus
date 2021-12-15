@@ -7,10 +7,11 @@ require (
 	github.com/TwiN/health v1.3.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lib/pq v1.10.3
@@ -27,6 +28,7 @@ require (
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
+	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211003122950-b1ebd4e1001c // indirect
 	golang.org/x/tools v0.1.7 // indirect
@@ -45,4 +47,10 @@ require (
 	modernc.org/sqlite v1.13.1
 	modernc.org/strutil v1.1.1 // indirect
 	modernc.org/token v1.0.0 // indirect
+)
+
+require (
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	google.golang.org/appengine v1.6.6 // indirect
+	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )
