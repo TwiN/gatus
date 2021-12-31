@@ -104,7 +104,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`)
+      fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.endpointStatus) !== JSON.stringify(data)) {

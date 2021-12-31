@@ -3,6 +3,7 @@ module github.com/TwiN/gatus/v3
 go 1.17
 
 require (
+	github.com/TwiN/g8 v1.2.0
 	github.com/TwiN/gocache v1.2.4
 	github.com/TwiN/health v1.3.0
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -50,6 +51,7 @@ require (
 )
 
 require (
+	github.com/TwiN/gocache/v2 v2.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
