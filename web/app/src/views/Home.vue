@@ -26,7 +26,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Home][fetchData] Fetching data");
-      fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`)
+      fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`, {credentials: 'include'})
           .then(response => response.json())
           .then(data => {
             if (JSON.stringify(this.endpointStatuses) !== JSON.stringify(data)) {

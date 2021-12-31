@@ -2,9 +2,12 @@ package security
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/TwiN/gocache"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
@@ -12,11 +15,12 @@ import (
 
 // OIDCConfig is the configuration for OIDC authentication
 type OIDCConfig struct {
-	IssuerURL    string   `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
-	RedirectURL  string   `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
-	ClientID     string   `yaml:"client-id"`
-	ClientSecret string   `yaml:"client-secret"`
-	Scopes       []string `yaml:"scopes"` // e.g. [openid]
+	IssuerURL       string   `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
+	RedirectURL     string   `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
+	ClientID        string   `yaml:"client-id"`
+	ClientSecret    string   `yaml:"client-secret"`
+	Scopes          []string `yaml:"scopes"`           // e.g. ["openid"]
+	AllowedSubjects []string `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -47,25 +51,32 @@ func (c *OIDCConfig) initialize() error {
 func (c *OIDCConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 	state, nonce := uuid.NewString(), uuid.NewString()
 	http.SetCookie(w, &http.Cookie{
-		Name:     "state",
+		Name:     cookieNameState,
 		Value:    state,
+		Path:     "/",
 		MaxAge:   int(time.Hour.Seconds()),
-		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nonce",
+		Name:     cookieNameNonce,
 		Value:    nonce,
+		Path:     "/",
 		MaxAge:   int(time.Hour.Seconds()),
-		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 	})
 	http.Redirect(w, r, c.oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
 }
 
 func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if there's an error
+	if len(r.URL.Query().Get("error")) > 0 {
+		http.Error(w, r.URL.Query().Get("error")+": "+r.URL.Query().Get("error_description"), http.StatusBadRequest)
+		return
+	}
 	// Ensure that the state has the expected value
-	state, err := r.Cookie("state")
+	state, err := r.Cookie(cookieNameState)
 	if err != nil {
 		http.Error(w, "state not found", http.StatusBadRequest)
 		return
@@ -91,7 +102,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Validate nonce
-	nonce, err := r.Cookie("nonce")
+	nonce, err := r.Cookie(cookieNameNonce)
 	if err != nil {
 		http.Error(w, "nonce not found", http.StatusBadRequest)
 		return
@@ -100,5 +111,34 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nonce did not match", http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusFound)
+	if len(c.AllowedSubjects) == 0 {
+		// If there's no allowed subjects, all subjects are allowed.
+		c.setSessionCookie(w, idToken)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	for _, subject := range c.AllowedSubjects {
+		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
+			c.setSessionCookie(w, idToken)
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+	}
+	log.Println("user is not in the list of allowed subjects")
+	http.Redirect(w, r, "/login?error=access_denied", http.StatusFound)
 }
+
+func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
+	// At this point, the user has been confirmed. All that's left to do is create a session.
+	sessionID := uuid.NewString()
+	sessions.SetWithTTL(sessionID, idToken.Subject, time.Hour)
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieNameSession,
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   int(time.Hour.Seconds()),
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+var sessions = gocache.NewCache()

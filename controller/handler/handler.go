@@ -15,26 +15,31 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
+	api := router.PathPrefix("/api").Subrouter()
+	protected := api.PathPrefix("/").Subrouter()
+	unprotected := api.PathPrefix("/").Subrouter()
 	if securityConfig != nil {
 		if err := securityConfig.RegisterHandlers(router); err != nil {
 			panic(err)
 		}
+		securityConfig.ApplySecurityMiddleware(protected)
 	}
+	// Endpoints
+	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
+	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
+	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
+	// XXX: Remove the lines between this and the next XXX comment in v4.0.0
+	protected.HandleFunc("/v1/services/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
+	protected.HandleFunc("/v1/services/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
+	unprotected.HandleFunc("/v1/services/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
+	// XXX: Remove the lines between this and the previous XXX comment in v4.0.0
+	// Misc
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", FavIcon(staticFolder)).Methods("GET")
-	// Endpoints
-	router.HandleFunc("/api/v1/endpoints/statuses", secureIfNecessary(securityConfig, EndpointStatuses)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
-	router.HandleFunc("/api/v1/endpoints/{key}/statuses", secureIfNecessary(securityConfig, GzipHandlerFunc(EndpointStatus))).Methods("GET")
-	router.HandleFunc("/api/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
-	router.HandleFunc("/api/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
-	router.HandleFunc("/api/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
-	// XXX: Remove the lines between this and the next XXX comment in v4.0.0
-	router.HandleFunc("/api/v1/services/statuses", secureIfNecessary(securityConfig, EndpointStatuses)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
-	router.HandleFunc("/api/v1/services/{key}/statuses", secureIfNecessary(securityConfig, GzipHandlerFunc(EndpointStatus))).Methods("GET")
-	router.HandleFunc("/api/v1/services/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
-	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
-	router.HandleFunc("/api/v1/services/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
-	// XXX: Remove the lines between this and the previous XXX comment in v4.0.0
 	// SPA
 	router.HandleFunc("/services/{name}", SinglePageApplication(staticFolder, uiConfig)).Methods("GET") // XXX: Remove this in v4.0.0
 	router.HandleFunc("/endpoints/{name}", SinglePageApplication(staticFolder, uiConfig)).Methods("GET")
@@ -42,11 +47,4 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	// Everything else falls back on static content
 	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir(staticFolder))))
 	return router
-}
-
-func secureIfNecessary(securityConfig *security.Config, handler http.HandlerFunc) http.HandlerFunc {
-	if securityConfig != nil {
-		return security.Handler(handler, securityConfig)
-	}
-	return handler
 }
