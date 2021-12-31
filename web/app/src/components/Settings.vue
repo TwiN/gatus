@@ -72,7 +72,7 @@ export default {
     return {
       refreshInterval: sessionStorage.getItem('gatus:refresh-interval') < 10 ? 60 : parseInt(sessionStorage.getItem('gatus:refresh-interval')),
       refreshIntervalHandler: 0,
-      darkMode: false
+      darkMode: true
     }
   },
 }
