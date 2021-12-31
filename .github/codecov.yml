@@ -5,3 +5,6 @@ ignore:
 coverage:
   status:
     patch: off
+    project:
+      threshold: 75%
+
