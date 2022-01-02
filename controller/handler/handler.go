@@ -25,6 +25,7 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 		securityConfig.ApplySecurityMiddleware(protected)
 	}
 	// Endpoints
+	unprotected.Handle("/v1/config", ConfigHandler{securityConfig: securityConfig}).Methods("GET")
 	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
