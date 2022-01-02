@@ -27,7 +27,7 @@ type OIDCConfig struct {
 
 // isValid returns whether the basic security configuration is valid or not
 func (c *OIDCConfig) isValid() bool {
-	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
+	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
 func (c *OIDCConfig) initialize() error {
@@ -123,7 +123,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Println("user is not in the list of allowed subjects")
+	log.Printf("[security][callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
 	http.Redirect(w, r, "/login?error=access_denied", http.StatusFound)
 }
 
