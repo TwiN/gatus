@@ -181,12 +181,7 @@ func (gate *Gate) ProtectFuncWithPermissions(handlerFunc http.HandlerFunc, permi
 			}
 		}
 		if gate.authorizationService != nil {
-			var token string
-			if gate.customTokenExtractorFunc != nil {
-				token = gate.customTokenExtractorFunc(request)
-			} else {
-				token = extractTokenFromRequest(request)
-			}
+			token := gate.ExtractTokenFromRequest(request)
 			if !gate.authorizationService.IsAuthorized(token, permissions) {
 				writer.WriteHeader(http.StatusUnauthorized)
 				_, _ = writer.Write(gate.unauthorizedResponseBody)
@@ -206,7 +201,17 @@ func (gate *Gate) ProtectFuncWithPermission(handlerFunc http.HandlerFunc, permis
 	return gate.ProtectFuncWithPermissions(handlerFunc, []string{permission})
 }
 
-// extractTokenFromRequest extracts the bearer token from the AuthorizationHeader
-func extractTokenFromRequest(request *http.Request) string {
+// ExtractTokenFromRequest extracts a token from a request.
+//
+// By default, it extracts the bearer token from the AuthorizationHeader, but if a customTokenExtractorFunc is defined,
+// it will use that instead.
+//
+// Note that this method is internally used by Protect, ProtectWithPermission, ProtectFunc and
+// ProtectFuncWithPermissions, but it is exposed in case you need to use it directly.
+func (gate *Gate) ExtractTokenFromRequest(request *http.Request) string {
+	if gate.customTokenExtractorFunc != nil {
+		// A custom token extractor function is defined, so we'll use it instead of the default token extraction logic
+		return gate.customTokenExtractorFunc(request)
+	}
 	return strings.TrimPrefix(request.Header.Get(AuthorizationHeader), "Bearer ")
 }

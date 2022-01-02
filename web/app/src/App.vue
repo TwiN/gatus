@@ -1,5 +1,5 @@
 <template>
-  <div class="container container-xs relative mx-auto xl:rounded xl:border xl:shadow-xl xl:my-5 p-5 pb-12 xl:pb-5 text-left dark:bg-gray-800 dark:text-gray-200 dark:border-gray-500" id="global">
+  <div v-if="retrievedConfig" class="container container-xs relative mx-auto xl:rounded xl:border xl:shadow-xl xl:my-5 p-5 pb-12 xl:pb-5 text-left dark:bg-gray-800 dark:text-gray-200 dark:border-gray-500" id="global">
     <div class="mb-2">
       <div class="flex flex-wrap">
         <div class="w-3/4 text-left my-auto">
@@ -11,6 +11,11 @@
         </div>
       </div>
     </div>
+    <div v-if="config && config.oidc && !config.authenticated">
+      <a :href="`${SERVER_URL}/oidc/login`" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-lg text-white bg-green-700 hover:bg-green-800">
+        Login with OIDC
+      </a>
+    </div>
     <router-view @showTooltip="showTooltip"/>
   </div>
   <Tooltip :result="tooltip.result" :event="tooltip.event"/>
@@ -21,6 +26,7 @@
 <script>
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue';
+import {SERVER_URL} from "@/main";
 
 export default {
   name: 'App',
@@ -29,6 +35,17 @@ export default {
     Tooltip
   },
   methods: {
+    fetchConfig() {
+      fetch(`${SERVER_URL}/api/v1/config`, {credentials: 'include'})
+      .then(response => {
+        this.retrievedConfig = true;
+        if (response.status === 200) {
+          response.json().then(data => {
+            this.config = data;
+          })
+        }
+      });
+    },
     showTooltip(result, event) {
       this.tooltip = {result: result, event: event};
     }
@@ -40,8 +57,14 @@ export default {
   },
   data() {
     return {
-      tooltip: {}
+      retrievedConfig: false,
+      config: { oidc: false, authenticated: true },
+      tooltip: {},
+      SERVER_URL
     }
   },
+  created() {
+    this.fetchConfig();
+  }
 }
 </script>

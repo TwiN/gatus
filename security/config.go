@@ -18,6 +18,8 @@ const (
 type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
 	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
+
+	gate *g8.Gate
 }
 
 // IsValid returns whether the security configuration is valid or not
@@ -37,6 +39,8 @@ func (c *Config) RegisterHandlers(router *mux.Router) error {
 	return nil
 }
 
+// ApplySecurityMiddleware applies an authentication middleware to the router passed.
+// The router passed should be a subrouter in charge of handlers that require authentication.
 func (c *Config) ApplySecurityMiddleware(api *mux.Router) {
 	if c.OIDC != nil {
 		// We're going to use g8 for session handling
@@ -55,8 +59,8 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) {
 		}
 		// TODO: g8: Add a way to update cookie after? would need the writer
 		authorizationService := g8.NewAuthorizationService().WithClientProvider(clientProvider)
-		gate := g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
-		api.Use(gate.Protect)
+		c.gate = g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
+		api.Use(c.gate.Protect)
 	} else if c.Basic != nil {
 		api.Use(func(handler http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,4 +75,15 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) {
 			})
 		})
 	}
+}
+
+// IsAuthenticated checks whether the user is authenticated
+// If the Config does not warrant authentication, it will always return true.
+func (c *Config) IsAuthenticated(r *http.Request) bool {
+	if c.gate != nil {
+		token := c.gate.ExtractTokenFromRequest(r)
+		_, hasSession := sessions.Get(token)
+		return hasSession
+	}
+	return false
 }

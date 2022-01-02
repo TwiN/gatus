@@ -3,7 +3,7 @@ module github.com/TwiN/gatus/v3
 go 1.17
 
 require (
-	github.com/TwiN/g8 v1.2.0
+	github.com/TwiN/g8 v1.3.0
 	github.com/TwiN/gocache v1.2.4
 	github.com/TwiN/gocache/v2 v2.0.0
 	github.com/TwiN/health v1.3.0

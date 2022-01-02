@@ -33,14 +33,14 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 	})
 	c.ApplySecurityMiddleware(api)
 	// Try to access the route without basic auth
-	request, _ := http.NewRequest("GET", "/test", nil)
+	request, _ := http.NewRequest("GET", "/test", http.NoBody)
 	responseRecorder := httptest.NewRecorder()
 	api.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusUnauthorized {
 		t.Error("expected code to be 401, but was", responseRecorder.Code)
 	}
 	// Try again, but with basic auth
-	request, _ = http.NewRequest("GET", "/test", nil)
+	request, _ = http.NewRequest("GET", "/test", http.NoBody)
 	responseRecorder = httptest.NewRecorder()
 	request.SetBasicAuth("john.doe", "hunter2")
 	api.ServeHTTP(responseRecorder, request)
@@ -65,14 +65,14 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 	c.Basic = nil
 	c.ApplySecurityMiddleware(api)
 	// Try without any session cookie
-	request, _ = http.NewRequest("GET", "/test", nil)
+	request, _ = http.NewRequest("GET", "/test", http.NoBody)
 	responseRecorder = httptest.NewRecorder()
 	api.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusUnauthorized {
 		t.Error("expected code to be 401, but was", responseRecorder.Code)
 	}
 	// Try with a session cookie
-	request, _ = http.NewRequest("GET", "/test", nil)
+	request, _ = http.NewRequest("GET", "/test", http.NoBody)
 	request.AddCookie(&http.Cookie{Name: "session", Value: "123"})
 	responseRecorder = httptest.NewRecorder()
 	api.ServeHTTP(responseRecorder, request)
@@ -86,7 +86,7 @@ func TestConfig_RegisterHandlers(t *testing.T) {
 	router := mux.NewRouter()
 	c.RegisterHandlers(router)
 	// Try to access the OIDC handler. This should fail, because the security config doesn't have OIDC
-	request, _ := http.NewRequest("GET", "/oidc/login", nil)
+	request, _ := http.NewRequest("GET", "/oidc/login", http.NoBody)
 	responseRecorder := httptest.NewRecorder()
 	router.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusNotFound {
@@ -107,7 +107,7 @@ func TestConfig_RegisterHandlers(t *testing.T) {
 	if err := c.RegisterHandlers(router); err != nil {
 		t.Fatal("expected no error, but got", err)
 	}
-	request, _ = http.NewRequest("GET", "/oidc/login", nil)
+	request, _ = http.NewRequest("GET", "/oidc/login", http.NoBody)
 	responseRecorder = httptest.NewRecorder()
 	router.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusFound {
