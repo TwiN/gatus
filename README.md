@@ -51,6 +51,9 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
+  - [Security](#security)
+    - [Basic](#basic)
+    - [OIDC (ALPHA)](#oidc-alpha)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
@@ -66,7 +69,6 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
-  - [Basic authentication](#basic-authentication)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
@@ -141,106 +143,103 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
-| Parameter                                | Description                                                                   | Default        |
-|:---------------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `debug`                                  | Whether to enable debug logs.                                                 | `false`        |
-| `metrics`                                | Whether to expose metrics at /metrics.                                        | `false`        |
-| `storage`                                | [Storage configuration](#storage)                                              | `{}`           |
-| `endpoints`                               | List of endpoints to monitor.                                                 | Required `[]`  |
-| `endpoints[].enabled`                     | Whether to monitor the endpoint.                                              | `true`         |
-| `endpoints[].name`                        | Name of the endpoint. Can be anything.                                        | Required `""`  |
-| `endpoints[].group`                       | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups). | `""`           |
-| `endpoints[].url`                         | URL to send the request to.                                                   | Required `""`  |
-| `endpoints[].method`                      | Request method.                                                               | `GET`          |
-| `endpoints[].conditions`                  | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions). | `[]`           |
-| `endpoints[].interval`                    | Duration to wait between every status check.                                  | `60s`          |
-| `endpoints[].graphql`                     | Whether to wrap the body in a query param (`{"query":"$body"}`).              | `false`        |
-| `endpoints[].body`                        | Request body.                                                                 | `""`           |
-| `endpoints[].headers`                     | Request headers.                                                              | `{}`           |
-| `endpoints[].dns`                         | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`           |
-| `endpoints[].dns.query-type`              | Query type (e.g. MX)                                                          | `""`           |
-| `endpoints[].dns.query-name`              | Query name (e.g. example.com)                                                 | `""`           |
-| `endpoints[].alerts[].type`               | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`  |
-| `endpoints[].alerts[].enabled`            | Whether to enable the alert.                                                  | `false`        |
-| `endpoints[].alerts[].failure-threshold`  | Number of failures in a row needed before triggering the alert.               | `3`            |
-| `endpoints[].alerts[].success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
-| `endpoints[].alerts[].send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved.  | `false`        |
-| `endpoints[].alerts[].description`        | Description of the alert. Will be included in the alert sent.                 | `""`           |
-| `endpoints[].client`                      | [Client configuration](#client-configuration).                                | `{}`          |
-| `endpoints[].ui`                          | UI configuration at the endpoint level.                                       | `{}`           |
-| `endpoints[].ui.hide-hostname`            | Whether to include the hostname in the result.                                | `false`        |
-| `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                        | `false`        |
-| `alerting`                               | [Alerting configuration](#alerting).                                          | `{}`           |
-| `security`                               | Security configuration.                                                       | `{}`           |
-| `security.basic`                         | Basic authentication security configuration.                                  | `{}`           |
-| `security.basic.username`                | Username for Basic authentication.                                            | Required `""`  |
-| `security.basic.password-sha512`         | Password's SHA512 hash for Basic authentication.                              | Required `""`  |
-| `disable-monitoring-lock`                | Whether to [disable the monitoring lock](#disable-monitoring-lock).           | `false`        |
-| `skip-invalid-config-update`             | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false` |
-| `web`                                    | Web configuration.                                                            | `{}`           |
-| `web.address`                            | Address to listen on.                                                         | `0.0.0.0`      |
-| `web.port`                               | Port to listen on.                                                            | `8080`         |
-| `ui`                                     | UI configuration.                                                             | `{}`           |
-| `ui.title`                               | Title of the page.                                                            | `Health Dashboard ǀ Gatus`      |
-| `ui.logo`                                | URL to the logo to display                                                    | `""`         |
-| `Maintenance`                            | [Maintenance](#maintenance).                                                  | `{}`           |
+| Parameter                                       | Description                                                                                                                                 | Default                    |
+|:------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
+| `debug`                                         | Whether to enable debug logs.                                                                                                               | `false`                    |
+| `metrics`                                       | Whether to expose metrics at /metrics.                                                                                                      | `false`                    |
+| `storage`                                       | [Storage configuration](#storage)                                                                                                           | `{}`                       |
+| `endpoints`                                     | List of endpoints to monitor.                                                                                                               | Required `[]`              |
+| `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                            | `true`                     |
+| `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                      | Required `""`              |
+| `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `""`                       |
+| `endpoints[].url`                               | URL to send the request to.                                                                                                                 | Required `""`              |
+| `endpoints[].method`                            | Request method.                                                                                                                             | `GET`                      |
+| `endpoints[].conditions`                        | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions).                                               | `[]`                       |
+| `endpoints[].interval`                          | Duration to wait between every status check.                                                                                                | `60s`                      |
+| `endpoints[].graphql`                           | Whether to wrap the body in a query param (`{"query":"$body"}`).                                                                            | `false`                    |
+| `endpoints[].body`                              | Request body.                                                                                                                               | `""`                       |
+| `endpoints[].headers`                           | Request headers.                                                                                                                            | `{}`                       |
+| `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`                       |
+| `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                        | `""`                       |
+| `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                               | `""`                       |
+| `endpoints[].alerts[].type`                     | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`.        | Required `""`              |
+| `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                | `false`                    |
+| `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                             | `3`                        |
+| `endpoints[].alerts[].success-threshold`        | Number of successes in a row before an ongoing incident is marked as resolved.                                                              | `2`                        |
+| `endpoints[].alerts[].send-on-resolved`         | Whether to send a notification once a triggered alert is marked as resolved.                                                                | `false`                    |
+| `endpoints[].alerts[].description`              | Description of the alert. Will be included in the alert sent.                                                                               | `""`                       |
+| `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
+| `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
+| `endpoints[].ui.hide-hostname`                  | Whether to include the hostname in the result.                                                                                              | `false`                    |
+| `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
+| `alerting`                                      | [Alerting configuration](#alerting).                                                                                                        | `{}`                       |
+| `security`                                      | [Security configuration](#security).                                                                                                        | `{}`                       |
+| `disable-monitoring-lock`                       | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                         | `false`                    |
+| `skip-invalid-config-update`                    | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).        | `false`                    |
+| `web`                                           | Web configuration.                                                                                                                          | `{}`                       |
+| `web.address`                                   | Address to listen on.                                                                                                                       | `0.0.0.0`                  |
+| `web.port`                                      | Port to listen on.                                                                                                                          | `8080`                     |
+| `ui`                                            | UI configuration.                                                                                                                           | `{}`                       |
+| `ui.title`                                      | Title of the page.                                                                                                                          | `Health Dashboard ǀ Gatus` |
+| `ui.logo`                                       | URL to the logo to display                                                                                                                  | `""`                       |
+| `Maintenance`                                   | [Maintenance](#maintenance).                                                                                                                | `{}`                       |
 
 
 ### Conditions
 Here are some examples of conditions you can use:
 
-| Condition                    | Description                                             | Passing values             | Failing values |
-|:-----------------------------|:------------------------------------------------------- |:-------------------------- | -------------- |
-| `[STATUS] == 200`            | Status must be equal to 200                             | 200                        | 201, 404, ...  |
-| `[STATUS] < 300`             | Status must lower than 300                              | 200, 201, 299              | 301, 302, ...  |
-| `[STATUS] <= 299`            | Status must be less than or equal to 299                | 200, 201, 299              | 301, 302, ...  |
-| `[STATUS] > 400`             | Status must be greater than 400                         | 401, 402, 403, 404         | 400, 200, ...  |
-| `[STATUS] == any(200, 429)`  | Status must be either 200 or 429                        | 200, 429                   | 201, 400, ...  |
-| `[CONNECTED] == true`        | Connection to host must've been successful              | true                       | false          |
-| `[RESPONSE_TIME] < 500`      | Response time must be below 500ms                       | 100ms, 200ms, 300ms        | 500ms, 501ms   |
-| `[IP] == 127.0.0.1`          | Target IP must be 127.0.0.1                             | 127.0.0.1                  | 0.0.0.0        |
-| `[BODY] == 1`                | The body must be equal to 1                             | 1                          | `{}`, `2`, ... |
-| `[BODY].user.name == john`   | JSONPath value of `$.user.name` is equal to `john`      | `{"user":{"name":"john"}}` |  |
-| `[BODY].data[0].id == 1`     | JSONPath value of `$.data[0].id` is equal to 1          | `{"data":[{"id":1}]}`      |  |
-| `[BODY].age == [BODY].id`    | JSONPath value of `$.age` is equal JSONPath `$.id`      | `{"age":1,"id":1}`         |  |
-| `len([BODY].data) < 5`       | Array at JSONPath `$.data` has less than 5 elements     | `{"data":[{"id":1}]}`      |  |
-| `len([BODY].name) == 8`      | String at JSONPath `$.name` has a length of 8           | `{"name":"john.doe"}`      | `{"name":"bob"}` |
-| `has([BODY].errors) == false` | JSONPath `$.errors` does not exist                     | `{"name":"john.doe"}`      | `{"errors":[]}` |
-| `has([BODY].users) == true`  | JSONPath `$.users` exists                               | `{"users":[]}`             | `{}` |
-| `[BODY].name == pat(john*)`  | String at JSONPath `$.name` matches pattern `john*`     | `{"name":"john.doe"}`      | `{"name":"bob"}` |
-| `[BODY].id == any(1, 2)`     | Value at JSONPath `$.id` is equal to `1` or `2`         | 1, 2                       | 3, 4, 5 |
-| `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ... |
+| Condition                        | Description                                         | Passing values             | Failing values   |
+|:---------------------------------|:----------------------------------------------------|:---------------------------|------------------|
+| `[STATUS] == 200`                | Status must be equal to 200                         | 200                        | 201, 404, ...    |
+| `[STATUS] < 300`                 | Status must lower than 300                          | 200, 201, 299              | 301, 302, ...    |
+| `[STATUS] <= 299`                | Status must be less than or equal to 299            | 200, 201, 299              | 301, 302, ...    |
+| `[STATUS] > 400`                 | Status must be greater than 400                     | 401, 402, 403, 404         | 400, 200, ...    |
+| `[STATUS] == any(200, 429)`      | Status must be either 200 or 429                    | 200, 429                   | 201, 400, ...    |
+| `[CONNECTED] == true`            | Connection to host must've been successful          | true                       | false            |
+| `[RESPONSE_TIME] < 500`          | Response time must be below 500ms                   | 100ms, 200ms, 300ms        | 500ms, 501ms     |
+| `[IP] == 127.0.0.1`              | Target IP must be 127.0.0.1                         | 127.0.0.1                  | 0.0.0.0          |
+| `[BODY] == 1`                    | The body must be equal to 1                         | 1                          | `{}`, `2`, ...   |
+| `[BODY].user.name == john`       | JSONPath value of `$.user.name` is equal to `john`  | `{"user":{"name":"john"}}` |                  |
+| `[BODY].data[0].id == 1`         | JSONPath value of `$.data[0].id` is equal to 1      | `{"data":[{"id":1}]}`      |                  |
+| `[BODY].age == [BODY].id`        | JSONPath value of `$.age` is equal JSONPath `$.id`  | `{"age":1,"id":1}`         |                  |
+| `len([BODY].data) < 5`           | Array at JSONPath `$.data` has less than 5 elements | `{"data":[{"id":1}]}`      |                  |
+| `len([BODY].name) == 8`          | String at JSONPath `$.name` has a length of 8       | `{"name":"john.doe"}`      | `{"name":"bob"}` |
+| `has([BODY].errors) == false`    | JSONPath `$.errors` does not exist                  | `{"name":"john.doe"}`      | `{"errors":[]}`  |
+| `has([BODY].users) == true`      | JSONPath `$.users` exists                           | `{"users":[]}`             | `{}`             |
+| `[BODY].name == pat(john*)`      | String at JSONPath `$.name` matches pattern `john*` | `{"name":"john.doe"}`      | `{"name":"bob"}` |
+| `[BODY].id == any(1, 2)`         | Value at JSONPath `$.id` is equal to `1` or `2`     | 1, 2                       | 3, 4, 5          |
+| `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 
 
 #### Placeholders
-| Placeholder                | Description                                                     | Example of resolved value |
-|:-------------------------- |:--------------------------------------------------------------- |:------------------------- |
-| `[STATUS]`                 | Resolves into the HTTP status of the request                    | 404
-| `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms         | 10
-| `[IP]`                     | Resolves into the IP of the target host                         | 192.168.0.232
-| `[BODY]`                   | Resolves into the response body. Supports JSONPath.             | `{"name":"john.doe"}`
-| `[CONNECTED]`              | Resolves into whether a connection could be established         | `true`
-| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration        | `24h`, `48h`, 0 (if not protocol with certs)
-| `[DNS_RCODE]`              | Resolves into the DNS status of the response                    | NOERROR
+| Placeholder                | Description                                              | Example of resolved value                    |
+|:---------------------------|:---------------------------------------------------------|:---------------------------------------------|
+| `[STATUS]`                 | Resolves into the HTTP status of the request             | 404                                          |
+| `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms  | 10                                           |
+| `[IP]`                     | Resolves into the IP of the target host                  | 192.168.0.232                                |
+| `[BODY]`                   | Resolves into the response body. Supports JSONPath.      | `{"name":"john.doe"}`                        |
+| `[CONNECTED]`              | Resolves into whether a connection could be established  | `true`                                       |
+| `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration | `24h`, `48h`, 0 (if not protocol with certs) |
+| `[DNS_RCODE]`              | Resolves into the DNS status of the response             | NOERROR                                      |
 
 
 #### Functions
-| Function   | Description                                                                                                      | Example                    |
-|:-----------|:---------------------------------------------------------------------------------------------------------------- |:-------------------------- |
-| `len`      | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                                | `len([BODY].username) > 8`
-| `has`      | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.      | `has([BODY].errors) == false`
-| `pat`      | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.   | `[IP] == pat(192.168.*)`
-| `any`      | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.       | `[BODY].ip == any(127.0.0.1, ::1)`
+| Function | Description                                                                                                    | Example                            |
+|:---------|:---------------------------------------------------------------------------------------------------------------|:-----------------------------------|
+| `len`    | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                              | `len([BODY].username) > 8`         |
+| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.    | `has([BODY].errors) == false`      |
+| `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`. | `[IP] == pat(192.168.*)`           |
+| `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.     | `[BODY].ip == any(127.0.0.1, ::1)` |
 
 **NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
 
 ### Storage
-| Parameter          | Description                                                                            | Default        |
-|:------------------ |:-------------------------------------------------------------------------------------- |:-------------- |
-| `storage`          | Storage configuration                                                                  | `{}`           |
-| `storage.path`     | Path to persist the data in. Only supported for types `sqlite` and `postgres`.         | `""`           |
-| `storage.type`     | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                          | `"memory"`     |
+| Parameter      | Description                                                                    | Default    |
+|:---------------|:-------------------------------------------------------------------------------|:-----------|
+| `storage`      | Storage configuration                                                          | `{}`       |
+| `storage.path` | Path to persist the data in. Only supported for types `sqlite` and `postgres`. | `""`       |
+| `storage.type` | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                  | `"memory"` |
 
 - If `storage.type` is `memory` (default):
 ```yaml
@@ -270,11 +269,11 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for 
 the client used to send the request.
 
-| Parameter                | Description                                                                   | Default        |
-|:-------------------------|:----------------------------------------------------------------------------- |:-------------- |
-| `client.insecure`        | Whether to skip verifying the server's certificate chain and host name.       | `false`        |
-| `client.ignore-redirect` | Whether to ignore redirects (true) or follow them (false, default).           | `false`        |
-| `client.timeout`         | Duration before timing out.                                                   | `10s`          |
+| Parameter                | Description                                                             | Default |
+|:-------------------------|:------------------------------------------------------------------------|:--------|
+| `client.insecure`        | Whether to skip verifying the server's certificate chain and host name. | `false` |
+| `client.ignore-redirect` | Whether to ignore redirects (true) or follow them (false, default).     | `false` |
+| `client.timeout`         | Duration before timing out.                                             | `10s`   |
 
 Note that some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -309,27 +308,27 @@ individual endpoints with configurable descriptions and thresholds.
 Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
-| Parameter              | Description                                                                                                            | Default        |
-|:-----------------------|:---------------------------------------------------------------------------------------------------------------------- |:-------|
-| `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`   |
-| `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`   |
-| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`   |
-| `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`   |
-| `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`   |
-| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`   |
-| `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`   |
-| `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`   |
-| `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`   |
-| `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`   |
-| `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`   |
+| Parameter              | Description                                                                                                                  | Default |
+|:-----------------------|:-----------------------------------------------------------------------------------------------------------------------------|:--------|
+| `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
+| `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
+| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
+| `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
+| `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
+| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
+| `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`    |
+| `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`    |
+| `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`    |
+| `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`    |
+| `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`    |
 
 
 #### Configuring Discord alerts
-| Parameter                                | Description                                  | Default        |
-|:---------------------------------------- |:-------------------------------------------- |:-------------- |
-| `alerting.discord`                       | Configuration for alerts of type `discord`   | `{}`           |
-| `alerting.discord.webhook-url`           | Discord Webhook URL                          | Required `""`  |
-| `alerting.discord.default-alert`         | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                        | Description                                                                                | Default       |
+|:---------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.discord`               | Configuration for alerts of type `discord`                                                 | `{}`          |
+| `alerting.discord.webhook-url`   | Discord Webhook URL                                                                        | Required `""` |
+| `alerting.discord.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -353,15 +352,15 @@ endpoints:
 
 
 #### Configuring Email alerts
-| Parameter                          | Description                                       | Default        |
-|:---------------------------------- |:------------------------------------------------- |:-------------- |
-| `alerting.email`                   | Configuration for alerts of type `email`          | `{}`           |
-| `alerting.email.from`              | Email used to send the alert                      | Required `""`  |
-| `alerting.email.password`          | Password of the email used to send the alert      | Required `""`  |
-| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)   | Required `""`  |
-| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`) | Required `0`   |
-| `alerting.email.to`                | Email(s) to send the alerts to                    | Required `""`  |
-| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A |
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.email`               | Configuration for alerts of type `email`                                                   | `{}`          |
+| `alerting.email.from`          | Email used to send the alert                                                               | Required `""` |
+| `alerting.email.password`      | Password of the email used to send the alert                                               | Required `""` |
+| `alerting.email.host`          | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
+| `alerting.email.port`          | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
+| `alerting.email.to`            | Email(s) to send the alerts to                                                             | Required `""` |
+| `alerting.email.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -391,12 +390,12 @@ endpoints:
 
 
 #### Configuring Mattermost alerts
-| Parameter                           | Description                                                                                 | Default        |
-|:----------------------------------- |:------------------------------------------------------------------------------------------- |:-------------- |
-| `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`           |
-| `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""`  |
-| `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`           |
-| `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A            |
+| Parameter                           | Description                                                                                 | Default       |
+|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
+| `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`          |
+| `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 
 ```yaml
 alerting:
@@ -426,13 +425,13 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Messagebird alerts
-| Parameter                            | Description                                                                   | Default        |
-|:-------------------------------------|:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.messagebird`               | Settings for alerts of type `messagebird`                                     | `{}`           |
-| `alerting.messagebird.access-key`    | Messagebird access key                                                        | Required `""`  |
-| `alerting.messagebird.originator`    | The sender of the message                                                     | Required `""`  |
-| `alerting.messagebird.recipients`    | The recipients of the message                                                 | Required `""`  |
-| `alerting.messagebird.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.messagebird`               | Settings for alerts of type `messagebird`                                                  | `{}`          |
+| `alerting.messagebird.access-key`    | Messagebird access key                                                                     | Required `""` |
+| `alerting.messagebird.originator`    | The sender of the message                                                                  | Required `""` |
+| `alerting.messagebird.recipients`    | The recipients of the message                                                              | Required `""` |
+| `alerting.messagebird.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 Example of sending **SMS** text message alert using Messagebird:
 ```yaml
@@ -459,15 +458,15 @@ endpoints:
 ```
 
 #### Configuring Opsgenie alerts
-| Parameter                                              | Description                                                                   | Default              |
-|:------------------------------------------------------ |:----------------------------------------------------------------------------- |:-------------------- |
-| `alerting.opsgenie`                                    | Configuration for alerts of type `opsgenie`                                   | `{}`                 |
-| `alerting.opsgenie.api-key`                            | Opsgenie API Key                                                              |  Required `""`       |
-| `alerting.opsgenie.priority`                           | Priority level of the alert.                                                  | `P1`                 |
-| `alerting.opsgenie.source`                             | Source field of the alert.                                                    | `gatus`              |
-| `alerting.opsgenie.entity-prefix`                      | Entity field prefix.                                                          | `gatus-`             |
-| `alerting.opsgenie.alias-prefix`                       | Alias field prefix.                                                           | `gatus-healthcheck-` |
-| `alerting.opsgenie.tags`                               | Tags of alert.                                                                | `[]`                 |
+| Parameter                         | Description                                 | Default              |
+|:----------------------------------|:--------------------------------------------|:---------------------|
+| `alerting.opsgenie`               | Configuration for alerts of type `opsgenie` | `{}`                 |
+| `alerting.opsgenie.api-key`       | Opsgenie API Key                            | Required `""`        |
+| `alerting.opsgenie.priority`      | Priority level of the alert.                | `P1`                 |
+| `alerting.opsgenie.source`        | Source field of the alert.                  | `gatus`              |
+| `alerting.opsgenie.entity-prefix` | Entity field prefix.                        | `gatus-`             |
+| `alerting.opsgenie.alias-prefix`  | Alias field prefix.                         | `gatus-healthcheck-` |
+| `alerting.opsgenie.tags`          | Tags of alert.                              | `[]`                 |
 
 Opsgenie provider will automatically open and close alerts.
 
@@ -478,14 +477,14 @@ alerting:
 ```
 
 #### Configuring PagerDuty alerts
-| Parameter                                              | Description                                                                   | Default        |
-|:------------------------------------------------------ |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.pagerduty`                                   | Configuration for alerts of type `pagerduty`                                  | `{}`           |
-| `alerting.pagerduty.integration-key`                   | PagerDuty Events API v2 integration key                                       | `""`           |
-| `alerting.pagerduty.default-alert`                     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
-| `alerting.pagerduty.overrides`                         | List of overrides that may be prioritized over the default configuration      |   `[]`         |
-| `alerting.pagerduty.overrides[].group`                 | Endpoint group for which the configuration will be overridden by this configuration |   `""`         |
-| `alerting.pagerduty.overrides[].integration-key`       | PagerDuty Events API v2 integration key                                       |   `""`         |
+| Parameter                                        | Description                                                                                | Default |
+|:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.pagerduty`                             | Configuration for alerts of type `pagerduty`                                               | `{}`    |
+| `alerting.pagerduty.integration-key`             | PagerDuty Events API v2 integration key                                                    | `""`    |
+| `alerting.pagerduty.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.pagerduty.overrides`                   | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.pagerduty.overrides[].group`           | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.pagerduty.overrides[].integration-key` | PagerDuty Events API v2 integration key                                                    | `""`    |
 
 It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
@@ -541,11 +540,11 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                        | Description                                                                   | Default        |
-|:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.slack`                 | Configuration for alerts of type `slack`                                      | `{}`           |
-| `alerting.slack.webhook-url`     | Slack Webhook URL                                                             | Required `""`  |
-| `alerting.slack.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.slack`               | Configuration for alerts of type `slack`                                                   | `{}`          |
+| `alerting.slack.webhook-url`   | Slack Webhook URL                                                                          | Required `""` |
+| `alerting.slack.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -578,11 +577,11 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Teams alerts
-| Parameter                        | Description                                                                   | Default        |
-|:-------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.teams`                 | Configuration for alerts of type `teams`                                      | `{}`           |
-| `alerting.teams.webhook-url`     | Teams Webhook URL                                                             | Required `""`  |
-| `alerting.teams.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.teams`               | Configuration for alerts of type `teams`                                                   | `{}`          |
+| `alerting.teams.webhook-url`   | Teams Webhook URL                                                                          | Required `""` |
+| `alerting.teams.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -609,12 +608,12 @@ Here's an example of what the notifications look like:
 ![Teams notifications](.github/assets/teams-alerts.png)
 
 #### Configuring Telegram alerts
-| Parameter                           | Description                                                                   | Default        |
-|:----------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.telegram`                 | Configuration for alerts of type `telegram`                                   | `{}`           |
-| `alerting.telegram.token`           | Telegram Bot Token                                                            | Required `""`  |
-| `alerting.telegram.id`              | Telegram User ID                                                              | Required `""`  |
-| `alerting.telegram.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                         | Description                                                                                | Default       |
+|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`          |
+| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""` |
+| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""` |
+| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -641,14 +640,14 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Twilio alerts
-| Parameter                         | Description                                                                   | Default        |
-|:--------------------------------- |:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.twilio`                 | Settings for alerts of type `twilio`                                          | `{}`           |
-| `alerting.twilio.sid`             | Twilio account SID                                                            | Required `""`  |
-| `alerting.twilio.token`           | Twilio auth token                                                             | Required `""`  |
-| `alerting.twilio.from`            | Number to send Twilio alerts from                                             | Required `""`  |
-| `alerting.twilio.to`              | Number to send twilio alerts to                                               | Required `""`  |
-| `alerting.twilio.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                       | Description                                                                                | Default       |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.twilio`               | Settings for alerts of type `twilio`                                                       | `{}`          |
+| `alerting.twilio.sid`           | Twilio account SID                                                                         | Required `""` |
+| `alerting.twilio.token`         | Twilio auth token                                                                          | Required `""` |
+| `alerting.twilio.from`          | Number to send Twilio alerts from                                                          | Required `""` |
+| `alerting.twilio.to`            | Number to send twilio alerts to                                                            | Required `""` |
+| `alerting.twilio.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
@@ -676,15 +675,15 @@ endpoints:
 
 
 #### Configuring custom alerts
-| Parameter                         | Description                                                                   | Default        |
-|:----------------------------------|:----------------------------------------------------------------------------- |:-------------- |
-| `alerting.custom`                 | Configuration for custom actions on failure or alerts                         | `{}`           |
-| `alerting.custom.url`             | Custom alerting request url                                                   | Required `""`  |
-| `alerting.custom.method`          | Request method                                                                | `GET`          |
-| `alerting.custom.body`            | Custom alerting request body.                                                 | `""`           |
-| `alerting.custom.headers`         | Custom alerting request headers                                               | `{}`           |
-| `alerting.custom.client`          | Client configuration. <br />See [Client configuration](#client-configuration).      | `{}`           |
-| `alerting.custom.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| Parameter                       | Description                                                                                | Default       |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.custom`               | Configuration for custom actions on failure or alerts                                      | `{}`          |
+| `alerting.custom.url`           | Custom alerting request url                                                                | Required `""` |
+| `alerting.custom.method`        | Request method                                                                             | `GET`         |
+| `alerting.custom.body`          | Custom alerting request body.                                                              | `""`          |
+| `alerting.custom.headers`       | Custom alerting request headers                                                            | `{}`          |
+| `alerting.custom.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`          |
+| `alerting.custom.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 While they're called alerts, you can use this feature to call anything. 
 
@@ -836,12 +835,12 @@ endpoints:
 If you have maintenance windows, you may not want to be annoyed by alerts. 
 To do that, you'll have to use the maintenance configuration:
 
-| Parameter               | Description                                                                   | Default         |
-|:----------------------- |:----------------------------------------------------------------------------- |:--------------- |
-| `maintenance.enabled`   | Whether the maintenance period is enabled                                     | `true`          |
-| `maintenance.start`     | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)  | Required `""`   |
-| `maintenance.duration`  | Duration of the maintenance window (e.g. `1h`, `30m`)                         | Required `""`   |
-| `maintenance.every`     | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]` |
+| Parameter              | Description                                                                                                                            | Default       |
+|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| `maintenance.enabled`  | Whether the maintenance period is enabled                                                                                              | `true`        |
+| `maintenance.start`    | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)                                                           | Required `""` |
+| `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
+| `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
 
 **Note that the maintenance configuration uses UTC.**
 
@@ -862,6 +861,53 @@ maintenance:
     - Thursday
 ```
 
+
+### Security
+| Parameter                        | Description                  | Default       |
+|:---------------------------------|:-----------------------------|:--------------|
+| `security`                       | Security configuration       | `{}`          |
+| `security.basic`                 | HTTP Basic configuration     | `{}`          |
+| `security.oidc`                  | OpenID Connect configuration | `{}`          |
+
+#### Basic
+| Parameter                        | Description                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------|:--------------|
+| `security.basic`                 | HTTP Basic configuration                                   | `{}`          |
+| `security.basic.username`        | Username for Basic authentication.                         | Required `""` |
+| `security.basic.password-sha512` | Password's SHA512 hash for Basic authentication.           | Required `""` |
+
+The example below will require that you authenticate with the username `john.doe` and the password `hunter2`:
+```yaml
+security:
+  basic:
+    username: "john.doe"
+    password-sha512: "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
+```
+
+#### OIDC (ALPHA)
+| Parameter                        | Description                                                    | Default       |
+|:---------------------------------|:---------------------------------------------------------------|:--------------|
+| `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
+| `security.oidc.issuer-url`       | Issuer URL                                                     | Required `""` |
+| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`     | Required `""` |
+| `security.oidc.client-id`        | Client id                                                      | Required `""` |
+| `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
+| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
+| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+
+```yaml
+security:
+  oidc:
+    issuer-url: "https://example.okta.com"
+    redirect-url: "https://status.example.com/authorization-code/callback"
+    client-id: "123456789"
+    client-secret: "abcdefghijk"
+    scopes: ["openid"]
+    # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
+    #allowed-subjects: ["johndoe@example.com"]
+```
+
+**NOTE:** The OIDC feature is currently in Alpha. Breaking changes may occur. Use this feature at your own risk.
 
 
 ## Deployment
@@ -1078,18 +1124,6 @@ endpoints:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
-
-
-### Basic authentication
-You can require Basic authentication by leveraging the `security.basic` configuration:
-```yaml
-security:
-  basic:
-    username: "john.doe"
-    password-sha512: "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
-```
-
-The example above will require that you authenticate with the username `john.doe` as well as the password `hunter2`.
 
 
 ### disable-monitoring-lock
