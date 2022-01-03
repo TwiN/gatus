@@ -14,7 +14,7 @@ type ConfigHandler struct {
 
 func (handler ConfigHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hasOIDC := false
-	isAuthenticated := false // Default to true if no security config is set
+	isAuthenticated := true // Default to true if no security config is set
 	if handler.securityConfig != nil {
 		hasOIDC = handler.securityConfig.OIDC != nil
 		isAuthenticated = handler.securityConfig.IsAuthenticated(r)
