@@ -124,7 +124,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	log.Printf("[security][callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
-	http.Redirect(w, r, "/login?error=access_denied", http.StatusFound)
+	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
