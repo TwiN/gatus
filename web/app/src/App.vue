@@ -11,6 +11,12 @@
         </div>
       </div>
     </div>
+    <div v-if="$route && $route.query.error" class="text-red-500 text-center my-2">
+      <div class="text-xl">
+        <span class="text-red-500" v-if="$route.query.error === 'access_denied'">You do not have access to this status page</span>
+        <span class="text-red-500" v-else>{{ $route.query.error }}</span>
+      </div>
+    </div>
     <div v-if="config && config.oidc && !config.authenticated">
       <a :href="`${SERVER_URL}/oidc/login`" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-lg text-white bg-green-700 hover:bg-green-800">
         Login with OIDC
@@ -57,6 +63,7 @@ export default {
   },
   data() {
     return {
+      error: '',
       retrievedConfig: false,
       config: { oidc: false, authenticated: true },
       tooltip: {},
