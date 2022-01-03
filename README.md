@@ -1,4 +1,4 @@
-![Gatus](.github/assets/logo-with-name.png)
+![Gatus](.github/assets/logo-with-dark-text.png)
 
 ![build](https://github.com/TwiN/gatus/workflows/build/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)

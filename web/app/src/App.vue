@@ -7,7 +7,7 @@
         </div>
         <div class="w-1/4 flex justify-end">
           <img v-if="getLogo" :src="getLogo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
-          <img v-else src="./assets/logo.png" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+          <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
         </div>
       </div>
     </div>
