@@ -352,20 +352,22 @@ endpoints:
 
 
 #### Configuring Email alerts
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.email`               | Configuration for alerts of type `email`                                                   | `{}`          |
-| `alerting.email.from`          | Email used to send the alert                                                               | Required `""` |
-| `alerting.email.password`      | Password of the email used to send the alert                                               | Required `""` |
-| `alerting.email.host`          | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
-| `alerting.email.port`          | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
-| `alerting.email.to`            | Email(s) to send the alerts to                                                             | Required `""` |
-| `alerting.email.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| Parameter                      | Description                                                                                | Default               |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:----------------------|
+| `alerting.email`               | Configuration for alerts of type `email`                                                   | `{}`                  |
+| `alerting.email.from`          | Email used to send the alert                                                               | Required `""`         |
+| `alerting.email.username`      | Username of the SMTP server used to send the alert                                         | `alerting.email.from` |
+| `alerting.email.password`      | Password of the SMTP server used to send the alert                                         | Required `""`         |
+| `alerting.email.host`          | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""`         |
+| `alerting.email.port`          | Port the mail server is listening to (e.g. `587`)                                          | Required `0`          |
+| `alerting.email.to`            | Email(s) to send the alerts to                                                             | Required `""`         |
+| `alerting.email.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                   |
 
 ```yaml
 alerting:
   email:
     from: "from@example.com"
+    username: "from@example.com"
     password: "hunter2"
     host: "mail.example.com"
     port: 587
