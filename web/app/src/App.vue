@@ -3,11 +3,13 @@
     <div class="mb-2">
       <div class="flex flex-wrap">
         <div class="w-3/4 text-left my-auto">
-          <div class="text-3xl xl:text-5xl lg:text-4xl font-light">Health Status</div>
+          <div class="text-3xl xl:text-5xl lg:text-4xl font-light">{{ header }}</div>
         </div>
         <div class="w-1/4 flex justify-end">
-          <img v-if="getLogo" :src="getLogo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
-          <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+          <a :href="link" target="_blank" style="width:100px">
+            <img v-if="logo" :src="logo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+            <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;"/>
+          </a>
         </div>
       </div>
     </div>
@@ -57,8 +59,14 @@ export default {
     }
   },
   computed: {
-    getLogo() {
+    logo() {
       return window.config && window.config.logo && window.config.logo !== '{{ .Logo }}' ? window.config.logo : "";
+    },
+    header() {
+      return window.config && window.config.header && window.config.header !== '{{ .Header }}' ? window.config.header : "Health Status";
+    },
+    link() {
+      return window.config && window.config.link && window.config.link !== '{{ .Link }}' ? window.config.link : null;
     }
   },
   data() {
