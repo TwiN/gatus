@@ -180,9 +180,11 @@ If you want to test it locally, see [Docker](#docker).
 | `web.address`                                   | Address to listen on.                                                                                                                       | `0.0.0.0`                  |
 | `web.port`                                      | Port to listen on.                                                                                                                          | `8080`                     |
 | `ui`                                            | UI configuration.                                                                                                                           | `{}`                       |
-| `ui.title`                                      | Title of the page.                                                                                                                          | `Health Dashboard ǀ Gatus` |
-| `ui.logo`                                       | URL to the logo to display                                                                                                                  | `""`                       |
-| `Maintenance`                                   | [Maintenance](#maintenance).                                                                                                                | `{}`                       |
+| `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                   | `Health Dashboard ǀ Gatus` |
+| `ui.header`                                     | Header at the top of the dashboard.                                                                                                         | `Health Status`            |
+| `ui.logo`                                       | URL to the logo to display.                                                                                                                 | `""`                       |
+| `ui.link`                                       | Link to open when the logo is clicked.                                                                                                      | `""`                       |
+| `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
 
 
 ### Conditions

@@ -9,9 +9,20 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	defer func() {
 		StaticFolder = "./web/static"
 	}()
-	cfg := &Config{Title: ""}
+	cfg := &Config{
+		Title:  "",
+		Header: "",
+		Logo:   "",
+		Link:   "",
+	}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())
+	}
+	if cfg.Title != defaultTitle {
+		t.Errorf("expected title to be %s, got %s", defaultTitle, cfg.Title)
+	}
+	if cfg.Header != defaultHeader {
+		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
 	}
 }
 
