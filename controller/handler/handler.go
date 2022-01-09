@@ -22,7 +22,9 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 		if err := securityConfig.RegisterHandlers(router); err != nil {
 			panic(err)
 		}
-		securityConfig.ApplySecurityMiddleware(protected)
+		if err := securityConfig.ApplySecurityMiddleware(protected); err != nil {
+			panic(err)
+		}
 	}
 	// Endpoints
 	unprotected.Handle("/v1/config", ConfigHandler{securityConfig: securityConfig}).Methods("GET")
