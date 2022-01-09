@@ -1,11 +1,13 @@
 package security
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 
 	"github.com/TwiN/g8"
 	"github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -41,7 +43,7 @@ func (c *Config) RegisterHandlers(router *mux.Router) error {
 
 // ApplySecurityMiddleware applies an authentication middleware to the router passed.
 // The router passed should be a subrouter in charge of handlers that require authentication.
-func (c *Config) ApplySecurityMiddleware(api *mux.Router) {
+func (c *Config) ApplySecurityMiddleware(api *mux.Router) error {
 	if c.OIDC != nil {
 		// We're going to use g8 for session handling
 		clientProvider := g8.NewClientProvider(func(token string) *g8.Client {
@@ -62,19 +64,37 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) {
 		c.gate = g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
 		api.Use(c.gate.Protect)
 	} else if c.Basic != nil {
+		var decodedBcryptHash []byte
+		if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
+			var err error
+			decodedBcryptHash, err = base64.URLEncoding.DecodeString(c.Basic.PasswordBcryptHashBase64Encoded)
+			if err != nil {
+				return err
+			}
+		}
 		api.Use(func(handler http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				usernameEntered, passwordEntered, ok := r.BasicAuth()
-				if !ok || usernameEntered != c.Basic.Username || Sha512(passwordEntered) != strings.ToLower(c.Basic.PasswordSha512Hash) {
-					w.Header().Set("WWW-Authenticate", "Basic")
-					w.WriteHeader(http.StatusUnauthorized)
-					_, _ = w.Write([]byte("Unauthorized"))
-					return
+				if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
+					if !ok || usernameEntered != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(passwordEntered)) != nil {
+						w.Header().Set("WWW-Authenticate", "Basic")
+						w.WriteHeader(http.StatusUnauthorized)
+						_, _ = w.Write([]byte("Unauthorized"))
+						return
+					}
+				} else if len(c.Basic.PasswordSha512Hash) > 0 {
+					if !ok || usernameEntered != c.Basic.Username || Sha512(passwordEntered) != strings.ToLower(c.Basic.PasswordSha512Hash) {
+						w.Header().Set("WWW-Authenticate", "Basic")
+						w.WriteHeader(http.StatusUnauthorized)
+						_, _ = w.Write([]byte("Unauthorized"))
+						return
+					}
 				}
 				handler.ServeHTTP(w, r)
 			})
 		})
 	}
+	return nil
 }
 
 // IsAuthenticated checks whether the user is authenticated
