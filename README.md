@@ -872,18 +872,18 @@ maintenance:
 | `security.oidc`                  | OpenID Connect configuration | `{}`          |
 
 #### Basic
-| Parameter                        | Description                                                | Default       |
-|:---------------------------------|:-----------------------------------------------------------|:--------------|
-| `security.basic`                 | HTTP Basic configuration                                   | `{}`          |
-| `security.basic.username`        | Username for Basic authentication.                         | Required `""` |
-| `security.basic.password-sha512` | Password's SHA512 hash for Basic authentication.           | Required `""` |
+| Parameter                               | Description                                                                        | Default       |
+|:----------------------------------------|:-----------------------------------------------------------------------------------|:--------------|
+| `security.basic`                        | HTTP Basic configuration                                                           | `{}`          |
+| `security.basic.username`               | Username for Basic authentication.                                                 | Required `""` |
+| `security.basic.password-bcrypt-base64` | Password hashed with Bcrypt and then encoded with base64 for Basic authentication. | Required `""` |
 
 The example below will require that you authenticate with the username `john.doe` and the password `hunter2`:
 ```yaml
 security:
   basic:
     username: "john.doe"
-    password-sha512: "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
+    password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 ```
 
 #### OIDC (ALPHA)
