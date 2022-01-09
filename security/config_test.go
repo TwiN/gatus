@@ -23,6 +23,7 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 	///////////
 	// BASIC //
 	///////////
+	// SHA512 (DEPRECATED)
 	c := &Config{Basic: &BasicConfig{
 		Username:           "john.doe",
 		PasswordSha512Hash: "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22",
@@ -31,10 +32,39 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 	api.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	c.ApplySecurityMiddleware(api)
+	if err := c.ApplySecurityMiddleware(api); err != nil {
+		t.Error("expected no error, but was", err)
+	}
 	// Try to access the route without basic auth
 	request, _ := http.NewRequest("GET", "/test", http.NoBody)
 	responseRecorder := httptest.NewRecorder()
+	api.ServeHTTP(responseRecorder, request)
+	if responseRecorder.Code != http.StatusUnauthorized {
+		t.Error("expected code to be 401, but was", responseRecorder.Code)
+	}
+	// Try again, but with basic auth
+	request, _ = http.NewRequest("GET", "/test", http.NoBody)
+	responseRecorder = httptest.NewRecorder()
+	request.SetBasicAuth("john.doe", "hunter2")
+	api.ServeHTTP(responseRecorder, request)
+	if responseRecorder.Code != http.StatusOK {
+		t.Error("expected code to be 200, but was", responseRecorder.Code)
+	}
+	// Bcrypt
+	c = &Config{Basic: &BasicConfig{
+		Username:                        "john.doe",
+		PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
+	}}
+	api = mux.NewRouter()
+	api.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	if err := c.ApplySecurityMiddleware(api); err != nil {
+		t.Error("expected no error, but was", err)
+	}
+	// Try to access the route without basic auth
+	request, _ = http.NewRequest("GET", "/test", http.NoBody)
+	responseRecorder = httptest.NewRecorder()
 	api.ServeHTTP(responseRecorder, request)
 	if responseRecorder.Code != http.StatusUnauthorized {
 		t.Error("expected code to be 401, but was", responseRecorder.Code)
@@ -63,7 +93,9 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 		verifier:        nil,
 	}
 	c.Basic = nil
-	c.ApplySecurityMiddleware(api)
+	if err := c.ApplySecurityMiddleware(api); err != nil {
+		t.Error("expected no error, but was", err)
+	}
 	// Try without any session cookie
 	request, _ = http.NewRequest("GET", "/test", http.NoBody)
 	responseRecorder = httptest.NewRecorder()
