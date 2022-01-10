@@ -356,7 +356,7 @@ endpoints:
 |:-------------------------------|:-------------------------------------------------------------------------------------------|:----------------------|
 | `alerting.email`               | Configuration for alerts of type `email`                                                   | `{}`                  |
 | `alerting.email.from`          | Email used to send the alert                                                               | Required `""`         |
-| `alerting.email.username`      | Username of the SMTP server used to send the alert                                         | `alerting.email.from` |
+| `alerting.email.username`      | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`                  |
 | `alerting.email.password`      | Password of the SMTP server used to send the alert                                         | Required `""`         |
 | `alerting.email.host`          | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""`         |
 | `alerting.email.port`          | Port the mail server is listening to (e.g. `587`)                                          | Required `0`          |
