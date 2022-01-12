@@ -464,15 +464,16 @@ endpoints:
 
 
 #### Configuring Opsgenie alerts
-| Parameter                         | Description                                 | Default              |
-|:----------------------------------|:--------------------------------------------|:---------------------|
-| `alerting.opsgenie`               | Configuration for alerts of type `opsgenie` | `{}`                 |
-| `alerting.opsgenie.api-key`       | Opsgenie API Key                            | Required `""`        |
-| `alerting.opsgenie.priority`      | Priority level of the alert.                | `P1`                 |
-| `alerting.opsgenie.source`        | Source field of the alert.                  | `gatus`              |
-| `alerting.opsgenie.entity-prefix` | Entity field prefix.                        | `gatus-`             |
-| `alerting.opsgenie.alias-prefix`  | Alias field prefix.                         | `gatus-healthcheck-` |
-| `alerting.opsgenie.tags`          | Tags of alert.                              | `[]`                 |
+| Parameter                         | Description                                                                                | Default              |
+|:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------|
+| `alerting.opsgenie`               | Configuration for alerts of type `opsgenie`                                                | `{}`                 |
+| `alerting.opsgenie.api-key`       | Opsgenie API Key                                                                           | Required `""`        |
+| `alerting.opsgenie.priority`      | Priority level of the alert.                                                               | `P1`                 |
+| `alerting.opsgenie.source`        | Source field of the alert.                                                                 | `gatus`              |
+| `alerting.opsgenie.entity-prefix` | Entity field prefix.                                                                       | `gatus-`             |
+| `alerting.opsgenie.alias-prefix`  | Alias field prefix.                                                                        | `gatus-healthcheck-` |
+| `alerting.opsgenie.tags`          | Tags of alert.                                                                             | `[]`                 |
+| `alerting.opsgenie.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                  |
 
 Opsgenie provider will automatically open and close alerts.
 
@@ -488,10 +489,10 @@ alerting:
 |:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
 | `alerting.pagerduty`                             | Configuration for alerts of type `pagerduty`                                               | `{}`    |
 | `alerting.pagerduty.integration-key`             | PagerDuty Events API v2 integration key                                                    | `""`    |
-| `alerting.pagerduty.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
 | `alerting.pagerduty.overrides`                   | List of overrides that may be prioritized over the default configuration                   | `[]`    |
 | `alerting.pagerduty.overrides[].group`           | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
 | `alerting.pagerduty.overrides[].integration-key` | PagerDuty Events API v2 integration key                                                    | `""`    |
+| `alerting.pagerduty.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
 
 It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
