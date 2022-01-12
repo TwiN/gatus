@@ -4,6 +4,7 @@ import (
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/alerting/provider"
 	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/alerting/provider/gchat"
 	"github.com/TwiN/gatus/v3/alerting/provider/discord"
 	"github.com/TwiN/gatus/v3/alerting/provider/email"
 	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
@@ -20,6 +21,9 @@ import (
 type Config struct {
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
+	
+	// Gchat is the configuration for the Google chat alerting provider
+	Gchat *gchat.AlertProvider `yaml:"gchat,omitempty"`
 
 	// Discord is the configuration for the discord alerting provider
 	Discord *discord.AlertProvider `yaml:"discord,omitempty"`
@@ -61,6 +65,12 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Custom
+	case alert.TypeGchat:
+		if config.Gchat == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Gchat
 	case alert.TypeDiscord:
 		if config.Discord == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil

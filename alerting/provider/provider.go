@@ -3,6 +3,7 @@ package provider
 import (
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/alerting/provider/custom"
+	"github.com/TwiN/gatus/v3/alerting/provider/gchat"
 	"github.com/TwiN/gatus/v3/alerting/provider/discord"
 	"github.com/TwiN/gatus/v3/alerting/provider/email"
 	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
@@ -52,6 +53,7 @@ func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
 var (
 	// Validate interface implementation on compile
 	_ AlertProvider = (*custom.AlertProvider)(nil)
+	_ AlertProvider = (*gchat.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)

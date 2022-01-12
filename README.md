@@ -42,6 +42,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
+    - [Configuring Google chat alerts](#configuring-gchat-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
@@ -104,7 +105,7 @@ The main features of Gatus are:
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
-- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
+- **Alerting**: While having a pretty visual dashboard is useful to keep track of the state of your application(s), you probably don't want to stare at it all day. Thus, notifications via Slack, Mattermost, Messagebird, PagerDuty, Twilio, Google chat and Teams are supported out of the box with the ability to configure a custom alerting provider for any needs you might have, whether it be a different provider or a custom application that manages automated rollbacks.
 - **Metrics**
 - **Low resource consumption**: As with most Go applications, the resource footprint that this application requires is negligibly small.
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
@@ -163,7 +164,7 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`                       |
 | `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                        | `""`                       |
 | `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                               | `""`                       |
-| `endpoints[].alerts[].type`                     | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`.        | Required `""`              |
+| `endpoints[].alerts[].type`                     | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `pagerduty`, `twilio`, `mattermost`, `gchat`, `messagebird`, `teams` `custom`.        | Required `""`              |
 | `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                | `false`                    |
 | `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                             | `3`                        |
 | `endpoints[].alerts[].success-threshold`        | Number of successes in a row before an ongoing incident is marked as resolved.                                                              | `2`                        |
@@ -316,6 +317,7 @@ ignored.
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
 | `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
+| `alerting.gchat`  | Configuration for alerts of type `gchat`. <br />See [Configuring Google chat alerts](#configuring-gchat-alerts).    | `{}`    |
 | `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
 | `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
 | `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
@@ -427,6 +429,41 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Mattermost notifications](.github/assets/mattermost-alerts.png)
+#### Configuring Google chat alerts
+| Parameter                           | Description                                                                                 | Default       |
+|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gchat`               | Configuration for alerts of type `gchat`                                               | `{}`          |
+| `alerting.gchat.webhook-url`   | Google chat Webhook URL                                                                      | Required `""` |
+| `alerting.gchat.gatus-url`   | Url of your gatus instance                                                                       | `""` |
+| `alerting.gchat.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.gchat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+
+```yaml
+alerting:
+  mattermost: 
+    webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
+    gatus-url: "http://127.0.0.1:8080"
+    client:
+      insecure: true
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: gchat
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![Google chat notifications](.github/assets/gchat-alerts.png)
 
 
 #### Configuring Messagebird alerts
