@@ -13,6 +13,7 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using SMTP
 type AlertProvider struct {
 	From     string `yaml:"from"`
+	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -29,13 +30,19 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	var username string
+	if len(provider.Username) > 0 {
+		username = provider.Username
+	} else {
+		username = provider.From
+	}
 	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", provider.From)
 	m.SetHeader("To", strings.Split(provider.To, ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
-	d := gomail.NewDialer(provider.Host, provider.Port, provider.From, provider.Password)
+	d := gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
 	return d.DialAndSend(m)
 }
 
