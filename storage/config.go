@@ -16,8 +16,6 @@ type Config struct {
 	// Path is the path used by the store to achieve persistence
 	// If blank, persistence is disabled.
 	// Note that not all Type support persistence
-	//
-	// XXX: Rename to path for v4.0.0
 	Path string `yaml:"path"`
 
 	// File is the path of the file to use for persistence
