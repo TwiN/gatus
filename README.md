@@ -43,6 +43,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
+    - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Teams alerts](#configuring-teams-alerts)
@@ -461,6 +462,7 @@ endpoints:
         description: "healthcheck failed"
 ```
 
+
 #### Configuring Opsgenie alerts
 | Parameter                         | Description                                 | Default              |
 |:----------------------------------|:--------------------------------------------|:---------------------|
@@ -480,6 +482,7 @@ alerting:
     api-key: "00000000-0000-0000-0000-000000000000"
 ```
 
+
 #### Configuring PagerDuty alerts
 | Parameter                                        | Description                                                                                | Default |
 |:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
@@ -498,7 +501,6 @@ PagerDuty instead.
 Behavior:
 - By default, `alerting.pagerduty.integration-key` is used as the integration key
 - If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.pagerduty.overrides[].group`, the provider will use that override's integration key instead of `alerting.pagerduty.integration-key`'s
-
 
 ```yaml
 alerting:
