@@ -21,7 +21,7 @@ type AlertProvider struct {
 	To    string `yaml:"to"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert"`
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
