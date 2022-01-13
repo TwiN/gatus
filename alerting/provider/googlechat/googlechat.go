@@ -1,4 +1,4 @@
-package gchat
+package googlechat
 
 import (
 	"bytes"
@@ -14,8 +14,6 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using Google chat
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
-	// Url to your gatus instance
-	GatusHost string `yaml:"gatus-url,omitempty"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -61,8 +59,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		color = "#DD0000"
 		message = fmt.Sprintf("<font color='%s'>An alert has been triggered due to having failed %d time(s) in a row</font>", color, alert.FailureThreshold)
 	}
-	var statusPage string
-	statusPage = fmt.Sprintf("%s/endpoints/%s_%s", provider.GatusHost, endpoint.Group, endpoint.Name)
 	var results string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
@@ -97,22 +93,11 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
               "topLabel": "Condition results",
               "content": "%s",
               "contentMultiline": "true",
-              "bottomLabel": "%s",
               "icon": "DESCRIPTION"
             }
           },
           {
             "buttons": [
-              {
-                "textButton": {
-                  "text": "STATUS",
-                  "onClick": {
-                    "openLink": {
-                      "url": "%s"
-                    }
-                  }
-                }
-              },
               {
                 "textButton": {
                   "text": "URL",
@@ -130,7 +115,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
     ]
   }
 ]
-}`, endpoint.Name, endpoint.Group, message, description, results, statusPage, statusPage, endpoint.URL)
+}`, endpoint.Name, endpoint.Group, message, description, results, endpoint.URL)
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

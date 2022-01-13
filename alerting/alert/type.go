@@ -8,9 +8,9 @@ const (
 	// TypeCustom is the Type for the custom alerting provider
 	TypeCustom Type = "custom"
 
-	// TypeGchat is the Type for the Google chat alerting provider
-	TypeGchat Type = "gchat"
-	
+	// Typegooglechat is the Type for the Google chat alerting provider
+	Typegooglechat Type = "googlechat"
+
 	// TypeDiscord is the Type for the discord alerting provider
 	TypeDiscord Type = "discord"
 
