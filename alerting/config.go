@@ -23,7 +23,7 @@ type Config struct {
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
 	// googlechat is the configuration for the Google chat alerting provider
-	Googlechat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
+	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
 
 	// Discord is the configuration for the discord alerting provider
 	Discord *discord.AlertProvider `yaml:"discord,omitempty"`
@@ -66,11 +66,11 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 		}
 		return config.Custom
 	case alert.TypeGoogleChat:
-		if config.Googlechat == nil {
+		if config.GoogleChat == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
 		}
-		return config.Googlechat
+		return config.GoogleChat
 	case alert.TypeDiscord:
 		if config.Discord == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
