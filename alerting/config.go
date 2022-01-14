@@ -65,7 +65,7 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Custom
-	case alert.TypeGooglechat:
+	case alert.TypeGoogleChat:
 		if config.Googlechat == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
 			return nil
