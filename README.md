@@ -400,7 +400,6 @@ endpoints:
 |:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.googlechat`               | Configuration for alerts of type `googlechat`                                               | `{}`          |
 | `alerting.googlechat.webhook-url`   | Google chat Webhook URL                                                                      | Required `""` |
-| `alerting.googlechat.gatus-url`   | Url of your gatus instance                                                                       | `""` |
 | `alerting.googlechat.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.googlechat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 
