@@ -407,7 +407,6 @@ endpoints:
 alerting:
   mattermost: 
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
-    gatus-url: "http://127.0.0.1:8080"
     client:
       insecure: true
 
