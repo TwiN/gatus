@@ -41,7 +41,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
-    - [Configuring Google chat alerts](#configuring-googlechat-alerts)
+    - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
@@ -316,7 +316,7 @@ ignored.
 |:-----------------------|:-----------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
 | `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
-| `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google chat alerts](#configuring-googlechat-alerts).   | `{}`    |
+| `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
 | `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
 | `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
@@ -395,11 +395,11 @@ endpoints:
 
 **NOTE:** Some mail servers are painfully slow.
 
-#### Configuring Google chat alerts
+#### Configuring Google Chat alerts
 | Parameter                           | Description                                                                                 | Default       |
 |:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.googlechat`               | Configuration for alerts of type `googlechat`                                               | `{}`          |
-| `alerting.googlechat.webhook-url`   | Google chat Webhook URL                                                                      | Required `""` |
+| `alerting.googlechat.webhook-url`   | Google Chat Webhook URL                                                                     | Required `""` |
 | `alerting.googlechat.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.googlechat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 
@@ -407,8 +407,6 @@ endpoints:
 alerting:
   mattermost: 
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
-    client:
-      insecure: true
 
 endpoints:
   - name: website
