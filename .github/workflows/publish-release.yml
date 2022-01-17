@@ -6,7 +6,7 @@ jobs:
   publish-release:
     name: Publish release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out code
         uses: actions/checkout@v2
