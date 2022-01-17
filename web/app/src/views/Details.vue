@@ -22,34 +22,34 @@
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
-          <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
+          <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto"/>
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
-          <img :src="generateUptimeBadgeImageURL('24h')" alt="24h uptime badge" class="mx-auto" />
+          <img :src="generateUptimeBadgeImageURL('24h')" alt="24h uptime badge" class="mx-auto"/>
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last hour</h2>
-          <img :src="generateUptimeBadgeImageURL('1h')" alt="1h uptime badge" class="mx-auto" />
+          <img :src="generateUptimeBadgeImageURL('1h')" alt="1h uptime badge" class="mx-auto"/>
         </div>
       </div>
     </div>
     <div v-if="endpointStatus && endpointStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
       <hr/>
-      <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6" />
+      <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6"/>
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
-          <img :src="generateResponseTimeBadgeImageURL('7d')" alt="7d response time badge" class="mx-auto mt-2" />
+          <img :src="generateResponseTimeBadgeImageURL('7d')" alt="7d response time badge" class="mx-auto mt-2"/>
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
-          <img :src="generateResponseTimeBadgeImageURL('24h')" alt="24h response time badge" class="mx-auto mt-2" />
+          <img :src="generateResponseTimeBadgeImageURL('24h')" alt="24h response time badge" class="mx-auto mt-2"/>
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last hour</h2>
-          <img :src="generateResponseTimeBadgeImageURL('1h')" alt="1h response time badge" class="mx-auto mt-2" />
+          <img :src="generateResponseTimeBadgeImageURL('1h')" alt="1h response time badge" class="mx-auto mt-2"/>
         </div>
       </div>
     </div>
@@ -105,8 +105,9 @@ export default {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
       fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
-          .then(response => response.json())
-          .then(data => {
+      .then(response => {
+        if (response.status === 200) {
+          response.json().then(data => {
             if (JSON.stringify(this.endpointStatus) !== JSON.stringify(data)) {
               this.endpointStatus = data;
               this.uptime = data.uptime;
@@ -141,6 +142,12 @@ export default {
               this.events = events;
             }
           });
+        } else {
+          response.text().then(text => {
+            console.log(`[Details][fetchData] Error: ${text}`);
+          });
+        }
+      });
     },
     generateUptimeBadgeImageURL(duration) {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
