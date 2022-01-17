@@ -1172,12 +1172,12 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithValidSecurityConfig(t *testing.T) {
 	const expectedUsername = "admin"
-	const expectedPasswordHash = "6b97ed68d14eb3f1aa959ce5d49c7dc612e1eb1dafd73b1e705847483fd6a6c809f2ceb4e8df6ff9984c6298ff0285cace6614bf8daa9f0070101b6c89899e22"
+	const expectedPasswordHash = "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`debug: true
 security:
   basic:
     username: "%s"
-    password-sha512: "%s"
+    password-bcrypt-base64: "%s"
 endpoints:
   - name: website
     url: https://twin.sh/health
@@ -1202,8 +1202,8 @@ endpoints:
 	if config.Security.Basic.Username != expectedUsername {
 		t.Errorf("config.Security.Basic.Username should've been %s, but was %s", expectedUsername, config.Security.Basic.Username)
 	}
-	if config.Security.Basic.PasswordSha512Hash != expectedPasswordHash {
-		t.Errorf("config.Security.Basic.PasswordSha512Hash should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
+	if config.Security.Basic.PasswordBcryptHashBase64Encoded != expectedPasswordHash {
+		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
 	}
 }
 
