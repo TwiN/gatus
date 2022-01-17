@@ -151,12 +151,6 @@ export default {
     generateResponseTimeChartImageURL() {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
     },
-    prettifyUptime(uptime) {
-      if (!uptime) {
-        return '0%';
-      }
-      return (uptime * 100).toFixed(2) + '%'
-    },
     prettifyTimeDifference(start, end) {
       let minutes = Math.ceil((new Date(start) - new Date(end)) / 1000 / 60);
       return minutes + (minutes === 1 ? ' minute' : ' minutes');
