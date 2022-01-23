@@ -95,7 +95,7 @@ monitor these features and potentially alert you before any clients are impacted
 
 A sign you may want to look into Gatus is by simply asking yourself whether you'd receive an alert if your load balancer
 was to go down right now. Will any of your existing alerts be triggered? Your metrics won’t report an increase in errors
-if there’s no traffic that makes it to your applications. This puts you in a situation where your clients are the ones
+if no traffic makes it to your applications. This puts you in a situation where your clients are the ones
 that will notify you about the degradation of your services rather than you reassuring them that you're working on
 fixing the issue before they even know about it.
 
@@ -528,7 +528,7 @@ alerting:
 
 It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
-parameter to `true` will not create another incident, but mark the incident as resolved on
+parameter to `true` will not create another incident but mark the incident as resolved on
 PagerDuty instead.
 
 Behavior:
@@ -1045,7 +1045,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 > tells Gatus to only evaluate one endpoint at a time.
 
 To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
-In other words, even if you have multiple endpoints with the exact same interval, they will not execute at the same time.
+In other words, even if you have multiple endpoints with the same interval, they will not execute at the same time.
 
 You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval, 
 such as 1ms. You'll notice that the response time does not fluctuate - that is because while endpoints are evaluated on
@@ -1063,10 +1063,10 @@ to respect the configured interval, for instance:
 - Endpoint B has an interval of 5s, and takes 1ms to complete
 - Endpoint B will be unable to run every 5s, because endpoint A's health evaluation takes longer than its interval
 
-To sum it up, while Gatus can really handle any interval you throw at it, you're better off having slow requests with 
+To sum it up, while Gatus can handle any interval you throw at it, you're better off having slow requests with 
 higher interval.
 
-As a rule of the thumb, I personally set interval for more complex health checks to `5m` (5 minutes) and 
+As a rule of thumb, I personally set the interval for more complex health checks to `5m` (5 minutes) and 
 simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
@@ -1178,7 +1178,7 @@ There are three main reasons why you might want to disable the monitoring lock:
 - You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so 
 technically, if you create 100 endpoints with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of endpoints to monitor
-- You want to test multiple endpoints at very short interval (< 5s)
+- You want to test multiple endpoints at very short intervals (< 5s)
 
 
 ### Reloading configuration on the fly
@@ -1271,8 +1271,8 @@ web:
 ![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg)
 
-Gatus can automatically generate a SVG badge for one of your monitored endpoints.
-This allows you to put badges in your individual applications' README or even create your own status page, if you 
+Gatus can automatically generate an SVG badge for one of your monitored endpoints.
+This allows you to put badges in your individual applications' README or even create your own status page if you 
 desire.
 
 The path to generate a badge is the following:
@@ -1296,7 +1296,7 @@ Example:
 ```
 ![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ```
-If you'd like to see a visual example of each badges available, you can simply navigate to the endpoint's detail page.
+If you'd like to see a visual example of each badge available, you can simply navigate to the endpoint's detail page.
 
 
 ### Response time
@@ -1314,7 +1314,7 @@ Where:
 
 
 ### API
-Gatus provides a simple read-only API which can be queried in order to programmatically determine endpoint status and history.
+Gatus provides a simple read-only API that can be queried in order to programmatically determine endpoint status and history.
 
 All endpoints are available via a GET request to the following endpoint:
 ```
