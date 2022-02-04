@@ -13,11 +13,11 @@
     "vue-router": "^4.0.11"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "5.0.0-beta.6",
-    "@vue/cli-plugin-eslint": "5.0.0-beta.6",
-    "@vue/cli-plugin-router": "5.0.0-beta.6",
-    "@vue/cli-service": "5.0.0-beta.6",
-    "@vue/compiler-sfc": "3.2.21",
+    "@vue/cli-plugin-babel": "5.0.0-rc.2",
+    "@vue/cli-plugin-eslint": "5.0.0-rc.2",
+    "@vue/cli-plugin-router": "5.0.0-rc.2",
+    "@vue/cli-service": "5.0.0-rc.2",
+    "@vue/compiler-sfc": "3.2.29",
     "autoprefixer": "^10.4.1",
     "babel-eslint": "^10.1.0",
     "eslint": "^7.32.0",
