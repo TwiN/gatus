@@ -70,7 +70,7 @@
             </h2>
             <div class="flex mt-1 text-sm text-gray-400">
               <div class="flex-1 text-left pl-10">
-                {{ new Date(event.timestamp).toISOString() }}
+                {{ prettifyTimestamp(event.timestamp) }}
               </div>
               <div class="flex-1 text-right">
                 {{ event.fancyTimeAgo }}

@@ -25,23 +25,16 @@
 
 
 <script>
+import {helper} from "@/mixins/helper";
+
 export default {
   name: 'Endpoints',
   props: {
     event: Event,
     result: Object
   },
+  mixins: [helper],
   methods: {
-    prettifyTimestamp(timestamp) {
-      let date = new Date(timestamp);
-      let YYYY = date.getFullYear();
-      let MM = ((date.getMonth() + 1) < 10 ? "0" : "") + "" + (date.getMonth() + 1);
-      let DD = ((date.getDate()) < 10 ? "0" : "") + "" + (date.getDate());
-      let hh = ((date.getHours()) < 10 ? "0" : "") + "" + (date.getHours());
-      let mm = ((date.getMinutes()) < 10 ? "0" : "") + "" + (date.getMinutes());
-      let ss = ((date.getSeconds()) < 10 ? "0" : "") + "" + (date.getSeconds());
-      return YYYY + "-" + MM + "-" + DD + " " + hh + ":" + mm + ":" + ss;
-    },
     htmlEntities(s) {
       return String(s)
           .replace(/&/g, '&amp;')
