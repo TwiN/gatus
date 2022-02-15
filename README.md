@@ -405,7 +405,7 @@ endpoints:
 
 ```yaml
 alerting:
-  mattermost: 
+  googlechat: 
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
 
 endpoints:
@@ -422,10 +422,6 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
-
-Here's an example of what the notifications look like:
-
-![Google chat notifications](.github/assets/googlechat-alerts.png)
 
 #### Configuring Mattermost alerts
 | Parameter                           | Description                                                                                 | Default       |
