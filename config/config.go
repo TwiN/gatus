@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v3/alerting"
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/alerting/provider"
+	"github.com/TwiN/gatus/v3/config/distributed"
 	"github.com/TwiN/gatus/v3/config/maintenance"
 	"github.com/TwiN/gatus/v3/config/ui"
 	"github.com/TwiN/gatus/v3/config/web"
@@ -81,6 +82,8 @@ type Config struct {
 
 	// UI is the configuration for the UI
 	UI *ui.Config `yaml:"ui,omitempty"`
+
+	Distributed *distributed.Config `yaml:"distributed,omitempty"`
 
 	// Maintenance is the configuration for creating a maintenance window in which no alerts are sent
 	Maintenance *maintenance.Config `yaml:"maintenance,omitempty"`
@@ -163,7 +166,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		config.Services = nil
 	}
 	// Check if the configuration file at least has endpoints configured
-	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
+	if (config == nil || config.Endpoints == nil || len(config.Endpoints) == 0) && !config.Distributed.IsEnabled() {
 		err = ErrNoEndpointInConfig
 	} else {
 		validateAlertingConfig(config.Alerting, config.Endpoints, config.Debug)

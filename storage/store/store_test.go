@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/TwiN/gatus/v3/storage"
 	"github.com/TwiN/gatus/v3/storage/store/common"
@@ -560,7 +561,7 @@ func TestGet(t *testing.T) {
 func TestInitialize(t *testing.T) {
 	type Scenario struct {
 		Name        string
-		Cfg         *storage.Config
+		Cfg         *config.Config
 		ExpectedErr error
 	}
 	scenarios := []Scenario{

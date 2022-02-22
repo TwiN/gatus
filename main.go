@@ -68,7 +68,7 @@ func loadConfiguration() (cfg *config.Config, err error) {
 // A: Yes. Yes it would make more sense to have it in the config package. But I don't want to import
 //    the massive SQL dependencies just because I want to import the config, so here we are.
 func initializeStorage(cfg *config.Config) {
-	err := store.Initialize(cfg.Storage)
+	err := store.Initialize(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -77,9 +77,12 @@ func initializeStorage(cfg *config.Config) {
 	for _, endpoint := range cfg.Endpoints {
 		keys = append(keys, endpoint.Key())
 	}
-	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
-	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+	if !cfg.Distributed.IsEnabled() {
+		numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
+
+		if numberOfEndpointStatusesDeleted > 0 {
+			log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+		}
 	}
 }
 

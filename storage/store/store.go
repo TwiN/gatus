@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
+	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/TwiN/gatus/v3/storage"
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
@@ -85,33 +87,38 @@ func Get() Store {
 }
 
 // Initialize instantiates the storage provider based on the Config provider
-func Initialize(cfg *storage.Config) error {
+func Initialize(cfg *config.Config) error {
+	storageCfg := cfg.Storage
+	distCfg := cfg.Distributed
 	initialized = true
 	var err error
 	if cancelFunc != nil {
 		// Stop the active autoSave task, if there's already one
 		cancelFunc()
 	}
-	if cfg == nil {
+	if storageCfg == nil {
 		// This only happens in tests
 		log.Println("[store][Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
-		cfg = &storage.Config{}
+		storageCfg = &storage.Config{}
 	}
-	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store][Initialize] Creating storage provider of type=%s", cfg.Type)
+	if len(storageCfg.Path) == 0 && storageCfg.Type != storage.TypePostgres {
+		log.Printf("[store][Initialize] Creating storage provider of type=%s", storageCfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
-	switch cfg.Type {
+	switch storageCfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path)
+		if distCfg.IsEnabled() && storageCfg.Type != storage.TypePostgres {
+			return errors.New("If distributed mode is enabled, Postgres must be used as the gatus datastore.")
+		}
+		store, err = sql.NewStore(string(storageCfg.Type), storageCfg.Path)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		if len(cfg.Path) > 0 {
-			store, err = memory.NewStore(cfg.Path)
+		if len(storageCfg.Path) > 0 {
+			store, err = memory.NewStore(storageCfg.Path)
 			if err != nil {
 				return err
 			}
