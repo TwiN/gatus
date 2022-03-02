@@ -643,12 +643,13 @@ Here's an example of what the notifications look like:
 ![Teams notifications](.github/assets/teams-alerts.png)
 
 #### Configuring Telegram alerts
-| Parameter                         | Description                                                                                | Default       |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`          |
-| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""` |
-| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""` |
-| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| Parameter                         | Description                                                                                | Default                  |
+|:----------------------------------|:-------------------------------------------------------------------------------------------|:-------------------------|
+| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`                     |
+| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`            |
+| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""`            |
+| `alerting.telegram.api-url`       | Telegram API URL                                                                           | https://api.telegram.org |
+| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                      |
 
 ```yaml
 alerting:
