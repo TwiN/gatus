@@ -643,7 +643,7 @@ Here's an example of what the notifications look like:
 ![Teams notifications](.github/assets/teams-alerts.png)
 
 #### Configuring Telegram alerts
-| Parameter                         | Description                                                                                | Default                  |
+| Parameter                         | Description                                                                                | Default                    |
 |:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
 | `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`              |
