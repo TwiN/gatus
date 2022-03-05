@@ -11,10 +11,13 @@ import (
 	"github.com/TwiN/gatus/v3/core"
 )
 
+const defaultAPIURL = "https://api.telegram.org"
+
 // AlertProvider is the configuration necessary for sending an alert using Telegram
 type AlertProvider struct {
-	Token string `yaml:"token"`
-	ID    string `yaml:"id"`
+	Token  string `yaml:"token"`
+	ID     string `yaml:"id"`
+	APIURL string `yaml:"api-url"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -28,7 +31,11 @@ func (provider *AlertProvider) IsValid() bool {
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", provider.Token), buffer)
+	apiURL := provider.APIURL
+	if apiURL == "" {
+		apiURL = defaultAPIURL
+	}
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", apiURL, provider.Token), buffer)
 	if err != nil {
 		return err
 	}
