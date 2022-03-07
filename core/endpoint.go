@@ -2,9 +2,11 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -15,7 +17,10 @@ import (
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core/ui"
+	"github.com/TwiN/gatus/v3/security"
 	"github.com/TwiN/gatus/v3/util"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 const (
@@ -44,6 +49,9 @@ var (
 
 	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
 	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
+
+	// ErrEndpointWithInvalidOIDCConfig is the error with which Gatus will panic if OIDC parameters are missing
+	ErrEndpointWithInvalidOIDCConfig = errors.New("issuer url, client id, client secret and scopes are required properties for endpoint oidc configuration")
 )
 
 // Endpoint is the configuration of a monitored
@@ -90,6 +98,9 @@ type Endpoint struct {
 	// UIConfig is the configuration for the UI
 	UIConfig *ui.Config `yaml:"ui,omitempty"`
 
+	// OIDCConfig is the configuration for obtaining an OIDC token for the endpoint
+	OIDCConfig *security.EndpointOIDCConfig `yaml:"oidc,omitempty"`
+
 	// NumberOfFailuresInARow is the number of unsuccessful evaluations in a row
 	NumberOfFailuresInARow int `yaml:"-"`
 
@@ -103,6 +114,11 @@ func (endpoint Endpoint) IsEnabled() bool {
 		return true
 	}
 	return *endpoint.Enabled
+}
+
+// HasOIDCConfig return whether the endpoint has a OIDC configuration or not
+func (endpoint Endpoint) HasOIDCConfig() bool {
+	return endpoint.OIDCConfig != nil
 }
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of fields that have one
@@ -154,6 +170,9 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.DNS != nil {
 		return endpoint.DNS.validateAndSetDefault()
 	}
+	if endpoint.HasOIDCConfig() && !endpoint.OIDCConfig.IsValid() {
+		return ErrEndpointWithInvalidOIDCConfig
+	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(endpoint.Body)))
 	if err != nil {
@@ -200,6 +219,17 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	return result
 }
 
+func (endpoint *Endpoint) getToken() (*oauth2.Token, error) {
+	c := clientcredentials.Config{
+		ClientID:     endpoint.OIDCConfig.ClientID,
+		ClientSecret: endpoint.OIDCConfig.ClientSecret,
+		Scopes:       endpoint.OIDCConfig.Scopes,
+		TokenURL:     endpoint.OIDCConfig.IssuerURL,
+	}
+	token, err := c.Token(context.Background())
+	return token, err
+}
+
 func (endpoint *Endpoint) getIP(result *Result) {
 	if endpoint.DNS != nil {
 		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
@@ -231,6 +261,15 @@ func (endpoint *Endpoint) call(result *Result) {
 	isTypeTLS := strings.HasPrefix(endpoint.URL, "tls://")
 	isTypeHTTP := !isTypeDNS && !isTypeTCP && !isTypeICMP && !isTypeSTARTTLS && !isTypeTLS
 	if isTypeHTTP {
+		if endpoint.HasOIDCConfig() {
+			token, err := endpoint.getToken()
+			if err != nil {
+				result.AddError(err.Error())
+				return
+			}
+			authHeader := fmt.Sprintf("Bearer %s", token.AccessToken)
+			endpoint.Headers["Authorization"] = authHeader
+		}
 		request = endpoint.buildHTTPRequest()
 	}
 	startTime := time.Now()
