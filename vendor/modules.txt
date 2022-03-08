@@ -116,7 +116,6 @@ golang.org/x/net/ipv6
 # golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
 ## explicit; go 1.11
 golang.org/x/oauth2
-golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 ## explicit

@@ -65,9 +65,6 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	if endpoint.Alerts[0].FailureThreshold != 3 {
 		t.Error("Endpoint alert should've defaulted to a failure threshold of 3")
 	}
-	if endpoint.HasOIDCConfig() {
-		t.Error("Endpoint OIDC config should've defaulted to 'nil'")
-	}
 }
 
 func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
