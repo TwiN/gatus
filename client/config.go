@@ -1,9 +1,14 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"net/http"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 const (
@@ -17,6 +22,10 @@ var (
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
 	}
+
+	ErrInvalidClientOAuth2Config = errors.New(
+		"todo",
+	)
 )
 
 // GetDefaultConfig returns a copy of the default configuration
@@ -36,14 +45,37 @@ type Config struct {
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
+	// OAuth2 configuration for the client
+	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
+
 	httpClient *http.Client
 }
 
+type OAuth2Config struct {
+	TokenURL     string   `yaml:"token-url"` // e.g. https://dev-12345678.okta.com/token
+	ClientID     string   `yaml:"client-id"`
+	ClientSecret string   `yaml:"client-secret"`
+	Scopes       []string `yaml:"scopes"` // e.g. ["openid"]
+}
+
 // ValidateAndSetDefaults validates the client configuration and sets the default values if necessary
-func (c *Config) ValidateAndSetDefaults() {
+func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
 	}
+	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
+		return ErrInvalidClientOAuth2Config
+	}
+
+	return nil
+}
+
+func (c *Config) HasOAuth2Config() bool {
+	return c.OAuth2Config != nil
+}
+
+func (c *OAuth2Config) isValid() bool {
+	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
 // GetHTTPClient return an HTTP client matching the Config's parameters.
@@ -67,6 +99,16 @@ func (c *Config) getHTTPClient() *http.Client {
 				// Follow redirects
 				return nil
 			},
+		}
+		if c.HasOAuth2Config() {
+			oauth2cfg := clientcredentials.Config{
+				ClientID:     c.OAuth2Config.ClientID,
+				ClientSecret: c.OAuth2Config.ClientSecret,
+				Scopes:       c.OAuth2Config.Scopes,
+				TokenURL:     c.OAuth2Config.TokenURL,
+			}
+			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.httpClient)
+			c.httpClient = oauth2cfg.Client(ctx)
 		}
 	}
 	return c.httpClient
