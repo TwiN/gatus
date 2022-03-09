@@ -18,8 +18,8 @@ func TestGetHTTPClient(t *testing.T) {
 		OAuth2Config: &OAuth2Config{
 			ClientID:     "00000000-0000-0000-0000-000000000000",
 			ClientSecret: "secretsauce",
-			TokenURL:     "https://127.0.0.1:8989/token",
-			Scopes:       []string{"https://127.0.0.1/.default"},
+			TokenURL:     "https://token-server.local/token",
+			Scopes:       []string{"https://application.local/.default"},
 		},
 	}
 	cfg.ValidateAndSetDefaults()
