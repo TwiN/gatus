@@ -273,11 +273,16 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for 
 the client used to send the request.
 
-| Parameter                | Description                                                             | Default |
-|:-------------------------|:------------------------------------------------------------------------|:--------|
-| `client.insecure`        | Whether to skip verifying the server's certificate chain and host name. | `false` |
-| `client.ignore-redirect` | Whether to ignore redirects (true) or follow them (false, default).     | `false` |
-| `client.timeout`         | Duration before timing out.                                             | `10s`   |
+| Parameter                     | Description                                                                | Default         |
+|:------------------------------|:---------------------------------------------------------------------------|:----------------|
+| `client.insecure`             | Whether to skip verifying the server's certificate chain and host name.    | `false`         |
+| `client.ignore-redirect`      | Whether to ignore redirects (true) or follow them (false, default).        | `false`         |
+| `client.timeout`              | Duration before timing out.                                                | `10s`           |
+| `client.oauth2`               | OAuth2 client configuration.                                               | `{}`            |
+| `client.oauth2.token-url`     | The token endpoint URL                                                     | required `""`   |
+| `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
+| `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
+| `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
 
 Note that some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -304,6 +309,20 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+This example shows how you can use the `client.oauth2` configuration to query a backend API with `Bearer token`:
+```yaml
+endpoints:
+  - name: website
+    url: "https://your.health.api/getHealth"
+    client:
+      oauth2:
+        token-url: https://your-token-server/token
+        client-id: 00000000-0000-0000-0000-000000000000
+        client-secret: your-client-secret
+        scopes: ['https://your.health.api/.default']
+    conditions:
+      - "[STATUS] == 200"
+```
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
