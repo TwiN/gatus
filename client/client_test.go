@@ -1,8 +1,13 @@
 package client
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
+
+	"github.com/TwiN/gatus/v3/test"
 )
 
 func TestGetHTTPClient(t *testing.T) {
@@ -10,6 +15,12 @@ func TestGetHTTPClient(t *testing.T) {
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        0,
+		OAuth2Config: &OAuth2Config{
+			ClientID:     "00000000-0000-0000-0000-000000000000",
+			ClientSecret: "secretsauce",
+			TokenURL:     "https://127.0.0.1:8989/token",
+			Scopes:       []string{"https://127.0.0.1/.default"},
+		},
 	}
 	cfg.ValidateAndSetDefaults()
 	if GetHTTPClient(cfg) == nil {
@@ -144,5 +155,73 @@ func TestCanPerformTLS(t *testing.T) {
 func TestCanCreateTCPConnection(t *testing.T) {
 	if CanCreateTCPConnection("127.0.0.1", &Config{Timeout: 5 * time.Second}) {
 		t.Error("should've failed, because there's no port in the address")
+	}
+}
+
+// This test checks if a HTTP client configured with `configureOAuth2()` automatically
+// performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
+// header to all outgoing HTTP calls.
+func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
+
+	defer InjectHTTPClient(nil)
+
+	oAuth2Config := &OAuth2Config{
+		ClientID:     "00000000-0000-0000-0000-000000000000",
+		ClientSecret: "secretsauce",
+		TokenURL:     "https://token-server.local/token",
+		Scopes:       []string{"https://application.local/.default"},
+	}
+
+	mockHttpClient := &http.Client{
+		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+
+			// if the mock HTTP client tries to get a token from the `token-server`
+			// we provide the expected token response
+			if r.Host == "token-server.local" {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: ioutil.NopCloser(bytes.NewReader(
+						[]byte(
+							`{"token_type":"Bearer","expires_in":3599,"ext_expires_in":3599,"access_token":"secret-token"}`,
+						),
+					)),
+				}
+			}
+
+			// to verify the headers were sent as expected, we echo them back in the
+			// `X-Org-Authorization` header and check if the token value matches our
+			// mocked `token-server` response
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header: map[string][]string{
+					"X-Org-Authorization": {r.Header.Get("Authorization")},
+				},
+				Body: http.NoBody,
+			}
+		}),
+	}
+
+	mockHttpClientWithOAuth := configureOAuth2(mockHttpClient, *oAuth2Config)
+	InjectHTTPClient(mockHttpClientWithOAuth)
+
+	request, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:8282", http.NoBody)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+
+	response, err := mockHttpClientWithOAuth.Do(request)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+
+	if response.Header == nil {
+		t.Error("expected response headers, but got nil")
+	}
+
+	// the mock response echos the Authorization header used in the request back
+	// to us as `X-Org-Authorization` header, we check here if the value matches
+	// our expected token `secret-token`
+	if response.Header.Get("X-Org-Authorization") != "Bearer secret-token" {
+		t.Error("exptected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
 	}
 }

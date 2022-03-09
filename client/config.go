@@ -101,15 +101,21 @@ func (c *Config) getHTTPClient() *http.Client {
 			},
 		}
 		if c.HasOAuth2Config() {
-			oauth2cfg := clientcredentials.Config{
-				ClientID:     c.OAuth2Config.ClientID,
-				ClientSecret: c.OAuth2Config.ClientSecret,
-				Scopes:       c.OAuth2Config.Scopes,
-				TokenURL:     c.OAuth2Config.TokenURL,
-			}
-			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.httpClient)
-			c.httpClient = oauth2cfg.Client(ctx)
+			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		}
 	}
 	return c.httpClient
+}
+
+// configureOAuth2 returns an HTTP client that will obtain and refresh tokens as necessary.
+// The returned Client and its Transport should not be modified.
+func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
+	oauth2cfg := clientcredentials.Config{
+		ClientID:     c.ClientID,
+		ClientSecret: c.ClientSecret,
+		Scopes:       c.Scopes,
+		TokenURL:     c.TokenURL,
+	}
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
+	return oauth2cfg.Client(ctx)
 }
