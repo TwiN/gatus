@@ -24,7 +24,7 @@ var (
 	}
 
 	ErrInvalidClientOAuth2Config = errors.New(
-		"todo",
+		"invalid OAuth2 configuration, all fields are required",
 	)
 )
 
@@ -51,6 +51,7 @@ type Config struct {
 	httpClient *http.Client
 }
 
+// OAuth2Config is the configuration for the OAuth2 client credentials flow
 type OAuth2Config struct {
 	TokenURL     string   `yaml:"token-url"` // e.g. https://dev-12345678.okta.com/token
 	ClientID     string   `yaml:"client-id"`
@@ -70,10 +71,12 @@ func (c *Config) ValidateAndSetDefaults() error {
 	return nil
 }
 
+// HasOAuth2Config returns true if the client has OAuth2 configuration parameters
 func (c *Config) HasOAuth2Config() bool {
 	return c.OAuth2Config != nil
 }
 
+// isValid() returns true if the OAuth2 configuration is valid
 func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
