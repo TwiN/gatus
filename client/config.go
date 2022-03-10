@@ -16,16 +16,13 @@ const (
 )
 
 var (
-	// DefaultConfig is the default client configuration
+	ErrInvalidClientOAuth2Config = errors.New("invalid OAuth2 configuration, all fields are required")
+
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
 	}
-
-	ErrInvalidClientOAuth2Config = errors.New(
-		"invalid OAuth2 configuration, all fields are required",
-	)
 )
 
 // GetDefaultConfig returns a copy of the default configuration
@@ -37,15 +34,18 @@ func GetDefaultConfig() *Config {
 // Config is the configuration for clients
 type Config struct {
 	// Insecure determines whether to skip verifying the server's certificate chain and host name
-	Insecure bool `yaml:"insecure"`
+	Insecure bool `yaml:"insecure,omitempty"`
 
 	// IgnoreRedirect determines whether to ignore redirects (true) or follow them (false, default)
-	IgnoreRedirect bool `yaml:"ignore-redirect"`
+	IgnoreRedirect bool `yaml:"ignore-redirect,omitempty"`
 
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
-	// OAuth2 configuration for the client
+	// OAuth2Config is the OAuth2 configuration used for the client.
+	//
+	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
+	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
 	httpClient *http.Client
@@ -67,7 +67,6 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
 		return ErrInvalidClientOAuth2Config
 	}
-
 	return nil
 }
 

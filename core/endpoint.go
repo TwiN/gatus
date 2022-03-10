@@ -111,8 +111,7 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.ClientConfig == nil {
 		endpoint.ClientConfig = client.GetDefaultConfig()
 	} else {
-		err := endpoint.ClientConfig.ValidateAndSetDefaults()
-		if err != nil {
+		if err := endpoint.ClientConfig.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
