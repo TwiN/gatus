@@ -8,6 +8,7 @@ import (
 
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
+	"github.com/TwiN/gatus/v3/core/ui"
 )
 
 func TestEndpoint_IsEnabled(t *testing.T) {
@@ -270,6 +271,9 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
 	}
+	if result.Hostname != "twin.sh" {
+		t.Error("result.Hostname should've been twin.sh, but was", result.Hostname)
+	}
 }
 
 func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
@@ -288,7 +292,53 @@ func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 		t.Error("Because the connection has been established, result.Connected should've been true")
 	}
 	if result.Success {
-		t.Error("Because one of the conditions failed, success should have been false")
+		t.Error("Because one of the conditions failed, result.Success should have been false")
+	}
+}
+
+func TestIntegrationEvaluateHealthWithInvalidCondition(t *testing.T) {
+	condition := Condition("[STATUS] invalid 200")
+	endpoint := Endpoint{
+		Name:       "invalid-condition",
+		URL:        "https://twin.sh/health",
+		Conditions: []*Condition{&condition},
+	}
+	if err := endpoint.ValidateAndSetDefaults(); err != nil {
+		// XXX: Should this really not return an error? After all, the condition is not valid and conditions are part of the endpoint...
+		t.Error("endpoint validation should've been successful, but wasn't")
+	}
+	result := endpoint.EvaluateHealth()
+	if result.Success {
+		t.Error("Because one of the conditions was invalid, result.Success should have been false")
+	}
+	if len(result.Errors) == 0 {
+		t.Error("There should've been an error")
+	}
+}
+
+func TestIntegrationEvaluateHealthWithError(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "invalid-host",
+		URL:        "http://invalid/health",
+		Conditions: []*Condition{&condition},
+		UIConfig: &ui.Config{
+			HideHostname: true,
+		},
+	}
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
+	if result.Success {
+		t.Error("Because one of the conditions was invalid, result.Success should have been false")
+	}
+	if len(result.Errors) == 0 {
+		t.Error("There should've been an error")
+	}
+	if !strings.Contains(result.Errors[0], "<redacted>") {
+		t.Error("result.Errors[0] should've had the hostname redacted because ui.hide-hostname is set to true")
+	}
+	if result.Hostname != "" {
+		t.Error("result.Hostname should've been empty because ui.hide-hostname is set to true")
 	}
 }
 
