@@ -197,6 +197,9 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	result.body = nil
 	// Clean up parameters that we don't need to keep in the results
 	if endpoint.UIConfig.HideHostname {
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "host")
+		}
 		result.Hostname = ""
 	}
 	return result
