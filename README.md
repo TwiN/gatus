@@ -400,8 +400,8 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
-    # You can also add group-specific integration keys, which will 
-    # override the integration key above for the specified groups
+    # You can also add group-specific to keys, which will 
+    # override the to key above for the specified groups
     overrides:
       - group: "core"
         to: "recipient3@example.com,recipient4@example.com"
