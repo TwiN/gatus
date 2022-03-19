@@ -21,10 +21,29 @@ type AlertProvider struct {
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group string `yaml:"group"`
+	To    string `yaml:"to"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	registeredGroups := make(map[string]bool)
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.To) == 0 {
+				return false
+			}
+			registeredGroups[override.Group] = true
+		}
+	}
+
 	return len(provider.From) > 0 && len(provider.Password) > 0 && len(provider.Host) > 0 && len(provider.To) > 0 && provider.Port > 0 && provider.Port < math.MaxUint16
 }
 
@@ -70,6 +89,18 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *core.Endpoin
 		description = "\n\nAlert description: " + alertDescription
 	}
 	return subject, message + description + "\n\nCondition results:\n" + results
+}
+
+// getToForGroup returns the appropriate email integration to for a given group
+func (provider *AlertProvider) getToForGroup(group string) string {
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				return override.To
+			}
+		}
+	}
+	return provider.To
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
