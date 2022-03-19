@@ -29,7 +29,6 @@ For more details, see [Usage](#usage)
 Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
