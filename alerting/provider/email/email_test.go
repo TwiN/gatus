@@ -120,13 +120,6 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 }
 
 func TestAlertProvider_getToForGroup(t *testing.T) {
-	type fields struct {
-		To        string
-		Overrides []Override
-	}
-	type args struct {
-		group string
-	}
 	tests := []struct {
 		Name           string
 		Provider       AlertProvider

@@ -58,7 +58,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", provider.From)
-	m.SetHeader("To", strings.Split(provider.To, ",")...)
+	m.SetHeader("To", strings.Split(provider.getToForGroup(endpoint.Group), ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 	d := gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
