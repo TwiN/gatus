@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -65,7 +64,6 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 // Valid values for {duration}: 7d, 24h, 1h
 func ResponseTimeBadge(config *config.Config) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		log.Println(config)
 		variables := mux.Vars(request)
 		duration := variables["duration"]
 		var from time.Time
