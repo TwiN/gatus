@@ -174,6 +174,11 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
 | `endpoints[].ui.hide-hostname`                  | Whether to include the hostname in the result.                                                                                              | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
+| `endpoints[].ui.response-timer-badge-awesome` | Threshold for 'awesome' color grade response time badge value                                                                                            | `50`                    |
+| `endpoints[].ui.response-timer-badge-great` | Threshold for 'great' color grade response time badge value                                                                                            | `200`                    |
+| `endpoints[].ui.response-timer-badge-good` | Threshold for 'good' color grade response time badge value                                                                                            | `300`                    |
+| `endpoints[].ui.response-timer-badge-passable` | Threshold for 'passable' color grade response time badge value                                                                                            | `500`                    |
+| `endpoints[].ui.response-timer-badge-bad` | Threshold for 'bad' color grade response time badge value                                                                                            | `750`                    |
 | `alerting`                                      | [Alerting configuration](#alerting).                                                                                                        | `{}`                       |
 | `security`                                      | [Security configuration](#security).                                                                                                        | `{}`                       |
 | `disable-monitoring-lock`                       | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                         | `false`                    |
@@ -187,6 +192,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.logo`                                       | URL to the logo to display.                                                                                                                 | `""`                       |
 | `ui.link`                                       | Link to open when the logo is clicked.                                                                                                      | `""`                       |
 | `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
+
+> Note: `endpoints[].ui.response-timer-badge-{level}`  
+> If you set one you have to set all. The values must be in an ascending order
 
 
 ### Conditions
