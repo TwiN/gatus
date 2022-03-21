@@ -6,7 +6,12 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 150"
+    ui:
+      response-timer-badge-awesome: 550
+      response-timer-badge-great: 850
+      response-timer-badge-good: 1350
+      response-timer-badge-passable: 1650
+      response-timer-badge-bad: 1750
 
   - name: back-end
     group: core

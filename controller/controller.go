@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/config/ui"
 	"github.com/TwiN/gatus/v3/config/web"
 	"github.com/TwiN/gatus/v3/controller/handler"
@@ -21,8 +22,8 @@ var (
 )
 
 // Handle creates the router and starts the server
-func Handle(securityConfig *security.Config, webConfig *web.Config, uiConfig *ui.Config, enableMetrics bool) {
-	var router http.Handler = handler.CreateRouter(ui.StaticFolder, securityConfig, uiConfig, enableMetrics)
+func Handle(securityConfig *security.Config, webConfig *web.Config, uiConfig *ui.Config, config *config.Config, enableMetrics bool) {
+	var router http.Handler = handler.CreateRouter(ui.StaticFolder, securityConfig, uiConfig, config, enableMetrics)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}

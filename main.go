@@ -36,7 +36,7 @@ func main() {
 }
 
 func start(cfg *config.Config) {
-	go controller.Handle(cfg.Security, cfg.Web, cfg.UI, cfg.Metrics)
+	go controller.Handle(cfg.Security, cfg.Web, cfg.UI, cfg, cfg.Metrics)
 	watchdog.Monitor(cfg)
 	go listenToConfigurationFileChanges(cfg)
 }

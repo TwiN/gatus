@@ -89,6 +89,16 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
+func (config *Config) GetEndpointByGroupAndName(group string, name string) *core.Endpoint {
+	for i := 0; i < len(config.Endpoints); i++ {
+		ep := config.Endpoints[i]
+		if ep.Group == group && ep.Name == name {
+			return ep
+		}
+	}
+	return nil
+}
+
 // HasLoadedConfigurationFileBeenModified returns whether the file that the
 // configuration has been loaded from has been modified since it was last read
 func (config Config) HasLoadedConfigurationFileBeenModified() bool {

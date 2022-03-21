@@ -97,6 +97,15 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	return ShallowCopyEndpointStatus(endpointStatus.(*core.EndpointStatus), params), nil
 }
 
+// GetGroupAndNameByKey returns the endpoint group and name for a given key
+func (s *Store) GetGroupAndNameByKey(key string) (string, string, error) {
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+		return "", "", common.ErrEndpointNotFound
+	}
+	return endpointStatus.(*core.EndpointStatus).Group, endpointStatus.(*core.EndpointStatus).Name, nil
+}
+
 // GetUptimeByKey returns the uptime percentage during a time range
 func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
 	if from.After(to) {

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/config/ui"
 	"github.com/TwiN/gatus/v3/security"
 	"github.com/TwiN/health"
@@ -10,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig *ui.Config, enabledMetrics bool) *mux.Router {
+func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig *ui.Config, config *config.Config, enabledMetrics bool) *mux.Router {
 	router := mux.NewRouter()
 	if enabledMetrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
@@ -31,13 +32,13 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
-	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
 	// XXX: Remove the lines between this and the next XXX comment in v4.0.0
 	protected.HandleFunc("/v1/services/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	protected.HandleFunc("/v1/services/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
 	unprotected.HandleFunc("/v1/services/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
-	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")
 	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
 	// XXX: Remove the lines between this and the previous XXX comment in v4.0.0
 	// Misc

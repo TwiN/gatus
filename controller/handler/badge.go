@@ -2,11 +2,13 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/gorilla/mux"
@@ -61,38 +63,41 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
-func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
-	variables := mux.Vars(request)
-	duration := variables["duration"]
-	var from time.Time
-	switch duration {
-	case "7d":
-		from = time.Now().Add(-7 * 24 * time.Hour)
-	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
-	case "1h":
-		from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
-	default:
-		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
-		return
-	}
-	key := variables["key"]
-	averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
-	if err != nil {
-		if err == common.ErrEndpointNotFound {
-			http.Error(writer, err.Error(), http.StatusNotFound)
-		} else if err == common.ErrInvalidTimeRange {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-		} else {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
+func ResponseTimeBadge(config *config.Config) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		log.Println(config)
+		variables := mux.Vars(request)
+		duration := variables["duration"]
+		var from time.Time
+		switch duration {
+		case "7d":
+			from = time.Now().Add(-7 * 24 * time.Hour)
+		case "24h":
+			from = time.Now().Add(-24 * time.Hour)
+		case "1h":
+			from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
+		default:
+			http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
+			return
 		}
-		return
+		key := variables["key"]
+		averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
+		if err != nil {
+			if err == common.ErrEndpointNotFound {
+				http.Error(writer, err.Error(), http.StatusNotFound)
+			} else if err == common.ErrInvalidTimeRange {
+				http.Error(writer, err.Error(), http.StatusBadRequest)
+			} else {
+				http.Error(writer, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+		writer.Header().Set("Content-Type", "image/svg+xml")
+		writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		writer.Header().Set("Expires", "0")
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime, key, config))
 	}
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Expires", "0")
-	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -161,7 +166,7 @@ func getBadgeColorFromUptime(uptime float64) string {
 	return badgeColorHexVeryBad
 }
 
-func generateResponseTimeBadgeSVG(duration string, averageResponseTime int) []byte {
+func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, config *config.Config) []byte {
 	var labelWidth, valueWidth int
 	switch duration {
 	case "7d":
@@ -172,7 +177,7 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int) []by
 		labelWidth = 105
 	default:
 	}
-	color := getBadgeColorFromResponseTime(averageResponseTime)
+	color := getBadgeColorFromResponseTime(averageResponseTime, key, config)
 	sanitizedValue := strconv.Itoa(averageResponseTime) + "ms"
 	valueWidth = len(sanitizedValue) * 11
 	width := labelWidth + valueWidth
@@ -209,16 +214,20 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int) []by
 	return svg
 }
 
-func getBadgeColorFromResponseTime(responseTime int) string {
-	if responseTime <= 50 {
+func getBadgeColorFromResponseTime(responseTime int, key string, config *config.Config) string {
+
+	group, name, _ := store.Get().GetGroupAndNameByKey(key)
+	ep := config.GetEndpointByGroupAndName(group, name)
+
+	if responseTime <= ep.UIConfig.ResponseTimerBadgeAwesome {
 		return badgeColorHexAwesome
-	} else if responseTime <= 200 {
+	} else if responseTime <= ep.UIConfig.ResponseTimerBadgeGreat {
 		return badgeColorHexGreat
-	} else if responseTime <= 300 {
+	} else if responseTime <= ep.UIConfig.ResponseTimerBadgeGood {
 		return badgeColorHexGood
-	} else if responseTime <= 500 {
+	} else if responseTime <= ep.UIConfig.ResponseTimerBadgePassable {
 		return badgeColorHexPassable
-	} else if responseTime <= 750 {
+	} else if responseTime <= ep.UIConfig.ResponseTimerBadgeBad {
 		return badgeColorHexBad
 	}
 	return badgeColorHexVeryBad
