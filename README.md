@@ -376,16 +376,19 @@ endpoints:
 
 
 #### Configuring Email alerts
-| Parameter                      | Description                                                                                | Default               |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:----------------------|
-| `alerting.email`               | Configuration for alerts of type `email`                                                   | `{}`                  |
-| `alerting.email.from`          | Email used to send the alert                                                               | Required `""`         |
-| `alerting.email.username`      | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`                  |
-| `alerting.email.password`      | Password of the SMTP server used to send the alert                                         | Required `""`         |
-| `alerting.email.host`          | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""`         |
-| `alerting.email.port`          | Port the mail server is listening to (e.g. `587`)                                          | Required `0`          |
-| `alerting.email.to`            | Email(s) to send the alerts to                                                             | Required `""`         |
-| `alerting.email.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                   |
+| Parameter                          | Description                                                                                | Default       |
+|:---------------------------------- |:------------------------------------------------------------------------------------------ |:------------- |
+| `alerting.email`                   | Configuration for alerts of type `email`                                                   | `{}`          |
+| `alerting.email.from`              | Email used to send the alert                                                               | Required `""` |
+| `alerting.email.username`          | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`          |
+| `alerting.email.password`          | Password of the SMTP server used to send the alert                                         | Required `""` |
+| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
+| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
+| `alerting.email.to`                | Email(s) to send the alerts to                                                             | Required `""` |
+| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
 
 ```yaml
 alerting:
@@ -396,6 +399,11 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
+    # You can also add group-specific to keys, which will 
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        to: "recipient3@example.com,recipient4@example.com"
 
 endpoints:
   - name: website
@@ -405,6 +413,19 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: email
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: email
         enabled: true
@@ -557,8 +578,8 @@ alerting:
     # You can also add group-specific integration keys, which will 
     # override the integration key above for the specified groups
     overrides:
-     - group: "core"
-       integration-key: "********************************"
+      - group: "core"
+        integration-key: "********************************"
 
 endpoints:
   - name: website
