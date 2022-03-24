@@ -652,16 +652,25 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Teams alerts
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.teams`               | Configuration for alerts of type `teams`                                                   | `{}`          |
-| `alerting.teams.webhook-url`   | Teams Webhook URL                                                                          | Required `""` |
-| `alerting.teams.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+| Parameter                                | Description                                                                                | Default       |
+|:---------------------------------------- |:------------------------------------------------------------------------------------------ |:------------- |
+| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`          |
+| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""` |
+| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
 
 ```yaml
 alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    # You can also add group-specific to keys, which will 
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        webhook-url: "https://********.webhook.office.com/webhookb3/************"
 
 endpoints:
   - name: website
@@ -671,6 +680,19 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: teams
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: teams
         enabled: true
