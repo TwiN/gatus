@@ -29,6 +29,7 @@ For more details, see [Usage](#usage)
 Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -76,8 +77,8 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
-    - [Uptime](#uptime)
-    - [Response time](#response-time)
+  - [Uptime](#uptime)
+  - [Response time](#response-time)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
@@ -346,18 +347,26 @@ ignored.
 | `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`    |
 | `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`    |
 
-
 #### Configuring Discord alerts
-| Parameter                        | Description                                                                                | Default       |
-|:---------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.discord`               | Configuration for alerts of type `discord`                                                 | `{}`          |
-| `alerting.discord.webhook-url`   | Discord Webhook URL                                                                        | Required `""` |
-| `alerting.discord.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+| Parameter                                  | Description                                                                                | Default       |
+|:------------------------------------------ |:------------------------------------------------------------------------------------------ |:------------- |
+| `alerting.discord`                         | Configuration for alerts of type `discord`                                                 | `{}`          |
+| `alerting.discord.webhook-url`             | Discord Webhook URL                                                                        | Required `""` |
+| `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.discord.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
 
 ```yaml
 alerting:
   discord: 
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
+    # You can also add group-specific to keys, which will 
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        webhook-url: "https://discord.com/api/webhooks/************"
 
 endpoints:
   - name: website
@@ -372,10 +381,23 @@ endpoints:
         enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+    alerts:
+      - type: discord
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
 ```
 
-
 #### Configuring Email alerts
+
 | Parameter                          | Description                                                                                | Default       |
 |:---------------------------------- |:------------------------------------------------------------------------------------------ |:------------- |
 | `alerting.email`                   | Configuration for alerts of type `email`                                                   | `{}`          |
