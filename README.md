@@ -29,6 +29,7 @@ For more details, see [Usage](#usage)
 Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -76,8 +77,8 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
-    - [Uptime](#uptime)
-    - [Response time](#response-time)
+  - [Uptime](#uptime)
+  - [Response time](#response-time)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
@@ -436,17 +437,26 @@ endpoints:
 **NOTE:** Some mail servers are painfully slow.
 
 #### Configuring Google Chat alerts
-| Parameter                           | Description                                                                                 | Default       |
-|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
-| `alerting.googlechat`               | Configuration for alerts of type `googlechat`                                               | `{}`          |
-| `alerting.googlechat.webhook-url`   | Google Chat Webhook URL                                                                     | Required `""` |
-| `alerting.googlechat.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
-| `alerting.googlechat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+
+| Parameter                                     | Description                                                                                 | Default       |
+|:--------------------------------------------- |:------------------------------------------------------------------------------------------- |:------------- |
+| `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
+| `alerting.googlechat.webhook-url`             | Google Chat Webhook URL                                                                     | Required `""` |
+| `alerting.googlechat.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.googlechat.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.googlechat.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
+| `alerting.googlechat.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.googlechat.overrides[].webhook-url` | Teams Webhook URL                                                                           | `""`          |
 
 ```yaml
 alerting:
   googlechat: 
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
+    # You can also add group-specific to keys, which will 
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
 
 endpoints:
   - name: website
@@ -456,6 +466,19 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: googlechat
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: googlechat
         enabled: true
