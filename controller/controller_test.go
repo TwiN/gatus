@@ -32,7 +32,7 @@ func TestHandle(t *testing.T) {
 	_ = os.Setenv("ROUTER_TEST", "true")
 	_ = os.Setenv("ENVIRONMENT", "dev")
 	defer os.Clearenv()
-	Handle(cfg.Security, cfg.Web, cfg.UI, cfg, cfg.Metrics)
+	Handle(cfg, cfg.Metrics)
 	defer Shutdown()
 	request, _ := http.NewRequest("GET", "/health", http.NoBody)
 	responseRecorder := httptest.NewRecorder()

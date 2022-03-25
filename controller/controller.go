@@ -10,9 +10,7 @@ import (
 
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/config/ui"
-	"github.com/TwiN/gatus/v3/config/web"
 	"github.com/TwiN/gatus/v3/controller/handler"
-	"github.com/TwiN/gatus/v3/security"
 )
 
 var (
@@ -22,19 +20,19 @@ var (
 )
 
 // Handle creates the router and starts the server
-func Handle(securityConfig *security.Config, webConfig *web.Config, uiConfig *ui.Config, config *config.Config, enableMetrics bool) {
-	var router http.Handler = handler.CreateRouter(ui.StaticFolder, securityConfig, uiConfig, config, enableMetrics)
+func Handle(config *config.Config, enableMetrics bool) {
+	var router http.Handler = handler.CreateRouter(ui.StaticFolder, config, enableMetrics)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
 	server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", webConfig.Address, webConfig.Port),
+		Addr:         fmt.Sprintf("%s:%d", config.Web.Address, config.Web.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	log.Println("[controller][Handle] Listening on " + webConfig.SocketAddress())
+	log.Println("[controller][Handle] Listening on " + config.Web.SocketAddress())
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
