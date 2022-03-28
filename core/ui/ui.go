@@ -7,12 +7,16 @@ type Config struct {
 	// HideHostname whether to hide the hostname in the Result
 	HideHostname bool `yaml:"hide-hostname"`
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
-	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
-	ResponseTimerBadgeAwesome   int  `yaml:"response-timer-badge-awesome"`
-	ResponseTimerBadgeGreat     int  `yaml:"response-timer-badge-great"`
-	ResponseTimerBadgeGood      int  `yaml:"response-timer-badge-good"`
-	ResponseTimerBadgePassable  int  `yaml:"response-timer-badge-passable"`
-	ResponseTimerBadgeBad       int  `yaml:"response-timer-badge-bad"`
+	DontResolveFailedConditions bool   `yaml:"dont-resolve-failed-conditions"`
+	Badge                       *Badge `yaml:"badge"`
+}
+
+type Badge struct {
+	Responsetime *Thresholds `yaml:"response-time"`
+}
+
+type Thresholds struct {
+	Thresholds []int `yaml:"thresholds"`
 }
 
 var (
@@ -21,15 +25,17 @@ var (
 
 func (config *Config) Validate() error {
 
-	if config.ResponseTimerBadgeBad >
-		config.ResponseTimerBadgePassable {
-		if config.ResponseTimerBadgePassable >
-			config.ResponseTimerBadgeGood {
-			if config.ResponseTimerBadgeGood >
-				config.ResponseTimerBadgeGreat {
-				if config.ResponseTimerBadgeGreat >
-					config.ResponseTimerBadgeAwesome {
-					return nil
+	if len(config.Badge.Responsetime.Thresholds) == 5 {
+		if config.Badge.Responsetime.Thresholds[4] >
+			config.Badge.Responsetime.Thresholds[3] {
+			if config.Badge.Responsetime.Thresholds[3] >
+				config.Badge.Responsetime.Thresholds[2] {
+				if config.Badge.Responsetime.Thresholds[2] >
+					config.Badge.Responsetime.Thresholds[1] {
+					if config.Badge.Responsetime.Thresholds[1] >
+						config.Badge.Responsetime.Thresholds[0] {
+						return nil
+					}
 				}
 			}
 		}
@@ -38,27 +44,15 @@ func (config *Config) Validate() error {
 	return ErrInvalidUiBadgeTimeConfig
 }
 
-func (config *Config) DefaultValues() {
-
-	config.HideHostname = false
-	config.DontResolveFailedConditions = false
-	config.ResponseTimerBadgeAwesome = 50
-	config.ResponseTimerBadgeGreat = 200
-	config.ResponseTimerBadgeGood = 300
-	config.ResponseTimerBadgePassable = 500
-	config.ResponseTimerBadgeBad = 750
-
-}
-
 // GetDefaultConfig retrieves the default UI configuration
 func GetDefaultConfig() *Config {
 	return &Config{
 		HideHostname:                false,
 		DontResolveFailedConditions: false,
-		ResponseTimerBadgeAwesome:   50,
-		ResponseTimerBadgeGreat:     200,
-		ResponseTimerBadgeGood:      300,
-		ResponseTimerBadgePassable:  500,
-		ResponseTimerBadgeBad:       750,
+		Badge: &Badge{
+			Responsetime: &Thresholds{
+				Thresholds: []int{50, 200, 300, 500, 75},
+			},
+		},
 	}
 }

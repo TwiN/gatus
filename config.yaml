@@ -7,11 +7,9 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
     ui:
-      response-timer-badge-awesome: 550
-      response-timer-badge-great: 850
-      response-timer-badge-good: 1350
-      response-timer-badge-passable: 1650
-      response-timer-badge-bad: 1750
+      badge:
+        response-time:
+          thresholds: [500, 850, 1350, 1650, 1750]
 
   - name: back-end
     group: core
