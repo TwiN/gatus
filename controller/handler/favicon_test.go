@@ -7,7 +7,7 @@ import (
 )
 
 func TestFavIcon(t *testing.T) {
-	router := CreateRouter("../../web/static", nil, false)
+	router := CreateRouter("../../web/static", nil)
 	type Scenario struct {
 		Name         string
 		Path         string

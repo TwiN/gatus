@@ -9,15 +9,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func CreateRouter(staticFolder string, config *config.Config, enabledMetrics bool) *mux.Router {
+func CreateRouter(staticFolder string, config *config.Config) *mux.Router {
 	router := mux.NewRouter()
-	if enabledMetrics {
-		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
-	}
 	api := router.PathPrefix("/api").Subrouter()
 	protected := api.PathPrefix("/").Subrouter()
 	unprotected := api.PathPrefix("/").Subrouter()
 	if config != nil {
+		if config.Metrics {
+			router.Handle("/metrics", promhttp.Handler()).Methods("GET")
+		}
 		if config.Security != nil {
 			if err := config.Security.RegisterHandlers(router); err != nil {
 				panic(err)
@@ -26,10 +26,9 @@ func CreateRouter(staticFolder string, config *config.Config, enabledMetrics boo
 				panic(err)
 			}
 		}
-	}
-	// Endpoints
 
-	if config != nil {
+		// Endpoints
+
 		unprotected.Handle("/v1/config", ConfigHandler{securityConfig: config.Security}).Methods("GET")
 		unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")
 		unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")

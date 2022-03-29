@@ -20,8 +20,8 @@ var (
 )
 
 // Handle creates the router and starts the server
-func Handle(config *config.Config, enableMetrics bool) {
-	var router http.Handler = handler.CreateRouter(ui.StaticFolder, config, enableMetrics)
+func Handle(config *config.Config) {
+	var router http.Handler = handler.CreateRouter(ui.StaticFolder, config)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
