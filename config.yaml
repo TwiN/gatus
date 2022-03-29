@@ -6,10 +6,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-    ui:
-      badge:
-        response-time:
-          thresholds: [500, 850, 1350, 1650, 1750]
+    
 
   - name: back-end
     group: core

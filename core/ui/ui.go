@@ -12,7 +12,7 @@ type Config struct {
 }
 
 type Badge struct {
-	Responsetime *Thresholds `yaml:"response-time"`
+	ResponseTime *Thresholds `yaml:"response-time"`
 }
 
 type Thresholds struct {
@@ -25,23 +25,16 @@ var (
 
 func (config *Config) Validate() error {
 
-	if len(config.Badge.Responsetime.Thresholds) == 5 {
-		if config.Badge.Responsetime.Thresholds[4] >
-			config.Badge.Responsetime.Thresholds[3] {
-			if config.Badge.Responsetime.Thresholds[3] >
-				config.Badge.Responsetime.Thresholds[2] {
-				if config.Badge.Responsetime.Thresholds[2] >
-					config.Badge.Responsetime.Thresholds[1] {
-					if config.Badge.Responsetime.Thresholds[1] >
-						config.Badge.Responsetime.Thresholds[0] {
-						return nil
-					}
-				}
-			}
+	if len(config.Badge.ResponseTime.Thresholds) != 5 {
+		return ErrInvalidUiBadgeTimeConfig
+	}
+	for i := 4; i > 0; i-- {
+		if config.Badge.ResponseTime.Thresholds[i] < config.Badge.ResponseTime.Thresholds[i-1] {
+			return ErrInvalidUiBadgeTimeConfig
 		}
 	}
+	return nil
 
-	return ErrInvalidUiBadgeTimeConfig
 }
 
 // GetDefaultConfig retrieves the default UI configuration
@@ -50,8 +43,8 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		DontResolveFailedConditions: false,
 		Badge: &Badge{
-			Responsetime: &Thresholds{
-				Thresholds: []int{50, 200, 300, 500, 75},
+			ResponseTime: &Thresholds{
+				Thresholds: []int{50, 200, 300, 500, 750},
 			},
 		},
 	}

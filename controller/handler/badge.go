@@ -216,17 +216,14 @@ func getBadgeColorFromResponseTime(responseTime int, key string, config *config.
 
 	group, name, _ := store.Get().GetGroupAndNameByKey(key)
 	ep := config.GetEndpointByGroupAndName(group, name)
+	colors := []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
 
-	if responseTime <= ep.UIConfig.Badge.Responsetime.Thresholds[0] {
-		return badgeColorHexAwesome
-	} else if responseTime <= ep.UIConfig.Badge.Responsetime.Thresholds[1] {
-		return badgeColorHexGreat
-	} else if responseTime <= ep.UIConfig.Badge.Responsetime.Thresholds[2] {
-		return badgeColorHexGood
-	} else if responseTime <= ep.UIConfig.Badge.Responsetime.Thresholds[3] {
-		return badgeColorHexPassable
-	} else if responseTime <= ep.UIConfig.Badge.Responsetime.Thresholds[4] {
-		return badgeColorHexBad
+	// the threshold config requires 5 values, so we can be sure it's set here
+	for i := 0; i < 5; i++ {
+		if responseTime <= ep.UIConfig.Badge.ResponseTime.Thresholds[i] {
+			return colors[i]
+		}
 	}
+
 	return badgeColorHexVeryBad
 }
