@@ -22,6 +22,10 @@ const (
 	badgeColorHexVeryBad  = "#c7130a"
 )
 
+var (
+	badgeColors = []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
+)
+
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
@@ -216,12 +220,11 @@ func getBadgeColorFromResponseTime(responseTime int, key string, config *config.
 
 	group, name, _ := store.Get().GetGroupAndNameByKey(key)
 	ep := config.GetEndpointByGroupAndName(group, name)
-	colors := []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
 
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
 		if responseTime <= ep.UIConfig.Badge.ResponseTime.Thresholds[i] {
-			return colors[i]
+			return badgeColors[i]
 		}
 	}
 

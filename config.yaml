@@ -6,7 +6,6 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
-    
 
   - name: back-end
     group: core
