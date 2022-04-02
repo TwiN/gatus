@@ -356,17 +356,12 @@ ignored.
 | `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.discord.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
+| `alerting.discord.overrides[].webhook-url` | Discord Webhook URL                                                                          | `""`          |
 
 ```yaml
 alerting:
   discord: 
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
-    # You can also add group-specific to keys, which will 
-    # override the to key above for the specified groups
-    overrides:
-      - group: "core"
-        webhook-url: "https://discord.com/api/webhooks/************"
 
 endpoints:
   - name: website
@@ -376,19 +371,6 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: discord
-        enabled: true
-        description: "healthcheck failed"
-        send-on-resolved: true
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: discord
         enabled: true
