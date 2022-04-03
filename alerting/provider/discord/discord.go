@@ -39,7 +39,6 @@ func (provider *AlertProvider) IsValid() bool {
 			registeredGroups[override.Group] = true
 		}
 	}
-
 	return len(provider.WebhookURL) > 0
 }
 
