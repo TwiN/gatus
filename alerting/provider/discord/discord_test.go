@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v3/test"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{WebhookURL: ""}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
