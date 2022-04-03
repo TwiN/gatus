@@ -355,7 +355,7 @@ ignored.
 | `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.discord.overrides[].webhook-url` | Discord Webhook URL                                                                          | `""`          |
+| `alerting.discord.overrides[].webhook-url` | Discord Webhook URL                                                                        | `""`          |
 
 ```yaml
 alerting:
