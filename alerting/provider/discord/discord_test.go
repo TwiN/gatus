@@ -251,7 +251,7 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			if got := tt.Provider.getWebhookURLForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getToForGroup() = %v, want %v", got, tt.ExpectedOutput)
+				t.Errorf("AlertProvider.getWebhookURLForGroup() = %v, want %v", got, tt.ExpectedOutput)
 			}
 		})
 	}
