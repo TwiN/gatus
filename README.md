@@ -190,7 +190,6 @@ If you want to test it locally, see [Docker](#docker).
 | `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
 
 
-
 ### Conditions
 Here are some examples of conditions you can use:
 

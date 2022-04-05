@@ -6,6 +6,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 150"
 
   - name: back-end
     group: core
