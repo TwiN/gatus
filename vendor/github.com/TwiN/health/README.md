@@ -1,5 +1,5 @@
 # health
-![build](https://github.com/TwiN/health/workflows/build/badge.svg?branch=master) 
+![test](https://github.com/TwiN/health/workflows/test/badge.svg?branch=master) 
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/health)](https://goreportcard.com/report/github.com/TwiN/health)
 [![codecov](https://codecov.io/gh/TwiN/health/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/health)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/health.svg)](https://github.com/TwiN/health)
@@ -12,7 +12,7 @@ it over and over again.
 
 
 ## Installation
-```
+```console
 go get -u github.com/TwiN/health
 ```
 
@@ -37,7 +37,11 @@ The above will cause the response body to become `{"status":"UP"}` and `{"status
 unless there is a reason, in which case a reason set to `because` would return `{"status":"UP", "reason":"because"}`
 and `{"status":"DOWN", "reason":"because"}` respectively.
 
-To change the health of the application, you can use `health.SetStatus(<status>)` where `<status>` is one `health.Up`
+To set the health status to `DOWN`, you may use `health.SetUnhealthy("<enter reason here>`)` -- the
+string passed will be automatically set as the reason. In a similar fashion, to set the health status to `UP`,
+you may use `health.SetHealthy()`.
+
+Alternatively, to change the health of the application, you can use `health.SetStatus(<status>)` where `<status>` is `health.Up`
 or `health.Down`:
 ```go
 health.SetStatus(health.Up)
@@ -50,6 +54,9 @@ health.SetReason("database is unreachable")
 ```
 
 Generally speaking, you'd only want to include a reason if the status is `Down`, but you can do as you desire.
+
+For the sake of convenience, you can also use `health.SetStatusAndReason(<status>, <reason>)` instead of doing 
+`health.SetStatus(<status>)` and `health.SetReason(<reason>)` separately.
 
 
 ### Complete example

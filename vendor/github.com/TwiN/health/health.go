@@ -13,6 +13,7 @@ var (
 	}
 )
 
+// responseBody is the body of the response returned by the health handler.
 type responseBody struct {
 	Status string `json:"status"`
 	Reason string `json:"reason,omitempty"`
@@ -20,8 +21,7 @@ type responseBody struct {
 
 // healthHandler is the HTTP handler for serving the health endpoint
 type healthHandler struct {
-	useJSON         bool
-	resetReasonOnUp bool
+	useJSON bool
 
 	status Status
 	reason string
@@ -101,6 +101,25 @@ func SetReason(reason string) {
 func SetStatusAndReason(status Status, reason string) {
 	handler.mutex.Lock()
 	handler.status = status
+	handler.reason = reason
+	handler.mutex.Unlock()
+}
+
+// SetHealthy sets the status to Up and the reason to a blank string
+func SetHealthy() {
+	handler.mutex.Lock()
+	handler.status = Up
+	handler.reason = ""
+	handler.mutex.Unlock()
+}
+
+// SetUnhealthy sets the status to Down and the reason to the string passed as parameter
+//
+// Unlike SetHealthy, this function enforces setting a reason, because it's good practice to give at least a bit
+// of information as to why an application is unhealthy, and this library attempts to promote good practices.
+func SetUnhealthy(reason string) {
+	handler.mutex.Lock()
+	handler.status = Down
 	handler.reason = reason
 	handler.mutex.Unlock()
 }
