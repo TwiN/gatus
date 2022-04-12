@@ -118,7 +118,7 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.UIConfig == nil {
 		endpoint.UIConfig = ui.GetDefaultConfig()
 	} else {
-		if err := endpoint.UIConfig.Validate(); err != nil {
+		if err := endpoint.UIConfig.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}

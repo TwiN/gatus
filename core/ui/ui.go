@@ -12,29 +12,31 @@ type Config struct {
 }
 
 type Badge struct {
-	ResponseTime *Thresholds `yaml:"response-time"`
-}
-
-type Thresholds struct {
-	Thresholds []int `yaml:"thresholds"`
+	ResponseTime []int `yaml:"response-time"`
 }
 
 var (
-	ErrInvalidUiBadgeTimeConfig = errors.New("invalid endpoint ui configuration - invalid badgetime configuration: You need to set all responsetime settings and they have to be in an ascending value range")
+	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
 )
 
-func (config *Config) Validate() error {
+func (config *Config) ValidateAndSetDefaults() error {
 
-	if len(config.Badge.ResponseTime.Thresholds) != 5 {
-		return ErrInvalidUiBadgeTimeConfig
-	}
-	for i := 4; i > 0; i-- {
-		if config.Badge.ResponseTime.Thresholds[i] < config.Badge.ResponseTime.Thresholds[i-1] {
-			return ErrInvalidUiBadgeTimeConfig
+	if config.Badge != nil {
+		if config.Badge.ResponseTime != nil {
+			if len(config.Badge.ResponseTime) != 5 {
+				return ErrInvalidBadgeResponseTimeConfig
+			}
+			for i := 4; i > 0; i-- {
+				if config.Badge.ResponseTime[i] < config.Badge.ResponseTime[i-1] {
+					return ErrInvalidBadgeResponseTimeConfig
+				}
+			}
 		}
+		config.Badge.ResponseTime = GetDefaultConfig().Badge.ResponseTime
 	}
-	return nil
 
+	config.Badge = GetDefaultConfig().Badge
+	return nil
 }
 
 // GetDefaultConfig retrieves the default UI configuration
@@ -43,9 +45,7 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		DontResolveFailedConditions: false,
 		Badge: &Badge{
-			ResponseTime: &Thresholds{
-				Thresholds: []int{50, 200, 300, 500, 750},
-			},
+			ResponseTime: []int{50, 200, 300, 500, 750},
 		},
 	}
 }

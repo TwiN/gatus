@@ -15,6 +15,7 @@ import (
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/TwiN/gatus/v3/security"
 	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v3/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -89,10 +90,11 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
-func (config *Config) GetEndpointByGroupAndName(group string, name string) *core.Endpoint {
+func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
+
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
-		if ep.Group == group && ep.Name == name {
+		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
 			return ep
 		}
 	}

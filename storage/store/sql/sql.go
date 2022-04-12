@@ -137,18 +137,6 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	return endpointStatus, err
 }
 
-func (s *Store) GetGroupAndNameByKey(key string) (string, string, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return "", "", err
-	}
-	_, group, name, err := s.getEndpointIDGroupAndNameByKey(tx, key)
-	if err == nil {
-		return group, name, nil
-	}
-	return "", "", err
-}
-
 // GetUptimeByKey returns the uptime percentage during a time range
 func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
 	if from.After(to) {

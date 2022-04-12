@@ -218,12 +218,11 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 
 func getBadgeColorFromResponseTime(responseTime int, key string, config *config.Config) string {
 
-	group, name, _ := store.Get().GetGroupAndNameByKey(key)
-	ep := config.GetEndpointByGroupAndName(group, name)
+	endpoint := config.GetEndpointByKey(key)
 
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
-		if responseTime <= ep.UIConfig.Badge.ResponseTime.Thresholds[i] {
+		if responseTime <= endpoint.UIConfig.Badge.ResponseTime[i] {
 			return badgeColors[i]
 		}
 	}
