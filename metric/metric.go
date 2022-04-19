@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	namespace string
 	// This will be initialized once PublishMetricsForEndpoint.
 	// The reason why we're doing this is that if metrics are disabled, we don't want to initialize it unnecessarily.
 	resultCount         *prometheus.CounterVec
@@ -17,20 +18,25 @@ var (
 )
 
 func ensurePrometheusMetrics() {
-	if resultCount == nil {
+	if namespace == "" {
+		namespace = "gatus"
+
 		resultCount = promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "gatus_results_total",
-			Help: "Number of results per endpoint",
+			Namespace: namespace,
+			Name:      "results_total",
+			Help:      "Number of results per endpoint",
 		}, []string{"key", "group", "name", "success"})
 
 		resultSuccessGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "gatus_results_success",
-			Help: "Displays whether or not the watchdog result was a success",
+			Namespace: namespace,
+			Name:      "results_success",
+			Help:      "Displays whether or not the watchdog result was a success",
 		}, []string{"key", "group", "name"})
 
 		resultDurationGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "gatus_results_duration_seconds",
-			Help: "Returns how long the watchdog took to complete in seconds",
+			Namespace: namespace,
+			Name:      "results_duration_seconds",
+			Help:      "Returns how long the watchdog took to complete in seconds",
 		}, []string{"key", "group", "name"})
 	}
 }
