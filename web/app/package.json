@@ -1,6 +1,6 @@
 {
   "name": "gatus",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --mode development",

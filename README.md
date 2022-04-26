@@ -186,6 +186,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.header`                                     | Header at the top of the dashboard.                                                                                                                | `Health Status`            |
 | `ui.logo`                                       | URL to the logo to display.                                                                                                                        | `""`                       |
 | `ui.link`                                       | Link to open when the logo is clicked.                                                                                                             | `""`                       |
+| `ui.buttons`                                    | List of buttons to display below the header.                                                                                                       | `[]`                       |
+| `ui.buttons[].name`                             | Text to display on the button.                                                                                                                     | Required `""`              |
+| `ui.buttons[].link`                             | Link to open when the button is clicked.                                                                                                           | Required `""`              |
 | `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                         | `{}`                       |
 
 
@@ -1328,7 +1331,7 @@ web:
 ```
 
 ### Badges
-### Uptime
+#### Uptime
 ![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/1h/badge.svg)
 ![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg)
@@ -1361,7 +1364,7 @@ Example:
 If you'd like to see a visual example of each badge available, you can simply navigate to the endpoint's detail page.
 
 
-### Response time
+#### Response time
 ![Response time 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/1h/badge.svg)
 ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 ![Response time 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/7d/badge.svg)

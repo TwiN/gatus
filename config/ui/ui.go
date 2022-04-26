@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 )
 
@@ -16,14 +17,31 @@ var (
 	// StaticFolder is the path to the location of the static folder from the root path of the project
 	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
 	StaticFolder = "./web/static"
+
+	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title  string `yaml:"title,omitempty"`  // Title of the page
-	Header string `yaml:"header,omitempty"` // Header is the text at the top of the page
-	Logo   string `yaml:"logo,omitempty"`   // Logo to display on the page
-	Link   string `yaml:"link,omitempty"`   // Link to open when clicking on the logo
+	Title   string   `yaml:"title,omitempty"`   // Title of the page
+	Header  string   `yaml:"header,omitempty"`  // Header is the text at the top of the page
+	Logo    string   `yaml:"logo,omitempty"`    // Logo to display on the page
+	Link    string   `yaml:"link,omitempty"`    // Link to open when clicking on the logo
+	Buttons []Button `yaml:"buttons,omitempty"` // Buttons to display below the header
+}
+
+// Button is the configuration for a button on the UI
+type Button struct {
+	Name string `yaml:"name,omitempty"` // Name is the text to display on the button
+	Link string `yaml:"link,omitempty"` // Link to open when the button is clicked.
+}
+
+// Validate validates the button configuration
+func (btn *Button) Validate() error {
+	if len(btn.Name) == 0 || len(btn.Link) == 0 {
+		return ErrButtonValidationFailed
+	}
+	return nil
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -47,6 +65,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.Header) == 0 {
 		cfg.Header = defaultLink
 	}
+	for _, btn := range cfg.Buttons {
+		if err := btn.Validate(); err != nil {
+			return err
+		}
+	}
+	// Validate that the template works
 	t, err := template.ParseFiles(StaticFolder + "/index.html")
 	if err != nil {
 		return err
