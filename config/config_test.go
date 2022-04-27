@@ -53,7 +53,14 @@ maintenance:
   duration: 4h
   every: [Monday, Thursday]
 ui:
-  title: Test
+  title: T
+  header: H
+  link: https://example.org
+  buttons:
+    - name: "Home"
+      link: "https://example.org"
+    - name: "Status page"
+      link: "https://status.example.org"
 endpoints:
   - name: website
     url: https://twin.sh/health
@@ -88,8 +95,8 @@ endpoints:
 	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
 		t.Error("expected storage to be set to sqlite, got", config.Storage)
 	}
-	if config.UI == nil || config.UI.Title != "Test" {
-		t.Error("Expected Config.UI.Title to be Test")
+	if config.UI == nil || config.UI.Title != "T" || config.UI.Header != "H" || config.UI.Link != "https://example.org" || len(config.UI.Buttons) != 2 || config.UI.Buttons[0].Name != "Home" || config.UI.Buttons[0].Link != "https://example.org" || config.UI.Buttons[1].Name != "Status page" || config.UI.Buttons[1].Link != "https://status.example.org" {
+		t.Error("expected ui to be set to T, H, https://example.org, 2 buttons, Home and Status page, got", config.UI)
 	}
 	if mc := config.Maintenance; mc == nil || mc.Start != "00:00" || !mc.IsEnabled() || mc.Duration != 4*time.Hour || len(mc.Every) != 2 {
 		t.Error("Expected Config.Maintenance to be configured properly")

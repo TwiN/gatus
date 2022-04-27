@@ -13,6 +13,11 @@
           </a>
         </div>
       </div>
+      <div v-if="buttons" class="flex flex-wrap">
+        <a v-for="button in buttons" :key="button.name" :href="button.link" target="_blank" class="px-2 py-0.5 font-medium select-none text-gray-600 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-400 hover:underline">
+          {{ button.name }}
+        </a>
+      </div>
     </div>
     <router-view @showTooltip="showTooltip" />
   </div>
@@ -85,6 +90,9 @@ export default {
     },
     link() {
       return window.config && window.config.link && window.config.link !== '{{ .Link }}' ? window.config.link : null;
+    },
+    buttons() {
+      return window.config && window.config.buttons ? window.config.buttons : [];
     }
   },
   data() {

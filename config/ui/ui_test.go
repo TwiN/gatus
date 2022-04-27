@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strconv"
 	"testing"
 )
 
@@ -23,6 +24,45 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	}
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
+	}
+}
+
+func TestButton_Validate(t *testing.T) {
+	scenarios := []struct {
+		Name, Link    string
+		ExpectedError error
+	}{
+		{
+			Name:          "",
+			Link:          "",
+			ExpectedError: ErrButtonValidationFailed,
+		},
+		{
+			Name:          "",
+			Link:          "link",
+			ExpectedError: ErrButtonValidationFailed,
+		},
+		{
+			Name:          "name",
+			Link:          "",
+			ExpectedError: ErrButtonValidationFailed,
+		},
+		{
+			Name:          "name",
+			Link:          "link",
+			ExpectedError: nil,
+		},
+	}
+	for i, scenario := range scenarios {
+		t.Run(strconv.Itoa(i)+"_"+scenario.Name+"_"+scenario.Link, func(t *testing.T) {
+			button := &Button{
+				Name: scenario.Name,
+				Link: scenario.Link,
+			}
+			if err := button.Validate(); err != scenario.ExpectedError {
+				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
+			}
+		})
 	}
 }
 

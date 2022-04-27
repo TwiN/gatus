@@ -1,6 +1,6 @@
 {
   "name": "gatus",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --mode development",
@@ -8,22 +8,22 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "core-js": "3.21.0",
-    "vue": "3.2.21",
-    "vue-router": "4.0.12"
+    "core-js": "3.22.2",
+    "vue": "3.2.33",
+    "vue-router": "4.0.14"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "5.0.0-rc.2",
-    "@vue/cli-plugin-eslint": "5.0.0-rc.2",
-    "@vue/cli-plugin-router": "5.0.0-rc.2",
-    "@vue/cli-service": "5.0.0-rc.2",
-    "@vue/compiler-sfc": "3.2.29",
-    "autoprefixer": "10.4.2",
+    "@vue/cli-plugin-babel": "5.0.4",
+    "@vue/cli-plugin-eslint": "5.0.4",
+    "@vue/cli-plugin-router": "5.0.4",
+    "@vue/cli-service": "5.0.4",
+    "@vue/compiler-sfc": "3.2.33",
+    "autoprefixer": "10.4.5",
     "babel-eslint": "10.1.0",
     "eslint": "7.32.0",
     "eslint-plugin-vue": "7.20.0",
-    "postcss": "8.4.6",
-    "tailwindcss": "3.0.18"
+    "postcss": "8.4.12",
+    "tailwindcss": "3.0.24"
   },
   "eslintConfig": {
     "root": true,
