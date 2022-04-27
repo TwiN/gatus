@@ -153,7 +153,6 @@ func TestEndpointStatus(t *testing.T) {
 }
 
 func TestEndpointStatuses(t *testing.T) {
-
 	defer store.Get().Clear()
 	defer cache.Clear()
 	firstResult := &testSuccessfulResult

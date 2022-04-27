@@ -20,16 +20,13 @@ var (
 )
 
 func (config *Config) ValidateAndSetDefaults() error {
-
 	if config.Badge != nil {
-		if config.Badge.ResponseTime != nil {
-			if len(config.Badge.ResponseTime) != 5 {
+		if len(config.Badge.ResponseTime) != 5 {
+			return ErrInvalidBadgeResponseTimeConfig
+		}
+		for i := 4; i > 0; i-- {
+			if config.Badge.ResponseTime[i] < config.Badge.ResponseTime[i-1] {
 				return ErrInvalidBadgeResponseTimeConfig
-			}
-			for i := 4; i > 0; i-- {
-				if config.Badge.ResponseTime[i] < config.Badge.ResponseTime[i-1] {
-					return ErrInvalidBadgeResponseTimeConfig
-				}
 			}
 		}
 		config.Badge.ResponseTime = GetDefaultConfig().Badge.ResponseTime

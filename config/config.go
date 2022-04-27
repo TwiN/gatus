@@ -91,7 +91,6 @@ type Config struct {
 }
 
 func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
-
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
 		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
