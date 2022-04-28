@@ -152,7 +152,9 @@ func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
 		if result.Connected {
 			resultHTTPConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
 		}
-		resultHTTPStatusCode.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, strconv.Itoa(result.HTTPStatus)).Inc()
+		if result.HTTPStatus != 0 {
+			resultHTTPStatusCode.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, strconv.Itoa(result.HTTPStatus)).Inc()
+		}
 		if result.CertificateExpiration != 0 {
 			resultHTTPSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
 		}
