@@ -20,6 +20,7 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
+	
 }
 func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
