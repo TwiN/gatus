@@ -10,7 +10,12 @@ import (
 )
 
 var (
+	// Check if the metric is initialized
+	initializedMetrics bool
+
+	// The prefix of the metrics
 	namespace string
+
 	// This will be initialized once PublishMetricsForEndpoint.
 	// The reason why we're doing this is that if metrics are disabled, we don't want to initialize it unnecessarily.
 	resultCount         *prometheus.CounterVec
@@ -33,7 +38,8 @@ var (
 )
 
 func ensurePrometheusMetrics() {
-	if namespace == "" {
+	if !initializedMetrics {
+		initializedMetrics = true
 		namespace = "gatus"
 
 		resultCount = promauto.NewCounterVec(prometheus.CounterOpts{
