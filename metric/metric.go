@@ -2,7 +2,6 @@ package metric
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/TwiN/gatus/v3/core"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,23 +17,12 @@ var (
 
 	// This will be initialized once PublishMetricsForEndpoint.
 	// The reason why we're doing this is that if metrics are disabled, we don't want to initialize it unnecessarily.
-	resultCount         *prometheus.CounterVec
-	resultSuccessGauge  *prometheus.GaugeVec
-	resultDurationGauge *prometheus.GaugeVec
-
-	resultDNSReturnCode *prometheus.CounterVec
-
-	resultTCPConnected *prometheus.CounterVec
-
-	resultStartTLSConnected                          *prometheus.CounterVec
-	resultStartTLSSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
-
-	resultTLSConnected                          *prometheus.CounterVec
-	resultTLSSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
-
-	resultHTTPConnected                          *prometheus.CounterVec
-	resultHTTPStatusCode                         *prometheus.CounterVec
-	resultHTTPSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
+	resultTotal                              *prometheus.CounterVec
+	resultDurationSeconds                    *prometheus.GaugeVec
+	resultConnectedTotal                     *prometheus.CounterVec
+	resultDNSReturnCodeTotal                 *prometheus.CounterVec
+	resultHTTPStatusCodeTotal                *prometheus.CounterVec
+	resultSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
 )
 
 func ensurePrometheusMetrics() {
@@ -42,77 +30,41 @@ func ensurePrometheusMetrics() {
 		initializedMetrics = true
 		namespace = "gatus"
 
-		resultCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		resultTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
 			Name:      "results_total",
 			Help:      "Number of results per endpoint",
-		}, []string{"key", "group", "name", "url", "success"})
+		}, []string{"key", "group", "name", "type", "success"})
 
-		resultSuccessGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "results_success",
-			Help:      "Displays whether or not the watchdog result was a success",
-		}, []string{"key", "group", "name", "url"})
-
-		resultDurationGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "results_duration_seconds",
 			Help:      "Returns how long the watchdog took to complete in seconds",
-		}, []string{"key", "group", "name", "url"})
+		}, []string{"key", "group", "name", "type"})
 
-		resultDNSReturnCode = promauto.NewCounterVec(prometheus.CounterOpts{
+		resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
-			Name:      "results_dns_return_code",
-			Help:      "Response DNS return code",
-		}, []string{"key", "group", "name", "url", "code"})
+			Name:      "results_connected_total",
+			Help:      "Number of results connected per endpoint",
+		}, []string{"key", "group", "name", "type"})
 
-		resultTCPConnected = promauto.NewCounterVec(prometheus.CounterOpts{
+		resultDNSReturnCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
-			Name:      "results_tcp_connected",
-			Help:      "Response TCP connected count",
-		}, []string{"key", "group", "name", "url"})
+			Name:      "results_dns_return_code_total",
+			Help:      "Number of results DNS return code",
+		}, []string{"key", "group", "name", "type", "code"})
 
-		resultStartTLSConnected = promauto.NewCounterVec(prometheus.CounterOpts{
+		resultHTTPStatusCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
-			Name:      "results_starttls_connected",
-			Help:      "Response StartTLS connected count",
-		}, []string{"key", "group", "name", "url"})
+			Name:      "results_http_status_code_total",
+			Help:      "Number of results HTTP status code",
+		}, []string{"key", "group", "name", "type", "code"})
 
-		resultStartTLSSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		resultSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
-			Name:      "results_starttls_ssl_last_chain_expiry_timestamp_seconds",
-			Help:      "Returns last SSL chain expiry in timestamp seconds",
-		}, []string{"key", "group", "name", "url"})
-
-		resultTLSConnected = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_tls_connected",
-			Help:      "Response TLS connected count",
-		}, []string{"key", "group", "name", "url"})
-
-		resultTLSSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "results_tls_ssl_last_chain_expiry_timestamp_seconds",
-			Help:      "Returns last SSL chain expiry in timestamp seconds",
-		}, []string{"key", "group", "name", "url"})
-
-		resultHTTPConnected = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_http_connected",
-			Help:      "Response HTTP connected count",
-		}, []string{"key", "group", "name", "url"})
-
-		resultHTTPStatusCode = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_http_status_code",
-			Help:      "Response HTTP status code",
-		}, []string{"key", "group", "name", "url", "code"})
-
-		resultHTTPSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "results_http_ssl_last_chain_expiry_timestamp_seconds",
-			Help:      "Returns last SSL chain expiry in timestamp seconds",
-		}, []string{"key", "group", "name", "url"})
+			Name:      "results_ssl_last_chain_expiry_timestamp_seconds",
+			Help:      "Number of results last SSL chain expiry in timestamp seconds",
+		}, []string{"key", "group", "name", "type"})
 	}
 }
 
@@ -121,41 +73,21 @@ func ensurePrometheusMetrics() {
 func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
 	ensurePrometheusMetrics()
 
-	resultCount.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, strconv.FormatBool(result.Success)).Inc()
-	resultSuccessGauge.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(map[bool]float64{true: 1, false: 0}[result.Success])
-	resultDurationGauge.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.Duration.Seconds()))
+	endpointType := endpoint.Type()
 
-	switch endpointType := endpoint.Type(); endpointType {
-	case core.EndpointTypeDNS:
-		resultDNSReturnCode.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, result.DNSRCode).Inc()
-	case core.EndpointTypeTCP:
-		if result.Connected {
-			resultTCPConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
-		}
-	case core.EndpointTypeICMP:
-	case core.EndpointTypeSTARTTLS:
-		if result.Connected {
-			resultStartTLSConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
-		}
-		if result.CertificateExpiration != 0 {
-			resultStartTLSSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
-		}
-	case core.EndpointTypeTLS:
-		if result.Connected {
-			resultTLSConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
-		}
-		if result.CertificateExpiration != 0 {
-			resultTLSSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
-		}
-	case core.EndpointTypeHTTP:
-		if result.Connected {
-			resultHTTPConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
-		}
-		if result.HTTPStatus != 0 {
-			resultHTTPStatusCode.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, strconv.Itoa(result.HTTPStatus)).Inc()
-		}
-		if result.CertificateExpiration != 0 {
-			resultHTTPSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
-		}
+	resultTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.FormatBool(result.Success)).Inc()
+	resultDurationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(float64(result.Duration.Seconds()))
+
+	if result.Connected {
+		resultConnectedTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Inc()
+	}
+	if result.DNSRCode != "" {
+		resultDNSReturnCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), result.DNSRCode).Inc()
+	}
+	if result.HTTPStatus != 0 {
+		resultHTTPStatusCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)).Inc()
+	}
+	if result.CertificateExpiration != 0 {
+		resultSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(float64(result.CertificateExpiration.Seconds()))
 	}
 }
