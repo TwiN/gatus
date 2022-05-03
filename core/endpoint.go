@@ -18,6 +18,8 @@ import (
 	"github.com/TwiN/gatus/v3/util"
 )
 
+type EndpointType string
+
 const (
 	// HostHeader is the name of the header used to specify the host
 	HostHeader = "Host"
@@ -30,6 +32,14 @@ const (
 
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
+
+	// EndpointType enum for the endpoint type.
+	EndpointTypeDNS      EndpointType = "DNS"
+	EndpointTypeTCP      EndpointType = "TCP"
+	EndpointTypeICMP     EndpointType = "ICMP"
+	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
+	EndpointTypeTLS      EndpointType = "TLS"
+	EndpointTypeHTTP     EndpointType = "HTTP"
 )
 
 var (
@@ -103,6 +113,24 @@ func (endpoint Endpoint) IsEnabled() bool {
 		return true
 	}
 	return *endpoint.Enabled
+}
+
+// Type returns the endpoint type
+func (endpoint Endpoint) Type() EndpointType {
+	switch {
+	case endpoint.DNS != nil:
+		return EndpointTypeDNS
+	case strings.HasPrefix(endpoint.URL, "tcp://"):
+		return EndpointTypeTCP
+	case strings.HasPrefix(endpoint.URL, "icmp://"):
+		return EndpointTypeICMP
+	case strings.HasPrefix(endpoint.URL, "starttls://"):
+		return EndpointTypeSTARTTLS
+	case strings.HasPrefix(endpoint.URL, "tls://"):
+		return EndpointTypeTLS
+	default:
+		return EndpointTypeHTTP
+	}
 }
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of fields that have one
@@ -229,21 +257,16 @@ func (endpoint *Endpoint) call(result *Result) {
 	var response *http.Response
 	var err error
 	var certificate *x509.Certificate
-	isTypeDNS := endpoint.DNS != nil
-	isTypeTCP := strings.HasPrefix(endpoint.URL, "tcp://")
-	isTypeICMP := strings.HasPrefix(endpoint.URL, "icmp://")
-	isTypeSTARTTLS := strings.HasPrefix(endpoint.URL, "starttls://")
-	isTypeTLS := strings.HasPrefix(endpoint.URL, "tls://")
-	isTypeHTTP := !isTypeDNS && !isTypeTCP && !isTypeICMP && !isTypeSTARTTLS && !isTypeTLS
-	if isTypeHTTP {
+	endpointType := endpoint.Type()
+	if endpointType == EndpointTypeHTTP {
 		request = endpoint.buildHTTPRequest()
 	}
 	startTime := time.Now()
-	if isTypeDNS {
+	if endpointType == EndpointTypeDNS {
 		endpoint.DNS.query(endpoint.URL, result)
 		result.Duration = time.Since(startTime)
-	} else if isTypeSTARTTLS || isTypeTLS {
-		if isTypeSTARTTLS {
+	} else if endpointType == EndpointTypeSTARTTLS || endpointType == EndpointTypeTLS {
+		if endpointType == EndpointTypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(endpoint.URL, "starttls://"), endpoint.ClientConfig)
 		} else {
 			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(endpoint.URL, "tls://"), endpoint.ClientConfig)
@@ -254,10 +277,10 @@ func (endpoint *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
-	} else if isTypeTCP {
+	} else if endpointType == EndpointTypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if isTypeICMP {
+	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)

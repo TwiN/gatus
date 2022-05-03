@@ -2,7 +2,6 @@ package metric
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v3/core"
@@ -120,35 +119,29 @@ func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
 	resultSuccessGauge.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(map[bool]float64{true: 1, false: 0}[result.Success])
 	resultDurationGauge.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.Duration.Seconds()))
 
-	switch {
-	// DNS
-	case endpoint.DNS != nil:
+	switch endpointType := endpoint.Type(); endpointType {
+	case core.EndpointTypeDNS:
 		resultDNSReturnCode.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL, result.DNSRCode).Inc()
-	// TCP
-	case strings.HasPrefix(endpoint.URL, "tcp://"):
+	case core.EndpointTypeTCP:
 		if result.Connected {
 			resultTCPConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
 		}
-	// ICMP
-	case strings.HasPrefix(endpoint.URL, "icmp://"):
-	// STARTTLS
-	case strings.HasPrefix(endpoint.URL, "starttls://"):
+	case core.EndpointTypeICMP:
+	case core.EndpointTypeSTARTTLS:
 		if result.Connected {
 			resultStartTLSConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
 		}
 		if result.CertificateExpiration != 0 {
 			resultStartTLSSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
 		}
-	// TLS
-	case strings.HasPrefix(endpoint.URL, "tls://"):
+	case core.EndpointTypeTLS:
 		if result.Connected {
 			resultTLSConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
 		}
 		if result.CertificateExpiration != 0 {
 			resultTLSSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Set(float64(result.CertificateExpiration / time.Second))
 		}
-	// HTTP
-	default:
+	case core.EndpointTypeHTTP:
 		if result.Connected {
 			resultHTTPConnected.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, endpoint.URL).Inc()
 		}
