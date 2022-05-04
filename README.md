@@ -29,7 +29,6 @@ For more details, see [Usage](#usage)
 Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -77,8 +76,8 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
-  - [Uptime](#uptime)
-  - [Response time](#response-time)
+    - [Uptime](#uptime)
+    - [Response time](#response-time)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
