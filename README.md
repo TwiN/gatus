@@ -452,11 +452,6 @@ endpoints:
 alerting:
   googlechat: 
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
-    # You can also add group-specific to keys, which will 
-    # override the to key above for the specified groups
-    overrides:
-      - group: "core"
-        webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
 
 endpoints:
   - name: website
@@ -466,19 +461,6 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: googlechat
-        enabled: true
-        description: "healthcheck failed"
-        send-on-resolved: true
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: googlechat
         enabled: true
