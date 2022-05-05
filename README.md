@@ -633,12 +633,6 @@ endpoints:
 alerting:
   slack: 
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
-    overrides:
-      - group: "core"
-        webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
-      - group: "ui"
-        webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
-      
 
 endpoints:
   - name: website
