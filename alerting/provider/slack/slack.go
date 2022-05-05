@@ -106,11 +106,11 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 func (provider *AlertProvider) getWebhookURLForGroup(group string) string {
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-				if group == override.Group {
-						return override.WebhookURL
-				}
+			if group == override.Group {
+				return override.WebhookURL
+			}
 		}
-}
+	}
 	return provider.WebhookURL
 }
 
