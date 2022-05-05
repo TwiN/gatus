@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	
+
 	"github.com/TwiN/gatus/v3/alerting/alert"
 	"github.com/TwiN/gatus/v3/client"
 	"github.com/TwiN/gatus/v3/core"
