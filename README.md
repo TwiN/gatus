@@ -442,12 +442,16 @@ endpoints:
 **NOTE:** Some mail servers are painfully slow.
 
 #### Configuring Google Chat alerts
-| Parameter                           | Description                                                                                 | Default       |
-|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
-| `alerting.googlechat`               | Configuration for alerts of type `googlechat`                                               | `{}`          |
-| `alerting.googlechat.webhook-url`   | Google Chat Webhook URL                                                                     | Required `""` |
-| `alerting.googlechat.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
-| `alerting.googlechat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+
+| Parameter                                     | Description                                                                                 | Default       |
+|:--------------------------------------------- |:------------------------------------------------------------------------------------------- |:------------- |
+| `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
+| `alerting.googlechat.webhook-url`             | Google Chat Webhook URL                                                                     | Required `""` |
+| `alerting.googlechat.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.googlechat.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.googlechat.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
+| `alerting.googlechat.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.googlechat.overrides[].webhook-url` | Teams Webhook URL                                                                           | `""`          |
 
 ```yaml
 alerting:
