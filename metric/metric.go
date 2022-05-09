@@ -8,12 +8,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const (
+	// The prefix of the metrics
+	namespace = "gatus"
+)
+
 var (
 	// Check if the metric is initialized
 	initializedMetrics bool
-
-	// The prefix of the metrics
-	namespace string
 
 	// This will be initialized once PublishMetricsForEndpoint.
 	// The reason why we're doing this is that if metrics are disabled, we don't want to initialize it unnecessarily.
@@ -25,53 +27,51 @@ var (
 	resultSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
 )
 
-func ensurePrometheusMetrics() {
-	if !initializedMetrics {
-		initializedMetrics = true
-		namespace = "gatus"
+func initializePrometheusMetrics() {
+	resultTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "results_total",
+		Help:      "Number of results per endpoint",
+	}, []string{"key", "group", "name", "type", "success"})
 
-		resultTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_total",
-			Help:      "Number of results per endpoint",
-		}, []string{"key", "group", "name", "type", "success"})
+	resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_duration_seconds",
+		Help:      "Returns how long the watchdog took to complete in seconds",
+	}, []string{"key", "group", "name", "type"})
 
-		resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "results_duration_seconds",
-			Help:      "Returns how long the watchdog took to complete in seconds",
-		}, []string{"key", "group", "name", "type"})
+	resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "results_connected_total",
+		Help:      "Number of results connected per endpoint",
+	}, []string{"key", "group", "name", "type"})
 
-		resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_connected_total",
-			Help:      "Number of results connected per endpoint",
-		}, []string{"key", "group", "name", "type"})
+	resultDNSReturnCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "results_dns_return_code_total",
+		Help:      "Number of results DNS return code",
+	}, []string{"key", "group", "name", "type", "code"})
 
-		resultDNSReturnCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_dns_return_code_total",
-			Help:      "Number of results DNS return code",
-		}, []string{"key", "group", "name", "type", "code"})
+	resultHTTPStatusCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "results_http_status_code_total",
+		Help:      "Number of results HTTP status code",
+	}, []string{"key", "group", "name", "type", "code"})
 
-		resultHTTPStatusCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "results_http_status_code_total",
-			Help:      "Number of results HTTP status code",
-		}, []string{"key", "group", "name", "type", "code"})
-
-		resultSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "results_ssl_last_chain_expiry_timestamp_seconds",
-			Help:      "Number of results last SSL chain expiry in timestamp seconds",
-		}, []string{"key", "group", "name", "type"})
-	}
+	resultSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_ssl_last_chain_expiry_timestamp_seconds",
+		Help:      "Number of results last SSL chain expiry in timestamp seconds",
+	}, []string{"key", "group", "name", "type"})
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
 func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
-	ensurePrometheusMetrics()
+	if !initializedMetrics {
+		initializePrometheusMetrics()
+		initializedMetrics = true
+	}
 
 	endpointType := endpoint.Type()
 
