@@ -44,7 +44,7 @@ func initializePrometheusMetrics() {
 	resultCertificateExpirationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_certificate_expiration_seconds",
-		Help:      "Number of results last SSL chain expiry in timestamp seconds",
+		Help:      "Number of seconds until the certificate expires",
 	}, []string{"key", "group", "name", "type"})
 }
 
