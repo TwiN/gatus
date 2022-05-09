@@ -8,23 +8,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const (
-	// The prefix of the metrics
-	namespace = "gatus"
-)
+const namespace = "gatus" // The prefix of the metrics
 
 var (
-	// Check if the metric is initialized
-	initializedMetrics bool
+	initializedMetrics bool // Whether the metrics have been initialized
 
-	// This will be initialized once PublishMetricsForEndpoint.
-	// The reason why we're doing this is that if metrics are disabled, we don't want to initialize it unnecessarily.
-	resultTotal                              *prometheus.CounterVec
-	resultDurationSeconds                    *prometheus.GaugeVec
-	resultConnectedTotal                     *prometheus.CounterVec
-	resultDNSReturnCodeTotal                 *prometheus.CounterVec
-	resultHTTPStatusCodeTotal                *prometheus.CounterVec
-	resultSSLLastChainExpiryTimestampSeconds *prometheus.GaugeVec
+	resultTotal                        *prometheus.CounterVec
+	resultDurationSeconds              *prometheus.GaugeVec
+	resultConnectedTotal               *prometheus.CounterVec
+	resultCodeTotal                    *prometheus.CounterVec
+	resultCertificateExpirationSeconds *prometheus.GaugeVec
 )
 
 func initializePrometheusMetrics() {
@@ -33,34 +26,24 @@ func initializePrometheusMetrics() {
 		Name:      "results_total",
 		Help:      "Number of results per endpoint",
 	}, []string{"key", "group", "name", "type", "success"})
-
 	resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_duration_seconds",
-		Help:      "Returns how long the watchdog took to complete in seconds",
+		Help:      "Duration of the request in seconds",
 	}, []string{"key", "group", "name", "type"})
-
 	resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_connected_total",
-		Help:      "Number of results connected per endpoint",
+		Help:      "Total number of results in which a connection was successfully established",
 	}, []string{"key", "group", "name", "type"})
-
-	resultDNSReturnCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	resultCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
-		Name:      "results_dns_return_code_total",
-		Help:      "Number of results DNS return code",
+		Name:      "results_code_total",
+		Help:      "Total number of results by code",
 	}, []string{"key", "group", "name", "type", "code"})
-
-	resultHTTPStatusCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	resultCertificateExpirationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "results_http_status_code_total",
-		Help:      "Number of results HTTP status code",
-	}, []string{"key", "group", "name", "type", "code"})
-
-	resultSSLLastChainExpiryTimestampSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Name:      "results_ssl_last_chain_expiry_timestamp_seconds",
+		Name:      "results_certificate_expiration_seconds",
 		Help:      "Number of results last SSL chain expiry in timestamp seconds",
 	}, []string{"key", "group", "name", "type"})
 }
@@ -72,22 +55,19 @@ func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
 		initializePrometheusMetrics()
 		initializedMetrics = true
 	}
-
 	endpointType := endpoint.Type()
-
 	resultTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.FormatBool(result.Success)).Inc()
-	resultDurationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(float64(result.Duration.Seconds()))
-
+	resultDurationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(result.Duration.Seconds())
 	if result.Connected {
 		resultConnectedTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Inc()
 	}
 	if result.DNSRCode != "" {
-		resultDNSReturnCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), result.DNSRCode).Inc()
+		resultCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), result.DNSRCode).Inc()
 	}
 	if result.HTTPStatus != 0 {
-		resultHTTPStatusCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)).Inc()
+		resultCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)).Inc()
 	}
 	if result.CertificateExpiration != 0 {
-		resultSSLLastChainExpiryTimestampSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(float64(result.CertificateExpiration.Seconds()))
+		resultCertificateExpirationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(result.CertificateExpiration.Seconds())
 	}
 }
