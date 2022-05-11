@@ -23,6 +23,69 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 	}
 }
 
+func TestEndpoint_Type(t *testing.T) {
+	type fields struct {
+		URL string
+		DNS *DNS
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   EndpointType
+	}{{
+		name: "",
+		fields: fields{
+			URL: "8.8.8.8",
+			DNS: &DNS{
+				QueryType: "A",
+				QueryName: "example.com",
+			},
+		},
+		want: EndpointTypeDNS,
+	}, {
+		name: "",
+		fields: fields{
+			URL: "tcp://127.0.0.1:6379",
+		},
+		want: EndpointTypeTCP,
+	}, {
+		name: "",
+		fields: fields{
+			URL: "icmp://example.com",
+		},
+		want: EndpointTypeICMP,
+	}, {
+		name: "",
+		fields: fields{
+			URL: "starttls://smtp.gmail.com:587",
+		},
+		want: EndpointTypeSTARTTLS,
+	}, {
+		name: "",
+		fields: fields{
+			URL: "tls://example.com:443",
+		},
+		want: EndpointTypeTLS,
+	}, {
+		name: "",
+		fields: fields{
+			URL: "https://twin.sh/health",
+		},
+		want: EndpointTypeHTTP,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			endpoint := Endpoint{
+				URL: tt.fields.URL,
+				DNS: tt.fields.DNS,
+			}
+			if got := endpoint.Type(); got != tt.want {
+				t.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	endpoint := Endpoint{
