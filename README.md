@@ -281,6 +281,7 @@ the client used to send the request.
 | `client.insecure`             | Whether to skip verifying the server's certificate chain and host name.    | `false`         |
 | `client.ignore-redirect`      | Whether to ignore redirects (true) or follow them (false, default).        | `false`         |
 | `client.timeout`              | Duration before timing out.                                                | `10s`           |
+| `client.dns-resolver`         | Override the DNS resolver using the format `{proto}://{host}:{port}`.      | `""`            |
 | `client.oauth2`               | OAuth2 client configuration.                                               | `{}`            |
 | `client.oauth2.token-url`     | The token endpoint URL                                                     | required `""`   |
 | `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
@@ -308,6 +309,17 @@ endpoints:
       insecure: false
       ignore-redirect: false
       timeout: 10s
+    conditions:
+      - "[STATUS] == 200"
+```
+
+This example shows how you can use a `custom DNS Resolver`:
+```yaml
+endpoints:
+  - name: website
+    url: "https://your.health.api/getHealth"
+    client:
+      dns-resolver: "tcp://1.1.1.1:53"
     conditions:
       - "[STATUS] == 200"
 ```
