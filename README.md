@@ -56,6 +56,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Security](#security)
     - [Basic](#basic)
     - [OIDC (ALPHA)](#oidc-alpha)
+  - [Metrics](#metrics)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
@@ -1019,6 +1020,19 @@ security:
 ```
 
 **NOTE:** The OIDC feature is currently in Alpha. Breaking changes may occur. Use this feature at your own risk.
+
+
+### Metrics
+To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
+endpoint on the same port your application is configured to run on (`web.port`).
+
+| Metric name                                  | Type    | Description                                                                | Labels                          | Relevant endpoint types |
+|:---------------------------------------------|:--------|:---------------------------------------------------------------------------|:--------------------------------|:------------------------|
+| gatus_results_total                          | counter | Number of results per endpoint                                             | key, group, name, type, success | All                     |
+| gatus_results_code_total                     | counter | Total number of results by code                                            | key, group, name, type, code    | DNS, HTTP               |
+| gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |
+| gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
+| gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
 
 
 ## Deployment
