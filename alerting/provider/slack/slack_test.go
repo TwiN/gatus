@@ -141,6 +141,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
+		Endpoint     core.Endpoint
 		Alert        alert.Alert
 		Resolved     bool
 		ExpectedBody string
