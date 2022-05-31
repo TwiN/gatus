@@ -626,12 +626,14 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`               | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`   | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-
+| Parameter                                 | Description                                                                                | Default       |
+|:------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.slack`                          | Configuration for alerts of type `slack`                                                   | `{}`          |
+| `alerting.slack.webhook-url`              | Slack Webhook URL                                                                          | Required `""` |
+| `alerting.slack.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.slack.overrides`                | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.slack.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
 ```yaml
 alerting:
   slack: 
