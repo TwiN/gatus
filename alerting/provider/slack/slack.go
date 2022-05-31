@@ -30,12 +30,12 @@ type Override struct {
 func (provider *AlertProvider) IsValid() bool {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
-			for _, override := range provider.Overrides {
-					if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.WebhookURL) == 0 {
-							return false
-					}
-					registeredGroups[override.Group] = true
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.WebhookURL) == 0 {
+				return false
 			}
+			registeredGroups[override.Group] = true
+		}
 	}
 	return len(provider.WebhookURL) > 0
 }
