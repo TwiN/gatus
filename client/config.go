@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	ErrInvalidDNSResolver = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
+	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidClientOAuth2Config = errors.New("invalid OAuth2 configuration, all fields are required")
 
 	defaultConfig = Config{
@@ -46,7 +46,7 @@ type Config struct {
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
-	// DNS Resolver override for the HTTPClient
+	// DNSResolver override for the HTTPClient
 	// Expected format is {protocol}://{host}:{port}
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
