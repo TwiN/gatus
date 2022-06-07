@@ -2,7 +2,7 @@ package client
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -180,7 +180,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 			if r.Host == "token-server.local" {
 				return &http.Response{
 					StatusCode: http.StatusOK,
-					Body: ioutil.NopCloser(bytes.NewReader(
+					Body: io.NopCloser(bytes.NewReader(
 						[]byte(
 							`{"token_type":"Bearer","expires_in":3599,"ext_expires_in":3599,"access_token":"secret-token"}`,
 						),

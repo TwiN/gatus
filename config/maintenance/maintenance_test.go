@@ -99,6 +99,15 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "every-day-explicitly-at-2300",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: time.Hour,
+				Every:    []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
+			},
+			expectedError: nil,
+		},
+		{
 			name: "every-monday-at-0000",
 			cfg: &Config{
 				Start:    "00:00",
@@ -169,10 +178,36 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "under-maintenance-starting-now-for-8h-explicit-days",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 8 * time.Hour,
+				Every:    []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
+			},
+			expected: true,
+		},
+		{
+			name: "under-maintenance-starting-now-for-23h-explicit-days",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 23 * time.Hour,
+				Every:    []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
+			},
+			expected: true,
+		},
+		{
 			name: "under-maintenance-starting-4h-ago-for-8h",
 			cfg: &Config{
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
 				Duration: 8 * time.Hour,
+			},
+			expected: true,
+		},
+		{
+			name: "under-maintenance-starting-22h-ago-for-23h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-22)),
+				Duration: 23 * time.Hour,
 			},
 			expected: true,
 		},

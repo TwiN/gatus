@@ -7,8 +7,8 @@ github.com/TwiN/gocache
 # github.com/TwiN/gocache/v2 v2.0.0
 ## explicit; go 1.17
 github.com/TwiN/gocache/v2
-# github.com/TwiN/health v1.3.0
-## explicit; go 1.17
+# github.com/TwiN/health v1.4.0
+## explicit; go 1.18
 github.com/TwiN/health
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11

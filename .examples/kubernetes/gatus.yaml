@@ -54,10 +54,10 @@ spec:
       app: gatus
   template:
     metadata:
-      labels:
-        app: gatus
       name: gatus
       namespace: kube-system
+      labels:
+        app: gatus
     spec:
       serviceAccountName: gatus
       terminationGracePeriodSeconds: 5
@@ -76,6 +76,22 @@ spec:
             requests:
               cpu: 50m
               memory: 30M
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
           volumeMounts:
             - mountPath: /config
               name: gatus-config
