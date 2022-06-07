@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v3/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v3/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v3/alerting/provider/slack"
 	"github.com/TwiN/gatus/v3/alerting/provider/teams"
@@ -58,6 +59,7 @@ var (
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
+	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
