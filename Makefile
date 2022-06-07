@@ -1,5 +1,8 @@
 BINARY=gatus
 
+# Because there's a folder called "test", we need to make the target "test" phony
+.PHONY: test
+
 install:
 	go build -mod vendor -o $(BINARY) .
 
@@ -10,7 +13,7 @@ clean:
 	rm $(BINARY)
 
 test:
-	sudo go test ./alerting/... ./client/... ./config/... ./controller/... ./core/... ./jsonpath/... ./pattern/... ./security/... ./storage/... ./util/... ./watchdog/... -cover
+	go test ./... -cover
 
 
 ##########
