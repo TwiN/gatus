@@ -50,48 +50,28 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription string, resolved bool) *http.Request {
-	body := provider.Body
-	providerURL := provider.URL
-	method := provider.Method
-
-	if strings.Contains(body, "[ALERT_DESCRIPTION]") {
-		body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alertDescription)
-	}
-	if strings.Contains(body, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
-		body = strings.ReplaceAll(body, "[SERVICE_NAME]", endpointName)
-	}
-	if strings.Contains(body, "[ENDPOINT_NAME]") {
-		body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpointName)
-	}
-	if strings.Contains(body, "[ALERT_TRIGGERED_OR_RESOLVED]") {
-		if resolved {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
-		} else {
-			body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
-		}
-	}
-	if strings.Contains(providerURL, "[ALERT_DESCRIPTION]") {
-		providerURL = strings.ReplaceAll(providerURL, "[ALERT_DESCRIPTION]", alertDescription)
-	}
-	if strings.Contains(providerURL, "[SERVICE_NAME]") { // XXX: Remove this in v4.0.0
-		providerURL = strings.ReplaceAll(providerURL, "[SERVICE_NAME]", endpointName)
-	}
-	if strings.Contains(providerURL, "[ENDPOINT_NAME]") {
-		providerURL = strings.ReplaceAll(providerURL, "[ENDPOINT_NAME]", endpointName)
-	}
-	if strings.Contains(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]") {
-		if resolved {
-			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
-		} else {
-			providerURL = strings.ReplaceAll(providerURL, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
-		}
+func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
+	body, url, method := provider.Body, provider.URL, provider.Method
+	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpoint.Name)
+	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", endpoint.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", endpoint.Group)
+	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", endpoint.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", endpoint.URL)
+	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", endpoint.URL)
+	if resolved {
+		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
+		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
+	} else {
+		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
+		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
 	}
 	if len(method) == 0 {
 		method = http.MethodGet
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
-	request, _ := http.NewRequest(method, providerURL, bodyBuffer)
+	request, _ := http.NewRequest(method, url, bodyBuffer)
 	for k, v := range provider.Headers {
 		request.Header.Set(k, v)
 	}
@@ -99,7 +79,7 @@ func (provider *AlertProvider) buildHTTPRequest(endpointName, alertDescription s
 }
 
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	request := provider.buildHTTPRequest(endpoint.Name, alert.GetDescription(), resolved)
+	request := provider.buildHTTPRequest(endpoint, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return err

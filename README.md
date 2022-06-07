@@ -803,8 +803,11 @@ leveraging Gatus, you could have Gatus call that application endpoint when an en
 would then check if the endpoint that started failing was part of the recently deployed application, and if it was,
 then automatically roll it back.
 
-The placeholders `[ALERT_DESCRIPTION]` and `[ENDPOINT_NAME]` are automatically substituted for the alert description and
-the endpoint name. These placeholders can be used in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`).
+Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
+- `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications. 
@@ -819,7 +822,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
       }
 endpoints:
   - name: website
