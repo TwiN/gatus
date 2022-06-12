@@ -369,7 +369,7 @@ alerting:
 endpoints:
   - name: website
     url: "https://twin.sh/health"
-    interval: 30s
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
