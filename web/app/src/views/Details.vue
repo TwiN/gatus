@@ -128,7 +128,7 @@ export default {
                     event.fancyText = 'Endpoint became healthy';
                   } else if (event.type === 'UNHEALTHY') {
                     if (nextEvent) {
-                      event.fancyText = 'Endpoint was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
+                      event.fancyText = 'Endpoint was unhealthy for ' + this.generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp);
                     } else {
                       event.fancyText = 'Endpoint became unhealthy';
                     }
@@ -157,10 +157,6 @@ export default {
     },
     generateResponseTimeChartImageURL() {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
-    },
-    prettifyTimeDifference(start, end) {
-      let minutes = Math.ceil((new Date(start) - new Date(end)) / 1000 / 60);
-      return minutes + (minutes === 1 ? ' minute' : ' minutes');
     },
     changePage(page) {
       this.currentPage = page;

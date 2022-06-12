@@ -17,6 +17,10 @@ export const helper = {
       let seconds = (differenceInMs / 1000).toFixed(0);
 			return seconds + " second" + (seconds !== "1" ? "s" : "") + " ago";
 		},
+    generatePrettyTimeDifference(start, end) {
+      let minutes = Math.ceil((new Date(start) - new Date(end)) / 1000 / 60);
+      return minutes + (minutes === 1 ? ' minute' : ' minutes');
+    },
     prettifyTimestamp(timestamp) {
       let date = new Date(timestamp);
       let YYYY = date.getFullYear();
