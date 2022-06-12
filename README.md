@@ -1183,6 +1183,8 @@ endpoints:
 Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`, 
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
+This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
+
 **NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's 
 something at the given address listening to the given port, and that a connection to that address was successfully 
 established.
