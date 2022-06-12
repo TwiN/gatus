@@ -314,11 +314,11 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-This example shows how you can use a `custom DNS Resolver`:
+This example shows how you can specify a custom DNS resolver:
 ```yaml
 endpoints:
-  - name: website
-    url: "https://your.health.api/getHealth"
+  - name: with-custom-dns-resolver
+    url: "https://your.health.api/health"
     client:
       dns-resolver: "tcp://1.1.1.1:53"
     conditions:
@@ -328,8 +328,8 @@ endpoints:
 This example shows how you can use the `client.oauth2` configuration to query a backend API with `Bearer token`:
 ```yaml
 endpoints:
-  - name: website
-    url: "https://your.health.api/getHealth"
+  - name: with-custom-oauth2
+    url: "https://your.health.api/health"
     client:
       oauth2:
         token-url: https://your-token-server/token

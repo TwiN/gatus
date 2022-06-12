@@ -58,44 +58,42 @@ func TestPing(t *testing.T) {
 
 func TestDNSResolverConfig(t *testing.T) {
 	type args struct {
-		resolver string
+		dnsResolver string
 	}
-
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
 		{
-			name: "Valid resolver",
+			name: "valid resolver",
 			args: args{
-				resolver: "tcp://1.1.1.1:53",
+				dnsResolver: "tcp://1.1.1.1:53",
 			},
 			wantErr: false,
 		},
 		{
-			name: "Invalid resolver address/port",
+			name: "invalid resolver port",
 			args: args{
-				resolver: "tcp://127.0.0.1:99999",
+				dnsResolver: "tcp://127.0.0.1:99999",
 			},
 			wantErr: true,
 		},
 		{
-			name: "Invalid resolver format",
+			name: "invalid resolver format",
 			args: args{
-				resolver: "foobaz",
+				dnsResolver: "foobar",
 			},
 			wantErr: true,
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &Config{
-				DNSResolver: tt.args.resolver,
+				DNSResolver: tt.args.dnsResolver,
 			}
 			client := GetHTTPClient(cfg)
-			_, err := client.Get("https://www.google.com")
+			_, err := client.Get("https://example.org")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TestDNSResolverConfig err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -214,16 +212,13 @@ func TestCanCreateTCPConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
-
 	defer InjectHTTPClient(nil)
-
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
 		ClientSecret: "secretsauce",
 		TokenURL:     "https://token-server.local/token",
 		Scopes:       []string{"https://application.local/.default"},
 	}
-
 	mockHttpClient := &http.Client{
 		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
 
@@ -239,7 +234,6 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 					)),
 				}
 			}
-
 			// to verify the headers were sent as expected, we echo them back in the
 			// `X-Org-Authorization` header and check if the token value matches our
 			// mocked `token-server` response
@@ -252,24 +246,19 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 			}
 		}),
 	}
-
 	mockHttpClientWithOAuth := configureOAuth2(mockHttpClient, *oAuth2Config)
 	InjectHTTPClient(mockHttpClientWithOAuth)
-
 	request, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:8282", http.NoBody)
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
 	}
-
 	response, err := mockHttpClientWithOAuth.Do(request)
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
 	}
-
 	if response.Header == nil {
 		t.Error("expected response headers, but got nil")
 	}
-
 	// the mock response echos the Authorization header used in the request back
 	// to us as `X-Org-Authorization` header, we check here if the value matches
 	// our expected token `secret-token`
