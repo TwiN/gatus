@@ -445,7 +445,7 @@ endpoints:
 #### Configuring Google Chat alerts
 
 | Parameter                                     | Description                                                                                 | Default       |
-|:--------------------------------------------- |:------------------------------------------------------------------------------------------- |:------------- |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
 | `alerting.googlechat.webhook-url`             | Google Chat Webhook URL                                                                     | Required `""` |
 | `alerting.googlechat.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
