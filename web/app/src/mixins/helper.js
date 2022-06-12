@@ -14,7 +14,8 @@ export const helper = {
 				let minutes = (differenceInMs / 60000).toFixed(0);
 				return minutes + " minute" + (minutes !== "1" ? "s" : "") + " ago";
 			}
-			return (differenceInMs / 1000).toFixed(0) + " seconds ago";
+      let seconds = (differenceInMs / 1000).toFixed(0);
+			return seconds + " second" + (seconds !== "1" ? "s" : "") + " ago";
 		},
     prettifyTimestamp(timestamp) {
       let date = new Date(timestamp);
