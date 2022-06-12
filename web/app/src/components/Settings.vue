@@ -59,7 +59,7 @@ export default {
   },
   created() {
     if (this.refreshInterval !== 10 && this.refreshInterval !== 30 && this.refreshInterval !== 60 && this.refreshInterval !== 120 && this.refreshInterval !== 300 && this.refreshInterval !== 600) {
-      this.refreshInterval = 60;
+      this.refreshInterval = 300;
     }
     this.setRefreshInterval(this.refreshInterval);
     // dark mode
@@ -70,7 +70,7 @@ export default {
   },
   data() {
     return {
-      refreshInterval: sessionStorage.getItem('gatus:refresh-interval') < 10 ? 60 : parseInt(sessionStorage.getItem('gatus:refresh-interval')),
+      refreshInterval: sessionStorage.getItem('gatus:refresh-interval') < 10 ? 300 : parseInt(sessionStorage.getItem('gatus:refresh-interval')),
       refreshIntervalHandler: 0,
       darkMode: true
     }
