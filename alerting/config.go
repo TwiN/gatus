@@ -65,12 +65,6 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Custom
-	case alert.TypeGoogleChat:
-		if config.GoogleChat == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.GoogleChat
 	case alert.TypeDiscord:
 		if config.Discord == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
@@ -83,6 +77,12 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Email
+	case alert.TypeGoogleChat:
+		if config.GoogleChat == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.GoogleChat
 	case alert.TypeMattermost:
 		if config.Mattermost == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
