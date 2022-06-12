@@ -15,6 +15,7 @@ func TestGetHTTPClient(t *testing.T) {
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        0,
+		DNSResolver:    "tcp://1.1.1.1:53",
 		OAuth2Config: &OAuth2Config{
 			ClientID:     "00000000-0000-0000-0000-000000000000",
 			ClientSecret: "secretsauce",
@@ -22,7 +23,10 @@ func TestGetHTTPClient(t *testing.T) {
 			Scopes:       []string{"https://application.local/.default"},
 		},
 	}
-	cfg.ValidateAndSetDefaults()
+	err := cfg.ValidateAndSetDefaults()
+	if err != nil {
+		t.Errorf("expected error to be nil, but got: `%s`", err)
+	}
 	if GetHTTPClient(cfg) == nil {
 		t.Error("expected client to not be nil")
 	}
@@ -49,6 +53,54 @@ func TestPing(t *testing.T) {
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
+	}
+}
+
+func TestDNSResolverConfig(t *testing.T) {
+	type args struct {
+		resolver string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Valid resolver",
+			args: args{
+				resolver: "tcp://1.1.1.1:53",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid resolver address/port",
+			args: args{
+				resolver: "tcp://127.0.0.1:99999",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid resolver format",
+			args: args{
+				resolver: "foobaz",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				DNSResolver: tt.args.resolver,
+			}
+			client := GetHTTPClient(cfg)
+			_, err := client.Get("https://www.google.com")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TestDNSResolverConfig err=%v, wantErr=%v", err, tt.wantErr)
+				return
+			}
+		})
 	}
 }
 
