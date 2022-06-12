@@ -1,11 +1,12 @@
 <template>
-  <Loading v-if="!retrievedData" class="h-64 w-64 px-4 my-24" />
+  <Loading v-if="!retrievedData" class="h-64 w-64 px-4 my-24"/>
   <slot v-else>
     <Endpoints
         :endpointStatuses="endpointStatuses"
         :showStatusOnHover="true"
         @showTooltip="showTooltip"
-        @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime"
+        @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
+        :showAverageResponseTime="showAverageResponseTime"
     />
     <Pagination @page="changePage"/>
   </slot>
