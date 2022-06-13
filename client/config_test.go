@@ -35,3 +35,47 @@ func TestConfig_getHTTPClient(t *testing.T) {
 		t.Error("expected Config.IgnoreRedirect set to true to cause the HTTP client's CheckRedirect to return http.ErrUseLastResponse")
 	}
 }
+
+func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
+	type args struct {
+		dnsResolver string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "with-valid-resolver",
+			args: args{
+				dnsResolver: "tcp://1.1.1.1:53",
+			},
+			wantErr: false,
+		},
+		{
+			name: "with-invalid-resolver-port",
+			args: args{
+				dnsResolver: "tcp://127.0.0.1:99999",
+			},
+			wantErr: true,
+		},
+		{
+			name: "with-invalid-resolver-format",
+			args: args{
+				dnsResolver: "foobar",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				DNSResolver: tt.args.dnsResolver,
+			}
+			err := cfg.ValidateAndSetDefaults()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateAndSetDefaults() error=%v, wantErr=%v", err, tt.wantErr)
+			}
+		})
+	}
+}
