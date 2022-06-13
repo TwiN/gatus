@@ -22,7 +22,7 @@ var (
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,

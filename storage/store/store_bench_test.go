@@ -1,6 +1,7 @@
 package store
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -48,23 +49,34 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 		},
 	}
 	for _, scenario := range scenarios {
-		scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
-		scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
-		b.Run(scenario.Name, func(b *testing.B) {
-			if scenario.Parallel {
-				b.RunParallel(func(pb *testing.PB) {
-					for pb.Next() {
-						scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
-					}
-				})
-			} else {
-				for n := 0; n < b.N; n++ {
-					scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+		numberOfEndpoints := []int{10, 25, 50, 100}
+		for _, numberOfEndpointsToCreate := range numberOfEndpoints {
+			// Create endpoints and insert results
+			for i := 0; i < numberOfEndpointsToCreate; i++ {
+				endpoint := testEndpoint
+				endpoint.Name = "endpoint" + strconv.Itoa(i)
+				// Insert 20 results for each endpoint
+				for j := 0; j < 20; j++ {
+					scenario.Store.Insert(&endpoint, &testSuccessfulResult)
 				}
 			}
-			b.ReportAllocs()
-		})
-		scenario.Store.Clear()
+			// Run the scenarios
+			b.Run(scenario.Name+"-with-"+strconv.Itoa(numberOfEndpointsToCreate)+"-endpoints", func(b *testing.B) {
+				if scenario.Parallel {
+					b.RunParallel(func(pb *testing.PB) {
+						for pb.Next() {
+							_, _ = scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+						}
+					})
+				} else {
+					for n := 0; n < b.N; n++ {
+						_, _ = scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+					}
+				}
+				b.ReportAllocs()
+			})
+			scenario.Store.Clear()
+		}
 	}
 }
 
