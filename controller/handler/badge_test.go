@@ -13,7 +13,7 @@ import (
 	"github.com/TwiN/gatus/v3/watchdog"
 )
 
-func TestUptimeBadge(t *testing.T) {
+func TestBadge(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
@@ -29,8 +29,8 @@ func TestUptimeBadge(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
 	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
 	type Scenario struct {
 		Name         string
@@ -87,6 +87,21 @@ func TestUptimeBadge(t *testing.T) {
 		{
 			Name:         "badge-response-time-for-invalid-key",
 			Path:         "/api/v1/endpoints/invalid_key/response-times/7d/badge.svg",
+			ExpectedCode: http.StatusNotFound,
+		},
+		{
+			Name:         "badge-status-up",
+			Path:         "/api/v1/endpoints/core_frontend/status/badge.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-status-down",
+			Path:         "/api/v1/endpoints/core_backend/status/badge.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-status-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/status/badge.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
@@ -225,6 +240,33 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		t.Run("response-time-"+strconv.Itoa(scenario.ResponseTime), func(t *testing.T) {
 			if getBadgeColorFromResponseTime(scenario.ResponseTime) != scenario.ExpectedColor {
 				t.Errorf("expected %s from %d, got %v", scenario.ExpectedColor, scenario.ResponseTime, getBadgeColorFromResponseTime(scenario.ResponseTime))
+			}
+		})
+	}
+}
+
+func TestGetBadgeColorFromStatus(t *testing.T) {
+	scenarios := []struct {
+		Status        string
+		ExpectedColor string
+	}{
+		{
+			Status:        STATUS_UP,
+			ExpectedColor: badgeColorHexAwesome,
+		},
+		{
+			Status:        STATUS_DOWN,
+			ExpectedColor: badgeColorHexVeryBad,
+		},
+		{
+			Status:        STATUS_UNKNOWN,
+			ExpectedColor: badgeColorHexPassable,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run("response-time-"+scenario.Status, func(t *testing.T) {
+			if getBadgeColorFromStatus(scenario.Status) != scenario.ExpectedColor {
+				t.Errorf("expected %s from %s, got %v", scenario.ExpectedColor, scenario.Status, getBadgeColorFromStatus(scenario.Status))
 			}
 		})
 	}
