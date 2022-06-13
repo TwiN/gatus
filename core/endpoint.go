@@ -224,6 +224,12 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	// No need to keep the body after the endpoint has been evaluated
 	result.body = nil
 	// Clean up parameters that we don't need to keep in the results
+	if endpoint.UIConfig.HideURL {
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
+		}
+		result.Hostname = ""
+	}
 	if endpoint.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
