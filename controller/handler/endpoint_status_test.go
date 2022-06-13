@@ -13,10 +13,6 @@ import (
 )
 
 var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
-
 	timestamp = time.Now()
 
 	testEndpoint = core.Endpoint{
@@ -26,7 +22,7 @@ var (
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{core.Condition("[STATUS] == 200"), core.Condition("[RESPONSE_TIME] < 500"), core.Condition("[CERTIFICATE_EXPIRATION] < 72h")},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,

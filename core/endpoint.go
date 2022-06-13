@@ -89,7 +89,7 @@ type Endpoint struct {
 	Interval time.Duration `yaml:"interval,omitempty"`
 
 	// Conditions used to determine the health of the endpoint
-	Conditions []*Condition `yaml:"conditions"`
+	Conditions []Condition `yaml:"conditions"`
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`

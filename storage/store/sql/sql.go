@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -579,7 +580,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 				WHERE endpoint_result_id IN (`
 	index := 1
 	for endpointResultID := range idResultMap {
-		query += fmt.Sprintf("$%d,", index)
+		query += "$" + strconv.Itoa(index) + ","
 		args = append(args, endpointResultID)
 		index++
 	}
