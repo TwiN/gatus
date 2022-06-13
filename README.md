@@ -493,6 +493,9 @@ endpoints:
 | `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""` |
 | `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.mattermist.overrides[].webhook-url` | Mattermost Webhook URL                                                                          | `""`          |
 
 ```yaml
 alerting:
@@ -500,10 +503,26 @@ alerting:
     webhook-url: "http://**********/hooks/**********"
     client:
       insecure: true
+    overrides:
+      - group: "core"
+        webhook-url: "http://**********/hooks/**********/another"
 
 endpoints:
   - name: website
     url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: mattermost
+        enabled: true
+        description: "healthcheck failed"
+        send-on-resolved: true
+  - name: another-website
+    group: core
+    url: "https://example.org"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
