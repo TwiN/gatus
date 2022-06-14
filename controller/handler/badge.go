@@ -23,9 +23,9 @@ const (
 )
 
 const (
-	STATUS_UP      = "up"
-	STATUS_DOWN    = "down"
-	STATUS_UNKNOWN = "?"
+	StatusUp      = "up"
+	StatusDown    = "down"
+	StatusUnknown = "?"
 )
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
@@ -118,12 +118,12 @@ func StatusBadge(writer http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	statusValue := STATUS_UNKNOWN
+	statusValue := StatusUnknown
 	if len(status.Results) > 0 {
 		if status.Results[0].Connected {
-			statusValue = STATUS_UP
+			statusValue = StatusUp
 		} else {
-			statusValue = STATUS_DOWN
+			statusValue = StatusDown
 		}
 	}
 	writer.Header().Set("Content-Type", "image/svg+xml")
@@ -265,11 +265,11 @@ func getBadgeColorFromResponseTime(responseTime int) string {
 func generateStatusBadgeSVG(status string) []byte {
 	var labelWidth, valueWidth int
 	switch status {
-	case STATUS_UP:
+	case StatusUp:
 		valueWidth = 18
-	case STATUS_DOWN:
+	case StatusDown:
 		valueWidth = 36
-	case STATUS_UNKNOWN:
+	case StatusUnknown:
 		valueWidth = 10
 	default:
 	}
@@ -312,9 +312,9 @@ func generateStatusBadgeSVG(status string) []byte {
 }
 
 func getBadgeColorFromStatus(status string) string {
-	if status == STATUS_UP {
+	if status == StatusUp {
 		return badgeColorHexAwesome
-	} else if status == STATUS_DOWN {
+	} else if status == StatusDown {
 		return badgeColorHexVeryBad
 	}
 	return badgeColorHexPassable

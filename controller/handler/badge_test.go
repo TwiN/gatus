@@ -251,15 +251,15 @@ func TestGetBadgeColorFromStatus(t *testing.T) {
 		ExpectedColor string
 	}{
 		{
-			Status:        STATUS_UP,
+			Status:        StatusUp,
 			ExpectedColor: badgeColorHexAwesome,
 		},
 		{
-			Status:        STATUS_DOWN,
+			Status:        StatusDown,
 			ExpectedColor: badgeColorHexVeryBad,
 		},
 		{
-			Status:        STATUS_UNKNOWN,
+			Status:        StatusUnknown,
 			ExpectedColor: badgeColorHexPassable,
 		},
 	}
