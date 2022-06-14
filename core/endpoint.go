@@ -228,7 +228,6 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
 		}
-		result.Hostname = ""
 	}
 	if endpoint.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
