@@ -27,7 +27,7 @@ type AlertProvider struct {
 
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group string `yaml:"group"`
+	Group      string `yaml:"group"`
 	WebhookURL string `yaml:"webhook-url"`
 }
 
@@ -36,9 +36,8 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
 	}
-
-	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
+		registeredGroups := make(map[string]bool)
 		for _, override := range provider.Overrides {
 			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.WebhookURL) == 0 {
 				return false
@@ -46,7 +45,6 @@ func (provider *AlertProvider) IsValid() bool {
 			registeredGroups[override.Group] = true
 		}
 	}
-
 	return len(provider.WebhookURL) > 0
 }
 

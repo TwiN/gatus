@@ -503,26 +503,10 @@ alerting:
     webhook-url: "http://**********/hooks/**********"
     client:
       insecure: true
-    overrides:
-      - group: "core"
-        webhook-url: "http://**********/hooks/**********/another"
 
 endpoints:
   - name: website
     url: "https://twin.sh/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: mattermost
-        enabled: true
-        description: "healthcheck failed"
-        send-on-resolved: true
-  - name: another-website
-    group: core
-    url: "https://example.org"
     interval: 30s
     conditions:
       - "[STATUS] == 200"
