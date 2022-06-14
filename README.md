@@ -487,15 +487,15 @@ endpoints:
 ```
 
 #### Configuring Mattermost alerts
-| Parameter                           | Description                                                                                 | Default       |
-|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
-| `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`          |
-| `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""` |
-| `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
-| `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
-| `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.mattermist.overrides[].webhook-url` | Mattermost Webhook URL                                                                          | `""`          |
+| Parameter                                     | Description                                                                                 | Default       |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
+| `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
+| `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
+| `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.mattermist.overrides[].webhook-url` | Mattermost Webhook URL                                                                      | `""`          |
 
 ```yaml
 alerting:
