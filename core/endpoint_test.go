@@ -402,8 +402,11 @@ func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	endpoint := Endpoint{
 		Name:       "invalid-url",
-		URL:        "https://httpstat.us/200?sleep=60000",
+		URL:        "https://httpstat.us/200?sleep=100",
 		Conditions: []*Condition{&condition},
+		ClientConfig: &client.Config{
+			Timeout: 1 * time.Millisecond,
+		},
 		UIConfig: &ui.Config{
 			HideURL: true,
 		},
@@ -418,9 +421,6 @@ func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
 	}
 	if !strings.Contains(result.Errors[0], "<redacted>") || strings.Contains(result.Errors[0], endpoint.URL) {
 		t.Error("result.Errors[0] should've had the URL redacted because ui.hide-url is set to true")
-	}
-	if result.Hostname != "" {
-		t.Error("result.Hostname should've been empty because ui.hide-url is set to true")
 	}
 }
 
