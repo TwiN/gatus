@@ -120,7 +120,7 @@ func StatusBadge(writer http.ResponseWriter, request *http.Request) {
 	}
 	statusValue := StatusUnknown
 	if len(status.Results) > 0 {
-		if status.Results[0].Connected {
+		if status.Results[0].Success {
 			statusValue = StatusUp
 		} else {
 			statusValue = StatusDown
