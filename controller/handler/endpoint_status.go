@@ -13,7 +13,7 @@ import (
 	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
 	"github.com/TwiN/gatus/v3/storage/store/common/paging"
-	"github.com/TwiN/gocache"
+	"github.com/TwiN/gocache/v2"
 	"github.com/gorilla/mux"
 )
 
