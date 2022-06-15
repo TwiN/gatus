@@ -1210,7 +1210,7 @@ endpoints:
 		t.Errorf("config.Security.Basic.Username should've been %s, but was %s", expectedUsername, config.Security.Basic.Username)
 	}
 	if config.Security.Basic.PasswordBcryptHashBase64Encoded != expectedPasswordHash {
-		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
+		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordBcryptHashBase64Encoded)
 	}
 }
 
