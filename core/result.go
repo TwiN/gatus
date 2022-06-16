@@ -10,6 +10,8 @@ type Result struct {
 	HTTPStatus int `json:"status"`
 
 	// DNSRCode is the response code of a DNS query in a human-readable format
+	//
+	// Possible values: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
 	DNSRCode string `json:"-"`
 
 	// Hostname extracted from Endpoint.URL
