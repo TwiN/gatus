@@ -399,11 +399,11 @@ func TestIntegrationEvaluateHealthWithError(t *testing.T) {
 }
 
 func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
+	condition := 
 	endpoint := Endpoint{
 		Name:       "invalid-url",
 		URL:        "https://httpstat.us/200?sleep=100",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{Condition("[STATUS] == 200")},
 		ClientConfig: &client.Config{
 			Timeout: 1 * time.Millisecond,
 		},
