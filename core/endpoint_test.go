@@ -399,7 +399,6 @@ func TestIntegrationEvaluateHealthWithError(t *testing.T) {
 }
 
 func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
-	condition := 
 	endpoint := Endpoint{
 		Name:       "invalid-url",
 		URL:        "https://httpstat.us/200?sleep=100",
