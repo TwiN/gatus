@@ -33,18 +33,10 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
-	// XXX: Remove the lines between this and the next XXX comment in v4.0.0
-	protected.HandleFunc("/v1/services/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
-	protected.HandleFunc("/v1/services/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
-	unprotected.HandleFunc("/v1/services/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
-	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
-	unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
-	// XXX: Remove the lines between this and the previous XXX comment in v4.0.0
 	// Misc
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", FavIcon(staticFolder)).Methods("GET")
 	// SPA
-	router.HandleFunc("/services/{name}", SinglePageApplication(staticFolder, uiConfig)).Methods("GET") // XXX: Remove this in v4.0.0
 	router.HandleFunc("/endpoints/{name}", SinglePageApplication(staticFolder, uiConfig)).Methods("GET")
 	router.HandleFunc("/", SinglePageApplication(staticFolder, uiConfig)).Methods("GET")
 	// Everything else falls back on static content

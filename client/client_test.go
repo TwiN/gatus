@@ -56,52 +56,6 @@ func TestPing(t *testing.T) {
 	}
 }
 
-func TestDNSResolverConfig(t *testing.T) {
-	type args struct {
-		dnsResolver string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "valid resolver",
-			args: args{
-				dnsResolver: "tcp://1.1.1.1:53",
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid resolver port",
-			args: args{
-				dnsResolver: "tcp://127.0.0.1:99999",
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid resolver format",
-			args: args{
-				dnsResolver: "foobar",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{
-				DNSResolver: tt.args.dnsResolver,
-			}
-			client := GetHTTPClient(cfg)
-			_, err := client.Get("https://example.org")
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TestDNSResolverConfig err=%v, wantErr=%v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
 		address  string
@@ -221,7 +175,6 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 	}
 	mockHttpClient := &http.Client{
 		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
-
 			// if the mock HTTP client tries to get a token from the `token-server`
 			// we provide the expected token response
 			if r.Host == "token-server.local" {

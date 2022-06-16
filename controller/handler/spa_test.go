@@ -48,11 +48,6 @@ func TestSinglePageApplication(t *testing.T) {
 			Path:         "/endpoints/core_frontend",
 			ExpectedCode: http.StatusOK,
 		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "frontend-service",
-			Path:         "/services/core_frontend",
-			ExpectedCode: http.StatusOK,
-		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

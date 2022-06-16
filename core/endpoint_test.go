@@ -80,11 +80,10 @@ func TestEndpoint_Type(t *testing.T) {
 }
 
 func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{Condition("[STATUS] == 200")},
 		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
 	endpoint.ValidateAndSetDefaults()
@@ -129,7 +128,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 		ClientConfig: &client.Config{
 			Insecure:       true,
 			IgnoreRedirect: true,
@@ -158,7 +157,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithNoName(t *testing.T) {
 	endpoint := &Endpoint{
 		Name:       "",
 		URL:        "http://example.com",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 	}
 	err := endpoint.ValidateAndSetDefaults()
 	if err == nil {
@@ -172,7 +171,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
 	endpoint := &Endpoint{
 		Name:       "example",
 		URL:        "",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 	}
 	err := endpoint.ValidateAndSetDefaults()
 	if err == nil {
@@ -194,7 +193,6 @@ func TestEndpoint_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
 }
 
 func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
-	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	endpoint := &Endpoint{
 		Name: "dns-test",
 		URL:  "http://example.com",
@@ -202,7 +200,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 			QueryType: "A",
 			QueryName: "example.com",
 		},
-		Conditions: []*Condition{&conditionSuccess},
+		Conditions: []Condition{Condition("[DNS_RCODE] == NOERROR")},
 	}
 	err := endpoint.ValidateAndSetDefaults()
 	if err != nil {
@@ -218,7 +216,7 @@ func TestEndpoint_buildHTTPRequest(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 	}
 	endpoint.ValidateAndSetDefaults()
 	request := endpoint.buildHTTPRequest()
@@ -238,7 +236,7 @@ func TestEndpoint_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 		Headers: map[string]string{
 			"User-Agent": "Test/2.0",
 		},
@@ -262,7 +260,7 @@ func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
 		Method:     "POST",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 		Headers: map[string]string{
 			"Host": "example.com",
 		},
@@ -283,7 +281,7 @@ func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 		Name:       "website-graphql",
 		URL:        "https://twin.sh/graphql",
 		Method:     "POST",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 		GraphQL:    true,
 		Body: `{
   users(gender: "female") {
@@ -314,7 +312,7 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition, &bodyCondition},
+		Conditions: []Condition{condition, bodyCondition},
 	}
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
@@ -337,7 +335,7 @@ func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 	}
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
@@ -357,7 +355,7 @@ func TestIntegrationEvaluateHealthWithInvalidCondition(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "invalid-condition",
 		URL:        "https://twin.sh/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 	}
 	if err := endpoint.ValidateAndSetDefaults(); err != nil {
 		// XXX: Should this really not return an error? After all, the condition is not valid and conditions are part of the endpoint...
@@ -377,7 +375,7 @@ func TestIntegrationEvaluateHealthWithError(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "invalid-host",
 		URL:        "http://invalid/health",
-		Conditions: []*Condition{&condition},
+		Conditions: []Condition{condition},
 		UIConfig: &ui.Config{
 			HideHostname: true,
 		},
@@ -433,7 +431,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 			QueryType: "A",
 			QueryName: "example.com.",
 		},
-		Conditions: []*Condition{&conditionSuccess, &conditionBody},
+		Conditions: []Condition{conditionSuccess, conditionBody},
 	}
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
@@ -453,7 +451,7 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "icmp-test",
 		URL:        "icmp://127.0.0.1",
-		Conditions: []*Condition{&conditionSuccess},
+		Conditions: []Condition{conditionSuccess},
 	}
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
@@ -473,7 +471,7 @@ func TestEndpoint_getIP(t *testing.T) {
 	endpoint := Endpoint{
 		Name:       "invalid-url-test",
 		URL:        "",
-		Conditions: []*Condition{&conditionSuccess},
+		Conditions: []Condition{conditionSuccess},
 	}
 	result := &Result{}
 	endpoint.getIP(result)
@@ -486,22 +484,22 @@ func TestEndpoint_NeedsToReadBody(t *testing.T) {
 	statusCondition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
 	bodyConditionWithLength := Condition("len([BODY].tags) > 0")
-	if (&Endpoint{Conditions: []*Condition{&statusCondition}}).needsToReadBody() {
+	if (&Endpoint{Conditions: []Condition{statusCondition}}).needsToReadBody() {
 		t.Error("expected false, got true")
 	}
-	if !(&Endpoint{Conditions: []*Condition{&bodyCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []Condition{bodyCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Endpoint{Conditions: []*Condition{&bodyConditionWithLength}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []Condition{bodyConditionWithLength}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Endpoint{Conditions: []*Condition{&statusCondition, &bodyCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []Condition{statusCondition, bodyCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Endpoint{Conditions: []*Condition{&bodyCondition, &statusCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []Condition{bodyCondition, statusCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
-	if !(&Endpoint{Conditions: []*Condition{&bodyConditionWithLength, &statusCondition}}).needsToReadBody() {
+	if !(&Endpoint{Conditions: []Condition{bodyConditionWithLength, statusCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
 }

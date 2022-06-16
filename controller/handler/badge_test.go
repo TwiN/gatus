@@ -94,16 +94,6 @@ func TestUptimeBadge(t *testing.T) {
 			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "backward-compatible-services-badge-uptime-1h",
-			Path:         "/api/v1/services/core_frontend/uptimes/1h/badge.svg",
-			ExpectedCode: http.StatusOK,
-		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "backward-compatible-services-chart-response-time-24h",
-			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
-			ExpectedCode: http.StatusOK,
-		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

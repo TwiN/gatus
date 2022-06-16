@@ -1,9 +1,6 @@
 # github.com/TwiN/g8 v1.3.0
 ## explicit; go 1.17
 github.com/TwiN/g8
-# github.com/TwiN/gocache v1.2.4
-## explicit; go 1.16
-github.com/TwiN/gocache
 # github.com/TwiN/gocache/v2 v2.0.0
 ## explicit; go 1.17
 github.com/TwiN/gocache/v2
@@ -84,9 +81,6 @@ github.com/wcharczuk/go-chart/v2
 github.com/wcharczuk/go-chart/v2/drawing
 github.com/wcharczuk/go-chart/v2/matrix
 github.com/wcharczuk/go-chart/v2/roboto
-# go.etcd.io/bbolt v1.3.6
-## explicit; go 1.12
-go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 ## explicit; go 1.11
 golang.org/x/crypto/bcrypt

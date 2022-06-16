@@ -58,11 +58,6 @@ func TestResponseTimeChart(t *testing.T) {
 			Path:         "/api/v1/endpoints/invalid_key/response-times/7d/chart.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "backward-compatible-services-chart-response-time-24h",
-			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
-			ExpectedCode: http.StatusOK,
-		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

@@ -3,7 +3,6 @@ package security
 import (
 	"encoding/base64"
 	"net/http"
-	"strings"
 
 	"github.com/TwiN/g8"
 	"github.com/gorilla/mux"
@@ -77,13 +76,6 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) error {
 				usernameEntered, passwordEntered, ok := r.BasicAuth()
 				if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
 					if !ok || usernameEntered != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(passwordEntered)) != nil {
-						w.Header().Set("WWW-Authenticate", "Basic")
-						w.WriteHeader(http.StatusUnauthorized)
-						_, _ = w.Write([]byte("Unauthorized"))
-						return
-					}
-				} else if len(c.Basic.PasswordSha512Hash) > 0 {
-					if !ok || usernameEntered != c.Basic.Username || Sha512(passwordEntered) != strings.ToLower(c.Basic.PasswordSha512Hash) {
 						w.Header().Set("WWW-Authenticate", "Basic")
 						w.WriteHeader(http.StatusUnauthorized)
 						_, _ = w.Write([]byte("Unauthorized"))

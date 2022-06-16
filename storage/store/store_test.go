@@ -26,7 +26,7 @@ var (
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -577,11 +577,6 @@ func TestInitialize(t *testing.T) {
 		{
 			Name:        "memory-no-path",
 			Cfg:         &storage.Config{Type: storage.TypeMemory},
-			ExpectedErr: nil,
-		},
-		{ // XXX: Remove for v4.0.0. See https://github.com/TwiN/gatus/issues/198
-			Name:        "memory-with-path",
-			Cfg:         &storage.Config{Type: storage.TypeMemory, Path: t.TempDir() + "/TestInitialize_memory-with-path.db"},
 			ExpectedErr: nil,
 		},
 		{
