@@ -10,7 +10,7 @@ import (
 	"github.com/TwiN/gatus/v3/config"
 	"github.com/TwiN/gatus/v3/config/maintenance"
 	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/metric"
+	"github.com/TwiN/gatus/v3/metrics"
 	"github.com/TwiN/gatus/v3/storage/store"
 )
 
@@ -62,7 +62,7 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	}
 	result := endpoint.EvaluateHealth()
 	if enabledMetrics {
-		metric.PublishMetricsForEndpoint(endpoint, result)
+		metrics.PublishMetricsForEndpoint(endpoint, result)
 	}
 	UpdateEndpointStatuses(endpoint, result)
 	log.Printf(
