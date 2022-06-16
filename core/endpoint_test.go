@@ -396,6 +396,31 @@ func TestIntegrationEvaluateHealthWithError(t *testing.T) {
 	}
 }
 
+func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
+	endpoint := Endpoint{
+		Name:       "invalid-url",
+		URL:        "https://httpstat.us/200?sleep=100",
+		Conditions: []Condition{Condition("[STATUS] == 200")},
+		ClientConfig: &client.Config{
+			Timeout: 1 * time.Millisecond,
+		},
+		UIConfig: &ui.Config{
+			HideURL: true,
+		},
+	}
+	endpoint.ValidateAndSetDefaults()
+	result := endpoint.EvaluateHealth()
+	if result.Success {
+		t.Error("Because one of the conditions was invalid, result.Success should have been false")
+	}
+	if len(result.Errors) == 0 {
+		t.Error("There should've been an error")
+	}
+	if !strings.Contains(result.Errors[0], "<redacted>") || strings.Contains(result.Errors[0], endpoint.URL) {
+		t.Error("result.Errors[0] should've had the URL redacted because ui.hide-url is set to true")
+	}
+}
+
 func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
 	conditionBody := Condition("[BODY] == 93.184.216.34")
