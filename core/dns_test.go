@@ -2,6 +2,7 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	"github.com/TwiN/gatus/v3/pattern"
 )
@@ -21,7 +22,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "A",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "93.184.216.34",
 		},
@@ -31,7 +32,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "AAAA",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "2606:2800:220:1:248:1893:25c8:1946",
 		},
@@ -51,7 +52,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "MX",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    ".",
 		},
@@ -61,7 +62,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "NS",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "*.iana-servers.net.",
 		},
@@ -71,7 +72,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "B",
 				QueryName: "example",
 			},
-			inputURL:      "8.8.8.8",
+			inputURL:      "1.1.1.1",
 			isErrExpected: true,
 		},
 	}
@@ -98,6 +99,7 @@ func TestIntegrationQuery(t *testing.T) {
 				}
 			}
 		})
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
