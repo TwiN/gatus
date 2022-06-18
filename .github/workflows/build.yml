@@ -10,7 +10,7 @@ on:
       - '*.md'
 jobs:
   build:
-    name: Build
+    name: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

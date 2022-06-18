@@ -4,7 +4,7 @@ on:
     types: [published]
 jobs:
   publish-release:
-    name: Publish release
+    name: publish-release
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
