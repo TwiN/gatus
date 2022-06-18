@@ -11,8 +11,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 45
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Get image repository
         run: echo IMAGE_REPOSITORY=$(echo ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Set up QEMU
