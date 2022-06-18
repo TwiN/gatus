@@ -1055,6 +1055,8 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
 
+See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
 
 ## Deployment
 Many examples can be found in the [.examples](.examples) folder, but this section will focus on the most popular ways of deploying Gatus.

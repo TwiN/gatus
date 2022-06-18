@@ -2,15 +2,18 @@ metrics: true
 endpoints:
   - name: website
     url: https://twin.sh/health
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-  - name: github
-    url: https://api.github.com/healthz
     interval: 5m
     conditions:
       - "[STATUS] == 200"
+
   - name: example
     url: https://example.com/
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: github
+    url: https://api.github.com/healthz
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
