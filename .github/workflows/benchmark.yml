@@ -5,7 +5,7 @@ on:
       repository:
         description: "Repository to checkout. Useful for benchmarking a fork. Format should be <owner>/<repository>."
         required: true
-        default: ${{ github.repository }}
+        default: "TwiN/gatus"
       ref:
         description: "Branch, tag or SHA to checkout"
         required: true
