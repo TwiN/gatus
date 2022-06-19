@@ -22,7 +22,7 @@
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Now</h2>
-          <img :src="generateStatusBadgeImageURL()" alt="status badge" class="mx-auto"/>
+          <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto"/>
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
@@ -153,8 +153,8 @@ export default {
         }
       });
     },
-    generateStatusBadgeImageURL() {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/status/badge.svg`;
+    generateHealthBadgeImageURL() {
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
     },
     generateUptimeBadgeImageURL(duration) {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;

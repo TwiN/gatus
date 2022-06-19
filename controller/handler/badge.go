@@ -23,9 +23,9 @@ const (
 )
 
 const (
-	StatusUp      = "up"
-	StatusDown    = "down"
-	StatusUnknown = "?"
+	HealthStatusUp      = "up"
+	HealthStatusDown    = "down"
+	HealthStatusUnknown = "?"
 )
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
@@ -102,8 +102,8 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
 }
 
-// StatusBadge handles the automatic generation of badge based on the group name and endpoint name passed.
-func StatusBadge(writer http.ResponseWriter, request *http.Request) {
+// HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
+func HealthBadge(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	key := variables["key"]
 	pagingConfig := paging.NewEndpointStatusParams()
@@ -118,19 +118,19 @@ func StatusBadge(writer http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	statusValue := StatusUnknown
+	healthStatus := HealthStatusUnknown
 	if len(status.Results) > 0 {
 		if status.Results[0].Success {
-			statusValue = StatusUp
+			healthStatus = HealthStatusUp
 		} else {
-			statusValue = StatusDown
+			healthStatus = HealthStatusDown
 		}
 	}
 	writer.Header().Set("Content-Type", "image/svg+xml")
 	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	writer.Header().Set("Expires", "0")
 	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(generateStatusBadgeSVG(statusValue))
+	_, _ = writer.Write(generateHealthBadgeSVG(healthStatus))
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -262,18 +262,18 @@ func getBadgeColorFromResponseTime(responseTime int) string {
 	return badgeColorHexVeryBad
 }
 
-func generateStatusBadgeSVG(status string) []byte {
+func generateHealthBadgeSVG(healthStatus string) []byte {
 	var labelWidth, valueWidth int
-	switch status {
-	case StatusUp:
+	switch healthStatus {
+	case HealthStatusUp:
 		valueWidth = 18
-	case StatusDown:
+	case HealthStatusDown:
 		valueWidth = 36
-	case StatusUnknown:
+	case HealthStatusUnknown:
 		valueWidth = 10
 	default:
 	}
-	color := getBadgeColorFromStatus(status)
+	color := getBadgeColorFromHealth(healthStatus)
 	labelWidth = 48
 
 	width := labelWidth + valueWidth
@@ -306,15 +306,15 @@ func generateStatusBadgeSVG(status string) []byte {
       %s
     </text>
   </g>
-</svg>`, width, width, labelWidth, color, labelWidth, valueWidth, labelWidth, width, labelX, labelX, valueX, status, valueX, status))
+</svg>`, width, width, labelWidth, color, labelWidth, valueWidth, labelWidth, width, labelX, labelX, valueX, healthStatus, valueX, healthStatus))
 
 	return svg
 }
 
-func getBadgeColorFromStatus(status string) string {
-	if status == StatusUp {
+func getBadgeColorFromHealth(healthStatus string) string {
+	if healthStatus == HealthStatusUp {
 		return badgeColorHexAwesome
-	} else if status == StatusDown {
+	} else if healthStatus == HealthStatusDown {
 		return badgeColorHexVeryBad
 	}
 	return badgeColorHexPassable

@@ -90,18 +90,18 @@ func TestBadge(t *testing.T) {
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
-			Name:         "badge-status-up",
-			Path:         "/api/v1/endpoints/core_frontend/status/badge.svg",
+			Name:         "badge-health-up",
+			Path:         "/api/v1/endpoints/core_frontend/health/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "badge-status-down",
-			Path:         "/api/v1/endpoints/core_backend/status/badge.svg",
+			Name:         "badge-health-down",
+			Path:         "/api/v1/endpoints/core_backend/health/badge.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "badge-status-for-invalid-key",
-			Path:         "/api/v1/endpoints/invalid_key/status/badge.svg",
+			Name:         "badge-health-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/health/badge.svg",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
@@ -245,28 +245,28 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	}
 }
 
-func TestGetBadgeColorFromStatus(t *testing.T) {
+func TestGetBadgeColorFromHealth(t *testing.T) {
 	scenarios := []struct {
-		Status        string
+		HealthStatus  string
 		ExpectedColor string
 	}{
 		{
-			Status:        StatusUp,
+			HealthStatus:  HealthStatusUp,
 			ExpectedColor: badgeColorHexAwesome,
 		},
 		{
-			Status:        StatusDown,
+			HealthStatus:  HealthStatusDown,
 			ExpectedColor: badgeColorHexVeryBad,
 		},
 		{
-			Status:        StatusUnknown,
+			HealthStatus:  HealthStatusUnknown,
 			ExpectedColor: badgeColorHexPassable,
 		},
 	}
 	for _, scenario := range scenarios {
-		t.Run("response-time-"+scenario.Status, func(t *testing.T) {
-			if getBadgeColorFromStatus(scenario.Status) != scenario.ExpectedColor {
-				t.Errorf("expected %s from %s, got %v", scenario.ExpectedColor, scenario.Status, getBadgeColorFromStatus(scenario.Status))
+		t.Run("health-"+scenario.HealthStatus, func(t *testing.T) {
+			if getBadgeColorFromHealth(scenario.HealthStatus) != scenario.ExpectedColor {
+				t.Errorf("expected %s from %s, got %v", scenario.ExpectedColor, scenario.HealthStatus, getBadgeColorFromHealth(scenario.HealthStatus))
 			}
 		})
 	}

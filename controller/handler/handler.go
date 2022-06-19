@@ -30,7 +30,7 @@ func CreateRouter(staticFolder string, securityConfig *security.Config, uiConfig
 	unprotected.Handle("/v1/config", ConfigHandler{securityConfig: securityConfig}).Methods("GET")
 	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
-	unprotected.HandleFunc("/v1/endpoints/{key}/status/badge.svg", StatusBadge).Methods("GET")
+	unprotected.HandleFunc("/v1/endpoints/{key}/health/badge.svg", HealthBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
