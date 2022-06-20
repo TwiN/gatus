@@ -21,10 +21,6 @@
       <hr/>
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
-          <h2 class="text-sm text-gray-400 mb-1">Now</h2>
-          <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto"/>
-        </div>
-        <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
           <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto"/>
         </div>
@@ -58,8 +54,17 @@
       </div>
     </div>
     <div v-if="endpointStatus && endpointStatus.key">
+      <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">CURRENT HEALTH</h1>
+      <hr />
+      <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
+        <div class="flex-1">
+          <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto"/>
+        </div>
+      </div>
+    </div>
+    <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
-      <hr class="mb-4"/>
+      <hr />
       <div>
         <slot v-for="event in events" :key="event">
           <div class="p-3 my-4">

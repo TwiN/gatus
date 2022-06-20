@@ -266,9 +266,9 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
 	var labelWidth, valueWidth int
 	switch healthStatus {
 	case HealthStatusUp:
-		valueWidth = 18
+		valueWidth = 28
 	case HealthStatusDown:
-		valueWidth = 36
+		valueWidth = 44
 	case HealthStatusUnknown:
 		valueWidth = 10
 	default:
@@ -294,10 +294,10 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
   </g>
   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
     <text x="%d" y="15" fill="#010101" fill-opacity=".3">
-      status
+      health
     </text>
     <text x="%d" y="14">
-      status
+      health
     </text>
     <text x="%d" y="15" fill="#010101" fill-opacity=".3">
       %s
