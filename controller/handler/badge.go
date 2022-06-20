@@ -9,6 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v3/storage/store"
 	"github.com/TwiN/gatus/v3/storage/store/common"
+	"github.com/TwiN/gatus/v3/storage/store/common/paging"
 	"github.com/gorilla/mux"
 )
 
@@ -19,6 +20,12 @@ const (
 	badgeColorHexPassable = "#ccb311"
 	badgeColorHexBad      = "#cc8111"
 	badgeColorHexVeryBad  = "#c7130a"
+)
+
+const (
+	HealthStatusUp      = "up"
+	HealthStatusDown    = "down"
+	HealthStatusUnknown = "?"
 )
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
@@ -93,6 +100,37 @@ func ResponseTimeBadge(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Expires", "0")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime))
+}
+
+// HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
+func HealthBadge(writer http.ResponseWriter, request *http.Request) {
+	variables := mux.Vars(request)
+	key := variables["key"]
+	pagingConfig := paging.NewEndpointStatusParams()
+	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+	if err != nil {
+		if err == common.ErrEndpointNotFound {
+			http.Error(writer, err.Error(), http.StatusNotFound)
+		} else if err == common.ErrInvalidTimeRange {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	healthStatus := HealthStatusUnknown
+	if len(status.Results) > 0 {
+		if status.Results[0].Success {
+			healthStatus = HealthStatusUp
+		} else {
+			healthStatus = HealthStatusDown
+		}
+	}
+	writer.Header().Set("Content-Type", "image/svg+xml")
+	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writer.Header().Set("Expires", "0")
+	writer.WriteHeader(http.StatusOK)
+	_, _ = writer.Write(generateHealthBadgeSVG(healthStatus))
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -222,4 +260,62 @@ func getBadgeColorFromResponseTime(responseTime int) string {
 		return badgeColorHexBad
 	}
 	return badgeColorHexVeryBad
+}
+
+func generateHealthBadgeSVG(healthStatus string) []byte {
+	var labelWidth, valueWidth int
+	switch healthStatus {
+	case HealthStatusUp:
+		valueWidth = 18
+	case HealthStatusDown:
+		valueWidth = 36
+	case HealthStatusUnknown:
+		valueWidth = 10
+	default:
+	}
+	color := getBadgeColorFromHealth(healthStatus)
+	labelWidth = 48
+
+	width := labelWidth + valueWidth
+	labelX := labelWidth / 2
+	valueX := labelWidth + (valueWidth / 2)
+	svg := []byte(fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="20">
+  <linearGradient id="b" x2="0" y2="100%%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="%d" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h%dv20H0z"/>
+    <path fill="%s" d="M%d 0h%dv20H%dz"/>
+    <path fill="url(#b)" d="M0 0h%dv20H0z"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="%d" y="15" fill="#010101" fill-opacity=".3">
+      status
+    </text>
+    <text x="%d" y="14">
+      status
+    </text>
+    <text x="%d" y="15" fill="#010101" fill-opacity=".3">
+      %s
+    </text>
+    <text x="%d" y="14">
+      %s
+    </text>
+  </g>
+</svg>`, width, width, labelWidth, color, labelWidth, valueWidth, labelWidth, width, labelX, labelX, valueX, healthStatus, valueX, healthStatus))
+
+	return svg
+}
+
+func getBadgeColorFromHealth(healthStatus string) string {
+	if healthStatus == HealthStatusUp {
+		return badgeColorHexAwesome
+	} else if healthStatus == HealthStatusDown {
+		return badgeColorHexVeryBad
+	}
+	return badgeColorHexPassable
 }

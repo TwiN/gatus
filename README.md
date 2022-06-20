@@ -78,6 +78,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
     - [Uptime](#uptime)
+    - [Health](#health)
     - [Response time](#response-time)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
@@ -1405,6 +1406,23 @@ Example:
 ![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ```
 If you'd like to see a visual example of each badge available, you can simply navigate to the endpoint's detail page.
+
+
+#### Health
+![Health](https://status.twin.sh/api/v1/endpoints/core_blog-external/health/badge.svg)
+
+The path to generate a badge is the following:
+```
+/api/v1/endpoints/{key}/health/badge.svg
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the current status of the endpoint `frontend` in the group `core`, 
+the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/health/badge.svg
+```
 
 
 #### Response time
