@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: 1.18
-          repository: ${{ github.event.inputs.repository }}
-          ref: ${{ github.event.inputs.ref }}
+          repository: "${{ github.event.inputs.repository }}"
+          ref: "${{ github.event.inputs.ref }}"
       - uses: actions/checkout@v3
       - name: Benchmark
         run: go test -bench=. ./storage/store
