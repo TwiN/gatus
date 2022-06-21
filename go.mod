@@ -1,4 +1,4 @@
-module github.com/TwiN/gatus/v3
+module github.com/TwiN/gatus/v4
 
 go 1.18
 

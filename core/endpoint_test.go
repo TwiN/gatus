@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/client"
-	"github.com/TwiN/gatus/v3/core/ui"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/client"
+	"github.com/TwiN/gatus/v4/core/ui"
 )
 
 func TestEndpoint_IsEnabled(t *testing.T) {

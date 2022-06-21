@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store/common"
-	"github.com/TwiN/gatus/v3/storage/store/common/paging"
-	"github.com/TwiN/gatus/v3/util"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store/common"
+	"github.com/TwiN/gatus/v4/storage/store/common/paging"
+	"github.com/TwiN/gatus/v4/util"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )

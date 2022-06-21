@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/config"
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store"
-	"github.com/TwiN/gatus/v3/watchdog"
+	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store"
+	"github.com/TwiN/gatus/v4/watchdog"
 )
 
 func TestSinglePageApplication(t *testing.T) {

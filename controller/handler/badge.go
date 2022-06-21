@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/storage/store"
-	"github.com/TwiN/gatus/v3/storage/store/common"
-	"github.com/TwiN/gatus/v3/storage/store/common/paging"
+	"github.com/TwiN/gatus/v4/storage/store"
+	"github.com/TwiN/gatus/v4/storage/store/common"
+	"github.com/TwiN/gatus/v4/storage/store/common/paging"
 	"github.com/gorilla/mux"
 )
 

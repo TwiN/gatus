@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/test"
+	"github.com/TwiN/gatus/v4/test"
 )
 
 func TestGetHTTPClient(t *testing.T) {
