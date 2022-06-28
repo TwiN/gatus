@@ -1398,6 +1398,23 @@ Where:
 - `{duration}` is `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
+##### How to change the color thresholds of the response time badge  
+To change the response time badges threshold, a corresponding configuration can be added to an endpoint.   
+The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]  
+All five values must be given in milliseconds (ms).  
+
+```
+- name: nas
+  group: internal
+  url: "https://example.org/"
+  interval: 5m
+  conditions:
+    - "[STATUS] == 200"
+  ui:
+    badge:
+      response-time:
+        thresholds: [550, 850, 1350, 1650, 1750]
+```
 
 ### API
 Gatus provides a simple read-only API that can be queried in order to programmatically determine endpoint status and history.
