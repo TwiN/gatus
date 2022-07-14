@@ -26,7 +26,7 @@ For more details, see [Usage](#usage)
 
 ![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
 
-Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
+Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
 ## Table of Contents
 - [Why Gatus?](#why-gatus)
