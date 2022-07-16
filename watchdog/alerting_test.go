@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v4/alerting/provider/custom"
 	"github.com/TwiN/gatus/v4/alerting/provider/discord"
 	"github.com/TwiN/gatus/v4/alerting/provider/email"
+	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
 	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
@@ -309,6 +310,17 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					Token: "2",
 					From:  "3",
 					To:    "4",
+				},
+			},
+		},
+		{
+			Name:      "matrix",
+			AlertType: alert.TypeMatrix,
+			AlertingConfig: &alerting.Config{
+				Matrix: &matrix.AlertProvider{
+					HomeserverURL:  "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
 				},
 			},
 		},
