@@ -40,4 +40,7 @@ const (
 
 	// TypeOpsgenie is the Type for the opsgenie alerting provider
 	TypeOpsgenie Type = "opsgenie"
+
+	// TypeMatrix is the Type for the matrix alerting provider
+	TypeMatrix Type = "matrix"
 )

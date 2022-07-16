@@ -7,6 +7,7 @@ import (
 	"github.com/TwiN/gatus/v4/alerting/provider/discord"
 	"github.com/TwiN/gatus/v4/alerting/provider/email"
 	"github.com/TwiN/gatus/v4/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
 	"github.com/TwiN/gatus/v4/alerting/provider/opsgenie"
@@ -54,6 +55,9 @@ type Config struct {
 
 	// Opsgenie is the configuration for the opsgenie alerting provider
 	Opsgenie *opsgenie.AlertProvider `yaml:"opsgenie,omitempty"`
+
+	// Matrix is the configuration for the matrix alerting provider
+	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
@@ -131,6 +135,12 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Twilio
+	case alert.TypeMatrix:
+		if config.Matrix == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Matrix
 	}
 	return nil
 }
