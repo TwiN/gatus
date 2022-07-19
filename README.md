@@ -42,6 +42,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
+    - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
@@ -50,7 +51,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
-    - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
@@ -489,6 +489,37 @@ endpoints:
         send-on-resolved: true
 ```
 
+#### Configuring Matrix alerts
+| Parameter                          | Description                                                                                      | Default                            |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------------|:-----------------------------------|
+| `alerting.matrix`                  | Settings for alerts of type `matrix`                                                             | `{}`                               |
+| `alerting.matrix.server-url`       | Homeserver URL                                                                                   | `https://matrix-client.matrix.org` |
+| `alerting.matrix.access-token`     | Bot user access token (see https://webapps.stackexchange.com/q/131056)                           | Required `""`                      |
+| `alerting.matrix.internal-room-id` | Internal room ID of room to send alerts to (can be found in Element in Room Settings > Advanced) | Required `""`                      |
+| `alerting.matrix.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)       | N/A                                |
+
+```yaml
+alerting:
+  matrix:
+    server-url: "..."
+    access-token: "..."
+    internal-room-id: "..."
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: matrix
+        enabled: true
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
 #### Configuring Mattermost alerts
 | Parameter                                     | Description                                                                                 | Default       |
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
@@ -798,37 +829,6 @@ endpoints:
       - type: twilio
         enabled: true
         failure-threshold: 5
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
-
-#### Configuring Matrix alerts
-| Parameter                          | Description                                                                                | Default                            |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------------|
-| `alerting.matrix`                  | Settings for alerts of type `matrix`                                                       | `{}`                               |
-| `alerting.matrix.homeserver-url`   | Custom homeserver URL                                                                      | `https://matrix-client.matrix.org` |
-| `alerting.matrix.access-token`     | Bot user access token                                                                      | Required `""`                      |
-| `alerting.matrix.internal-room-id` | Internal room ID of room that bot user can send messages  to                               | Required `""`                      |
-| `alerting.matrix.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                |
-
-```yaml
-alerting:
-  matrix:
-    homeserver-url: "..."
-    access-token: "..."
-    internal-room-id: "..."
-
-endpoints:
-  - name: website
-    interval: 30s
-    url: "https://twin.sh/health"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: matrix
-        enabled: true
         send-on-resolved: true
         description: "healthcheck failed"
 ```
