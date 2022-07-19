@@ -32,6 +32,9 @@ type Config struct {
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
 
+	// Matrix is the configuration for the matrix alerting provider
+	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
+
 	// Mattermost is the configuration for the mattermost alerting provider
 	Mattermost *mattermost.AlertProvider `yaml:"mattermost,omitempty"`
 
@@ -55,9 +58,6 @@ type Config struct {
 
 	// Opsgenie is the configuration for the opsgenie alerting provider
 	Opsgenie *opsgenie.AlertProvider `yaml:"opsgenie,omitempty"`
-
-	// Matrix is the configuration for the matrix alerting provider
-	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
