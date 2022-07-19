@@ -69,7 +69,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	txnId := randStringBytes(24)
 	request, err := http.NewRequest(
 		http.MethodPut,
-		fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message/%s?access_token=%s",
+		fmt.Sprintf("%s/_matrix/client/v3/rooms/%s/send/m.room.message/%s?access_token=%s",
 			config.ServerURL,
 			url.PathEscape(config.InternalRoomID),
 			txnId,
