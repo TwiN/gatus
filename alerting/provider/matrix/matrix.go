@@ -16,12 +16,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Matrix
 type AlertProvider struct {
-	// HomeserverURL is the custom homeserver to use (optional)
-	HomeserverURL string `yaml:"homeserver-url"`
-	// AccessToken is the bot user's access token to send messages
-	AccessToken string `yaml:"access-token"`
-	// InternalRoomID is the room that the bot user has permissions to send messages to
-	InternalRoomID string `yaml:"internal-room-id"`
+	MatrixProviderConfig `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -34,16 +29,19 @@ type AlertProvider struct {
 type Override struct {
 	Group string `yaml:"group"`
 
-	HomeserverURL  string `yaml:"homeserver-url"`
-	AccessToken    string `yaml:"access-token"`
-	InternalRoomID string `yaml:"internal-room-id"`
+	MatrixProviderConfig `yaml:",inline"`
 }
 
 const defaultHomeserverURL = "https://matrix-client.matrix.org"
 
-type matrixProviderConfig struct {
-	HomeserverURL  string `yaml:"homeserver-url"`
-	AccessToken    string `yaml:"access-token"`
+type MatrixProviderConfig struct {
+	// ServerURL is the custom homeserver to use (optional)
+	ServerURL string `yaml:"server-url"`
+
+	// AccessToken is the bot user's access token to send messages
+	AccessToken string `yaml:"access-token"`
+
+	// InternalRoomID is the room that the bot user has permissions to send messages to
 	InternalRoomID string `yaml:"internal-room-id"`
 }
 
@@ -65,14 +63,14 @@ func (provider *AlertProvider) IsValid() bool {
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
 	config := provider.getConfigForGroup(endpoint.Group)
-	if config.HomeserverURL == "" {
-		config.HomeserverURL = defaultHomeserverURL
+	if config.ServerURL == "" {
+		config.ServerURL = defaultHomeserverURL
 	}
 	txnId := randStringBytes(24)
 	request, err := http.NewRequest(
 		http.MethodPut,
 		fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message/%s?access_token=%s",
-			config.HomeserverURL,
+			config.ServerURL,
 			url.PathEscape(config.InternalRoomID),
 			txnId,
 			url.QueryEscape(config.AccessToken),
@@ -156,20 +154,20 @@ func buildHTMLMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *c
 }
 
 // getConfigForGroup returns the appropriate configuration for a given group
-func (provider *AlertProvider) getConfigForGroup(group string) matrixProviderConfig {
+func (provider *AlertProvider) getConfigForGroup(group string) MatrixProviderConfig {
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if group == override.Group {
-				return matrixProviderConfig{
-					HomeserverURL:  override.HomeserverURL,
+				return MatrixProviderConfig{
+					ServerURL:      override.ServerURL,
 					AccessToken:    override.AccessToken,
 					InternalRoomID: override.InternalRoomID,
 				}
 			}
 		}
 	}
-	return matrixProviderConfig{
-		HomeserverURL:  provider.HomeserverURL,
+	return MatrixProviderConfig{
+		ServerURL:      provider.ServerURL,
 		AccessToken:    provider.AccessToken,
 		InternalRoomID: provider.InternalRoomID,
 	}
