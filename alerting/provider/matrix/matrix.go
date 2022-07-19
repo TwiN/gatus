@@ -66,6 +66,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	if config.ServerURL == "" {
 		config.ServerURL = defaultHomeserverURL
 	}
+	// The Matrix endpoint requires a unique transaction ID for each event sent
 	txnId := randStringBytes(24)
 	request, err := http.NewRequest(
 		http.MethodPut,
@@ -173,14 +174,16 @@ func (provider *AlertProvider) getConfigForGroup(group string) MatrixProviderCon
 	}
 }
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
 func randStringBytes(n int) string {
+	// All the compatible characters to use in a transaction ID
+	const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 	b := make([]byte, n)
 	rand.Seed(time.Now().UnixNano())
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
 	}
+
 	return string(b)
 }
 
