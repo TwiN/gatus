@@ -58,6 +58,7 @@ var (
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
+	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
 	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
@@ -66,5 +67,4 @@ var (
 	_ AlertProvider = (*teams.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
-	_ AlertProvider = (*matrix.AlertProvider)(nil)
 )
