@@ -12,15 +12,31 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{AccessToken: "", InternalRoomID: ""}
+	invalidProvider := AlertProvider{
+		MatrixProviderConfig: MatrixProviderConfig{
+			AccessToken:    "",
+			InternalRoomID: "",
+		},
+	}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{AccessToken: "1", InternalRoomID: "!a:example.com"}
+	validProvider := AlertProvider{
+		MatrixProviderConfig: MatrixProviderConfig{
+			AccessToken:    "1",
+			InternalRoomID: "!a:example.com",
+		},
+	}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithHomeserver := AlertProvider{HomeserverURL: "https://example.com", AccessToken: "1", InternalRoomID: "!a:example.com"}
+	validProviderWithHomeserver := AlertProvider{
+		MatrixProviderConfig: MatrixProviderConfig{
+			ServerURL:      "https://example.com",
+			AccessToken:    "1",
+			InternalRoomID: "!a:example.com",
+		},
+	}
 	if !validProviderWithHomeserver.IsValid() {
 		t.Error("provider with homeserver should've been valid")
 	}
@@ -30,9 +46,11 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				AccessToken:    "",
-				InternalRoomID: "",
-				Group:          "",
+				Group: "",
+				MatrixProviderConfig: MatrixProviderConfig{
+					AccessToken:    "",
+					InternalRoomID: "",
+				},
 			},
 		},
 	}
@@ -42,9 +60,11 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
-				AccessToken:    "",
-				InternalRoomID: "",
-				Group:          "group",
+				Group: "group",
+				MatrixProviderConfig: MatrixProviderConfig{
+					AccessToken:    "",
+					InternalRoomID: "",
+				},
 			},
 		},
 	}
@@ -52,14 +72,18 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		AccessToken:    "1",
-		InternalRoomID: "!a:example.com",
+		MatrixProviderConfig: MatrixProviderConfig{
+			AccessToken:    "1",
+			InternalRoomID: "!a:example.com",
+		},
 		Overrides: []Override{
 			{
-				HomeserverURL:  "https://example.com",
-				AccessToken:    "1",
-				InternalRoomID: "!a:example.com",
-				Group:          "group",
+				Group: "group",
+				MatrixProviderConfig: MatrixProviderConfig{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
 			},
 		},
 	}
@@ -208,19 +232,21 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput matrixProviderConfig
+		ExpectedOutput MatrixProviderConfig
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				HomeserverURL:  "https://example.com",
-				AccessToken:    "1",
-				InternalRoomID: "!a:example.com",
-				Overrides:      nil,
+				MatrixProviderConfig: MatrixProviderConfig{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
+				Overrides: nil,
 			},
 			InputGroup: "",
-			ExpectedOutput: matrixProviderConfig{
-				HomeserverURL:  "https://example.com",
+			ExpectedOutput: MatrixProviderConfig{
+				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
 			},
@@ -228,14 +254,16 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				HomeserverURL:  "https://example.com",
-				AccessToken:    "1",
-				InternalRoomID: "!a:example.com",
-				Overrides:      nil,
+				MatrixProviderConfig: MatrixProviderConfig{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
+				Overrides: nil,
 			},
 			InputGroup: "group",
-			ExpectedOutput: matrixProviderConfig{
-				HomeserverURL:  "https://example.com",
+			ExpectedOutput: MatrixProviderConfig{
+				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
 			},
@@ -243,21 +271,25 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				HomeserverURL:  "https://example.com",
-				AccessToken:    "1",
-				InternalRoomID: "!a:example.com",
+				MatrixProviderConfig: MatrixProviderConfig{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
 				Overrides: []Override{
 					{
-						Group:          "group",
-						HomeserverURL:  "https://example01.com",
-						AccessToken:    "12",
-						InternalRoomID: "!a:example01.com",
+						Group: "group",
+						MatrixProviderConfig: MatrixProviderConfig{
+							ServerURL:      "https://example01.com",
+							AccessToken:    "12",
+							InternalRoomID: "!a:example01.com",
+						},
 					},
 				},
 			},
 			InputGroup: "",
-			ExpectedOutput: matrixProviderConfig{
-				HomeserverURL:  "https://example.com",
+			ExpectedOutput: MatrixProviderConfig{
+				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
 			},
@@ -265,21 +297,25 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				HomeserverURL:  "https://example.com",
-				AccessToken:    "1",
-				InternalRoomID: "!a:example.com",
+				MatrixProviderConfig: MatrixProviderConfig{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
 				Overrides: []Override{
 					{
-						Group:          "group",
-						HomeserverURL:  "https://example01.com",
-						AccessToken:    "12",
-						InternalRoomID: "!a:example01.com",
+						Group: "group",
+						MatrixProviderConfig: MatrixProviderConfig{
+							ServerURL:      "https://example01.com",
+							AccessToken:    "12",
+							InternalRoomID: "!a:example01.com",
+						},
 					},
 				},
 			},
 			InputGroup: "group",
-			ExpectedOutput: matrixProviderConfig{
-				HomeserverURL:  "https://example01.com",
+			ExpectedOutput: MatrixProviderConfig{
+				ServerURL:      "https://example01.com",
 				AccessToken:    "12",
 				InternalRoomID: "!a:example01.com",
 			},

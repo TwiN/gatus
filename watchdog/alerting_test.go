@@ -318,9 +318,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMatrix,
 			AlertingConfig: &alerting.Config{
 				Matrix: &matrix.AlertProvider{
-					HomeserverURL:  "https://example.com",
-					AccessToken:    "1",
-					InternalRoomID: "!a:example.com",
+					MatrixProviderConfig: matrix.MatrixProviderConfig{
+						ServerURL:      "https://example.com",
+						AccessToken:    "1",
+						InternalRoomID: "!a:example.com",
+					},
 				},
 			},
 		},
