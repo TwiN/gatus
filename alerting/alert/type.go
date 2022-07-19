@@ -17,6 +17,9 @@ const (
 	// TypeGoogleChat is the Type for the googlechat alerting provider
 	TypeGoogleChat Type = "googlechat"
 
+	// TypeMatrix is the Type for the matrix alerting provider
+	TypeMatrix Type = "matrix"
+
 	// TypeMattermost is the Type for the mattermost alerting provider
 	TypeMattermost Type = "mattermost"
 
@@ -40,7 +43,4 @@ const (
 
 	// TypeOpsgenie is the Type for the opsgenie alerting provider
 	TypeOpsgenie Type = "opsgenie"
-
-	// TypeMatrix is the Type for the matrix alerting provider
-	TypeMatrix Type = "matrix"
 )
