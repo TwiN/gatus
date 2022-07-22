@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store/common"
-	"github.com/TwiN/gatus/v3/storage/store/common/paging"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store/common"
+	"github.com/TwiN/gatus/v4/storage/store/common/paging"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,

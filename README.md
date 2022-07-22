@@ -26,7 +26,7 @@ For more details, see [Usage](#usage)
 
 ![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
 
-Have any feedback or want to share your good/bad experience with Gatus? Feel free to email me at [feedback@gatus.io](mailto:feedback@gatus.io)
+Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
 ## Table of Contents
 - [Why Gatus?](#why-gatus)
@@ -42,6 +42,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
+    - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
@@ -78,6 +79,7 @@ Have any feedback or want to share your good/bad experience with Gatus? Feel fre
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Badges](#badges)
     - [Uptime](#uptime)
+    - [Health](#health)
     - [Response time](#response-time)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
@@ -173,7 +175,8 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].alerts[].description`              | Description of the alert. Will be included in the alert sent.                                                                                      | `""`                       |
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                                     | `{}`                       |
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                            | `{}`                       |
-| `endpoints[].ui.hide-hostname`                  | Whether to include the hostname in the result.                                                                                                     | `false`                    |
+| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                        | `false`                    |
+| `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                                     | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                                   | `false`                    |
 | `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                               | `[50, 200, 300, 500, 750]` |
 | `alerting`                                      | [Alerting configuration](#alerting).                                                                                                               | `{}`                       |
@@ -275,7 +278,7 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 
 
 ### Client configuration
-In order to support a wide range of environments, each monitored endpoint has a unique configuration for 
+In order to support a wide range of environments, each monitored endpoint has a unique configuration for
 the client used to send the request.
 
 | Parameter                     | Description                                                                | Default         |
@@ -283,6 +286,7 @@ the client used to send the request.
 | `client.insecure`             | Whether to skip verifying the server's certificate chain and host name.    | `false`         |
 | `client.ignore-redirect`      | Whether to ignore redirects (true) or follow them (false, default).        | `false`         |
 | `client.timeout`              | Duration before timing out.                                                | `10s`           |
+| `client.dns-resolver`         | Override the DNS resolver using the format `{proto}://{host}:{port}`.      | `""`            |
 | `client.oauth2`               | OAuth2 client configuration.                                               | `{}`            |
 | `client.oauth2.token-url`     | The token endpoint URL                                                     | required `""`   |
 | `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
@@ -314,11 +318,22 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+This example shows how you can specify a custom DNS resolver:
+```yaml
+endpoints:
+  - name: with-custom-dns-resolver
+    url: "https://your.health.api/health"
+    client:
+      dns-resolver: "tcp://1.1.1.1:53"
+    conditions:
+      - "[STATUS] == 200"
+```
+
 This example shows how you can use the `client.oauth2` configuration to query a backend API with `Bearer token`:
 ```yaml
 endpoints:
-  - name: website
-    url: "https://your.health.api/getHealth"
+  - name: with-custom-oauth2
+    url: "https://your.health.api/health"
     client:
       oauth2:
         token-url: https://your-token-server/token
@@ -364,13 +379,13 @@ ignored.
 
 ```yaml
 alerting:
-  discord: 
+  discord:
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
 
 endpoints:
   - name: website
     url: "https://twin.sh/health"
-    interval: 30s
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -407,7 +422,7 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
-    # You can also add group-specific to keys, which will 
+    # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
       - group: "core"
@@ -446,7 +461,7 @@ endpoints:
 #### Configuring Google Chat alerts
 
 | Parameter                                     | Description                                                                                 | Default       |
-|:--------------------------------------------- |:------------------------------------------------------------------------------------------- |:------------- |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
 | `alerting.googlechat.webhook-url`             | Google Chat Webhook URL                                                                     | Required `""` |
 | `alerting.googlechat.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
@@ -457,7 +472,7 @@ endpoints:
 
 ```yaml
 alerting:
-  googlechat: 
+  googlechat:
     webhook-url: "https://chat.googleapis.com/v1/spaces/*******/messages?key=**********&token=********"
 
 endpoints:
@@ -475,17 +490,51 @@ endpoints:
         send-on-resolved: true
 ```
 
-#### Configuring Mattermost alerts
-| Parameter                           | Description                                                                                 | Default       |
-|:------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
-| `alerting.mattermost`               | Configuration for alerts of type `mattermost`                                               | `{}`          |
-| `alerting.mattermost.webhook-url`   | Mattermost Webhook URL                                                                      | Required `""` |
-| `alerting.mattermost.client`        | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
-| `alerting.mattermost.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+#### Configuring Matrix alerts
+| Parameter                          | Description                                                                                      | Default                            |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------------|:-----------------------------------|
+| `alerting.matrix`                  | Settings for alerts of type `matrix`                                                             | `{}`                               |
+| `alerting.matrix.server-url`       | Homeserver URL                                                                                   | `https://matrix-client.matrix.org` |
+| `alerting.matrix.access-token`     | Bot user access token (see https://webapps.stackexchange.com/q/131056)                           | Required `""`                      |
+| `alerting.matrix.internal-room-id` | Internal room ID of room to send alerts to (can be found in Element in Room Settings > Advanced) | Required `""`                      |
+| `alerting.matrix.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)       | N/A                                |
 
 ```yaml
 alerting:
-  mattermost: 
+  matrix:
+    server-url: "..."
+    access-token: "..."
+    internal-room-id: "..."
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: matrix
+        enabled: true
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+#### Configuring Mattermost alerts
+| Parameter                                     | Description                                                                                 | Default       |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
+| `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
+| `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
+| `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.mattermist.overrides[].webhook-url` | Mattermost Webhook URL                                                                      | `""`          |
+
+```yaml
+alerting:
+  mattermost:
     webhook-url: "http://**********/hooks/**********"
     client:
       insecure: true
@@ -585,9 +634,9 @@ Behavior:
 
 ```yaml
 alerting:
-  pagerduty: 
+  pagerduty:
     integration-key: "********************************"
-    # You can also add group-specific integration keys, which will 
+    # You can also add group-specific integration keys, which will
     # override the integration key above for the specified groups
     overrides:
       - group: "core"
@@ -637,7 +686,7 @@ endpoints:
 | `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
 ```yaml
 alerting:
-  slack: 
+  slack:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
 
 endpoints:
@@ -680,7 +729,7 @@ Here's an example of what the notifications look like:
 alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
-    # You can also add group-specific to keys, which will 
+    # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
       - group: "core"
@@ -729,7 +778,7 @@ Here's an example of what the notifications look like:
 
 ```yaml
 alerting:
-  telegram: 
+  telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
 
@@ -785,7 +834,6 @@ endpoints:
         description: "healthcheck failed"
 ```
 
-
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |
 |:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
@@ -797,18 +845,21 @@ endpoints:
 | `alerting.custom.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`          |
 | `alerting.custom.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
-While they're called alerts, you can use this feature to call anything. 
+While they're called alerts, you can use this feature to call anything.
 
-For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by 
+For instance, you could automate rollbacks by having an application that keeps tracks of new deployments, and by
 leveraging Gatus, you could have Gatus call that application endpoint when an endpoint starts failing. Your application
 would then check if the endpoint that started failing was part of the recently deployed application, and if it was,
 then automatically roll it back.
 
-The placeholders `[ALERT_DESCRIPTION]` and `[ENDPOINT_NAME]` are automatically substituted for the alert description and
-the endpoint name. These placeholders can be used in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`).
+Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
+- `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
-`[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications. 
+`[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
 (details at the end of this section).
 
@@ -820,7 +871,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
       }
 endpoints:
   - name: website
@@ -848,7 +899,7 @@ alerting:
         TRIGGERED: "partial_outage"
         RESOLVED: "operational"
 ```
-As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by 
+As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
 
 
@@ -867,7 +918,7 @@ long configuration file.
 To avoid such problem, you can use the `default-alert` parameter present in each provider configuration:
 ```yaml
 alerting:
-  slack: 
+  slack:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
     default-alert:
       enabled: true
@@ -944,7 +995,7 @@ endpoints:
 ```
 
 ### Maintenance
-If you have maintenance windows, you may not want to be annoyed by alerts. 
+If you have maintenance windows, you may not want to be annoyed by alerts.
 To do that, you'll have to use the maintenance configuration:
 
 | Parameter              | Description                                                                                                                            | Default       |
@@ -1037,6 +1088,8 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
 
+See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
 
 ## Deployment
 Many examples can be found in the [.examples](.examples) folder, but this section will focus on the most popular ways of deploying Gatus.
@@ -1048,8 +1101,8 @@ To run Gatus locally with Docker:
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
 
-Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by 
-creating a configuration file, we'll call it `config.yaml` for this example, and running the following 
+Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by
+creating a configuration file, we'll call it `config.yaml` for this example, and running the following
 command:
 ```console
 docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
@@ -1133,26 +1186,26 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
 In other words, even if you have multiple endpoints with the same interval, they will not execute at the same time.
 
-You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval, 
+You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval,
 such as 1ms. You'll notice that the response time does not fluctuate - that is because while endpoints are evaluated on
 different goroutines, there's a global lock that prevents multiple endpoints from running at the same time.
 
-Unfortunately, there is a drawback. If you have a lot of endpoints, including some that are very slow or prone to timing out 
+Unfortunately, there is a drawback. If you have a lot of endpoints, including some that are very slow or prone to timing out
 (the default timeout is 10s), then it means that for the entire duration of the request, no other endpoint can be evaluated.
 
-The interval does not include the duration of the request itself, which means that if an endpoint has an interval of 30s 
-and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s. 
+The interval does not include the duration of the request itself, which means that if an endpoint has an interval of 30s
+and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s.
 
-While this does not prevent Gatus' from performing health checks on all other endpoints, it may cause Gatus to be unable 
+While this does not prevent Gatus' from performing health checks on all other endpoints, it may cause Gatus to be unable
 to respect the configured interval, for instance:
-- Endpoint A has an interval of 5s, and times out after 10s to complete 
+- Endpoint A has an interval of 5s, and times out after 10s to complete
 - Endpoint B has an interval of 5s, and takes 1ms to complete
 - Endpoint B will be unable to run every 5s, because endpoint A's health evaluation takes longer than its interval
 
-To sum it up, while Gatus can handle any interval you throw at it, you're better off having slow requests with 
+To sum it up, while Gatus can handle any interval you throw at it, you're better off having slow requests with
 higher interval.
 
-As a rule of thumb, I personally set the interval for more complex health checks to `5m` (5 minutes) and 
+As a rule of thumb, I personally set the interval for more complex health checks to `5m` (5 minutes) and
 simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
@@ -1178,16 +1231,18 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`, 
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
-**NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's 
-something at the given address listening to the given port, and that a connection to that address was successfully 
+This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
+
+**NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
+something at the given address listening to the given port, and that a connection to that address was successfully
 established.
 
 
 ### Monitoring an endpoint using ICMP
-By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more 
+By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more
 commonly known as "ping" or "echo":
 
 ```yaml
@@ -1219,12 +1274,12 @@ endpoints:
 
 There are two placeholders that can be used in the conditions for endpoints of type DNS:
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
-- The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as 
+- The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
 
 ### Monitoring an endpoint using STARTTLS
-If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS 
+If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS
 will serve as a good initial indicator:
 ```yaml
 endpoints:
@@ -1257,11 +1312,11 @@ endpoints:
 ### disable-monitoring-lock
 Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time.
 
-While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted 
+While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted
 by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
 
 There are three main reasons why you might want to disable the monitoring lock:
-- You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so 
+- You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so
 technically, if you create 100 endpoints with a 1 seconds interval, Gatus will send 100 requests per second)
 - You have a _lot_ of endpoints to monitor
 - You want to test multiple endpoints at very short intervals (< 5s)
@@ -1358,7 +1413,7 @@ web:
 ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg)
 
 Gatus can automatically generate an SVG badge for one of your monitored endpoints.
-This allows you to put badges in your individual applications' README or even create your own status page if you 
+This allows you to put badges in your individual applications' README or even create your own status page if you
 desire.
 
 The path to generate a badge is the following:
@@ -1369,7 +1424,7 @@ Where:
 - `{duration}` is `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
-For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`, 
+For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/uptimes/7d/badge.svg
@@ -1383,6 +1438,23 @@ Example:
 ![Uptime 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/24h/badge.svg)
 ```
 If you'd like to see a visual example of each badge available, you can simply navigate to the endpoint's detail page.
+
+
+#### Health
+![Health](https://status.twin.sh/api/v1/endpoints/core_blog-external/health/badge.svg)
+
+The path to generate a badge is the following:
+```
+/api/v1/endpoints/{key}/health/badge.svg
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the current status of the endpoint `frontend` in the group `core`,
+the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/health/badge.svg
+```
 
 
 #### Response time
@@ -1433,7 +1505,7 @@ Example: https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
-The API will return a JSON payload with the `Content-Type` response header set to `application/json`. 
+The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
 

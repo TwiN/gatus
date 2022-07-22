@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/client"
-	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/client"
+	"github.com/TwiN/gatus/v4/core"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Slack

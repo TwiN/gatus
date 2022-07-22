@@ -4,7 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log"
+	"net"
 	"net/http"
+	"regexp"
+	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -16,6 +20,8 @@ const (
 )
 
 var (
+	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
+	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid OAuth2 configuration, all fields are required")
 
 	defaultConfig = Config{
@@ -42,6 +48,10 @@ type Config struct {
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
+	// DNSResolver override for the HTTP client
+	// Expected format is {protocol}://{host}:{port}, e.g. tcp://1.1.1.1:53
+	DNSResolver string `yaml:"dns-resolver,omitempty"`
+
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
 	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
@@ -49,6 +59,13 @@ type Config struct {
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
 	httpClient *http.Client
+}
+
+// DNSResolverConfig is the parsed configuration from the DNSResolver config string.
+type DNSResolverConfig struct {
+	Protocol string
+	Host     string
+	Port     string
 }
 
 // OAuth2Config is the configuration for the OAuth2 client credentials flow
@@ -64,10 +81,48 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
 	}
+	if c.HasCustomDNSResolver() {
+		// Validate the DNS resolver now to make sure it will not return an error later.
+		if _, err := c.parseDNSResolver(); err != nil {
+			return err
+		}
+	}
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
 		return ErrInvalidClientOAuth2Config
 	}
 	return nil
+}
+
+// HasCustomDNSResolver returns whether a custom DNSResolver is configured
+func (c *Config) HasCustomDNSResolver() bool {
+	return len(c.DNSResolver) > 0
+}
+
+// parseDNSResolver parses the DNS resolver into the DNSResolverConfig struct
+func (c *Config) parseDNSResolver() (*DNSResolverConfig, error) {
+	re := regexp.MustCompile(`^(?P<proto>(.*))://(?P<host>[A-Za-z0-9\-\.]+):(?P<port>[0-9]+)?(.*)$`)
+	matches := re.FindStringSubmatch(c.DNSResolver)
+	if len(matches) == 0 {
+		return nil, ErrInvalidDNSResolver
+	}
+	r := make(map[string]string)
+	for i, k := range re.SubexpNames() {
+		if i != 0 && k != "" {
+			r[k] = matches[i]
+		}
+	}
+	port, err := strconv.Atoi(r["port"])
+	if err != nil {
+		return nil, err
+	}
+	if port < 1 || port > 65535 {
+		return nil, ErrInvalidDNSResolverPort
+	}
+	return &DNSResolverConfig{
+		Protocol: r["proto"],
+		Host:     r["host"],
+		Port:     r["port"],
+	}, nil
 }
 
 // HasOAuth2Config returns true if the client has OAuth2 configuration parameters
@@ -101,6 +156,27 @@ func (c *Config) getHTTPClient() *http.Client {
 				// Follow redirects
 				return nil
 			},
+		}
+		if c.HasCustomDNSResolver() {
+			dnsResolver, err := c.parseDNSResolver()
+			if err != nil {
+				// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
+				// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
+				log.Println("[client][getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error:", err.Error())
+			} else {
+				dialer := &net.Dialer{
+					Resolver: &net.Resolver{
+						PreferGo: true,
+						Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+							d := net.Dialer{}
+							return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+						},
+					},
+				}
+				c.httpClient.Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return dialer.DialContext(ctx, network, addr)
+				}
+			}
 		}
 		if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)

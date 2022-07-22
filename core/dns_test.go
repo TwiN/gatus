@@ -2,8 +2,9 @@ package core
 
 import (
 	"testing"
+	"time"
 
-	"github.com/TwiN/gatus/v3/pattern"
+	"github.com/TwiN/gatus/v4/pattern"
 )
 
 func TestIntegrationQuery(t *testing.T) {
@@ -21,7 +22,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "A",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "93.184.216.34",
 		},
@@ -31,7 +32,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "AAAA",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "2606:2800:220:1:248:1893:25c8:1946",
 		},
@@ -39,11 +40,11 @@ func TestIntegrationQuery(t *testing.T) {
 			name: "test DNS with type CNAME",
 			inputDNS: DNS{
 				QueryType: "CNAME",
-				QueryName: "doc.google.com.",
+				QueryName: "en.wikipedia.org.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "writely.l.google.com.",
+			expectedBody:    "dyna.wikimedia.org.",
 		},
 		{
 			name: "test DNS with type MX",
@@ -51,7 +52,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "MX",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    ".",
 		},
@@ -61,7 +62,7 @@ func TestIntegrationQuery(t *testing.T) {
 				QueryType: "NS",
 				QueryName: "example.com.",
 			},
-			inputURL:        "8.8.8.8",
+			inputURL:        "1.1.1.1",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "*.iana-servers.net.",
 		},
@@ -69,15 +70,14 @@ func TestIntegrationQuery(t *testing.T) {
 			name: "test DNS with fake type and retrieve error",
 			inputDNS: DNS{
 				QueryType: "B",
-				QueryName: "google",
+				QueryName: "example",
 			},
-			inputURL:      "8.8.8.8",
+			inputURL:      "1.1.1.1",
 			isErrExpected: true,
 		},
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			dns := test.inputDNS
 			result := &Result{}
@@ -86,9 +86,8 @@ func TestIntegrationQuery(t *testing.T) {
 				t.Errorf("there should be errors")
 			}
 			if result.DNSRCode != test.expectedDNSCode {
-				t.Errorf("DNSRCodePlaceholder '%s' should have been %s", result.DNSRCode, test.expectedDNSCode)
+				t.Errorf("expected DNSRCode to be %s, got %s", test.expectedDNSCode, result.DNSRCode)
 			}
-
 			if test.inputDNS.QueryType == "NS" {
 				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
 				if !pattern.Match(test.expectedBody, string(result.body)) {
@@ -100,6 +99,7 @@ func TestIntegrationQuery(t *testing.T) {
 				}
 			}
 		})
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 

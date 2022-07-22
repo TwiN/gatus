@@ -4,20 +4,21 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TwiN/gatus/v3/alerting"
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
-	"github.com/TwiN/gatus/v3/alerting/provider/discord"
-	"github.com/TwiN/gatus/v3/alerting/provider/email"
-	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v3/alerting/provider/slack"
-	"github.com/TwiN/gatus/v3/alerting/provider/teams"
-	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v3/config"
-	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v4/alerting"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/alerting/provider/custom"
+	"github.com/TwiN/gatus/v4/alerting/provider/discord"
+	"github.com/TwiN/gatus/v4/alerting/provider/email"
+	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
+	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v4/alerting/provider/slack"
+	"github.com/TwiN/gatus/v4/alerting/provider/teams"
+	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v4/core"
 )
 
 func TestHandleAlerting(t *testing.T) {
@@ -309,6 +310,19 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					Token: "2",
 					From:  "3",
 					To:    "4",
+				},
+			},
+		},
+		{
+			Name:      "matrix",
+			AlertType: alert.TypeMatrix,
+			AlertingConfig: &alerting.Config{
+				Matrix: &matrix.AlertProvider{
+					MatrixProviderConfig: matrix.MatrixProviderConfig{
+						ServerURL:      "https://example.com",
+						AccessToken:    "1",
+						InternalRoomID: "!a:example.com",
+					},
 				},
 			},
 		},

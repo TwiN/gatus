@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/test"
+	"github.com/TwiN/gatus/v4/test"
 )
 
 func TestGetHTTPClient(t *testing.T) {
@@ -15,6 +15,7 @@ func TestGetHTTPClient(t *testing.T) {
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        0,
+		DNSResolver:    "tcp://1.1.1.1:53",
 		OAuth2Config: &OAuth2Config{
 			ClientID:     "00000000-0000-0000-0000-000000000000",
 			ClientSecret: "secretsauce",
@@ -22,7 +23,10 @@ func TestGetHTTPClient(t *testing.T) {
 			Scopes:       []string{"https://application.local/.default"},
 		},
 	}
-	cfg.ValidateAndSetDefaults()
+	err := cfg.ValidateAndSetDefaults()
+	if err != nil {
+		t.Errorf("expected error to be nil, but got: `%s`", err)
+	}
 	if GetHTTPClient(cfg) == nil {
 		t.Error("expected client to not be nil")
 	}
@@ -162,19 +166,15 @@ func TestCanCreateTCPConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
-
 	defer InjectHTTPClient(nil)
-
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
 		ClientSecret: "secretsauce",
 		TokenURL:     "https://token-server.local/token",
 		Scopes:       []string{"https://application.local/.default"},
 	}
-
 	mockHttpClient := &http.Client{
 		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
-
 			// if the mock HTTP client tries to get a token from the `token-server`
 			// we provide the expected token response
 			if r.Host == "token-server.local" {
@@ -187,7 +187,6 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 					)),
 				}
 			}
-
 			// to verify the headers were sent as expected, we echo them back in the
 			// `X-Org-Authorization` header and check if the token value matches our
 			// mocked `token-server` response
@@ -200,24 +199,19 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 			}
 		}),
 	}
-
 	mockHttpClientWithOAuth := configureOAuth2(mockHttpClient, *oAuth2Config)
 	InjectHTTPClient(mockHttpClientWithOAuth)
-
 	request, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:8282", http.NoBody)
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
 	}
-
 	response, err := mockHttpClientWithOAuth.Do(request)
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
 	}
-
 	if response.Header == nil {
 		t.Error("expected response headers, but got nil")
 	}
-
 	// the mock response echos the Authorization header used in the request back
 	// to us as `X-Org-Authorization` header, we check here if the value matches
 	// our expected token `secret-token`

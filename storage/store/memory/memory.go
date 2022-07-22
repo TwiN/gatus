@@ -2,19 +2,15 @@ package memory
 
 import (
 	"encoding/gob"
-	"io/fs"
-	"log"
-	"os"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store/common"
-	"github.com/TwiN/gatus/v3/storage/store/common/paging"
-	"github.com/TwiN/gatus/v3/util"
-	"github.com/TwiN/gocache"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store/common"
+	"github.com/TwiN/gatus/v4/storage/store/common/paging"
+	"github.com/TwiN/gatus/v4/util"
+	"github.com/TwiN/gocache/v2"
 )
 
 func init() {
@@ -28,11 +24,7 @@ func init() {
 // Store that leverages gocache
 type Store struct {
 	sync.RWMutex
-	// Deprecated
-	//
-	// File persistence will no longer be supported as of v4.0.0
-	// XXX: Remove me in v4.0.0
-	file  string
+
 	cache *gocache.Cache
 }
 
@@ -42,29 +34,7 @@ type Store struct {
 // supports eventual persistence.
 func NewStore(file string) (*Store, error) {
 	store := &Store{
-		file:  file,
 		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
-	}
-	// XXX: Remove the block below in v4.0.0 because persistence with the memory store will no longer be supported
-	// XXX: Make sure to also update gocache to v2.0.0
-	if len(file) > 0 {
-		_, err := store.cache.ReadFromFile(file)
-		if err != nil {
-			// XXX: Remove the block below in v4.0.0
-			if data, err2 := os.ReadFile(file); err2 == nil {
-				isFromOldVersion := strings.Contains(string(data), "*core.ServiceStatus")
-				if isFromOldVersion {
-					log.Println("WARNING: Couldn't read file due to recent change in v3.3.0, see https://github.com/TwiN/gatus/issues/191")
-					log.Println("WARNING: Will automatically rename old file to " + file + ".old and overwrite the current file")
-					if err = os.WriteFile(file+".old", data, fs.ModePerm); err != nil {
-						log.Println("WARNING: Tried my best to keep the old file, but it wasn't enough. Sorry, your file will be overwritten :(")
-					}
-					// Return the store regardless of whether there was an error or not
-					return store, nil
-				}
-			}
-			return nil, err
-		}
 	}
 	return store, nil
 }
@@ -221,9 +191,6 @@ func (s *Store) Clear() {
 
 // Save persists the cache to the store file
 func (s *Store) Save() error {
-	if len(s.file) > 0 {
-		return s.cache.SaveToFile(s.file)
-	}
 	return nil
 }
 

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/client"
-	"github.com/TwiN/gatus/v3/core/ui"
-	"github.com/TwiN/gatus/v3/util"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/client"
+	"github.com/TwiN/gatus/v4/core/ui"
+	"github.com/TwiN/gatus/v4/util"
 )
 
 type EndpointType string
@@ -89,7 +89,7 @@ type Endpoint struct {
 	Interval time.Duration `yaml:"interval,omitempty"`
 
 	// Conditions used to determine the health of the endpoint
-	Conditions []*Condition `yaml:"conditions"`
+	Conditions []Condition `yaml:"conditions"`
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
@@ -228,6 +228,11 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	// No need to keep the body after the endpoint has been evaluated
 	result.body = nil
 	// Clean up parameters that we don't need to keep in the results
+	if endpoint.UIConfig.HideURL {
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
+		}
+	}
 	if endpoint.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")

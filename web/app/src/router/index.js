@@ -13,10 +13,6 @@ const routes = [
         name: 'Details',
         component: Details,
     },
-    { // XXX: Remove in v4.0.0
-        path: '/services/:key',
-        redirect: {name: 'Details'}
-    },
 ];
 
 const router = createRouter({

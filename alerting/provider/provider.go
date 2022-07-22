@@ -1,19 +1,21 @@
 package provider
 
 import (
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
-	"github.com/TwiN/gatus/v3/alerting/provider/discord"
-	"github.com/TwiN/gatus/v3/alerting/provider/email"
-	"github.com/TwiN/gatus/v3/alerting/provider/googlechat"
-	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v3/alerting/provider/slack"
-	"github.com/TwiN/gatus/v3/alerting/provider/teams"
-	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/alerting/provider/custom"
+	"github.com/TwiN/gatus/v4/alerting/provider/discord"
+	"github.com/TwiN/gatus/v4/alerting/provider/email"
+	"github.com/TwiN/gatus/v4/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
+	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v4/alerting/provider/opsgenie"
+	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v4/alerting/provider/slack"
+	"github.com/TwiN/gatus/v4/alerting/provider/teams"
+	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v4/core"
 )
 
 // AlertProvider is the interface that each providers should implement
@@ -56,8 +58,10 @@ var (
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
+	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
+	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)

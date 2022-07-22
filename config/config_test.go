@@ -5,22 +5,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/alerting"
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
-	"github.com/TwiN/gatus/v3/alerting/provider/discord"
-	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v3/alerting/provider/slack"
-	"github.com/TwiN/gatus/v3/alerting/provider/teams"
-	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v3/client"
-	"github.com/TwiN/gatus/v3/config/ui"
-	"github.com/TwiN/gatus/v3/config/web"
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage"
+	"github.com/TwiN/gatus/v4/alerting"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/alerting/provider/custom"
+	"github.com/TwiN/gatus/v4/alerting/provider/discord"
+	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v4/alerting/provider/slack"
+	"github.com/TwiN/gatus/v4/alerting/provider/teams"
+	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v4/client"
+	"github.com/TwiN/gatus/v4/config/ui"
+	"github.com/TwiN/gatus/v4/config/web"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage"
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
@@ -1210,7 +1210,7 @@ endpoints:
 		t.Errorf("config.Security.Basic.Username should've been %s, but was %s", expectedUsername, config.Security.Basic.Username)
 	}
 	if config.Security.Basic.PasswordBcryptHashBase64Encoded != expectedPasswordHash {
-		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordSha512Hash)
+		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordBcryptHashBase64Encoded)
 	}
 }
 
@@ -1307,55 +1307,5 @@ endpoints:
 	}
 	if len(config.Endpoints) != 2 {
 		t.Error("services should've been merged in endpoints")
-	}
-}
-
-// XXX: Remove this in v4.0.0
-func TestParseAndValidateConfigBytes_backwardCompatibleWithStorageFile(t *testing.T) {
-	file := t.TempDir() + "/test.db"
-	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
-storage:
-  type: sqlite
-  file: %s
-
-endpoints:
-  - name: website
-    url: https://twin.sh/actuator/health
-    conditions:
-      - "[STATUS] == 200"
-`, file)))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
-		t.Error("expected storage to be set to sqlite, got", config.Storage)
-	}
-}
-
-// XXX: Remove this in v4.0.0
-func TestParseAndValidateConfigBytes_backwardCompatibleWithStorageTypeMemoryAndFile(t *testing.T) {
-	file := t.TempDir() + "/test.db"
-	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
-storage:
-  type: memory
-  file: %s
-
-endpoints:
-  - name: website
-    url: https://twin.sh/actuator/health
-    conditions:
-      - "[STATUS] == 200"
-`, file)))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeMemory {
-		t.Error("expected storage to be set to memory, got", config.Storage)
 	}
 }

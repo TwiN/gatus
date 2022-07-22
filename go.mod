@@ -1,10 +1,9 @@
-module github.com/TwiN/gatus/v3
+module github.com/TwiN/gatus/v4
 
 go 1.18
 
 require (
 	github.com/TwiN/g8 v1.3.0
-	github.com/TwiN/gocache v1.2.4
 	github.com/TwiN/gocache/v2 v2.0.0
 	github.com/TwiN/health v1.4.0
 	github.com/coreos/go-oidc/v3 v3.1.0
@@ -34,7 +33,6 @@ require (
 	github.com/prometheus/common v0.31.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect

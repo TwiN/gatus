@@ -1,20 +1,21 @@
 package alerting
 
 import (
-	"github.com/TwiN/gatus/v3/alerting/alert"
-	"github.com/TwiN/gatus/v3/alerting/provider"
-	"github.com/TwiN/gatus/v3/alerting/provider/custom"
-	"github.com/TwiN/gatus/v3/alerting/provider/discord"
-	"github.com/TwiN/gatus/v3/alerting/provider/email"
-	"github.com/TwiN/gatus/v3/alerting/provider/googlechat"
-	"github.com/TwiN/gatus/v3/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v3/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v3/alerting/provider/opsgenie"
-	"github.com/TwiN/gatus/v3/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v3/alerting/provider/slack"
-	"github.com/TwiN/gatus/v3/alerting/provider/teams"
-	"github.com/TwiN/gatus/v3/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v3/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v4/alerting/alert"
+	"github.com/TwiN/gatus/v4/alerting/provider"
+	"github.com/TwiN/gatus/v4/alerting/provider/custom"
+	"github.com/TwiN/gatus/v4/alerting/provider/discord"
+	"github.com/TwiN/gatus/v4/alerting/provider/email"
+	"github.com/TwiN/gatus/v4/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
+	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v4/alerting/provider/opsgenie"
+	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v4/alerting/provider/slack"
+	"github.com/TwiN/gatus/v4/alerting/provider/teams"
+	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
 )
 
 // Config is the configuration for alerting providers
@@ -30,6 +31,9 @@ type Config struct {
 
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
+
+	// Matrix is the configuration for the matrix alerting provider
+	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
 
 	// Mattermost is the configuration for the mattermost alerting provider
 	Mattermost *mattermost.AlertProvider `yaml:"mattermost,omitempty"`
@@ -65,12 +69,6 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Custom
-	case alert.TypeGoogleChat:
-		if config.GoogleChat == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.GoogleChat
 	case alert.TypeDiscord:
 		if config.Discord == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
@@ -83,6 +81,18 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 			return nil
 		}
 		return config.Email
+	case alert.TypeGoogleChat:
+		if config.GoogleChat == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.GoogleChat
+	case alert.TypeMatrix:
+		if config.Matrix == nil {
+			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
+			return nil
+		}
+		return config.Matrix
 	case alert.TypeMattermost:
 		if config.Mattermost == nil {
 			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil

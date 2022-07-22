@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/config"
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store"
-	"github.com/TwiN/gatus/v3/watchdog"
+	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store"
+	"github.com/TwiN/gatus/v4/watchdog"
 )
 
 func TestSinglePageApplication(t *testing.T) {
@@ -46,11 +46,6 @@ func TestSinglePageApplication(t *testing.T) {
 		{
 			Name:         "frontend-endpoint",
 			Path:         "/endpoints/core_frontend",
-			ExpectedCode: http.StatusOK,
-		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "frontend-service",
-			Path:         "/services/core_frontend",
 			ExpectedCode: http.StatusOK,
 		},
 	}

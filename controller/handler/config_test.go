@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TwiN/gatus/v3/security"
+	"github.com/TwiN/gatus/v4/security"
 	"github.com/gorilla/mux"
 )
 

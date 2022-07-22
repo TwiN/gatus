@@ -54,8 +54,17 @@
       </div>
     </div>
     <div v-if="endpointStatus && endpointStatus.key">
+      <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">CURRENT HEALTH</h1>
+      <hr />
+      <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
+        <div class="flex-1">
+          <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto"/>
+        </div>
+      </div>
+    </div>
+    <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
-      <hr class="mb-4"/>
+      <hr />
       <div>
         <slot v-for="event in events" :key="event">
           <div class="p-3 my-4">
@@ -128,7 +137,7 @@ export default {
                     event.fancyText = 'Endpoint became healthy';
                   } else if (event.type === 'UNHEALTHY') {
                     if (nextEvent) {
-                      event.fancyText = 'Endpoint was unhealthy for ' + this.prettifyTimeDifference(nextEvent.timestamp, event.timestamp);
+                      event.fancyText = 'Endpoint was unhealthy for ' + this.generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp);
                     } else {
                       event.fancyText = 'Endpoint became unhealthy';
                     }
@@ -149,6 +158,9 @@ export default {
         }
       });
     },
+    generateHealthBadgeImageURL() {
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
+    },
     generateUptimeBadgeImageURL(duration) {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
     },
@@ -157,10 +169,6 @@ export default {
     },
     generateResponseTimeChartImageURL() {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
-    },
-    prettifyTimeDifference(start, end) {
-      let minutes = Math.ceil((new Date(start) - new Date(end)) / 1000 / 60);
-      return minutes + (minutes === 1 ? ' minute' : ' minutes');
     },
     changePage(page) {
       this.currentPage = page;

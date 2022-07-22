@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/core"
+	"github.com/TwiN/gatus/v4/core"
 )
 
 func BenchmarkProcessUptimeAfterResult(b *testing.B) {

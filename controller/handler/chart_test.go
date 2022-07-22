@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/config"
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage/store"
-	"github.com/TwiN/gatus/v3/watchdog"
+	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage/store"
+	"github.com/TwiN/gatus/v4/watchdog"
 )
 
 func TestResponseTimeChart(t *testing.T) {
@@ -57,11 +57,6 @@ func TestResponseTimeChart(t *testing.T) {
 			Name:         "chart-response-time-for-invalid-key",
 			Path:         "/api/v1/endpoints/invalid_key/response-times/7d/chart.svg",
 			ExpectedCode: http.StatusNotFound,
-		},
-		{ // XXX: Remove this in v4.0.0
-			Name:         "backward-compatible-services-chart-response-time-24h",
-			Path:         "/api/v1/services/core_backend/response-times/24h/chart.svg",
-			ExpectedCode: http.StatusOK,
 		},
 	}
 	for _, scenario := range scenarios {

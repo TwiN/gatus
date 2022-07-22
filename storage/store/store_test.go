@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v3/core"
-	"github.com/TwiN/gatus/v3/storage"
-	"github.com/TwiN/gatus/v3/storage/store/common"
-	"github.com/TwiN/gatus/v3/storage/store/common/paging"
-	"github.com/TwiN/gatus/v3/storage/store/memory"
-	"github.com/TwiN/gatus/v3/storage/store/sql"
+	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/storage"
+	"github.com/TwiN/gatus/v4/storage/store/common"
+	"github.com/TwiN/gatus/v4/storage/store/common/paging"
+	"github.com/TwiN/gatus/v4/storage/store/memory"
+	"github.com/TwiN/gatus/v4/storage/store/sql"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -577,11 +577,6 @@ func TestInitialize(t *testing.T) {
 		{
 			Name:        "memory-no-path",
 			Cfg:         &storage.Config{Type: storage.TypeMemory},
-			ExpectedErr: nil,
-		},
-		{ // XXX: Remove for v4.0.0. See https://github.com/TwiN/gatus/issues/198
-			Name:        "memory-with-path",
-			Cfg:         &storage.Config{Type: storage.TypeMemory, Path: t.TempDir() + "/TestInitialize_memory-with-path.db"},
 			ExpectedErr: nil,
 		},
 		{
