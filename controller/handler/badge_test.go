@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v4/core"
 	"github.com/TwiN/gatus/v4/storage/store"
 	"github.com/TwiN/gatus/v4/watchdog"
-	"github.com/TwiN/gatus/v3/core/ui"
+	"github.com/TwiN/gatus/v4/core/ui"
 )
 
 func TestUptimeBadge(t *testing.T) {
@@ -210,11 +210,17 @@ func TestGetBadgeColorFromUptime(t *testing.T) {
 		})
 	}
 }
+var (
+	firstCondition  = core.Condition("[STATUS] == 200")
+	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
+	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+)
 
 func TestGetBadgeColorFromResponseTime(t *testing.T) {
 
 	defer store.Get().Clear()
 	defer cache.Clear()
+	
 
 	testEndpoint = core.Endpoint{
 		Name:                    "name",
@@ -223,7 +229,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []*core.Condition{&firstCondition, &secondCondition, &thirdCondition},
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,

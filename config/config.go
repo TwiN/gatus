@@ -16,7 +16,7 @@ import (
 	"github.com/TwiN/gatus/v4/core"
 	"github.com/TwiN/gatus/v4/security"
 	"github.com/TwiN/gatus/v4/storage"
-	"github.com/TwiN/gatus/v3/util"
+	"github.com/TwiN/gatus/v4/util"
 	"gopkg.in/yaml.v2"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v3/config
+	"github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/gatus/v4/storage/store"
 	"github.com/TwiN/gatus/v4/storage/store/common"
 	"github.com/TwiN/gatus/v4/storage/store/common/paging"
@@ -22,14 +22,17 @@ const (
 	badgeColorHexBad      = "#cc8111"
 	badgeColorHexVeryBad  = "#c7130a"
 )
-
-var (
-	badgeColors = []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
-)const (
+const (
 	HealthStatusUp      = "up"
 	HealthStatusDown    = "down"
 	HealthStatusUnknown = "?"
 )
+
+var (
+	badgeColors = []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
+)
+
+
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //

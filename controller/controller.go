@@ -9,11 +9,9 @@ import (
 	"time"
 
 
-	"github.com/TwiN/gatus/v3/config"
+	"github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/gatus/v4/config/ui"
-	"github.com/TwiN/gatus/v4/config/web"
 	"github.com/TwiN/gatus/v4/controller/handler"
-	"github.com/TwiN/gatus/v4/security"
 )
 
 var (
@@ -23,13 +21,12 @@ var (
 )
 
 // Handle creates the router and starts the server
-)
 func Handle(config *config.Config) {
 	var router http.Handler = handler.CreateRouter(ui.StaticFolder, config)
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
-	server = &http.Server{,
+	server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", config.Web.Address, config.Web.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,

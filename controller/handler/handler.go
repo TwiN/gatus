@@ -3,10 +3,7 @@ package handler
 import (
 	"net/http"
 
-
-	"github.com/TwiN/gatus/v4/config/ui"
-	"github.com/TwiN/gatus/v4/security"
-    "github.com/TwiN/gatus/v3/config
+    "github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/health"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -49,9 +46,6 @@ func CreateRouter(staticFolder string, config *config.Config) *mux.Router {
 	// Misc
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
 	router.HandleFunc("/favicon.ico", FavIcon(staticFolder)).Methods("GET")
-	// SPA
-	router.HandleFunc("/endpoints/{name}", SinglePageApplication(staticFolder, uiConfig)).Methods("GET")
-	router.HandleFunc("/", SinglePageApplication(staticFolder, uiConfig)).Methods("GET")
 	// Everything else falls back on static content
 	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir(staticFolder))))
 	return router
