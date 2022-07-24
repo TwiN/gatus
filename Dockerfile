@@ -1,6 +1,6 @@
 # Build the go application into a binary
 FROM golang:alpine as builder
-RUN apk --update add ca-certificates
+RUN apk --update --no-cache add ca-certificates curl
 WORKDIR /app
 COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o gatus .

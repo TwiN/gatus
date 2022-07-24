@@ -12,6 +12,10 @@ services:
       - POSTGRES_PASSWORD=password
     networks:
       - web
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "outline"]
+      interval: 3s
+      retries: 12
 
   gatus:
     image: twinproduction/gatus:latest
