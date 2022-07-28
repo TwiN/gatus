@@ -5,3 +5,4 @@
 *.db-wal
 gatus
 config/config.yaml
+config/config.yml
