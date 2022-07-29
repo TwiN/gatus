@@ -28,7 +28,6 @@ func CreateRouter(staticFolder string, config *config.Config) *mux.Router {
 		}
 
 		// Endpoints
-
 		unprotected.Handle("/v1/config", ConfigHandler{securityConfig: config.Security}).Methods("GET")
 		unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")
 		unprotected.HandleFunc("/v1/services/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(config)).Methods("GET")
