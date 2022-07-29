@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-
 	"github.com/TwiN/gatus/v4/alerting"
 	"github.com/TwiN/gatus/v4/alerting/alert"
 	"github.com/TwiN/gatus/v4/alerting/provider"
