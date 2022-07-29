@@ -20,19 +20,22 @@ var (
 )
 
 // Handle creates the router and starts the server
-func Handle(config *config.Config) {
-	var router http.Handler = handler.CreateRouter(ui.StaticFolder, config)
+func Handle(cfg *config.Config) {
+	var router http.Handler = handler.CreateRouter(ui.StaticFolder, cfg)
+  
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
 	server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", config.Web.Address, config.Web.Port),
+		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	log.Println("[controller][Handle] Listening on " + config.Web.SocketAddress())
+
+	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
+
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}

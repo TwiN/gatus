@@ -153,7 +153,8 @@ func TestEndpointStatuses(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	router := CreateRouter("../../web/static", nil)
+
+	router := CreateRouter("../../web/static", &config.Config{Metrics: true})
 
 	type Scenario struct {
 		Name         string

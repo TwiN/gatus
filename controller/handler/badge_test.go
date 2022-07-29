@@ -30,7 +30,7 @@ func TestUptimeBadge(t *testing.T) {
 			},
 		},
 	}
-
+  
 	testSuccessfulResult = core.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
@@ -60,8 +60,9 @@ func TestUptimeBadge(t *testing.T) {
 	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
 	cfg.Endpoints[1].UIConfig = ui.GetDefaultConfig()
 
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
+
 	router := CreateRouter("../../web/static", cfg)
 	type Scenario struct {
 		Name         string

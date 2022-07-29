@@ -17,7 +17,7 @@ import (
 // injectedHTTPClient is used for testing purposes
 var injectedHTTPClient *http.Client
 
-// GetHTTPClient returns the shared HTTP client
+// GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
 func GetHTTPClient(config *Config) *http.Client {
 	if injectedHTTPClient != nil {
 		return injectedHTTPClient

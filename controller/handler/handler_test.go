@@ -8,10 +8,8 @@ import (
 )
 
 func TestCreateRouter(t *testing.T) {
-	cfg := &config.Config{
-		Metrics: true,
-	}
-	router := CreateRouter("../../web/static", cfg)
+	router := CreateRouter("../../web/static", &config.Config{Metrics: true})
+
 	type Scenario struct {
 		Name         string
 		Path         string

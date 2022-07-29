@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v4/alerting/alert"
 	"github.com/TwiN/gatus/v4/alerting/provider"
 	"github.com/TwiN/gatus/v4/config/maintenance"
+	"github.com/TwiN/gatus/v4/config/remote"
 	"github.com/TwiN/gatus/v4/config/ui"
 	"github.com/TwiN/gatus/v4/config/web"
 	"github.com/TwiN/gatus/v4/core"
@@ -85,6 +86,10 @@ type Config struct {
 
 	// Maintenance is the configuration for creating a maintenance window in which no alerts are sent
 	Maintenance *maintenance.Config `yaml:"maintenance,omitempty"`
+
+	// Remote is the configuration for remote Gatus instances
+	// WARNING: This is in ALPHA and may change or be completely removed in the future
+	Remote *remote.Config `yaml:"remote,omitempty"`
 
 	filePath        string    // path to the file from which config was loaded from
 	lastFileModTime time.Time // last modification time
@@ -196,8 +201,20 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateStorageConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateRemoteConfig(config); err != nil {
+			return nil, err
+		}
 	}
 	return
+}
+
+func validateRemoteConfig(config *Config) error {
+	if config.Remote != nil {
+		if err := config.Remote.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func validateStorageConfig(config *Config) error {
