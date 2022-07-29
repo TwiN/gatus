@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-
 	"github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/gatus/v4/config/ui"
 	"github.com/TwiN/gatus/v4/controller/handler"
