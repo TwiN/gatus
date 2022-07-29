@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/TwiN/gatus/v4/config"
 )
 
 func TestFavIcon(t *testing.T) {
-	router := CreateRouter("../../web/static", nil, nil, false)
+	router := CreateRouter("../../web/static", &config.Config{})
 	type Scenario struct {
 		Name         string
 		Path         string
