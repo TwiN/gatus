@@ -31,9 +31,6 @@ const (
 var (
 	badgeColors = []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
 )
-
-
-
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for {duration}: 7d, 24h, 1h
