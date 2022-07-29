@@ -97,7 +97,7 @@ func TestEndpointStatus(t *testing.T) {
 	}
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter("../../web/static", cfg.Security, nil, cfg.Metrics)
+	router := CreateRouter("../../web/static", cfg)
 
 	type Scenario struct {
 		Name         string
@@ -153,7 +153,7 @@ func TestEndpointStatuses(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	router := CreateRouter("../../web/static", nil, nil, false)
+	router := CreateRouter("../../web/static", &config.Config{Metrics: true})
 
 	type Scenario struct {
 		Name         string

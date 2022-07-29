@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/TwiN/gatus/v4/config"
 )
 
 func TestCreateRouter(t *testing.T) {
-	router := CreateRouter("../../web/static", nil, nil, true)
+	router := CreateRouter("../../web/static", &config.Config{Metrics: true})
 	type Scenario struct {
 		Name         string
 		Path         string
