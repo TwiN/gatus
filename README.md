@@ -178,6 +178,7 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                        | `false`                    |
 | `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                                     | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                                   | `false`                    |
+| `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                               | `[50, 200, 300, 500, 750]` |
 | `alerting`                                      | [Alerting configuration](#alerting).                                                                                                               | `{}`                       |
 | `security`                                      | [Security configuration](#security).                                                                                                               | `{}`                       |
 | `disable-monitoring-lock`                       | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                                | `false`                    |
@@ -1469,6 +1470,23 @@ Where:
 - `{duration}` is `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
+##### How to change the color thresholds of the response time badge  
+To change the response time badges threshold, a corresponding configuration can be added to an endpoint.   
+The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]  
+All five values must be given in milliseconds (ms).  
+
+```
+- name: nas
+  group: internal
+  url: "https://example.org/"
+  interval: 5m
+  conditions:
+    - "[STATUS] == 200"
+  ui:
+    badge:
+      response-time:
+        thresholds: [550, 850, 1350, 1650, 1750]
+```
 
 ### API
 Gatus provides a simple read-only API that can be queried in order to programmatically determine endpoint status and history.
