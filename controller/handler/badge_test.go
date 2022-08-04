@@ -9,12 +9,12 @@ import (
 
 	"github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v4/core/ui"
 	"github.com/TwiN/gatus/v4/storage/store"
 	"github.com/TwiN/gatus/v4/watchdog"
-	"github.com/TwiN/gatus/v4/core/ui"
 )
 
-func TestUptimeBadge(t *testing.T) {
+func TestBadge(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()
 	cfg := &config.Config{
@@ -30,7 +30,7 @@ func TestUptimeBadge(t *testing.T) {
 			},
 		},
 	}
-	
+
 	testSuccessfulResult = core.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
@@ -216,6 +216,7 @@ var (
 	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
 	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 )
+
 func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()

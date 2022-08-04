@@ -206,7 +206,7 @@ func getBadgeColorFromUptime(uptime float64) string {
 	return badgeColorHexVeryBad
 }
 
-func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, config *config.Config) []byte {
+func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
 	var labelWidth, valueWidth int
 	switch duration {
 	case "7d":
@@ -217,7 +217,7 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 		labelWidth = 105
 	default:
 	}
-	color := getBadgeColorFromResponseTime(averageResponseTime, key, config)
+	color := getBadgeColorFromResponseTime(averageResponseTime, key, cfg)
 	sanitizedValue := strconv.Itoa(averageResponseTime) + "ms"
 	valueWidth = len(sanitizedValue) * 11
 	width := labelWidth + valueWidth
@@ -254,9 +254,9 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 	return svg
 }
 
-func getBadgeColorFromResponseTime(responseTime int, key string, config *config.Config) string {
+func getBadgeColorFromResponseTime(responseTime int, key string, cfg *config.Config) string {
 
-	endpoint := config.GetEndpointByKey(key)
+	endpoint := cfg.GetEndpointByKey(key)
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
 		if responseTime <= endpoint.UIConfig.Badge.ResponseTime.Thresholds[i] {
