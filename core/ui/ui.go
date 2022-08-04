@@ -10,7 +10,8 @@ type Config struct {
 	HideURL bool `yaml:"hide-url"`
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
 	DontResolveFailedConditions bool   `yaml:"dont-resolve-failed-conditions"`
-	Badge                       *Badge `yaml:"badge"`
+	// Badge is the configuration for the badges generated
+	Badge *Badge `yaml:"badge"`
 }
 
 type Badge struct {
