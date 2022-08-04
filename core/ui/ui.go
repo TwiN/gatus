@@ -35,11 +35,9 @@ func (config *Config) ValidateAndSetDefaults() error {
 				return ErrInvalidBadgeResponseTimeConfig
 			}
 		}
-		//config.Badge.ResponseTime = GetDefaultConfig().Badge.ResponseTime
 	} else {
 		config.Badge = GetDefaultConfig().Badge
 	}
-
 	return nil
 }
 
