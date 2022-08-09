@@ -232,6 +232,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
+		UIConfig:                ui.GetDefaultConfig(),
 	}
 	testSuccessfulResult = core.Result{
 		Hostname:              "example.org",
@@ -259,19 +260,11 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Metrics: true,
-		Endpoints: []*core.Endpoint{
-			{
-				Name:     "name",
-				Group:    "group",
-				UIConfig: ui.GetDefaultConfig(),
-			},
-		},
+		Metrics:   true,
+		Endpoints: []*core.Endpoint{&testEndpoint},
 	}
 
-	testEndpoint.UIConfig = ui.GetDefaultConfig()
 	store.Get().Insert(&testEndpoint, &testSuccessfulResult)
-	cfg.Endpoints[0] = &testEndpoint
 
 	scenarios := []struct {
 		ResponseTime  int
