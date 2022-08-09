@@ -255,7 +255,6 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 }
 
 func getBadgeColorFromResponseTime(responseTime int, key string, cfg *config.Config) string {
-
 	endpoint := cfg.GetEndpointByKey(key)
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
