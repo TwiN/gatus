@@ -1476,6 +1476,7 @@ The values in the array correspond to the levels [Awesome, Great, Good, Passable
 All five values must be given in milliseconds (ms).  
 
 ```
+endpoints:
 - name: nas
   group: internal
   url: "https://example.org/"
