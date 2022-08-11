@@ -211,19 +211,18 @@ func TestGetBadgeColorFromUptime(t *testing.T) {
 	}
 }
 
-var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
-)
-
 func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()
 
-	testEndpoint = core.Endpoint{
-		Name:                    "name",
-		Group:                   "group",
+	var (
+		firstCondition  = core.Condition("[STATUS] == 200")
+		secondCondition = core.Condition("[RESPONSE_TIME] < 500")
+		thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+	)
+
+	firstTestEndpoint := core.Endpoint{
+		Name:                    "a",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
@@ -234,87 +233,107 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		NumberOfSuccessesInARow: 0,
 		UIConfig:                ui.GetDefaultConfig(),
 	}
-	testSuccessfulResult = core.Result{
-		Hostname:              "example.org",
-		IP:                    "127.0.0.1",
-		HTTPStatus:            200,
-		Errors:                nil,
-		Connected:             true,
-		Success:               true,
-		Timestamp:             timestamp,
-		Duration:              150 * time.Millisecond,
-		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
-			{
-				Condition: "[STATUS] == 200",
-				Success:   true,
-			},
-			{
-				Condition: "[RESPONSE_TIME] < 500",
-				Success:   true,
-			},
-			{
-				Condition: "[CERTIFICATE_EXPIRATION] < 72h",
-				Success:   true,
+	secondTestEndpoint := core.Endpoint{
+		Name:                    "b",
+		URL:                     "https://example.org/what/ever",
+		Method:                  "GET",
+		Body:                    "body",
+		Interval:                30 * time.Second,
+		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Alerts:                  nil,
+		NumberOfFailuresInARow:  0,
+		NumberOfSuccessesInARow: 0,
+		UIConfig: &ui.Config{
+			Badge: &ui.Badge{
+				ResponseTime: &ui.ResponseTime{
+					Thresholds: []int{100, 500, 1000, 2000, 3000},
+				},
 			},
 		},
 	}
 	cfg := &config.Config{
 		Metrics:   true,
-		Endpoints: []*core.Endpoint{&testEndpoint},
+		Endpoints: []*core.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
 	}
 
-	store.Get().Insert(&testEndpoint, &testSuccessfulResult)
+	store.Get().Insert(&firstTestEndpoint, &testSuccessfulResult)
+	store.Get().Insert(&secondTestEndpoint, &testSuccessfulResult)
 
 	scenarios := []struct {
+		Key           string
 		ResponseTime  int
 		ExpectedColor string
 	}{
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  10,
 			ExpectedColor: badgeColorHexAwesome,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  50,
 			ExpectedColor: badgeColorHexAwesome,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  75,
 			ExpectedColor: badgeColorHexGreat,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  150,
 			ExpectedColor: badgeColorHexGreat,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  201,
 			ExpectedColor: badgeColorHexGood,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  300,
 			ExpectedColor: badgeColorHexGood,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  301,
 			ExpectedColor: badgeColorHexPassable,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  450,
 			ExpectedColor: badgeColorHexPassable,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  700,
 			ExpectedColor: badgeColorHexBad,
 		},
 		{
+			Key:           firstTestEndpoint.Key(),
 			ResponseTime:  1500,
 			ExpectedColor: badgeColorHexVeryBad,
 		},
+		{
+			Key:           secondTestEndpoint.Key(),
+			ResponseTime:  50,
+			ExpectedColor: badgeColorHexAwesome,
+		},
+		{
+			Key:           secondTestEndpoint.Key(),
+			ResponseTime:  1500,
+			ExpectedColor: badgeColorHexPassable,
+		},
+		{
+			Key:           secondTestEndpoint.Key(),
+			ResponseTime:  2222,
+			ExpectedColor: badgeColorHexBad,
+		},
 	}
 	for _, scenario := range scenarios {
-		t.Run("response-time-"+strconv.Itoa(scenario.ResponseTime), func(t *testing.T) {
-			if getBadgeColorFromResponseTime(scenario.ResponseTime, "group_name", cfg) != scenario.ExpectedColor {
-				t.Errorf("expected %s from %d, got %v", scenario.ExpectedColor, scenario.ResponseTime, getBadgeColorFromResponseTime(scenario.ResponseTime, "group_name", cfg))
+		t.Run(scenario.Key+"-response-time-"+strconv.Itoa(scenario.ResponseTime), func(t *testing.T) {
+			if getBadgeColorFromResponseTime(scenario.ResponseTime, scenario.Key, cfg) != scenario.ExpectedColor {
+				t.Errorf("expected %s from %d, got %v", scenario.ExpectedColor, scenario.ResponseTime, getBadgeColorFromResponseTime(scenario.ResponseTime, scenario.Key, cfg))
 			}
 		})
 	}
