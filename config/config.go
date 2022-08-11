@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v4/core"
 	"github.com/TwiN/gatus/v4/security"
 	"github.com/TwiN/gatus/v4/storage"
+	"github.com/TwiN/gatus/v4/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -92,6 +93,16 @@ type Config struct {
 
 	filePath        string    // path to the file from which config was loaded from
 	lastFileModTime time.Time // last modification time
+}
+
+func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
+	for i := 0; i < len(config.Endpoints); i++ {
+		ep := config.Endpoints[i]
+		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
+			return ep
+		}
+	}
+	return nil
 }
 
 // HasLoadedConfigurationFileBeenModified returns whether the file that the

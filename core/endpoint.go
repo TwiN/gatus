@@ -145,6 +145,10 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if endpoint.UIConfig == nil {
 		endpoint.UIConfig = ui.GetDefaultConfig()
+	} else {
+		if err := endpoint.UIConfig.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
 	}
 	if endpoint.Interval == 0 {
 		endpoint.Interval = 1 * time.Minute
