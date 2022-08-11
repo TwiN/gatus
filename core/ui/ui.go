@@ -6,10 +6,13 @@ import "errors"
 type Config struct {
 	// HideHostname whether to hide the hostname in the Result
 	HideHostname bool `yaml:"hide-hostname"`
+
 	// HideURL whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.
 	HideURL bool `yaml:"hide-url"`
+
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
-	DontResolveFailedConditions bool   `yaml:"dont-resolve-failed-conditions"`
+	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
+
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
 }
@@ -17,6 +20,7 @@ type Config struct {
 type Badge struct {
 	ResponseTime *ResponseTime `yaml:"response-time"`
 }
+
 type ResponseTime struct {
 	Thresholds []int `yaml:"thresholds"`
 }
