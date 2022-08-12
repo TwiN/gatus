@@ -4,8 +4,6 @@ on:
     workflows: ["build"]
     branches: [master]
     types: [completed]
-    paths-ignore:
-      - '.github/*'
 jobs:
   publish-latest:
     name: publish-latest
