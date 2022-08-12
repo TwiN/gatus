@@ -35,8 +35,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/TwiN/g8 v1.3.0 h1:mNv3R35GhDn1gEV0BKMl1oupZ1tDtOWPTHUKu+W/k3U=
 github.com/TwiN/g8 v1.3.0/go.mod h1:SiIdItS0agSUloFqdQQt/RObB2jGSq+nnE9WfFv3RIo=
-github.com/TwiN/gocache/v2 v2.0.0 h1:CPbDNKdSJpmBkh7aWcO7D3KK1yWaMlwX+3dsBPE8/so=
-github.com/TwiN/gocache/v2 v2.0.0/go.mod h1:j4MABVaia2Tp53ERWc/3l4YxkswtPjB2hQzmL/kD/VQ=
+github.com/TwiN/gocache/v2 v2.1.0 h1:AJnSX7Sgz22fsO7rdXYQzMQ4zWpMjBKqk70ADeqtLDU=
+github.com/TwiN/gocache/v2 v2.1.0/go.mod h1:AKHAFZSwLLmoLm1a2siDOWmZ2RjIKqentRGfOFWkllY=
 github.com/TwiN/health v1.4.0 h1:Ts7lb4ihYDpVEbFSGAhSEZTSwuDOADnwJLFngFl4xzw=
 github.com/TwiN/health v1.4.0/go.mod h1:CSUh+ryfD2POS2vKtc/yO4IxgR58lKvQ0/8qnoPqPqs=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

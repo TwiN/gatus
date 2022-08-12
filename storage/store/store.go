@@ -110,15 +110,7 @@ func Initialize(cfg *storage.Config) error {
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		if len(cfg.Path) > 0 {
-			store, err = memory.NewStore(cfg.Path)
-			if err != nil {
-				return err
-			}
-			go autoSave(ctx, store, 7*time.Minute)
-		} else {
-			store, _ = memory.NewStore("")
-		}
+		store, _ = memory.NewStore()
 	}
 	return nil
 }

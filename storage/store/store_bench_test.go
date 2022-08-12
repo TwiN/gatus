@@ -12,7 +12,7 @@ import (
 )
 
 func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
-	memoryStore, err := memory.NewStore("")
+	memoryStore, err := memory.NewStore()
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -81,7 +81,7 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 }
 
 func BenchmarkStore_Insert(b *testing.B) {
-	memoryStore, err := memory.NewStore("")
+	memoryStore, err := memory.NewStore()
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -153,7 +153,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 }
 
 func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
-	memoryStore, err := memory.NewStore("")
+	memoryStore, err := memory.NewStore()
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}

@@ -89,7 +89,7 @@ type Scenario struct {
 }
 
 func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
-	memoryStore, err := memory.NewStore("")
+	memoryStore, err := memory.NewStore()
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -528,17 +528,17 @@ func TestStore_DeleteAllEndpointStatusesNotInKeys(t *testing.T) {
 			scenario.Store.Insert(&firstEndpoint, result)
 			scenario.Store.Insert(&secondEndpoint, result)
 			if ss, _ := scenario.Store.GetEndpointStatusByKey(firstEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
-				t.Fatal("firstEndpoint should exist")
+				t.Fatal("firstEndpoint should exist, got", ss)
 			}
 			if ss, _ := scenario.Store.GetEndpointStatusByKey(secondEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
-				t.Fatal("secondEndpoint should exist")
+				t.Fatal("secondEndpoint should exist, got", ss)
 			}
 			scenario.Store.DeleteAllEndpointStatusesNotInKeys([]string{firstEndpoint.Key()})
 			if ss, _ := scenario.Store.GetEndpointStatusByKey(firstEndpoint.Key(), paging.NewEndpointStatusParams()); ss == nil {
-				t.Error("secondEndpoint should've been deleted")
+				t.Error("secondEndpoint should still exist, got", ss)
 			}
 			if ss, _ := scenario.Store.GetEndpointStatusByKey(secondEndpoint.Key(), paging.NewEndpointStatusParams()); ss != nil {
-				t.Error("firstEndpoint should still exist")
+				t.Error("firstEndpoint should have been deleted, got", ss)
 			}
 			// Delete everything
 			scenario.Store.DeleteAllEndpointStatusesNotInKeys([]string{})

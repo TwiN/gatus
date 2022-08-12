@@ -82,7 +82,7 @@ var (
 // Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
-	store, _ := NewStore("")
+	store, _ := NewStore()
 	defer store.Close()
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
@@ -122,22 +122,14 @@ func TestStore_SanityCheck(t *testing.T) {
 }
 
 func TestStore_Save(t *testing.T) {
-	files := []string{
-		"",
-		t.TempDir() + "/test.db",
+	store, err := NewStore()
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
 	}
-	for _, file := range files {
-		t.Run(file, func(t *testing.T) {
-			store, err := NewStore(file)
-			if err != nil {
-				t.Fatal("expected no error, got", err.Error())
-			}
-			err = store.Save()
-			if err != nil {
-				t.Fatal("expected no error, got", err.Error())
-			}
-			store.Clear()
-			store.Close()
-		})
+	err = store.Save()
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
 	}
+	store.Clear()
+	store.Close()
 }

@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"encoding/gob"
 	"sort"
 	"sync"
 	"time"
@@ -12,14 +11,6 @@ import (
 	"github.com/TwiN/gatus/v4/util"
 	"github.com/TwiN/gocache/v2"
 )
-
-func init() {
-	gob.Register(&core.EndpointStatus{})
-	gob.Register(&core.HourlyUptimeStatistics{})
-	gob.Register(&core.Uptime{})
-	gob.Register(&core.Result{})
-	gob.Register(&core.Event{})
-}
 
 // Store that leverages gocache
 type Store struct {
@@ -32,7 +23,7 @@ type Store struct {
 //
 // This store holds everything in memory, and if the file parameter is not blank,
 // supports eventual persistence.
-func NewStore(file string) (*Store, error) {
+func NewStore() (*Store, error) {
 	store := &Store{
 		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
 	}
