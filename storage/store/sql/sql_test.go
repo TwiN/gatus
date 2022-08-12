@@ -81,13 +81,13 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", "TestNewStore.db"); err != ErrDatabaseDriverNotSpecified {
+	if _, err := NewStore("", "TestNewStore.db", false); err != ErrDatabaseDriverNotSpecified {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", ""); err != ErrPathNotSpecified {
+	if _, err := NewStore("sqlite", "", false); err != ErrPathNotSpecified {
 		t.Error("expected error due to blank path parameter")
 	}
-	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db"); err != nil {
+	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", false); err != nil {
 		t.Error("shouldn't have returned any error, got", err.Error())
 	} else {
 		_ = store.db.Close()
@@ -95,7 +95,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db", false)
 	defer store.Close()
 	now := time.Now().Round(time.Minute)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
@@ -152,7 +152,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
 	defer store.Close()
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testEndpoint, &testSuccessfulResult)
@@ -170,7 +170,7 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 
 func TestStore_Persistence(t *testing.T) {
 	path := t.TempDir() + "/TestStore_Persistence.db"
-	store, _ := NewStore("sqlite", path)
+	store, _ := NewStore("sqlite", path, false)
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	store.Insert(&testEndpoint, &testUnsuccessfulResult)
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
@@ -188,7 +188,7 @@ func TestStore_Persistence(t *testing.T) {
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
-	store, _ = NewStore("sqlite", path)
+	store, _ = NewStore("sqlite", path, false)
 	defer store.Close()
 	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
@@ -252,7 +252,7 @@ func TestStore_Persistence(t *testing.T) {
 }
 
 func TestStore_Save(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db", false)
 	defer store.Close()
 	if store.Save() != nil {
 		t.Error("Save shouldn't do anything for this store")
@@ -262,7 +262,7 @@ func TestStore_Save(t *testing.T) {
 // Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db", false)
 	defer store.Close()
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
@@ -306,7 +306,7 @@ func TestStore_SanityCheck(t *testing.T) {
 
 // TestStore_InvalidTransaction tests what happens if an invalid transaction is passed as parameter
 func TestStore_InvalidTransaction(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db", false)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
@@ -364,7 +364,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 }
 
 func TestStore_NoRows(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db", false)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
@@ -378,7 +378,7 @@ func TestStore_NoRows(t *testing.T) {
 
 // This tests very unlikely cases where a table is deleted.
 func TestStore_BrokenSchema(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db")
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db", false)
 	defer store.Close()
 	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
@@ -391,6 +391,7 @@ func TestStore_BrokenSchema(t *testing.T) {
 	}
 	// Break
 	_, _ = store.db.Exec("DROP TABLE endpoints")
+	// And now we'll try to insert something in our broken schema
 	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err == nil {
 		t.Fatal("expected an error")
 	}
@@ -475,5 +476,91 @@ func TestStore_BrokenSchema(t *testing.T) {
 	}
 	if _, err := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
+	}
+}
+
+func TestCacheKey(t *testing.T) {
+	scenarios := []struct {
+		endpointKey      string
+		params           paging.EndpointStatusParams
+		overrideCacheKey string
+		expectedCacheKey string
+		wantErr          bool
+	}{
+		{
+			endpointKey:      "simple",
+			params:           paging.EndpointStatusParams{EventsPage: 1, EventsPageSize: 2, ResultsPage: 3, ResultsPageSize: 4},
+			expectedCacheKey: "simple-1-2-3-4",
+			wantErr:          false,
+		},
+		{
+			endpointKey:      "with-hyphen",
+			params:           paging.EndpointStatusParams{EventsPage: 0, EventsPageSize: 0, ResultsPage: 1, ResultsPageSize: 20},
+			expectedCacheKey: "with-hyphen-0-0-1-20",
+			wantErr:          false,
+		},
+		{
+			endpointKey:      "with-multiple-hyphens",
+			params:           paging.EndpointStatusParams{EventsPage: 0, EventsPageSize: 0, ResultsPage: 2, ResultsPageSize: 20},
+			expectedCacheKey: "with-multiple-hyphens-0-0-2-20",
+			wantErr:          false,
+		},
+		{
+			overrideCacheKey: "invalid-a-2-3-4",
+			wantErr:          true,
+		},
+		{
+			overrideCacheKey: "invalid-1-a-3-4",
+			wantErr:          true,
+		},
+		{
+			overrideCacheKey: "invalid-1-2-a-4",
+			wantErr:          true,
+		},
+		{
+			overrideCacheKey: "invalid-1-2-3-a",
+			wantErr:          true,
+		},
+		{
+			overrideCacheKey: "notenoughhyphen1-2-3-4",
+			wantErr:          true,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.expectedCacheKey+scenario.overrideCacheKey, func(t *testing.T) {
+			var cacheKey string
+			if len(scenario.overrideCacheKey) > 0 {
+				cacheKey = scenario.overrideCacheKey
+			} else {
+				cacheKey = generateCacheKey(scenario.endpointKey, &scenario.params)
+				if cacheKey != scenario.expectedCacheKey {
+					t.Errorf("expected %s, got %s", scenario.expectedCacheKey, cacheKey)
+				}
+			}
+			extractedEndpointKey, extractedParams, err := extractKeyAndParamsFromCacheKey(cacheKey)
+			if (err != nil) != scenario.wantErr {
+				t.Errorf("expected error %v, got %v", scenario.wantErr, err)
+				return
+			}
+			if err != nil {
+				// If there's an error, we don't need to check the extracted values
+				return
+			}
+			if extractedEndpointKey != scenario.endpointKey {
+				t.Errorf("expected endpointKey %s, got %s", scenario.endpointKey, extractedEndpointKey)
+			}
+			if extractedParams.EventsPage != scenario.params.EventsPage {
+				t.Errorf("expected EventsPage %d, got %d", scenario.params.EventsPage, extractedParams.EventsPage)
+			}
+			if extractedParams.EventsPageSize != scenario.params.EventsPageSize {
+				t.Errorf("expected EventsPageSize %d, got %d", scenario.params.EventsPageSize, extractedParams.EventsPageSize)
+			}
+			if extractedParams.ResultsPage != scenario.params.ResultsPage {
+				t.Errorf("expected ResultsPage %d, got %d", scenario.params.ResultsPage, extractedParams.ResultsPage)
+			}
+			if extractedParams.ResultsPageSize != scenario.params.ResultsPageSize {
+				t.Errorf("expected ResultsPageSize %d, got %d", scenario.params.ResultsPageSize, extractedParams.ResultsPageSize)
+			}
+		})
 	}
 }
