@@ -1,0 +1,35 @@
+name: publish-experimental
+description: "Used for building and publishing a Docker image with the experimental tag"
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or SHA to checkout"
+        required: true
+        default: "experimental"
+jobs:
+  publish-experimental:
+    name: publish-experimental
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get image repository
+        run: echo IMAGE_REPOSITORY=$(echo ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push docker image
+        uses: docker/build-push-action@v2
+        with:
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:experimental
