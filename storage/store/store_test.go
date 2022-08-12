@@ -93,7 +93,11 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db")
+	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", false)
+	if err != nil {
+		t.Fatal("failed to create store:", err.Error())
+	}
+	sqliteStoreWithCaching, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+"-with-caching.db", true)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -105,6 +109,10 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 		{
 			Name:  "sqlite",
 			Store: sqliteStore,
+		},
+		{
+			Name:  "sqlite-with-caching",
+			Store: sqliteStoreWithCaching,
 		},
 	}
 }

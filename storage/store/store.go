@@ -12,7 +12,7 @@ import (
 	"github.com/TwiN/gatus/v4/storage/store/sql"
 )
 
-// Store is the interface that each stores should implement
+// Store is the interface that each store should implement
 type Store interface {
 	// GetAllEndpointStatuses returns the JSON encoding of all monitored core.EndpointStatus
 	// with a subset of core.Result defined by the page and pageSize parameters
@@ -103,7 +103,7 @@ func Initialize(cfg *storage.Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching)
 		if err != nil {
 			return err
 		}
