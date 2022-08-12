@@ -1,11 +1,5 @@
 name: publish-experimental
-on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "Branch, tag or SHA to checkout"
-        required: true
-        default: "experimental"
+on: [workflow_dispatch]
 jobs:
   publish-experimental:
     name: publish-experimental
