@@ -311,8 +311,8 @@ func (cache *Cache) Get(key string) (interface{}, bool) {
 	cache.mutex.Lock()
 	entry, ok := cache.get(key)
 	if !ok {
-		cache.mutex.Unlock()
 		cache.stats.Misses++
+		cache.mutex.Unlock()
 		return nil, false
 	}
 	if entry.Expired() {
@@ -388,8 +388,7 @@ func (cache *Cache) GetAll() map[string]interface{} {
 //     cache.GetKeysByPattern("*some*", 0) will return all keys containing "some" in them
 //     cache.GetKeysByPattern("*some*", 5) will return 5 keys (or less) containing "some" in them
 //
-// Note that GetKeysByPattern does not trigger active evictions, nor does it count as accessing the entry, the latter
-// only applying if the cache uses the LeastRecentlyUsed eviction policy.
+// Note that GetKeysByPattern does not trigger active evictions, nor does it count as accessing the entry (if LRU).
 // The reason for that behavior is that these two (active eviction and access) only applies when you access the value
 // of the cache entry, and this function only returns the keys.
 func (cache *Cache) GetKeysByPattern(pattern string, limit int) []string {
@@ -433,6 +432,13 @@ func (cache *Cache) DeleteAll(keys []string) int {
 	}
 	cache.mutex.Unlock()
 	return numberOfKeysDeleted
+}
+
+// DeleteKeysByPattern deletes all entries matching a given key pattern and returns the number of entries deleted.
+//
+// Note that DeleteKeysByPattern does not trigger active evictions, nor does it count as accessing the entry (if LRU).
+func (cache *Cache) DeleteKeysByPattern(pattern string) int {
+	return cache.DeleteAll(cache.GetKeysByPattern(pattern, 0))
 }
 
 // Count returns the total amount of entries in the cache, regardless of whether they're expired or not
