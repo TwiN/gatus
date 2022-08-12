@@ -1,5 +1,4 @@
 name: publish-experimental
-description: "Used for building and publishing a Docker image with the experimental tag"
 on:
   workflow_dispatch:
     inputs:
