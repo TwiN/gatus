@@ -164,6 +164,15 @@ func readConfigurationFile(fileName string) (config *Config, err error) {
 	return
 }
 
+// LoadFromString loads a custom configuration string
+// Note that the misconfiguration of some fields may lead to panics. This is on purpose.
+func LoadFromString(configString string) (*Config, error) {
+	log.Printf("[config][LoadFromString] Reading configuration from configString=%s", configString)
+	cfg, err := parseAndValidateConfigBytes([]byte(configString))
+	cfg.filePath = ""
+	return cfg, err
+}
+
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Expand environment variables

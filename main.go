@@ -53,11 +53,16 @@ func save() {
 }
 
 func loadConfiguration() (cfg *config.Config, err error) {
-	customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
-	if len(customConfigFile) > 0 {
-		cfg, err = config.Load(customConfigFile)
+	customConfig := os.Getenv("GATUS_CONFIG")
+	if len(customConfig) > 0 {
+		cfg, err = config.LoadFromString(customConfig)
 	} else {
-		cfg, err = config.LoadDefaultConfiguration()
+		customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
+		if len(customConfigFile) > 0 {
+			cfg, err = config.Load(customConfigFile)
+		} else {
+			cfg, err = config.LoadDefaultConfiguration()
+		}
 	}
 	return
 }

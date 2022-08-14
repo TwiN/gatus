@@ -142,6 +142,8 @@ This example would look similar to this:
 
 ![Simple example](.github/assets/example.png)
 
+Rather than using a configuration file, you can alternatively use the `GATUS_CONFIG` environment variable. See the docker-compose file in .examples/docker-compose-in-memory-config/ for details.
+
 Note that you can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 
 If you want to test it locally, see [Docker](#docker).
