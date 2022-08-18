@@ -333,7 +333,6 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 			}
 		}
 	}
-	// TODO: add field to automatically refresh the cache when a new result is inserted
 	if s.writeThroughCache != nil {
 		cacheKeysToRefresh := s.writeThroughCache.GetKeysByPattern(endpoint.Key()+"*", 0)
 		for _, cacheKey := range cacheKeysToRefresh {
