@@ -247,11 +247,12 @@ Here are some examples of conditions you can use:
 
 
 ### Storage
-| Parameter      | Description                                                                    | Default    |
-|:---------------|:-------------------------------------------------------------------------------|:-----------|
-| `storage`      | Storage configuration                                                          | `{}`       |
-| `storage.path` | Path to persist the data in. Only supported for types `sqlite` and `postgres`. | `""`       |
-| `storage.type` | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                  | `"memory"` |
+| Parameter         | Description                                                                                                                                        | Default    |
+|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
+| `storage`         | Storage configuration                                                                                                                              | `{}`       |
+| `storage.path`    | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
+| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
+| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
 
 - If `storage.type` is `memory` (default):
 ```yaml
