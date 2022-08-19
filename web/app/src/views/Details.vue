@@ -65,29 +65,27 @@
     <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
       <hr />
-      <div>
-        <slot v-for="event in events" :key="event">
-          <div class="p-3 my-4">
-            <h2 class="text-lg">
-              <img v-if="event.type === 'HEALTHY'" src="../assets/arrow-up-green.png" alt="Healthy"
-                   class="border border-green-600 rounded-full opacity-75 bg-green-100 mr-2 inline" width="26"/>
-              <img v-else-if="event.type === 'UNHEALTHY'" src="../assets/arrow-down-red.png" alt="Unhealthy"
-                   class="border border-red-500 rounded-full opacity-75 bg-red-100 mr-2 inline" width="26"/>
-              <img v-else-if="event.type === 'START'" src="../assets/arrow-right-black.png" alt="Start"
-                   class="border border-gray-500 rounded-full opacity-75 bg-gray-100 mr-2 inline" width="26"/>
-              {{ event.fancyText }}
-            </h2>
-            <div class="flex mt-1 text-sm text-gray-400">
-              <div class="flex-1 text-left pl-10">
-                {{ prettifyTimestamp(event.timestamp) }}
-              </div>
-              <div class="flex-1 text-right">
-                {{ event.fancyTimeAgo }}
-              </div>
+      <ul role="list" class="px-0 xl:px-24 divide-y divide-gray-200 dark:divide-gray-600">
+        <li v-for="event in events" :key="event" class="p-3 my-4">
+          <h2 class="text-lg">
+            <img v-if="event.type === 'HEALTHY'" src="../assets/arrow-up-green.png" alt="Healthy"
+                 class="border border-green-600 rounded-full opacity-75 bg-green-100 mr-2 inline" width="26"/>
+            <img v-else-if="event.type === 'UNHEALTHY'" src="../assets/arrow-down-red.png" alt="Unhealthy"
+                 class="border border-red-500 rounded-full opacity-75 bg-red-100 mr-2 inline" width="26"/>
+            <img v-else-if="event.type === 'START'" src="../assets/arrow-right-black.png" alt="Start"
+                 class="border border-gray-500 rounded-full opacity-75 bg-gray-100 mr-2 inline" width="26"/>
+            {{ event.fancyText }}
+          </h2>
+          <div class="flex mt-1 text-sm text-gray-400">
+            <div class="flex-1 text-left pl-10">
+              {{ prettifyTimestamp(event.timestamp) }}
+            </div>
+            <div class="flex-1 text-right">
+              {{ event.fancyTimeAgo }}
             </div>
           </div>
-        </slot>
-      </div>
+        </li>
+      </ul>
     </div>
   </div>
   <Settings @refreshData="fetchData"/>
