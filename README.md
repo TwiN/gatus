@@ -58,6 +58,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Basic](#basic)
     - [OIDC (ALPHA)](#oidc-alpha)
   - [Metrics](#metrics)
+  - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
@@ -1090,6 +1091,32 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
+
+### Remote instances (EXPERIMENTAL)
+This feature allows you to retrieve endpoint statuses from a remote Gatus instance.
+
+There are two main use cases for this:
+- You have multiple Gatus instances running on different machines, and you wish to visually expose the statuses through a single dashboard
+- You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve 
+
+This is an experimental feature. It may be removed or updated in a breaking manner at any time. Furthermore,
+there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
+Use at your own risk.
+
+| Parameter                          | Description                                  | Default        |
+|:-----------------------------------|:---------------------------------------------|:---------------|
+| `remote`                           | Remote configuration                         | `{}`           |
+| `remote.instances`                 | List of remote instances                     | Required `[]`  |
+| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`           |
+| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""`  |
+
+```yaml
+remote:
+  instances:
+    - endpoint-prefix: "status.example.org-"
+      url: "https://status.example.org/api/v1/endpoints/statuses"
+```
 
 
 ## Deployment
