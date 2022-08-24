@@ -33,6 +33,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if len(c.Instances) > 0 {
 		log.Println("WARNING: Your configuration is using 'remote', which is in alpha and may be updated/removed in future versions.")
 		log.Println("WARNING: See https://github.com/TwiN/gatus/issues/64 for more information")
+		log.Println("WARNING: This feature is a candidate for removal in future versions. Please comment on the issue above is you need this feature.")
 	}
 	return nil
 }
