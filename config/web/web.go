@@ -62,6 +62,9 @@ func (web *Config) SocketAddress() string {
 
 // TLSConfig returns a tls.Config object for serving over an encrypted channel
 func (web *Config) TLSConfig() (*tls.Config, error) {
+	if web.CertFile == "" && web.KeyFile == "" {
+		return nil, nil
+	}
 	cer, err := tls.LoadX509KeyPair(web.CertFile, web.KeyFile)
 	if err != nil {
 		return nil, err
