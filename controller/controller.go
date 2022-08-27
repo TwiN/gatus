@@ -25,8 +25,12 @@ func Handle(cfg *config.Config) {
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
+
+	tls_config, _ := cfg.Web.TLSConfig()
+
 	server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
+		TLSConfig:    tls_config,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -36,7 +40,11 @@ func Handle(cfg *config.Config) {
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
-	log.Println("[controller][Handle]", server.ListenAndServe())
+	if tls_config != nil {
+		log.Println("[controller][Handle]", server.ListenAndServeTLS("", ""))
+	} else {
+		log.Println("[controller][Handle]", server.ListenAndServe())
+	}
 }
 
 // Shutdown stops the server
