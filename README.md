@@ -187,6 +187,8 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                           | Web configuration.                                                                                                                                 | `{}`                       |
 | `web.address`                                   | Address to listen on.                                                                                                                              | `0.0.0.0`                  |
 | `web.port`                                      | Port to listen on.                                                                                                                                 | `8080`                     |
+| `web.cert_file`                                 | Optional public certificate file for TLS in PEM format.                                                                                            | ``                         |
+| `web.key_file`                                  | Optional private key file for TLS in PEM format.                                                                                                   | ``                         |
 | `ui`                                            | UI configuration.                                                                                                                                  | `{}`                       |
 | `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                          | `Health Dashboard ǀ Gatus` |
 | `ui.header`                                     | Header at the top of the dashboard.                                                                                                                | `Health Status`            |
@@ -678,14 +680,14 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                                 | Description                                                                                | Default       |
-|:------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`                          | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`              | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.slack.overrides`                | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.slack.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
+| Parameter                                | Description                                                                                | Default       |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.slack`                         | Configuration for alerts of type `slack`                                                   | `{}`          |
+| `alerting.slack.webhook-url`             | Slack Webhook URL                                                                          | Required `""` |
+| `alerting.slack.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.slack.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.slack.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.slack.overrides[].webhook-url` | Slack Webhook URL                                                                          | `""`          |
 ```yaml
 alerting:
   slack:
@@ -906,13 +908,13 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 
 
 #### Setting a default alert
-| Parameter                                     | Description                                                                   | Default |
-|:----------------------------------------------|:------------------------------------------------------------------------------|:--------|
-| `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A     |
-| `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A     |
-| `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A     |
-| `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
-| `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A     |
+| Parameter                                    | Description                                                                   | Default |
+|:---------------------------------------------|:------------------------------------------------------------------------------|:--------|
+| `alerting.*.default-alert.enabled`           | Whether to enable the alert                                                   | N/A     |
+| `alerting.*.default-alert.failure-threshold` | Number of failures in a row needed before triggering the alert                | N/A     |
+| `alerting.*.default-alert.success-threshold` | Number of successes in a row before an ongoing incident is marked as resolved | N/A     |
+| `alerting.*.default-alert.send-on-resolved`  | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
+| `alerting.*.default-alert.description`       | Description of the alert. Will be included in the alert sent                  | N/A     |
 
 While you can specify the alert configuration directly in the endpoint definition, it's tedious and may lead to a very
 long configuration file.
@@ -1028,13 +1030,15 @@ maintenance:
 
 
 ### Security
-| Parameter                        | Description                  | Default       |
-|:---------------------------------|:-----------------------------|:--------------|
-| `security`                       | Security configuration       | `{}`          |
-| `security.basic`                 | HTTP Basic configuration     | `{}`          |
-| `security.oidc`                  | OpenID Connect configuration | `{}`          |
+| Parameter        | Description                                    | Default |
+|:-----------------|:-----------------------------------------------|:--------|
+| `security`       | Security configuration                         | `{}`    |
+| `security.basic` | HTTP Basic configuration                       | `{}`    |
+| `security.oidc`  | OpenID Connect configuration                   | `{}`    |
+| `web.cert_file`  | Public certificate file for TLS in PEM format. | ``      |
+| `web.key_file`   | Private key file for TLS in PEM format.        | ``      |
 
-#### Basic
+#### Basic Authentication
 | Parameter                               | Description                                                                        | Default       |
 |:----------------------------------------|:-----------------------------------------------------------------------------------|:--------------|
 | `security.basic`                        | HTTP Basic configuration                                                           | `{}`          |
@@ -1052,7 +1056,7 @@ security:
 **WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
 and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
 
-#### OIDC (ALPHA)
+#### OIDC Authentication (ALPHA)
 | Parameter                        | Description                                                    | Default       |
 |:---------------------------------|:---------------------------------------------------------------|:--------------|
 | `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
@@ -1077,6 +1081,16 @@ security:
 
 **NOTE:** The OIDC feature is currently in Alpha. Breaking changes may occur. Use this feature at your own risk.
 
+#### TLS Encryption
+Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
+The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
+
+```yaml
+web:
+  port: 4443
+  cert_file: "server.crt"
+  key_file: "server.key"
+```
 
 ### Metrics
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
@@ -1104,12 +1118,12 @@ This is an experimental feature. It may be removed or updated in a breaking mann
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
 Use at your own risk.
 
-| Parameter                          | Description                                  | Default        |
-|:-----------------------------------|:---------------------------------------------|:---------------|
-| `remote`                           | Remote configuration                         | `{}`           |
-| `remote.instances`                 | List of remote instances                     | Required `[]`  |
-| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`           |
-| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""`  |
+| Parameter                          | Description                                  | Default       |
+|:-----------------------------------|:---------------------------------------------|:--------------|
+| `remote`                           | Remote configuration                         | `{}`          |
+| `remote.instances`                 | List of remote instances                     | Required `[]` |
+| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`          |
+| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""` |
 
 ```yaml
 remote:
@@ -1238,11 +1252,11 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
 ### Default timeouts
-| Endpoint type  | Timeout |
-|:---------------|:--------|
-| HTTP           | 10s     |
-| TCP            | 10s     |
-| ICMP           | 10s     |
+| Endpoint type | Timeout |
+|:--------------|:--------|
+| HTTP          | 10s     |
+| TCP           | 10s     |
+| ICMP          | 10s     |
 
 To modify the timeout, see [Client configuration](#client-configuration).
 
