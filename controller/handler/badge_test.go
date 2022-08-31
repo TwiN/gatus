@@ -140,6 +140,16 @@ func TestBadge(t *testing.T) {
 			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},
+		{
+			Name:         "chart-response-time-7d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/7d/chart.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "chart-response-time-with-invalid-duration",
+			Path:         "/api/v1/endpoints/core_backend/response-times/3d/chart.svg",
+			ExpectedCode: http.StatusBadRequest,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
