@@ -1,9 +1,21 @@
 version: "3.3"
 services:
   gatus:
-    image: twinproduction/gatus
+    image: gatus:tostt
     ports:
       - 8080:8080
     environment:
-      GATUS_CONFIG: > 
-        {endpoints: [{name: website, url: 'https://twin.sh/health', interval: 5m, conditions: ['[STATUS] == 200', '[BODY].status == UP', '[RESPONSE_TIME] < 300']}, {name: example, url: 'https://example.org/', interval: 60s, conditions: ['[STATUS] == 200']}]}
+      GATUS_CONFIG: |
+        endpoints:
+          - name: website
+            url: https://twin.sh/health
+            interval: 5m
+            conditions:
+              - '[STATUS] == 200'
+              - '[BODY].status == UP'
+              - '[RESPONSE_TIME] < 300'
+          - name: example
+            url: https://example.org/
+            interval: 60s
+            conditions:
+              - '[STATUS] == 200'
