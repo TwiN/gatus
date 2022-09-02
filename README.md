@@ -776,6 +776,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""`              |
 | `alerting.telegram.api-url`       | Telegram API URL                                                                           | `https://api.telegram.org` |
+| `alerting.telegram.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
 
 ```yaml
@@ -783,6 +784,8 @@ alerting:
   telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
+    client:
+      dns-resolver: "tcp://1.1.1.1:53"
 
 endpoints:
   - name: website
