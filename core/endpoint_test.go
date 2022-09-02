@@ -24,53 +24,72 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 }
 
 func TestEndpoint_Type(t *testing.T) {
-	type fields struct {
+	type args struct {
 		URL string
 		DNS *DNS
 	}
 	tests := []struct {
-		fields fields
-		want   EndpointType
-	}{{
-		fields: fields{
-			URL: "1.1.1.1",
-			DNS: &DNS{
-				QueryType: "A",
-				QueryName: "example.com",
+		args args
+		want EndpointType
+	}{
+		{
+			args: args{
+				URL: "1.1.1.1",
+				DNS: &DNS{
+					QueryType: "A",
+					QueryName: "example.com",
+				},
 			},
+			want: EndpointTypeDNS,
 		},
-		want: EndpointTypeDNS,
-	}, {
-		fields: fields{
-			URL: "tcp://127.0.0.1:6379",
+		{
+			args: args{
+				URL: "tcp://127.0.0.1:6379",
+			},
+			want: EndpointTypeTCP,
 		},
-		want: EndpointTypeTCP,
-	}, {
-		fields: fields{
-			URL: "icmp://example.com",
+		{
+			args: args{
+				URL: "icmp://example.com",
+			},
+			want: EndpointTypeICMP,
 		},
-		want: EndpointTypeICMP,
-	}, {
-		fields: fields{
-			URL: "starttls://smtp.gmail.com:587",
+		{
+			args: args{
+				URL: "starttls://smtp.gmail.com:587",
+			},
+			want: EndpointTypeSTARTTLS,
 		},
-		want: EndpointTypeSTARTTLS,
-	}, {
-		fields: fields{
-			URL: "tls://example.com:443",
+		{
+			args: args{
+				URL: "tls://example.com:443",
+			},
+			want: EndpointTypeTLS,
 		},
-		want: EndpointTypeTLS,
-	}, {
-		fields: fields{
-			URL: "https://twin.sh/health",
+		{
+			args: args{
+				URL: "https://twin.sh/health",
+			},
+			want: EndpointTypeHTTP,
 		},
-		want: EndpointTypeHTTP,
-	}}
+		{
+			args: args{
+				URL: "invalid://example.org",
+			},
+			want: EndpointTypeUNKNOWN,
+		},
+		{
+			args: args{
+				URL: "no-scheme",
+			},
+			want: EndpointTypeUNKNOWN,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(string(tt.want), func(t *testing.T) {
 			endpoint := Endpoint{
-				URL: tt.fields.URL,
-				DNS: tt.fields.DNS,
+				URL: tt.args.URL,
+				DNS: tt.args.DNS,
 			}
 			if got := endpoint.Type(); got != tt.want {
 				t.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
