@@ -33,13 +33,13 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	// EndpointType enum for the endpoint type.
 	EndpointTypeDNS      EndpointType = "DNS"
 	EndpointTypeTCP      EndpointType = "TCP"
 	EndpointTypeICMP     EndpointType = "ICMP"
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
+	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
 var (
@@ -54,6 +54,9 @@ var (
 
 	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
 	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
+
+	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
+	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 )
 
 // Endpoint is the configuration of a monitored
@@ -128,8 +131,10 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeSTARTTLS
 	case strings.HasPrefix(endpoint.URL, "tls://"):
 		return EndpointTypeTLS
-	default:
+	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
+	default:
+		return EndpointTypeUNKNOWN
 	}
 }
 
@@ -187,6 +192,9 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if endpoint.DNS != nil {
 		return endpoint.DNS.validateAndSetDefault()
+	}
+	if endpoint.Type() == EndpointTypeUNKNOWN {
+		return ErrUnknownEndpointType
 	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(endpoint.Body)))
