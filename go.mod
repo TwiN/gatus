@@ -6,6 +6,7 @@ require (
 	github.com/TwiN/g8 v1.3.0
 	github.com/TwiN/gocache/v2 v2.1.0
 	github.com/TwiN/health v1.4.0
+	github.com/TwiN/whois v1.0.0
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
 	github.com/google/uuid v1.3.0

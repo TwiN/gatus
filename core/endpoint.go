@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v4/client"
 	"github.com/TwiN/gatus/v4/core/ui"
 	"github.com/TwiN/gatus/v4/util"
+	"github.com/TwiN/whois"
 )
 
 type EndpointType string
@@ -138,7 +139,7 @@ func (endpoint Endpoint) Type() EndpointType {
 	}
 }
 
-// ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of fields that have one
+// ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
 func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	// Set default values
 	if endpoint.ClientConfig == nil {
@@ -220,7 +221,26 @@ func (endpoint Endpoint) Key() string {
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (endpoint *Endpoint) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
-	endpoint.getIP(result)
+	// Parse or extract hostname from URL
+	if endpoint.DNS != nil {
+		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
+	} else {
+		urlObject, err := url.Parse(endpoint.URL)
+		if err != nil {
+			result.AddError(err.Error())
+		} else {
+			result.Hostname = urlObject.Hostname()
+		}
+	}
+	// Retrieve IP if necessary
+	if endpoint.needsToRetrieveIP() {
+		endpoint.getIP(result)
+	}
+	// Retrieve domain expiration if necessary
+	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+		endpoint.getDomainExpiration(result)
+	}
+	//
 	if len(result.Errors) == 0 {
 		endpoint.call(result)
 	} else {
@@ -251,22 +271,21 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 }
 
 func (endpoint *Endpoint) getIP(result *Result) {
-	if endpoint.DNS != nil {
-		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
-	} else {
-		urlObject, err := url.Parse(endpoint.URL)
-		if err != nil {
-			result.AddError(err.Error())
-			return
-		}
-		result.Hostname = urlObject.Hostname()
-	}
 	ips, err := net.LookupIP(result.Hostname)
 	if err != nil {
 		result.AddError(err.Error())
 		return
 	}
 	result.IP = ips[0].String()
+}
+
+func (endpoint *Endpoint) getDomainExpiration(result *Result) {
+	whoisClient := whois.NewClient()
+	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
+		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
+	} else {
+		result.DomainExpiration = time.Until(whoisResponse.ExpirationDate)
+	}
 }
 
 func (endpoint *Endpoint) call(result *Result) {
@@ -317,7 +336,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		if endpoint.needsToReadBody() {
 			result.body, err = io.ReadAll(response.Body)
 			if err != nil {
-				result.AddError(err.Error())
+				result.AddError("error reading response body:" + err.Error())
 			}
 		}
 	}
@@ -344,10 +363,30 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any conditions that requires the response body to be read
+// needsToReadBody checks if there's any condition that requires the response body to be read
 func (endpoint *Endpoint) needsToReadBody() bool {
 	for _, condition := range endpoint.Conditions {
 		if condition.hasBodyPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// needsToRetrieveDomainExpiration checks if there's any condition that requires a whois query to be performed
+func (endpoint *Endpoint) needsToRetrieveDomainExpiration() bool {
+	for _, condition := range endpoint.Conditions {
+		if condition.hasDomainExpirationPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// needsToRetrieveIP checks if there's any condition that requires an IP lookup
+func (endpoint *Endpoint) needsToRetrieveIP() bool {
+	for _, condition := range endpoint.Conditions {
+		if condition.hasIPPlaceholder() {
 			return true
 		}
 	}

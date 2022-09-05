@@ -1,7 +1,11 @@
 package core
 
 import (
+	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -9,7 +13,229 @@ import (
 	"github.com/TwiN/gatus/v4/alerting/alert"
 	"github.com/TwiN/gatus/v4/client"
 	"github.com/TwiN/gatus/v4/core/ui"
+	"github.com/TwiN/gatus/v4/test"
 )
+
+func TestEndpoint(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	scenarios := []struct {
+		Name             string
+		Endpoint         Endpoint
+		ExpectedResult   *Result
+		MockRoundTripper test.MockRoundTripper
+	}{
+		{
+			Name: "success",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP", "[CERTIFICATE_EXPIRATION] > 24h"},
+			},
+			ExpectedResult: &Result{
+				Success:   true,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[STATUS] == 200", Success: true},
+					{Condition: "[BODY].status == UP", Success: true},
+					{Condition: "[CERTIFICATE_EXPIRATION] > 24h", Success: true},
+				},
+				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewBufferString(`{"status": "UP"}`)),
+					TLS:        &tls.ConnectionState{PeerCertificates: []*x509.Certificate{{NotAfter: time.Now().Add(9999 * time.Hour)}}},
+				}
+			}),
+		},
+		{
+			Name: "failed-body-condition",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[STATUS] == 200", Success: true},
+					{Condition: "[BODY].status (DOWN) == UP", Success: false},
+				},
+				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status": "DOWN"}`))}
+			}),
+		},
+		{
+			Name: "failed-status-condition",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[STATUS] (502) == 200", Success: false},
+				},
+				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
+			}),
+		},
+		{
+			Name: "condition-with-failed-certificate-expiration",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[CERTIFICATE_EXPIRATION] > 100h"},
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[CERTIFICATE_EXPIRATION] (18000000) > 100h (360000000)", Success: false},
+				},
+				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       http.NoBody,
+					TLS:        &tls.ConnectionState{PeerCertificates: []*x509.Certificate{{NotAfter: time.Now().Add(5 * time.Hour)}}},
+				}
+			}),
+		},
+		{
+			Name: "domain-expiration",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[DOMAIN_EXPIRATION] > 100h"},
+			},
+			ExpectedResult: &Result{
+				Success:   true,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[DOMAIN_EXPIRATION] > 100h", Success: true},
+				},
+				DomainExpiration: 999999 * time.Hour, // Note that this test only checks if it's non-zero.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+		},
+		{
+			Name: "invalid-and-hidden-hostname",
+			Endpoint: Endpoint{
+				Name:       "invalid",
+				URL:        "http://invalid/health",
+				Conditions: []Condition{"[CONNECTED] == true"},
+				UIConfig:   &ui.Config{HideHostname: true},
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: false,
+				Hostname:  "", // Because Endpoint.UIConfig.HideHostname is true, this should be empty.
+				ConditionResults: []*ConditionResult{
+					{Condition: "[CONNECTED] (false) == true", Success: false},
+				},
+				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+				DomainExpiration: 0,
+				// Because Endpoint.UIConfig.HideHostname is true, the hostname should be replaced by <redacted>.
+				Errors: []string{`Get "http://<redacted>/health": dial tcp: lookup <redacted>: no such host`},
+			},
+			MockRoundTripper: nil,
+		},
+		{
+			Name: "invalid-and-hidden-url",
+			Endpoint: Endpoint{
+				Name:         "endpoint-that-will-time-out",
+				URL:          "https://twin.sh/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideURL: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: false,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[CONNECTED] (false) == true", Success: false},
+				},
+				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+				DomainExpiration: 0,
+				// Because Endpoint.UIConfig.HideURL is true, the URL should be replaced by <redacted>.
+				Errors: []string{`Get "<redacted>": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
+			},
+			MockRoundTripper: nil,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			if scenario.MockRoundTripper != nil {
+				mockClient := &http.Client{Transport: scenario.MockRoundTripper}
+				if scenario.Endpoint.ClientConfig != nil && scenario.Endpoint.ClientConfig.Timeout > 0 {
+					mockClient.Timeout = scenario.Endpoint.ClientConfig.Timeout
+				}
+				client.InjectHTTPClient(mockClient)
+			} else {
+				client.InjectHTTPClient(nil)
+			}
+			scenario.Endpoint.ValidateAndSetDefaults()
+			result := scenario.Endpoint.EvaluateHealth()
+			if result.Success != scenario.ExpectedResult.Success {
+				t.Errorf("Expected success to be %v, got %v", scenario.ExpectedResult.Success, result.Success)
+			}
+			if result.Connected != scenario.ExpectedResult.Connected {
+				t.Errorf("Expected connected to be %v, got %v", scenario.ExpectedResult.Connected, result.Connected)
+			}
+			if result.Hostname != scenario.ExpectedResult.Hostname {
+				t.Errorf("Expected hostname to be %v, got %v", scenario.ExpectedResult.Hostname, result.Hostname)
+			}
+			if len(result.ConditionResults) != len(scenario.ExpectedResult.ConditionResults) {
+				t.Errorf("Expected %v condition results, got %v", len(scenario.ExpectedResult.ConditionResults), len(result.ConditionResults))
+			} else {
+				for i, conditionResult := range result.ConditionResults {
+					if conditionResult.Condition != scenario.ExpectedResult.ConditionResults[i].Condition {
+						t.Errorf("Expected condition to be %v, got %v", scenario.ExpectedResult.ConditionResults[i].Condition, conditionResult.Condition)
+					}
+					if conditionResult.Success != scenario.ExpectedResult.ConditionResults[i].Success {
+						t.Errorf("Expected success of condition '%s' to be %v, got %v", conditionResult.Condition, scenario.ExpectedResult.ConditionResults[i].Success, conditionResult.Success)
+					}
+				}
+			}
+			if len(result.Errors) != len(scenario.ExpectedResult.Errors) {
+				t.Errorf("Expected %v errors, got %v", len(scenario.ExpectedResult.Errors), len(result.Errors))
+			} else {
+				for i, err := range result.Errors {
+					if err != scenario.ExpectedResult.Errors[i] {
+						t.Errorf("Expected error to be %v, got %v", scenario.ExpectedResult.Errors[i], err)
+					}
+				}
+			}
+			if result.DomainExpiration != scenario.ExpectedResult.DomainExpiration {
+				// Note that DomainExpiration is only resolved if there's a condition with the DomainExpirationPlaceholder in it.
+				// In other words, if there's no condition with [DOMAIN_EXPIRATION] in it, the DomainExpiration field will be 0.
+				// Because this is a live call, mocking it would be too much of a pain, so we're just going to check if
+				// the actual value is non-zero when the expected result is non-zero.
+				if scenario.ExpectedResult.DomainExpiration.Hours() > 0 && !(result.DomainExpiration.Hours() > 0) {
+					t.Errorf("Expected domain expiration to be non-zero, got %v", result.DomainExpiration)
+				}
+			}
+		})
+	}
+}
 
 func TestEndpoint_IsEnabled(t *testing.T) {
 	if !(Endpoint{Enabled: nil}).IsEnabled() {
@@ -349,26 +575,6 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	}
 }
 
-func TestIntegrationEvaluateHealthWithFailure(t *testing.T) {
-	condition := Condition("[STATUS] == 500")
-	endpoint := Endpoint{
-		Name:       "website-health",
-		URL:        "https://twin.sh/health",
-		Conditions: []Condition{condition},
-	}
-	endpoint.ValidateAndSetDefaults()
-	result := endpoint.EvaluateHealth()
-	if result.ConditionResults[0].Success {
-		t.Errorf("Condition '%s' should have been a failure", condition)
-	}
-	if !result.Connected {
-		t.Error("Because the connection has been established, result.Connected should've been true")
-	}
-	if result.Success {
-		t.Error("Because one of the conditions failed, result.Success should have been false")
-	}
-}
-
 func TestIntegrationEvaluateHealthWithInvalidCondition(t *testing.T) {
 	condition := Condition("[STATUS] invalid 200")
 	endpoint := Endpoint{
@@ -386,32 +592,6 @@ func TestIntegrationEvaluateHealthWithInvalidCondition(t *testing.T) {
 	}
 	if len(result.Errors) == 0 {
 		t.Error("There should've been an error")
-	}
-}
-
-func TestIntegrationEvaluateHealthWithError(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
-	endpoint := Endpoint{
-		Name:       "invalid-host",
-		URL:        "http://invalid/health",
-		Conditions: []Condition{condition},
-		UIConfig: &ui.Config{
-			HideHostname: true,
-		},
-	}
-	endpoint.ValidateAndSetDefaults()
-	result := endpoint.EvaluateHealth()
-	if result.Success {
-		t.Error("Because one of the conditions was invalid, result.Success should have been false")
-	}
-	if len(result.Errors) == 0 {
-		t.Error("There should've been an error")
-	}
-	if !strings.Contains(result.Errors[0], "<redacted>") {
-		t.Error("result.Errors[0] should've had the hostname redacted because ui.hide-hostname is set to true")
-	}
-	if result.Hostname != "" {
-		t.Error("result.Hostname should've been empty because ui.hide-hostname is set to true")
 	}
 }
 
@@ -455,7 +635,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
-		t.Errorf("Conditions '%s' and %s should have been a success", conditionSuccess, conditionBody)
+		t.Errorf("Conditions '%s' and '%s' should have been a success", conditionSuccess, conditionBody)
 	}
 	if !result.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")
@@ -466,16 +646,15 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 }
 
 func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
-	conditionSuccess := Condition("[CONNECTED] == true")
 	endpoint := Endpoint{
 		Name:       "icmp-test",
 		URL:        "icmp://127.0.0.1",
-		Conditions: []Condition{conditionSuccess},
+		Conditions: []Condition{"[CONNECTED] == true"},
 	}
 	endpoint.ValidateAndSetDefaults()
 	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
-		t.Errorf("Conditions '%s' should have been a success", conditionSuccess)
+		t.Errorf("Conditions '%s' should have been a success", endpoint.Conditions[0])
 	}
 	if !result.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")
@@ -486,11 +665,10 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 }
 
 func TestEndpoint_getIP(t *testing.T) {
-	conditionSuccess := Condition("[CONNECTED] == true")
 	endpoint := Endpoint{
 		Name:       "invalid-url-test",
 		URL:        "",
-		Conditions: []Condition{conditionSuccess},
+		Conditions: []Condition{"[CONNECTED] == true"},
 	}
 	result := &Result{}
 	endpoint.getIP(result)
@@ -499,7 +677,7 @@ func TestEndpoint_getIP(t *testing.T) {
 	}
 }
 
-func TestEndpoint_NeedsToReadBody(t *testing.T) {
+func TestEndpoint_needsToReadBody(t *testing.T) {
 	statusCondition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
 	bodyConditionWithLength := Condition("len([BODY].tags) > 0")
@@ -519,6 +697,24 @@ func TestEndpoint_NeedsToReadBody(t *testing.T) {
 		t.Error("expected true, got false")
 	}
 	if !(&Endpoint{Conditions: []Condition{bodyConditionWithLength, statusCondition}}).needsToReadBody() {
+		t.Error("expected true, got false")
+	}
+}
+
+func TestEndpoint_needsToRetrieveDomainExpiration(t *testing.T) {
+	if (&Endpoint{Conditions: []Condition{"[STATUS] == 200"}}).needsToRetrieveDomainExpiration() {
+		t.Error("expected false, got true")
+	}
+	if !(&Endpoint{Conditions: []Condition{"[STATUS] == 200", "[DOMAIN_EXPIRATION] < 720h"}}).needsToRetrieveDomainExpiration() {
+		t.Error("expected true, got false")
+	}
+}
+
+func TestEndpoint_needsToRetrieveIP(t *testing.T) {
+	if (&Endpoint{Conditions: []Condition{"[STATUS] == 200"}}).needsToRetrieveIP() {
+		t.Error("expected false, got true")
+	}
+	if !(&Endpoint{Conditions: []Condition{"[STATUS] == 200", "[IP] == 127.0.0.1"}}).needsToRetrieveIP() {
 		t.Error("expected true, got false")
 	}
 }

@@ -34,6 +34,7 @@ func (s *Store) createPostgresSchema() error {
 			status                 BIGINT,
 			dns_rcode              TEXT,
 			certificate_expiration BIGINT,
+			domain_expiration      BIGINT,
 			hostname               TEXT,
 			ip                     TEXT,
 			duration               BIGINT,
@@ -65,5 +66,7 @@ func (s *Store) createPostgresSchema() error {
 			UNIQUE(endpoint_id, hour_unix_timestamp)
 		)
 	`)
+	// Silent table modifications
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT`)
 	return err
 }

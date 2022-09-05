@@ -46,6 +46,9 @@ const (
 	// Values that could replace the placeholder: 4461677039 (~52 days)
 	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
 
+	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
+	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
+
 	// LengthFunctionPrefix is the prefix for the length function
 	//
 	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
@@ -142,9 +145,21 @@ func (c Condition) hasBodyPlaceholder() bool {
 	return strings.Contains(string(c), BodyPlaceholder)
 }
 
+// hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder
+// Used for determining whether a whois operation is necessary
+func (c Condition) hasDomainExpirationPlaceholder() bool {
+	return strings.Contains(string(c), DomainExpirationPlaceholder)
+}
+
+// hasIPPlaceholder checks whether the condition has an IPPlaceholder
+// Used for determining whether a whois operation is necessary
+func (c Condition) hasIPPlaceholder() bool {
+	return strings.Contains(string(c), IPPlaceholder)
+}
+
 // isEqual compares two strings.
 //
-// Supports the pattern and the any functions.
+// Supports the "pat" and the "any" functions.
 // i.e. if one of the parameters starts with PatternFunctionPrefix and ends with FunctionSuffix, it will be treated like
 // a pattern.
 func isEqual(first, second string) bool {
@@ -219,6 +234,8 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 			element = strconv.FormatBool(result.Connected)
 		case CertificateExpirationPlaceholder:
 			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
+		case DomainExpirationPlaceholder:
+			element = strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10)
 		default:
 			// if contains the BodyPlaceholder, then evaluate json path
 			if strings.Contains(element, BodyPlaceholder) {
