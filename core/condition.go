@@ -152,7 +152,7 @@ func (c Condition) hasDomainExpirationPlaceholder() bool {
 }
 
 // hasIPPlaceholder checks whether the condition has an IPPlaceholder
-// Used for determining whether a whois operation is necessary
+// Used for determining whether an IP lookup is necessary
 func (c Condition) hasIPPlaceholder() bool {
 	return strings.Contains(string(c), IPPlaceholder)
 }
