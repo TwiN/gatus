@@ -784,8 +784,6 @@ alerting:
   telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
-    client:
-      dns-resolver: "tcp://1.1.1.1:53"
 
 endpoints:
   - name: website
