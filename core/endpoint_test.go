@@ -97,13 +97,15 @@ func TestEndpoint(t *testing.T) {
 				Name:       "website-health",
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[CERTIFICATE_EXPIRATION] > 100h"},
+				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
 			},
 			ExpectedResult: &Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
 				ConditionResults: []*ConditionResult{
-					{Condition: "[CERTIFICATE_EXPIRATION] (18000000) > 100h (360000000)", Success: false},
+					// Because UIConfig.DontResolveFailedConditions is true, the values in the condition should not be resolved
+					{Condition: "[CERTIFICATE_EXPIRATION] > 100h", Success: false},
 				},
 				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 			},
