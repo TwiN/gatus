@@ -1316,7 +1316,7 @@ will serve as a good initial indicator:
 endpoints:
   - name: starttls-smtp-example
     url: "starttls://smtp.gmail.com:587"
-    interval: 30s
+    interval: 30m
     client:
       timeout: 5s
     conditions:
