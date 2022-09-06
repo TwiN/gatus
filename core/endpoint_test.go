@@ -138,12 +138,13 @@ func TestEndpoint(t *testing.T) {
 			}),
 		},
 		{
-			Name: "invalid-and-hidden-hostname",
+			Name: "endpoint-that-will-time-out-and-hidden-hostname",
 			Endpoint: Endpoint{
-				Name:       "invalid",
-				URL:        "http://invalid/health",
-				Conditions: []Condition{"[CONNECTED] == true"},
-				UIConfig:   &ui.Config{HideHostname: true},
+				Name:         "endpoint-that-will-time-out",
+				URL:          "https://twin.sh/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideHostname: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
 			ExpectedResult: &Result{
 				Success:   false,
@@ -155,12 +156,12 @@ func TestEndpoint(t *testing.T) {
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 				DomainExpiration: 0,
 				// Because Endpoint.UIConfig.HideHostname is true, the hostname should be replaced by <redacted>.
-				Errors: []string{`Get "http://<redacted>/health": dial tcp: lookup <redacted>: no such host`},
+				Errors: []string{`Get "https://<redacted>/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
 			},
 			MockRoundTripper: nil,
 		},
 		{
-			Name: "invalid-and-hidden-url",
+			Name: "endpoint-that-will-time-out-and-hidden-url",
 			Endpoint: Endpoint{
 				Name:         "endpoint-that-will-time-out",
 				URL:          "https://twin.sh/health",
