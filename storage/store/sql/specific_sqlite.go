@@ -34,6 +34,7 @@ func (s *Store) createSQLiteSchema() error {
 			status                 INTEGER,
 			dns_rcode              TEXT,
 			certificate_expiration INTEGER,
+		    domain_expiration      INTEGER,
 			hostname               TEXT,
 			ip                     TEXT,
 			duration               INTEGER,
@@ -65,5 +66,7 @@ func (s *Store) createSQLiteSchema() error {
 			UNIQUE(endpoint_id, hour_unix_timestamp)
 		)
 	`)
+	// Silent table modifications
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD domain_expiration INTEGER`)
 	return err
 }

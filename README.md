@@ -74,6 +74,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
+  - [Monitoring domain expiration](#monitoring-domain-expiration)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
@@ -222,18 +223,20 @@ Here are some examples of conditions you can use:
 | `[BODY].name == pat(john*)`      | String at JSONPath `$.name` matches pattern `john*` | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].id == any(1, 2)`         | Value at JSONPath `$.id` is equal to `1` or `2`     | 1, 2                       | 3, 4, 5          |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
+| `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
 
 
 #### Placeholders
 | Placeholder                | Description                                                                               | Example of resolved value                    |
 |:---------------------------|:------------------------------------------------------------------------------------------|:---------------------------------------------|
-| `[STATUS]`                 | Resolves into the HTTP status of the request                                              | 404                                          |
-| `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms                                   | 10                                           |
-| `[IP]`                     | Resolves into the IP of the target host                                                   | 192.168.0.232                                |
+| `[STATUS]`                 | Resolves into the HTTP status of the request                                              | `404`                                        |
+| `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms                                   | `10`                                         |
+| `[IP]`                     | Resolves into the IP of the target host                                                   | `192.168.0.232`                              |
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.                                       | `{"name":"john.doe"}`                        |
 | `[CONNECTED]`              | Resolves into whether a connection could be established                                   | `true`                                       |
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration (valid units are "s", "m", "h".) | `24h`, `48h`, 0 (if not protocol with certs) |
-| `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | NOERROR                                      |
+| `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
+| `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
 
 
 #### Functions
@@ -1337,6 +1340,25 @@ endpoints:
 ```
 
 
+### Monitoring domain expiration
+You can monitor the expiration of a domain with all endpoint types except for DNS by using the `[DOMAIN_EXPIRATION]`
+placeholder:
+```yaml
+endpoints:
+  - name: check-domain-and-certificate-expiration
+    url: "https://example.org"
+    interval: 1h
+    conditions:
+      - "[DOMAIN_EXPIRATION] > 720h"
+      - "[CERTIFICATE_EXPIRATION] > 240h"
+```
+
+**NOTE**: The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
+and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
+You are also responsible for sending requests at a reasonable rate, as the WHOIS service may throttle your IP address if you send too many requests.
+The duration taken by the WHOIS request(s) is excluded from the request's response time.
+
+
 ### disable-monitoring-lock
 Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time.
 
@@ -1408,7 +1430,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 
-  - name: random endpoint that isn't part of a group
+  - name: random endpoint that is not part of a group
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -1433,6 +1455,7 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
+
 
 ### Badges
 #### Uptime
@@ -1499,7 +1522,7 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge  
-To change the response time badges threshold, a corresponding configuration can be added to an endpoint.   
+To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.   
 The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]  
 All five values must be given in milliseconds (ms).  
 
@@ -1516,6 +1539,7 @@ endpoints:
       response-time:
         thresholds: [550, 850, 1350, 1650, 1750]
 ```
+
 
 ### API
 Gatus provides a simple read-only API that can be queried in order to programmatically determine endpoint status and history.
