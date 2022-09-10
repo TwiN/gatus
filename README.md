@@ -56,7 +56,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic](#basic)
-    - [OIDC (ALPHA)](#oidc-alpha)
+    - [OIDC](#oidc)
   - [Metrics](#metrics)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -1056,7 +1056,7 @@ security:
 **WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
 and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
 
-#### OIDC (ALPHA)
+#### OIDC
 | Parameter                        | Description                                                    | Default       |
 |:---------------------------------|:---------------------------------------------------------------|:--------------|
 | `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
@@ -1079,7 +1079,7 @@ security:
     #allowed-subjects: ["johndoe@example.com"]
 ```
 
-**NOTE:** The OIDC feature is currently in Alpha. Breaking changes may occur. Use this feature at your own risk.
+Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
 
 
 ### Metrics
