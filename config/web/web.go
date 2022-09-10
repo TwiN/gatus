@@ -24,10 +24,13 @@ type Config struct {
 	Port int `yaml:"port"`
 
 	// Optional public certificate for TLS in PEM format.
-	CertFile string `yaml:"cert_file,omitempty"`
+	CertFile string `yaml:"certificate-file,omitempty"`
 
 	// Optional private key file for TLS in PEM format.
-	KeyFile string `yaml:"key_file,omitempty"`
+	KeyFile string `yaml:"private-key-file,omitempty"`
+
+	tlsConfig      *tls.Config
+	tlsConfigError error
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -62,12 +65,16 @@ func (web *Config) SocketAddress() string {
 
 // TLSConfig returns a tls.Config object for serving over an encrypted channel
 func (web *Config) TLSConfig() (*tls.Config, error) {
-	if web.CertFile == "" && web.KeyFile == "" {
-		return nil, nil
+	if web.tlsConfig == nil && len(web.CertFile) > 0 && len(web.KeyFile) > 0 {
+		web.loadTLSConfig()
 	}
+	return web.tlsConfig, web.tlsConfigError
+}
+
+func (web *Config) loadTLSConfig() {
 	cer, err := tls.LoadX509KeyPair(web.CertFile, web.KeyFile)
 	if err != nil {
-		return nil, err
+		web.tlsConfigError = err
 	}
-	return &tls.Config{Certificates: []tls.Certificate{cer}}, nil
+	web.tlsConfig = &tls.Config{Certificates: []tls.Certificate{cer}}
 }

@@ -187,8 +187,8 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                           | Web configuration.                                                                                                                                 | `{}`                       |
 | `web.address`                                   | Address to listen on.                                                                                                                              | `0.0.0.0`                  |
 | `web.port`                                      | Port to listen on.                                                                                                                                 | `8080`                     |
-| `web.cert_file`                                 | Optional public certificate file for TLS in PEM format.                                                                                            | ``                         |
-| `web.key_file`                                  | Optional private key file for TLS in PEM format.                                                                                                   | ``                         |
+| `web.certificate-file`                          | Optional public certificate file for TLS in PEM format.                                                                                            | ``                         |
+| `web.private-key-file`                          | Optional private key file for TLS in PEM format.                                                                                                   | ``                         |
 | `ui`                                            | UI configuration.                                                                                                                                  | `{}`                       |
 | `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                          | `Health Dashboard ǀ Gatus` |
 | `ui.header`                                     | Header at the top of the dashboard.                                                                                                                | `Health Status`            |
@@ -1030,13 +1030,11 @@ maintenance:
 
 
 ### Security
-| Parameter        | Description                                    | Default |
-|:-----------------|:-----------------------------------------------|:--------|
-| `security`       | Security configuration                         | `{}`    |
-| `security.basic` | HTTP Basic configuration                       | `{}`    |
-| `security.oidc`  | OpenID Connect configuration                   | `{}`    |
-| `web.cert_file`  | Public certificate file for TLS in PEM format. | ``      |
-| `web.key_file`   | Private key file for TLS in PEM format.        | ``      |
+| Parameter        | Description                  | Default |
+|:-----------------|:-----------------------------|:--------|
+| `security`       | Security configuration       | `{}`    |
+| `security.basic` | HTTP Basic configuration     | `{}`    |
+| `security.oidc`  | OpenID Connect configuration | `{}`    |
 
 #### Basic Authentication
 | Parameter                               | Description                                                                        | Default       |
@@ -1088,8 +1086,8 @@ The example below shows an example configuration which makes gatus respond on po
 ```yaml
 web:
   port: 4443
-  cert_file: "server.crt"
-  key_file: "server.key"
+  certificate-file: "server.crt"
+  private-key-file: "server.key"
 ```
 
 ### Metrics
