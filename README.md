@@ -57,6 +57,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Security](#security)
     - [Basic](#basic)
     - [OIDC](#oidc)
+  - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -1083,7 +1084,7 @@ security:
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
 
-#### TLS Encryption
+### TLS Encryption
 Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
 The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
 
