@@ -41,6 +41,9 @@ type Result struct {
 	// CertificateExpiration is the duration before the certificate expires
 	CertificateExpiration time.Duration `json:"-"`
 
+	// DomainExpiration is the duration before the domain expires
+	DomainExpiration time.Duration `json:"-"`
+
 	// body is the response body
 	//
 	// Note that this variable is only used during the evaluation of an Endpoint's health.

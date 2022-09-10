@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v4/client"
 	"github.com/TwiN/gatus/v4/core/ui"
 	"github.com/TwiN/gatus/v4/util"
+	"github.com/TwiN/whois"
 )
 
 type EndpointType string
@@ -33,13 +34,13 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	// EndpointType enum for the endpoint type.
 	EndpointTypeDNS      EndpointType = "DNS"
 	EndpointTypeTCP      EndpointType = "TCP"
 	EndpointTypeICMP     EndpointType = "ICMP"
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
+	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
 var (
@@ -54,6 +55,9 @@ var (
 
 	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
 	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
+
+	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
+	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 )
 
 // Endpoint is the configuration of a monitored
@@ -128,12 +132,14 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeSTARTTLS
 	case strings.HasPrefix(endpoint.URL, "tls://"):
 		return EndpointTypeTLS
-	default:
+	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
+	default:
+		return EndpointTypeUNKNOWN
 	}
 }
 
-// ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of fields that have one
+// ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
 func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	// Set default values
 	if endpoint.ClientConfig == nil {
@@ -188,6 +194,9 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.DNS != nil {
 		return endpoint.DNS.validateAndSetDefault()
 	}
+	if endpoint.Type() == EndpointTypeUNKNOWN {
+		return ErrUnknownEndpointType
+	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(endpoint.Body)))
 	if err != nil {
@@ -212,7 +221,26 @@ func (endpoint Endpoint) Key() string {
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (endpoint *Endpoint) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
-	endpoint.getIP(result)
+	// Parse or extract hostname from URL
+	if endpoint.DNS != nil {
+		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
+	} else {
+		urlObject, err := url.Parse(endpoint.URL)
+		if err != nil {
+			result.AddError(err.Error())
+		} else {
+			result.Hostname = urlObject.Hostname()
+		}
+	}
+	// Retrieve IP if necessary
+	if endpoint.needsToRetrieveIP() {
+		endpoint.getIP(result)
+	}
+	// Retrieve domain expiration if necessary
+	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+		endpoint.getDomainExpiration(result)
+	}
+	//
 	if len(result.Errors) == 0 {
 		endpoint.call(result)
 	} else {
@@ -243,22 +271,21 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 }
 
 func (endpoint *Endpoint) getIP(result *Result) {
-	if endpoint.DNS != nil {
-		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
-	} else {
-		urlObject, err := url.Parse(endpoint.URL)
-		if err != nil {
-			result.AddError(err.Error())
-			return
-		}
-		result.Hostname = urlObject.Hostname()
-	}
 	ips, err := net.LookupIP(result.Hostname)
 	if err != nil {
 		result.AddError(err.Error())
 		return
 	}
 	result.IP = ips[0].String()
+}
+
+func (endpoint *Endpoint) getDomainExpiration(result *Result) {
+	whoisClient := whois.NewClient()
+	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
+		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
+	} else {
+		result.DomainExpiration = time.Until(whoisResponse.ExpirationDate)
+	}
 }
 
 func (endpoint *Endpoint) call(result *Result) {
@@ -309,7 +336,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		if endpoint.needsToReadBody() {
 			result.body, err = io.ReadAll(response.Body)
 			if err != nil {
-				result.AddError(err.Error())
+				result.AddError("error reading response body:" + err.Error())
 			}
 		}
 	}
@@ -336,10 +363,30 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any conditions that requires the response body to be read
+// needsToReadBody checks if there's any condition that requires the response body to be read
 func (endpoint *Endpoint) needsToReadBody() bool {
 	for _, condition := range endpoint.Conditions {
 		if condition.hasBodyPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// needsToRetrieveDomainExpiration checks if there's any condition that requires a whois query to be performed
+func (endpoint *Endpoint) needsToRetrieveDomainExpiration() bool {
+	for _, condition := range endpoint.Conditions {
+		if condition.hasDomainExpirationPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// needsToRetrieveIP checks if there's any condition that requires an IP lookup
+func (endpoint *Endpoint) needsToRetrieveIP() bool {
+	for _, condition := range endpoint.Conditions {
+		if condition.hasIPPlaceholder() {
 			return true
 		}
 	}

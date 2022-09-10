@@ -1125,7 +1125,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 `))
-	if err != core.ErrEndpointWithNoName {
+	if err == nil {
 		t.Error("should've returned an error")
 	}
 }

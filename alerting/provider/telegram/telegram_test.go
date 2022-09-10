@@ -12,14 +12,24 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{Token: "", ID: ""}
-	if invalidProvider.IsValid() {
-		t.Error("provider shouldn't have been valid")
-	}
-	validProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}
-	if !validProvider.IsValid() {
-		t.Error("provider should've been valid")
-	}
+	t.Run("invalid-provider", func(t *testing.T) {
+		invalidProvider := AlertProvider{Token: "", ID: ""}
+		if invalidProvider.IsValid() {
+			t.Error("provider shouldn't have been valid")
+		}
+	})
+	t.Run("valid-provider", func(t *testing.T) {
+		validProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}
+		if validProvider.ClientConfig != nil {
+			t.Error("provider client config should have been nil prior to IsValid() being executed")
+		}
+		if !validProvider.IsValid() {
+			t.Error("provider should've been valid")
+		}
+		if validProvider.ClientConfig == nil {
+			t.Error("provider client config should have been set after IsValid() was executed")
+		}
+	})
 }
 
 func TestAlertProvider_Send(t *testing.T) {
