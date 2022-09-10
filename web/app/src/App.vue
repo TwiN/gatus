@@ -29,12 +29,12 @@
     </h2>
     <div class="mt-8 py-7 px-4 rounded-sm sm:bg-gray-100 sm:border sm:border-gray-300 sm:shadow-2xl sm:px-10">
       <div class="sm:mx-auto sm:w-full">
-        <h2 class="mb-4 text-center text-xl font-bold text-gray-600 dark:text-gray-200 dark:sm:text-gray-600 ">
+        <h2 class="mb-3 text-center text-xl font-bold text-gray-600 dark:text-gray-200 dark:sm:text-gray-600 ">
           Sign in
         </h2>
       </div>
-      <div v-if="$route && $route.query.error" class="text-red-500 text-center my-2">
-        <div class="text-xl">
+      <div v-if="$route && $route.query.error" class="text-red-500 text-center mb-5">
+        <div class="text-sm">
           <span class="text-red-500" v-if="$route.query.error === 'access_denied'">You do not have access to this status page</span>
           <span class="text-red-500" v-else>{{ $route.query.error }}</span>
         </div>
