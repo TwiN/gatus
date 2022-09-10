@@ -1083,6 +1083,16 @@ security:
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
 
+#### TLS Encryption
+Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
+The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
+
+```yaml
+web:
+  port: 4443
+  certificate-file: "server.crt"
+  private-key-file: "server.key"
+```
 
 ### Metrics
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
