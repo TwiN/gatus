@@ -15,7 +15,7 @@ import (
 )
 
 func ProxyRequestHandler(cfg *config.Config) http.HandlerFunc {
-	endpointName, _ := regexp.Compile("\"name\":\"([a-zA-Z0-9_-]*)\"")
+	endpointName, _ := regexp.Compile("\"name\":\"([a-zA-Z0-9_\\- ]*)\"")
 	endpointKey, _ := regexp.Compile("\"key\":\"([a-zA-Z0-9_-]*)\"")
 	return func(writer http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
