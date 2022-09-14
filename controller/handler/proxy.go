@@ -37,8 +37,7 @@ func ProxyRequestHandler(cfg *config.Config) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			b = bytes.Replace(b, []byte(vars["key"]), []byte(vars["key"]+"@"+vars["instanceKey"]), -1)
-			b = endpointKey.ReplaceAll(b, []byte("\"key\":\"$1\""+remoteInstance.Key+"\""))
+			b = endpointKey.ReplaceAll(b, []byte("\"key\":\"$1@"+remoteInstance.Key+"\""))
 			b = endpointName.ReplaceAll(b, []byte("\"name\":\""+remoteInstance.EndpointPrefix+"$1\""))
 			body := ioutil.NopCloser(bytes.NewReader(b))
 			resp.Body = body
