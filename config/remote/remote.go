@@ -20,6 +20,7 @@ type Config struct {
 type Instance struct {
 	EndpointPrefix string `yaml:"endpoint-prefix"`
 	URL            string `yaml:"url"`
+	Key            string `yaml:"key"`
 }
 
 func (c *Config) ValidateAndSetDefaults() error {
