@@ -58,6 +58,12 @@ var (
 
 	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
+
+	// ErrInvalidEndpointIntervalForDomainExpirationPlaceholder is the error with which Gatus will panic if an endpoint
+	// has both an interval smaller than 5 minutes and a condition with DomainExpirationPlaceholder.
+	// This is because the free whois service we are using should not be abused, especially considering the fact that
+	// the data takes a while to be updated.
+	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
 )
 
 // Endpoint is the configuration of a monitored
@@ -190,6 +196,13 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if len(endpoint.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
+	}
+	if endpoint.Interval < 5*time.Minute {
+		for _, condition := range endpoint.Conditions {
+			if condition.hasDomainExpirationPlaceholder() {
+				return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
+			}
+		}
 	}
 	if endpoint.DNS != nil {
 		return endpoint.DNS.validateAndSetDefault()
