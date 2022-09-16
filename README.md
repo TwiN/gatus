@@ -1356,8 +1356,8 @@ endpoints:
 
 **NOTE**: The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
 and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
-You are also responsible for sending requests at a reasonable rate, as the WHOIS service may throttle your IP address if you send too many requests.
-The duration taken by the WHOIS request(s) is excluded from the request's response time.
+To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
+using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
 
 ### disable-monitoring-lock

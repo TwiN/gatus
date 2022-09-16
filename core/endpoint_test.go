@@ -372,11 +372,10 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 }
 
 func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
-	condition := Condition("[STATUS] == 200")
 	endpoint := Endpoint{
 		Name:       "website-health",
 		URL:        "https://twin.sh/health",
-		Conditions: []Condition{condition},
+		Conditions: []Condition{Condition("[STATUS] == 200")},
 		ClientConfig: &client.Config{
 			Insecure:       true,
 			IgnoreRedirect: true,
@@ -399,51 +398,10 @@ func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 	}
 }
 
-func TestEndpoint_ValidateAndSetDefaultsWithNoName(t *testing.T) {
-	defer func() { recover() }()
-	condition := Condition("[STATUS] == 200")
-	endpoint := &Endpoint{
-		Name:       "",
-		URL:        "http://example.com",
-		Conditions: []Condition{condition},
-	}
-	err := endpoint.ValidateAndSetDefaults()
-	if err == nil {
-		t.Fatal("Should've returned an error because endpoint didn't have a name, which is a mandatory field")
-	}
-}
-
-func TestEndpoint_ValidateAndSetDefaultsWithNoUrl(t *testing.T) {
-	defer func() { recover() }()
-	condition := Condition("[STATUS] == 200")
-	endpoint := &Endpoint{
-		Name:       "example",
-		URL:        "",
-		Conditions: []Condition{condition},
-	}
-	err := endpoint.ValidateAndSetDefaults()
-	if err == nil {
-		t.Fatal("Should've returned an error because endpoint didn't have an url, which is a mandatory field")
-	}
-}
-
-func TestEndpoint_ValidateAndSetDefaultsWithNoConditions(t *testing.T) {
-	defer func() { recover() }()
-	endpoint := &Endpoint{
-		Name:       "example",
-		URL:        "http://example.com",
-		Conditions: nil,
-	}
-	err := endpoint.ValidateAndSetDefaults()
-	if err == nil {
-		t.Fatal("Should've returned an error because endpoint didn't have at least 1 condition")
-	}
-}
-
 func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	endpoint := &Endpoint{
 		Name: "dns-test",
-		URL:  "http://example.com",
+		URL:  "https://example.com",
 		DNS: &DNS{
 			QueryType: "A",
 			QueryName: "example.com",
@@ -452,10 +410,67 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	}
 	err := endpoint.ValidateAndSetDefaults()
 	if err != nil {
-
+		t.Error("did not expect an error, got", err)
 	}
 	if endpoint.DNS.QueryName != "example.com." {
 		t.Error("Endpoint.dns.query-name should be formatted with . suffix")
+	}
+}
+
+func TestEndpoint_ValidateAndSetDefaultsWithSimpleErrors(t *testing.T) {
+	scenarios := []struct {
+		endpoint    *Endpoint
+		expectedErr error
+	}{
+		{
+			endpoint: &Endpoint{
+				Name:       "",
+				URL:        "https://example.com",
+				Conditions: []Condition{Condition("[STATUS] == 200")},
+			},
+			expectedErr: ErrEndpointWithNoName,
+		},
+		{
+			endpoint: &Endpoint{
+				Name:       "endpoint-with-no-url",
+				URL:        "",
+				Conditions: []Condition{Condition("[STATUS] == 200")},
+			},
+			expectedErr: ErrEndpointWithNoURL,
+		},
+		{
+			endpoint: &Endpoint{
+				Name:       "endpoint-with-no-conditions",
+				URL:        "https://example.com",
+				Conditions: nil,
+			},
+			expectedErr: ErrEndpointWithNoCondition,
+		},
+		{
+			endpoint: &Endpoint{
+				Name:       "domain-expiration-with-bad-interval",
+				URL:        "https://example.com",
+				Interval:   time.Minute,
+				Conditions: []Condition{Condition("[DOMAIN_EXPIRATION] > 720h")},
+			},
+			expectedErr: ErrInvalidEndpointIntervalForDomainExpirationPlaceholder,
+		},
+		{
+			endpoint: &Endpoint{
+				Name:       "domain-expiration-with-good-interval",
+				URL:        "https://example.com",
+				Interval:   5 * time.Minute,
+				Conditions: []Condition{Condition("[DOMAIN_EXPIRATION] > 720h")},
+			},
+			expectedErr: nil,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.endpoint.Name, func(t *testing.T) {
+			if err := scenario.endpoint.ValidateAndSetDefaults(); err != scenario.expectedErr {
+				t.Errorf("Expected error %v, got %v", scenario.expectedErr, err)
+			}
+		})
 	}
 }
 
