@@ -496,20 +496,20 @@ endpoints:
 ```
 
 #### Configuring Matrix alerts
-| Parameter                          | Description                                                                                      | Default                            |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------------|:-----------------------------------|
-| `alerting.matrix`                  | Settings for alerts of type `matrix`                                                             | `{}`                               |
-| `alerting.matrix.server-url`       | Homeserver URL                                                                                   | `https://matrix-client.matrix.org` |
-| `alerting.matrix.access-token`     | Bot user access token (see https://webapps.stackexchange.com/q/131056)                           | Required `""`                      |
-| `alerting.matrix.internal-room-id` | Internal room ID of room to send alerts to (can be found in Element in Room Settings > Advanced) | Required `""`                      |
-| `alerting.matrix.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)       | N/A                                |
+| Parameter                                | Description                                                                                | Default                            |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------------|
+| `alerting.matrix`                        | Settings for alerts of type `matrix`                                                       | `{}`                               |
+| `alerting.matrix.server-url`             | Homeserver URL                                                                             | `https://matrix-client.matrix.org` |
+| `alerting.matrix.access-token`           | Bot user access token (see https://webapps.stackexchange.com/q/131056)                     | Required `""`                      |
+| `alerting.matrix.internal-room-id`       | Internal room ID of room to send alerts to (can be found in Room Settings > Advanced)      | Required `""`                      |
+| `alerting.matrix.default-alert`          | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                |
 
 ```yaml
 alerting:
   matrix:
-    server-url: "..."
-    access-token: "..."
-    internal-room-id: "..."
+    server-url: "https://matrix-client.matrix.org"
+    access-token: "123456"
+    internal-room-id: "!example:matrix.org"
 
 endpoints:
   - name: website
