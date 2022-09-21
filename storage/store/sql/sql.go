@@ -853,16 +853,16 @@ func extractKeyAndParamsFromCacheKey(cacheKey string) (string, *paging.EndpointS
 	params := &paging.EndpointStatusParams{}
 	var err error
 	if params.EventsPage, err = strconv.Atoi(parts[len(parts)-4]); err != nil {
-		return "", nil, fmt.Errorf("invalid cache key: %s", err.Error())
+		return "", nil, fmt.Errorf("invalid cache key: %w", err)
 	}
 	if params.EventsPageSize, err = strconv.Atoi(parts[len(parts)-3]); err != nil {
-		return "", nil, fmt.Errorf("invalid cache key: %s", err.Error())
+		return "", nil, fmt.Errorf("invalid cache key: %w", err)
 	}
 	if params.ResultsPage, err = strconv.Atoi(parts[len(parts)-2]); err != nil {
-		return "", nil, fmt.Errorf("invalid cache key: %s", err.Error())
+		return "", nil, fmt.Errorf("invalid cache key: %w", err)
 	}
 	if params.ResultsPageSize, err = strconv.Atoi(parts[len(parts)-1]); err != nil {
-		return "", nil, fmt.Errorf("invalid cache key: %s", err.Error())
+		return "", nil, fmt.Errorf("invalid cache key: %w", err)
 	}
 	return strings.Join(parts[:len(parts)-4], "-"), params, nil
 }
