@@ -1,8 +1,8 @@
-# github.com/TwiN/g8 v1.3.0
-## explicit; go 1.17
+# github.com/TwiN/g8 v1.4.0
+## explicit; go 1.19
 github.com/TwiN/g8
-# github.com/TwiN/gocache/v2 v2.1.0
-## explicit; go 1.18
+# github.com/TwiN/gocache/v2 v2.1.1
+## explicit; go 1.19
 github.com/TwiN/gocache/v2
 # github.com/TwiN/health v1.4.0
 ## explicit; go 1.18

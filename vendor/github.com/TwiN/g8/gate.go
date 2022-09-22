@@ -66,15 +66,16 @@ func (gate *Gate) WithCustomUnauthorizedResponseBody(unauthorizedResponseBody []
 // If a custom token extractor is not specified, the token will be extracted from the Authorization header.
 //
 // For instance, if you're using a session cookie, you can extract the token from the cookie like so:
-//     	authorizationService := g8.NewAuthorizationService()
-//     	customTokenExtractorFunc := func(request *http.Request) string {
-//     		sessionCookie, err := request.Cookie("session")
-//     		if err != nil {
-//     			return ""
-//     		}
-//     		return sessionCookie.Value
-//     	}
-//     	gate := g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
+//
+//	authorizationService := g8.NewAuthorizationService()
+//	customTokenExtractorFunc := func(request *http.Request) string {
+//		sessionCookie, err := request.Cookie("session")
+//		if err != nil {
+//			return ""
+//		}
+//		return sessionCookie.Value
+//	}
+//	gate := g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
 //
 // You would normally use this with a client provider that matches whatever need you have.
 // For example, if you're using a session cookie, your client provider would retrieve the user from the session ID
@@ -90,8 +91,8 @@ func (gate *Gate) WithCustomTokenExtractor(customTokenExtractorFunc func(request
 // WithRateLimit adds rate limiting to the Gate
 //
 // If you just want to use a gate for rate limiting purposes:
-//    gate := g8.New().WithRateLimit(50)
 //
+//	gate := g8.New().WithRateLimit(50)
 func (gate *Gate) WithRateLimit(maximumRequestsPerSecond int) *Gate {
 	gate.rateLimiter = NewRateLimiter(maximumRequestsPerSecond)
 	return gate
@@ -102,12 +103,13 @@ func (gate *Gate) WithRateLimit(maximumRequestsPerSecond int) *Gate {
 // or lack thereof.
 //
 // Example:
-//    gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithToken("token"))
-//    router := http.NewServeMux()
-//    // Without protection
-//    router.Handle("/handle", yourHandler)
-//    // With protection
-//    router.Handle("/handle", gate.Protect(yourHandler))
+//
+//	gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithToken("token"))
+//	router := http.NewServeMux()
+//	// Without protection
+//	router.Handle("/handle", yourHandler)
+//	// With protection
+//	router.Handle("/handle", gate.Protect(yourHandler))
 //
 // The token extracted from the request is passed to the handlerFunc request context under the key TokenContextKey
 func (gate *Gate) Protect(handler http.Handler) http.Handler {
@@ -118,12 +120,13 @@ func (gate *Gate) Protect(handler http.Handler) http.Handler {
 // as well as a slice of permissions that must be met.
 //
 // Example:
-//    gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithClient(g8.NewClient("token").WithPermission("admin")))
-//    router := http.NewServeMux()
-//    // Without protection
-//    router.Handle("/handle", yourHandler)
-//    // With protection
-//    router.Handle("/handle", gate.ProtectWithPermissions(yourHandler, []string{"admin"}))
+//
+//	gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithClient(g8.NewClient("token").WithPermission("ADMIN")))
+//	router := http.NewServeMux()
+//	// Without protection
+//	router.Handle("/handle", yourHandler)
+//	// With protection
+//	router.Handle("/handle", gate.ProtectWithPermissions(yourHandler, []string{"admin"}))
 //
 // The token extracted from the request is passed to the handlerFunc request context under the key TokenContextKey
 func (gate *Gate) ProtectWithPermissions(handler http.Handler, permissions []string) http.Handler {
@@ -147,12 +150,13 @@ func (gate *Gate) ProtectWithPermission(handler http.Handler, permission string)
 // permissions or lack thereof.
 //
 // Example:
-//    gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithToken("token"))
-//    router := http.NewServeMux()
-//    // Without protection
-//    router.HandleFunc("/handle", yourHandlerFunc)
-//    // With protection
-//    router.HandleFunc("/handle", gate.ProtectFunc(yourHandlerFunc))
+//
+//	gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithToken("token"))
+//	router := http.NewServeMux()
+//	// Without protection
+//	router.HandleFunc("/handle", yourHandlerFunc)
+//	// With protection
+//	router.HandleFunc("/handle", gate.ProtectFunc(yourHandlerFunc))
 //
 // The token extracted from the request is passed to the handlerFunc request context under the key TokenContextKey
 func (gate *Gate) ProtectFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
@@ -163,12 +167,13 @@ func (gate *Gate) ProtectFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 // token as well as a slice of permissions that must be met.
 //
 // Example:
-//    gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithClient(g8.NewClient("token").WithPermission("admin")))
-//    router := http.NewServeMux()
-//    // Without protection
-//    router.HandleFunc("/handle", yourHandlerFunc)
-//    // With protection
-//    router.HandleFunc("/handle", gate.ProtectFuncWithPermissions(yourHandlerFunc, []string{"admin"}))
+//
+//	gate := g8.New().WithAuthorizationService(g8.NewAuthorizationService().WithClient(g8.NewClient("token").WithPermission("admin")))
+//	router := http.NewServeMux()
+//	// Without protection
+//	router.HandleFunc("/handle", yourHandlerFunc)
+//	// With protection
+//	router.HandleFunc("/handle", gate.ProtectFuncWithPermissions(yourHandlerFunc, []string{"admin"}))
 //
 // The token extracted from the request is passed to the handlerFunc request context under the key TokenContextKey
 func (gate *Gate) ProtectFuncWithPermissions(handlerFunc http.HandlerFunc, permissions []string) http.HandlerFunc {
@@ -214,4 +219,20 @@ func (gate *Gate) ExtractTokenFromRequest(request *http.Request) string {
 		return gate.customTokenExtractorFunc(request)
 	}
 	return strings.TrimPrefix(request.Header.Get(AuthorizationHeader), "Bearer ")
+}
+
+// PermissionMiddleware is a middleware that behaves like ProtectWithPermission, but it is meant to be used
+// as a middleware for libraries that support such a feature.
+//
+// For instance, if you are using github.com/gorilla/mux, you can use PermissionMiddleware like so:
+//
+//	router := mux.NewRouter()
+//	router.Use(gate.PermissionMiddleware("admin"))
+//	router.Handle("/admin/handle", adminHandler)
+//
+// If you do not want to protect a router with a specific permission, you can use Gate.Protect instead.
+func (gate *Gate) PermissionMiddleware(permissions ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return gate.ProtectWithPermissions(next, permissions)
+	}
 }
