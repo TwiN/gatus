@@ -33,10 +33,10 @@ cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/TwiN/g8 v1.3.0 h1:mNv3R35GhDn1gEV0BKMl1oupZ1tDtOWPTHUKu+W/k3U=
-github.com/TwiN/g8 v1.3.0/go.mod h1:SiIdItS0agSUloFqdQQt/RObB2jGSq+nnE9WfFv3RIo=
-github.com/TwiN/gocache/v2 v2.1.0 h1:AJnSX7Sgz22fsO7rdXYQzMQ4zWpMjBKqk70ADeqtLDU=
-github.com/TwiN/gocache/v2 v2.1.0/go.mod h1:AKHAFZSwLLmoLm1a2siDOWmZ2RjIKqentRGfOFWkllY=
+github.com/TwiN/g8 v1.4.0 h1:RUk5xTtxKCdMo0GGSbBVyjtAAfi2nqVbA9E0C4u5Cxo=
+github.com/TwiN/g8 v1.4.0/go.mod h1:ECyGJsoIb99klUfvVQoS1StgRLte9yvvPigGrHdy284=
+github.com/TwiN/gocache/v2 v2.1.1 h1:W/GLImqa+pZVIH9pcWEn1cBgy1KU66fUcBjOnPhjuno=
+github.com/TwiN/gocache/v2 v2.1.1/go.mod h1:SnUuBsrwGQeNcDG6vhkOMJnqErZM0JGjgIkuKryokYA=
 github.com/TwiN/health v1.4.0 h1:Ts7lb4ihYDpVEbFSGAhSEZTSwuDOADnwJLFngFl4xzw=
 github.com/TwiN/health v1.4.0/go.mod h1:CSUh+ryfD2POS2vKtc/yO4IxgR58lKvQ0/8qnoPqPqs=
 github.com/TwiN/whois v1.0.0 h1:I+aQzXLPmhWovkFUzlPV2DdfLZUWDLrkMDlM6QwCv+Q=

@@ -1,10 +1,10 @@
 module github.com/TwiN/gatus/v4
 
-go 1.18
+go 1.19
 
 require (
-	github.com/TwiN/g8 v1.3.0
-	github.com/TwiN/gocache/v2 v2.1.0
+	github.com/TwiN/g8 v1.4.0
+	github.com/TwiN/gocache/v2 v2.1.1
 	github.com/TwiN/health v1.4.0
 	github.com/TwiN/whois v1.0.0
 	github.com/coreos/go-oidc/v3 v3.1.0
