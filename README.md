@@ -1119,8 +1119,12 @@ Use at your own risk.
 ```yaml
 remote:
   instances:
-    - endpoint-prefix: "status.example.org-"
-      url: "https://status.example.org/api/v1/endpoints/statuses"
+    - endpoint-prefix: "status.mum.example.org-"
+      url: "https://status.mum.example.org"
+      key: "mum-instance"
+    - endpoint-prefix: "status.sg.example.org-"
+      url: "https://status.sg.example.org"
+      key: "sg-instance"
 ```
 
 

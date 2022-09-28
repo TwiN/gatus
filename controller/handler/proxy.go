@@ -5,6 +5,7 @@ import (
 	"github.com/TwiN/gatus/v4/config"
 	"github.com/TwiN/gatus/v4/config/remote"
 	"github.com/gorilla/mux"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -29,7 +30,7 @@ func ProxyRequestHandler(cfg *config.Config) http.HandlerFunc {
 
 		proxy := httputil.NewSingleHostReverseProxy(proxyUrl)
 		proxy.ModifyResponse = func(resp *http.Response) error {
-			b, err := ioutil.ReadAll(resp.Body)
+			b, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return err
 			}
