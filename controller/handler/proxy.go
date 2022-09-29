@@ -6,7 +6,6 @@ import (
 	"github.com/TwiN/gatus/v4/config/remote"
 	"github.com/gorilla/mux"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -40,7 +39,7 @@ func ProxyRequestHandler(cfg *config.Config) http.HandlerFunc {
 			}
 			b = endpointKey.ReplaceAll(b, []byte("\"key\":\"$1@"+remoteInstance.Key+"\""))
 			b = endpointName.ReplaceAll(b, []byte("\"name\":\""+remoteInstance.EndpointPrefix+"$1\""))
-			body := ioutil.NopCloser(bytes.NewReader(b))
+			body := io.NopCloser(bytes.NewReader(b))
 			resp.Body = body
 			resp.ContentLength = int64(len(b))
 			resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
