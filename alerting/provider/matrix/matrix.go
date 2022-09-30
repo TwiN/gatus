@@ -159,31 +159,21 @@ func (provider *AlertProvider) getConfigForGroup(group string) MatrixProviderCon
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if group == override.Group {
-				return MatrixProviderConfig{
-					ServerURL:      override.ServerURL,
-					AccessToken:    override.AccessToken,
-					InternalRoomID: override.InternalRoomID,
-				}
+				return override.MatrixProviderConfig
 			}
 		}
 	}
-	return MatrixProviderConfig{
-		ServerURL:      provider.ServerURL,
-		AccessToken:    provider.AccessToken,
-		InternalRoomID: provider.InternalRoomID,
-	}
+	return provider.MatrixProviderConfig
 }
 
 func randStringBytes(n int) string {
 	// All the compatible characters to use in a transaction ID
 	const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
 	b := make([]byte, n)
 	rand.Seed(time.Now().UnixNano())
 	for i := range b {
 		b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
 	}
-
 	return string(b)
 }
 

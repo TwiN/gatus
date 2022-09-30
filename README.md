@@ -501,20 +501,20 @@ endpoints:
 ```
 
 #### Configuring Matrix alerts
-| Parameter                          | Description                                                                                      | Default                            |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------------|:-----------------------------------|
-| `alerting.matrix`                  | Settings for alerts of type `matrix`                                                             | `{}`                               |
-| `alerting.matrix.server-url`       | Homeserver URL                                                                                   | `https://matrix-client.matrix.org` |
-| `alerting.matrix.access-token`     | Bot user access token (see https://webapps.stackexchange.com/q/131056)                           | Required `""`                      |
-| `alerting.matrix.internal-room-id` | Internal room ID of room to send alerts to (can be found in Element in Room Settings > Advanced) | Required `""`                      |
-| `alerting.matrix.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)       | N/A                                |
+| Parameter                                | Description                                                                                | Default                            |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------------|
+| `alerting.matrix`                        | Settings for alerts of type `matrix`                                                       | `{}`                               |
+| `alerting.matrix.server-url`             | Homeserver URL                                                                             | `https://matrix-client.matrix.org` |
+| `alerting.matrix.access-token`           | Bot user access token (see https://webapps.stackexchange.com/q/131056)                     | Required `""`                      |
+| `alerting.matrix.internal-room-id`       | Internal room ID of room to send alerts to (can be found in Room Settings > Advanced)      | Required `""`                      |
+| `alerting.matrix.default-alert`          | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                |
 
 ```yaml
 alerting:
   matrix:
-    server-url: "..."
-    access-token: "..."
-    internal-room-id: "..."
+    server-url: "https://matrix-client.matrix.org"
+    access-token: "123456"
+    internal-room-id: "!example:matrix.org"
 
 endpoints:
   - name: website
@@ -1372,8 +1372,8 @@ endpoints:
 
 **NOTE**: The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
 and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
-You are also responsible for sending requests at a reasonable rate, as the WHOIS service may throttle your IP address if you send too many requests.
-The duration taken by the WHOIS request(s) is excluded from the request's response time.
+To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
+using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
 
 ### disable-monitoring-lock
