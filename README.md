@@ -29,6 +29,7 @@ For more details, see [Usage](#usage)
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -55,7 +56,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
-    - [Basic](#basic)
+    - [Basic Authentication](#basic-authentication)
     - [OIDC](#oidc)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
@@ -84,6 +85,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Uptime](#uptime)
     - [Health](#health)
     - [Response time](#response-time)
+      - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
@@ -189,8 +191,8 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                           | Web configuration.                                                                                                                                 | `{}`                       |
 | `web.address`                                   | Address to listen on.                                                                                                                              | `0.0.0.0`                  |
 | `web.port`                                      | Port to listen on.                                                                                                                                 | `8080`                     |
-| `web.certificate-file`                          | Optional public certificate file for TLS in PEM format.                                                                                            | ``                         |
-| `web.private-key-file`                          | Optional private key file for TLS in PEM format.                                                                                                   | ``                         |
+| `web.tls.certificate-file`                      | Optional public certificate file for TLS in PEM format.                                                                                            | ``                         |
+| `web.tls.private-key-file`                      | Optional private key file for TLS in PEM format.                                                                                                   | ``                         |
 | `ui`                                            | UI configuration.                                                                                                                                  | `{}`                       |
 | `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                          | `Health Dashboard ǀ Gatus` |
 | `ui.header`                                     | Header at the top of the dashboard.                                                                                                                | `Health Status`            |
@@ -1091,8 +1093,9 @@ The example below shows an example configuration which makes gatus respond on po
 ```yaml
 web:
   port: 4443
-  certificate-file: "server.crt"
-  private-key-file: "server.key"
+  tls:
+    certificate-file: "server.crt"
+    private-key-file: "server.key"
 ```
 
 ### Metrics
