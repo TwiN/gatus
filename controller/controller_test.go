@@ -52,7 +52,7 @@ func TestHandleTls(t *testing.T) {
 		Web: &web.Config{
 			Address: "0.0.0.0",
 			Port:    rand.Intn(65534),
-			Tls:     (web.TlsConfig{CertFile: publicKeyPath, KeyFile: privateKeyPath}),
+			Tls:     (web.TLSConfig{CertificateFile: publicKeyPath, PrivateKeyFile: privateKeyPath}),
 		},
 		Endpoints: []*core.Endpoint{
 			{

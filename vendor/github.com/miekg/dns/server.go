@@ -104,8 +104,8 @@ func ListenAndServe(addr string, network string, handler Handler) error {
 
 // ListenAndServeTLS acts like http.ListenAndServeTLS, more information in
 // http://golang.org/pkg/net/http/#ListenAndServeTLS
-func ListenAndServeTLS(addr, certFile, keyFile string, handler Handler) error {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+func ListenAndServeTLS(addr, CertificateFile, PrivateKeyFile string, handler Handler) error {
+	cert, err := tls.LoadX509KeyPair(CertificateFile, PrivateKeyFile)
 	if err != nil {
 		return err
 	}

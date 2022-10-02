@@ -14,7 +14,7 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.Address != DefaultAddress {
 		t.Error("expected default config to have the default address")
 	}
-	if defaultConfig.Tls != (TlsConfig{}) {
+	if defaultConfig.Tls != (TLSConfig{}) {
 		t.Error("expected default config to have TLS disabled")
 	}
 }
@@ -79,17 +79,17 @@ func TestConfig_TLSConfig(t *testing.T) {
 	}{
 		{
 			name:        "including TLS",
-			cfg:         &Config{Tls: (TlsConfig{CertFile: publicKeyPath, KeyFile: privateKeyPath})},
+			cfg:         &Config{Tls: (TLSConfig{CertificateFile: publicKeyPath, PrivateKeyFile: privateKeyPath})},
 			expectedErr: false,
 		},
 		{
 			name:        "TLS with missing crt file",
-			cfg:         &Config{Tls: (TlsConfig{CertFile: "doesnotexist", KeyFile: privateKeyPath})},
+			cfg:         &Config{Tls: (TLSConfig{CertificateFile: "doesnotexist", PrivateKeyFile: privateKeyPath})},
 			expectedErr: true,
 		},
 		{
 			name:        "TLS with missing key file",
-			cfg:         &Config{Tls: (TlsConfig{CertFile: publicKeyPath, KeyFile: "doesnotexist"})},
+			cfg:         &Config{Tls: (TLSConfig{CertificateFile: publicKeyPath, PrivateKeyFile: "doesnotexist"})},
 			expectedErr: true,
 		},
 	}
