@@ -59,7 +59,7 @@ func (web *Config) ValidateAndSetDefaults() error {
 	// Try to load the TLS certificates
 	_, err := web.TLSConfig()
 	if err != nil {
-		return fmt.Errorf("invalid tls config: %s", err)
+		return fmt.Errorf("invalid tls config: %w", err)
 	}
 	return nil
 }
