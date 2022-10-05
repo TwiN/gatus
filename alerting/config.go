@@ -41,6 +41,9 @@ type Config struct {
 	// Messagebird is the configuration for the messagebird alerting provider
 	Messagebird *messagebird.AlertProvider `yaml:"messagebird,omitempty"`
 
+	// Opsgenie is the configuration for the opsgenie alerting provider
+	Opsgenie *opsgenie.AlertProvider `yaml:"opsgenie,omitempty"`
+
 	// PagerDuty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty,omitempty"`
 
@@ -55,9 +58,6 @@ type Config struct {
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`
-
-	// Opsgenie is the configuration for the opsgenie alerting provider
-	Opsgenie *opsgenie.AlertProvider `yaml:"opsgenie,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
