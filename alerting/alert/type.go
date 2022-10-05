@@ -26,6 +26,9 @@ const (
 	// TypeMessagebird is the Type for the messagebird alerting provider
 	TypeMessagebird Type = "messagebird"
 
+	// TypeNtfy is the Type for the ntfy alerting provider
+	TypeNtfy Type = "ntfy"
+
 	// TypeOpsgenie is the Type for the opsgenie alerting provider
 	TypeOpsgenie Type = "opsgenie"
 
