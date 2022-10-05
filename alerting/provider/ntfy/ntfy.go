@@ -54,9 +54,9 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = endpoint.DisplayName()
 	}
 	if resolved {
-		tag = "x"
-	} else {
 		tag = "white_check_mark"
+	} else {
+		tag = "x"
 	}
 	return fmt.Sprintf(`{
   "topic": "%s",
