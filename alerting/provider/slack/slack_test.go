@@ -20,8 +20,8 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
-
 }
+
 func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
@@ -58,6 +58,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		t.Error("provider should've been valid")
 	}
 }
+
 func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	firstDescription := "description-1"
