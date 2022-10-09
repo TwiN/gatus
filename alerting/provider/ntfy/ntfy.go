@@ -11,11 +11,16 @@ import (
 	"github.com/TwiN/gatus/v4/core"
 )
 
+const (
+	DefaultURL      = "https://ntfy.sh"
+	DefaultPriority = 3
+)
+
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	URL      string `yaml:"url"`
 	Topic    string `yaml:"topic"`
-	Priority int    `yaml:"priority"`
+	URL      string `yaml:"url,omitempty"`      // Defaults to DefaultURL
+	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -23,6 +28,12 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if len(provider.URL) == 0 {
+		provider.URL = DefaultURL
+	}
+	if provider.Priority == 0 {
+		provider.Priority = DefaultPriority
+	}
 	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6
 }
 
