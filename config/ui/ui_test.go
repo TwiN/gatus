@@ -6,10 +6,6 @@ import (
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
-	StaticFolder = "../../web/static"
-	defer func() {
-		StaticFolder = "./web/static"
-	}()
 	cfg := &Config{
 		Title:  "",
 		Header: "",
