@@ -14,9 +14,9 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "invalid-url",
-			provider: AlertProvider{URL: "", Topic: "example", Priority: 1},
-			expected: false,
+			name:     "no-url-should-use-default-value",
+			provider: AlertProvider{Topic: "example", Priority: 1},
+			expected: true,
 		},
 		{
 			name:     "invalid-topic",
@@ -30,8 +30,13 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 		},
 		{
 			name:     "invalid-priority-too-low",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 0},
+			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: -1},
 			expected: false,
+		},
+		{
+			name:     "no-priority-should-use-default-value",
+			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example"},
+			expected: true,
 		},
 	}
 	for _, scenario := range scenarios {
