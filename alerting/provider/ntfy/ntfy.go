@@ -2,6 +2,7 @@ package ntfy
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -56,8 +57,16 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Topic    string   `json:"topic"`
+	Title    string   `json:"title"`
+	Message  string   `json:"message"`
+	Tags     []string `json:"tags"`
+	Priority int      `json:"priority"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, tag string
 	if len(alert.GetDescription()) > 0 {
 		message = endpoint.DisplayName() + " - " + alert.GetDescription()
@@ -69,13 +78,14 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	} else {
 		tag = "x"
 	}
-	return fmt.Sprintf(`{
-  "topic": "%s",
-  "title": "Gatus",
-  "message": "%s",
-  "tags": ["%s"],
-  "priority": %d
-}`, provider.Topic, message, tag, provider.Priority)
+	body, _ := json.Marshal(Body{
+		Topic:    provider.Topic,
+		Title:    "Gatus",
+		Message:  message,
+		Tags:     []string{tag},
+		Priority: provider.Priority,
+	})
+	return body
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
