@@ -1,15 +1,17 @@
 package handler
 
 import (
+	"io/fs"
 	"net/http"
 
 	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v4/web"
 	"github.com/TwiN/health"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func CreateRouter(staticFolder string, cfg *config.Config) *mux.Router {
+func CreateRouter(cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 	if cfg.Metrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
@@ -35,11 +37,14 @@ func CreateRouter(staticFolder string, cfg *config.Config) *mux.Router {
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/chart.svg", ResponseTimeChart).Methods("GET")
 	// Misc
 	router.Handle("/health", health.Handler().WithJSON(true)).Methods("GET")
-	router.HandleFunc("/favicon.ico", FavIcon(staticFolder)).Methods("GET")
 	// SPA
-	router.HandleFunc("/endpoints/{name}", SinglePageApplication(staticFolder, cfg.UI)).Methods("GET")
-	router.HandleFunc("/", SinglePageApplication(staticFolder, cfg.UI)).Methods("GET")
+	router.HandleFunc("/endpoints/{name}", SinglePageApplication(cfg.UI)).Methods("GET")
+	router.HandleFunc("/", SinglePageApplication(cfg.UI)).Methods("GET")
 	// Everything else falls back on static content
-	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.Dir(staticFolder))))
+	staticFileSystem, err := fs.Sub(static.FileSystem, static.RootPath)
+	if err != nil {
+		panic(err)
+	}
+	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.FS(staticFileSystem))))
 	return router
 }

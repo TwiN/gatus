@@ -9,7 +9,7 @@ import (
 )
 
 func TestCreateRouter(t *testing.T) {
-	router := CreateRouter("../../web/static", &config.Config{Metrics: true})
+	router := CreateRouter(&config.Config{Metrics: true})
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -28,13 +28,29 @@ func TestCreateRouter(t *testing.T) {
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "scripts",
+			Name:         "favicon.ico",
+			Path:         "/favicon.ico",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "app.js",
 			Path:         "/js/app.js",
 			ExpectedCode: http.StatusOK,
 		},
 		{
-			Name:         "scripts-gzipped",
+			Name:         "app.js-gzipped",
 			Path:         "/js/app.js",
+			ExpectedCode: http.StatusOK,
+			Gzip:         true,
+		},
+		{
+			Name:         "chunk-vendors.js",
+			Path:         "/js/chunk-vendors.js",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "chunk-vendors.js-gzipped",
+			Path:         "/js/chunk-vendors.js",
 			ExpectedCode: http.StatusOK,
 			Gzip:         true,
 		},

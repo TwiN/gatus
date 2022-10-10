@@ -62,7 +62,7 @@ func TestBadge(t *testing.T) {
 
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter("../../web/static", cfg)
+	router := CreateRouter(cfg)
 	type Scenario struct {
 		Name         string
 		Path         string

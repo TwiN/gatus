@@ -17,7 +17,6 @@ import (
 	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/config/ui"
 	"github.com/TwiN/gatus/v4/config/web"
 	"github.com/TwiN/gatus/v4/core"
 	"github.com/TwiN/gatus/v4/storage"
@@ -39,10 +38,6 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
-	ui.StaticFolder = "../web/static"
-	defer func() {
-		ui.StaticFolder = "./web/static"
-	}()
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 storage:
   type: sqlite
