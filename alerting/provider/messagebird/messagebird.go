@@ -2,6 +2,7 @@ package messagebird
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,7 +34,7 @@ func (provider *AlertProvider) IsValid() bool {
 // Send an alert using the provider
 // Reference doc for messagebird: https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
 		return err
@@ -51,19 +52,26 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Originator string `json:"originator"`
+	Recipients string `json:"recipients"`
+	Body       string `json:"body"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
 	} else {
 		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
 	}
-	return fmt.Sprintf(`{
-  "originator": "%s",
-  "recipients": "%s",
-  "body": "%s"
-}`, provider.Originator, provider.Recipients, message)
+	body, _ := json.Marshal(Body{
+		Originator: provider.Originator,
+		Recipients: provider.Recipients,
+		Body:       message,
+	})
+	return body
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
