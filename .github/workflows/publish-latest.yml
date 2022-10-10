@@ -4,6 +4,8 @@ on:
     workflows: ["build"]
     branches: [master]
     types: [completed]
+concurrency:
+  cancel-in-progress: true
 jobs:
   publish-latest:
     name: publish-latest
