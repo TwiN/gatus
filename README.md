@@ -28,6 +28,8 @@ For more details, see [Usage](#usage)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
+Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
+
 ## Table of Contents
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
