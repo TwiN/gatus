@@ -30,6 +30,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 
 Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
+
 ## Table of Contents
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
@@ -90,6 +91,7 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
 
+
 ## Why Gatus?
 Before getting into the specifics, I want to address the most common question:
 > Why would I use Gatus when I can just use Prometheus’ Alertmanager, Cloudwatch or even Splunk?
@@ -120,6 +122,7 @@ The main features of Gatus are:
 - **Dark mode**
 
 ![Gatus dashboard dark mode](.github/assets/dashboard-dark.png)
+
 
 ## Usage
 By default, the configuration file is expected to be at `config/config.yaml`.
@@ -820,6 +823,7 @@ Here's an example of what the notifications look like:
 
 ![Teams notifications](.github/assets/teams-alerts.png)
 
+
 #### Configuring Telegram alerts
 | Parameter                         | Description                                                                                | Default                    |
 |:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
@@ -887,6 +891,7 @@ endpoints:
         send-on-resolved: true
         description: "healthcheck failed"
 ```
+
 
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |
@@ -1048,6 +1053,7 @@ endpoints:
       - type: pagerduty
 ```
 
+
 ### Maintenance
 If you have maintenance windows, you may not want to be annoyed by alerts.
 To do that, you'll have to use the maintenance configuration:
@@ -1086,6 +1092,7 @@ maintenance:
 | `security.basic`                 | HTTP Basic configuration     | `{}`          |
 | `security.oidc`                  | OpenID Connect configuration | `{}`          |
 
+
 #### Basic
 | Parameter                               | Description                                                                        | Default       |
 |:----------------------------------------|:-----------------------------------------------------------------------------------|:--------------|
@@ -1103,6 +1110,7 @@ security:
 
 **WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
 and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
+
 
 #### OIDC
 | Parameter                        | Description                                                    | Default       |
@@ -1215,7 +1223,6 @@ and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-exam
 
 ### Terraform
 Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
-
 
 
 ## Running the tests
@@ -1569,6 +1576,7 @@ The endpoint to generate a badge is the following:
 Where:
 - `{duration}` is `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
 
 ##### How to change the color thresholds of the response time badge  
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.   
