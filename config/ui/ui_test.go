@@ -19,6 +19,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	if cfg.Title != defaultTitle {
 		t.Errorf("expected title to be %s, got %s", defaultTitle, cfg.Title)
 	}
+	if cfg.Description != defaultDescription {
+		t.Errorf("expected description to be %s, got %s", defaultDescription, cfg.Description)
+	}
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
 	}
