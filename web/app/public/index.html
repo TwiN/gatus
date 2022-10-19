@@ -8,10 +8,17 @@
     <title>{{ .Title }}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
     <link rel="shortcut icon" href="/favicon.ico" />
-    <meta property="description" content="Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue" />
+    <meta name="description" content="Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ .Title }}">
+    <meta name="application-name" content="{{ .Title }}">
+    <meta name="theme-color" content="#f7f9fb">
   </head>
   <body class="dark:bg-gray-900">
     <noscript><strong>Enable JavaScript to view this page.</strong></noscript>
