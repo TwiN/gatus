@@ -24,7 +24,7 @@ docker run -p 8080:8080 --name gatus twinproduction/gatus
 For more details, see [Usage](#usage)
 </details>
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard](.github/assets/dashboard-dark.png)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
@@ -122,7 +122,7 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard dark mode](.github/assets/dashboard-dark.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
 
 
 ## Usage
