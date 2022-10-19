@@ -83,6 +83,7 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -1511,6 +1512,43 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
+
+
+### Keeping your configuration small
+While not specific to Gatus, you can leverage YAML anchors to create a default configuration.
+If you have a large configuration file, this should help you keep things clean.
+
+<details>
+  <summary>Example</summary>
+
+```yaml
+default-endpoint: &defaults
+  group: core
+  interval: 5m
+  client:
+    insecure: true
+    timeout: 30s
+  conditions:
+    - "[STATUS] == 200"
+
+endpoints:
+  - name: anchor-example-1
+    <<: *defaults               # This will merge the configuration under &defaults with this endpoint
+    url: "https://example.org"
+
+  - name: anchor-example-2
+    <<: *defaults 
+    group: example              # This will override the group defined in &defaults
+    url: "https://example.com"
+
+  - name: anchor-example-3
+    <<: *defaults
+    url: "https://twin.sh/health"
+    conditions:                # This will override the conditions defined in &defaults
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+```
+</details>
 
 
 ### Badges
