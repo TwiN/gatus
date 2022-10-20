@@ -82,7 +82,7 @@ type Field struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, color string
+	var message, color, results string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 		color = "#36A64F"
@@ -90,21 +90,14 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
-	fields := make([]Field, len(result.ConditionResults))
-	for i, conditionResult := range result.ConditionResults {
+	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
 			prefix = ":white_check_mark:"
 		} else {
 			prefix = ":x:"
 		}
-		fields[i] = Field{
-			Value: fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition),
-			Short: false,
-		}
-		if i == 0 {
-			fields[i].Title = "Condition results"
-		}
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
@@ -114,11 +107,17 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		Text: "",
 		Attachments: []Attachment{
 			{
-				Title:  ":helmet_with_white_cross: Gatus",
-				Text:   message + description,
-				Short:  false,
-				Color:  color,
-				Fields: fields,
+				Title: ":helmet_with_white_cross: Gatus",
+				Text:  message + description,
+				Short: false,
+				Color: color,
+				Fields: []Field{
+					{
+						Title: "Condition results",
+						Value: results,
+						Short: false,
+					},
+				},
 			},
 		},
 	})
