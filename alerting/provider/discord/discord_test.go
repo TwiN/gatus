@@ -151,14 +151,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\n  \"content\": \"\",\n  \"embeds\": [\n    {\n      \"title\": \":helmet_with_white_cross: Gatus\",\n      \"description\": \"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n> description-1\",\n      \"color\": 15158332,\n      \"fields\": [\n        {\n          \"name\": \"Condition results\",\n          \"value\": \":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\n          \"inline\": false\n        }\n      ]\n    }\n  ]\n}",
+			ExpectedBody: "{\"content\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\",\"inline\":false},{\"name\":\"\",\"value\":\":x: - `[STATUS] == 200`\",\"inline\":false},{\"name\":\"\",\"value\":\":x: - `[BODY] != \\\"\\\"`\",\"inline\":false}]}]}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\n  \"content\": \"\",\n  \"embeds\": [\n    {\n      \"title\": \":helmet_with_white_cross: Gatus\",\n      \"description\": \"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row:\\n> description-2\",\n      \"color\": 3066993,\n      \"fields\": [\n        {\n          \"name\": \"Condition results\",\n          \"value\": \":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\n          \"inline\": false\n        }\n      ]\n    }\n  ]\n}",
+			ExpectedBody: "{\"content\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"color\":3066993,\"fields\":[{\"name\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\",\"inline\":false},{\"name\":\"\",\"value\":\":white_check_mark: - `[STATUS] == 200`\",\"inline\":false},{\"name\":\"\",\"value\":\":white_check_mark: - `[BODY] != \\\"\\\"`\",\"inline\":false}]}]}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -170,15 +170,16 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					ConditionResults: []*core.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+						{Condition: "[BODY] != \"\"", Success: scenario.Resolved},
 					},
 				},
 				scenario.Resolved,
 			)
-			if body != scenario.ExpectedBody {
+			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
-			if err := json.Unmarshal([]byte(body), &out); err != nil {
+			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})
