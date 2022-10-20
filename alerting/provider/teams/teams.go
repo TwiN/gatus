@@ -2,6 +2,7 @@ package teams
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,7 +45,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
 	if err != nil {
 		return err
@@ -62,8 +63,22 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Type       string    `json:"@type"`
+	Context    string    `json:"@context"`
+	ThemeColor string    `json:"themeColor"`
+	Title      string    `json:"title"`
+	Text       string    `json:"text"`
+	Sections   []Section `json:"sections"`
+}
+
+type Section struct {
+	ActivityTitle string `json:"activityTitle"`
+	Text          string `json:"text"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -84,25 +99,22 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = ":\\n> " + alertDescription
+		description = ": " + alertDescription
 	}
-	return fmt.Sprintf(`{
-  "@type": "MessageCard",
-  "@context": "http://schema.org/extensions",
-  "themeColor": "%s",
-  "title": "&#x1F6A8; Gatus",
-  "text": "%s%s",
-  "sections": [
-    {
-      "activityTitle": "URL",
-      "text": "%s"
-    },
-    {
-      "activityTitle": "Condition results",
-      "text": "%s"
-    }
-  ]
-}`, color, message, description, endpoint.URL, results)
+	body, _ := json.Marshal(Body{
+		Type:       "MessageCard",
+		Context:    "http://schema.org/extensions",
+		ThemeColor: color,
+		Title:      "&#x1F6A8; Gatus",
+		Text:       message + description,
+		Sections: []Section{
+			{
+				ActivityTitle: "Condition results",
+				Text:          results,
+			},
+		},
+	})
+	return body
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
