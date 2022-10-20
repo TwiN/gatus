@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -61,7 +62,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	config := provider.getConfigForGroup(endpoint.Group)
 	if config.ServerURL == "" {
 		config.ServerURL = defaultHomeserverURL
@@ -94,17 +95,22 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	MsgType       string `json:"msgtype"`
+	Format        string `json:"format"`
+	Body          string `json:"body"`
+	FormattedBody string `json:"formatted_body"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
-	return fmt.Sprintf(`{
-	"msgtype": "m.text",
-	"format": "org.matrix.custom.html",
-	"body": "%s",
-	"formatted_body": "%s"
-}`,
-		buildPlaintextMessageBody(endpoint, alert, result, resolved),
-		buildHTMLMessageBody(endpoint, alert, result, resolved),
-	)
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+	body, _ := json.Marshal(Body{
+		MsgType:       "m.text",
+		Format:        "org.matrix.custom.html",
+		Body:          buildPlaintextMessageBody(endpoint, alert, result, resolved),
+		FormattedBody: buildHTMLMessageBody(endpoint, alert, result, resolved),
+	})
+	return body
 }
 
 // buildPlaintextMessageBody builds the message body in plaintext to include in request
@@ -122,13 +128,13 @@ func buildPlaintextMessageBody(endpoint *core.Endpoint, alert *alert.Alert, resu
 		} else {
 			prefix = "✕"
 		}
-		results += fmt.Sprintf("\\n%s - %s", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = "\\n" + alertDescription
+		description = "\n" + alertDescription
 	}
-	return fmt.Sprintf("%s%s\\n%s", message, description, results)
+	return fmt.Sprintf("%s%s\n%s", message, description, results)
 }
 
 // buildHTMLMessageBody builds the message body in HTML to include in request
@@ -150,9 +156,9 @@ func buildHTMLMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *c
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = fmt.Sprintf("\\n<blockquote>%s</blockquote>", alertDescription)
+		description = fmt.Sprintf("\n<blockquote>%s</blockquote>", alertDescription)
 	}
-	return fmt.Sprintf("<h3>%s</h3>%s\\n<h5>Condition results</h5><ul>%s</ul>", message, description, results)
+	return fmt.Sprintf("<h3>%s</h3>%s\n<h5>Condition results</h5><ul>%s</ul>", message, description, results)
 }
 
 // getConfigForGroup returns the appropriate configuration for a given group
