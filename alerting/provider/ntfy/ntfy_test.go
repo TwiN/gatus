@@ -93,7 +93,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {
-				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
 			if err := json.Unmarshal(body, &out); err != nil {
