@@ -2,6 +2,7 @@ package mattermost
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,9 +69,31 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Text        string       `json:"text"`
+	Username    string       `json:"username"`
+	IconURL     string       `json:"icon_url"`
+	Attachments []Attachment `json:"attachments"`
+}
+
+type Attachment struct {
+	Title    string  `json:"title"`
+	Fallback string  `json:"fallback"`
+	Text     string  `json:"text"`
+	Short    bool    `json:"short"`
+	Color    string  `json:"color"`
+	Fields   []Field `json:"fields"`
+}
+
+type Field struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool   `json:"short"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
-	var message, color string
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+	var message, color, results string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 		color = "#36A64F"
@@ -78,7 +101,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
-	var results string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -86,38 +108,34 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = ":\\n> " + alertDescription
+		description = ":\n> " + alertDescription
 	}
-	return fmt.Sprintf(`{
-  "text": "",
-  "username": "gatus",
-  "icon_url": "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
-  "attachments": [
-    {
-      "title": ":rescue_worker_helmet: Gatus",
-      "fallback": "Gatus - %s",
-      "text": "%s%s",
-      "short": false,
-      "color": "%s",
-      "fields": [
-        {
-          "title": "URL",
-          "value": "%s",
-          "short": false
-        },
-        {
-          "title": "Condition results",
-          "value": "%s",
-          "short": false
-        }
-      ]
-    }
-  ]
-}`, message, message, description, color, endpoint.URL, results)
+	body, _ := json.Marshal(Body{
+		Text:     "",
+		Username: "gatus",
+		IconURL:  "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
+		Attachments: []Attachment{
+			{
+				Title:    ":helmet_with_white_cross: Gatus",
+				Fallback: "Gatus - " + message,
+				Text:     message + description,
+				Short:    false,
+				Color:    color,
+				Fields: []Field{
+					{
+						Title: "Condition results",
+						Value: results,
+						Short: false,
+					},
+				},
+			},
+		},
+	})
+	return body
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
