@@ -8,7 +8,7 @@
         <span v-if="data.results && data.results.length && data.results[data.results.length - 1].hostname" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
       </div>
       <div class='w-1/4 text-right'>
-        <span class='font-light overflow-x-hidden cursor-pointer select-none' v-if="data.results && data.results.length" @click="toggleShowAverageResponseTime" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">
+        <span class='font-light overflow-x-hidden cursor-pointer select-none hover:text-gray-500' v-if="data.results && data.results.length" @click="toggleShowAverageResponseTime" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">
           <slot v-if="showAverageResponseTime">
             ~{{ averageResponseTime }}ms
           </slot>

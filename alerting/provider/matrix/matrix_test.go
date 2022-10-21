@@ -184,14 +184,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\n\t\"msgtype\": \"m.text\",\n\t\"format\": \"org.matrix.custom.html\",\n\t\"body\": \"An alert for `endpoint-name` has been triggered due to having failed 3 time(s) in a row\\ndescription-1\\n\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\n\t\"formatted_body\": \"<h3>An alert for <code>endpoint-name</code> has been triggered due to having failed 3 time(s) in a row</h3>\\n<blockquote>description-1</blockquote>\\n<h5>Condition results</h5><ul><li>❌ - <code>[CONNECTED] == true</code></li><li>❌ - <code>[STATUS] == 200</code></li></ul>\"\n}",
+			ExpectedBody: "{\"msgtype\":\"m.text\",\"format\":\"org.matrix.custom.html\",\"body\":\"An alert for `endpoint-name` has been triggered due to having failed 3 time(s) in a row\\ndescription-1\\n\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"formatted_body\":\"\\u003ch3\\u003eAn alert for \\u003ccode\\u003eendpoint-name\\u003c/code\\u003e has been triggered due to having failed 3 time(s) in a row\\u003c/h3\\u003e\\n\\u003cblockquote\\u003edescription-1\\u003c/blockquote\\u003e\\n\\u003ch5\\u003eCondition results\\u003c/h5\\u003e\\u003cul\\u003e\\u003cli\\u003e❌ - \\u003ccode\\u003e[CONNECTED] == true\\u003c/code\\u003e\\u003c/li\\u003e\\u003cli\\u003e❌ - \\u003ccode\\u003e[STATUS] == 200\\u003c/code\\u003e\\u003c/li\\u003e\\u003c/ul\\u003e\"}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\n\t\"msgtype\": \"m.text\",\n\t\"format\": \"org.matrix.custom.html\",\n\t\"body\": \"An alert for `endpoint-name` has been resolved after passing successfully 5 time(s) in a row\\ndescription-2\\n\\n✓ - [CONNECTED] == true\\n✓ - [STATUS] == 200\",\n\t\"formatted_body\": \"<h3>An alert for <code>endpoint-name</code> has been resolved after passing successfully 5 time(s) in a row</h3>\\n<blockquote>description-2</blockquote>\\n<h5>Condition results</h5><ul><li>✅ - <code>[CONNECTED] == true</code></li><li>✅ - <code>[STATUS] == 200</code></li></ul>\"\n}",
+			ExpectedBody: "{\"msgtype\":\"m.text\",\"format\":\"org.matrix.custom.html\",\"body\":\"An alert for `endpoint-name` has been resolved after passing successfully 5 time(s) in a row\\ndescription-2\\n\\n✓ - [CONNECTED] == true\\n✓ - [STATUS] == 200\",\"formatted_body\":\"\\u003ch3\\u003eAn alert for \\u003ccode\\u003eendpoint-name\\u003c/code\\u003e has been resolved after passing successfully 5 time(s) in a row\\u003c/h3\\u003e\\n\\u003cblockquote\\u003edescription-2\\u003c/blockquote\\u003e\\n\\u003ch5\\u003eCondition results\\u003c/h5\\u003e\\u003cul\\u003e\\u003cli\\u003e✅ - \\u003ccode\\u003e[CONNECTED] == true\\u003c/code\\u003e\\u003c/li\\u003e\\u003cli\\u003e✅ - \\u003ccode\\u003e[STATUS] == 200\\u003c/code\\u003e\\u003c/li\\u003e\\u003c/ul\\u003e\"}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -207,11 +207,11 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				},
 				scenario.Resolved,
 			)
-			if body != scenario.ExpectedBody {
-				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+			if string(body) != scenario.ExpectedBody {
+				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
-			if err := json.Unmarshal([]byte(body), &out); err != nil {
+			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})

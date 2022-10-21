@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+
+	"github.com/TwiN/gatus/v4/web"
 )
 
 const (
@@ -14,10 +16,6 @@ const (
 )
 
 var (
-	// StaticFolder is the path to the location of the static folder from the root path of the project
-	// The only reason this is exposed is to allow running tests from a different path than the root path of the project
-	StaticFolder = "./web/static"
-
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 )
 
@@ -71,7 +69,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	// Validate that the template works
-	t, err := template.ParseFiles(StaticFolder + "/index.html")
+	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
 	if err != nil {
 		return err
 	}

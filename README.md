@@ -24,9 +24,12 @@ docker run -p 8080:8080 --name gatus twinproduction/gatus
 For more details, see [Usage](#usage)
 </details>
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard](.github/assets/dashboard-dark.png)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
+
+Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
+
 
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
@@ -46,6 +49,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
+    - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
@@ -81,6 +85,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -89,6 +94,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [API](#api)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
+
 
 ## Why Gatus?
 Before getting into the specifics, I want to address the most common question:
@@ -119,7 +125,8 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard dark mode](.github/assets/dashboard-dark.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+
 
 ## Usage
 By default, the configuration file is expected to be at `config/config.yaml`.
@@ -354,6 +361,7 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual endpoints with configurable descriptions and thresholds.
@@ -366,8 +374,10 @@ ignored.
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
 | `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
 | `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
+| `alerting.matrix`      | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
 | `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
+| `alerting.ntfy`        | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                      | `{}`    |
 | `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
 | `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
 | `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`    |
@@ -375,6 +385,7 @@ ignored.
 | `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`    |
 | `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`    |
 | `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`    |
+
 
 #### Configuring Discord alerts
 
@@ -406,6 +417,7 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
+
 
 #### Configuring Email alerts
 
@@ -468,6 +480,7 @@ endpoints:
 
 **NOTE:** Some mail servers are painfully slow.
 
+
 #### Configuring Google Chat alerts
 
 | Parameter                                     | Description                                                                                 | Default       |
@@ -488,7 +501,7 @@ alerting:
 endpoints:
   - name: website
     url: "https://twin.sh/health"
-    interval: 30s
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -500,10 +513,11 @@ endpoints:
         send-on-resolved: true
 ```
 
+
 #### Configuring Matrix alerts
 | Parameter                                | Description                                                                                | Default                            |
 |:-----------------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------------|
-| `alerting.matrix`                        | Settings for alerts of type `matrix`                                                       | `{}`                               |
+| `alerting.matrix`                        | Configuration for alerts of type `matrix`                                                  | `{}`                               |
 | `alerting.matrix.server-url`             | Homeserver URL                                                                             | `https://matrix-client.matrix.org` |
 | `alerting.matrix.access-token`           | Bot user access token (see https://webapps.stackexchange.com/q/131056)                     | Required `""`                      |
 | `alerting.matrix.internal-room-id`       | Internal room ID of room to send alerts to (can be found in Room Settings > Advanced)      | Required `""`                      |
@@ -518,7 +532,7 @@ alerting:
 
 endpoints:
   - name: website
-    interval: 30s
+    interval: 5m
     url: "https://twin.sh/health"
     conditions:
       - "[STATUS] == 200"
@@ -530,6 +544,7 @@ endpoints:
         send-on-resolved: true
         description: "healthcheck failed"
 ```
+
 
 #### Configuring Mattermost alerts
 | Parameter                                     | Description                                                                                 | Default       |
@@ -552,7 +567,7 @@ alerting:
 endpoints:
   - name: website
     url: "https://twin.sh/health"
-    interval: 30s
+    interval: 5m
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -568,10 +583,11 @@ Here's an example of what the notifications look like:
 
 ![Mattermost notifications](.github/assets/mattermost-alerts.png)
 
+
 #### Configuring Messagebird alerts
 | Parameter                            | Description                                                                                | Default       |
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.messagebird`               | Settings for alerts of type `messagebird`                                                  | `{}`          |
+| `alerting.messagebird`               | Configuration for alerts of type `messagebird`                                             | `{}`          |
 | `alerting.messagebird.access-key`    | Messagebird access key                                                                     | Required `""` |
 | `alerting.messagebird.originator`    | The sender of the message                                                                  | Required `""` |
 | `alerting.messagebird.recipients`    | The recipients of the message                                                              | Required `""` |
@@ -587,7 +603,7 @@ alerting:
 
 endpoints:
   - name: website
-    interval: 30s
+    interval: 5m
     url: "https://twin.sh/health"
     conditions:
       - "[STATUS] == 200"
@@ -599,6 +615,42 @@ endpoints:
         failure-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed"
+```
+
+
+#### Configuring Ntfy alerts
+| Parameter                     | Description                                                                                | Default           |
+|:------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
+| `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
+| `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
+| `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
+| `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
+| `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+
+[ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
+and mobile notifications, making it an awesome addition to Gatus.
+
+Example:
+```yaml
+alerting:
+  ntfy:
+    topic: "gatus-test-topic"
+    priority: 2
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      send-on-resolved: true
+
+endpoints:
+  - name: website
+    interval: 5m
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ntfy
 ```
 
 
@@ -777,6 +829,7 @@ Here's an example of what the notifications look like:
 
 ![Teams notifications](.github/assets/teams-alerts.png)
 
+
 #### Configuring Telegram alerts
 | Parameter                         | Description                                                                                | Default                    |
 |:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
@@ -844,6 +897,7 @@ endpoints:
         send-on-resolved: true
         description: "healthcheck failed"
 ```
+
 
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |
@@ -1005,6 +1059,7 @@ endpoints:
       - type: pagerduty
 ```
 
+
 ### Maintenance
 If you have maintenance windows, you may not want to be annoyed by alerts.
 To do that, you'll have to use the maintenance configuration:
@@ -1043,6 +1098,7 @@ maintenance:
 | `security.basic` | HTTP Basic configuration     | `{}`    |
 | `security.oidc`  | OpenID Connect configuration | `{}`    |
 
+
 #### Basic Authentication
 | Parameter                               | Description                                                                        | Default       |
 |:----------------------------------------|:-----------------------------------------------------------------------------------|:--------------|
@@ -1060,6 +1116,7 @@ security:
 
 **WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
 and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
+
 
 #### OIDC
 | Parameter                        | Description                                                    | Default       |
@@ -1183,7 +1240,6 @@ and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-exam
 
 ### Terraform
 Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
-
 
 
 ## Running the tests
@@ -1474,6 +1530,43 @@ web:
 ```
 
 
+### Keeping your configuration small
+While not specific to Gatus, you can leverage YAML anchors to create a default configuration.
+If you have a large configuration file, this should help you keep things clean.
+
+<details>
+  <summary>Example</summary>
+
+```yaml
+default-endpoint: &defaults
+  group: core
+  interval: 5m
+  client:
+    insecure: true
+    timeout: 30s
+  conditions:
+    - "[STATUS] == 200"
+
+endpoints:
+  - name: anchor-example-1
+    <<: *defaults               # This will merge the configuration under &defaults with this endpoint
+    url: "https://example.org"
+
+  - name: anchor-example-2
+    <<: *defaults 
+    group: example              # This will override the group defined in &defaults
+    url: "https://example.com"
+
+  - name: anchor-example-3
+    <<: *defaults
+    url: "https://twin.sh/health"
+    conditions:                # This will override the conditions defined in &defaults
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+```
+</details>
+
+
 ### Badges
 #### Uptime
 ![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/1h/badge.svg)
@@ -1537,6 +1630,7 @@ The endpoint to generate a badge is the following:
 Where:
 - `{duration}` is `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
 
 ##### How to change the color thresholds of the response time badge  
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.   

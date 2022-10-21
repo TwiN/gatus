@@ -1,4 +1,4 @@
-package messagebird
+package ntfy
 
 import (
 	"bytes"
@@ -13,14 +13,15 @@ import (
 )
 
 const (
-	restAPIURL = "https://rest.messagebird.com/messages"
+	DefaultURL      = "https://ntfy.sh"
+	DefaultPriority = 3
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Messagebird
+// AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	AccessKey  string `yaml:"access-key"`
-	Originator string `yaml:"originator"`
-	Recipients string `yaml:"recipients"`
+	Topic    string `yaml:"topic"`
+	URL      string `yaml:"url,omitempty"`      // Defaults to DefaultURL
+	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -28,19 +29,23 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	return len(provider.AccessKey) > 0 && len(provider.Originator) > 0 && len(provider.Recipients) > 0
+	if len(provider.URL) == 0 {
+		provider.URL = DefaultURL
+	}
+	if provider.Priority == 0 {
+		provider.Priority = DefaultPriority
+	}
+	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6
 }
 
 // Send an alert using the provider
-// Reference doc for messagebird: https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
+	request, err := http.NewRequest(http.MethodPost, provider.URL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("AccessKey %s", provider.AccessKey))
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -54,23 +59,32 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 }
 
 type Body struct {
-	Originator string `json:"originator"`
-	Recipients string `json:"recipients"`
-	Body       string `json:"body"`
+	Topic    string   `json:"topic"`
+	Title    string   `json:"title"`
+	Message  string   `json:"message"`
+	Tags     []string `json:"tags"`
+	Priority int      `json:"priority"`
 }
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message string
-	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
+	var message, tag string
+	if len(alert.GetDescription()) > 0 {
+		message = endpoint.DisplayName() + " - " + alert.GetDescription()
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
+		message = endpoint.DisplayName()
+	}
+	if resolved {
+		tag = "white_check_mark"
+	} else {
+		tag = "x"
 	}
 	body, _ := json.Marshal(Body{
-		Originator: provider.Originator,
-		Recipients: provider.Recipients,
-		Body:       message,
+		Topic:    provider.Topic,
+		Title:    "Gatus",
+		Message:  message,
+		Tags:     []string{tag},
+		Priority: provider.Priority,
 	})
 	return body
 }

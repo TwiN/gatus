@@ -119,6 +119,22 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
+			Name:                 "map-of-arrays-of-maps",
+			Path:                 "data[0].apps[1].name",
+			Data:                 `{"data": [{"apps": [{"name":"app1"}, {"name":"app2"}, {"name":"app3"}]}]}`,
+			ExpectedOutput:       "app2",
+			ExpectedOutputLength: 4,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "map-of-arrays-of-maps-with-missing-element",
+			Path:                 "data[0].apps[1].name",
+			Data:                 `{"data": [{"apps": []}]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
 			Name:                 "partially-invalid-path-issue122",
 			Path:                 "data.name.invalid",
 			Data:                 `{"data": {"name": "john"}}`,

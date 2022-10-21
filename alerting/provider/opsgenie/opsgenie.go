@@ -83,37 +83,36 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 
 func (provider *AlertProvider) createAlert(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	payload := provider.buildCreateRequestBody(endpoint, alert, result, resolved)
-	_, err := provider.sendRequest(restAPI, http.MethodPost, payload)
-	return err
+	return provider.sendRequest(restAPI, http.MethodPost, payload)
 }
 
 func (provider *AlertProvider) closeAlert(endpoint *core.Endpoint, alert *alert.Alert) error {
 	payload := provider.buildCloseRequestBody(endpoint, alert)
 	url := restAPI + "/" + provider.alias(buildKey(endpoint)) + "/close?identifierType=alias"
-	_, err := provider.sendRequest(url, http.MethodPost, payload)
-	return err
+	return provider.sendRequest(url, http.MethodPost, payload)
 }
 
-func (provider *AlertProvider) sendRequest(url, method string, payload interface{}) (*http.Response, error) {
+func (provider *AlertProvider) sendRequest(url, method string, payload interface{}) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("fail to build alert payload: %v", payload)
+		return fmt.Errorf("error build alert with payload %v: %w", payload, err)
 	}
 	request, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "GenieKey "+provider.APIKey)
-	res, err := client.GetHTTPClient(nil).Do(request)
+	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if res.StatusCode > 399 {
-		rBody, _ := io.ReadAll(res.Body)
-		return nil, fmt.Errorf("call to provider alert returned status code %d: %s", res.StatusCode, string(rBody))
+	defer response.Body.Close()
+	if response.StatusCode > 399 {
+		rBody, _ := io.ReadAll(response.Body)
+		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(rBody))
 	}
-	return res, nil
+	return nil
 }
 
 func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) alertCreateRequest {

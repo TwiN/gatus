@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
           repository: "${{ github.event.inputs.repository }}"
           ref: "${{ github.event.inputs.ref }}"
       - uses: actions/checkout@v3

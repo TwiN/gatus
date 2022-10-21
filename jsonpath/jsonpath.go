@@ -19,7 +19,23 @@ func Eval(path string, b []byte) (string, int, error) {
 }
 
 func walk(path string, object interface{}) (string, int, error) {
-	keys := strings.Split(path, ".")
+	var keys []string
+	startOfCurrentKey, bracketDepth := 0, 0
+	for i := range path {
+		if path[i] == '[' {
+			bracketDepth++
+		} else if path[i] == ']' {
+			bracketDepth--
+		}
+		// If we encounter a dot, we've reached the end of a key unless we're inside a bracket
+		if path[i] == '.' && bracketDepth == 0 {
+			keys = append(keys, path[startOfCurrentKey:i])
+			startOfCurrentKey = i + 1
+		}
+	}
+	if startOfCurrentKey <= len(path) {
+		keys = append(keys, path[startOfCurrentKey:])
+	}
 	currentKey := keys[0]
 	switch value := extractValue(currentKey, object).(type) {
 	case map[string]interface{}:
@@ -41,33 +57,47 @@ func walk(path string, object interface{}) (string, int, error) {
 func extractValue(currentKey string, value interface{}) interface{} {
 	// Check if the current key ends with [#]
 	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey, "[") {
-		tmp := strings.SplitN(currentKey, "[", 3)
-		arrayIndex, err := strconv.Atoi(strings.Replace(tmp[1], "]", "", 1))
+		var isNestedArray bool
+		var index string
+		startOfBracket, endOfBracket, bracketDepth := 0, 0, 0
+		for i := range currentKey {
+			if currentKey[i] == '[' {
+				startOfBracket = i
+				bracketDepth++
+			} else if currentKey[i] == ']' && bracketDepth == 1 {
+				bracketDepth--
+				endOfBracket = i
+				index = currentKey[startOfBracket+1 : i]
+				if len(currentKey) > i+1 && currentKey[i+1] == '[' {
+					isNestedArray = true // there's more keys.
+				}
+				break
+			}
+		}
+		arrayIndex, err := strconv.Atoi(index)
 		if err != nil {
 			return nil
 		}
-		currentKey := tmp[0]
-		// if currentKey contains only an index (i.e. [0] or 0)
-		if len(currentKey) == 0 {
+		currentKeyWithoutIndex := currentKey[:startOfBracket]
+		// if currentKeyWithoutIndex contains only an index (i.e. [0] or 0)
+		if len(currentKeyWithoutIndex) == 0 {
 			array := value.([]interface{})
 			if len(array) > arrayIndex {
-				if len(tmp) > 2 {
-					// Nested array? Go deeper.
-					return extractValue(fmt.Sprintf("%s[%s", currentKey, tmp[2]), array[arrayIndex])
+				if isNestedArray {
+					return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
 				}
 				return array[arrayIndex]
 			}
 			return nil
 		}
-		if value == nil || value.(map[string]interface{})[currentKey] == nil {
+		if value == nil || value.(map[string]interface{})[currentKeyWithoutIndex] == nil {
 			return nil
 		}
-		// if currentKey contains both a key and an index (i.e. data[0])
-		array := value.(map[string]interface{})[currentKey].([]interface{})
+		// if currentKeyWithoutIndex contains both a key and an index (i.e. data[0])
+		array := value.(map[string]interface{})[currentKeyWithoutIndex].([]interface{})
 		if len(array) > arrayIndex {
-			if len(tmp) > 2 {
-				// Nested array? Go deeper.
-				return extractValue(fmt.Sprintf("[%s", tmp[2]), array[arrayIndex])
+			if isNestedArray {
+				return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
 			}
 			return array[arrayIndex]
 		}
