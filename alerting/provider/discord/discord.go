@@ -83,7 +83,7 @@ type Field struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message string
+	var message, results string
 	var colorCode int
 	if resolved {
 		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -92,34 +92,33 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		colorCode = 15158332
 	}
-	fields := make([]Field, len(result.ConditionResults))
-	for i, conditionResult := range result.ConditionResults {
+	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
 			prefix = ":white_check_mark:"
 		} else {
 			prefix = ":x:"
 		}
-		fields[i] = Field{
-			Value:  fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition),
-			Inline: false,
-		}
-		if i == 0 {
-			fields[i].Name = "Condition results"
-		}
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
 	body, _ := json.Marshal(Body{
-		Content: message,
+		Content: "",
 		Embeds: []Embed{
 			{
 				Title:       ":helmet_with_white_cross: Gatus",
 				Description: message + description,
 				Color:       colorCode,
-				Fields:      fields,
+				Fields: []Field{
+					{
+						Name:   "Condition results",
+						Value:  results,
+						Inline: false,
+					},
+				},
 			},
 		},
 	})
