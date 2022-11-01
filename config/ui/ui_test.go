@@ -7,11 +7,11 @@ import (
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	cfg := &Config{
-		Title:        "",
-		Desccription: "",
-		Header:       "",
-		Logo:         "",
-		Link:         "",
+		Title:       "",
+		Description: "",
+		Header:      "",
+		Logo:        "",
+		Link:        "",
 	}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())
