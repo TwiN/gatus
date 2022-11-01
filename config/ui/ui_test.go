@@ -7,16 +7,20 @@ import (
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	cfg := &Config{
-		Title:  "",
-		Header: "",
-		Logo:   "",
-		Link:   "",
+		Title:       "",
+		Description: "",
+		Header:      "",
+		Logo:        "",
+		Link:        "",
 	}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())
 	}
 	if cfg.Title != defaultTitle {
 		t.Errorf("expected title to be %s, got %s", defaultTitle, cfg.Title)
+	}
+	if cfg.Description != defaultDescription {
+		t.Errorf("expected description to be %s, got %s", defaultDescription, cfg.Description)
 	}
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
