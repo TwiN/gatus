@@ -285,6 +285,18 @@ func TestEndpoint_Type(t *testing.T) {
 		},
 		{
 			args: args{
+				URL: "sctp://example.com",
+			},
+			want: EndpointTypeSCTP,
+		},
+		{
+			args: args{
+				URL: "udp://example.com",
+			},
+			want: EndpointTypeUDP,
+		},
+		{
+			args: args{
 				URL: "starttls://smtp.gmail.com:587",
 			},
 			want: EndpointTypeSTARTTLS,
