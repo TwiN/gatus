@@ -105,12 +105,17 @@ func SetStatusAndReason(status Status, reason string) {
 	handler.mutex.Unlock()
 }
 
-// SetHealthy sets the status to Up and the reason to a blank string
-func SetHealthy() {
+// SetStatusAndResetReason sets the status and resets the reason to a blank string
+func SetStatusAndResetReason(status Status) {
 	handler.mutex.Lock()
-	handler.status = Up
+	handler.status = status
 	handler.reason = ""
 	handler.mutex.Unlock()
+}
+
+// SetHealthy sets the status to Up and the reason to a blank string
+func SetHealthy() {
+	SetStatusAndResetReason(Up)
 }
 
 // SetUnhealthy sets the status to Down and the reason to the string passed as parameter
