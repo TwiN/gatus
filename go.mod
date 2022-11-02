@@ -11,7 +11,7 @@ require (
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/lib/pq v1.10.3
+	github.com/lib/pq v1.10.7
 	github.com/miekg/dns v1.1.43
 	github.com/prometheus/client_golang v1.13.0
 	github.com/wcharczuk/go-chart/v2 v2.1.0
