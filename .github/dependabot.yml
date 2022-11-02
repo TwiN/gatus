@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "wednesday"
+    labels:
+      - "dependencies"
+      - "github-actions"
   - package-ecosystem: "gomod"
     directory: "/"
     open-pull-requests-limit: 1
