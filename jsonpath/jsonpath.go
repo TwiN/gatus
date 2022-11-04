@@ -9,10 +9,12 @@ import (
 
 // Eval is a half-baked json path implementation that needs some love
 func Eval(path string, b []byte) (string, int, error) {
+	if len(path) == 0 && !(len(b) != 0 && b[0] == '[' && b[len(b)-1] == ']') {
+		// if there's no path AND the value is not a JSON array, then there's nothing to walk
+		return string(b), len(b), nil
+	}
 	var object interface{}
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		// Try to unmarshal it into an array instead
+	if err := json.Unmarshal(b, &object); err != nil {
 		return "", 0, err
 	}
 	return walk(path, object)
@@ -103,5 +105,10 @@ func extractValue(currentKey string, value interface{}) interface{} {
 		}
 		return nil
 	}
+	if valueAsSlice, ok := value.([]interface{}); ok {
+		// If the type is a slice, return it
+		return valueAsSlice
+	}
+	// otherwise, it's a map
 	return value.(map[string]interface{})[currentKey]
 }
