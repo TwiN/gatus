@@ -2,6 +2,7 @@ package discord
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,7 +45,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
 	if err != nil {
 		return err
@@ -54,6 +55,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	if response.StatusCode > 399 {
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
@@ -61,8 +63,26 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Content string  `json:"content"`
+	Embeds  []Embed `json:"embeds"`
+}
+
+type Embed struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Color       int     `json:"color"`
+	Fields      []Field `json:"fields"`
+}
+
+type Field struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, results string
 	var colorCode int
 	if resolved {
@@ -79,29 +99,30 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = ":\\n> " + alertDescription
+		description = ":\n> " + alertDescription
 	}
-	return fmt.Sprintf(`{
-  "content": "",
-  "embeds": [
-    {
-      "title": ":helmet_with_white_cross: Gatus",
-      "description": "%s%s",
-      "color": %d,
-      "fields": [
-        {
-          "name": "Condition results",
-          "value": "%s",
-          "inline": false
-        }
-      ]
-    }
-  ]
-}`, message, description, colorCode, results)
+	body, _ := json.Marshal(Body{
+		Content: "",
+		Embeds: []Embed{
+			{
+				Title:       ":helmet_with_white_cross: Gatus",
+				Description: message + description,
+				Color:       colorCode,
+				Fields: []Field{
+					{
+						Name:   "Condition results",
+						Value:  results,
+						Inline: false,
+					},
+				},
+			},
+		},
+	})
+	return body
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group

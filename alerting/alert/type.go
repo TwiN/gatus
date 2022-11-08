@@ -26,6 +26,12 @@ const (
 	// TypeMessagebird is the Type for the messagebird alerting provider
 	TypeMessagebird Type = "messagebird"
 
+	// TypeNtfy is the Type for the ntfy alerting provider
+	TypeNtfy Type = "ntfy"
+
+	// TypeOpsgenie is the Type for the opsgenie alerting provider
+	TypeOpsgenie Type = "opsgenie"
+
 	// TypePagerDuty is the Type for the pagerduty alerting provider
 	TypePagerDuty Type = "pagerduty"
 
@@ -40,7 +46,4 @@ const (
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
-
-	// TypeOpsgenie is the Type for the opsgenie alerting provider
-	TypeOpsgenie Type = "opsgenie"
 )

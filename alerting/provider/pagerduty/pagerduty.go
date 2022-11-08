@@ -53,7 +53,7 @@ func (provider *AlertProvider) IsValid() bool {
 //
 // Relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
 		return err
@@ -63,6 +63,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	if response.StatusCode > 399 {
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
@@ -86,8 +87,21 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return nil
 }
 
+type Body struct {
+	RoutingKey  string  `json:"routing_key"`
+	DedupKey    string  `json:"dedup_key"`
+	EventAction string  `json:"event_action"`
+	Payload     Payload `json:"payload"`
+}
+
+type Payload struct {
+	Summary  string `json:"summary"`
+	Source   string `json:"source"`
+	Severity string `json:"severity"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, eventAction, resolveKey string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
@@ -98,16 +112,17 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		eventAction = "trigger"
 		resolveKey = ""
 	}
-	return fmt.Sprintf(`{
-  "routing_key": "%s",
-  "dedup_key": "%s",
-  "event_action": "%s",
-  "payload": {
-    "summary": "%s",
-    "source": "%s",
-    "severity": "critical"
-  }
-}`, provider.getIntegrationKeyForGroup(endpoint.Group), resolveKey, eventAction, message, endpoint.Name)
+	body, _ := json.Marshal(Body{
+		RoutingKey:  provider.getIntegrationKeyForGroup(endpoint.Group),
+		DedupKey:    resolveKey,
+		EventAction: eventAction,
+		Payload: Payload{
+			Summary:  message,
+			Source:   "Gatus",
+			Severity: "critical",
+		},
+	})
+	return body
 }
 
 // getIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group

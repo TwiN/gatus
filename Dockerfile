@@ -13,7 +13,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o gatus
 FROM scratch
 COPY --from=builder /app/gatus .
 COPY --from=builder /app/config.yaml ./config/config.yaml
-COPY --from=builder /app/web/static ./web/static
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 ENV PORT=8080
 EXPOSE ${PORT}

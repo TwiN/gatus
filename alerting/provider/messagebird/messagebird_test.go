@@ -118,14 +118,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{AccessKey: "1", Originator: "2", Recipients: "3"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\n  \"originator\": \"2\",\n  \"recipients\": \"3\",\n  \"body\": \"TRIGGERED: endpoint-name - description-1\"\n}",
+			ExpectedBody: "{\"originator\":\"2\",\"recipients\":\"3\",\"body\":\"TRIGGERED: endpoint-name - description-1\"}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{AccessKey: "4", Originator: "5", Recipients: "6"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\n  \"originator\": \"5\",\n  \"recipients\": \"6\",\n  \"body\": \"RESOLVED: endpoint-name - description-2\"\n}",
+			ExpectedBody: "{\"originator\":\"5\",\"recipients\":\"6\",\"body\":\"RESOLVED: endpoint-name - description-2\"}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -141,8 +141,8 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				},
 				scenario.Resolved,
 			)
-			if body != scenario.ExpectedBody {
-				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+			if string(body) != scenario.ExpectedBody {
+				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
 			if err := json.Unmarshal([]byte(body), &out); err != nil {

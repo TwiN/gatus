@@ -63,6 +63,14 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
+			Name:                 "array-of-values-with-no-path",
+			Path:                 "",
+			Data:                 `[1, 2]`,
+			ExpectedOutput:       "[1 2]", // the output is an array
+			ExpectedOutputLength: 2,
+			ExpectedError:        false,
+		},
+		{
 			Name:                 "array-of-values-and-invalid-index",
 			Path:                 "ids[wat]",
 			Data:                 `{"ids": [1, 2]}`,
@@ -117,6 +125,22 @@ func TestEval(t *testing.T) {
 			ExpectedOutput:       "eeeee",
 			ExpectedOutputLength: 5,
 			ExpectedError:        false,
+		},
+		{
+			Name:                 "map-of-arrays-of-maps",
+			Path:                 "data[0].apps[1].name",
+			Data:                 `{"data": [{"apps": [{"name":"app1"}, {"name":"app2"}, {"name":"app3"}]}]}`,
+			ExpectedOutput:       "app2",
+			ExpectedOutputLength: 4,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "map-of-arrays-of-maps-with-missing-element",
+			Path:                 "data[0].apps[1].name",
+			Data:                 `{"data": [{"apps": []}]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
 		},
 		{
 			Name:                 "partially-invalid-path-issue122",

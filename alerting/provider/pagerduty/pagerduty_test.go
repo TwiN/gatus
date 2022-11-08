@@ -149,24 +149,24 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
 			Alert:        alert.Alert{Description: &description},
 			Resolved:     false,
-			ExpectedBody: "{\n  \"routing_key\": \"00000000000000000000000000000000\",\n  \"dedup_key\": \"\",\n  \"event_action\": \"trigger\",\n  \"payload\": {\n    \"summary\": \"TRIGGERED:  - test\",\n    \"source\": \"\",\n    \"severity\": \"critical\"\n  }\n}",
+			ExpectedBody: "{\"routing_key\":\"00000000000000000000000000000000\",\"dedup_key\":\"\",\"event_action\":\"trigger\",\"payload\":{\"summary\":\"TRIGGERED: endpoint-name - test\",\"source\":\"Gatus\",\"severity\":\"critical\"}}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
 			Alert:        alert.Alert{Description: &description, ResolveKey: "key"},
 			Resolved:     true,
-			ExpectedBody: "{\n  \"routing_key\": \"00000000000000000000000000000000\",\n  \"dedup_key\": \"key\",\n  \"event_action\": \"resolve\",\n  \"payload\": {\n    \"summary\": \"RESOLVED:  - test\",\n    \"source\": \"\",\n    \"severity\": \"critical\"\n  }\n}",
+			ExpectedBody: "{\"routing_key\":\"00000000000000000000000000000000\",\"dedup_key\":\"key\",\"event_action\":\"resolve\",\"payload\":{\"summary\":\"RESOLVED: endpoint-name - test\",\"source\":\"Gatus\",\"severity\":\"critical\"}}",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			body := scenario.Provider.buildRequestBody(&core.Endpoint{}, &scenario.Alert, &core.Result{}, scenario.Resolved)
-			if body != scenario.ExpectedBody {
-				t.Errorf("expected %s, got %s", scenario.ExpectedBody, body)
+			body := scenario.Provider.buildRequestBody(&core.Endpoint{Name: "endpoint-name"}, &scenario.Alert, &core.Result{}, scenario.Resolved)
+			if string(body) != scenario.ExpectedBody {
+				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
-			if err := json.Unmarshal([]byte(body), &out); err != nil {
+			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})

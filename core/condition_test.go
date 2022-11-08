@@ -234,6 +234,13 @@ func TestCondition_evaluate(t *testing.T) {
 		},
 		{
 			Name:            "body-len-array",
+			Condition:       Condition("len([BODY]) == 3"),
+			Result:          &Result{body: []byte("[{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY]) == 3",
+		},
+		{
+			Name:            "body-len-keyed-array",
 			Condition:       Condition("len([BODY].data) == 3"),
 			Result:          &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")},
 			ExpectedSuccess: true,
@@ -248,6 +255,13 @@ func TestCondition_evaluate(t *testing.T) {
 		},
 		{
 			Name:            "body-len-string",
+			Condition:       Condition("len([BODY]) == 8"),
+			Result:          &Result{body: []byte("john.doe")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY]) == 8",
+		},
+		{
+			Name:            "body-len-keyed-string",
 			Condition:       Condition("len([BODY].name) == 8"),
 			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
 			ExpectedSuccess: true,

@@ -2,6 +2,7 @@ package slack
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,7 +43,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
 	if err != nil {
 		return err
@@ -52,6 +53,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	if response.StatusCode > 399 {
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
@@ -59,8 +61,27 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Text        string       `json:"text"`
+	Attachments []Attachment `json:"attachments"`
+}
+
+type Attachment struct {
+	Title  string  `json:"title"`
+	Text   string  `json:"text"`
+	Short  bool    `json:"short"`
+	Color  string  `json:"color"`
+	Fields []Field `json:"fields"`
+}
+
+type Field struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool   `json:"short"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, color, results string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -76,30 +97,31 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\\n", prefix, conditionResult.Condition)
+		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = ":\\n> " + alertDescription
+		description = ":\n> " + alertDescription
 	}
-	return fmt.Sprintf(`{
-  "text": "",
-  "attachments": [
-    {
-      "title": ":helmet_with_white_cross: Gatus",
-      "text": "%s%s",
-      "short": false,
-      "color": "%s",
-      "fields": [
-        {
-          "title": "Condition results",
-          "value": "%s",
-          "short": false
-        }
-      ]
-    }
-  ]
-}`, message, description, color, results)
+	body, _ := json.Marshal(Body{
+		Text: "",
+		Attachments: []Attachment{
+			{
+				Title: ":helmet_with_white_cross: Gatus",
+				Text:  message + description,
+				Short: false,
+				Color: color,
+				Fields: []Field{
+					{
+						Title: "Condition results",
+						Value: results,
+						Short: false,
+					},
+				},
+			},
+		},
+	})
+	return body
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group

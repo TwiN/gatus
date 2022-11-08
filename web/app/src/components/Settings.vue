@@ -1,7 +1,7 @@
 <template>
   <div id="settings" class="flex bg-gray-200 border-gray-300 rounded border shadow dark:text-gray-200 dark:bg-gray-800 dark:border-gray-500">
-    <div class="text-xs text-gray-600 rounded-xl py-1 px-2 dark:text-gray-200">
-      &#x21bb;
+    <div class="text-xs text-gray-600 rounded-xl py-1.5 px-1.5 dark:text-gray-200">
+      <ArrowPathIcon class="w-3"/>
     </div>
     <select class="text-center text-gray-500 text-xs dark:text-gray-200 dark:bg-gray-800 border-r border-l border-gray-300 dark:border-gray-500" id="refresh-rate" ref="refreshInterval" @change="handleChangeRefreshInterval">
       <option value="10" :selected="refreshInterval === 10">10s</option>
@@ -12,16 +12,24 @@
       <option value="600" :selected="refreshInterval === 600">10m</option>
     </select>
     <button @click="toggleDarkMode" class="text-xs p-1">
-      <slot v-if="darkMode">☀</slot>
-      <slot v-else>🌙</slot>
+      <slot v-if="darkMode"><SunIcon class="w-4"/></slot>
+      <slot v-else><MoonIcon class="w-4 text-gray-500"/></slot>
     </button>
   </div>
 </template>
 
 
 <script>
+import { MoonIcon, SunIcon } from '@heroicons/vue/20/solid'
+import { ArrowPathIcon } from '@heroicons/vue/24/solid'
+
 export default {
   name: 'Settings',
+  components: {
+    ArrowPathIcon,
+    MoonIcon,
+    SunIcon
+  },
   props: {},
   methods: {
     setRefreshInterval(seconds) {
