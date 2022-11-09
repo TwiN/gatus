@@ -89,11 +89,11 @@ type Widgets struct {
 }
 
 type KeyValue struct {
-	TopLabel         string `json:"topLabel"`
-	Content          string `json:"content"`
-	ContentMultiline string `json:"contentMultiline"`
-	BottomLabel      string `json:"bottomLabel"`
-	Icon             string `json:"icon"`
+	TopLabel         string `json:"topLabel,omitempty"`
+	Content          string `json:"content,omitempty"`
+	ContentMultiline string `json:"contentMultiline,omitempty"`
+	BottomLabel      string `json:"bottomLabel,omitempty"`
+	Icon             string `json:"icon,omitempty"`
 }
 
 type Buttons struct {
@@ -164,7 +164,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 								Buttons: []Buttons{
 									{
 										TextButton: TextButton{
-											Text:    "Open",
+											Text:    "URL",
 											OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
 										},
 									},
