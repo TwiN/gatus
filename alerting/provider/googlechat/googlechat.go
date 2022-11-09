@@ -2,6 +2,7 @@ package googlechat
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,7 +53,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
 	if err != nil {
 		return err
@@ -70,8 +71,50 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	return err
 }
 
+type Body struct {
+	Cards []Cards `json:"cards"`
+}
+
+type Cards struct {
+	Sections []Sections `json:"sections"`
+}
+
+type Sections struct {
+	Widgets []Widgets `json:"widgets"`
+}
+
+type Widgets struct {
+	KeyValue KeyValue  `json:"keyValue,omitempty"`
+	Buttons  []Buttons `json:"buttons,omitempty"`
+}
+
+type KeyValue struct {
+	TopLabel         string `json:"topLabel"`
+	Content          string `json:"content"`
+	ContentMultiline string `json:"contentMultiline"`
+	BottomLabel      string `json:"bottomLabel"`
+	Icon             string `json:"icon"`
+}
+
+type Buttons struct {
+	TextButton TextButton `json:"textButton"`
+}
+
+type TextButton struct {
+	Text    string  `json:"text"`
+	OnClick OnClick `json:"onClick"`
+}
+
+type OnClick struct {
+	OpenLink OpenLink `json:"openLink"`
+}
+
+type OpenLink struct {
+	URL string `json:"url"`
+}
+
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
 		color = "#36A64F"
@@ -94,49 +137,90 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":: " + alertDescription
 	}
-	return fmt.Sprintf(`{
-    "cards": [
-  {
-    "sections": [
-      {
-        "widgets": [
-          {
-            "keyValue": {
-              "topLabel": "%s [%s]",
-              "content": "%s",
-              "contentMultiline": "true",
-              "bottomLabel": "%s",
-              "icon": "BOOKMARK"
-            }
-          },
-          {
-            "keyValue": {
-              "topLabel": "Condition results",
-              "content": "%s",
-              "contentMultiline": "true",
-              "icon": "DESCRIPTION"
-            }
-          },
-          {
-            "buttons": [
-              {
-                "textButton": {
-                  "text": "URL",
-                  "onClick": {
-                    "openLink": {
-                      "url": "%s"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]
-}`, endpoint.Name, endpoint.Group, message, description, results, endpoint.URL)
+	body, _ := json.Marshal(Body{
+		Cards: []Cards{
+			{
+				Sections: []Sections{
+					{
+						Widgets: []Widgets{
+							{
+								KeyValue: KeyValue{
+									TopLabel:         endpoint.DisplayName(),
+									Content:          message,
+									ContentMultiline: "true",
+									BottomLabel:      description,
+									Icon:             "BOOKMARK",
+								},
+							},
+							{
+								KeyValue: KeyValue{
+									TopLabel:         "Condition results",
+									Content:          results,
+									ContentMultiline: "true",
+									Icon:             "DESCRIPTION",
+								},
+							},
+							{
+								Buttons: []Buttons{
+									{
+										TextButton: TextButton{
+											Text:    "Open",
+											OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	return body
+
+	//	return fmt.Sprintf(`{
+	//    "cards": [
+	//  {
+	//    "sections": [
+	//      {
+	//        "widgets": [
+	//          {
+	//            "keyValue": {
+	//              "topLabel": "%s [%s]",
+	//              "content": "%s",
+	//              "contentMultiline": "true",
+	//              "bottomLabel": "%s",
+	//              "icon": "BOOKMARK"
+	//            }
+	//          },
+	//          {
+	//            "keyValue": {
+	//              "topLabel": "Condition results",
+	//              "content": "%s",
+	//              "contentMultiline": "true",
+	//              "icon": "DESCRIPTION"
+	//            }
+	//          },
+	//          {
+	//            "buttons": [
+	//              {
+	//                "textButton": {
+	//                  "text": "URL",
+	//                  "onClick": {
+	//                    "openLink": {
+	//                      "url": "%s"
+	//                    }
+	//                  }
+	//                }
+	//              }
+	//            ]
+	//          }
+	//        ]
+	//      }
+	//    ]
+	//  }
+	//]
+	//}`, endpoint.Name, endpoint.Group, message, description, results, endpoint.URL)
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
