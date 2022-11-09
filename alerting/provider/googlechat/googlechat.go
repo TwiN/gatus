@@ -177,50 +177,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		},
 	})
 	return body
-
-	//	return fmt.Sprintf(`{
-	//    "cards": [
-	//  {
-	//    "sections": [
-	//      {
-	//        "widgets": [
-	//          {
-	//            "keyValue": {
-	//              "topLabel": "%s [%s]",
-	//              "content": "%s",
-	//              "contentMultiline": "true",
-	//              "bottomLabel": "%s",
-	//              "icon": "BOOKMARK"
-	//            }
-	//          },
-	//          {
-	//            "keyValue": {
-	//              "topLabel": "Condition results",
-	//              "content": "%s",
-	//              "contentMultiline": "true",
-	//              "icon": "DESCRIPTION"
-	//            }
-	//          },
-	//          {
-	//            "buttons": [
-	//              {
-	//                "textButton": {
-	//                  "text": "URL",
-	//                  "onClick": {
-	//                    "openLink": {
-	//                      "url": "%s"
-	//                    }
-	//                  }
-	//                }
-	//              }
-	//            ]
-	//          }
-	//        ]
-	//      }
-	//    ]
-	//  }
-	//]
-	//}`, endpoint.Name, endpoint.Group, message, description, results, endpoint.URL)
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
