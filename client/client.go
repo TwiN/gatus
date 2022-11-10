@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-ping/ping"
+	"github.com/ishidawataru/sctp"
 )
 
 // injectedHTTPClient is used for testing purposes
@@ -36,6 +37,41 @@ func CanCreateTCPConnection(address string, config *Config) bool {
 	}
 	_ = conn.Close()
 	return true
+}
+
+// CanCreateUDPConnection checks whether a connection can be established with a UDP endpoint
+func CanCreateUDPConnection(address string, config *Config) bool {
+	conn, err := net.DialTimeout("udp", address, config.Timeout)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+// CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
+func CanCreateSCTPConnection(address string, config *Config) bool {
+	ch := make(chan bool)
+	go (func(res chan bool) {
+		addr, err := sctp.ResolveSCTPAddr("sctp", address)
+		if err != nil {
+			res <- false
+		}
+
+		conn, err := sctp.DialSCTP("sctp", nil, addr)
+		if err != nil {
+			res <- false
+		}
+		_ = conn.Close()
+		res <- true
+	})(ch)
+
+	select {
+	case result := <-ch:
+		return result
+	case <-time.After(config.Timeout):
+		return false
+	}
 }
 
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol

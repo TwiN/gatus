@@ -36,6 +36,8 @@ const (
 
 	EndpointTypeDNS      EndpointType = "DNS"
 	EndpointTypeTCP      EndpointType = "TCP"
+	EndpointTypeSCTP     EndpointType = "SCTP"
+	EndpointTypeUDP      EndpointType = "UDP"
 	EndpointTypeICMP     EndpointType = "ICMP"
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
@@ -132,6 +134,10 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeDNS
 	case strings.HasPrefix(endpoint.URL, "tcp://"):
 		return EndpointTypeTCP
+	case strings.HasPrefix(endpoint.URL, "sctp://"):
+		return EndpointTypeSCTP
+	case strings.HasPrefix(endpoint.URL, "udp://"):
+		return EndpointTypeUDP
 	case strings.HasPrefix(endpoint.URL, "icmp://"):
 		return EndpointTypeICMP
 	case strings.HasPrefix(endpoint.URL, "starttls://"):
@@ -328,6 +334,12 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == EndpointTypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
+		result.Duration = time.Since(startTime)
+	} else if endpointType == EndpointTypeUDP {
+		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(endpoint.URL, "udp://"), endpoint.ClientConfig)
+		result.Duration = time.Since(startTime)
+	} else if endpointType == EndpointTypeSCTP {
+		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(endpoint.URL, "sctp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)

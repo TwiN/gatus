@@ -39,6 +39,9 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
+# github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
+## explicit; go 1.12
+github.com/ishidawataru/sctp
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
