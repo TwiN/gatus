@@ -84,7 +84,7 @@ type Sections struct {
 }
 
 type Widgets struct {
-	KeyValue KeyValue  `json:"keyValue,omitempty"`
+	KeyValue *KeyValue `json:"keyValue,omitempty"`
 	Buttons  []Buttons `json:"buttons,omitempty"`
 }
 
@@ -144,7 +144,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 					{
 						Widgets: []Widgets{
 							{
-								KeyValue: KeyValue{
+								KeyValue: &KeyValue{
 									TopLabel:         endpoint.DisplayName(),
 									Content:          message,
 									ContentMultiline: "true",
@@ -153,7 +153,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 								},
 							},
 							{
-								KeyValue: KeyValue{
+								KeyValue: &KeyValue{
 									TopLabel:         "Condition results",
 									Content:          results,
 									ContentMultiline: "true",
