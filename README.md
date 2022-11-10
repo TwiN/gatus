@@ -74,6 +74,8 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP endpoint](#monitoring-a-tcp-endpoint)
+  - [Monitoring a UDP endpoint](#monitoring-a-udp-endpoint)
+  - [Monitoring a SCTP endpoint](#monitoring-a-sctp-endpoint)
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
@@ -1328,6 +1330,39 @@ This works for applications such as databases (Postgres, MySQL, etc.) and caches
 something at the given address listening to the given port, and that a connection to that address was successfully
 established.
 
+### Monitoring a UDP endpoint
+By prefixing `endpoints[].url` with `udp:\\`, you can monitor UDP endpoints at a very basic level:
+
+```yaml
+endpoints:
+  - name: iper server
+    url: "udp://127.0.0.1:12345"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
+
+This works for UDP based application.
+
+### Monitoring a SCTP endpoint
+By prefixing `endpoints[].url` with `sctp:\\`, you can monitor TCP endpoints at a very basic level:
+
+```yaml
+endpoints:
+  - name: amf
+    url: "sctp://127.0.0.1:38412"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for SCTP endpoints.
+
+This works for SCTP based application.
 
 ### Monitoring an endpoint using ICMP
 By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more
