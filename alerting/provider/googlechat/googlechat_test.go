@@ -151,14 +151,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"keyValue":{},"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#36A64F'\u003eAn alert has been resolved after passing successfully 5 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-2","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"✅   [CONNECTED] == true\u003cbr\u003e✅   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"keyValue":{},"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#36A64F'\u003eAn alert has been resolved after passing successfully 5 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-2","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"✅   [CONNECTED] == true\u003cbr\u003e✅   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
 		},
 	}
 	for _, scenario := range scenarios {
