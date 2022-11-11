@@ -37,7 +37,6 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
 	}
-
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
@@ -47,7 +46,6 @@ func (provider *AlertProvider) IsValid() bool {
 			registeredGroups[override.Group] = true
 		}
 	}
-
 	return len(provider.WebhookURL) > 0
 }
 
@@ -176,6 +174,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			},
 		},
 	})
+	fmt.Println(string(body))
 	return body
 }
 
