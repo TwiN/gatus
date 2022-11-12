@@ -7,7 +7,7 @@ github.com/TwiN/gocache/v2
 # github.com/TwiN/health v1.5.0
 ## explicit; go 1.19
 github.com/TwiN/health
-# github.com/TwiN/whois v1.0.0
+# github.com/TwiN/whois v1.1.0
 ## explicit; go 1.19
 github.com/TwiN/whois
 # github.com/beorn7/perks v1.0.1

@@ -16,7 +16,6 @@ import (
 	"github.com/TwiN/gatus/v4/client"
 	"github.com/TwiN/gatus/v4/core/ui"
 	"github.com/TwiN/gatus/v4/util"
-	"github.com/TwiN/whois"
 )
 
 type EndpointType string
@@ -299,7 +298,7 @@ func (endpoint *Endpoint) getIP(result *Result) {
 }
 
 func (endpoint *Endpoint) getDomainExpiration(result *Result) {
-	whoisClient := whois.NewClient()
+	whoisClient := client.GetWHOISClient()
 	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
 		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
 	} else {
