@@ -11,12 +11,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/whois"
 	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
 )
 
-// injectedHTTPClient is used for testing purposes
-var injectedHTTPClient *http.Client
+var (
+	whoisClient *whois.Client
+
+	// injectedHTTPClient is used for testing purposes
+	injectedHTTPClient *http.Client
+)
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
 func GetHTTPClient(config *Config) *http.Client {
@@ -27,6 +32,14 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+// GetWHOISClient returns the shared WHOIS client
+func GetWHOISClient() *whois.Client {
+	if whoisClient == nil {
+		whoisClient = whois.NewClient().WithReferralCache(true)
+	}
+	return whoisClient
 }
 
 // CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
