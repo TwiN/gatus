@@ -66,6 +66,8 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+
+	whoisClient = whois.NewClient().WithReferralCache(true)
 )
 
 // Endpoint is the configuration of a monitored
@@ -255,11 +257,6 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	if endpoint.needsToRetrieveIP() {
 		endpoint.getIP(result)
 	}
-	// Retrieve domain expiration if necessary
-	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
-		endpoint.getDomainExpiration(result)
-	}
-	//
 	if len(result.Errors) == 0 {
 		endpoint.call(result)
 	} else {
@@ -272,6 +269,10 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		}
 	}
 	result.Timestamp = time.Now()
+	// Retrieve domain expiration if necessary
+	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+		endpoint.getDomainExpiration(result)
+	}
 	// No need to keep the body after the endpoint has been evaluated
 	result.body = nil
 	// Clean up parameters that we don't need to keep in the results
@@ -299,7 +300,6 @@ func (endpoint *Endpoint) getIP(result *Result) {
 }
 
 func (endpoint *Endpoint) getDomainExpiration(result *Result) {
-	whoisClient := whois.NewClient()
 	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
 		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
 	} else {
