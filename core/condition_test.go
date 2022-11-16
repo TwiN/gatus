@@ -310,6 +310,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "pat(*<div id=\"user\">john.doe</div>*) == [BODY] (<!DOCTYPE html><html lang...(truncated))",
 		},
 		{
+			Name:            "body-pattern-in-array",
+			Condition:       Condition("[BODY].data == pat(*Whatever*)"),
+			Result:          &Result{body: []byte("{\"data\": [\"hello\", \"world\", \"Whatever\"]}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == pat(*Whatever*)",
+		},
+		{
 			Name:            "ip-pattern",
 			Condition:       Condition("[IP] == pat(10.*)"),
 			Result:          &Result{IP: "10.0.0.0"},
