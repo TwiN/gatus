@@ -12,7 +12,7 @@ type Entry struct {
 	Key string
 
 	// Value is the value of the cache entry
-	Value interface{}
+	Value any
 
 	// RelevantTimestamp is the variable used to store either:
 	// - creation timestamp, if the Cache's EvictionPolicy is FirstInFirstOut
@@ -48,7 +48,7 @@ func (entry *Entry) SizeInBytes() int {
 	return toBytes(entry.Key) + toBytes(entry.Value) + 32
 }
 
-func toBytes(value interface{}) int {
+func toBytes(value any) int {
 	switch value.(type) {
 	case string:
 		return int(unsafe.Sizeof(value)) + len(value.(string))
@@ -60,9 +60,9 @@ func toBytes(value interface{}) int {
 		return int(unsafe.Sizeof(value)) + 4
 	case int64, uint64, int, uint, float64, complex128:
 		return int(unsafe.Sizeof(value)) + 8
-	case []interface{}:
+	case []any:
 		size := 0
-		for _, v := range value.([]interface{}) {
+		for _, v := range value.([]any) {
 			size += toBytes(v)
 		}
 		return int(unsafe.Sizeof(value)) + size
