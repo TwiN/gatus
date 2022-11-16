@@ -1,6 +1,6 @@
 ![Gatus](.github/assets/logo-with-dark-text.png)
 
-![build](https://github.com/TwiN/gatus/workflows/build/badge.svg?branch=master)
+![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
