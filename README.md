@@ -338,7 +338,7 @@ endpoints:
   - name: with-custom-dns-resolver
     url: "https://your.health.api/health"
     client:
-      dns-resolver: "tcp://1.1.1.1:53"
+      dns-resolver: "tcp://8.8.8.8:53"
     conditions:
       - "[STATUS] == 200"
 ```
