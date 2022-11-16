@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -11,12 +12,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/whois"
 	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
 )
 
-// injectedHTTPClient is used for testing purposes
-var injectedHTTPClient *http.Client
+var (
+	// injectedHTTPClient is used for testing purposes
+	injectedHTTPClient *http.Client
+
+	whoisClient              = whois.NewClient().WithReferralCache(true)
+	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
+)
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
 func GetHTTPClient(config *Config) *http.Client {
@@ -27,6 +35,35 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+// GetDomainExpiration retrieves the duration until the domain provided expires
+func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err error) {
+	var retrievedCachedValue bool
+	if v, exists := whoisExpirationDateCache.Get(hostname); exists {
+		domainExpiration = time.Until(v.(time.Time))
+		retrievedCachedValue = true
+		// If the domain OR the TTL is not going to expire in less than 24 hours
+		// we don't have to refresh the cache. Otherwise, we'll refresh it.
+		cacheEntryTTL, _ := whoisExpirationDateCache.TTL(hostname)
+		if cacheEntryTTL > 24*time.Hour && domainExpiration > 24*time.Hour {
+			// No need to refresh, so we'll just return the cached values
+			return domainExpiration, nil
+		}
+	}
+	if whoisResponse, err := whoisClient.QueryAndParse(hostname); err != nil {
+		if !retrievedCachedValue { // Add an error unless we already retrieved a cached value
+			return 0, fmt.Errorf("error querying and parsing hostname using whois client: %w", err)
+		}
+	} else {
+		domainExpiration = time.Until(whoisResponse.ExpirationDate)
+		if domainExpiration > 720*time.Hour {
+			whoisExpirationDateCache.SetWithTTL(hostname, whoisResponse.ExpirationDate, 240*time.Hour)
+		} else {
+			whoisExpirationDateCache.SetWithTTL(hostname, whoisResponse.ExpirationDate, 72*time.Hour)
+		}
+	}
+	return domainExpiration, nil
 }
 
 // CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
