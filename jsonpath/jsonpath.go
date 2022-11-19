@@ -20,6 +20,7 @@ func Eval(path string, b []byte) (string, int, error) {
 	return walk(path, object)
 }
 
+// walk traverses the object and returns the value as a string as well as its length
 func walk(path string, object interface{}) (string, int, error) {
 	var keys []string
 	startOfCurrentKey, bracketDepth := 0, 0
@@ -41,7 +42,15 @@ func walk(path string, object interface{}) (string, int, error) {
 	currentKey := keys[0]
 	switch value := extractValue(currentKey, object).(type) {
 	case map[string]interface{}:
-		return walk(strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1), value)
+		newPath := strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1)
+		if path == newPath {
+			// If the path hasn't changed, it means we're at the end of the path
+			// So we'll treat it as a string by re-marshaling it to JSON since it's a map.
+			// Note that the output JSON will be minified.
+			b, err := json.Marshal(value)
+			return string(b), len(b), err
+		}
+		return walk(newPath, value)
 	case string:
 		if len(keys) > 1 {
 			return "", 0, fmt.Errorf("couldn't walk through '%s', because '%s' was a string instead of an object", keys[1], currentKey)
@@ -50,7 +59,8 @@ func walk(path string, object interface{}) (string, int, error) {
 	case []interface{}:
 		return fmt.Sprintf("%v", value), len(value), nil
 	case interface{}:
-		return fmt.Sprintf("%v", value), 1, nil
+		newValue := fmt.Sprintf("%v", value)
+		return newValue, len(newValue), nil
 	default:
 		return "", 0, fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
 	}
