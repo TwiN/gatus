@@ -1,10 +1,4 @@
 endpoints:
-  - name: grpc-test
-    url: "http://localhost:50051"
-    method: "/helloworld.Greeter/SayHello"
-    conditions:
-      - "[CONNECTED] == true"
-
   - name: front-end
     group: core
     url: "https://twin.sh/health"
