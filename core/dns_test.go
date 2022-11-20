@@ -8,7 +8,7 @@ import (
 )
 
 func TestIntegrationQuery(t *testing.T) {
-	scenarios := []struct {
+	tests := []struct {
 		name            string
 		inputDNS        DNS
 		inputURL        string
@@ -17,48 +17,67 @@ func TestIntegrationQuery(t *testing.T) {
 		isErrExpected   bool
 	}{
 		{
-			name:            "dns-with-type-A",
-			inputDNS:        DNS{QueryType: "A", QueryName: "example.com."},
-			inputURL:        "1.1.1.1",
+			name: "test DNS with type A",
+			inputDNS: DNS{
+				QueryType: "A",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "93.184.216.34",
 		},
 		{
-			name:            "dns-with-type-AAAA",
-			inputDNS:        DNS{QueryType: "AAAA", QueryName: "example.com."},
-			inputURL:        "1.1.1.1",
+			name: "test DNS with type AAAA",
+			inputDNS: DNS{
+				QueryType: "AAAA",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "2606:2800:220:1:248:1893:25c8:1946",
 		},
 		{
-			name:            "dns-with-type-CNAME",
-			inputDNS:        DNS{QueryType: "CNAME", QueryName: "en.wikipedia.org."},
-			inputURL:        "1.1.1.1",
+			name: "test DNS with type CNAME",
+			inputDNS: DNS{
+				QueryType: "CNAME",
+				QueryName: "en.wikipedia.org.",
+			},
+			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "dyna.wikimedia.org.",
 		},
 		{
-			name:            "dns-with-type-MX",
-			inputDNS:        DNS{QueryType: "MX", QueryName: "example.com."},
-			inputURL:        "1.1.1.1",
+			name: "test DNS with type MX",
+			inputDNS: DNS{
+				QueryType: "MX",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    ".",
 		},
 		{
-			name:            "dns-with-type-NS",
-			inputDNS:        DNS{QueryType: "NS", QueryName: "example.com."},
-			inputURL:        "1.1.1.1",
+			name: "test DNS with type NS",
+			inputDNS: DNS{
+				QueryType: "NS",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "*.iana-servers.net.",
 		},
 		{
-			name:          "dns-with-invalid-type",
-			inputDNS:      DNS{QueryType: "B", QueryName: "example"},
-			inputURL:      "1.1.1.1",
+			name: "test DNS with fake type and retrieve error",
+			inputDNS: DNS{
+				QueryType: "B",
+				QueryName: "example",
+			},
+			inputURL:      "8.8.8.8",
 			isErrExpected: true,
 		},
 	}
-	for _, test := range scenarios {
+
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			dns := test.inputDNS
 			result := &Result{}
@@ -72,15 +91,15 @@ func TestIntegrationQuery(t *testing.T) {
 			if test.inputDNS.QueryType == "NS" {
 				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
 				if !pattern.Match(test.expectedBody, string(result.body)) {
-					t.Errorf("expected [BODY] to be %s, got %s,", test.expectedBody, string(result.body))
+					t.Errorf("got %s, expected result %s,", string(result.body), test.expectedBody)
 				}
 			} else {
 				if string(result.body) != test.expectedBody {
-					t.Errorf("expected [BODY] to be %s, got %s,", test.expectedBody, string(result.body))
+					t.Errorf("got %s, expected result %s,", string(result.body), test.expectedBody)
 				}
 			}
 		})
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 

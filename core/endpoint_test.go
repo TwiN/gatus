@@ -263,7 +263,7 @@ func TestEndpoint_Type(t *testing.T) {
 	}{
 		{
 			args: args{
-				URL: "1.1.1.1",
+				URL: "8.8.8.8",
 				DNS: &DNS{
 					QueryType: "A",
 					QueryName: "example.com",
@@ -655,7 +655,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionBody := Condition("[BODY] == 93.184.216.34")
 	endpoint := Endpoint{
 		Name: "example",
-		URL:  "1.1.1.1",
+		URL:  "8.8.8.8",
 		DNS: &DNS{
 			QueryType: "A",
 			QueryName: "example.com.",

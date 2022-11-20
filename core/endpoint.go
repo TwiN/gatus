@@ -256,14 +256,18 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	}
 	// Retrieve domain expiration if necessary
 	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
-		endpoint.getDomainExpiration(result)
+		var err error
+		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
+			result.AddError(err.Error())
+		}
 	}
-	//
+	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
 		endpoint.call(result)
 	} else {
 		result.Success = false
 	}
+	// Evaluate the conditions
 	for _, condition := range endpoint.Conditions {
 		success := condition.evaluate(result, endpoint.UIConfig.DontResolveFailedConditions)
 		if !success {
@@ -289,20 +293,11 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 }
 
 func (endpoint *Endpoint) getIP(result *Result) {
-	ips, err := net.LookupIP(result.Hostname)
-	if err != nil {
+	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
 		return
-	}
-	result.IP = ips[0].String()
-}
-
-func (endpoint *Endpoint) getDomainExpiration(result *Result) {
-	whoisClient := client.GetWHOISClient()
-	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
-		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
 	} else {
-		result.DomainExpiration = time.Until(whoisResponse.ExpirationDate)
+		result.IP = ips[0].String()
 	}
 }
 

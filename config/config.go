@@ -268,7 +268,7 @@ func validateEndpointsConfig(config *Config) error {
 			log.Printf("[config][validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
 		}
 		if err := endpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %s", endpoint.DisplayName(), err)
+			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
 		}
 	}
 	log.Printf("[config][validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))

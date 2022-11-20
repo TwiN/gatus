@@ -1,4 +1,4 @@
-name: build
+name: test
 on:
   pull_request:
     paths-ignore:
@@ -9,8 +9,7 @@ on:
     paths-ignore:
       - '*.md'
 jobs:
-  build:
-    name: build
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -19,12 +18,12 @@ jobs:
           go-version: 1.19
       - uses: actions/checkout@v3
       - name: Build binary to make sure it works
-        run: go build -mod vendor
+        run: go build
       - name: Test
         # We're using "sudo" because one of the tests leverages ping, which requires super-user privileges.
         # As for the 'env "PATH=$PATH" "GOROOT=$GOROOT"', we need it to use the same "go" executable that
         # was configured by the "Set up Go" step (otherwise, it'd use sudo's "go" executable)
-        run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test -mod vendor ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
         uses: codecov/codecov-action@v3.1.1
         with:

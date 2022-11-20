@@ -3,7 +3,7 @@ package gocache
 // EvictionPolicy is what dictates how evictions are handled
 type EvictionPolicy string
 
-var (
+const (
 	// LeastRecentlyUsed is an eviction policy that causes the most recently accessed cache entry to be moved to the
 	// head of the cache. Effectively, this causes the cache entries that have not been accessed for some time to
 	// gradually move closer and closer to the tail, and since the tail is the entry that gets deleted when an eviction
