@@ -7,10 +7,10 @@
           <div class="text-3xl xl:text-5xl lg:text-4xl font-light">{{ header }}</div>
         </div>
         <div class="w-1/4 flex justify-end">
-          <a :href="link" target="_blank" style="width:100px">
+          <component :is="link ? 'a' : 'div'" :href="link" target="_blank" style="width:100px">
             <img v-if="logo" :src="logo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;" />
             <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;" />
-          </a>
+          </component>
         </div>
       </div>
       <div v-if="buttons" class="flex flex-wrap">
@@ -27,12 +27,7 @@
     <h2 class="mt-4 text-center text-4xl font-extrabold text-gray-800 dark:text-gray-200">
       Gatus
     </h2>
-    <div class="mt-8 py-7 px-4 rounded-sm sm:bg-gray-100 sm:border sm:border-gray-300 sm:shadow-2xl sm:px-10">
-      <div class="sm:mx-auto sm:w-full">
-        <h2 class="mb-3 text-center text-xl font-bold text-gray-600 dark:text-gray-200 dark:sm:text-gray-600 ">
-          Sign in
-        </h2>
-      </div>
+    <div class="py-7 px-4 rounded-sm sm:px-10">
       <div v-if="$route && $route.query.error" class="text-red-500 text-center mb-5">
         <div class="text-sm">
           <span class="text-red-500" v-if="$route.query.error === 'access_denied'">You do not have access to this status page</span>
@@ -40,7 +35,7 @@
         </div>
       </div>
       <div>
-        <a :href="`${SERVER_URL}/oidc/login`" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-green-800 rounded-md shadow-lg text-sm text-white bg-green-700 hover:bg-green-800">
+        <a :href="`${SERVER_URL}/oidc/login`" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-green-800 rounded-md shadow-lg text-sm text-white bg-green-700 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
           Login with OIDC
         </a>
       </div>

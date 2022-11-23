@@ -2,12 +2,16 @@
   <div :class="endpoints.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
       <div class="endpoint-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
-        <h5 class='font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500'>
-          <span v-if="healthy" class='text-green-600'>&#10003;</span>
-          <span v-else class='text-yellow-400'>~</span>
-          {{ name }}
-          <span class='float-right endpoint-group-arrow'>
+        <h5 class="font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500">
+          <span class="endpoint-group-arrow mr-2">
             {{ collapsed ? '&#9660;' : '&#9650;' }}
+          </span>
+          {{ name }}
+          <span v-if="healthy" class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
+            <CheckCircleIcon />
+          </span>
+          <span v-else class="float-right text-yellow-500 text-sm w-7 hover:scale-110" title="Partial Outage">
+            <ExclamationCircleIcon />
           </span>
         </h5>
       </div>
@@ -28,11 +32,14 @@
 
 <script>
 import Endpoint from './Endpoint.vue';
+import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/20/solid'
 
 export default {
   name: 'EndpointGroup',
   components: {
-    Endpoint
+    Endpoint,
+    CheckCircleIcon,
+    ExclamationCircleIcon
   },
   props: {
     name: String,
@@ -44,9 +51,8 @@ export default {
     healthCheck() {
       if (this.endpoints) {
         for (let i in this.endpoints) {
-          for (let j in this.endpoints[i].results) {
-            if (!this.endpoints[i].results[j].success) {
-              // Set the endpoint group to unhealthy (only if it's currently healthy)
+          if (this.endpoints[i].results && this.endpoints[i].results.length > 0) {
+            if (!this.endpoints[i].results[this.endpoints[i].results.length-1].success) {
               if (this.healthy) {
                 this.healthy = false;
               }

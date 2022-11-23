@@ -268,7 +268,7 @@ func validateEndpointsConfig(config *Config) error {
 			log.Printf("[config][validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
 		}
 		if err := endpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %s", endpoint.DisplayName(), err)
+			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
 		}
 	}
 	log.Printf("[config][validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
@@ -302,6 +302,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 	alertTypes := []alert.Type{
 		alert.TypeCustom,
 		alert.TypeDiscord,
+		alert.TypeGoogleChat,
 		alert.TypeEmail,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
