@@ -141,6 +141,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	secondDescription := "description-2"
 	scenarios := []struct {
 		Name         string
+		Endpoint     core.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
 		Resolved     bool
@@ -148,6 +149,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
@@ -155,16 +157,33 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved",
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#36A64F'\u003eAn alert has been resolved after passing successfully 5 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-2","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"✅   [CONNECTED] == true\u003cbr\u003e✅   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
 		},
+		{
+			Name:         "icmp-should-not-include-url", // See https://github.com/TwiN/gatus/issues/362
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "icmp://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}}]}]}]}`,
+		},
+		{
+			Name:         "tcp-should-not-include-url", // See https://github.com/TwiN/gatus/issues/362
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "tcp://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}}]}]}]}`,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+				&scenario.Endpoint,
 				&scenario.Alert,
 				&core.Result{
 					ConditionResults: []*core.ConditionResult{

@@ -135,7 +135,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":: " + alertDescription
 	}
-	body, _ := json.Marshal(Body{
+	payload := Body{
 		Cards: []Cards{
 			{
 				Sections: []Sections{
@@ -158,23 +158,28 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 									Icon:             "DESCRIPTION",
 								},
 							},
-							{
-								Buttons: []Buttons{
-									{
-										TextButton: TextButton{
-											Text:    "URL",
-											OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
-										},
-									},
-								},
-							},
 						},
 					},
 				},
 			},
 		},
-	})
-	fmt.Println(string(body))
+	}
+	if endpoint.Type() == core.EndpointTypeHTTP {
+		// We only include a button targeting the URL if the endpoint is an HTTP endpoint
+		// If the URL isn't prefixed with https://, Google Chat will just display a blank message aynways.
+		// See https://github.com/TwiN/gatus/issues/362
+		payload.Cards[0].Sections[0].Widgets = append(payload.Cards[0].Sections[0].Widgets, Widgets{
+			Buttons: []Buttons{
+				{
+					TextButton: TextButton{
+						Text:    "URL",
+						OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
+					},
+				},
+			},
+		})
+	}
+	body, _ := json.Marshal(payload)
 	return body
 }
 
