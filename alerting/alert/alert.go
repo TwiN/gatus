@@ -79,6 +79,7 @@ func (alert Alert) GetDescription() string {
 // IsEnabled returns whether an alert is enabled or not
 func (alert Alert) IsEnabled() bool {
 	if alert.Enabled == nil {
+		// TODO: Default to true in v5.0.0 (unless default-alert.enabled is set to false)
 		return false
 	}
 	return *alert.Enabled
