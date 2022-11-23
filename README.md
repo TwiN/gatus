@@ -250,12 +250,12 @@ Here are some examples of conditions you can use:
 
 
 #### Functions
-| Function | Description                                                                                                    | Example                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------|:-----------------------------------|
-| `len`    | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                              | `len([BODY].username) > 8`         |
-| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.    | `has([BODY].errors) == false`      |
-| `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`. | `[IP] == pat(192.168.*)`           |
-| `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.     | `[BODY].ip == any(127.0.0.1, ::1)` |
+| Function | Description                                                                                                                                                                                                                         | Example                            |
+|:---------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------|
+| `len`    | If the given path leads to an array, returns its length. Otherwise, the JSON at the given path is minified and converted to a string, and the resulting number of characters is returned. Works only with the `[BODY]` placeholder. | `len([BODY].username) > 8`         |
+| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.                                                                                                                         | `has([BODY].errors) == false`      |
+| `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
+| `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
 **NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
