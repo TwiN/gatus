@@ -67,17 +67,14 @@
       <hr />
       <ul role="list" class="px-0 xl:px-24 divide-y divide-gray-200 dark:divide-gray-600">
         <li v-for="event in events" :key="event" class="p-3 my-4">
-          <h2 class="text-lg">
-            <img v-if="event.type === 'HEALTHY'" src="../assets/arrow-up-green.png" alt="Healthy"
-                 class="border border-green-600 rounded-full opacity-75 bg-green-100 mr-2 inline" width="26"/>
-            <img v-else-if="event.type === 'UNHEALTHY'" src="../assets/arrow-down-red.png" alt="Unhealthy"
-                 class="border border-red-500 rounded-full opacity-75 bg-red-100 mr-2 inline" width="26"/>
-            <img v-else-if="event.type === 'START'" src="../assets/arrow-right-black.png" alt="Start"
-                 class="border border-gray-500 rounded-full opacity-75 bg-gray-100 mr-2 inline" width="26"/>
+          <h2 class="text-sm sm:text-lg">
+            <ArrowUpCircleIcon v-if="event.type === 'HEALTHY'" class="w-8 inline mr-2 text-green-600" />
+            <ArrowDownCircleIcon v-else-if="event.type === 'UNHEALTHY'" class="w-8 inline mr-2 text-red-500" />
+            <PlayCircleIcon v-else-if="event.type === 'START'" class="w-8 inline mr-2 text-gray-400 dark:text-gray-100" />
             {{ event.fancyText }}
           </h2>
-          <div class="flex mt-1 text-sm text-gray-400">
-            <div class="flex-1 text-left pl-10">
+          <div class="flex mt-1 text-xs sm:text-sm text-gray-400">
+            <div class="flex-2 text-left pl-12">
               {{ prettifyTimestamp(event.timestamp) }}
             </div>
             <div class="flex-1 text-right">
@@ -98,6 +95,7 @@ import Endpoint from '@/components/Endpoint.vue';
 import {SERVER_URL} from "@/main.js";
 import {helper} from "@/mixins/helper.js";
 import Pagination from "@/components/Pagination";
+import { ArrowDownCircleIcon, ArrowUpCircleIcon, PlayCircleIcon } from '@heroicons/vue/20/solid'
 
 export default {
   name: 'Details',
@@ -105,6 +103,9 @@ export default {
     Pagination,
     Endpoint,
     Settings,
+    ArrowDownCircleIcon,
+    ArrowUpCircleIcon,
+    PlayCircleIcon
   },
   emits: ['showTooltip'],
   mixins: [helper],

@@ -1,6 +1,6 @@
 ![Gatus](.github/assets/logo-with-dark-text.png)
 
-![build](https://github.com/TwiN/gatus/workflows/build/badge.svg?branch=master)
+![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
@@ -24,7 +24,7 @@ docker run -p 8080:8080 --name gatus twinproduction/gatus
 For more details, see [Usage](#usage)
 </details>
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard](.github/assets/dashboard-dark.png)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
@@ -74,6 +74,8 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
   - [Monitoring a TCP endpoint](#monitoring-a-tcp-endpoint)
+  - [Monitoring a UDP endpoint](#monitoring-a-udp-endpoint)
+  - [Monitoring a SCTP endpoint](#monitoring-a-sctp-endpoint)
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
@@ -83,6 +85,7 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -121,7 +124,7 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard dark mode](.github/assets/dashboard-dark.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
 
 
 ## Usage
@@ -196,6 +199,7 @@ If you want to test it locally, see [Docker](#docker).
 | `web.port`                                      | Port to listen on.                                                                                                                                 | `8080`                     |
 | `ui`                                            | UI configuration.                                                                                                                                  | `{}`                       |
 | `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                          | `Health Dashboard ǀ Gatus` |
+| `ui.description`                                | Meta description for the page.                                                                                                                     | `Gatus is an advanced...`. |
 | `ui.header`                                     | Header at the top of the dashboard.                                                                                                                | `Health Status`            |
 | `ui.logo`                                       | URL to the logo to display.                                                                                                                        | `""`                       |
 | `ui.link`                                       | Link to open when the logo is clicked.                                                                                                             | `""`                       |
@@ -203,7 +207,6 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].name`                             | Text to display on the button.                                                                                                                     | Required `""`              |
 | `ui.buttons[].link`                             | Link to open when the button is clicked.                                                                                                           | Required `""`              |
 | `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                         | `{}`                       |
-
 
 ### Conditions
 Here are some examples of conditions you can use:
@@ -335,7 +338,7 @@ endpoints:
   - name: with-custom-dns-resolver
     url: "https://your.health.api/health"
     client:
-      dns-resolver: "tcp://1.1.1.1:53"
+      dns-resolver: "tcp://8.8.8.8:53"
     conditions:
       - "[STATUS] == 200"
 ```
@@ -1327,6 +1330,39 @@ This works for applications such as databases (Postgres, MySQL, etc.) and caches
 something at the given address listening to the given port, and that a connection to that address was successfully
 established.
 
+### Monitoring a UDP endpoint
+By prefixing `endpoints[].url` with `udp:\\`, you can monitor UDP endpoints at a very basic level:
+
+```yaml
+endpoints:
+  - name: iper server
+    url: "udp://127.0.0.1:12345"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
+
+This works for UDP based application.
+
+### Monitoring a SCTP endpoint
+By prefixing `endpoints[].url` with `sctp:\\`, you can monitor TCP endpoints at a very basic level:
+
+```yaml
+endpoints:
+  - name: amf
+    url: "sctp://127.0.0.1:38412"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for SCTP endpoints.
+
+This works for SCTP based application.
 
 ### Monitoring an endpoint using ICMP
 By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more
@@ -1511,6 +1547,43 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
+
+
+### Keeping your configuration small
+While not specific to Gatus, you can leverage YAML anchors to create a default configuration.
+If you have a large configuration file, this should help you keep things clean.
+
+<details>
+  <summary>Example</summary>
+
+```yaml
+default-endpoint: &defaults
+  group: core
+  interval: 5m
+  client:
+    insecure: true
+    timeout: 30s
+  conditions:
+    - "[STATUS] == 200"
+
+endpoints:
+  - name: anchor-example-1
+    <<: *defaults               # This will merge the configuration under &defaults with this endpoint
+    url: "https://example.org"
+
+  - name: anchor-example-2
+    <<: *defaults 
+    group: example              # This will override the group defined in &defaults
+    url: "https://example.com"
+
+  - name: anchor-example-3
+    <<: *defaults
+    url: "https://twin.sh/health"
+    conditions:                # This will override the conditions defined in &defaults
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+```
+</details>
 
 
 ### Badges

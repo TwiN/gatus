@@ -49,7 +49,7 @@ type Config struct {
 	Timeout time.Duration `yaml:"timeout"`
 
 	// DNSResolver override for the HTTP client
-	// Expected format is {protocol}://{host}:{port}, e.g. tcp://1.1.1.1:53
+	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.

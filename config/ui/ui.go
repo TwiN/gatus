@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	defaultTitle  = "Health Dashboard | Gatus"
-	defaultHeader = "Health Status"
-	defaultLogo   = ""
-	defaultLink   = ""
+	defaultTitle       = "Health Dashboard | Gatus"
+	defaultDescription = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader      = "Health Status"
+	defaultLogo        = ""
+	defaultLink        = ""
 )
 
 var (
@@ -21,11 +22,12 @@ var (
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title   string   `yaml:"title,omitempty"`   // Title of the page
-	Header  string   `yaml:"header,omitempty"`  // Header is the text at the top of the page
-	Logo    string   `yaml:"logo,omitempty"`    // Logo to display on the page
-	Link    string   `yaml:"link,omitempty"`    // Link to open when clicking on the logo
-	Buttons []Button `yaml:"buttons,omitempty"` // Buttons to display below the header
+	Title       string   `yaml:"title,omitempty"`       // Title of the page
+	Description string   `yaml:"description,omitempty"` // Meta description of the page
+	Header      string   `yaml:"header,omitempty"`      // Header is the text at the top of the page
+	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
+	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
+	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
 }
 
 // Button is the configuration for a button on the UI
@@ -45,10 +47,11 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
-		Title:  defaultTitle,
-		Header: defaultHeader,
-		Logo:   defaultLogo,
-		Link:   defaultLink,
+		Title:       defaultTitle,
+		Description: defaultDescription,
+		Header:      defaultHeader,
+		Logo:        defaultLogo,
+		Link:        defaultLink,
 	}
 }
 
@@ -56,6 +59,9 @@ func GetDefaultConfig() *Config {
 func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.Title) == 0 {
 		cfg.Title = defaultTitle
+	}
+	if len(cfg.Description) == 0 {
+		cfg.Description = defaultDescription
 	}
 	if len(cfg.Header) == 0 {
 		cfg.Header = defaultHeader

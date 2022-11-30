@@ -402,6 +402,11 @@ func (err *Error) Fatal() bool {
 	return err.Severity == Efatal
 }
 
+// SQLState returns the SQLState of the error.
+func (err *Error) SQLState() string {
+	return string(err.Code)
+}
+
 // Get implements the legacy PGError interface. New code should use the fields
 // of the Error struct directly.
 func (err *Error) Get(k byte) (v string) {
@@ -444,7 +449,7 @@ func (err *Error) Get(k byte) (v string) {
 	return ""
 }
 
-func (err Error) Error() string {
+func (err *Error) Error() string {
 	return "pq: " + err.Message
 }
 
@@ -484,7 +489,7 @@ func (cn *conn) errRecover(err *error) {
 	case nil:
 		// Do nothing
 	case runtime.Error:
-		cn.setBad()
+		cn.err.set(driver.ErrBadConn)
 		panic(v)
 	case *Error:
 		if v.Fatal() {
@@ -493,10 +498,10 @@ func (cn *conn) errRecover(err *error) {
 			*err = v
 		}
 	case *net.OpError:
-		cn.setBad()
+		cn.err.set(driver.ErrBadConn)
 		*err = v
 	case *safeRetryError:
-		cn.setBad()
+		cn.err.set(driver.ErrBadConn)
 		*err = driver.ErrBadConn
 	case error:
 		if v == io.EOF || v.Error() == "remote error: handshake failure" {
@@ -506,13 +511,13 @@ func (cn *conn) errRecover(err *error) {
 		}
 
 	default:
-		cn.setBad()
+		cn.err.set(driver.ErrBadConn)
 		panic(fmt.Sprintf("unknown error: %#v", e))
 	}
 
 	// Any time we return ErrBadConn, we need to remember it since *Tx doesn't
 	// mark the connection bad in database/sql.
 	if *err == driver.ErrBadConn {
-		cn.setBad()
+		cn.err.set(driver.ErrBadConn)
 	}
 }

@@ -70,12 +70,14 @@ cache.StartJanitor()
 | WithMaxSize                       | Sets the max size of the cache. `gocache.NoMaxSize` means there is no limit. If not set, the default max size is `gocache.DefaultMaxSize`.                                                                                                                         |
 | WithMaxMemoryUsage                | Sets the max memory usage of the cache. `gocache.NoMaxMemoryUsage` means there is no limit. The default behavior is to not evict based on memory usage.                                                                                                            |
 | WithEvictionPolicy                | Sets the eviction algorithm to be used when the cache reaches the max size. If not set, the default eviction policy is `gocache.FirstInFirstOut` (FIFO).                                                                                                           |
+| WithDefaultTTL                    | Sets the default TTL for each entry.                                                                                                                                                                                                                               |
 | WithForceNilInterfaceOnNilPointer | Configures whether values with a nil pointer passed to write functions should be forcefully set to nil. Defaults to true.                                                                                                                                          |
 | StartJanitor                      | Starts the janitor, which is in charge of deleting expired cache entries in the background.                                                                                                                                                                        |
 | StopJanitor                       | Stops the janitor.                                                                                                                                                                                                                                                 |
-| Set                               | Same as `SetWithTTL`, but with no expiration (`gocache.NoExpiration`)                                                                                                                                                                                              |
-| SetAll                            | Same as `Set`, but in bulk                                                                                                                                                                                                                                         |
+| Set                               | Same as `SetWithTTL`, but using the default TTL (which is `gocache.NoExpiration`, unless configured otherwise).                                                                                                                                                    |
 | SetWithTTL                        | Creates or updates a cache entry with the given key, value and expiration time. If the max size after the aforementioned operation is above the configured max size, the tail will be evicted. Depending on the eviction policy, the tail is defined as the oldest |
+| SetAll                            | Same as `Set`, but in bulk.                                                                                                                                                                                                                                        |
+| SetAllWithTTL                     | Same as `SetWithTTL`, but in bulk.                                                                                                                                                                                                                                 |
 | Get                               | Gets a cache entry by its key.                                                                                                                                                                                                                                     |
 | GetByKeys                         | Gets a map of entries by their keys. The resulting map will contain all keys, even if some of the keys in the slice passed as parameter were not present in the cache.                                                                                             |
 | GetAll                            | Gets all cache entries.                                                                                                                                                                                                                                            |
@@ -131,7 +133,7 @@ func main() {
 
     cache.Set("key", "value")
     cache.SetWithTTL("key-with-ttl", "value", 60*time.Minute)
-    cache.SetAll(map[string]interface{}{"k1": "v1", "k2": "v2", "k3": "v3"})
+    cache.SetAll(map[string]any{"k1": "v1", "k2": "v2", "k3": "v3"})
 
     fmt.Println("[Count] Cache size:", cache.Count())
 
@@ -247,7 +249,7 @@ but if you're looking into using a library like gocache, odds are, you want more
 
 ### Results
 | key    | value    |
-|:------ |:-------- |
+|:-------|:---------|
 | goos   | windows  |
 | goarch | amd64    |
 | cpu    | i7-9700K |
@@ -255,66 +257,54 @@ but if you're looking into using a library like gocache, odds are, you want more
 
 ```
 // Normal map
-BenchmarkMap_Get
-BenchmarkMap_Get-8                                                              46087372  26.7 ns/op
-BenchmarkMap_Set                                                                   
-BenchmarkMap_Set/small_value-8                                                   3841911   389 ns/op
-BenchmarkMap_Set/medium_value-8                                                  3887074   391 ns/op
-BenchmarkMap_Set/large_value-8                                                   3921956   393 ns/op
-// Gocache                                                                         
-BenchmarkCache_Get                                                                 
-BenchmarkCache_Get/FirstInFirstOut-8                                            27273036  46.4 ns/op
-BenchmarkCache_Get/LeastRecentlyUsed-8                                          26648248  46.3 ns/op
-BenchmarkCache_Set                                                              
-BenchmarkCache_Set/FirstInFirstOut_small_value-8                                 2919584   405 ns/op
-BenchmarkCache_Set/FirstInFirstOut_medium_value-8                                2990841   391 ns/op
-BenchmarkCache_Set/FirstInFirstOut_large_value-8                                 2970513   391 ns/op
-BenchmarkCache_Set/LeastRecentlyUsed_small_value-8                               2962939   402 ns/op
-BenchmarkCache_Set/LeastRecentlyUsed_medium_value-8                              2962963   390 ns/op
-BenchmarkCache_Set/LeastRecentlyUsed_large_value-8                               2962928   394 ns/op
-BenchmarkCache_SetUsingMaxMemoryUsage                                           
-BenchmarkCache_SetUsingMaxMemoryUsage/small_value-8                              2683356   447 ns/op
-BenchmarkCache_SetUsingMaxMemoryUsage/medium_value-8                             2637578   441 ns/op
-BenchmarkCache_SetUsingMaxMemoryUsage/large_value-8                              2672434   443 ns/op
-BenchmarkCache_SetWithMaxSize                                                   
-BenchmarkCache_SetWithMaxSize/100_small_value-8                                  4782966   252 ns/op
-BenchmarkCache_SetWithMaxSize/10000_small_value-8                                4067967   296 ns/op
-BenchmarkCache_SetWithMaxSize/100000_small_value-8                               3762055   328 ns/op
-BenchmarkCache_SetWithMaxSize/100_medium_value-8                                 4760479   252 ns/op
-BenchmarkCache_SetWithMaxSize/10000_medium_value-8                               4081050   295 ns/op
-BenchmarkCache_SetWithMaxSize/100000_medium_value-8                              3785050   330 ns/op
-BenchmarkCache_SetWithMaxSize/100_large_value-8                                  4732909   254 ns/op
-BenchmarkCache_SetWithMaxSize/10000_large_value-8                                4079533   297 ns/op
-BenchmarkCache_SetWithMaxSize/100000_large_value-8                               3712820   331 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU                                             
-BenchmarkCache_SetWithMaxSizeAndLRU/100_small_value-8                            4761732   254 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/10000_small_value-8                          4084474   296 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/100000_small_value-8                         3761402   329 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/100_medium_value-8                           4783075   254 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/10000_medium_value-8                         4103980   296 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/100000_medium_value-8                        3646023   331 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/100_large_value-8                            4779025   254 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/10000_large_value-8                          4096192   296 ns/op
-BenchmarkCache_SetWithMaxSizeAndLRU/100000_large_value-8                         3726823   331 ns/op
-BenchmarkCache_GetSetMultipleConcurrent                                         
-BenchmarkCache_GetSetMultipleConcurrent-8                                         707142  1698 ns/op
-BenchmarkCache_GetSetConcurrentWithFrequentEviction
-BenchmarkCache_GetSetConcurrentWithFrequentEviction/FirstInFirstOut-8            3616256   334 ns/op
-BenchmarkCache_GetSetConcurrentWithFrequentEviction/LeastRecentlyUsed-8          3636367   331 ns/op
-BenchmarkCache_GetConcurrentWithLRU                                              
-BenchmarkCache_GetConcurrentWithLRU/FirstInFirstOut-8                            4405557   268 ns/op
-BenchmarkCache_GetConcurrentWithLRU/LeastRecentlyUsed-8                          4445475   269 ns/op
-BenchmarkCache_WithForceNilInterfaceOnNilPointer
-BenchmarkCache_WithForceNilInterfaceOnNilPointer/true_with_nil_struct_pointer-8  6184591   191 ns/op
-BenchmarkCache_WithForceNilInterfaceOnNilPointer/true-8                          6090482   191 ns/op
-BenchmarkCache_WithForceNilInterfaceOnNilPointer/false_with_nil_struct_pointer-8 6184629   187 ns/op
-BenchmarkCache_WithForceNilInterfaceOnNilPointer/false-8                         6281781   186 ns/op
-(Trimmed "BenchmarkCache_" for readability)
-WithForceNilInterfaceOnNilPointerWithConcurrency
-WithForceNilInterfaceOnNilPointerWithConcurrency/true_with_nil_struct_pointer-8  4379564   268 ns/op
-WithForceNilInterfaceOnNilPointerWithConcurrency/true-8                          4379558   265 ns/op
-WithForceNilInterfaceOnNilPointerWithConcurrency/false_with_nil_struct_pointer-8 4444456   261 ns/op
-WithForceNilInterfaceOnNilPointerWithConcurrency/false-8                         4493896   262 ns/op
+BenchmarkMap_Get-8                                                              49944228     24.2 ns/op      7 B/op   0 allocs/op
+BenchmarkMap_Set/small_value-8                                                   3939964    394.1 ns/op    188 B/op   2 allocs/op
+BenchmarkMap_Set/medium_value-8                                                  3868586    395.5 ns/op    191 B/op   2 allocs/op
+BenchmarkMap_Set/large_value-8                                                   3992138    385.3 ns/op    186 B/op   2 allocs/op
+// Gocache                                                                                               
+BenchmarkCache_Get/FirstInFirstOut-8                                            27907950     44.3 ns/op     7 B/op    0 allocs/op
+BenchmarkCache_Get/LeastRecentlyUsed-8                                          28211396     44.2 ns/op     7 B/op    0 allocs/op
+BenchmarkCache_Set/FirstInFirstOut_small_value-8                                 3139538    373.5 ns/op    185 B/op   3 allocs/op
+BenchmarkCache_Set/FirstInFirstOut_medium_value-8                                3099516    378.6 ns/op    186 B/op   3 allocs/op
+BenchmarkCache_Set/FirstInFirstOut_large_value-8                                 3086776    386.7 ns/op    186 B/op   3 allocs/op
+BenchmarkCache_Set/LeastRecentlyUsed_small_value-8                               3070555    379.0 ns/op    187 B/op   3 allocs/op
+BenchmarkCache_Set/LeastRecentlyUsed_medium_value-8                              3056928    383.8 ns/op    187 B/op   3 allocs/op
+BenchmarkCache_Set/LeastRecentlyUsed_large_value-8                               3108250    383.8 ns/op    186 B/op   3 allocs/op
+BenchmarkCache_SetUsingMaxMemoryUsage/medium_value-8                             2773315    449.0 ns/op    210 B/op   4 allocs/op
+BenchmarkCache_SetUsingMaxMemoryUsage/large_value-8                              2731818    440.0 ns/op    211 B/op   4 allocs/op
+BenchmarkCache_SetUsingMaxMemoryUsage/small_value-8                              2659296    446.8 ns/op    213 B/op   4 allocs/op
+BenchmarkCache_SetWithMaxSize/100_small_value-8                                  4848658    248.8 ns/op    114 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/10000_small_value-8                                4117632    293.7 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/100000_small_value-8                               3867402    313.0 ns/op    110 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/100_medium_value-8                                 4750057    250.1 ns/op    113 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/10000_medium_value-8                               4143772    294.5 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/100000_medium_value-8                              3768883    313.2 ns/op    111 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/100_large_value-8                                  4822646    251.1 ns/op    114 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/10000_large_value-8                                4154428    291.6 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSize/100000_large_value-8                               3897358    313.7 ns/op    110 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100_small_value-8                            4784180    254.2 ns/op    114 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_small_value-8                          4067042    292.0 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_small_value-8                         3832760    313.8 ns/op    111 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100_medium_value-8                           4846706    252.2 ns/op    114 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_medium_value-8                         4103817    292.5 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_medium_value-8                        3845623    315.1 ns/op    111 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100_large_value-8                            4744513    257.9 ns/op    114 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/10000_large_value-8                          3956316    299.5 ns/op    106 B/op   3 allocs/op
+BenchmarkCache_SetWithMaxSizeAndLRU/100000_large_value-8                         3876843    351.3 ns/op    110 B/op   3 allocs/op
+BenchmarkCache_GetSetMultipleConcurrent-8                                         750088   1566.0 ns/op    128 B/op   8 allocs/op
+BenchmarkCache_GetSetConcurrentWithFrequentEviction/FirstInFirstOut-8            3836961    316.2 ns/op     80 B/op   1 allocs/op
+BenchmarkCache_GetSetConcurrentWithFrequentEviction/LeastRecentlyUsed-8          3846165    315.6 ns/op     80 B/op   1 allocs/op
+BenchmarkCache_GetConcurrently/FirstInFirstOut-8                                 4830342    239.8 ns/op      8 B/op   1 allocs/op
+BenchmarkCache_GetConcurrently/LeastRecentlyUsed-8                               4895587    243.2 ns/op      8 B/op   1 allocs/op
+(Trimmed "BenchmarkCache_" for readability)                                                              
+WithForceNilInterfaceOnNilPointer/true_with_nil_struct_pointer-8                 6901461    178.5 ns/op      7 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointer/true-8                                         6629566    180.7 ns/op      7 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointer/false_with_nil_struct_pointer-8                6282798    170.1 ns/op      7 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointer/false-8                                        6741382    172.6 ns/op      7 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/true_with_nil_struct_pointer-8  4432951    258.0 ns/op      8 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/true-8                          4676943    244.4 ns/op      8 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/false_with_nil_struct_pointer-8 4818418    239.6 ns/op      8 B/op   1 allocs/op
+WithForceNilInterfaceOnNilPointerWithConcurrency/false-8                         5025937    238.2 ns/op      8 B/op   1 allocs/op
 ```
 
 

@@ -24,7 +24,7 @@ type Config struct {
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
-	// googlechat is the configuration for the Google chat alerting provider
+	// GoogleChat is the configuration for the Google chat alerting provider
 	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
 
 	// Discord is the configuration for the discord alerting provider
