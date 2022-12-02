@@ -89,14 +89,9 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
-// Copyright (C) 1989-2017 Free Software Foundation, Inc.
+// Copyright (C) 1989-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -366,7 +361,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -377,8 +373,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Seconds since the Epoch, visible to user code when time_t is too
@@ -417,16 +414,18 @@ type X__mbstate_t = struct {
 } /* __mbstate_t.h:21:3 */
 
 // The tag name of this struct is _G_fpos_t to preserve historic
-//    C++ mangled names for functions taking fpos_t arguments.
-//    That name should not be used in new code.
+//
+//	C++ mangled names for functions taking fpos_t arguments.
+//	That name should not be used in new code.
 type X_G_fpos_t = struct {
 	F__pos   X__off_t
 	F__state X__mbstate_t
 } /* __fpos_t.h:10:9 */
 
 // The tag name of this struct is _G_fpos_t to preserve historic
-//    C++ mangled names for functions taking fpos_t arguments.
-//    That name should not be used in new code.
+//
+//	C++ mangled names for functions taking fpos_t arguments.
+//	That name should not be used in new code.
 type X__fpos_t = X_G_fpos_t /* __fpos_t.h:14:3 */
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
@@ -450,8 +449,9 @@ type X__fpos_t = X_G_fpos_t /* __fpos_t.h:14:3 */
 // Never include this file directly; use <sys/types.h> instead.
 
 // The tag name of this struct is _G_fpos64_t to preserve historic
-//    C++ mangled names for functions taking fpos_t and/or fpos64_t
-//    arguments.  That name should not be used in new code.
+//
+//	C++ mangled names for functions taking fpos_t and/or fpos64_t
+//	arguments.  That name should not be used in new code.
 type X_G_fpos64_t = struct {
 	F__pos   X__off64_t
 	F__state X__mbstate_t
@@ -478,13 +478,14 @@ type X_G_fpos64_t = struct {
 // Never include this file directly; use <sys/types.h> instead.
 
 // The tag name of this struct is _G_fpos64_t to preserve historic
-//    C++ mangled names for functions taking fpos_t and/or fpos64_t
-//    arguments.  That name should not be used in new code.
+//
+//	C++ mangled names for functions taking fpos_t and/or fpos64_t
+//	arguments.  That name should not be used in new code.
 type X__fpos64_t = X_G_fpos64_t /* __fpos64_t.h:14:3 */
 
 type X_IO_FILE = struct {
 	F_flags          int32
-	_                [4]byte
+	F__ccgo_pad1     [4]byte
 	F_IO_read_ptr    uintptr
 	F_IO_read_end    uintptr
 	F_IO_read_base   uintptr
@@ -504,7 +505,7 @@ type X_IO_FILE = struct {
 	F_cur_column     uint16
 	F_vtable_offset  int8
 	F_shortbuf       [1]uint8
-	_                [4]byte
+	F__ccgo_pad2     [4]byte
 	F_lock           uintptr
 	F_offset         X__off64_t
 	F_codecvt        uintptr

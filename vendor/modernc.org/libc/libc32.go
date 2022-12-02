@@ -7,6 +7,10 @@
 
 package libc // import "modernc.org/libc"
 
+const (
+	heapSize = 1 << 30 // Adjust for your debugging session requirements and system RAM size.
+)
+
 type (
 	// RawMem represents the biggest byte array the runtime can handle
 	RawMem [1<<31 - 1]byte

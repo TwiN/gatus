@@ -2,31 +2,34 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package sqlite is a CGo-free port of SQLite.
+// Package sqlite is a sql/database driver using a CGo-free port of the C
+// SQLite3 library.
 //
 // SQLite is an in-process implementation of a self-contained, serverless,
 // zero-configuration, transactional SQL database engine.
+//
+// Thanks
+//
+// This project is sponsored by Schleibinger Geräte Teubert u. Greim GmbH by
+// allowing one of the maintainers to work on it also in office hours.
 //
 // Supported platforms and architectures
 //
 // These combinations of GOOS and GOARCH are currently supported
 //
-// 	darwin	amd64
-// 	darwin	arm64
-// 	freebsd	amd64
-// 	linux	386
-// 	linux	amd64
-// 	linux	arm
-// 	linux	arm64
-// 	windows	amd64
-//
-// The windows/amd64 has currently experimental/preview status. Tcl tests
-// report an unresolved yet memory leak, see
-// https://gitlab.com/cznic/sqlite/-/issues/23 for more details.
-//
-// Planned platforms and architectures
-//
-// 	windows	386
+//	OS      Arch    SQLite version
+//	------------------------------
+//	darwin	amd64   3.39.4
+//	darwin	arm64   3.39.4
+//	freebsd	amd64   3.39.4
+//	freebsd	arm64   3.39.4
+//	linux	386     3.39.4
+//	linux	amd64   3.39.4
+//	linux	arm     3.39.4
+//	linux	arm64   3.39.4
+//	linux	riscv64 3.39.4
+//	windows	amd64   3.39.4
+//	windows	arm64   3.39.4
 //
 // Builders
 //
@@ -35,6 +38,34 @@
 //	https://modern-c.appspot.com/-/builder/?importpath=modernc.org%2fsqlite
 //
 // Changelog
+//
+// 2022-09-16 v1.19.0:
+//
+// Support frebsd/arm64.
+//
+// 2022-07-26 v1.18.0:
+//
+// Adds support for Go fs.FS based SQLite virtual filesystems, see function New
+// in modernc.org/sqlite/vfs and/or TestVFS in all_test.go
+//
+// 2022-04-24 v1.17.0:
+//
+// Support windows/arm64.
+//
+// 2022-04-04 v1.16.0:
+//
+// Support scalar application defined functions written in Go.
+//
+//  https://www.sqlite.org/appfunc.html
+//
+// 2022-03-13 v1.15.0:
+//
+// Support linux/riscv64.
+//
+// 2021-11-13 v1.14.0:
+//
+// Support windows/amd64. This target had previously only experimental status
+// because of a now resolved memory leak.
 //
 // 2021-09-07 v1.13.0:
 //

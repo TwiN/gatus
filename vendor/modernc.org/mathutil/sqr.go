@@ -1,4 +1,5 @@
-// +build !riscv64
+//go:build !riscv64 && !loong64
+// +build !riscv64,!loong64
 
 package mathutil
 

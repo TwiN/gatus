@@ -15,8 +15,6 @@ var _ atomic.Value
 var _ unsafe.Pointer
 
 const (
-	BIG_ENDIAN                      = 4321
-	BYTE_ORDER                      = 1234
 	CLOCK_BOOTTIME                  = 7
 	CLOCK_BOOTTIME_ALARM            = 9
 	CLOCK_MONOTONIC                 = 1
@@ -28,8 +26,6 @@ const (
 	CLOCK_REALTIME_COARSE           = 5
 	CLOCK_TAI                       = 11
 	CLOCK_THREAD_CPUTIME_ID         = 3
-	LITTLE_ENDIAN                   = 1234
-	PDP_ENDIAN                      = 3412
 	PTHREAD_BARRIER_SERIAL_THREAD   = -1
 	PTHREAD_ONCE_INIT               = 0
 	SCHED_FIFO                      = 1
@@ -38,23 +34,23 @@ const (
 	TIMER_ABSTIME                   = 1
 	TIME_UTC                        = 1
 	X_ATFILE_SOURCE                 = 1
-	X_BITS_BYTESWAP_H               = 1
 	X_BITS_CPU_SET_H                = 1
+	X_BITS_ENDIANNESS_H             = 1
+	X_BITS_ENDIAN_H                 = 1
 	X_BITS_PTHREADTYPES_ARCH_H      = 1
 	X_BITS_PTHREADTYPES_COMMON_H    = 1
 	X_BITS_SCHED_H                  = 1
 	X_BITS_SETJMP_H                 = 1
+	X_BITS_TIME64_H                 = 1
 	X_BITS_TIME_H                   = 1
 	X_BITS_TYPESIZES_H              = 1
 	X_BITS_TYPES_H                  = 1
 	X_BITS_TYPES_LOCALE_T_H         = 1
 	X_BITS_TYPES_STRUCT_SCHED_PARAM = 1
 	X_BITS_TYPES___LOCALE_T_H       = 1
-	X_BITS_UINTN_IDENTITY_H         = 1
 	X_BSD_SIZE_T_                   = 0
 	X_BSD_SIZE_T_DEFINED_           = 0
 	X_DEFAULT_SOURCE                = 1
-	X_ENDIAN_H                      = 1
 	X_FEATURES_H                    = 1
 	X_FILE_OFFSET_BITS              = 64
 	X_GCC_SIZE_T                    = 0
@@ -72,6 +68,7 @@ const (
 	X_STRUCT_TIMESPEC               = 1
 	X_SYS_CDEFS_H                   = 1
 	X_SYS_SIZE_T_H                  = 0
+	X_THREAD_MUTEX_INTERNAL_H       = 1
 	X_THREAD_SHARED_TYPES_H         = 1
 	X_TIME_H                        = 1
 	X_T_SIZE                        = 0
@@ -81,48 +78,44 @@ const (
 )
 
 // Read-write lock types.
-const ( /* pthread.h:115:1: */
+const ( /* pthread.h:100:1: */
 	PTHREAD_RWLOCK_PREFER_READER_NP              = 0
 	PTHREAD_RWLOCK_PREFER_WRITER_NP              = 1
 	PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP = 2
 	PTHREAD_RWLOCK_DEFAULT_NP                    = 0
 )
 
-// Define __PTHREAD_RWLOCK_INT_FLAGS_SHARED to 1 if pthread_rwlock_t
-//    has the shared field.  All 64-bit architectures have the shared field
-//    in pthread_rwlock_t.
-
 // Read-write lock initializers.
 
 // Scheduler inheritance.
-const ( /* pthread.h:156:1: */
+const ( /* pthread.h:120:1: */
 	PTHREAD_INHERIT_SCHED  = 0
 	PTHREAD_EXPLICIT_SCHED = 1
 )
 
 // Scope handling.
-const ( /* pthread.h:166:1: */
+const ( /* pthread.h:130:1: */
 	PTHREAD_SCOPE_SYSTEM  = 0
 	PTHREAD_SCOPE_PROCESS = 1
 )
 
 // Process shared or private flag.
-const ( /* pthread.h:176:1: */
+const ( /* pthread.h:140:1: */
 	PTHREAD_PROCESS_PRIVATE = 0
 	PTHREAD_PROCESS_SHARED  = 1
 )
 
 // Cancellation
-const ( /* pthread.h:200:1: */
+const ( /* pthread.h:164:1: */
 	PTHREAD_CANCEL_ENABLE  = 0
 	PTHREAD_CANCEL_DISABLE = 1
 )
-const ( /* pthread.h:207:1: */
+const ( /* pthread.h:171:1: */
 	PTHREAD_CANCEL_DEFERRED     = 0
 	PTHREAD_CANCEL_ASYNCHRONOUS = 1
 )
 
-// Copyright (C) 1999-2018 Free Software Foundation, Inc.
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -137,7 +130,7 @@ const ( /* pthread.h:207:1: */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // NB: Include guard matches what <linux/time.h> uses.
 
@@ -183,7 +176,7 @@ type Wchar_t = uint32 /* <builtin>:15:24 */
 type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
-// Copyright (C) 2002-2018 Free Software Foundation, Inc.
+// Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -198,9 +191,9 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -215,7 +208,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // These are defined by the user (or the compiler)
 //    to specify the desired environment:
@@ -223,6 +216,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    __STRICT_ANSI__	ISO Standard C.
 //    _ISOC99_SOURCE	Extensions to ISO C89 from ISO C99.
 //    _ISOC11_SOURCE	Extensions to ISO C99 from ISO C11.
+//    _ISOC2X_SOURCE	Extensions to ISO C99 from ISO C2X.
 //    __STDC_WANT_LIB_EXT2__
 // 			Extensions to ISO C99 from TR 27431-2:2010.
 //    __STDC_WANT_IEC_60559_BFP_EXT__
@@ -343,6 +337,8 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // If nothing (other than _GNU_SOURCE and _DEFAULT_SOURCE) is defined,
 //    define _DEFAULT_SOURCE.
 
+// This is to enable the ISO C2X extension.
+
 // This is to enable the ISO C11 extension.
 
 // This is to enable the ISO C99 extension.
@@ -365,9 +361,22 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    compatibility with various implementations of <cstdio>, this test
 //    must consider only the value of __cplusplus when compiling C++.
 
+// GNU formerly extended the scanf functions with modified format
+//    specifiers %as, %aS, and %a[...] that allocate a buffer for the
+//    input using malloc.  This extension conflicts with ISO C99, which
+//    defines %a as a standalone format specifier that reads a floating-
+//    point number; moreover, POSIX.1-2008 provides the same feature
+//    using the modifier letter 'm' instead (%ms, %mS, %m[...]).
+//
+//    We now follow C99 unless GNU extensions are active and the compiler
+//    is specifically in C89 or C++98 mode (strict or not).  For
+//    instance, with GCC, -std=gnu11 will have C99-compliant scanf with
+//    or without -D_GNU_SOURCE, but -std=c89 -D_GNU_SOURCE will have the
+//    old extension.
+
 // Get definitions of __STDC_* predefined macros, if the compiler has
 //    not preincluded this header automatically.
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -382,7 +391,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This macro indicates that the installed library is the GNU C Library.
 //    For historic reasons the value now is 6 and this will stay from now
@@ -395,7 +404,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    these macros to test for features in specific releases.
 
 // This is here only because every header file already includes this one.
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -410,7 +419,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // We are almost always included from features.h.
 
@@ -525,7 +534,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    semantics.
 //
 //    clang++ identifies itself as gcc-4.2, but has support for GNU inlining
-//    semantics, that can be checked fot by using the __GNUC_STDC_INLINE_ and
+//    semantics, that can be checked for by using the __GNUC_STDC_INLINE_ and
 //    __GNUC_GNU_INLINE__ macro definitions.
 
 // GCC 4.3 and above allow passing all anonymous arguments of an
@@ -546,7 +555,11 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    argument to strncpy and strncat, as the char array is not necessarily
 //    a NUL-terminated string.
 
-// Copyright (C) 1999-2018 Free Software Foundation, Inc.
+// Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
+
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -561,10 +574,10 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Properties of long double type.
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -579,7 +592,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This header is included by <sys/cdefs.h>.
 //
@@ -632,7 +645,8 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    in the C library which is a stub, meaning it will fail
 //    every time called, usually setting errno to ENOSYS.
 
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Definitions for POSIX 1003.1b-1993 (aka POSIX.4) scheduling interface.
+//    Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -647,9 +661,363 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Get type definitions.
+// bits/types.h -- definitions of __*_t types underlying *_t types.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Never include this file directly; use <sys/types.h> instead.
+
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Bit size of the time_t type at glibc build time, general case.
+//    Copyright (C) 2018-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Size in bits of the 'time_t' type of the default ABI.
+
+// Convenience types.
+type X__u_char = uint8   /* types.h:31:23 */
+type X__u_short = uint16 /* types.h:32:28 */
+type X__u_int = uint32   /* types.h:33:22 */
+type X__u_long = uint32  /* types.h:34:27 */
+
+// Fixed-size types, underlying types depend on word size and compiler.
+type X__int8_t = int8     /* types.h:37:21 */
+type X__uint8_t = uint8   /* types.h:38:23 */
+type X__int16_t = int16   /* types.h:39:26 */
+type X__uint16_t = uint16 /* types.h:40:28 */
+type X__int32_t = int32   /* types.h:41:20 */
+type X__uint32_t = uint32 /* types.h:42:22 */
+type X__int64_t = int64   /* types.h:47:44 */
+type X__uint64_t = uint64 /* types.h:48:46 */
+
+// Smallest types with at least a given width.
+type X__int_least8_t = X__int8_t     /* types.h:52:18 */
+type X__uint_least8_t = X__uint8_t   /* types.h:53:19 */
+type X__int_least16_t = X__int16_t   /* types.h:54:19 */
+type X__uint_least16_t = X__uint16_t /* types.h:55:20 */
+type X__int_least32_t = X__int32_t   /* types.h:56:19 */
+type X__uint_least32_t = X__uint32_t /* types.h:57:20 */
+type X__int_least64_t = X__int64_t   /* types.h:58:19 */
+type X__uint_least64_t = X__uint64_t /* types.h:59:20 */
+
+// quad_t is also 64 bits.
+type X__quad_t = int64    /* types.h:66:37 */
+type X__u_quad_t = uint64 /* types.h:67:46 */
+
+// Largest integral types.
+type X__intmax_t = int64   /* types.h:75:37 */
+type X__uintmax_t = uint64 /* types.h:76:46 */
+
+// The machine-dependent file <bits/typesizes.h> defines __*_T_TYPE
+//    macros for each of the OS types we define below.  The definitions
+//    of those macros must use the following macros for underlying types.
+//    We define __S<SIZE>_TYPE and __U<SIZE>_TYPE for the signed and unsigned
+//    variants of each of the following integer types on this machine.
+//
+// 	16		-- "natural" 16-bit type (always short)
+// 	32		-- "natural" 32-bit type (always int)
+// 	64		-- "natural" 64-bit type (long or long long)
+// 	LONG32		-- 32-bit type, traditionally long
+// 	QUAD		-- 64-bit type, traditionally long long
+// 	WORD		-- natural type of __WORDSIZE bits (int or long)
+// 	LONGWORD	-- type of __WORDSIZE bits, traditionally long
+//
+//    We distinguish WORD/LONGWORD, 32/LONG32, and 64/QUAD so that the
+//    conventional uses of `long' or `long long' type modifiers match the
+//    types we define, even when a less-adorned type would be the same size.
+//    This matters for (somewhat) portably writing printf/scanf formats for
+//    these types, where using the appropriate l or ll format modifiers can
+//    make the typedefs and the formats match up across all GNU platforms.  If
+//    we used `long' when it's 64 bits where `long long' is expected, then the
+//    compiler would warn about the formats not matching the argument types,
+//    and the programmer changing them to shut up the compiler would break the
+//    program's portability.
+//
+//    Here we assume what is presently the case in all the GCC configurations
+//    we support: long long is always 64 bits, long is always word/address size,
+//    and int is always 32 bits.
+
+// We want __extension__ before typedef's that use nonstandard base types
+//    such as `long long' in C89 mode.
+// bits/typesizes.h -- underlying types for *_t.  Generic version.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// See <bits/types.h> for the meaning of these macros.  This file exists so
+//    that <bits/types.h> need not vary across different GNU platforms.
+
+// Number of descriptors that can fit in an `fd_set'.
+
+// bits/time64.h -- underlying types for __time64_t.  Generic version.
+//    Copyright (C) 2018-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Define __TIME64_T_TYPE so that it is always a 64-bit type.
+
+// Define a 64-bit time type alongsize the 32-bit one.
+
+type X__dev_t = X__uint64_t                /* types.h:145:25 */ // Type of device numbers.
+type X__uid_t = uint32                     /* types.h:146:25 */ // Type of user identifications.
+type X__gid_t = uint32                     /* types.h:147:25 */ // Type of group identifications.
+type X__ino_t = uint32                     /* types.h:148:25 */ // Type of file serial numbers.
+type X__ino64_t = X__uint64_t              /* types.h:149:27 */ // Type of file serial numbers (LFS).
+type X__mode_t = uint32                    /* types.h:150:26 */ // Type of file attribute bitmasks.
+type X__nlink_t = uint32                   /* types.h:151:27 */ // Type of file link counts.
+type X__off_t = int32                      /* types.h:152:25 */ // Type of file sizes and offsets.
+type X__off64_t = X__int64_t               /* types.h:153:27 */ // Type of file sizes and offsets (LFS).
+type X__pid_t = int32                      /* types.h:154:25 */ // Type of process identifications.
+type X__fsid_t = struct{ F__val [2]int32 } /* types.h:155:26 */ // Type of file system IDs.
+type X__clock_t = int32                    /* types.h:156:27 */ // Type of CPU usage counts.
+type X__rlim_t = uint32                    /* types.h:157:26 */ // Type for resource measurement.
+type X__rlim64_t = X__uint64_t             /* types.h:158:28 */ // Type for resource measurement (LFS).
+type X__id_t = uint32                      /* types.h:159:24 */ // General type for IDs.
+type X__time_t = int32                     /* types.h:160:26 */ // Seconds since the Epoch.
+type X__useconds_t = uint32                /* types.h:161:30 */ // Count of microseconds.
+type X__suseconds_t = int32                /* types.h:162:31 */ // Signed count of microseconds.
+
+type X__daddr_t = int32 /* types.h:164:27 */ // The type of a disk address.
+type X__key_t = int32   /* types.h:165:25 */ // Type of an IPC key.
+
+// Clock ID used in clock and timer functions.
+type X__clockid_t = int32 /* types.h:168:29 */
+
+// Timer ID returned by `timer_create'.
+type X__timer_t = uintptr /* types.h:171:12 */
+
+// Type to represent block size.
+type X__blksize_t = int32 /* types.h:174:29 */
+
+// Types from the Large File Support interface.
+
+// Type to count number of disk blocks.
+type X__blkcnt_t = int32        /* types.h:179:28 */
+type X__blkcnt64_t = X__int64_t /* types.h:180:30 */
+
+// Type to count file system blocks.
+type X__fsblkcnt_t = uint32        /* types.h:183:30 */
+type X__fsblkcnt64_t = X__uint64_t /* types.h:184:32 */
+
+// Type to count file system nodes.
+type X__fsfilcnt_t = uint32        /* types.h:187:30 */
+type X__fsfilcnt64_t = X__uint64_t /* types.h:188:32 */
+
+// Type of miscellaneous file system fields.
+type X__fsword_t = int32 /* types.h:191:28 */
+
+type X__ssize_t = int32 /* types.h:193:27 */ // Type of a byte count, or error.
+
+// Signed long type used in system calls.
+type X__syscall_slong_t = int32 /* types.h:196:33 */
+// Unsigned long type used in system calls.
+type X__syscall_ulong_t = uint32 /* types.h:198:33 */
+
+// These few don't really vary by system, they always correspond
+//
+//	to one of the other defined types.
+type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
+type X__caddr_t = uintptr   /* types.h:203:14 */
+
+// Duplicates info from stdint.h but this is used in unistd.h.
+type X__intptr_t = int32 /* types.h:206:25 */
+
+// Duplicate info from sys/socket.h.
+type X__socklen_t = uint32 /* types.h:209:23 */
+
+// C99: An integer type that can be accessed as an atomic entity,
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
+type X__sig_atomic_t = int32 /* types.h:214:13 */
+
+// Seconds since the Epoch, visible to user code when time_t is too
+//
+//	narrow only for consistency with the old way of widening too-narrow
+//	types.  User code should never use __time64_t.
+type X__time64_t = X__int64_t /* types.h:222:28 */
+
+// Wide character type.
+//    Locale-writers should change this as necessary to
+//    be big enough to hold unique values not between 0 and 127,
+//    and not (wchar_t) -1, for each defined multibyte character.
+
+// Define this type if we are doing the whole job,
+//    or if we want this type in particular.
+
+// A null pointer constant.
+
+// bits/types.h -- definitions of __*_t types underlying *_t types.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Never include this file directly; use <sys/types.h> instead.
+
+// Returned by `time'.
+type Time_t = X__time_t /* time_t.h:7:18 */
+
+// NB: Include guard matches what <linux/time.h> uses.
+
+// bits/types.h -- definitions of __*_t types underlying *_t types.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Never include this file directly; use <sys/types.h> instead.
+
+// Endian macros for string.h functions
+//    Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -676,333 +1044,25 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // This file defines `__BYTE_ORDER' for the particular machine.
 
-// ARM can be either big or little endian.
+// ARM has selectable endianness.
 
 // Some machines may need to use a different endianness for floating point
 //    values.
 
-// Conversion interfaces.
-// Macros and inline functions to swap the order of bytes in integer values.
-//    Copyright (C) 1997-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Never include this file directly; use <sys/types.h> instead.
-
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Copyright (C) 1999-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Convenience types.
-type X__u_char = uint8   /* types.h:30:23 */
-type X__u_short = uint16 /* types.h:31:28 */
-type X__u_int = uint32   /* types.h:32:22 */
-type X__u_long = uint32  /* types.h:33:27 */
-
-// Fixed-size types, underlying types depend on word size and compiler.
-type X__int8_t = int8     /* types.h:36:21 */
-type X__uint8_t = uint8   /* types.h:37:23 */
-type X__int16_t = int16   /* types.h:38:26 */
-type X__uint16_t = uint16 /* types.h:39:28 */
-type X__int32_t = int32   /* types.h:40:20 */
-type X__uint32_t = uint32 /* types.h:41:22 */
-type X__int64_t = int64   /* types.h:46:44 */
-type X__uint64_t = uint64 /* types.h:47:46 */
-
-// Smallest types with at least a given width.
-type X__int_least8_t = X__int8_t     /* types.h:51:18 */
-type X__uint_least8_t = X__uint8_t   /* types.h:52:19 */
-type X__int_least16_t = X__int16_t   /* types.h:53:19 */
-type X__uint_least16_t = X__uint16_t /* types.h:54:20 */
-type X__int_least32_t = X__int32_t   /* types.h:55:19 */
-type X__uint_least32_t = X__uint32_t /* types.h:56:20 */
-type X__int_least64_t = X__int64_t   /* types.h:57:19 */
-type X__uint_least64_t = X__uint64_t /* types.h:58:20 */
-
-// quad_t is also 64 bits.
-type X__quad_t = int64    /* types.h:65:37 */
-type X__u_quad_t = uint64 /* types.h:66:46 */
-
-// Largest integral types.
-type X__intmax_t = int64   /* types.h:74:37 */
-type X__uintmax_t = uint64 /* types.h:75:46 */
-
-// The machine-dependent file <bits/typesizes.h> defines __*_T_TYPE
-//    macros for each of the OS types we define below.  The definitions
-//    of those macros must use the following macros for underlying types.
-//    We define __S<SIZE>_TYPE and __U<SIZE>_TYPE for the signed and unsigned
-//    variants of each of the following integer types on this machine.
-//
-// 	16		-- "natural" 16-bit type (always short)
-// 	32		-- "natural" 32-bit type (always int)
-// 	64		-- "natural" 64-bit type (long or long long)
-// 	LONG32		-- 32-bit type, traditionally long
-// 	QUAD		-- 64-bit type, always long long
-// 	WORD		-- natural type of __WORDSIZE bits (int or long)
-// 	LONGWORD	-- type of __WORDSIZE bits, traditionally long
-//
-//    We distinguish WORD/LONGWORD, 32/LONG32, and 64/QUAD so that the
-//    conventional uses of `long' or `long long' type modifiers match the
-//    types we define, even when a less-adorned type would be the same size.
-//    This matters for (somewhat) portably writing printf/scanf formats for
-//    these types, where using the appropriate l or ll format modifiers can
-//    make the typedefs and the formats match up across all GNU platforms.  If
-//    we used `long' when it's 64 bits where `long long' is expected, then the
-//    compiler would warn about the formats not matching the argument types,
-//    and the programmer changing them to shut up the compiler would break the
-//    program's portability.
-//
-//    Here we assume what is presently the case in all the GCC configurations
-//    we support: long long is always 64 bits, long is always word/address size,
-//    and int is always 32 bits.
-
-// We want __extension__ before typedef's that use nonstandard base types
-//    such as `long long' in C89 mode.
-// bits/typesizes.h -- underlying types for *_t.  Generic version.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// See <bits/types.h> for the meaning of these macros.  This file exists so
-//    that <bits/types.h> need not vary across different GNU platforms.
-
-// Number of descriptors that can fit in an `fd_set'.
-
-type X__dev_t = X__u_quad_t                /* types.h:143:25 */ // Type of device numbers.
-type X__uid_t = uint32                     /* types.h:144:25 */ // Type of user identifications.
-type X__gid_t = uint32                     /* types.h:145:25 */ // Type of group identifications.
-type X__ino_t = uint32                     /* types.h:146:25 */ // Type of file serial numbers.
-type X__ino64_t = X__u_quad_t              /* types.h:147:27 */ // Type of file serial numbers (LFS).
-type X__mode_t = uint32                    /* types.h:148:26 */ // Type of file attribute bitmasks.
-type X__nlink_t = uint32                   /* types.h:149:27 */ // Type of file link counts.
-type X__off_t = int32                      /* types.h:150:25 */ // Type of file sizes and offsets.
-type X__off64_t = X__quad_t                /* types.h:151:27 */ // Type of file sizes and offsets (LFS).
-type X__pid_t = int32                      /* types.h:152:25 */ // Type of process identifications.
-type X__fsid_t = struct{ F__val [2]int32 } /* types.h:153:26 */ // Type of file system IDs.
-type X__clock_t = int32                    /* types.h:154:27 */ // Type of CPU usage counts.
-type X__rlim_t = uint32                    /* types.h:155:26 */ // Type for resource measurement.
-type X__rlim64_t = X__u_quad_t             /* types.h:156:28 */ // Type for resource measurement (LFS).
-type X__id_t = uint32                      /* types.h:157:24 */ // General type for IDs.
-type X__time_t = int32                     /* types.h:158:26 */ // Seconds since the Epoch.
-type X__useconds_t = uint32                /* types.h:159:30 */ // Count of microseconds.
-type X__suseconds_t = int32                /* types.h:160:31 */ // Signed count of microseconds.
-
-type X__daddr_t = int32 /* types.h:162:27 */ // The type of a disk address.
-type X__key_t = int32   /* types.h:163:25 */ // Type of an IPC key.
-
-// Clock ID used in clock and timer functions.
-type X__clockid_t = int32 /* types.h:166:29 */
-
-// Timer ID returned by `timer_create'.
-type X__timer_t = uintptr /* types.h:169:12 */
-
-// Type to represent block size.
-type X__blksize_t = int32 /* types.h:172:29 */
-
-// Types from the Large File Support interface.
-
-// Type to count number of disk blocks.
-type X__blkcnt_t = int32       /* types.h:177:28 */
-type X__blkcnt64_t = X__quad_t /* types.h:178:30 */
-
-// Type to count file system blocks.
-type X__fsblkcnt_t = uint32        /* types.h:181:30 */
-type X__fsblkcnt64_t = X__u_quad_t /* types.h:182:32 */
-
-// Type to count file system nodes.
-type X__fsfilcnt_t = uint32        /* types.h:185:30 */
-type X__fsfilcnt64_t = X__u_quad_t /* types.h:186:32 */
-
-// Type of miscellaneous file system fields.
-type X__fsword_t = int32 /* types.h:189:28 */
-
-type X__ssize_t = int32 /* types.h:191:27 */ // Type of a byte count, or error.
-
-// Signed long type used in system calls.
-type X__syscall_slong_t = int32 /* types.h:194:33 */
-// Unsigned long type used in system calls.
-type X__syscall_ulong_t = uint32 /* types.h:196:33 */
-
-// These few don't really vary by system, they always correspond
-//    to one of the other defined types.
-type X__loff_t = X__off64_t /* types.h:200:19 */ // Type of file sizes and offsets (LFS).
-type X__caddr_t = uintptr   /* types.h:201:14 */
-
-// Duplicates info from stdint.h but this is used in unistd.h.
-type X__intptr_t = int32 /* types.h:204:25 */
-
-// Duplicate info from sys/socket.h.
-type X__socklen_t = uint32 /* types.h:207:23 */
-
-// C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
-type X__sig_atomic_t = int32 /* types.h:212:13 */
-
-// Wide character type.
-//    Locale-writers should change this as necessary to
-//    be big enough to hold unique values not between 0 and 127,
-//    and not (wchar_t) -1, for each defined multibyte character.
-
-// Define this type if we are doing the whole job,
-//    or if we want this type in particular.
-
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
-// A null pointer constant.
-
-// bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Never include this file directly; use <sys/types.h> instead.
-
-// Returned by `time'.
-type Time_t = X__time_t /* time_t.h:7:18 */
-
-// NB: Include guard matches what <linux/time.h> uses.
-
-// bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
-
-// Never include this file directly; use <sys/types.h> instead.
-
 // POSIX.1b structure for a time value.  This is like a `struct timeval' but
-//    has nanoseconds instead of microseconds.
+//
+//	has nanoseconds instead of microseconds.
 type Timespec = struct {
 	Ftv_sec  X__time_t
 	Ftv_nsec X__syscall_slong_t
-} /* struct_timespec.h:9:1 */
+} /* struct_timespec.h:10:1 */
 
 type Pid_t = X__pid_t /* sched.h:38:17 */
 
 // Get system specific constant and data structure definitions.
 // Definitions of constants and data structure for POSIX 1003.1b-1993
 //    scheduling interface.
-//    Copyright (C) 1996-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1017,12 +1077,12 @@ type Pid_t = X__pid_t /* sched.h:38:17 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Scheduling algorithms.
 
 // Sched parameter structure.  Generic version.
-//    Copyright (C) 1996-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1037,14 +1097,14 @@ type Pid_t = X__pid_t /* sched.h:38:17 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library;  if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Data structure to describe a process' schedulability.
 type Sched_param = struct{ Fsched_priority int32 } /* struct_sched_param.h:23:1 */
 
 // Definition of the cpu_set_t structure used by the POSIX 1003.1b-1993
 //    scheduling interface.
-//    Copyright (C) 1996-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1059,7 +1119,7 @@ type Sched_param = struct{ Fsched_priority int32 } /* struct_sched_param.h:23:1 
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Size definition for CPU sets.
 
@@ -1071,7 +1131,7 @@ type X__cpu_mask = uint32 /* cpu-set.h:32:25 */
 // Data structure to describe CPU mask.
 type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1086,11 +1146,11 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 //	ISO C99 Standard: 7.23 Date and time	<time.h>
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1105,9 +1165,9 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1989-2018 Free Software Foundation, Inc.
+// Copyright (C) 1989-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -1138,15 +1198,6 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 
 // This avoids lossage on SunOS but only if stdtypes.h comes first.
 //    There's no way to win with the other order!  Sun lossage.
-
-// On 4.3bsd-net2, make sure ansi.h is included, so we have
-//    one less case to deal with in the following.
-// On FreeBSD 5, machine/ansi.h does not exist anymore...
-
-// In 4.3bsd-net2, machine/ansi.h defines these symbols, which are
-//    defined if the corresponding type is *not* defined.
-//    FreeBSD-2.1 defines _MACHINE_ANSI_H_ instead of _ANSI_H_.
-//    NetBSD defines _I386_ANSI_H_ and _X86_64_ANSI_H_ instead of _ANSI_H_
 
 // Sequent's header files use _PTRDIFF_T_ in some conflicting way.
 //    Just ignore it.
@@ -1182,17 +1233,12 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
 // This defines CLOCKS_PER_SEC, which is the number of processor clock
 //    ticks per second, and possibly a number of other constants.
 // System-dependent timing definitions.  Linux version.
-//    Copyright (C) 1996-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1207,12 +1253,12 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <time.h> instead.
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1227,7 +1273,7 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1256,7 +1302,7 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //    may also need to be defined by other headers.
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1271,7 +1317,7 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1279,7 +1325,7 @@ type Cpu_set_t = struct{ F__bits [32]X__cpu_mask } /* cpu-set.h:42:3 */
 type Clock_t = X__clock_t /* clock_t.h:7:19 */
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1294,7 +1340,7 @@ type Clock_t = X__clock_t /* clock_t.h:7:19 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1316,7 +1362,7 @@ type Tm = struct {
 // NB: Include guard matches what <linux/time.h> uses.
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1331,7 +1377,7 @@ type Tm = struct {
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1339,7 +1385,7 @@ type Tm = struct {
 type Clockid_t = X__clockid_t /* clockid_t.h:7:21 */
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1354,7 +1400,7 @@ type Clockid_t = X__clockid_t /* clockid_t.h:7:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1362,7 +1408,7 @@ type Clockid_t = X__clockid_t /* clockid_t.h:7:21 */
 type Timer_t = X__timer_t /* timer_t.h:7:19 */
 
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1377,7 +1423,7 @@ type Timer_t = X__timer_t /* timer_t.h:7:19 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
@@ -1396,7 +1442,7 @@ type Itimerspec = struct {
 } /* struct_itimerspec.h:8:1 */
 
 // Definition of locale_t.
-//    Copyright (C) 2017-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1411,10 +1457,10 @@ type Itimerspec = struct {
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Definition of struct __locale_struct and __locale_t.
-//    Copyright (C) 1997-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1997-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1997.
 //
@@ -1430,7 +1476,7 @@ type Itimerspec = struct {
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // POSIX.1-2008: the locale_t type, representing a locale context
 //    (implementation-namespace version).  This type should be treated
@@ -1449,8 +1495,8 @@ type X__locale_t = uintptr /* __locale_t.h:42:32 */
 
 type Locale_t = X__locale_t /* locale_t.h:24:20 */
 
-// Declaration of common pthread types for all architectures.
-//    Copyright (C) 2017-2018 Free Software Foundation, Inc.
+// Endian macros for string.h functions
+//    Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1467,9 +1513,8 @@ type Locale_t = X__locale_t /* locale_t.h:24:20 */
 //    License along with the GNU C Library; if not, see
 //    <http://www.gnu.org/licenses/>.
 
-// For internal mutex and condition variable definitions.
-// Common threading primitives definitions for both POSIX and C11.
-//    Copyright (C) 2017-2018 Free Software Foundation, Inc.
+// Declaration of common pthread types for all architectures.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1484,7 +1529,26 @@ type Locale_t = X__locale_t /* locale_t.h:24:20 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
+
+// For internal mutex and condition variable definitions.
+// Common threading primitives definitions for both POSIX and C11.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
 
 // Arch-specific definitions.  Each architecture must define the following
 //    macros to define the expected sizes of pthread data types:
@@ -1499,36 +1563,6 @@ type Locale_t = X__locale_t /* locale_t.h:24:20 */
 //    __SIZEOF_PTHREAD_BARRIER_T     - size of pthread_barrier_t.
 //    __SIZEOF_PTHREAD_BARRIERATTR_T - size of pthread_barrierattr_t.
 //
-//    Also, the following macros must be define for internal pthread_mutex_t
-//    struct definitions (struct __pthread_mutex_s):
-//
-//    __PTHREAD_COMPAT_PADDING_MID   - any additional members after 'kind'
-// 				    and before '__spin' (for 64 bits) or
-// 				    '__nusers' (for 32 bits).
-//    __PTHREAD_COMPAT_PADDING_END   - any additional members at the end of
-// 				    the internal structure.
-//    __PTHREAD_MUTEX_LOCK_ELISION   - 1 if the architecture supports lock
-// 				    elision or 0 otherwise.
-//    __PTHREAD_MUTEX_NUSERS_AFTER_KIND - control where to put __nusers.  The
-// 				       preferred value for new architectures
-// 				       is 0.
-//    __PTHREAD_MUTEX_USE_UNION      - control whether internal __spins and
-// 				    __list will be place inside a union for
-// 				    linuxthreads compatibility.
-// 				    The preferred value for new architectures
-// 				    is 0.
-//
-//    For a new port the preferred values for the required defines are:
-//
-//    #define __PTHREAD_COMPAT_PADDING_MID
-//    #define __PTHREAD_COMPAT_PADDING_END
-//    #define __PTHREAD_MUTEX_LOCK_ELISION         0
-//    #define __PTHREAD_MUTEX_NUSERS_AFTER_KIND    0
-//    #define __PTHREAD_MUTEX_USE_UNION            0
-//
-//    __PTHREAD_MUTEX_LOCK_ELISION can be set to 1 if the hardware plans to
-//    eventually support lock elision using transactional memory.
-//
 //    The additional macro defines any constraint for the lock alignment
 //    inside the thread structures:
 //
@@ -1537,28 +1571,10 @@ type Locale_t = X__locale_t /* locale_t.h:24:20 */
 //    Same idea but for the once locking primitive:
 //
 //    __ONCE_ALIGNMENT - for pthread_once_t/once_flag definition.
-//
-//    And finally the internal pthread_rwlock_t (struct __pthread_rwlock_arch_t)
-//    must be defined.
-//
-// Copyright (C) 2002-2018 Free Software Foundation, Inc.
-//    This file is part of the GNU C Library.
-//
-//    The GNU C Library is free software; you can redistribute it and/or
-//    modify it under the terms of the GNU Lesser General Public
-//    License as published by the Free Software Foundation; either
-//    version 2.1 of the License, or (at your option) any later version.
-//
-//    The GNU C Library is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//    Lesser General Public License for more details.
-//
-//    You should have received a copy of the GNU Lesser General Public
-//    License along with the GNU C Library.  If not, see
-//    <http://www.gnu.org/licenses/>.
 
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Machine-specific pthread type layouts.  Generic version.
+//    Copyright (C) 2019-2020 Free Software Foundation, Inc.
+//
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1575,7 +1591,248 @@ type Locale_t = X__locale_t /* locale_t.h:24:20 */
 //    License along with the GNU C Library; if not, see
 //    <http://www.gnu.org/licenses/>.
 
-// Data structure for mutex handling.
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Common definition of pthread_mutex_t.
+
+type X__pthread_internal_list = struct {
+	F__prev uintptr
+	F__next uintptr
+} /* thread-shared-types.h:49:9 */
+
+// Endian macros for string.h functions
+//    Copyright (C) 1992-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <http://www.gnu.org/licenses/>.
+
+// Declaration of common pthread types for all architectures.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// For internal mutex and condition variable definitions.
+// Common threading primitives definitions for both POSIX and C11.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Arch-specific definitions.  Each architecture must define the following
+//    macros to define the expected sizes of pthread data types:
+//
+//    __SIZEOF_PTHREAD_ATTR_T        - size of pthread_attr_t.
+//    __SIZEOF_PTHREAD_MUTEX_T       - size of pthread_mutex_t.
+//    __SIZEOF_PTHREAD_MUTEXATTR_T   - size of pthread_mutexattr_t.
+//    __SIZEOF_PTHREAD_COND_T        - size of pthread_cond_t.
+//    __SIZEOF_PTHREAD_CONDATTR_T    - size of pthread_condattr_t.
+//    __SIZEOF_PTHREAD_RWLOCK_T      - size of pthread_rwlock_t.
+//    __SIZEOF_PTHREAD_RWLOCKATTR_T  - size of pthread_rwlockattr_t.
+//    __SIZEOF_PTHREAD_BARRIER_T     - size of pthread_barrier_t.
+//    __SIZEOF_PTHREAD_BARRIERATTR_T - size of pthread_barrierattr_t.
+//
+//    The additional macro defines any constraint for the lock alignment
+//    inside the thread structures:
+//
+//    __LOCK_ALIGNMENT - for internal lock/futex usage.
+//
+//    Same idea but for the once locking primitive:
+//
+//    __ONCE_ALIGNMENT - for pthread_once_t/once_flag definition.
+
+// Machine-specific pthread type layouts.  Generic version.
+//    Copyright (C) 2019-2020 Free Software Foundation, Inc.
+//
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <http://www.gnu.org/licenses/>.
+
+// Copyright (C) 1999-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// Common definition of pthread_mutex_t.
+
+type X__pthread_list_t = X__pthread_internal_list /* thread-shared-types.h:53:3 */
+
+type X__pthread_internal_slist = struct{ F__next uintptr } /* thread-shared-types.h:55:9 */
+
+type X__pthread_slist_t = X__pthread_internal_slist /* thread-shared-types.h:58:3 */
+
+// Arch-specific mutex definitions.  A generic implementation is provided
+//    by sysdeps/nptl/bits/struct_mutex.h.  If required, an architecture
+//    can override it by defining:
+//
+//    1. struct __pthread_mutex_s (used on both pthread_mutex_t and mtx_t
+//       definition).  It should contains at least the internal members
+//       defined in the generic version.
+//
+//    2. __LOCK_ALIGNMENT for any extra attribute for internal lock used with
+//       atomic operations.
+//
+//    3. The macro __PTHREAD_MUTEX_INITIALIZER used for static initialization.
+//       It should initialize the mutex internal flag.
+
+// Default mutex implementation struct definitions.
+//    Copyright (C) 2019-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <http://www.gnu.org/licenses/>.
+
+// Generic struct for both POSIX and C11 mutexes.  New ports are expected
+//    to use the default layout, however architecture can redefine it to
+//    add arch-specific extension (such as lock-elision).  The struct have
+//    a size of 32 bytes on LP32 and 40 bytes on LP64 architectures.
+
+type X__pthread_mutex_s = struct {
+	F__lock   int32
+	F__count  uint32
+	F__owner  int32
+	F__kind   int32
+	F__nusers uint32
+	F__20     struct{ F__spins int32 }
+} /* struct_mutex.h:27:1 */
+
+// Arch-sepecific read-write lock definitions.  A generic implementation is
+//    provided by struct_rwlock.h.  If required, an architecture can override it
+//    by defining:
+//
+//    1. struct __pthread_rwlock_arch_t (used on pthread_rwlock_t definition).
+//       It should contain at least the internal members defined in the
+//       generic version.
+//
+//    2. The macro __PTHREAD_RWLOCK_INITIALIZER used for static initialization.
+//       It should initialize the rwlock internal type.
+
+// Default read-write lock implementation struct definitions.
+//    Copyright (C) 2019-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <http://www.gnu.org/licenses/>.
+
+// Endian macros for string.h functions
+//    Copyright (C) 1992-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <http://www.gnu.org/licenses/>.
+
+// Generic struct for both POSIX read-write lock.  New ports are expected
+//    to use the default layout, however archictetures can redefine it to add
+//    arch-specific extensions (such as lock-elision).  The struct have a size
+//    of 32 bytes on both LP32 and LP64 architectures.
 
 type X__pthread_rwlock_arch_t = struct {
 	F__readers       uint32
@@ -1589,27 +1846,7 @@ type X__pthread_rwlock_arch_t = struct {
 	F__pad1          uint8
 	F__pad2          uint8
 	F__cur_writer    int32
-} /* pthreadtypes-arch.h:43:1 */
-
-// Common definition of pthread_mutex_t.
-
-type X__pthread_internal_slist = struct{ F__next uintptr } /* thread-shared-types.h:88:9 */
-
-// Common definition of pthread_mutex_t.
-
-type X__pthread_slist_t = X__pthread_internal_slist /* thread-shared-types.h:91:3 */
-
-// Lock elision support.
-// Mutex __spins initializer used by PTHREAD_MUTEX_INITIALIZER.
-
-type X__pthread_mutex_s = struct {
-	F__lock   int32
-	F__count  uint32
-	F__owner  int32
-	F__kind   int32
-	F__nusers uint32
-	F__20     struct{ F__spins int32 }
-} /* thread-shared-types.h:118:1 */
+} /* struct_rwlock.h:29:1 */
 
 // Common definition of pthread_cond_t.
 
@@ -1621,24 +1858,27 @@ type X__pthread_cond_s = struct {
 	F__g1_orig_size uint32
 	F__wrefs        uint32
 	F__g_signals    [2]uint32
-} /* thread-shared-types.h:171:1 */
+} /* thread-shared-types.h:92:1 */
 
 // Thread identifiers.  The structure of the attribute type is not
-//    exposed on purpose.
+//
+//	exposed on purpose.
 type Pthread_t = uint32 /* pthreadtypes.h:27:27 */
 
 // Data structures for mutex handling.  The structure of the attribute
-//    type is not exposed on purpose.
+//
+//	type is not exposed on purpose.
 type Pthread_mutexattr_t = struct {
-	_       [0]uint32
-	F__size [4]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:36:3 */
 
 // Data structure for condition variable handling.  The structure of
-//    the attribute type is not exposed on purpose.
+//
+//	the attribute type is not exposed on purpose.
 type Pthread_condattr_t = struct {
-	_       [0]uint32
-	F__size [4]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:45:3 */
 
 // Keys for thread-specific data
@@ -1648,8 +1888,8 @@ type Pthread_key_t = uint32 /* pthreadtypes.h:49:22 */
 type Pthread_once_t = int32 /* pthreadtypes.h:53:30 */
 
 type Pthread_attr_t1 = struct {
-	_       [0]uint32
-	F__size [36]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [36]uint8
 } /* pthreadtypes.h:56:1 */
 
 type Pthread_attr_t = Pthread_attr_t1 /* pthreadtypes.h:62:30 */
@@ -1659,30 +1899,32 @@ type Pthread_mutex_t = struct{ F__data X__pthread_mutex_s } /* pthreadtypes.h:72
 type Pthread_cond_t = struct{ F__data X__pthread_cond_s } /* pthreadtypes.h:80:3 */
 
 // Data structure for reader-writer lock variable handling.  The
-//    structure of the attribute type is deliberately not exposed.
+//
+//	structure of the attribute type is deliberately not exposed.
 type Pthread_rwlock_t = struct{ F__data X__pthread_rwlock_arch_t } /* pthreadtypes.h:91:3 */
 
 type Pthread_rwlockattr_t = struct {
-	_       [0]uint32
-	F__size [8]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [8]uint8
 } /* pthreadtypes.h:97:3 */
 
 // POSIX spinlock data type.
 type Pthread_spinlock_t = int32 /* pthreadtypes.h:103:22 */
 
 // POSIX barriers data type.  The structure of the type is
-//    deliberately not exposed.
+//
+//	deliberately not exposed.
 type Pthread_barrier_t = struct {
-	_       [0]uint32
-	F__size [20]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [20]uint8
 } /* pthreadtypes.h:112:3 */
 
 type Pthread_barrierattr_t = struct {
-	_       [0]uint32
-	F__size [4]int8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:118:3 */
 
-// Copyright (C) 2004-2018 Free Software Foundation, Inc.
+// Copyright (C) 2004-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -1697,15 +1939,16 @@ type Pthread_barrierattr_t = struct {
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library.  If not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Define the machine-dependent type `jmp_buf'.  ARM EABI version.
 
 // The exact set of registers saved may depend on the particular core
-//    in use, as some coprocessor registers may need to be saved.  The C
-//    Library ABI requires that the buffer be 8-byte aligned, and
-//    recommends that the buffer contain 64 words.  The first 26 words
-//    are occupied by sp, lr, v1-v6, sl, fp, and d8-d15.
+//
+//	in use, as some coprocessor registers may need to be saved.  The C
+//	Library ABI requires that the buffer be 8-byte aligned, and
+//	recommends that the buffer contain 64 words.  The first 26 words
+//	are occupied by sp, lr, v1-v6, sl, fp, and d8-d15.
 type X__jmp_buf = [64]int32 /* setjmp.h:33:13 */
 
 // Conditional variable handling.
@@ -1716,7 +1959,7 @@ type X_pthread_cleanup_buffer = struct {
 	F__arg        uintptr
 	F__canceltype int32
 	F__prev       uintptr
-} /* pthread.h:191:1 */
+} /* pthread.h:155:1 */
 
 // Cancellation handling with integration into exception handling.
 
@@ -1726,7 +1969,7 @@ type X__pthread_unwind_buf_t = struct {
 		F__mask_was_saved int32
 	}
 	F__pad [4]uintptr
-} /* pthread.h:532:3 */
+} /* pthread.h:507:3 */
 
 // No special attributes by default.
 
@@ -1736,6 +1979,6 @@ type X__pthread_cleanup_frame = struct {
 	F__cancel_arg     uintptr
 	F__do_it          int32
 	F__cancel_type    int32
-} /* pthread.h:541:1 */
+} /* pthread.h:516:1 */
 
-var _ int8 /* gen.c:2:13: */
+var _ uint8 /* gen.c:2:13: */

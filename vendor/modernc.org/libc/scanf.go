@@ -16,12 +16,12 @@ import (
 // were unavailable, or matching failure, meaning that the input was
 // inappropriate.
 func scanf(r *strings.Reader, format, args uintptr) (nvalues int32) {
-	var src []byte //TODO-
+	// var src []byte //TODO-
 	var ok bool
 out:
 	for {
 		c := *(*byte)(unsafe.Pointer(format))
-		src = append(src, c) //TODO-
+		// src = append(src, c) //TODO-
 		switch c {
 		case '%':
 			var n int

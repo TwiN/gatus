@@ -533,7 +533,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //      array_name[restrict]
 //    GCC 3.1 supports this.
 
+// Describes a char array whose address can safely be passed as the first
+//    argument to strncpy and strncat, as the char array is not necessarily
+//    a NUL-terminated string.
+
 // Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
 
 // Determine the wordsize from the preprocessor defines.
 
@@ -827,7 +833,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -838,8 +845,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Seconds since the Epoch, visible to user code when time_t is too
@@ -979,11 +987,6 @@ type Timer_t = X__timer_t /* timer_t.h:7:19 */
 
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
-
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
 
 // A null pointer constant.
 
@@ -1155,7 +1158,8 @@ type Sigset_t = X__sigset_t /* sigset_t.h:7:20 */
 // Never include this file directly; use <sys/types.h> instead.
 
 // A time value that is accurate to the nearest
-//    microsecond but also has a range of years.
+//
+//	microsecond but also has a range of years.
 type Timeval = struct {
 	Ftv_sec  X__time_t
 	Ftv_usec X__suseconds_t
@@ -1202,7 +1206,8 @@ type Timeval = struct {
 //    <http://www.gnu.org/licenses/>.
 
 // POSIX.1b structure for a time value.  This is like a `struct timeval' but
-//    has nanoseconds instead of microseconds.
+//
+//	has nanoseconds instead of microseconds.
 type Timespec = struct {
 	Ftv_sec  X__time_t
 	Ftv_nsec X__syscall_slong_t
@@ -1497,7 +1502,7 @@ type X__pthread_rwlock_arch_t = struct {
 	F__pad1          uint64
 	F__pad2          uint64
 	F__flags         uint32
-	_                [4]byte
+	F__ccgo_pad1     [4]byte
 } /* struct_rwlock.h:23:1 */
 
 // Common definition of pthread_cond_t.
@@ -1513,21 +1518,24 @@ type X__pthread_cond_s = struct {
 } /* thread-shared-types.h:92:1 */
 
 // Thread identifiers.  The structure of the attribute type is not
-//    exposed on purpose.
+//
+//	exposed on purpose.
 type Pthread_t = uint64 /* pthreadtypes.h:27:27 */
 
 // Data structures for mutex handling.  The structure of the attribute
-//    type is not exposed on purpose.
+//
+//	type is not exposed on purpose.
 type Pthread_mutexattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:36:3 */
 
 // Data structure for condition variable handling.  The structure of
-//    the attribute type is not exposed on purpose.
+//
+//	the attribute type is not exposed on purpose.
 type Pthread_condattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:45:3 */
 
 // Keys for thread-specific data
@@ -1537,8 +1545,8 @@ type Pthread_key_t = uint32 /* pthreadtypes.h:49:22 */
 type Pthread_once_t = int32 /* pthreadtypes.h:53:30 */
 
 type Pthread_attr_t1 = struct {
-	_       [0]uint64
-	F__size [56]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [56]uint8
 } /* pthreadtypes.h:56:1 */
 
 type Pthread_attr_t = Pthread_attr_t1 /* pthreadtypes.h:62:30 */
@@ -1548,27 +1556,29 @@ type Pthread_mutex_t = struct{ F__data X__pthread_mutex_s } /* pthreadtypes.h:72
 type Pthread_cond_t = struct{ F__data X__pthread_cond_s } /* pthreadtypes.h:80:3 */
 
 // Data structure for reader-writer lock variable handling.  The
-//    structure of the attribute type is deliberately not exposed.
+//
+//	structure of the attribute type is deliberately not exposed.
 type Pthread_rwlock_t = struct{ F__data X__pthread_rwlock_arch_t } /* pthreadtypes.h:91:3 */
 
 type Pthread_rwlockattr_t = struct {
-	_       [0]uint64
-	F__size [8]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [8]uint8
 } /* pthreadtypes.h:97:3 */
 
 // POSIX spinlock data type.
 type Pthread_spinlock_t = int32 /* pthreadtypes.h:103:22 */
 
 // POSIX barriers data type.  The structure of the type is
-//    deliberately not exposed.
+//
+//	deliberately not exposed.
 type Pthread_barrier_t = struct {
-	_       [0]uint64
-	F__size [32]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [32]uint8
 } /* pthreadtypes.h:112:3 */
 
 type Pthread_barrierattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:118:3 */
 
 // Copyright (C) 1991-2020 Free Software Foundation, Inc.
@@ -1777,7 +1787,7 @@ type X_ftsent = struct {
 	Ffts_symfd   int32
 	Ffts_pathlen uint16
 	Ffts_namelen uint16
-	_            [4]byte
+	F__ccgo_pad1 [4]byte
 	Ffts_ino     Ino_t
 	Ffts_dev     Dev_t
 	Ffts_nlink   Nlink_t
@@ -1787,7 +1797,7 @@ type X_ftsent = struct {
 	Ffts_instr   uint16
 	Ffts_statp   uintptr
 	Ffts_name    [1]uint8
-	_            [7]byte
+	F__ccgo_pad2 [7]byte
 } /* fts.h:58:2 */
 
 // File tree traversal functions declarations.
@@ -1882,10 +1892,10 @@ type FTS = struct {
 	Ffts_rfd     int32
 	Ffts_pathlen int32
 	Ffts_nitems  int32
-	_            [4]byte
+	F__ccgo_pad1 [4]byte
 	Ffts_compar  uintptr
 	Ffts_options int32
-	_            [4]byte
+	F__ccgo_pad2 [4]byte
 } /* fts.h:81:3 */
 
 type FTSENT = X_ftsent /* fts.h:147:3 */

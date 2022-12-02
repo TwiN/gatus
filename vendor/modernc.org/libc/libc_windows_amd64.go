@@ -292,10 +292,6 @@ func Xsymlink(t *TLS, target, linkpath uintptr) int32 {
 	// return 0
 }
 
-func Xchmod(t *TLS, pathname uintptr, mode int32) int32 {
-	panic(todo(""))
-}
-
 // int utimes(const char *filename, const struct timeval times[2]);
 func Xutimes(t *TLS, filename, times uintptr) int32 {
 	panic(todo(""))
@@ -503,10 +499,12 @@ func Xaccept(t *TLS, sockfd uint64, addr uintptr, addrlen uintptr) uint64 {
 }
 
 // LRESULT LRESULT DefWindowProcW(
-//   HWND   hWnd,
-//   UINT   Msg,
-//   WPARAM wParam,
-//   LPARAM lParam
+//
+//	HWND   hWnd,
+//	UINT   Msg,
+//	WPARAM wParam,
+//	LPARAM lParam
+//
 // );
 func XDefWindowProcW(t *TLS, _ ...interface{}) int64 {
 	panic(todo(""))

@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	heapSize  = 20 << 30 // Adjust for your debugging session requirements and system RAM size.
 	heapAlign = 16
 	memgrind  = false
 )

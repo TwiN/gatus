@@ -41,7 +41,7 @@ func nextRandom(x uintptr) {
 	copy((*RawMem)(unsafe.Pointer(x))[:6:6], fmt.Sprintf("%06d", int(1e9+r%1e9)%1e6))
 }
 
-func tempFile(s, x uintptr) (fd int, err error) {
+func tempFile(s, x uintptr, _ int32) (fd int, err error) {
 	const maxTry = 10000
 	nconflict := 0
 	for i := 0; i < maxTry; i++ {

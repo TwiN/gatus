@@ -218,7 +218,8 @@ const ( /* siginfo-consts.h:189:1: */
 // Architecture-specific adjustments to siginfo_t.
 
 // Values for `si_code'.  Positive values are reserved for kernel-generated
-//    signals.
+//
+//	signals.
 const ( /* siginfo-consts.h:35:1: */
 	SI_ASYNCNL  = -60 // Sent by asynch name lookup completion.
 	SI_DETHREAD = -7  // Sent by execve killing subsidiary
@@ -701,7 +702,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //      array_name[restrict]
 //    GCC 3.1 supports this.
 
+// Describes a char array whose address can safely be passed as the first
+//    argument to strncpy and strncat, as the char array is not necessarily
+//    a NUL-terminated string.
+
 // Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
 
 // Determine the wordsize from the preprocessor defines.
 
@@ -995,7 +1002,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -1006,8 +1014,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Seconds since the Epoch, visible to user code when time_t is too
@@ -1107,7 +1116,8 @@ type X__sig_atomic_t = int32 /* types.h:214:13 */
 // Never include this file directly; use <sys/types.h> instead.
 
 // An integral type that can be modified atomically, without the
-//    possibility of a signal arriving in the middle of the operation.
+//
+//	possibility of a signal arriving in the middle of the operation.
 type Sig_atomic_t = X__sig_atomic_t /* sig_atomic_t.h:8:24 */
 
 type X__sigset_t = struct{ F__val [16]uint64 } /* __sigset_t.h:8:3 */
@@ -1175,7 +1185,8 @@ type Uid_t = X__uid_t /* signal.h:46:17 */
 //    values.
 
 // POSIX.1b structure for a time value.  This is like a `struct timeval' but
-//    has nanoseconds instead of microseconds.
+//
+//	has nanoseconds instead of microseconds.
 type Timespec = struct {
 	Ftv_sec  X__time_t
 	Ftv_nsec X__syscall_slong_t
@@ -1223,9 +1234,9 @@ type Timespec = struct {
 
 // Type for data associated with a signal.
 type Sigval = struct {
-	_          [0]uint64
-	Fsival_int int32
-	_          [4]byte
+	F__ccgo_pad1 [0]uint64
+	Fsival_int   int32
+	F__ccgo_pad2 [4]byte
 } /* __sigval_t.h:24:1 */
 
 type X__sigval_t = Sigval /* __sigval_t.h:30:22 */
@@ -1241,8 +1252,8 @@ type Siginfo_t = struct {
 	Fsi_code   int32
 	F__pad0    int32
 	F_sifields struct {
-		_     [0]uint64
-		F_pad [28]int32
+		F__ccgo_pad1 [0]uint64
+		F_pad        [28]int32
 	}
 } /* siginfo_t.h:124:5 */
 
@@ -1318,8 +1329,8 @@ type Sigval_t = X__sigval_t /* sigval_t.h:16:20 */
 
 // Forward declaration.
 type Pthread_attr_t1 = struct {
-	_       [0]uint64
-	F__size [56]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [56]uint8
 } /* sigevent_t.h:17:9 */
 
 // Determine the wordsize from the preprocessor defines.
@@ -1371,8 +1382,8 @@ type Sigevent = struct {
 	Fsigev_signo  int32
 	Fsigev_notify int32
 	F_sigev_un    struct {
-		_     [0]uint64
-		F_pad [12]int32
+		F__ccgo_pad1 [0]uint64
+		F_pad        [12]int32
 	}
 } /* sigevent_t.h:22:9 */
 
@@ -1480,7 +1491,8 @@ type X__s64 = int64  /* int-ll64.h:30:44 */
 type X__u64 = uint64 /* int-ll64.h:31:42 */
 
 // A address type so that arithmetic can be done on it & it can be upgraded to
-//    64 bit when necessary
+//
+//	64 bit when necessary
 type Addr_t = uint64 /* types.h:18:23 */
 type Saddr_t = int64 /* types.h:19:25 */
 
@@ -1563,16 +1575,17 @@ type X__kernel_old_gid_t = X__kernel_gid_t /* posix_types.h:55:24 */
 type X__kernel_fsid_t = struct{ Fval [2]int32 } /* posix_types.h:81:3 */
 
 // anything below here should be completely generic
-type X__kernel_off_t = X__kernel_long_t   /* posix_types.h:87:25 */
-type X__kernel_loff_t = int64             /* posix_types.h:88:19 */
-type X__kernel_time_t = X__kernel_long_t  /* posix_types.h:89:25 */
-type X__kernel_time64_t = int64           /* posix_types.h:90:19 */
-type X__kernel_clock_t = X__kernel_long_t /* posix_types.h:91:25 */
-type X__kernel_timer_t = int32            /* posix_types.h:92:14 */
-type X__kernel_clockid_t = int32          /* posix_types.h:93:14 */
-type X__kernel_caddr_t = uintptr          /* posix_types.h:94:14 */
-type X__kernel_uid16_t = uint16           /* posix_types.h:95:24 */
-type X__kernel_gid16_t = uint16           /* posix_types.h:96:24 */
+type X__kernel_off_t = X__kernel_long_t      /* posix_types.h:87:25 */
+type X__kernel_loff_t = int64                /* posix_types.h:88:19 */
+type X__kernel_old_time_t = X__kernel_long_t /* posix_types.h:89:25 */
+type X__kernel_time_t = X__kernel_long_t     /* posix_types.h:90:25 */
+type X__kernel_time64_t = int64              /* posix_types.h:91:19 */
+type X__kernel_clock_t = X__kernel_long_t    /* posix_types.h:92:25 */
+type X__kernel_timer_t = int32               /* posix_types.h:93:14 */
+type X__kernel_clockid_t = int32             /* posix_types.h:94:14 */
+type X__kernel_caddr_t = uintptr             /* posix_types.h:95:14 */
+type X__kernel_uid16_t = uint16              /* posix_types.h:96:24 */
+type X__kernel_gid16_t = uint16              /* posix_types.h:97:24 */
 
 // Below are truly Linux-specific types that should never collide with
 // any application/library that wants linux/types.h.
@@ -1641,11 +1654,6 @@ type Sigcontext = struct {
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
 // Define stack_t.  Linux version.
@@ -1666,7 +1674,7 @@ type Sigcontext = struct {
 //    License along with the GNU C Library; if not, see
 //    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1989-2017 Free Software Foundation, Inc.
+// Copyright (C) 1989-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -1697,15 +1705,6 @@ type Sigcontext = struct {
 
 // This avoids lossage on SunOS but only if stdtypes.h comes first.
 //    There's no way to win with the other order!  Sun lossage.
-
-// On 4.3bsd-net2, make sure ansi.h is included, so we have
-//    one less case to deal with in the following.
-// On FreeBSD 5, machine/ansi.h does not exist anymore...
-
-// In 4.3bsd-net2, machine/ansi.h defines these symbols, which are
-//    defined if the corresponding type is *not* defined.
-//    FreeBSD-2.1 defines _MACHINE_ANSI_H_ instead of _ANSI_H_.
-//    NetBSD defines _I386_ANSI_H_ and _X86_64_ANSI_H_ instead of _ANSI_H_
 
 // Sequent's header files use _PTRDIFF_T_ in some conflicting way.
 //    Just ignore it.
@@ -1741,19 +1740,14 @@ type Sigcontext = struct {
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
 // Structure describing a signal stack.
 type Stack_t = struct {
-	Fss_sp    uintptr
-	Fss_flags int32
-	_         [4]byte
-	Fss_size  Size_t
+	Fss_sp       uintptr
+	Fss_flags    int32
+	F__ccgo_pad1 [4]byte
+	Fss_size     Size_t
 } /* stack_t.h:31:5 */
 
 // This will define `ucontext_t' and `mcontext_t'.
@@ -1820,10 +1814,12 @@ type X__psw_t = struct {
 type Greg_t = uint64 /* ucontext.h:42:23 */
 
 // And the whole bunch of them.  We should have used `struct s390_regs',
-//    but to avoid name space pollution and since the tradition says that
-//    the register set is an array, we make gregset_t a simple array
-//    that has the same size as s390_regs.  This is needed for the
-//    elf_prstatus structure.
+//
+//	but to avoid name space pollution and since the tradition says that
+//	the register set is an array, we make gregset_t a simple array
+//	that has the same size as s390_regs.  This is needed for the
+//	elf_prstatus structure.
+//
 // Must match kernels psw_t alignment.
 type Gregset_t = [27]Greg_t /* ucontext.h:58:16 */
 
@@ -1831,9 +1827,9 @@ type Fpreg_t = struct{ Fd float64 } /* ucontext.h:64:5 */
 
 // Register set for the floating-point registers.
 type Fpregset_t = struct {
-	Ffpc  uint32
-	_     [4]byte
-	Ffprs [16]Fpreg_t
+	Ffpc         uint32
+	F__ccgo_pad1 [4]byte
+	Ffprs        [16]Fpreg_t
 } /* ucontext.h:71:5 */
 
 // Context to describe whole processor state.
@@ -1876,9 +1872,9 @@ type Ucontext_t = Ucontext_t1 /* ucontext.h:90:5 */
 
 // Structure describing a signal stack (obsolete).
 type Sigstack = struct {
-	Fss_sp      uintptr
-	Fss_onstack int32
-	_           [4]byte
+	Fss_sp       uintptr
+	Fss_onstack  int32
+	F__ccgo_pad1 [4]byte
 } /* struct_sigstack.h:23:1 */
 
 // Some of the functions for handling signals in threaded programs must
@@ -2145,7 +2141,7 @@ type X__pthread_rwlock_arch_t = struct {
 	F__pad1          uint64
 	F__pad2          uint64
 	F__flags         uint32
-	_                [4]byte
+	F__ccgo_pad1     [4]byte
 } /* struct_rwlock.h:23:1 */
 
 // Common definition of pthread_cond_t.
@@ -2161,21 +2157,24 @@ type X__pthread_cond_s = struct {
 } /* thread-shared-types.h:92:1 */
 
 // Thread identifiers.  The structure of the attribute type is not
-//    exposed on purpose.
+//
+//	exposed on purpose.
 type Pthread_t = uint64 /* pthreadtypes.h:27:27 */
 
 // Data structures for mutex handling.  The structure of the attribute
-//    type is not exposed on purpose.
+//
+//	type is not exposed on purpose.
 type Pthread_mutexattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:36:3 */
 
 // Data structure for condition variable handling.  The structure of
-//    the attribute type is not exposed on purpose.
+//
+//	the attribute type is not exposed on purpose.
 type Pthread_condattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:45:3 */
 
 // Keys for thread-specific data
@@ -2189,27 +2188,29 @@ type Pthread_mutex_t = struct{ F__data X__pthread_mutex_s } /* pthreadtypes.h:72
 type Pthread_cond_t = struct{ F__data X__pthread_cond_s } /* pthreadtypes.h:80:3 */
 
 // Data structure for reader-writer lock variable handling.  The
-//    structure of the attribute type is deliberately not exposed.
+//
+//	structure of the attribute type is deliberately not exposed.
 type Pthread_rwlock_t = struct{ F__data X__pthread_rwlock_arch_t } /* pthreadtypes.h:91:3 */
 
 type Pthread_rwlockattr_t = struct {
-	_       [0]uint64
-	F__size [8]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [8]uint8
 } /* pthreadtypes.h:97:3 */
 
 // POSIX spinlock data type.
 type Pthread_spinlock_t = int32 /* pthreadtypes.h:103:22 */
 
 // POSIX barriers data type.  The structure of the type is
-//    deliberately not exposed.
+//
+//	deliberately not exposed.
 type Pthread_barrier_t = struct {
-	_       [0]uint64
-	F__size [32]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [32]uint8
 } /* pthreadtypes.h:112:3 */
 
 type Pthread_barrierattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:118:3 */
 
 // System-specific extensions.

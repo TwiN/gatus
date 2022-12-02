@@ -313,6 +313,7 @@ var (
 		dict.sid("__pragma_stdc"): PRAGMASTDC,
 		dict.sid("__restrict"):    RESTRICT,
 		dict.sid("__restrict__"):  RESTRICT,
+		dict.sid("__signed"):      SIGNED,
 		dict.sid("__signed__"):    SIGNED,
 		dict.sid("__thread"):      THREADLOCAL,
 		dict.sid("__typeof"):      TYPEOF,
@@ -2263,7 +2264,7 @@ func (p *parser) functionSpecifier(inline *bool) *FunctionSpecifier {
 //  declarator:
 // 	pointer_opt direct-declarator attribute-specifier-list_opt
 func (p *parser) declarator(declare, isTypedefName bool, ptr *Pointer) *Declarator {
-	if ptr == nil && p.rune() == '*' {
+	if ptr == nil && (p.rune() == '*' || p.rune() == '^') {
 		ptr = p.pointer()
 	}
 	r := &Declarator{IsTypedefName: isTypedefName, Pointer: ptr, DirectDeclarator: p.directDeclarator(nil)}
@@ -2488,9 +2489,21 @@ func (p *parser) directDeclarator(d *DirectDeclarator) (r *DirectDeclarator) {
 //  pointer:
 // 	* type-qualifier-list_opt
 // 	* type-qualifier-list_opt pointer
+//      ^ type-qualifier-list_opt
 func (p *parser) pointer() (r *Pointer) {
+	if p.rune() == '^' {
+		t := p.shift()
+		var list *TypeQualifiers
+		switch p.rune() {
+		case ATTRIBUTE, CONST, RESTRICT, VOLATILE, ATOMIC:
+			list = p.typeQualifierList()
+		}
+
+		return &Pointer{Case: PointerBlock, Token: t, TypeQualifiers: list}
+	}
+
 	if p.rune() != '*' {
-		p.err("expected *")
+		p.err("expected * or ^")
 		return nil
 	}
 
@@ -2608,7 +2621,8 @@ func (p *parser) parameterDeclaration() *ParameterDeclaration {
 
 func (p *parser) declaratorOrAbstractDeclarator(isTypedefName bool) (r Node) {
 	var ptr *Pointer
-	if p.rune() == '*' {
+	switch p.rune() {
+	case '*', '^':
 		ptr = p.pointer()
 	}
 	switch p.rune() {
@@ -2766,7 +2780,7 @@ func (p *parser) typeName() *TypeName {
 // 	pointer
 // 	pointer_opt direct-abstract-declarator
 func (p *parser) abstractDeclarator(ptr *Pointer) *AbstractDeclarator {
-	if ptr == nil && p.rune() == '*' {
+	if ptr == nil && (p.rune() == '*' || p.rune() == '^') {
 		ptr = p.pointer()
 	}
 	switch p.rune() {
@@ -3148,28 +3162,49 @@ func (p *parser) designator(acceptCol bool) (*Designator, bool) {
 // 	iteration-statement
 // 	jump-statement
 //	asm-statement
-func (p *parser) statement() *Statement {
-	switch p.rune() {
-	case IDENTIFIER:
-		if p.peek(false) == ':' {
-			return &Statement{Case: StatementLabeled, LabeledStatement: p.labeledStatement()}
+func (p *parser) statement() (r *Statement) {
+	var r0 *Statement
+	var prevLS, ls *LabeledStatement
+
+	defer func() {
+		if ls != nil {
+			ls.Statement = r
+			r = r0
+		}
+	}()
+
+	for {
+		switch p.rune() {
+		case IDENTIFIER:
+			switch {
+			case p.peek(false) == ':':
+				ls = p.labeledStatement()
+			default:
+				return &Statement{Case: StatementExpr, ExpressionStatement: p.expressionStatement()}
+			}
+		case '{':
+			return &Statement{Case: StatementCompound, CompoundStatement: p.compoundStatement(nil, nil)}
+		case IF, SWITCH:
+			return &Statement{Case: StatementSelection, SelectionStatement: p.selectionStatement()}
+		case WHILE, DO, FOR:
+			return &Statement{Case: StatementIteration, IterationStatement: p.iterationStatement()}
+		case GOTO, BREAK, CONTINUE, RETURN:
+			return &Statement{Case: StatementJump, JumpStatement: p.jumpStatement()}
+		case CASE, DEFAULT:
+			ls = p.labeledStatement()
+		case ASM:
+			return &Statement{Case: StatementAsm, AsmStatement: p.asmStatement()}
+		default:
+			return &Statement{Case: StatementExpr, ExpressionStatement: p.expressionStatement()}
 		}
 
-		return &Statement{Case: StatementExpr, ExpressionStatement: p.expressionStatement()}
-	case '{':
-		return &Statement{Case: StatementCompound, CompoundStatement: p.compoundStatement(nil, nil)}
-	case IF, SWITCH:
-		return &Statement{Case: StatementSelection, SelectionStatement: p.selectionStatement()}
-	case WHILE, DO, FOR:
-		return &Statement{Case: StatementIteration, IterationStatement: p.iterationStatement()}
-	case GOTO, BREAK, CONTINUE, RETURN:
-		return &Statement{Case: StatementJump, JumpStatement: p.jumpStatement()}
-	case CASE, DEFAULT:
-		return &Statement{Case: StatementLabeled, LabeledStatement: p.labeledStatement()}
-	case ASM:
-		return &Statement{Case: StatementAsm, AsmStatement: p.asmStatement()}
-	default:
-		return &Statement{Case: StatementExpr, ExpressionStatement: p.expressionStatement()}
+		switch {
+		case r0 == nil:
+			r0 = &Statement{Case: StatementLabeled, LabeledStatement: ls}
+		default:
+			prevLS.Statement = &Statement{Case: StatementLabeled, LabeledStatement: ls}
+		}
+		prevLS = ls
 	}
 }
 
@@ -3206,7 +3241,7 @@ func (p *parser) labeledStatement() (r *LabeledStatement) {
 		p.block.hasLabel()
 		r = &LabeledStatement{
 			Case: LabeledStatementLabel, Token: t, Token2: t2, AttributeSpecifierList: attr,
-			Statement: p.statement(), lexicalScope: p.declScope, block: p.block,
+			lexicalScope: p.declScope, block: p.block,
 		}
 		p.declScope.declare(t.Value, r)
 		return r
@@ -3232,8 +3267,7 @@ func (p *parser) labeledStatement() (r *LabeledStatement) {
 			return &LabeledStatement{
 				Case: LabeledStatementRange, Token: t, ConstantExpression: e,
 				Token2: t2, ConstantExpression2: e2, Token3: t3,
-				Statement: p.statement(), lexicalScope: p.declScope,
-				block: p.block,
+				lexicalScope: p.declScope, block: p.block,
 			}
 		case ':':
 			t2 = p.shift()
@@ -3242,8 +3276,7 @@ func (p *parser) labeledStatement() (r *LabeledStatement) {
 		}
 		return &LabeledStatement{
 			Case: LabeledStatementCaseLabel, Token: t, ConstantExpression: e,
-			Token2: t2, Statement: p.statement(), lexicalScope: p.declScope,
-			block: p.block,
+			Token2: t2, lexicalScope: p.declScope, block: p.block,
 		}
 	case DEFAULT:
 		if p.switches == 0 {
@@ -3257,12 +3290,12 @@ func (p *parser) labeledStatement() (r *LabeledStatement) {
 			p.err("expected :")
 		}
 		return &LabeledStatement{
-			Case: LabeledStatementDefault, Token: t, Token2: t2, Statement: p.statement(),
+			Case: LabeledStatementDefault, Token: t, Token2: t2,
 			lexicalScope: p.declScope, block: p.block,
 		}
 	default:
 		p.err("expected labeled-statement")
-		return nil
+		return &LabeledStatement{}
 	}
 }
 

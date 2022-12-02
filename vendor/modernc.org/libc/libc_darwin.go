@@ -5,31 +5,31 @@
 package libc // import "modernc.org/libc"
 
 import (
-	"bufio"
+	crand "crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	gosignal "os/signal"
 	"path/filepath"
-	"strconv"
+	"runtime"
 	"strings"
 	"syscall"
 	gotime "time"
+	"unicode"
 	"unsafe"
 
+	guuid "github.com/google/uuid"
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/errno"
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/fts"
-
 	gonetdb "modernc.org/libc/honnef.co/go/netdb"
 	"modernc.org/libc/langinfo"
 	"modernc.org/libc/limits"
 	"modernc.org/libc/netdb"
 	"modernc.org/libc/netinet/in"
-	"modernc.org/libc/pwd"
-
 	"modernc.org/libc/signal"
 	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/socket"
@@ -38,6 +38,8 @@ import (
 	"modernc.org/libc/termios"
 	"modernc.org/libc/time"
 	"modernc.org/libc/unistd"
+	"modernc.org/libc/uuid/uuid"
+	"modernc.org/libc/wctype"
 )
 
 const (
@@ -57,6 +59,23 @@ type (
 var X__stderrp = Xstdout
 var X__stdinp = Xstdin
 var X__stdoutp = Xstdout
+
+// user@darwin-m1:~/tmp$ cat main.c
+//
+//	#include <xlocale.h>
+//	#include <stdio.h>
+//
+//	int main() {
+//		printf("%i\n", ___mb_cur_max());
+//		return 0;
+//	}
+//
+// user@darwin-m1:~/tmp$ gcc main.c && ./a.out
+// 1
+// user@darwin-m1:~/tmp$
+var X__mb_cur_max int32 = 1
+
+var startTime = gotime.Now() // For clock(3)
 
 type file uintptr
 
@@ -217,44 +236,15 @@ func Xgetrusage(t *TLS, who int32, usage uintptr) int32 {
 	// return 0
 }
 
-// char *fgets(char *s, int size, FILE *stream);
-func Xfgets(t *TLS, s uintptr, size int32, stream uintptr) uintptr {
+// int fgetc(FILE *stream);
+func Xfgetc(t *TLS, stream uintptr) int32 {
 	fd := int((*stdio.FILE)(unsafe.Pointer(stream)).F_file)
-	var b []byte
-	buf := [1]byte{}
-	for ; size > 0; size-- {
-		n, err := unix.Read(fd, buf[:])
-		if n != 0 {
-			b = append(b, buf[0])
-			if buf[0] == '\n' {
-				b = append(b, 0)
-				copy((*RawMem)(unsafe.Pointer(s))[:len(b):len(b)], b)
-				return s
-			}
-
-			continue
-		}
-
-		switch {
-		case n == 0 && err == nil && len(b) == 0:
-			return 0
-		default:
-			panic(todo(""))
-		}
-
-		// if err == nil {
-		// 	panic("internal error")
-		// }
-
-		// if len(b) != 0 {
-		// 		b = append(b, 0)
-		// 		copy((*RawMem)(unsafe.Pointer(s)[:len(b)]), b)
-		// 		return s
-		// }
-
-		// t.setErrno(err)
+	var buf [1]byte
+	if n, _ := unix.Read(fd, buf[:]); n != 0 {
+		return int32(buf[0])
 	}
-	panic(todo(""))
+
+	return stdio.EOF
 }
 
 // int lstat(const char *pathname, struct stat *statbuf);
@@ -308,24 +298,23 @@ func Xlocaltime(_ *TLS, timep uintptr) uintptr {
 
 // struct tm *localtime_r(const time_t *timep, struct tm *result);
 func Xlocaltime_r(_ *TLS, timep, result uintptr) uintptr {
-	panic(todo(""))
-	// loc := gotime.Local
-	// if r := getenv(Environ(), "TZ"); r != 0 {
-	// 	zone, off := parseZone(GoString(r))
-	// 	loc = gotime.FixedZone(zone, -off)
-	// }
-	// ut := *(*unix.Time_t)(unsafe.Pointer(timep))
-	// t := gotime.Unix(int64(ut), 0).In(loc)
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_sec = int32(t.Second())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_min = int32(t.Minute())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_hour = int32(t.Hour())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_mday = int32(t.Day())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_mon = int32(t.Month() - 1)
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_year = int32(t.Year() - 1900)
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_wday = int32(t.Weekday())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_yday = int32(t.YearDay())
-	// (*time.Tm)(unsafe.Pointer(result)).Ftm_isdst = Bool32(isTimeDST(t))
-	// return result
+	loc := gotime.Local
+	if r := getenv(Environ(), "TZ"); r != 0 {
+		zone, off := parseZone(GoString(r))
+		loc = gotime.FixedZone(zone, -off)
+	}
+	ut := *(*time_t)(unsafe.Pointer(timep))
+	t := gotime.Unix(int64(ut), 0).In(loc)
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_sec = int32(t.Second())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_min = int32(t.Minute())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_hour = int32(t.Hour())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_mday = int32(t.Day())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_mon = int32(t.Month() - 1)
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_year = int32(t.Year() - 1900)
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_wday = int32(t.Weekday())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_yday = int32(t.YearDay())
+	(*time.Tm)(unsafe.Pointer(result)).Ftm_isdst = Bool32(isTimeDST(t))
+	return result
 }
 
 // int open(const char *pathname, int flags, ...);
@@ -395,6 +384,8 @@ func Xsysconf(t *TLS, name int32) long {
 	switch name {
 	case unistd.X_SC_PAGESIZE:
 		return long(unix.Getpagesize())
+	case unistd.X_SC_NPROCESSORS_ONLN:
+		return long(runtime.NumCPU())
 	}
 
 	panic(todo(""))
@@ -530,13 +521,12 @@ func Xfchmod(t *TLS, fd int32, mode types.Mode_t) int32 {
 
 // int fchown(int fd, uid_t owner, gid_t group);
 func Xfchown(t *TLS, fd int32, owner types.Uid_t, group types.Gid_t) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_FCHOWN, uintptr(fd), uintptr(owner), uintptr(group)); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_FCHOWN, uintptr(fd), uintptr(owner), uintptr(group)); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // uid_t geteuid(void);
@@ -601,40 +591,37 @@ func Xgettimeofday(t *TLS, tv, tz uintptr) int32 {
 
 // int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
 func Xgetsockopt(t *TLS, sockfd, level, optname int32, optval, optlen uintptr) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall6(unix.SYS_GETSOCKOPT, uintptr(sockfd), uintptr(level), uintptr(optname), optval, optlen, 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall6(unix.SYS_GETSOCKOPT, uintptr(sockfd), uintptr(level), uintptr(optname), optval, optlen, 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
 func Xsetsockopt(t *TLS, sockfd, level, optname int32, optval uintptr, optlen socket.Socklen_t) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall6(unix.SYS_SETSOCKOPT, uintptr(sockfd), uintptr(level), uintptr(optname), optval, uintptr(optlen), 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall6(unix.SYS_SETSOCKOPT, uintptr(sockfd), uintptr(level), uintptr(optname), optval, uintptr(optlen), 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int ioctl(int fd, unsigned long request, ...);
 func Xioctl(t *TLS, fd int32, request ulong, va uintptr) int32 {
-	panic(todo(""))
-	// var argp uintptr
-	// if va != 0 {
-	// 	argp = VaUintptr(&va)
-	// }
-	// n, _, err := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), argp)
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	var argp uintptr
+	if va != 0 {
+		argp = VaUintptr(&va)
+	}
+	n, _, err := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), argp)
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return int32(n)
+	return int32(n)
 }
 
 // int getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
@@ -678,13 +665,12 @@ func Xselect(t *TLS, nfds int32, readfds, writefds, exceptfds, timeout uintptr) 
 
 // int mkfifo(const char *pathname, mode_t mode);
 func Xmkfifo(t *TLS, pathname uintptr, mode types.Mode_t) int32 {
-	panic(todo(""))
-	// if err := unix.Mkfifo(GoString(pathname), mode); err != nil {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := unix.Mkfifo(GoString(pathname), uint32(mode)); err != nil {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // mode_t umask(mode_t mask);
@@ -737,94 +723,86 @@ func Xuname(t *TLS, buf uintptr) int32 {
 
 // ssize_t recv(int sockfd, void *buf, size_t len, int flags);
 func Xrecv(t *TLS, sockfd int32, buf uintptr, len types.Size_t, flags int32) types.Ssize_t {
-	panic(todo(""))
-	// n, _, err := unix.Syscall6(unix.SYS_RECVFROM, uintptr(sockfd), buf, uintptr(len), uintptr(flags), 0, 0)
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	n, _, err := unix.Syscall6(unix.SYS_RECVFROM, uintptr(sockfd), buf, uintptr(len), uintptr(flags), 0, 0)
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return types.Ssize_t(n)
+	return types.Ssize_t(n)
 }
 
 // ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 func Xsend(t *TLS, sockfd int32, buf uintptr, len types.Size_t, flags int32) types.Ssize_t {
-	panic(todo(""))
-	// n, _, err := unix.Syscall6(unix.SYS_SENDTO, uintptr(sockfd), buf, uintptr(len), uintptr(flags), 0, 0)
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	n, _, err := unix.Syscall6(unix.SYS_SENDTO, uintptr(sockfd), buf, uintptr(len), uintptr(flags), 0, 0)
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return types.Ssize_t(n)
+	return types.Ssize_t(n)
 }
 
 // int shutdown(int sockfd, int how);
 func Xshutdown(t *TLS, sockfd, how int32) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_SHUTDOWN, uintptr(sockfd), uintptr(how), 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_SHUTDOWN, uintptr(sockfd), uintptr(how), 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 func Xgetpeername(t *TLS, sockfd int32, addr uintptr, addrlen uintptr) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_GETPEERNAME, uintptr(sockfd), addr, uintptr(addrlen)); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_GETPEERNAME, uintptr(sockfd), addr, uintptr(addrlen)); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int socket(int domain, int type, int protocol);
 func Xsocket(t *TLS, domain, type1, protocol int32) int32 {
-	panic(todo(""))
-	// n, _, err := unix.Syscall(unix.SYS_SOCKET, uintptr(domain), uintptr(type1), uintptr(protocol))
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	n, _, err := unix.Syscall(unix.SYS_SOCKET, uintptr(domain), uintptr(type1), uintptr(protocol))
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return int32(n)
+	return int32(n)
 }
 
 // int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 func Xbind(t *TLS, sockfd int32, addr uintptr, addrlen uint32) int32 {
-	panic(todo(""))
-	// n, _, err := unix.Syscall(unix.SYS_BIND, uintptr(sockfd), addr, uintptr(addrlen))
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	n, _, err := unix.Syscall(unix.SYS_BIND, uintptr(sockfd), addr, uintptr(addrlen))
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return int32(n)
+	return int32(n)
 }
 
 // int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 func Xconnect(t *TLS, sockfd int32, addr uintptr, addrlen uint32) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_CONNECT, uintptr(sockfd), addr, uintptr(addrlen)); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_CONNECT, uintptr(sockfd), addr, uintptr(addrlen)); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int listen(int sockfd, int backlog);
 func Xlisten(t *TLS, sockfd, backlog int32) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_LISTEN, uintptr(sockfd), uintptr(backlog), 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_LISTEN, uintptr(sockfd), uintptr(backlog), 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
@@ -896,92 +874,6 @@ func Xsystem(t *TLS, command uintptr) int32 {
 	return 0
 }
 
-var staticGetpwuid pwd.Passwd
-
-func init() {
-	atExit = append(atExit, func() { closePasswd(&staticGetpwuid) })
-}
-
-func closePasswd(p *pwd.Passwd) {
-	Xfree(nil, p.Fpw_name)
-	Xfree(nil, p.Fpw_passwd)
-	Xfree(nil, p.Fpw_gecos)
-	Xfree(nil, p.Fpw_dir)
-	Xfree(nil, p.Fpw_shell)
-	*p = pwd.Passwd{}
-}
-
-// struct passwd *getpwuid(uid_t uid);
-func Xgetpwuid(t *TLS, uid uint32) uintptr {
-	f, err := os.Open("/etc/passwd")
-	if err != nil {
-		if dmesgs {
-			dmesg("%v: %v", origin(1), err)
-		}
-		panic(todo("", err))
-	}
-
-	defer f.Close()
-
-	sid := strconv.Itoa(int(uid))
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		s := strings.TrimSpace(sc.Text())
-		if len(s) == 0 || strings.HasPrefix(s, "#") {
-			continue
-		}
-
-		// eg. "root:x:0:0:root:/root:/bin/bash"
-		a := strings.Split(sc.Text(), ":")
-		if len(a) < 7 {
-			panic(todo("%q", sc.Text()))
-		}
-
-		if a[2] == sid {
-			uid, err := strconv.Atoi(a[2])
-			if err != nil {
-				panic(todo(""))
-			}
-
-			gid, err := strconv.Atoi(a[3])
-			if err != nil {
-				panic(todo(""))
-			}
-
-			closePasswd(&staticGetpwuid)
-			gecos := a[4]
-			if strings.Contains(gecos, ",") {
-				a := strings.Split(gecos, ",")
-				gecos = a[0]
-			}
-			initPasswd(t, &staticGetpwuid, a[0], a[1], uint32(uid), uint32(gid), gecos, a[5], a[6])
-			if dmesgs {
-				dmesg("%v: ok", origin(1))
-			}
-			return uintptr(unsafe.Pointer(&staticGetpwuid))
-		}
-	}
-
-	if sc.Err() != nil {
-		panic(todo(""))
-	}
-
-	if dmesgs {
-		dmesg("%v: 0", origin(1))
-	}
-	return 0
-}
-
-func initPasswd(t *TLS, p *pwd.Passwd, name, pwd string, uid, gid uint32, gecos, dir, shell string) {
-	p.Fpw_name = cString(t, name)
-	p.Fpw_passwd = cString(t, pwd)
-	p.Fpw_uid = uid
-	p.Fpw_gid = gid
-	p.Fpw_gecos = cString(t, gecos)
-	p.Fpw_dir = cString(t, dir)
-	p.Fpw_shell = cString(t, shell)
-}
-
 // int setvbuf(FILE *stream, char *buf, int mode, size_t size);
 func Xsetvbuf(t *TLS, stream, buf uintptr, mode int32, size types.Size_t) int32 {
 	return 0 //TODO
@@ -1021,207 +913,6 @@ func Xfileno(t *TLS, stream uintptr) int32 {
 	}
 	t.setErrno(errno.EBADF)
 	return -1
-}
-
-// var staticGetpwnam pwd.Passwd
-//
-// func init() {
-// 	atExit = append(atExit, func() { closePasswd(&staticGetpwnam) })
-// }
-
-// struct passwd *getpwnam(const char *name);
-func Xgetpwnam(t *TLS, name uintptr) uintptr {
-	panic(todo(""))
-	// f, err := os.Open("/etc/passwd")
-	// if err != nil {
-	// 	panic(todo("", err))
-	// }
-
-	// defer f.Close()
-
-	// sname := GoString(name)
-	// sc := bufio.NewScanner(f)
-	// for sc.Scan() {
-	// 	// eg. "root:x:0:0:root:/root:/bin/bash"
-	// 	a := strings.Split(sc.Text(), ":")
-	// 	if len(a) < 7 {
-	// 		panic(todo(""))
-	// 	}
-
-	// 	if a[0] == sname {
-	// 		uid, err := strconv.Atoi(a[2])
-	// 		if err != nil {
-	// 			panic(todo(""))
-	// 		}
-
-	// 		gid, err := strconv.Atoi(a[3])
-	// 		if err != nil {
-	// 			panic(todo(""))
-	// 		}
-
-	// 		closePasswd(&staticGetpwnam)
-	// 		gecos := a[4]
-	// 		if strings.Contains(gecos, ",") {
-	// 			a := strings.Split(gecos, ",")
-	// 			gecos = a[0]
-	// 		}
-	// 		initPasswd(t, &staticGetpwnam, a[0], a[1], uint32(uid), uint32(gid), gecos, a[5], a[6])
-	// 		return uintptr(unsafe.Pointer(&staticGetpwnam))
-	// 	}
-	// }
-
-	// if sc.Err() != nil {
-	// 	panic(todo(""))
-	// }
-
-	// return 0
-}
-
-// var staticGetgrnam grp.Group
-//
-// func init() {
-// 	atExit = append(atExit, func() { closeGroup(&staticGetgrnam) })
-// }
-
-// struct group *getgrnam(const char *name);
-func Xgetgrnam(t *TLS, name uintptr) uintptr {
-	panic(todo(""))
-	// f, err := os.Open("/etc/group")
-	// if err != nil {
-	// 	panic(todo(""))
-	// }
-
-	// defer f.Close()
-
-	// sname := GoString(name)
-	// sc := bufio.NewScanner(f)
-	// for sc.Scan() {
-	// 	// eg. "root:x:0:"
-	// 	a := strings.Split(sc.Text(), ":")
-	// 	if len(a) < 4 {
-	// 		panic(todo(""))
-	// 	}
-
-	// 	if a[0] == sname {
-	// 		closeGroup(&staticGetgrnam)
-	// 		gid, err := strconv.Atoi(a[2])
-	// 		if err != nil {
-	// 			panic(todo(""))
-	// 		}
-
-	// 		var names []string
-	// 		if a[3] != "" {
-	// 			names = strings.Split(a[3], ",")
-	// 		}
-	// 		initGroup(t, &staticGetgrnam, a[0], a[1], uint32(gid), names)
-	// 		return uintptr(unsafe.Pointer(&staticGetgrnam))
-	// 	}
-	// }
-
-	// if sc.Err() != nil {
-	// 	panic(todo(""))
-	// }
-
-	// return 0
-}
-
-// func closeGroup(p *grp.Group) {
-// 	Xfree(nil, p.Fgr_name)
-// 	Xfree(nil, p.Fgr_passwd)
-// 	if p.Fgr_mem != 0 {
-// 		panic(todo(""))
-// 	}
-//
-// 	*p = grp.Group{}
-// }
-//
-// func initGroup(t *TLS, p *grp.Group, name, pwd string, gid uint32, names []string) {
-// 	p.Fgr_name = cString(t, name)
-// 	p.Fgr_passwd = cString(t, pwd)
-// 	p.Fgr_gid = gid
-// 	p.Fgr_mem = 0
-// 	if len(names) != 0 {
-// 		panic(todo("%q %q %v %q %v", name, pwd, gid, names, len(names)))
-// 	}
-// }
-//
-// func init() {
-// 	atExit = append(atExit, func() { closeGroup(&staticGetgrgid) })
-// }
-//
-// var staticGetgrgid grp.Group
-
-// struct group *getgrgid(gid_t gid);
-func Xgetgrgid(t *TLS, gid uint32) uintptr {
-	panic(todo(""))
-	// f, err := os.Open("/etc/group")
-	// if err != nil {
-	// 	panic(todo(""))
-	// }
-
-	// defer f.Close()
-
-	// sid := strconv.Itoa(int(gid))
-	// sc := bufio.NewScanner(f)
-	// for sc.Scan() {
-	// 	// eg. "root:x:0:"
-	// 	a := strings.Split(sc.Text(), ":")
-	// 	if len(a) < 4 {
-	// 		panic(todo(""))
-	// 	}
-
-	// 	if a[2] == sid {
-	// 		closeGroup(&staticGetgrgid)
-	// 		var names []string
-	// 		if a[3] != "" {
-	// 			names = strings.Split(a[3], ",")
-	// 		}
-	// 		initGroup(t, &staticGetgrgid, a[0], a[1], gid, names)
-	// 		return uintptr(unsafe.Pointer(&staticGetgrgid))
-	// 	}
-	// }
-
-	// if sc.Err() != nil {
-	// 	panic(todo(""))
-	// }
-
-	// return 0
-}
-
-// int mkstemps(char *template, int suffixlen);
-func Xmkstemps(t *TLS, template uintptr, suffixlen int32) int32 {
-	panic(todo(""))
-}
-
-// int mkstemps(char *template, int suffixlen);
-func Xmkstemps64(t *TLS, template uintptr, suffixlen int32) int32 {
-	len := uintptr(Xstrlen(t, template))
-	x := template + uintptr(len-6) - uintptr(suffixlen)
-	for i := uintptr(0); i < 6; i++ {
-		if *(*byte)(unsafe.Pointer(x + i)) != 'X' {
-			if dmesgs {
-				dmesg("%v: FAIL", origin(1))
-			}
-			t.setErrno(errno.EINVAL)
-			return -1
-		}
-	}
-
-	fd, err := tempFile(template, x)
-	if err != nil {
-		if dmesgs {
-			dmesg("%v: %v FAIL", origin(1), err)
-		}
-		t.setErrno(err)
-		return -1
-	}
-
-	return int32(fd)
-}
-
-// int mkstemp(char *template);
-func Xmkstemp(t *TLS, template uintptr) int32 {
-	return Xmkstemps64(t, template, 0)
 }
 
 func newFtsent(t *TLS, info int, path string, stat *unix.Stat_t, err syscall.Errno) (r *fts.FTSENT) {
@@ -1494,14 +1185,16 @@ func Xfork(t *TLS) int32 {
 	return -1
 }
 
+var emptyStr = [1]byte{}
+
 // char *setlocale(int category, const char *locale);
 func Xsetlocale(t *TLS, category int32, locale uintptr) uintptr {
-	return 0 //TODO
+	return uintptr(unsafe.Pointer(&emptyStr)) //TODO
 }
 
 // char *nl_langinfo(nl_item item);
 func Xnl_langinfo(t *TLS, item langinfo.Nl_item) uintptr {
-	panic(todo(""))
+	return uintptr(unsafe.Pointer(&emptyStr)) //TODO
 }
 
 // FILE *popen(const char *command, const char *type);
@@ -1693,21 +1386,6 @@ func Xftell(t *TLS, stream uintptr) long {
 // int ferror(FILE *stream);
 func Xferror(t *TLS, stream uintptr) int32 {
 	return Bool32(file(stream).err())
-}
-
-// int fgetc(FILE *stream);
-func Xfgetc(t *TLS, stream uintptr) int32 {
-	panic(todo(""))
-}
-
-// // int getc(FILE *stream);
-// func Xgetc(t *TLS, stream uintptr) int32 {
-// 	return Xfgetc(t, stream)
-// }
-
-// FILE *fdopen(int fd, const char *mode);
-func Xfdopen(t *TLS, fd int32, mode uintptr) uintptr {
-	panic(todo(""))
 }
 
 // int fputs(const char *s, FILE *stream);
@@ -1947,18 +1625,6 @@ func Xrmdir(t *TLS, pathname uintptr) int32 {
 	return 0
 }
 
-func X__darwin_fd_set(...interface{}) {
-	panic(todo(""))
-}
-
-func X__darwin_fd_clr(...interface{}) {
-	panic(todo(""))
-}
-
-func X__darwin_fd_isset(...interface{}) int32 {
-	panic(todo(""))
-}
-
 // uint64_t mach_absolute_time(void);
 func Xmach_absolute_time(t *TLS) uint64 {
 	return uint64(gotime.Now().UnixNano())
@@ -2128,4 +1794,260 @@ func Xsscanf(t *TLS, str, format, va uintptr) int32 {
 	// 	dmesg("%v: %q %q: %d", origin(1), GoString(str), GoString(format), r)
 	// }
 	return r
+}
+
+// int posix_fadvise(int fd, off_t offset, off_t len, int advice);
+func Xposix_fadvise(t *TLS, fd int32, offset, len types.Off_t, advice int32) int32 {
+	panic(todo(""))
+}
+
+// clock_t clock(void);
+func Xclock(t *TLS) time.Clock_t {
+	return time.Clock_t(gotime.Since(startTime) * gotime.Duration(time.CLOCKS_PER_SEC) / gotime.Second)
+}
+
+// int iswspace(wint_t wc);
+func Xiswspace(t *TLS, wc wctype.Wint_t) int32 {
+	return Bool32(unicode.IsSpace(rune(wc)))
+}
+
+// int iswalnum(wint_t wc);
+func Xiswalnum(t *TLS, wc wctype.Wint_t) int32 {
+	return Bool32(unicode.IsLetter(rune(wc)) || unicode.IsNumber(rune(wc)))
+}
+
+// void arc4random_buf(void *buf, size_t nbytes);
+func Xarc4random_buf(t *TLS, buf uintptr, buflen size_t) {
+	if _, err := crand.Read((*RawMem)(unsafe.Pointer(buf))[:buflen]); err != nil {
+		panic(todo(""))
+	}
+}
+
+type darwin_mutexattr_t struct {
+	sig int64
+	x   [8]byte
+}
+
+type darwin_mutex_t struct {
+	sig int64
+	x   [65]byte
+}
+
+func X__ccgo_pthreadMutexattrGettype(tls *TLS, a uintptr) int32 {
+	return (int32((*darwin_mutexattr_t)(unsafe.Pointer(a)).x[4] >> 2 & 3))
+}
+
+func X__ccgo_getMutexType(tls *TLS, m uintptr) int32 {
+	return (int32((*darwin_mutex_t)(unsafe.Pointer(m)).x[4] >> 2 & 3))
+}
+
+func X__ccgo_pthreadAttrGetDetachState(tls *TLS, a uintptr) int32 {
+	panic(todo(""))
+}
+
+func Xpthread_attr_getdetachstate(tls *TLS, a uintptr, state uintptr) int32 {
+	panic(todo(""))
+}
+
+func Xpthread_attr_setdetachstate(tls *TLS, a uintptr, state int32) int32 {
+	panic(todo(""))
+}
+
+func Xpthread_mutexattr_destroy(tls *TLS, a uintptr) int32 {
+	return 0
+}
+
+func Xpthread_mutexattr_init(tls *TLS, a uintptr) int32 {
+	*(*darwin_mutexattr_t)(unsafe.Pointer(a)) = darwin_mutexattr_t{}
+	return 0
+}
+
+func Xpthread_mutexattr_settype(tls *TLS, a uintptr, type1 int32) int32 {
+	if uint32(type1) > uint32(2) {
+		return errno.EINVAL
+	}
+	(*darwin_mutexattr_t)(unsafe.Pointer(a)).x[4] = byte(type1 << 2)
+	return 0
+}
+
+// ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+func Xwritev(t *TLS, fd int32, iov uintptr, iovcnt int32) types.Ssize_t {
+	// if dmesgs {
+	// 	dmesg("%v: fd %v iov %#x iovcnt %v", origin(1), fd, iov, iovcnt)
+	// }
+	r, _, err := unix.Syscall(unix.SYS_WRITEV, uintptr(fd), iov, uintptr(iovcnt))
+	if err != 0 {
+		if dmesgs {
+			dmesg("%v: %v FAIL", origin(1), err)
+		}
+		t.setErrno(err)
+		return -1
+	}
+
+	return types.Ssize_t(r)
+}
+
+// int pause(void);
+func Xpause(t *TLS) int32 {
+	c := make(chan os.Signal)
+	gosignal.Notify(c,
+		syscall.SIGABRT,
+		syscall.SIGALRM,
+		syscall.SIGBUS,
+		syscall.SIGCHLD,
+		syscall.SIGCONT,
+		syscall.SIGFPE,
+		syscall.SIGHUP,
+		syscall.SIGILL,
+		// syscall.SIGINT,
+		syscall.SIGIO,
+		syscall.SIGIOT,
+		syscall.SIGKILL,
+		syscall.SIGPIPE,
+		syscall.SIGPROF,
+		syscall.SIGQUIT,
+		syscall.SIGSEGV,
+		syscall.SIGSTOP,
+		syscall.SIGSYS,
+		syscall.SIGTERM,
+		syscall.SIGTRAP,
+		syscall.SIGTSTP,
+		syscall.SIGTTIN,
+		syscall.SIGTTOU,
+		syscall.SIGURG,
+		syscall.SIGUSR1,
+		syscall.SIGUSR2,
+		syscall.SIGVTALRM,
+		syscall.SIGWINCH,
+		syscall.SIGXCPU,
+		syscall.SIGXFSZ,
+	)
+	switch <-c {
+	case syscall.SIGINT:
+		panic(todo(""))
+	default:
+		t.setErrno(errno.EINTR)
+		return -1
+	}
+}
+
+// #define __DARWIN_FD_SETSIZE     1024
+// #define __DARWIN_NFDBITS        (sizeof(__int32_t) * __DARWIN_NBBY) /* bits per mask */
+// #define __DARWIN_NBBY           8                               /* bits in a byte */
+// #define __DARWIN_howmany(x, y)  ((((x) % (y)) == 0) ? ((x) / (y)) : (((x) / (y)) + 1)) /* # y's == x bits? */
+
+// typedef struct fd_set {
+//         __int32_t       fds_bits[__DARWIN_howmany(__DARWIN_FD_SETSIZE, __DARWIN_NFDBITS)];
+// } fd_set;
+
+// __darwin_fd_set(int _fd, struct fd_set *const _p)
+//
+//	{
+//	        (_p->fds_bits[(unsigned long)_fd / __DARWIN_NFDBITS] |= ((__int32_t)(((unsigned long)1) << ((unsigned long)_fd % __DARWIN_NFDBITS))));
+//	}
+func X__darwin_fd_set(tls *TLS, _fd int32, _p uintptr) int32 { /* main.c:12:1: */
+	*(*int32)(unsafe.Pointer(_p + uintptr(uint64(_fd)/(uint64(unsafe.Sizeof(int32(0)))*uint64(8)))*4)) |= int32(uint64(uint64(1)) << (uint64(_fd) % (uint64(unsafe.Sizeof(int32(0))) * uint64(8))))
+	return int32(0)
+}
+
+// __darwin_fd_isset(int _fd, const struct fd_set *_p)
+//
+//	{
+//	        return _p->fds_bits[(unsigned long)_fd / __DARWIN_NFDBITS] & ((__int32_t)(((unsigned long)1) << ((unsigned long)_fd % __DARWIN_NFDBITS)));
+//	}
+func X__darwin_fd_isset(tls *TLS, _fd int32, _p uintptr) int32 { /* main.c:17:1: */
+	return *(*int32)(unsafe.Pointer(_p + uintptr(uint64(_fd)/(uint64(unsafe.Sizeof(int32(0)))*uint64(8)))*4)) & int32(uint64(uint64(1))<<(uint64(_fd)%(uint64(unsafe.Sizeof(int32(0)))*uint64(8))))
+}
+
+// __darwin_fd_clr(int _fd, struct fd_set *const _p)
+//
+//	{
+//	        (_p->fds_bits[(unsigned long)_fd / __DARWIN_NFDBITS] &= ~((__int32_t)(((unsigned long)1) << ((unsigned long)_fd % __DARWIN_NFDBITS))));
+//	}
+func X__darwin_fd_clr(tls *TLS, _fd int32, _p uintptr) int32 { /* main.c:22:1: */
+	*(*int32)(unsafe.Pointer(_p + uintptr(uint64(_fd)/(uint64(unsafe.Sizeof(int32(0)))*uint64(8)))*4)) &= ^int32(uint64(uint64(1)) << (uint64(_fd) % (uint64(unsafe.Sizeof(int32(0))) * uint64(8))))
+	return int32(0)
+}
+
+// int ungetc(int c, FILE *stream);
+func Xungetc(t *TLS, c int32, stream uintptr) int32 {
+	panic(todo(""))
+}
+
+// int issetugid(void);
+func Xissetugid(t *TLS) int32 {
+	panic(todo(""))
+}
+
+var progname uintptr
+
+// const char *getprogname(void);
+func Xgetprogname(t *TLS) uintptr {
+	if progname != 0 {
+		return progname
+	}
+
+	var err error
+	progname, err = CString(filepath.Base(os.Args[0]))
+	if err != nil {
+		t.setErrno(err)
+		return 0
+	}
+
+	return progname
+}
+
+// void uuid_copy(uuid_t dst, uuid_t src);
+func Xuuid_copy(t *TLS, dst, src uintptr) {
+	*(*uuid.Uuid_t)(unsafe.Pointer(dst)) = *(*uuid.Uuid_t)(unsafe.Pointer(src))
+}
+
+// int uuid_parse( char *in, uuid_t uu);
+func Xuuid_parse(t *TLS, in uintptr, uu uintptr) int32 {
+	r, err := guuid.Parse(GoString(in))
+	if err != nil {
+		return -1
+	}
+
+	copy((*RawMem)(unsafe.Pointer(uu))[:unsafe.Sizeof(uuid.Uuid_t{})], r[:])
+	return 0
+}
+
+// struct __float2 { float __sinval; float __cosval; };
+
+// struct __float2 __sincosf_stret(float);
+func X__sincosf_stret(t *TLS, f float32) struct{ F__sinval, F__cosval float32 } {
+	panic(todo(""))
+}
+
+// struct __double2 { double __sinval; double __cosval; };
+
+// struct __double2 __sincos_stret(double);
+func X__sincos_stret(t *TLS, f float64) struct{ F__sinval, F__cosval float64 } {
+	panic(todo(""))
+}
+
+// struct __float2 __sincospif_stret(float);
+func X__sincospif_stret(t *TLS, f float32) struct{ F__sinval, F__cosval float32 } {
+	panic(todo(""))
+}
+
+// struct _double2 __sincospi_stret(double);
+func X__sincospi_stret(t *TLS, f float64) struct{ F__sinval, F__cosval float64 } {
+	panic(todo(""))
+}
+
+// int	__srget(FILE *);
+func X__srget(t *TLS, f uintptr) int32 {
+	panic(todo(""))
+}
+
+// int	__svfscanf(FILE *, const char *, va_list) __scanflike(2, 0);
+func X__svfscanf(t *TLS, f uintptr, p, q uintptr) int32 {
+	panic(todo(""))
+}
+
+// int	__swbuf(int, FILE *);
+func X__swbuf(t *TLS, i int32, f uintptr) int32 {
+	panic(todo(""))
 }

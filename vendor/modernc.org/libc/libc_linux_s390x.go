@@ -14,7 +14,6 @@ import (
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/signal"
 	"modernc.org/libc/sys/types"
-	"modernc.org/libc/uuid/uuid"
 )
 
 // int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
@@ -139,17 +138,19 @@ func Xmmap(t *TLS, addr uintptr, length types.Size_t, prot, flags, fd int32, off
 
 // void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 func Xmmap64(t *TLS, addr uintptr, length types.Size_t, prot, flags, fd int32, offset types.Off_t) uintptr {
-	data, _, err := unix.Syscall6(unix.SYS_MMAP, addr, uintptr(length), uintptr(prot), uintptr(flags), uintptr(fd), uintptr(offset))
+	// https://github.com/golang/go/blob/7d822af4500831d131562f17dcf53374469d823e/src/syscall/syscall_linux_s390x.go#L77
+	args := [6]uintptr{addr, uintptr(length), uintptr(prot), uintptr(flags), uintptr(fd), uintptr(offset)}
+	data, _, err := unix.Syscall(unix.SYS_MMAP, uintptr(unsafe.Pointer(&args[0])), 0, 0)
 	if err != 0 {
 		// if dmesgs {
-		// 	dmesg("%v: %v", origin(1), err)
+		// 	dmesg("%v: addr %#x, length %#x, prot %#x, flags %#x, fd %v, offset %#x: %v", origin(1), addr, length, prot, flags, fd, offset, err)
 		// }
 		t.setErrno(err)
 		return ^uintptr(0) // (void*)-1
 	}
 
 	// if dmesgs {
-	// 	dmesg("%v: %#x", origin(1), data)
+	// 	dmesg("%v: addr %#x, length %#x, prot %#x, flags %#x, fd %v, offset %#x: ok", origin(1), addr, length, prot, flags, fd, offset)
 	// }
 	return data
 }
@@ -451,22 +452,7 @@ func Xfopen64(t *TLS, pathname, mode uintptr) uintptr {
 	return 0
 }
 
-// void uuid_generate_random(uuid_t out);
-func Xuuid_generate_random(t *TLS, out uuid.Uuid_t) {
-	panic(todo(""))
-}
-
-// void uuid_unparse(uuid_t uu, char *out);
-func Xuuid_unparse(t *TLS, uu uuid.Uuid_t, out uintptr) {
-	panic(todo(""))
-}
-
-// int uuid_parse( char *in, uuid_t uu);
-func Xuuid_parse(t *TLS, in uintptr, uu uuid.Uuid_t) int32 {
-	panic(todo(""))
-}
-
-//TODO-
+// TODO-
 func __syscall1(t *TLS, trap, p1 long) long {
 	return __syscall(unix.Syscall(uintptr(trap), uintptr(p1), 0, 0))
 }

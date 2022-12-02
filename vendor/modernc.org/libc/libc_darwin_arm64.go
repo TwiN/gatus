@@ -6,6 +6,7 @@ package libc // import "modernc.org/libc"
 
 import (
 	"strings"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -48,7 +49,7 @@ func Xfcntl64(t *TLS, fd, cmd int32, args uintptr) (r int32) {
 	var p uintptr
 	var i int
 	switch cmd {
-	case fcntl.F_GETLK, fcntl.F_SETLK:
+	case fcntl.F_GETLK, fcntl.F_SETLK, fcntl.F_SETLKW:
 		p = *(*uintptr)(unsafe.Pointer(args))
 		err = unix.FcntlFlock(uintptr(fd), int(cmd), (*unix.Flock_t)(unsafe.Pointer(p)))
 	case fcntl.F_GETFL, fcntl.F_FULLFSYNC:
@@ -206,12 +207,11 @@ func Xalarm(t *TLS, seconds uint32) uint32 {
 
 // time_t time(time_t *tloc);
 func Xtime(t *TLS, tloc uintptr) types.Time_t {
-	panic(todo(""))
-	// n := time.Now().UTC().Unix()
-	// if tloc != 0 {
-	// 	*(*types.Time_t)(unsafe.Pointer(tloc)) = types.Time_t(n)
-	// }
-	// return types.Time_t(n)
+	n := time.Now().UTC().Unix()
+	if tloc != 0 {
+		*(*types.Time_t)(unsafe.Pointer(tloc)) = types.Time_t(n)
+	}
+	return types.Time_t(n)
 }
 
 // // int getrlimit(int resource, struct rlimit *rlim);
@@ -366,13 +366,12 @@ func Xchown(t *TLS, pathname uintptr, owner types.Uid_t, group types.Gid_t) int3
 
 // int link(const char *oldpath, const char *newpath);
 func Xlink(t *TLS, oldpath, newpath uintptr) int32 {
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_LINK, oldpath, newpath, 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if _, _, err := unix.Syscall(unix.SYS_LINK, oldpath, newpath, 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return 0
+	return 0
 }
 
 // int dup2(int oldfd, int newfd);

@@ -157,6 +157,7 @@ const (
 	X_ERRNO_H                  = 1
 	X_FEATURES_H               = 1
 	X_FILE_OFFSET_BITS         = 64
+	X_ILP32                    = 1
 	X_POSIX_C_SOURCE           = 200809
 	X_POSIX_SOURCE             = 1
 	X_STDC_PREDEF_H            = 1
