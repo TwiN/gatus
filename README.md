@@ -1335,9 +1335,8 @@ By prefixing `endpoints[].url` with `udp:\\`, you can monitor UDP endpoints at a
 
 ```yaml
 endpoints:
-  - name: iper server
-    url: "udp://127.0.0.1:12345"
-    interval: 30s
+  - name: example
+    url: "udp://example.org:80"
     conditions:
       - "[CONNECTED] == true"
 ```
@@ -1348,13 +1347,12 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `
 This works for UDP based application.
 
 ### Monitoring a SCTP endpoint
-By prefixing `endpoints[].url` with `sctp:\\`, you can monitor TCP endpoints at a very basic level:
+By prefixing `endpoints[].url` with `sctp:\\`, you can monitor Stream Control Transmission Protocol (SCTP) endpoints at a very basic level:
 
 ```yaml
 endpoints:
-  - name: amf
+  - name: example
     url: "sctp://127.0.0.1:38412"
-    interval: 30s
     conditions:
       - "[CONNECTED] == true"
 ```
@@ -1386,7 +1384,6 @@ Defining a `dns` configuration in an endpoint will automatically mark said endpo
 endpoints:
   - name: example-dns-query
     url: "8.8.8.8" # Address of the DNS server to use
-    interval: 30s
     dns:
       query-name: "example.com"
       query-type: "A"
