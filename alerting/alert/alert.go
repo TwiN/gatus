@@ -17,6 +17,8 @@ type Alert struct {
 
 	// Enabled defines whether the alert is enabled
 	//
+	// Use Alert.IsEnabled() to retrieve the value of this field.
+	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.
 	Enabled *bool `yaml:"enabled,omitempty"`
@@ -77,10 +79,10 @@ func (alert Alert) GetDescription() string {
 }
 
 // IsEnabled returns whether an alert is enabled or not
+// Returns true if not set
 func (alert Alert) IsEnabled() bool {
 	if alert.Enabled == nil {
-		// TODO: Default to true in v5.0.0 (unless default-alert.enabled is set to false)
-		return false
+		return true
 	}
 	return *alert.Enabled
 }

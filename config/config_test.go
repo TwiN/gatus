@@ -448,26 +448,21 @@ endpoints:
     url: https://twin.sh/health
     alerts:
       - type: slack
-        enabled: true
       - type: pagerduty
-        enabled: true
         failure-threshold: 7
         success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
       - type: mattermost
-        enabled: true
       - type: messagebird
+        enabled: false
       - type: discord
-        enabled: true
         failure-threshold: 10
       - type: telegram
         enabled: true
       - type: twilio
-        enabled: true
         failure-threshold: 12
         success-threshold: 15
       - type: teams
-        enabled: true
     conditions:
       - "[STATUS] == 200"
 `))

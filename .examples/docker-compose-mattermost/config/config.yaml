@@ -7,10 +7,9 @@ endpoints:
   - name: example
     url: https://example.org
     interval: 1m
-    alerts:
-      - type: mattermost
-        enabled: true
-        description: "health check failed 3 times in a row"
-        send-on-resolved: true
     conditions:
       - "[STATUS] == 200"
+    alerts:
+      - type: mattermost
+        description: "health check failed 3 times in a row"
+        send-on-resolved: true

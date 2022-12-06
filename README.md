@@ -179,7 +179,7 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                               | `""`                       |
 | `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                                      | `""`                       |
 | `endpoints[].alerts[].type`                     | Type of alert. <br />Valid types: `slack`, `discord`, `email`, `googlechat`, `pagerduty`, `twilio`, `mattermost`, `messagebird`, `teams` `custom`. | Required `""`              |
-| `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                       | `false`                    |
+| `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                       | `true`                     |
 | `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                                    | `3`                        |
 | `endpoints[].alerts[].success-threshold`        | Number of successes in a row before an ongoing incident is marked as resolved.                                                                     | `2`                        |
 | `endpoints[].alerts[].send-on-resolved`         | Whether to send a notification once a triggered alert is marked as resolved.                                                                       | `false`                    |
@@ -410,7 +410,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: discord
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 ```
@@ -457,7 +456,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: email
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 
@@ -470,7 +468,6 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: email
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 ```
@@ -505,7 +502,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: googlechat
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 ```
@@ -537,7 +533,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: matrix
-        enabled: true
         send-on-resolved: true
         description: "healthcheck failed"
 ```
@@ -571,7 +566,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: mattermost
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 ```
@@ -608,7 +602,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: messagebird
-        enabled: true
         failure-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed"
@@ -634,7 +627,6 @@ alerting:
     topic: "gatus-test-topic"
     priority: 2
     default-alert:
-      enabled: true
       failure-threshold: 3
       send-on-resolved: true
 
@@ -711,7 +703,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: pagerduty
-        enabled: true
         failure-threshold: 3
         success-threshold: 5
         send-on-resolved: true
@@ -726,7 +717,6 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: pagerduty
-        enabled: true
         failure-threshold: 3
         success-threshold: 5
         send-on-resolved: true
@@ -758,11 +748,9 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: slack
-        enabled: true
         description: "healthcheck failed 3 times in a row"
         send-on-resolved: true
       - type: slack
-        enabled: true
         failure-threshold: 5
         description: "healthcheck failed 5 times in a row"
         send-on-resolved: true
@@ -804,7 +792,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: teams
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 
@@ -817,7 +804,6 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: teams
-        enabled: true
         description: "healthcheck failed"
         send-on-resolved: true
 ```
@@ -852,7 +838,6 @@ endpoints:
       - "[BODY].status == UP"
     alerts:
       - type: telegram
-        enabled: true
         send-on-resolved: true
 ```
 
@@ -889,7 +874,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: twilio
-        enabled: true
         failure-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
@@ -945,7 +929,6 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: custom
-        enabled: true
         failure-threshold: 10
         success-threshold: 3
         send-on-resolved: true
@@ -985,7 +968,6 @@ alerting:
   slack:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
     default-alert:
-      enabled: true
       description: "health check failed"
       send-on-resolved: true
       failure-threshold: 5
@@ -1032,12 +1014,10 @@ alerting:
   slack:
     webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
     default-alert:
-      enabled: true
       failure-threshold: 3
   pagerduty:
     integration-key: "********************************"
     default-alert:
-      enabled: true
       failure-threshold: 5
 
 endpoints:
