@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -59,6 +60,9 @@ var (
 
 	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
+
+	// ErrInvalidConditionFormat is the error with which Gatus will panic if a condition has an invalid format
+	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '<VALUE> <COMPARATOR> <VALUE>'")
 
 	// ErrInvalidEndpointIntervalForDomainExpirationPlaceholder is the error with which Gatus will panic if an endpoint
 	// has both an interval smaller than 5 minutes and a condition with DomainExpirationPlaceholder.
@@ -202,11 +206,12 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if len(endpoint.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
 	}
-	if endpoint.Interval < 5*time.Minute {
-		for _, condition := range endpoint.Conditions {
-			if condition.hasDomainExpirationPlaceholder() {
-				return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
-			}
+	for _, c := range endpoint.Conditions {
+		if endpoint.Interval < 5*time.Minute && c.hasDomainExpirationPlaceholder() {
+			return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
+		}
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
 	if endpoint.DNS != nil {
