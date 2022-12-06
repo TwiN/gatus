@@ -974,6 +974,8 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 | `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
 | `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A     |
 
+> ⚠ You must still specify the `type` of the alert in the endpoint configuration even if you set the default alert of a provider.
+
 While you can specify the alert configuration directly in the endpoint definition, it's tedious and may lead to a very
 long configuration file.
 
