@@ -346,7 +346,9 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 		Conditions: []Condition{Condition("[STATUS] == 200")},
 		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
 	}
-	endpoint.ValidateAndSetDefaults()
+	if err := endpoint.ValidateAndSetDefaults(); err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
 	if endpoint.ClientConfig == nil {
 		t.Error("client configuration should've been set to the default configuration")
 	} else {
@@ -380,6 +382,17 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	}
 	if endpoint.Alerts[0].FailureThreshold != 3 {
 		t.Error("Endpoint alert should've defaulted to a failure threshold of 3")
+	}
+}
+
+func TestEndpoint_ValidateAndSetDefaultsWithInvalidCondition(t *testing.T) {
+	endpoint := Endpoint{
+		Name:       "invalid-condition",
+		URL:        "https://twin.sh/health",
+		Conditions: []Condition{"[STATUS] invalid 200"},
+	}
+	if err := endpoint.ValidateAndSetDefaults(); err == nil {
+		t.Error("endpoint validation should've returned an error, but didn't")
 	}
 }
 
@@ -602,26 +615,6 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 	}
 	if result.Hostname != "twin.sh" {
 		t.Error("result.Hostname should've been twin.sh, but was", result.Hostname)
-	}
-}
-
-func TestIntegrationEvaluateHealthWithInvalidCondition(t *testing.T) {
-	condition := Condition("[STATUS] invalid 200")
-	endpoint := Endpoint{
-		Name:       "invalid-condition",
-		URL:        "https://twin.sh/health",
-		Conditions: []Condition{condition},
-	}
-	if err := endpoint.ValidateAndSetDefaults(); err != nil {
-		// XXX: Should this really not return an error? After all, the condition is not valid and conditions are part of the endpoint...
-		t.Error("endpoint validation should've been successful, but wasn't")
-	}
-	result := endpoint.EvaluateHealth()
-	if result.Success {
-		t.Error("Because one of the conditions was invalid, result.Success should have been false")
-	}
-	if len(result.Errors) == 0 {
-		t.Error("There should've been an error")
 	}
 }
 

@@ -1,10 +1,47 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
 )
+
+func TestCondition_Validate(t *testing.T) {
+	scenarios := []struct {
+		condition   Condition
+		expectedErr error
+	}{
+		{condition: "[STATUS] == 200", expectedErr: nil},
+		{condition: "[STATUS] != 200", expectedErr: nil},
+		{condition: "[STATUS] <= 200", expectedErr: nil},
+		{condition: "[STATUS] >= 200", expectedErr: nil},
+		{condition: "[STATUS] < 200", expectedErr: nil},
+		{condition: "[STATUS] > 200", expectedErr: nil},
+		{condition: "[STATUS] == any(200, 201, 202, 203)", expectedErr: nil},
+		{condition: "[STATUS] == [BODY].status", expectedErr: nil},
+		{condition: "[BODY].test == wat", expectedErr: nil},
+		{condition: "[BODY].test == wat", expectedErr: nil},
+		{condition: "[BODY].test.wat == wat", expectedErr: nil},
+		{condition: "[BODY].users[0].id == 1", expectedErr: nil},
+		{condition: "len([BODY].users) == 100", expectedErr: nil},
+		{condition: "has([BODY].users[0].name) == 100", expectedErr: nil},
+		{condition: "raw == raw", expectedErr: nil},
+		{condition: "[STATUS] ? 201", expectedErr: errors.New("invalid condition: [STATUS] ? 201")},
+		{condition: "[STATUS]==201", expectedErr: errors.New("invalid condition: [STATUS]==201")},
+		{condition: "[STATUS] = = 201", expectedErr: errors.New("invalid condition: [STATUS] = = 201")},
+		// FIXME: Should return an error, but doesn't because jsonpath isn't evaluated due to body being empty in Condition.Validate()
+		//{condition: "len([BODY].users == 100", expectedErr: nil},
+	}
+	for _, scenario := range scenarios {
+		t.Run(string(scenario.condition), func(t *testing.T) {
+			if err := scenario.condition.Validate(); fmt.Sprint(err) != fmt.Sprint(scenario.expectedErr) {
+				t.Errorf("expected err %v, got %v", scenario.expectedErr, err)
+			}
+		})
+	}
+}
 
 func TestCondition_evaluate(t *testing.T) {
 	scenarios := []struct {
