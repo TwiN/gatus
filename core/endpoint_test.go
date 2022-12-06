@@ -372,8 +372,8 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	if len(endpoint.Alerts) != 1 {
 		t.Error("Endpoint should've had 1 alert")
 	}
-	if endpoint.Alerts[0].IsEnabled() {
-		t.Error("Endpoint alert should've defaulted to disabled")
+	if !endpoint.Alerts[0].IsEnabled() {
+		t.Error("Endpoint alert should've defaulted to true")
 	}
 	if endpoint.Alerts[0].SuccessThreshold != 2 {
 		t.Error("Endpoint alert should've defaulted to a success threshold of 2")
