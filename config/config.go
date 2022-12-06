@@ -68,14 +68,6 @@ type Config struct {
 	// Endpoints List of endpoints to monitor
 	Endpoints []*core.Endpoint `yaml:"endpoints,omitempty"`
 
-	// Services List of endpoints to monitor
-	//
-	// XXX: Remove this in v5.0.0
-	// XXX: This is not a typo -- not v4.0.0, but v5.0.0 -- I want to give enough time for people to migrate
-	//
-	// Deprecated in favor of Endpoints
-	Services []*core.Endpoint `yaml:"services,omitempty"`
-
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
 
@@ -172,12 +164,6 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Parse configuration file
 	if err = yaml.Unmarshal(yamlBytes, &config); err != nil {
 		return
-	}
-	if config != nil && len(config.Services) > 0 { // XXX: Remove this in v5.0.0
-		log.Println("WARNING: Your configuration is using 'services:', which is deprecated in favor of 'endpoints:'.")
-		log.Println("WARNING: See https://github.com/TwiN/gatus/issues/191 for more information")
-		config.Endpoints = append(config.Endpoints, config.Services...)
-		config.Services = nil
 	}
 	// Check if the configuration file at least has endpoints configured
 	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
