@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v4/jsonpath"
-	"github.com/TwiN/gatus/v4/pattern"
+	"github.com/TwiN/gatus/v5/jsonpath"
+	"github.com/TwiN/gatus/v5/pattern"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
 	IPPlaceholder = "[IP]"
 
-	// DNSRCodePlaceholder is a place holder for DNS_RCODE
+	// DNSRCodePlaceholder is a placeholder for DNS_RCODE
 	//
 	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
 	DNSRCodePlaceholder = "[DNS_RCODE]"

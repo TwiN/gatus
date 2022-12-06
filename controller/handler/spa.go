@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/TwiN/gatus/v4/config/ui"
-	"github.com/TwiN/gatus/v4/web"
+	"github.com/TwiN/gatus/v5/config/ui"
+	static "github.com/TwiN/gatus/v5/web"
 )
 
 func SinglePageApplication(ui *ui.Config) http.HandlerFunc {

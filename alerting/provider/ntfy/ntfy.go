@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 const (

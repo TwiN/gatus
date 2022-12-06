@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TwiN/gatus/v4/config"
+	"github.com/TwiN/gatus/v5/config"
 )
 
 func TestCreateRouter(t *testing.T) {

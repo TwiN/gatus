@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/TwiN/gatus/v4/config"
-	"github.com/TwiN/gatus/v4/controller"
-	"github.com/TwiN/gatus/v4/storage/store"
-	"github.com/TwiN/gatus/v4/watchdog"
+	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/controller"
+	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/watchdog"
 )
 
 func main() {
@@ -66,7 +66,7 @@ func loadConfiguration() (cfg *config.Config, err error) {
 //
 // Q: "TwiN, why are you putting this here? Wouldn't it make more sense to have this in the config?!"
 // A: Yes. Yes it would make more sense to have it in the config package. But I don't want to import
-//    the massive SQL dependencies just because I want to import the config, so here we are.
+// the massive SQL dependencies just because I want to import the config, so here we are.
 func initializeStorage(cfg *config.Config) {
 	err := store.Initialize(cfg.Storage)
 	if err != nil {
