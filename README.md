@@ -1672,7 +1672,7 @@ No such header is required to query the API.
 
 
 ### High level design overview
-![Gatus diagram](.github/assets/gatus-diagram.png)
+![Gatus diagram](.github/assets/gatus-diagram.jpg)
 
 
 ## Sponsors
