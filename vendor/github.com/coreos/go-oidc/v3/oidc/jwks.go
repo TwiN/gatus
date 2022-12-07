@@ -2,6 +2,9 @@ package oidc
 
 import (
 	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +14,35 @@ import (
 
 	jose "gopkg.in/square/go-jose.v2"
 )
+
+// StaticKeySet is a verifier that validates JWT against a static set of public keys.
+type StaticKeySet struct {
+	// PublicKeys used to verify the JWT. Supported types are *rsa.PublicKey and
+	// *ecdsa.PublicKey.
+	PublicKeys []crypto.PublicKey
+}
+
+// VerifySignature compares the signature against a static set of public keys.
+func (s *StaticKeySet) VerifySignature(ctx context.Context, jwt string) ([]byte, error) {
+	jws, err := jose.ParseSigned(jwt)
+	if err != nil {
+		return nil, fmt.Errorf("parsing jwt: %v", err)
+	}
+	for _, pub := range s.PublicKeys {
+		switch pub.(type) {
+		case *rsa.PublicKey:
+		case *ecdsa.PublicKey:
+		default:
+			return nil, fmt.Errorf("invalid public key type provided: %T", pub)
+		}
+		payload, err := jws.Verify(pub)
+		if err != nil {
+			continue
+		}
+		return payload, nil
+	}
+	return nil, fmt.Errorf("no public keys able to verify jwt")
+}
 
 // NewRemoteKeySet returns a KeySet that can validate JSON web tokens by using HTTP
 // GETs to fetch JSON web token sets hosted at a remote URL. This is automatically
@@ -81,15 +113,23 @@ func (i *inflight) result() ([]jose.JSONWebKey, error) {
 	return i.keys, i.err
 }
 
+// paresdJWTKey is a context key that allows common setups to avoid parsing the
+// JWT twice. It holds a *jose.JSONWebSignature value.
+var parsedJWTKey contextKey
+
 // VerifySignature validates a payload against a signature from the jwks_uri.
 //
 // Users MUST NOT call this method directly and should use an IDTokenVerifier
 // instead. This method skips critical validations such as 'alg' values and is
 // only exported to implement the KeySet interface.
 func (r *RemoteKeySet) VerifySignature(ctx context.Context, jwt string) ([]byte, error) {
-	jws, err := jose.ParseSigned(jwt)
-	if err != nil {
-		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
+	jws, ok := ctx.Value(parsedJWTKey).(*jose.JSONWebSignature)
+	if !ok {
+		var err error
+		jws, err = jose.ParseSigned(jwt)
+		if err != nil {
+			return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
+		}
 	}
 	return r.verify(ctx, jws)
 }
