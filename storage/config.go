@@ -25,6 +25,9 @@ type Config struct {
 	// as they happen, also known as the write-through caching strategy.
 	// Does not apply if Config.Type is not TypePostgres or TypeSQLite.
 	Caching bool `yaml:"caching,omitempty"`
+
+	// uptimeRetention 
+	UptimeRetention string `yaml:"uptime-retention"`
 }
 
 // ValidateAndSetDefaults validates the configuration and sets the default values (if applicable)
