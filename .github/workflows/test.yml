@@ -8,6 +8,7 @@ on:
       - master
     paths-ignore:
       - '*.md'
+      - '.github/*'
 jobs:
   test:
     runs-on: ubuntu-latest
