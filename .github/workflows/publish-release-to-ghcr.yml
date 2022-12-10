@@ -2,6 +2,7 @@ name: publish-release-to-ghcr
 on:
   release:
     types: [published]
+  workflow_dispatch: {}
 jobs:
   publish-release-to-ghcr:
     runs-on: ubuntu-latest
