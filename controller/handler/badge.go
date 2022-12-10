@@ -33,6 +33,31 @@ var (
 	badgeColors = []string{badgeColorHexAwesome, badgeColorHexGreat, badgeColorHexGood, badgeColorHexPassable, badgeColorHexBad}
 )
 
+var (
+	whiteList map[string]interface{}
+)
+
+func init() {
+	whiteList = map[string]interface{}{
+		"1h":  nil,
+		"24h": nil,
+		"7d":  nil,
+		"1m":  nil,
+		"3m":  nil,
+		"6m":  nil,
+		"1y":  nil,
+	}
+}
+
+func writeSVG(writer http.ResponseWriter, svg []byte) {
+	writer.Header().Set("Content-Type", "image/svg+xml")
+	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writer.Header().Set("Expires", "0")
+	writer.WriteHeader(http.StatusOK)
+
+	_, _ = writer.Write(svg)
+}
+
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Duration should be in the form of a number with date marker, e.g. 6h,2d,3m,1y
@@ -40,9 +65,20 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
 
+	if _, exists := whiteList[duration]; !exists {
+		http.Error(writer, "not valid duration", http.StatusBadRequest)
+		return
+	}
+
 	from, err := parseFromTime(duration)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	svg, exists := cache.Get(fmt.Sprintf("badge-uptime-%s", duration))
+	if exists {
+		writeSVG(writer, svg.([]byte))
 		return
 	}
 
@@ -58,11 +94,9 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Expires", "0")
-	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(generateUptimeBadgeSVG(duration, uptime))
+	svg = generateUptimeBadgeSVG(duration, uptime)
+	cache.SetWithTTL(fmt.Sprintf("badge-uptime-%s", duration), svg, cacheTTL)
+	writeSVG(writer, svg.([]byte))
 }
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
