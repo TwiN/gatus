@@ -1580,7 +1580,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` has the pattern `<LENGTH>_<DATE_MARKER>`, e.g. 6h,2d,3m,1y
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,

@@ -35,22 +35,17 @@ var (
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for {duration}: 7d, 24h, 1h
+// Duration should be in the form of a number with date marker, e.g. 6h,2d,3m,1y
 func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	variables := mux.Vars(request)
 	duration := variables["duration"]
-	var from time.Time
-	switch duration {
-	case "7d":
-		from = time.Now().Add(-7 * 24 * time.Hour)
-	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
-	case "1h":
-		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
-	default:
-		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
+
+	from, err := parseFromTime(duration)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	key := variables["key"]
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
@@ -72,21 +67,14 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for {duration}: 7d, 24h, 1h
+// Duration should be in the form of a number with date marker, e.g. 6h,2d,3m,1y
 func ResponseTimeBadge(config *config.Config) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		variables := mux.Vars(request)
 		duration := variables["duration"]
-		var from time.Time
-		switch duration {
-		case "7d":
-			from = time.Now().Add(-7 * 24 * time.Hour)
-		case "24h":
-			from = time.Now().Add(-24 * time.Hour)
-		case "1h":
-			from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
-		default:
-			http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
+		from, err := parseFromTime(duration)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
 		key := variables["key"]
@@ -140,17 +128,47 @@ func HealthBadge(writer http.ResponseWriter, request *http.Request) {
 	_, _ = writer.Write(generateHealthBadgeSVG(healthStatus))
 }
 
+// parseFromTime parse duration to from time
+//
+// Duration should be in the form of a number with date marker, e.g. 6h,2d,3m,1y
+func parseFromTime(duration string) (from time.Time, err error) {
+	if len(duration) < 2 {
+		return time.Time{}, fmt.Errorf("bad format for duration, length is too short")
+	}
+	numberString := duration[:len(duration)-1]
+	dateMarker := duration[len(duration)-1:]
+
+	number, err := strconv.Atoi(numberString)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("bad format for duration, err = %s", err)
+	}
+	if number <= 0 {
+		return time.Time{}, fmt.Errorf("duration should be greater than 0")
+	}
+
+	switch dateMarker {
+	case "h":
+		from = time.Now().Add(-time.Duration(number) * time.Hour)
+	case "d":
+		from = time.Now().AddDate(0, 0, -number)
+	case "m":
+		from = time.Now().AddDate(0, -number, 0)
+	case "y":
+		from = time.Now().AddDate(-number, 0, 0)
+	default:
+		return time.Time{}, fmt.Errorf("bad format for duration, unsupported date marker")
+	}
+
+	from = from.Add(-time.Hour) // Because uptime/response metrics are stored by hour, we have to cheat a little
+
+	return
+}
+
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
-	switch duration {
-	case "7d":
-		labelWidth = 65
-	case "24h":
-		labelWidth = 70
-	case "1h":
-		labelWidth = 65
-	default:
-	}
+
+	labelWidth = 55 + len(duration)*5
+
 	color := getBadgeColorFromUptime(uptime)
 	sanitizedValue := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", uptime*100), "0"), ".") + "%"
 	if strings.Contains(sanitizedValue, ".") {
@@ -208,15 +226,9 @@ func getBadgeColorFromUptime(uptime float64) string {
 
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
 	var labelWidth, valueWidth int
-	switch duration {
-	case "7d":
-		labelWidth = 105
-	case "24h":
-		labelWidth = 110
-	case "1h":
-		labelWidth = 105
-	default:
-	}
+
+	labelWidth = 95 + len(duration)*5
+
 	color := getBadgeColorFromResponseTime(averageResponseTime, key, cfg)
 	sanitizedValue := strconv.Itoa(averageResponseTime) + "ms"
 	valueWidth = len(sanitizedValue) * 11
