@@ -2,13 +2,9 @@ name: publish-release-to-ghcr
 on:
   release:
     types: [published]
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
 jobs:
   publish-release-to-ghcr:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
