@@ -980,11 +980,8 @@ endpoints:
 	if config.Alerting == nil {
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
-	if config.Alerting.PagerDuty == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
-	}
-	if config.Alerting.PagerDuty.IsValid() {
-		t.Fatal("PagerDuty alerting config should've been invalid")
+	if config.Alerting.PagerDuty != nil {
+		t.Fatal("PagerDuty alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
 

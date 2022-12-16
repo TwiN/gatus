@@ -1,6 +1,9 @@
 package alerting
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
@@ -153,4 +156,18 @@ func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provid
 		return config.Twilio
 	}
 	return nil
+}
+
+// SetAlertingProviderToNil Sets an alerting provider to nil to avoid having to revalidate it every time an
+// alert of its corresponding type is sent.
+func (config *Config) SetAlertingProviderToNil(p provider.AlertProvider) {
+	fmt.Println(config.GitHub)
+	entityType := reflect.TypeOf(config).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		if field.Type == reflect.TypeOf(p) {
+			fmt.Println("Setting", field.Name, "to nil")
+			reflect.ValueOf(config).Elem().Field(i).Set(reflect.Zero(field.Type))
+		}
+	}
 }
