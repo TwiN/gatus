@@ -44,6 +44,7 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
+    - [Configuring GitHub alerts](#configuring-github-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -371,6 +372,7 @@ ignored.
 | `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`    |
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
 | `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
+| `alerting.github`      | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                | `{}`    |
 | `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
 | `alerting.matrix`      | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
@@ -385,7 +387,6 @@ ignored.
 
 
 #### Configuring Discord alerts
-
 | Parameter                                  | Description                                                                                | Default       |
 |:-------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.discord`                         | Configuration for alerts of type `discord`                                                 | `{}`          |
@@ -416,7 +417,6 @@ endpoints:
 
 
 #### Configuring Email alerts
-
 | Parameter                          | Description                                                                                | Default       |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.email`                   | Configuration for alerts of type `email`                                                   | `{}`          |
@@ -475,8 +475,44 @@ endpoints:
 **NOTE:** Some mail servers are painfully slow.
 
 
-#### Configuring Google Chat alerts
+#### Configuring GitHub alerts
+| Parameter                        | Description                                                                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
+| `alerting.github.repository-url` | GitHub repository URL (e.g. `https://github.com/TwiN/example`)                                             | Required `""` |
+| `alerting.github.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
+| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
 
+The GitHub alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
+name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
+closed when the alert is resolved.
+
+```yaml
+alerting:
+  github:
+    repository-url: "https://github.com/TwiN/test"
+    token: "github_pat_12345..."
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: github
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
+```
+
+![GitHub alert](.github/assets/github-alerts.png)
+
+
+#### Configuring Google Chat alerts
 | Parameter                                     | Description                                                                                 | Default       |
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
@@ -485,7 +521,7 @@ endpoints:
 | `alerting.googlechat.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.googlechat.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
 | `alerting.googlechat.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
-| `alerting.googlechat.overrides[].webhook-url` | Teams Webhook URL                                                                           | `""`          |
+| `alerting.googlechat.overrides[].webhook-url` | Google Chat Webhook URL                                                                     | `""`          |
 
 ```yaml
 alerting:

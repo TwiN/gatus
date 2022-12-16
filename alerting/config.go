@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -28,14 +29,17 @@ type Config struct {
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
-	// GoogleChat is the configuration for the Google chat alerting provider
-	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
-
 	// Discord is the configuration for the discord alerting provider
 	Discord *discord.AlertProvider `yaml:"discord,omitempty"`
 
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
+
+	// GitHub is the configuration for the github alerting provider
+	GitHub *github.AlertProvider `yaml:"github,omitempty"`
+
+	// GoogleChat is the configuration for the googlechat alerting provider
+	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
 
 	// Matrix is the configuration for the matrix alerting provider
 	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`

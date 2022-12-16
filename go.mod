@@ -15,11 +15,16 @@ require (
 	github.com/miekg/dns v1.1.50
 	github.com/prometheus/client_golang v1.14.0
 	github.com/wcharczuk/go-chart/v2 v2.1.0
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	modernc.org/sqlite v1.19.5
+)
+
+require (
+	github.com/google/go-github/v48 v48.2.0
+	github.com/google/go-querystring v1.1.0 // indirect
 )
 
 require (
