@@ -323,6 +323,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 			} else {
 				log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
 				invalidProviders = append(invalidProviders, alertType)
+				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
 		} else {
 			invalidProviders = append(invalidProviders, alertType)
