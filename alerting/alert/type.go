@@ -14,6 +14,9 @@ const (
 	// TypeEmail is the Type for the email alerting provider
 	TypeEmail Type = "email"
 
+	// TypeGitHub is the Type for the github alerting provider
+	TypeGitHub Type = "github"
+
 	// TypeGoogleChat is the Type for the googlechat alerting provider
 	TypeGoogleChat Type = "googlechat"
 
