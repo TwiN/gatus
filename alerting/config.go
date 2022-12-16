@@ -1,8 +1,9 @@
 package alerting
 
 import (
-	"fmt"
+	"log"
 	"reflect"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
@@ -68,93 +69,19 @@ type Config struct {
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
-func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provider.AlertProvider {
-	switch alertType {
-	case alert.TypeCustom:
-		if config.Custom == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
+func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provider.AlertProvider {
+	entityType := reflect.TypeOf(config).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		if strings.ToLower(field.Name) == string(alertType) {
+			fieldValue := reflect.ValueOf(config).Elem().Field(i)
+			if fieldValue.IsNil() {
+				return nil
+			}
+			return fieldValue.Interface().(provider.AlertProvider)
 		}
-		return config.Custom
-	case alert.TypeDiscord:
-		if config.Discord == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Discord
-	case alert.TypeEmail:
-		if config.Email == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Email
-	case alert.TypeGoogleChat:
-		if config.GoogleChat == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.GoogleChat
-	case alert.TypeMatrix:
-		if config.Matrix == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Matrix
-	case alert.TypeMattermost:
-		if config.Mattermost == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Mattermost
-	case alert.TypeMessagebird:
-		if config.Messagebird == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Messagebird
-	case alert.TypeNtfy:
-		if config.Ntfy == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Ntfy
-	case alert.TypeOpsgenie:
-		if config.Opsgenie == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Opsgenie
-	case alert.TypePagerDuty:
-		if config.PagerDuty == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.PagerDuty
-	case alert.TypeSlack:
-		if config.Slack == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Slack
-	case alert.TypeTeams:
-		if config.Teams == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Teams
-	case alert.TypeTelegram:
-		if config.Telegram == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Telegram
-	case alert.TypeTwilio:
-		if config.Twilio == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Twilio
 	}
+	log.Printf("[alerting][GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
 }
 
