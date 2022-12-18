@@ -562,6 +562,14 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "has([BODY].errors) == false",
 		},
 		{
+			Name:                        "has-key-of-map",
+			Condition:                   Condition("has([BODY].article) == true"),
+			Result:                      &Result{body: []byte("{\n  \"article\": {\n    \"id\": 123,\n    \"title\": \"Hello, world!\",\n    \"author\": \"John Doe\",\n    \"tags\": [\"hello\", \"world\"],\n    \"content\": \"I really like Gatus!\"\n  }\n}")},
+			DontResolveFailedConditions: false,
+			ExpectedSuccess:             true,
+			ExpectedOutput:              "has([BODY].article) == true",
+		},
+		{
 			Name:            "has-failure",
 			Condition:       Condition("has([BODY].errors) == false"),
 			Result:          &Result{body: []byte("{\"errors\": [\"1\"]}")},
