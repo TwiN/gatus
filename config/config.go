@@ -376,10 +376,11 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 	}
 
 	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if nil == d {
+		if nil != err {
 			return nil
 		}
-		if d.IsDir() {
+		
+		if nil == d || d.IsDir() {
 			return nil
 		}
 
