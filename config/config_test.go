@@ -42,6 +42,27 @@ func TestLoadDefaultConfigurationFile(t *testing.T) {
 	}
 }
 
+func TestLoadConfigurationFile(t *testing.T) {
+	_, err := LoadConfiguration("../test-conf/config.yaml", "")
+	if nil != err {
+		t.Error("Should not have returned an error, because the configuration file exists at the provided path")
+	}
+}
+
+func TestLoadDistributedConfiguration(t *testing.T) {
+	_, err := LoadConfiguration("", "../test-conf/conf.d/")
+	if nil != err {
+		t.Error("Should not have returned an error, because configuration files exist at the provided path for distributed files")
+	}
+}
+
+func TestLoadCombinedConfiguration(t *testing.T) {
+	_, err := LoadConfiguration("../test-config/config.yaml", "../test-conf/conf.d")
+	if nil != err {
+		t.Error("Should not have returned an error, because configuration files exist at the provided paths")
+	}
+}
+
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
