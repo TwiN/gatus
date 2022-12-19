@@ -133,6 +133,8 @@ By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
 
+Configuration can be split across multiple files by placing the regarding `*.yml` and `*.yaml` files inside the default directory `config/config.d/`. This path can be overridden using the environment variable `GATUS_CONFIG_DIR`. While both configuration variants are loaded simultaneously and get merged, distributed configuration takes precedence over the main configuration file in case of conflicting values.
+
 Here's a simple example:
 ```yaml
 endpoints:

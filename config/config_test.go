@@ -29,14 +29,14 @@ import (
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
-	_, err := Load("file-that-does-not-exist.yaml")
+	_, err := LoadConfiguration("file-that-does-not-exist.yaml", "")
 	if err == nil {
 		t.Error("Should've returned an error, because the file specified doesn't exist")
 	}
 }
 
 func TestLoadDefaultConfigurationFile(t *testing.T) {
-	_, err := LoadDefaultConfiguration()
+	_, err := LoadConfiguration("", "")
 	if err == nil {
 		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
 	}

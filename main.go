@@ -52,14 +52,11 @@ func save() {
 	}
 }
 
-func loadConfiguration() (cfg *config.Config, err error) {
-	customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
-	if len(customConfigFile) > 0 {
-		cfg, err = config.Load(customConfigFile)
-	} else {
-		cfg, err = config.LoadDefaultConfiguration()
-	}
-	return
+func loadConfiguration() (*config.Config, error) {
+	return config.LoadConfiguration(
+		os.Getenv("GATUS_CONFIG_FILE"),
+		os.Getenv("GATUS_CONFIG_DIR"),
+	)
 }
 
 // initializeStorage initializes the storage provider

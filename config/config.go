@@ -3,8 +3,10 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
@@ -29,6 +31,10 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
+
+	// DefaultDistributedConfigurationDirectoryPath is the default path to search for additional configuration files
+	// if a custom directory has not been configured using the GATUS_CONFIG_DIR environment variable
+	DefaultDistributedConfigurationDirectoryPath = "config/config.d"
 )
 
 var (
@@ -40,6 +46,9 @@ var (
 
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
+
+	// ErrEarlyReturn is returned to break out of a loop from a callback early
+	ErrEarlyReturn = errors.New("early escape")
 )
 
 // Config is the main configuration structure
@@ -85,6 +94,7 @@ type Config struct {
 	Remote *remote.Config `yaml:"remote,omitempty"`
 
 	filePath        string    // path to the file from which config was loaded from
+	distributedPath	string	  // path to the distributed directory from which config was loaded from
 	lastFileModTime time.Time // last modification time
 }
 
@@ -98,54 +108,78 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 	return nil
 }
 
-// HasLoadedConfigurationFileBeenModified returns whether the file that the
+// HasLoadedConfigurationFileBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
 func (config Config) HasLoadedConfigurationFileBeenModified() bool {
+	var lastMod = config.lastFileModTime.Unix()
+
+	// check main config file
 	if fileInfo, err := os.Stat(config.filePath); err == nil {
 		if !fileInfo.ModTime().IsZero() {
-			return config.lastFileModTime.Unix() != fileInfo.ModTime().Unix()
+			if config.lastFileModTime.Unix() < fileInfo.ModTime().Unix() {
+				return true
+			}
 		}
 	}
+
+	// check distributed files
+	if len(config.distributedPath) > 0 {
+		var err = walkConfigDir(config.distributedPath, func (path string, d fs.DirEntry, err error) error {
+			if info, err := d.Info(); nil == err && lastMod < info.ModTime().Unix() {
+				return ErrEarlyReturn
+			}
+			return nil
+		})
+
+		return ErrEarlyReturn == err
+	}
+
 	return false
 }
 
 // UpdateLastFileModTime refreshes Config.lastFileModTime
 func (config *Config) UpdateLastFileModTime() {
-	if fileInfo, err := os.Stat(config.filePath); err == nil {
-		if !fileInfo.ModTime().IsZero() {
-			config.lastFileModTime = fileInfo.ModTime()
-		}
-	} else {
-		log.Println("[config][UpdateLastFileModTime] Ran into error updating lastFileModTime:", err.Error())
-	}
+	config.lastFileModTime = time.Now()
 }
 
-// Load loads a custom configuration file
-// Note that the misconfiguration of some fields may lead to panics. This is on purpose.
-func Load(configFile string) (*Config, error) {
-	log.Printf("[config][Load] Reading configuration from configFile=%s", configFile)
-	cfg, err := readConfigurationFile(configFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrConfigFileNotFound
-		}
-		return nil, err
-	}
-	cfg.filePath = configFile
-	cfg.UpdateLastFileModTime()
-	return cfg, nil
-}
+// LoadConfiguration loads the full configuration composed from the main configuration file
+// and all composed configuration files
+func LoadConfiguration(filePath string, directoryPath string) (*Config, error) {
+	var composedContents []byte
+	var usedFilePath string
 
-// LoadDefaultConfiguration loads the default configuration file
-func LoadDefaultConfiguration() (*Config, error) {
-	cfg, err := Load(DefaultConfigurationFilePath)
-	if err != nil {
-		if err == ErrConfigFileNotFound {
-			return Load(DefaultFallbackConfigurationFilePath)
+	for _, fpath := range []string{filePath, DefaultConfigurationFilePath, DefaultFallbackConfigurationFilePath} {
+		var bytes, err = os.ReadFile(fpath)
+		if nil == err {
+			log.Printf("[config][Load] Reading configuration from configFile=%s", fpath)
+			composedContents = append(composedContents, bytes...)
+			usedFilePath = fpath
+			break
 		}
-		return nil, err
 	}
-	return cfg, nil
+
+	if len(directoryPath) == 0 {
+		directoryPath = DefaultDistributedConfigurationDirectoryPath
+	}
+	walkConfigDir(directoryPath, func(path string, d fs.DirEntry, err error) error {
+		var bytes, rerr = os.ReadFile(path)
+		if nil == rerr {
+			log.Printf("[config][Load] Reading configuration from configFile=%s", path)
+			composedContents = append(composedContents, bytes...)
+		}
+		return nil
+	})
+
+	if len(composedContents) == 0 {
+		return nil, ErrConfigFileNotFound
+	}
+
+	var config, err = parseAndValidateConfigBytes(composedContents)
+	config.filePath = usedFilePath
+	config.distributedPath = directoryPath
+	config.UpdateLastFileModTime()
+
+	return config, err
 }
 
 func readConfigurationFile(fileName string) (config *Config, err error) {
@@ -331,4 +365,29 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		}
 	}
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+}
+
+
+// Wrapper for filepath.WalkDir that strips directories and non-config files
+func walkConfigDir(path string, fn fs.WalkDirFunc) error {
+	if len(path) == 0 {
+		// It is ok if the user did not provide a directory
+		return nil
+	}
+
+	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if nil == d {
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		ext := filepath.Ext(path)
+		if "yml" != ext && "yaml" != ext {
+			return nil
+		}
+
+		return fn(path, d, err)
+	})
 }
