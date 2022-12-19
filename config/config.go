@@ -182,15 +182,6 @@ func LoadConfiguration(filePath string, directoryPath string) (*Config, error) {
 	return config, err
 }
 
-func readConfigurationFile(fileName string) (config *Config, err error) {
-	var bytes []byte
-	if bytes, err = os.ReadFile(fileName); err == nil {
-		// file exists, so we'll parse it and return it
-		return parseAndValidateConfigBytes(bytes)
-	}
-	return
-}
-
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Expand environment variables
