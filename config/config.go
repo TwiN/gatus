@@ -370,13 +370,13 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 		if nil != err {
 			return nil
 		}
-		
+
 		if nil == d || d.IsDir() {
 			return nil
 		}
 
 		ext := filepath.Ext(path)
-		if "yml" != ext && "yaml" != ext {
+		if ".yml" != ext && ".yaml" != ext {
 			return nil
 		}
 
