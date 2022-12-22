@@ -143,11 +143,13 @@ endpoints:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
-  - name: example
+
+  - name: make-sure-header-is-rendered
     url: "https://example.org/"
     interval: 60s
     conditions:
-      - "[STATUS] == 200"
+      - "[STATUS] == 200"                          # Status must be 200
+      - "[BODY] == pat(*<h1>Example Domain</h1>*)" # Body must contain the specified header
 ```
 
 This example would look similar to this:
