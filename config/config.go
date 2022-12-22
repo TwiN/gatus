@@ -7,17 +7,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/TwiN/gatus/v4/alerting"
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/alerting/provider"
-	"github.com/TwiN/gatus/v4/config/maintenance"
-	"github.com/TwiN/gatus/v4/config/remote"
-	"github.com/TwiN/gatus/v4/config/ui"
-	"github.com/TwiN/gatus/v4/config/web"
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/security"
-	"github.com/TwiN/gatus/v4/storage"
-	"github.com/TwiN/gatus/v4/util"
+	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/ui"
+	"github.com/TwiN/gatus/v5/config/web"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/security"
+	"github.com/TwiN/gatus/v5/storage"
+	"github.com/TwiN/gatus/v5/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -67,14 +67,6 @@ type Config struct {
 
 	// Endpoints List of endpoints to monitor
 	Endpoints []*core.Endpoint `yaml:"endpoints,omitempty"`
-
-	// Services List of endpoints to monitor
-	//
-	// XXX: Remove this in v5.0.0
-	// XXX: This is not a typo -- not v4.0.0, but v5.0.0 -- I want to give enough time for people to migrate
-	//
-	// Deprecated in favor of Endpoints
-	Services []*core.Endpoint `yaml:"services,omitempty"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
@@ -173,12 +165,6 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if err = yaml.Unmarshal(yamlBytes, &config); err != nil {
 		return
 	}
-	if config != nil && len(config.Services) > 0 { // XXX: Remove this in v5.0.0
-		log.Println("WARNING: Your configuration is using 'services:', which is deprecated in favor of 'endpoints:'.")
-		log.Println("WARNING: See https://github.com/TwiN/gatus/issues/191 for more information")
-		config.Endpoints = append(config.Endpoints, config.Services...)
-		config.Services = nil
-	}
 	// Check if the configuration file at least has endpoints configured
 	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
 		err = ErrNoEndpointInConfig
@@ -268,7 +254,7 @@ func validateEndpointsConfig(config *Config) error {
 			log.Printf("[config][validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
 		}
 		if err := endpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %s", endpoint.DisplayName(), err)
+			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
 		}
 	}
 	log.Printf("[config][validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
@@ -302,6 +288,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 	alertTypes := []alert.Type{
 		alert.TypeCustom,
 		alert.TypeDiscord,
+		alert.TypeGitHub,
 		alert.TypeGoogleChat,
 		alert.TypeEmail,
 		alert.TypeMatrix,
@@ -337,6 +324,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 			} else {
 				log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
 				invalidProviders = append(invalidProviders, alertType)
+				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
 		} else {
 			invalidProviders = append(invalidProviders, alertType)

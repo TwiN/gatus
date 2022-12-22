@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v4/test"
+	"github.com/TwiN/gatus/v5/test"
 )
 
 func TestGetHTTPClient(t *testing.T) {
@@ -32,6 +32,33 @@ func TestGetHTTPClient(t *testing.T) {
 	}
 	if GetHTTPClient(nil) == nil {
 		t.Error("expected client to not be nil")
+	}
+}
+
+func TestGetDomainExpiration(t *testing.T) {
+	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+		t.Fatalf("expected error to be nil, but got: `%s`", err)
+	} else if domainExpiration <= 0 {
+		t.Error("expected domain expiration to be higher than 0")
+	}
+	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+		t.Errorf("expected error to be nil, but got: `%s`", err)
+	} else if domainExpiration <= 0 {
+		t.Error("expected domain expiration to be higher than 0")
+	}
+	// Hack to pretend like the domain is expiring in 1 hour, which should trigger a refresh
+	whoisExpirationDateCache.SetWithTTL("example.com", time.Now().Add(time.Hour), 25*time.Hour)
+	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+		t.Errorf("expected error to be nil, but got: `%s`", err)
+	} else if domainExpiration <= 0 {
+		t.Error("expected domain expiration to be higher than 0")
+	}
+	// Make sure the refresh works when the ttl is <24 hours
+	whoisExpirationDateCache.SetWithTTL("example.com", time.Now().Add(35*time.Hour), 23*time.Hour)
+	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+		t.Errorf("expected error to be nil, but got: `%s`", err)
+	} else if domainExpiration <= 0 {
+		t.Error("expected domain expiration to be higher than 0")
 	}
 }
 

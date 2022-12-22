@@ -2,6 +2,9 @@ export const helper = {
   methods: {
     generatePrettyTimeAgo(t) {
       let differenceInMs = new Date().getTime() - new Date(t).getTime();
+      if (differenceInMs < 500) {
+        return "now";
+      }
       if (differenceInMs > 3 * 86400000) { // If it was more than 3 days ago, we'll display the number of days ago
         let days = (differenceInMs / 86400000).toFixed(0);
         return days + " day" + (days !== "1" ? "s" : "") + " ago";

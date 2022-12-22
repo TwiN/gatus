@@ -6,6 +6,7 @@ package cc // import "modernc.org/cc/v3"
 
 import (
 	"fmt"
+	"go/token"
 	"math"
 	"math/big"
 	"math/bits"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	"modernc.org/mathutil"
+	"modernc.org/strutil"
 )
 
 const longDoublePrec = 256
@@ -237,7 +239,7 @@ func (n *InitDeclarator) check(ctx *context, td typeDescriptor, typ Type, tld bo
 		typ := n.Declarator.check(ctx, td, typ, tld)
 		n.Declarator.hasInitializer = true
 		n.Declarator.Write++
-		n.Initializer.check(ctx, &n.Initializer.list, typ, n.Declarator.StorageClass, nil, 0, nil, nil)
+		n.Initializer.check(ctx, &n.Initializer.list, typ, n.Declarator.StorageClass, nil, 0, nil, nil, false)
 		n.Initializer.setConstZero()
 		n.initializer = &InitializerValue{typ: typ, initializer: n.Initializer}
 		if ctx.cfg.TrackAssignments {
@@ -282,8 +284,8 @@ func (n *InitializerList) setConstZero() {
 }
 
 // [0], 6.7.8 Initialization
-func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc StorageClass, fld Field, off uintptr, il *InitializerList, designatorList *DesignatorList) *InitializerList {
-	// trc("Initializer.check: %v: t %v, off %v, designatorList != nil %v", n.Position(), t, off, designatorList != nil)
+func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc StorageClass, fld Field, off uintptr, il *InitializerList, designatorList *DesignatorList, inList bool) *InitializerList {
+	// trc("==== %v: case %v, t %v, off %v, designatorList != nil %v, inList %v", n.Position(), n.Case, t.Alias(), off, designatorList != nil, inList)
 	// if fld != nil {
 	// 	trc("\tfld %q", fld.Name())
 	// }
@@ -307,7 +309,7 @@ func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc Stora
 	single := n.single()
 	var op Operand
 	if single != nil {
-		op = single.AssignmentExpression.check(ctx)
+		op = single.AssignmentExpression.check(ctx, false)
 		single.typ = t
 		single.Field = fld
 		single.Offset = off
@@ -418,11 +420,11 @@ func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc Stora
 		if il != nil {
 			switch t.Kind() {
 			case Array:
-				return il.checkArray(ctx, list, t, sc, off, designatorList)
+				return il.checkArray(ctx, list, t, sc, off, designatorList, inList)
 			case Struct:
-				return il.checkStruct(ctx, list, t, sc, off, designatorList)
+				return il.checkStruct(ctx, list, t, sc, off, designatorList, inList)
 			case Union:
-				return il.checkUnion(ctx, list, t, sc, off, designatorList)
+				return il.checkUnion(ctx, list, t, sc, off, designatorList, inList)
 			case Vector:
 				return il.InitializerList //TODO
 			default:
@@ -448,7 +450,7 @@ func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc Stora
 			return true
 		})
 		if l != nil {
-			l.check(ctx, list, t, sc, off, designatorList)
+			l.check(ctx, list, t, sc, off, designatorList, inList)
 			return nil
 		}
 
@@ -456,7 +458,7 @@ func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc Stora
 		return nil
 	}
 
-	n.InitializerList.check(ctx, list, t, sc, off, designatorList)
+	n.InitializerList.check(ctx, list, t, sc, off, designatorList, inList)
 	if il != nil {
 		return il.InitializerList
 	}
@@ -464,7 +466,7 @@ func (n *Initializer) check(ctx *context, list *[]*Initializer, t Type, sc Stora
 	return nil
 }
 
-func (n *InitializerList) checkArray(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList) *InitializerList {
+func (n *InitializerList) checkArray(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList, inList bool) *InitializerList {
 	elem := t.Elem()
 	esz := elem.Size()
 	length := t.Len()
@@ -476,20 +478,24 @@ loop:
 		switch {
 		case retOnDesignator && n.Designation != nil:
 			return n
-		case designatorList == nil && n.Designation != nil:
+		case designatorList == nil && !inList && n.Designation != nil:
 			designatorList = n.Designation.DesignatorList
 			fallthrough
 		case designatorList != nil:
 			d := designatorList.Designator
+			designatorList = designatorList.DesignatorList
 			switch d.Case {
 			case DesignatorIndex: // '[' ConstantExpression ']'
-				switch x := d.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr).Value().(type) {
+				switch x := d.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false).Value().(type) {
 				case Int64Value:
 					i = uintptr(x)
 				case Uint64Value:
 					i = uintptr(x)
 				default:
 					panic(todo("%v: %T", n.Position(), x))
+				}
+				if !inList && i > maxI {
+					maxI = i
 				}
 			case DesignatorField: // '.' IDENTIFIER
 				panic(todo("", n.Position(), d.Position()))
@@ -499,7 +505,7 @@ loop:
 				panic(todo(""))
 			}
 
-			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, designatorList.DesignatorList)
+			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, designatorList, designatorList != nil)
 			designatorList = nil
 			if nestedDesignator {
 				retOnDesignator = true
@@ -513,7 +519,7 @@ loop:
 			if i > maxI {
 				maxI = i
 			}
-			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, nil)
+			n = n.Initializer.check(ctx, list, elem, sc, nil, off+i*esz, n, nil, inList)
 			i++
 		}
 	}
@@ -523,25 +529,26 @@ loop:
 	return n
 }
 
-func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList) *InitializerList {
-	// trc("InitializerList.checkStruct: %v: t %v, off %v, dl %v", n.Position(), t, off, designatorList != nil)
+func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList, inList bool) *InitializerList {
+	// trc("==== (A) %v: t %v, off %v, dl %v, inList %v", n.Position(), t, off, designatorList != nil, inList)
+	// defer trc("==== (Z) %v: t %v, off %v, dl %v, inList %v", n.Position(), t, off, designatorList != nil, inList)
 	t = t.underlyingType()
-	// trc("==== struct %v: %v, off %v", n.Position(), t, off) //TODO-
+	// trc("%v: %v, off %v", n.Position(), t, off) //TODO-
 	nf := t.NumField()
 	i := []int{0}
 	var f Field
 	nestedDesignator := designatorList != nil
 	retOnDesignator := false
 	for n != nil {
-		// trc("---- %v: t %v, dl %v", n.Position(), t, designatorList != nil)
 		switch {
 		case retOnDesignator && n.Designation != nil:
 			return n
-		case designatorList == nil && n.Designation != nil:
+		case designatorList == nil && !inList && n.Designation != nil:
 			designatorList = n.Designation.DesignatorList
 			fallthrough
 		case designatorList != nil:
 			d := designatorList.Designator
+			designatorList = designatorList.DesignatorList
 			var nm StringID
 			switch d.Case {
 			case DesignatorIndex: // '[' ConstantExpression ']'
@@ -570,12 +577,12 @@ func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type
 					t = f2.Type()
 					xa = xa[1:]
 				}
-				n = n.Initializer.check(ctx, list, t, sc, f, off+off2, n, designatorList)
+				n = n.Initializer.check(ctx, list, t, sc, f, off+off2, n, designatorList, designatorList != nil)
 				if t.Kind() == Union {
 					t = t0
 				}
 			default:
-				n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList.DesignatorList)
+				n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList, designatorList != nil)
 			}
 			designatorList = nil
 			if nestedDesignator {
@@ -597,7 +604,7 @@ func (n *InitializerList) checkStruct(ctx *context, list *[]*Initializer, t Type
 
 				f = t.FieldByIndex(i)
 				if f.Name() != 0 || !f.Type().IsBitFieldType() {
-					n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil)
+					n = n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil, inList)
 					i[0]++
 					break
 				}
@@ -613,18 +620,20 @@ func spos(n Node) string {
 	return p.String()
 }
 
-func (n *InitializerList) checkUnion(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList) *InitializerList {
+func (n *InitializerList) checkUnion(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList, inList bool) *InitializerList {
+	// trc("==== %v: t %v, off %v, dl %v, inList %v", n.Position(), t, off, designatorList != nil, inList)
 	t = t.underlyingType()
-	// trc("==== union %v: %v, off %v", n.Position(), t, off) //TODO-
+	// trc("%v: %v, off %v", n.Position(), t, off) //TODO-
 	nf := t.NumField()
 	i := []int{0}
-	for n != nil {
+	for pass := 0; n != nil; pass++ {
 		switch {
-		case designatorList == nil && n.Designation != nil:
+		case designatorList == nil && !inList && n.Designation != nil:
 			designatorList = n.Designation.DesignatorList
 			fallthrough
 		case designatorList != nil:
 			d := designatorList.Designator
+			designatorList = designatorList.DesignatorList
 			var nm StringID
 			switch d.Case {
 			case DesignatorIndex: // '[' ConstantExpression ']'
@@ -642,6 +651,9 @@ func (n *InitializerList) checkUnion(ctx *context, list *[]*Initializer, t Type,
 				panic(todo("", d.Position()))
 			}
 
+			if !inList && pass == 0 {
+				n.Initializer.field0 = f
+			}
 			switch {
 			case len(xa) != 1:
 				var f2 Field
@@ -652,15 +664,14 @@ func (n *InitializerList) checkUnion(ctx *context, list *[]*Initializer, t Type,
 					t = f2.Type()
 					xa = xa[1:]
 				}
-				next := n.Initializer.check(ctx, list, t, sc, f, off+off2+f.Offset(), n, designatorList)
+				next := n.Initializer.check(ctx, list, t, sc, f, off+off2+f.Offset(), n, designatorList, designatorList != nil)
 				if designatorList != nil && designatorList.DesignatorList != nil {
 					panic(todo("", n.Position(), d.Position()))
 				}
 
 				return next
 			default:
-				designatorList = designatorList.DesignatorList
-				next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList)
+				next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, designatorList, designatorList != nil)
 				if designatorList != nil && designatorList.DesignatorList != nil {
 					panic(todo("", n.Position(), d.Position()))
 				}
@@ -682,7 +693,7 @@ func (n *InitializerList) checkUnion(ctx *context, list *[]*Initializer, t Type,
 
 				f := t.FieldByIndex(i)
 				if f.Name() != 0 || !f.Type().IsBitFieldType() {
-					next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil)
+					next := n.Initializer.check(ctx, list, f.Type(), sc, f, off+f.Offset(), n, nil, inList)
 					return next
 				}
 			}
@@ -717,7 +728,7 @@ func (n *Initializer) single() *Initializer {
 }
 
 // [0], 6.7.8 Initialization
-func (n *InitializerList) check(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList) {
+func (n *InitializerList) check(ctx *context, list *[]*Initializer, t Type, sc StorageClass, off uintptr, designatorList *DesignatorList, inList bool) {
 	switch t.Kind() {
 	case Array, Vector:
 		if n == nil { // {}
@@ -727,25 +738,25 @@ func (n *InitializerList) check(ctx *context, list *[]*Initializer, t Type, sc S
 			return
 		}
 
-		n.checkArray(ctx, list, t, sc, off, designatorList)
+		n.checkArray(ctx, list, t, sc, off, designatorList, inList)
 	case Struct:
 		if n == nil { // {}
 			return
 		}
 
-		n.checkStruct(ctx, list, t, sc, off, designatorList)
+		n.checkStruct(ctx, list, t, sc, off, designatorList, inList)
 	case Union:
 		if n == nil { // {}
 			return
 		}
 
-		n.checkUnion(ctx, list, t, sc, off, designatorList)
+		n.checkUnion(ctx, list, t, sc, off, designatorList, inList)
 	default:
 		if n == nil || t == nil || t.Kind() == Invalid {
 			return
 		}
 
-		n.Initializer.check(ctx, list, t, sc, nil, off, nil, designatorList)
+		n.Initializer.check(ctx, list, t, sc, nil, off, nil, designatorList, inList)
 	}
 }
 
@@ -783,7 +794,7 @@ func setLHS(lhs map[*Declarator]struct{}, rhs Node) {
 	})
 }
 
-func (n *AssignmentExpression) check(ctx *context) Operand {
+func (n *AssignmentExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -813,10 +824,10 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 	n.Operand = noOperand
 	switch n.Case {
 	case AssignmentExpressionCond: // ConditionalExpression
-		n.Operand = n.ConditionalExpression.check(ctx)
+		n.Operand = n.ConditionalExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ConditionalExpression.IsSideEffectsFree
 	case AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Declarator(); d != nil {
 			d.Read -= ctx.readDelta
 		}
@@ -833,11 +844,11 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		_ = r //TODO check assignability
 		n.Operand = l.(*lvalue).Operand
 	case AssignmentExpressionMul: // UnaryExpression "*=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -848,7 +859,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if l.Type().IsArithmeticType() {
 			op, _ := usualArithmeticConversions(ctx, n, l, r, true)
@@ -856,7 +867,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionDiv: // UnaryExpression "/=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -867,7 +878,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if l.Type().IsArithmeticType() {
 			op, _ := usualArithmeticConversions(ctx, n, l, r, true)
@@ -875,7 +886,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionMod: // UnaryExpression "%=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -886,7 +897,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if l.Type().IsArithmeticType() {
 			op, _ := usualArithmeticConversions(ctx, n, l, r, true)
@@ -894,7 +905,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionAdd: // UnaryExpression "+=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -905,7 +916,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		n.promote = n.UnaryExpression.Operand.Type()
 		if l.Type().IsArithmeticType() {
@@ -914,7 +925,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionSub: // UnaryExpression "-=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -925,7 +936,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		n.promote = n.UnaryExpression.Operand.Type()
 		if l.Type().IsArithmeticType() {
@@ -934,7 +945,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionLsh: // UnaryExpression "<<=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -945,7 +956,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if !l.Type().IsIntegerType() || !r.Type().IsIntegerType() {
 			//TODO report error
@@ -955,7 +966,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		n.promote = r.integerPromotion(ctx, n).Type()
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: l.Type()}).integerPromotion(ctx, n)
 	case AssignmentExpressionRsh: // UnaryExpression ">>=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -966,7 +977,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if !l.Type().IsIntegerType() || !r.Type().IsIntegerType() {
 			//TODO report error
@@ -976,7 +987,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		n.promote = r.integerPromotion(ctx, n).Type()
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: l.Type()}).integerPromotion(ctx, n)
 	case AssignmentExpressionAnd: // UnaryExpression "&=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -987,7 +998,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if !l.Type().IsIntegerType() || !r.Type().IsIntegerType() {
 			//TODO report error
@@ -998,7 +1009,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		n.promote = op.Type()
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionXor: // UnaryExpression "^=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -1009,7 +1020,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if !l.Type().IsIntegerType() || !r.Type().IsIntegerType() {
 			//TODO report error
@@ -1020,7 +1031,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 		n.promote = op.Type()
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: l.Type()}
 	case AssignmentExpressionOr: // UnaryExpression "|=" AssignmentExpression
-		l := n.UnaryExpression.check(ctx)
+		l := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := n.UnaryExpression.Operand.Declarator(); d != nil {
 			d.SubjectOfAsgnOp = true
 			d.Read += ctx.readDelta
@@ -1031,7 +1042,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 			break
 		}
 
-		r := n.AssignmentExpression.check(ctx)
+		r := n.AssignmentExpression.check(ctx, isAsmArg)
 		//TODO check assignability
 		if !l.Type().IsIntegerType() || !r.Type().IsIntegerType() {
 			//TODO report error
@@ -1047,7 +1058,7 @@ func (n *AssignmentExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *UnaryExpression) check(ctx *context) Operand {
+func (n *UnaryExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -1055,10 +1066,10 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case UnaryExpressionPostfix: // PostfixExpression
-		n.Operand = n.PostfixExpression.check(ctx, false)
+		n.Operand = n.PostfixExpression.check(ctx, false, isAsmArg)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree
 	case UnaryExpressionInc: // "++" UnaryExpression
-		op := n.UnaryExpression.check(ctx)
+		op := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := op.Declarator(); d != nil {
 			d.SubjectOfIncDec = true
 			d.Read += ctx.readDelta
@@ -1066,7 +1077,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: op.Type()}
 	case UnaryExpressionDec: // "--" UnaryExpression
-		op := n.UnaryExpression.check(ctx)
+		op := n.UnaryExpression.check(ctx, isAsmArg)
 		if d := op.Declarator(); d != nil {
 			d.SubjectOfIncDec = true
 			d.Read += ctx.readDelta
@@ -1106,7 +1117,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		n.Operand = op
 	case UnaryExpressionDeref: // '*' CastExpression
 		ctx.not(n, mIntConstExpr)
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 		if x, ok := op.(*funcDesignator); ok {
 			n.Operand = x
@@ -1125,8 +1136,12 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 
 		n.Operand = &lvalue{Operand: &operand{abi: &ctx.cfg.ABI, typ: op.Type().Elem()}}
 	case UnaryExpressionPlus: // '+' CastExpression
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
+		if op == nil {
+			//TODO report error
+			break
+		}
 		if !op.Type().IsArithmeticType() {
 			//TODO report error
 			break
@@ -1137,8 +1152,12 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		}
 		n.Operand = op
 	case UnaryExpressionMinus: // '-' CastExpression
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
+		if op == nil {
+			//TODO report error
+			break
+		}
 		if op.Type().Kind() == Vector {
 			n.Operand = &operand{abi: &ctx.cfg.ABI, typ: op.Type()}
 			break
@@ -1157,7 +1176,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		}
 		n.Operand = op
 	case UnaryExpressionCpl: // '~' CastExpression
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 		if op.Type().Kind() == Vector {
 			if !op.Type().Elem().IsIntegerType() {
@@ -1183,7 +1202,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		}
 		n.Operand = op
 	case UnaryExpressionNot: // '!' CastExpression
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 		op2 := &operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int)}
 		switch {
@@ -1206,7 +1225,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 			ctx.readDelta = 0
 		}
 		ctx.push(ctx.mode &^ mIntConstExpr)
-		op := n.UnaryExpression.check(ctx)
+		op := n.UnaryExpression.check(ctx, isAsmArg)
 		ctx.pop()
 		ctx.readDelta = rd
 		if op.Type().IsIncomplete() {
@@ -1226,7 +1245,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		if ctx.mode&mIntConstExpr != 0 {
 			ctx.mode |= mIntConstExprAnyCast
 		}
-		t := n.TypeName.check(ctx, false, false)
+		t := n.TypeName.check(ctx, false, false, nil)
 		ctx.pop()
 		ctx.readDelta = rd
 		if t.IsIncomplete() {
@@ -1252,7 +1271,7 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 	case UnaryExpressionAlignofExpr: // "_Alignof" UnaryExpression
 		n.IsSideEffectsFree = true
 		ctx.push(ctx.mode &^ mIntConstExpr)
-		op := n.UnaryExpression.check(ctx)
+		op := n.UnaryExpression.check(ctx, isAsmArg)
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(ULongLong), value: Uint64Value(op.Type().Align())}).convertTo(ctx, n, sizeT(ctx, n.lexicalScope, n.Token))
 		ctx.pop()
 	case UnaryExpressionAlignofType: // "_Alignof" '(' TypeName ')'
@@ -1261,17 +1280,17 @@ func (n *UnaryExpression) check(ctx *context) Operand {
 		if ctx.mode&mIntConstExpr != 0 {
 			ctx.mode |= mIntConstExprAnyCast
 		}
-		t := n.TypeName.check(ctx, false, false)
+		t := n.TypeName.check(ctx, false, false, nil)
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(ULongLong), value: Uint64Value(t.Align())}).convertTo(ctx, n, sizeT(ctx, n.lexicalScope, n.Token))
 		ctx.pop()
 	case UnaryExpressionImag: // "__imag__" UnaryExpression
 		ctx.not(n, mIntConstExpr)
-		n.UnaryExpression.check(ctx)
+		n.UnaryExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.UnaryExpression.IsSideEffectsFree
 		n.Operand = complexPart(ctx, n.UnaryExpression.Operand)
 	case UnaryExpressionReal: // "__real__" UnaryExpression
 		ctx.not(n, mIntConstExpr)
-		n.UnaryExpression.check(ctx)
+		n.UnaryExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.UnaryExpression.IsSideEffectsFree
 		n.Operand = complexPart(ctx, n.UnaryExpression.Operand)
 	default:
@@ -1364,7 +1383,7 @@ func (n *UnaryExpression) addrOf(ctx *context) Operand {
 	case UnaryExpressionAddrof: // '&' CastExpression
 		panic(n.Position().String())
 	case UnaryExpressionDeref: // '*' CastExpression
-		n.Operand = n.CastExpression.check(ctx)
+		n.Operand = n.CastExpression.check(ctx, false)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 	case UnaryExpressionPlus: // '+' CastExpression
 		panic(n.Position().String())
@@ -1407,12 +1426,12 @@ func (n *PostfixExpression) addrOf(ctx *context) Operand {
 		n.Operand = n.PrimaryExpression.addrOf(ctx)
 		n.IsSideEffectsFree = n.PrimaryExpression.IsSideEffectsFree
 	case PostfixExpressionIndex: // PostfixExpression '[' Expression ']'
-		pe := n.PostfixExpression.check(ctx, false)
+		pe := n.PostfixExpression.check(ctx, false, false)
 		if d := n.PostfixExpression.Declarator(); d != nil && d.Type().Kind() != Ptr {
 			setAddressTaken(n, d, "PostfixExpression '[' Expression ']'")
 			d.Read += ctx.readDelta
 		}
-		e := n.Expression.check(ctx)
+		e := n.Expression.check(ctx, false)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree && n.Expression.IsSideEffectsFree
 		t := pe.Type().Decay()
 		if t.Kind() == Invalid {
@@ -1501,7 +1520,7 @@ func (n *PostfixExpression) addrOf(ctx *context) Operand {
 			n.Operand = &lvalue{Operand: &operand{abi: &ctx.cfg.ABI, typ: ot, offset: op.Offset() + f.Offset()}, declarator: op.Declarator()}
 		}
 	case PostfixExpressionPSelect: // PostfixExpression "->" IDENTIFIER
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.check(ctx, false, false)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree
 		if d := n.PostfixExpression.Declarator(); d != nil {
 			d.Read += ctx.readDelta
@@ -1557,11 +1576,11 @@ func (n *PostfixExpression) addrOf(ctx *context) Operand {
 		if f := ctx.checkFn; f != nil {
 			f.CompositeLiterals = append(f.CompositeLiterals, n)
 		}
-		t := n.TypeName.check(ctx, false, false)
+		t := n.TypeName.check(ctx, false, false, nil)
 		var v *InitializerValue
 		if n.InitializerList != nil {
 			n.InitializerList.isConst = true
-			n.InitializerList.check(ctx, &n.InitializerList.list, t, Automatic, 0, nil)
+			n.InitializerList.check(ctx, &n.InitializerList.list, t, Automatic, 0, nil, false)
 			n.InitializerList.setConstZero()
 			v = &InitializerValue{typ: ctx.cfg.ABI.Ptr(n, t), initializer: n.InitializerList}
 		}
@@ -1614,7 +1633,7 @@ func (n *PrimaryExpression) addrOf(ctx *context) Operand {
 	switch n.Case {
 	case PrimaryExpressionIdent: // IDENTIFIER
 		n.IsSideEffectsFree = true
-		n.check(ctx, false)
+		n.check(ctx, false, false)
 		if d := n.Operand.Declarator(); d != nil {
 			switch d.Type().Kind() {
 			case Function:
@@ -1923,12 +1942,12 @@ func (n *MultiplicativeExpression) addrOf(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *TypeName) check(ctx *context, inUnion, isPacked bool) Type {
+func (n *TypeName) check(ctx *context, inUnion, isPacked bool, list *[]*TypeSpecifier) Type {
 	if n == nil {
 		return noType
 	}
 
-	n.typ = n.SpecifierQualifierList.check(ctx, inUnion, isPacked)
+	n.typ = n.SpecifierQualifierList.check(ctx, inUnion, isPacked, list)
 	if n.AbstractDeclarator != nil {
 		n.typ = n.AbstractDeclarator.check(ctx, n.typ)
 	}
@@ -2082,6 +2101,8 @@ func (n *Pointer) check(ctx *context, typ Type) (t Type) {
 	case PointerPtr: // '*' TypeQualifiers Pointer
 		n.TypeQualifiers.check(ctx, &n.typeQualifiers)
 		typ = n.Pointer.check(ctx, typ)
+	case PointerBlock: // '^' TypeQualifiers
+		n.TypeQualifiers.check(ctx, &n.typeQualifiers)
 	default:
 		panic(todo(""))
 	}
@@ -2130,13 +2151,16 @@ func (n *TypeQualifier) check(ctx *context, typ *typeBase) {
 	}
 }
 
-func (n *SpecifierQualifierList) check(ctx *context, inUnion, isPacked bool) Type {
+func (n *SpecifierQualifierList) check(ctx *context, inUnion, isPacked bool, list *[]*TypeSpecifier) Type {
 	n0 := n
 	typ := &typeBase{}
 	for ; n != nil; n = n.SpecifierQualifierList {
 		switch n.Case {
 		case SpecifierQualifierListTypeSpec: // TypeSpecifier SpecifierQualifierList
 			n.TypeSpecifier.check(ctx, typ, inUnion)
+			if list != nil && n.TypeSpecifier.Case != TypeSpecifierAtomic {
+				*list = append(*list, n.TypeSpecifier)
+			}
 		case SpecifierQualifierListTypeQual: // TypeQualifier SpecifierQualifierList
 			n.TypeQualifier.check(ctx, typ)
 		case SpecifierQualifierListAlignSpec: // AlignmentSpecifier SpecifierQualifierList
@@ -2191,12 +2215,15 @@ func (n *TypeSpecifier) check(ctx *context, typ *typeBase, inUnion bool) {
 	case TypeSpecifierTypedefName: // TYPEDEFNAME
 		// nop
 	case TypeSpecifierTypeofExpr: // "typeof" '(' Expression ')'
-		op := n.Expression.check(ctx)
+		op := n.Expression.check(ctx, false)
 		n.typ = op.Type()
 	case TypeSpecifierTypeofType: // "typeof" '(' TypeName ')'
-		n.typ = n.TypeName.check(ctx, false, false)
+		n.typ = n.TypeName.check(ctx, false, false, nil)
 	case TypeSpecifierAtomic: // AtomicTypeSpecifier
-		n.AtomicTypeSpecifier.check(ctx)
+		t := n.AtomicTypeSpecifier.check(ctx)
+		typ.kind = t.base().kind
+		typ.flags |= fAtomic
+		n.typ = typ
 	case
 		TypeSpecifierFract, // "_Fract"
 		TypeSpecifierSat,   // "_Sat"
@@ -2207,12 +2234,12 @@ func (n *TypeSpecifier) check(ctx *context, typ *typeBase, inUnion bool) {
 	}
 }
 
-func (n *AtomicTypeSpecifier) check(ctx *context) {
+func (n *AtomicTypeSpecifier) check(ctx *context) Type {
 	if n == nil {
-		return
+		return nil
 	}
 
-	n.TypeName.check(ctx, false, false)
+	return n.TypeName.check(ctx, false, false, &n.list)
 }
 
 func (n *EnumSpecifier) check(ctx *context) {
@@ -2374,7 +2401,7 @@ func (n *Enumerator) check(ctx *context, iota, min, max Value) (Value, Value, Va
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int), value: iota}).normalize(ctx, n)
 	case EnumeratorExpr: // IDENTIFIER AttributeSpecifierList '=' ConstantExpression
 		n.AttributeSpecifierList.check(ctx, nil)
-		n.Operand = n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr)
+		n.Operand = n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false)
 		iota = n.Operand.Value()
 	default:
 		panic(todo(""))
@@ -2451,13 +2478,13 @@ func (n *Enumerator) check(ctx *context, iota, min, max Value) (Value, Value, Va
 	return iota, min, max
 }
 
-func (n *ConstantExpression) check(ctx *context, mode mode) Operand {
+func (n *ConstantExpression) check(ctx *context, mode mode, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
 
 	ctx.push(mode)
-	n.Operand = n.ConditionalExpression.check(ctx)
+	n.Operand = n.ConditionalExpression.check(ctx, isAsmArg)
 	ctx.pop()
 	return n.Operand
 }
@@ -2537,7 +2564,7 @@ func (n *StructDeclaration) check(ctx *context, inUnion, isPacked bool) (s []*fi
 		return nil
 	}
 
-	typ := n.SpecifierQualifierList.check(ctx, inUnion, isPacked)
+	typ := n.SpecifierQualifierList.check(ctx, inUnion, isPacked, nil)
 	if n.StructDeclaratorList != nil {
 		return n.StructDeclaratorList.check(ctx, n.SpecifierQualifierList, typ, inUnion, isPacked)
 	}
@@ -2578,7 +2605,7 @@ func (n *StructDeclarator) check(ctx *context, td typeDescriptor, typ Type, inUn
 		sf.isBitField = true
 		sf.typ = &bitFieldType{Type: typ, field: sf}
 		sf.name = n.Declarator.Name()
-		if op := n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr); op.Type().IsIntegerType() {
+		if op := n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false); op.Type().IsIntegerType() {
 			switch x := op.Value().(type) {
 			case Int64Value:
 				if x < 0 || x > 64 {
@@ -2620,7 +2647,7 @@ func (n *StructOrUnion) check(ctx *context) Kind {
 	}
 }
 
-func (n *CastExpression) check(ctx *context) Operand {
+func (n *CastExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -2628,10 +2655,10 @@ func (n *CastExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case CastExpressionUnary: // UnaryExpression
-		n.Operand = n.UnaryExpression.check(ctx)
+		n.Operand = n.UnaryExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.UnaryExpression.IsSideEffectsFree
 	case CastExpressionCast: // '(' TypeName ')' CastExpression
-		t := n.TypeName.check(ctx, false, false)
+		t := n.TypeName.check(ctx, false, false, nil)
 		ctx.push(ctx.mode)
 		if m := ctx.mode; m&mIntConstExpr != 0 && m&mIntConstExprAnyCast == 0 {
 			if t := n.TypeName.Type(); t != nil && t.Kind() != Int {
@@ -2639,7 +2666,7 @@ func (n *CastExpression) check(ctx *context) Operand {
 			}
 			ctx.mode |= mIntConstExprFloat
 		}
-		op := n.CastExpression.check(ctx)
+		op := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 		ctx.pop()
 		n.Operand = op.convertTo(ctx, n, t)
@@ -2649,22 +2676,23 @@ func (n *CastExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
+func (n *PostfixExpression) check(ctx *context, implicitFunc, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
 
 	n.Operand = noOperand //TODO-
+out:
 	switch n.Case {
 	case PostfixExpressionPrimary: // PrimaryExpression
-		n.Operand = n.PrimaryExpression.check(ctx, implicitFunc)
+		n.Operand = n.PrimaryExpression.check(ctx, implicitFunc, isAsmArg)
 		n.IsSideEffectsFree = n.PrimaryExpression.IsSideEffectsFree
 	case PostfixExpressionIndex: // PostfixExpression '[' Expression ']'
-		pe := n.PostfixExpression.check(ctx, false)
+		pe := n.PostfixExpression.check(ctx, false, isAsmArg)
 		if d := pe.Declarator(); d != nil {
 			d.Read += ctx.readDelta
 		}
-		e := n.Expression.check(ctx)
+		e := n.Expression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree && n.Expression.IsSideEffectsFree
 		t := pe.Type().Decay()
 		if t.Kind() == Invalid {
@@ -2708,7 +2736,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 
 		ctx.errNode(n, "invalid index expression %v[%v]", pe.Type(), e.Type())
 	case PostfixExpressionCall: // PostfixExpression '(' ArgumentExpressionList ')'
-		op := n.PostfixExpression.check(ctx, true)
+		op := n.PostfixExpression.check(ctx, true, isAsmArg)
 		Inspect(n.PostfixExpression, func(n Node, enter bool) bool {
 			if !enter {
 				return true
@@ -2721,7 +2749,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 			}
 			return true
 		})
-		args := n.ArgumentExpressionList.check(ctx, n.PostfixExpression.Declarator())
+		args := n.ArgumentExpressionList.check(ctx, n.PostfixExpression.Declarator(), isAsmArg)
 		switch op.Declarator().Name() {
 		case idBuiltinConstantPImpl:
 			if len(args) < 2 {
@@ -2734,10 +2762,19 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 			}
 			n.Operand = &operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int), value: v}
 		default:
+			switch n.PostfixExpression.Operand.Value().(type) {
+			case StringValue, WideStringValue:
+				if isAsmArg {
+					// asm("foo": "bar" (a))
+					//            ^
+					break out
+				}
+			}
+
 			n.Operand = n.checkCall(ctx, n, op.Type(), args, n.ArgumentExpressionList)
 		}
 	case PostfixExpressionSelect: // PostfixExpression '.' IDENTIFIER
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.check(ctx, false, isAsmArg)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree
 		if d := op.Declarator(); d != nil {
 			d.Read += ctx.readDelta
@@ -2765,7 +2802,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 
 		n.Operand = &lvalue{Operand: &operand{abi: &ctx.cfg.ABI, typ: ft, offset: op.Offset() + f.Offset()}}
 	case PostfixExpressionPSelect: // PostfixExpression "->" IDENTIFIER
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.check(ctx, false, isAsmArg)
 		n.IsSideEffectsFree = n.PostfixExpression.IsSideEffectsFree
 		if d := op.Declarator(); d != nil {
 			d.Read += ctx.readDelta
@@ -2795,7 +2832,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 		}
 		n.Operand = &lvalue{Operand: &operand{abi: &ctx.cfg.ABI, typ: ft}}
 	case PostfixExpressionInc: // PostfixExpression "++"
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.check(ctx, false, isAsmArg)
 		if d := op.Declarator(); d != nil {
 			d.SubjectOfIncDec = true
 			d.Read += ctx.readDelta
@@ -2803,7 +2840,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 		}
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: op.Type()}
 	case PostfixExpressionDec: // PostfixExpression "--"
-		op := n.PostfixExpression.check(ctx, false)
+		op := n.PostfixExpression.check(ctx, false, isAsmArg)
 		if d := op.Declarator(); d != nil {
 			d.SubjectOfIncDec = true
 			d.Read += ctx.readDelta
@@ -2815,18 +2852,18 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 		if f := ctx.checkFn; f != nil {
 			f.CompositeLiterals = append(f.CompositeLiterals, n)
 		}
-		t := n.TypeName.check(ctx, false, false)
+		t := n.TypeName.check(ctx, false, false, nil)
 		var v *InitializerValue
 		if n.InitializerList != nil {
-			n.InitializerList.check(ctx, &n.InitializerList.list, t, Automatic, 0, nil)
+			n.InitializerList.check(ctx, &n.InitializerList.list, t, Automatic, 0, nil, false)
 			n.InitializerList.setConstZero()
 			v = &InitializerValue{typ: t, initializer: n.InitializerList}
 		}
 		n.Operand = &lvalue{Operand: (&operand{abi: &ctx.cfg.ABI, typ: t, value: v}).normalize(ctx, n)}
 	case PostfixExpressionTypeCmp: // "__builtin_types_compatible_p" '(' TypeName ',' TypeName ')'
 		n.IsSideEffectsFree = true
-		t1 := n.TypeName.check(ctx, false, false)
-		t2 := n.TypeName2.check(ctx, false, false)
+		t1 := n.TypeName.check(ctx, false, false, nil)
+		t2 := n.TypeName2.check(ctx, false, false, nil)
 		v := 0
 		switch {
 		case t1.IsArithmeticType() && t2.IsArithmeticType():
@@ -2839,7 +2876,7 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 		n.Operand = &operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int), value: Int64Value(v)}
 	case PostfixExpressionChooseExpr: // "__builtin_choose_expr" '(' ConstantExpression ',' AssignmentExpression ',' AssignmentExpression ')'
 		n.Operand = noOperand
-		expr1 := n.AssignmentExpression.check(ctx)
+		expr1 := n.AssignmentExpression.check(ctx, isAsmArg)
 		if expr1 == nil {
 			ctx.errNode(n, "first argument of __builtin_choose_expr must be a constant expression")
 			break
@@ -2852,10 +2889,10 @@ func (n *PostfixExpression) check(ctx *context, implicitFunc bool) Operand {
 
 		switch {
 		case expr1.IsNonZero():
-			n.Operand = n.AssignmentExpression2.check(ctx)
+			n.Operand = n.AssignmentExpression2.check(ctx, isAsmArg)
 			n.IsSideEffectsFree = n.AssignmentExpression2.IsSideEffectsFree
 		default:
-			n.Operand = n.AssignmentExpression3.check(ctx)
+			n.Operand = n.AssignmentExpression3.check(ctx, isAsmArg)
 			n.IsSideEffectsFree = n.AssignmentExpression3.IsSideEffectsFree
 		}
 	default:
@@ -2927,9 +2964,10 @@ func (n *PostfixExpression) checkCall(ctx *context, nd Node, f Type, args []Oper
 			break
 		}
 
-		fallthrough
+		ctx.errNode(nd, "expected function pointer type: %v, %v", f, f.Kind())
+		return r
 	default:
-		//TODO report error
+		ctx.errNode(nd, "expected function type: %v, %v", f, f.Kind())
 		return r
 	}
 
@@ -2973,9 +3011,9 @@ func defaultArgumentPromotion(ctx *context, n Node, op Operand) Operand {
 	return op
 }
 
-func (n *ArgumentExpressionList) check(ctx *context, f *Declarator) (r []Operand) {
+func (n *ArgumentExpressionList) check(ctx *context, f *Declarator, isAsmArg bool) (r []Operand) {
 	for ; n != nil; n = n.ArgumentExpressionList {
-		op := n.AssignmentExpression.check(ctx)
+		op := n.AssignmentExpression.check(ctx, isAsmArg)
 		if op.Type() == nil {
 			ctx.errNode(n, "operand has usupported, invalid or incomplete type")
 			op = noOperand
@@ -3001,7 +3039,7 @@ func (n *ArgumentExpressionList) check(ctx *context, f *Declarator) (r []Operand
 	return r
 }
 
-func (n *Expression) check(ctx *context) Operand {
+func (n *Expression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3009,11 +3047,11 @@ func (n *Expression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case ExpressionAssign: // AssignmentExpression
-		n.Operand = n.AssignmentExpression.check(ctx)
+		n.Operand = n.AssignmentExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AssignmentExpression.IsSideEffectsFree
 	case ExpressionComma: // Expression ',' AssignmentExpression
-		op := n.Expression.check(ctx)
-		n.Operand = n.AssignmentExpression.check(ctx)
+		op := n.Expression.check(ctx, isAsmArg)
+		n.Operand = n.AssignmentExpression.check(ctx, isAsmArg)
 		if !op.IsConst() && n.Operand.IsConst() {
 			n.Operand = &operand{abi: &ctx.cfg.ABI, typ: n.Operand.Type()}
 		}
@@ -3024,7 +3062,7 @@ func (n *Expression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *PrimaryExpression) check(ctx *context, implicitFunc bool) Operand {
+func (n *PrimaryExpression) check(ctx *context, implicitFunc, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3104,7 +3142,7 @@ func (n *PrimaryExpression) check(ctx *context, implicitFunc bool) Operand {
 		arr.setLen(sz)
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: arr, value: WideStringValue(n.Token.Value)}).normalize(ctx, n)
 	case PrimaryExpressionExpr: // '(' Expression ')'
-		n.Operand = n.Expression.check(ctx)
+		n.Operand = n.Expression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.Expression.IsSideEffectsFree
 	case PrimaryExpressionStmt: // '(' CompoundStatement ')'
 		//TODO IsSideEffectsFree
@@ -3195,6 +3233,7 @@ func (n *PrimaryExpression) checkIdentifier(ctx *context, implicitFunc bool) Ope
 						Token:        Token{Value: nm},
 					},
 				},
+				implicit: true,
 			}
 			ed := &ExternalDeclaration{
 				Case: ExternalDeclarationDecl,
@@ -3486,7 +3525,7 @@ func intConst(ctx *context, n Node, s string, val uint64, list ...Kind) Operand 
 	return nil
 }
 
-func (n *ConditionalExpression) check(ctx *context) Operand {
+func (n *ConditionalExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3494,18 +3533,18 @@ func (n *ConditionalExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case ConditionalExpressionLOr: // LogicalOrExpression
-		n.Operand = n.LogicalOrExpression.check(ctx)
+		n.Operand = n.LogicalOrExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.LogicalOrExpression.IsSideEffectsFree
 	case ConditionalExpressionCond: // LogicalOrExpression '?' Expression ':' ConditionalExpression
-		op := n.LogicalOrExpression.check(ctx)
+		op := n.LogicalOrExpression.check(ctx, isAsmArg)
 		// The first operand shall have scalar type.
 		if !op.Type().Decay().IsScalarType() {
 			//TODO report error
 			break
 		}
 
-		a := n.Expression.check(ctx)
-		b := n.ConditionalExpression.check(ctx)
+		a := n.Expression.check(ctx, isAsmArg)
+		b := n.ConditionalExpression.check(ctx, isAsmArg)
 		at := a.Type().Decay()
 		bt := b.Type().Decay()
 
@@ -3547,14 +3586,6 @@ func (n *ConditionalExpression) check(ctx *context) Operand {
 			// is the type of the result.
 			op, _ := usualArithmeticConversions(ctx, n, a, b, true)
 			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: op.Type(), value: val}).normalize(ctx, n)
-		// — both operands are pointers to qualified or unqualified versions of compatible types;
-		case at.Kind() == Ptr && bt.Kind() == Ptr:
-			//TODO check compatible
-			//TODO if !at.isCompatibleIgnoreQualifiers(bt) {
-			//TODO 	trc("%v: XXXX %v ? %v", n.Token2.Position(), at, bt)
-			//TODO 	ctx.assignmentCompatibilityErrorCond(&n.Token2, at, bt)
-			//TODO }
-			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: n.Expression.Operand.Type(), value: val}).normalize(ctx, n)
 		// — both operands have void type;
 		case a.Type().Kind() == Void && b.Type().Kind() == Void:
 			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: val}).normalize(ctx, n)
@@ -3563,6 +3594,14 @@ func (n *ConditionalExpression) check(ctx *context) Operand {
 			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: val}).normalize(ctx, n)
 		case (b.Type().Kind() == Ptr || b.Type().Kind() == Function) && a.IsZero():
 			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: b.Type(), value: val}).normalize(ctx, n)
+		// — both operands are pointers to qualified or unqualified versions of compatible types;
+		case at.Kind() == Ptr && bt.Kind() == Ptr:
+			//TODO check compatible
+			//TODO if !at.isCompatibleIgnoreQualifiers(bt) {
+			//TODO 	trc("%v: XXXX %v ? %v", n.Token2.Position(), at, bt)
+			//TODO 	ctx.assignmentCompatibilityErrorCond(&n.Token2, at, bt)
+			//TODO }
+			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: n.Expression.Operand.Type(), value: val}).normalize(ctx, n)
 		case a.Type().Kind() == Ptr && a.Type().Elem().Kind() == Function && b.Type().Kind() == Function:
 			//TODO check compatible
 			n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: val}).normalize(ctx, n)
@@ -3582,7 +3621,7 @@ func (n *ConditionalExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *LogicalOrExpression) check(ctx *context) Operand {
+func (n *LogicalOrExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3590,11 +3629,11 @@ func (n *LogicalOrExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case LogicalOrExpressionLAnd: // LogicalAndExpression
-		n.Operand = n.LogicalAndExpression.check(ctx)
+		n.Operand = n.LogicalAndExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.LogicalAndExpression.IsSideEffectsFree
 	case LogicalOrExpressionLOr: // LogicalOrExpression "||" LogicalAndExpression
-		lop := n.LogicalOrExpression.check(ctx)
-		rop := n.LogicalAndExpression.check(ctx)
+		lop := n.LogicalOrExpression.check(ctx, isAsmArg)
+		rop := n.LogicalAndExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.LogicalOrExpression.IsSideEffectsFree && n.LogicalAndExpression.IsSideEffectsFree ||
 			lop.Value() != nil && lop.IsNonZero() && n.LogicalOrExpression.IsSideEffectsFree
 		var v Value
@@ -3613,7 +3652,7 @@ func (n *LogicalOrExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *LogicalAndExpression) check(ctx *context) Operand {
+func (n *LogicalAndExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3621,11 +3660,11 @@ func (n *LogicalAndExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case LogicalAndExpressionOr: // InclusiveOrExpression
-		n.Operand = n.InclusiveOrExpression.check(ctx)
+		n.Operand = n.InclusiveOrExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.InclusiveOrExpression.IsSideEffectsFree
 	case LogicalAndExpressionLAnd: // LogicalAndExpression "&&" InclusiveOrExpression
-		lop := n.LogicalAndExpression.check(ctx)
-		rop := n.InclusiveOrExpression.check(ctx)
+		lop := n.LogicalAndExpression.check(ctx, isAsmArg)
+		rop := n.InclusiveOrExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.LogicalAndExpression.IsSideEffectsFree && n.InclusiveOrExpression.IsSideEffectsFree ||
 			lop.Value() != nil && lop.IsZero() && n.LogicalAndExpression.IsSideEffectsFree
 		var v Value
@@ -3644,7 +3683,7 @@ func (n *LogicalAndExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *InclusiveOrExpression) check(ctx *context) Operand {
+func (n *InclusiveOrExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3652,11 +3691,11 @@ func (n *InclusiveOrExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case InclusiveOrExpressionXor: // ExclusiveOrExpression
-		n.Operand = n.ExclusiveOrExpression.check(ctx)
+		n.Operand = n.ExclusiveOrExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ExclusiveOrExpression.IsSideEffectsFree
 	case InclusiveOrExpressionOr: // InclusiveOrExpression '|' ExclusiveOrExpression
-		a := n.InclusiveOrExpression.check(ctx)
-		b := n.ExclusiveOrExpression.check(ctx)
+		a := n.InclusiveOrExpression.check(ctx, isAsmArg)
+		b := n.ExclusiveOrExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.InclusiveOrExpression.IsSideEffectsFree && n.ExclusiveOrExpression.IsSideEffectsFree
 		n.promote = noType
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
@@ -3702,7 +3741,7 @@ func checkBinaryVectorIntegerArtithmetic(ctx *context, n Node, a, b Operand) Ope
 	return &operand{abi: &ctx.cfg.ABI, typ: rt}
 }
 
-func (n *ExclusiveOrExpression) check(ctx *context) Operand {
+func (n *ExclusiveOrExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3710,11 +3749,11 @@ func (n *ExclusiveOrExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case ExclusiveOrExpressionAnd: // AndExpression
-		n.Operand = n.AndExpression.check(ctx)
+		n.Operand = n.AndExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AndExpression.IsSideEffectsFree
 	case ExclusiveOrExpressionXor: // ExclusiveOrExpression '^' AndExpression
-		a := n.ExclusiveOrExpression.check(ctx)
-		b := n.AndExpression.check(ctx)
+		a := n.ExclusiveOrExpression.check(ctx, isAsmArg)
+		b := n.AndExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ExclusiveOrExpression.IsSideEffectsFree && n.AndExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorIntegerArtithmetic(ctx, n, a, b)
@@ -3740,7 +3779,7 @@ func (n *ExclusiveOrExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *AndExpression) check(ctx *context) Operand {
+func (n *AndExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3748,11 +3787,11 @@ func (n *AndExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case AndExpressionEq: // EqualityExpression
-		n.Operand = n.EqualityExpression.check(ctx)
+		n.Operand = n.EqualityExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.EqualityExpression.IsSideEffectsFree
 	case AndExpressionAnd: // AndExpression '&' EqualityExpression
-		a := n.AndExpression.check(ctx)
-		b := n.EqualityExpression.check(ctx)
+		a := n.AndExpression.check(ctx, isAsmArg)
+		b := n.EqualityExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AndExpression.IsSideEffectsFree && n.EqualityExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorIntegerArtithmetic(ctx, n, a, b)
@@ -3778,14 +3817,14 @@ func (n *AndExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *EqualityExpression) check(ctx *context) Operand {
+func (n *EqualityExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
 
 	switch n.Case {
 	case EqualityExpressionRel: // RelationalExpression
-		n.Operand = n.RelationalExpression.check(ctx)
+		n.Operand = n.RelationalExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.RelationalExpression.IsSideEffectsFree
 	case
 		EqualityExpressionEq,  // EqualityExpression "==" RelationalExpression
@@ -3793,8 +3832,8 @@ func (n *EqualityExpression) check(ctx *context) Operand {
 
 		op := &operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int)}
 		n.Operand = op
-		lo := n.EqualityExpression.check(ctx)
-		ro := n.RelationalExpression.check(ctx)
+		lo := n.EqualityExpression.check(ctx, isAsmArg)
+		ro := n.RelationalExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.EqualityExpression.IsSideEffectsFree && n.RelationalExpression.IsSideEffectsFree
 		lt := lo.Type().Decay()
 		rt := ro.Type().Decay()
@@ -3855,7 +3894,7 @@ func checkVectorComparison(ctx *context, n Node, a, b Type) (r Operand) {
 	return r
 }
 
-func (n *RelationalExpression) check(ctx *context) Operand {
+func (n *RelationalExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3863,7 +3902,7 @@ func (n *RelationalExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case RelationalExpressionShift: // ShiftExpression
-		n.Operand = n.ShiftExpression.check(ctx)
+		n.Operand = n.ShiftExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ShiftExpression.IsSideEffectsFree
 	case
 		RelationalExpressionLt,  // RelationalExpression '<' ShiftExpression
@@ -3874,8 +3913,8 @@ func (n *RelationalExpression) check(ctx *context) Operand {
 		n.promote = noType
 		op := &operand{abi: &ctx.cfg.ABI, typ: ctx.cfg.ABI.Type(Int)}
 		n.Operand = op
-		lo := n.RelationalExpression.check(ctx)
-		ro := n.ShiftExpression.check(ctx)
+		lo := n.RelationalExpression.check(ctx, isAsmArg)
+		ro := n.ShiftExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.RelationalExpression.IsSideEffectsFree && n.ShiftExpression.IsSideEffectsFree
 		if lo.Type().Kind() == Vector && ro.Type().Kind() == Vector {
 			n.Operand = checkVectorComparison(ctx, n, lo.Type(), ro.Type())
@@ -3929,7 +3968,7 @@ func (n *RelationalExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *ShiftExpression) check(ctx *context) Operand {
+func (n *ShiftExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3937,11 +3976,11 @@ func (n *ShiftExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case ShiftExpressionAdd: // AdditiveExpression
-		n.Operand = n.AdditiveExpression.check(ctx)
+		n.Operand = n.AdditiveExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AdditiveExpression.IsSideEffectsFree
 	case ShiftExpressionLsh: // ShiftExpression "<<" AdditiveExpression
-		a := n.ShiftExpression.check(ctx)
-		b := n.AdditiveExpression.check(ctx)
+		a := n.ShiftExpression.check(ctx, isAsmArg)
+		b := n.AdditiveExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ShiftExpression.IsSideEffectsFree && n.AdditiveExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorIntegerArtithmetic(ctx, n, a, b)
@@ -3963,8 +4002,8 @@ func (n *ShiftExpression) check(ctx *context) Operand {
 
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: a.Value().lsh(b.Value())}).normalize(ctx, n)
 	case ShiftExpressionRsh: // ShiftExpression ">>" AdditiveExpression
-		a := n.ShiftExpression.check(ctx)
-		b := n.AdditiveExpression.check(ctx)
+		a := n.ShiftExpression.check(ctx, isAsmArg)
+		b := n.AdditiveExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.ShiftExpression.IsSideEffectsFree && n.AdditiveExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorIntegerArtithmetic(ctx, n, a, b)
@@ -3991,7 +4030,7 @@ func (n *ShiftExpression) check(ctx *context) Operand {
 	return n.Operand
 }
 
-func (n *AdditiveExpression) check(ctx *context) Operand {
+func (n *AdditiveExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -3999,12 +4038,12 @@ func (n *AdditiveExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case AdditiveExpressionMul: // MultiplicativeExpression
-		n.Operand = n.MultiplicativeExpression.check(ctx)
+		n.Operand = n.MultiplicativeExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.MultiplicativeExpression.IsSideEffectsFree
 	case AdditiveExpressionAdd: // AdditiveExpression '+' MultiplicativeExpression
 		n.promote = noType
-		a := n.AdditiveExpression.check(ctx)
-		b := n.MultiplicativeExpression.check(ctx)
+		a := n.AdditiveExpression.check(ctx, isAsmArg)
+		b := n.MultiplicativeExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AdditiveExpression.IsSideEffectsFree && n.MultiplicativeExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorArtithmetic(ctx, n, a, b)
@@ -4057,8 +4096,8 @@ func (n *AdditiveExpression) check(ctx *context) Operand {
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: a.Value().add(b.Value())}).normalize(ctx, n)
 	case AdditiveExpressionSub: // AdditiveExpression '-' MultiplicativeExpression
 		n.promote = noType
-		a := n.AdditiveExpression.check(ctx)
-		b := n.MultiplicativeExpression.check(ctx)
+		a := n.AdditiveExpression.check(ctx, isAsmArg)
+		b := n.MultiplicativeExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.AdditiveExpression.IsSideEffectsFree && n.MultiplicativeExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorArtithmetic(ctx, n, a, b)
@@ -4150,7 +4189,7 @@ func ptrdiffT(ctx *context, s Scope, tok Token) Type {
 	return t
 }
 
-func (n *MultiplicativeExpression) check(ctx *context) Operand {
+func (n *MultiplicativeExpression) check(ctx *context, isAsmArg bool) Operand {
 	if n == nil {
 		return noOperand
 	}
@@ -4158,11 +4197,11 @@ func (n *MultiplicativeExpression) check(ctx *context) Operand {
 	n.Operand = noOperand //TODO-
 	switch n.Case {
 	case MultiplicativeExpressionCast: // CastExpression
-		n.Operand = n.CastExpression.check(ctx)
+		n.Operand = n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.CastExpression.IsSideEffectsFree
 	case MultiplicativeExpressionMul: // MultiplicativeExpression '*' CastExpression
-		a := n.MultiplicativeExpression.check(ctx)
-		b := n.CastExpression.check(ctx)
+		a := n.MultiplicativeExpression.check(ctx, isAsmArg)
+		b := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.MultiplicativeExpression.IsSideEffectsFree && n.CastExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorArtithmetic(ctx, n, a, b)
@@ -4182,8 +4221,8 @@ func (n *MultiplicativeExpression) check(ctx *context) Operand {
 
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: a.Value().mul(b.Value())}).normalize(ctx, n)
 	case MultiplicativeExpressionDiv: // MultiplicativeExpression '/' CastExpression
-		a := n.MultiplicativeExpression.check(ctx)
-		b := n.CastExpression.check(ctx)
+		a := n.MultiplicativeExpression.check(ctx, isAsmArg)
+		b := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.MultiplicativeExpression.IsSideEffectsFree && n.CastExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorArtithmetic(ctx, n, a, b)
@@ -4203,8 +4242,8 @@ func (n *MultiplicativeExpression) check(ctx *context) Operand {
 
 		n.Operand = (&operand{abi: &ctx.cfg.ABI, typ: a.Type(), value: a.Value().div(b.Value())}).normalize(ctx, n)
 	case MultiplicativeExpressionMod: // MultiplicativeExpression '%' CastExpression
-		a := n.MultiplicativeExpression.check(ctx)
-		b := n.CastExpression.check(ctx)
+		a := n.MultiplicativeExpression.check(ctx, isAsmArg)
+		b := n.CastExpression.check(ctx, isAsmArg)
 		n.IsSideEffectsFree = n.MultiplicativeExpression.IsSideEffectsFree && n.CastExpression.IsSideEffectsFree
 		if a.Type().Kind() == Vector || b.Type().Kind() == Vector {
 			n.Operand = checkBinaryVectorArtithmetic(ctx, n, a, b)
@@ -4459,7 +4498,7 @@ func checkArray(ctx *context, n Node, typ Type, expr *AssignmentExpression, expr
 	case expr != nil && noExpr:
 		panic(todo(""))
 	case expr != nil:
-		op := expr.check(ctx)
+		op := expr.check(ctx, false)
 		if op.Type().Kind() == Invalid {
 			return noType
 		}
@@ -4535,7 +4574,7 @@ func (n *AsmExpressionList) check(ctx *context) {
 
 	for ; n != nil; n = n.AsmExpressionList {
 		n.AsmIndex.check(ctx)
-		n.AssignmentExpression.check(ctx)
+		n.AssignmentExpression.check(ctx, true)
 	}
 }
 
@@ -4544,7 +4583,7 @@ func (n *AsmIndex) check(ctx *context) {
 		return
 	}
 
-	n.Expression.check(ctx)
+	n.Expression.check(ctx, true)
 }
 
 func (n *AsmQualifierList) check(ctx *context) {
@@ -4606,7 +4645,7 @@ func (n *AttributeValue) check(ctx *context, t *typeBase) {
 		v := ctx.cfg.ignoreErrors
 		ctx.cfg.ignoreErrors = true
 		defer func() { ctx.cfg.ignoreErrors = v }()
-		n.ExpressionList.check(ctx)
+		n.ExpressionList.check(ctx, false)
 		if n.Token.Value == idAligned && n.ExpressionList != nil && t != nil {
 			switch x := n.ExpressionList.AssignmentExpression.Operand.Value().(type) {
 			case Int64Value:
@@ -4622,9 +4661,9 @@ func (n *AttributeValue) check(ctx *context, t *typeBase) {
 	}
 }
 
-func (n *ExpressionList) check(ctx *context) {
+func (n *ExpressionList) check(ctx *context, isAsmArg bool) {
 	for ; n != nil; n = n.ExpressionList {
-		n.AssignmentExpression.check(ctx)
+		n.AssignmentExpression.check(ctx, isAsmArg)
 	}
 }
 
@@ -4671,10 +4710,10 @@ func (n *AlignmentSpecifier) check(ctx *context) {
 
 	switch n.Case {
 	case AlignmentSpecifierAlignasType: // "_Alignas" '(' TypeName ')'
-		n.TypeName.check(ctx, false, false)
+		n.TypeName.check(ctx, false, false, nil)
 		//TODO actually set the alignment
 	case AlignmentSpecifierAlignasExpr: // "_Alignas" '(' ConstantExpression ')'
-		n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr)
+		n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false)
 		//TODO actually set the alignment
 	default:
 		panic(todo(""))
@@ -4916,7 +4955,7 @@ func (n *JumpStatement) check(ctx *context) {
 		}
 		ctx.checkFn.Gotos[n.Token2.Value] = n
 	case JumpStatementGotoExpr: // "goto" '*' Expression ';'
-		n.Expression.check(ctx)
+		n.Expression.check(ctx, false)
 		//TODO
 	case JumpStatementContinue: // "continue" ';'
 		n.context = ctx.breakCtx
@@ -4932,7 +4971,7 @@ func (n *JumpStatement) check(ctx *context) {
 		//TODO
 	case JumpStatementReturn: // "return" Expression ';'
 		n.context = ctx.breakCtx
-		op := n.Expression.check(ctx)
+		op := n.Expression.check(ctx, false)
 		if op.Type().IsComplexType() {
 			ctx.checkFn.ReturnComplexExpr = append(ctx.checkFn.ReturnComplexExpr, n.Expression)
 		}
@@ -4953,7 +4992,7 @@ func (n *IterationStatement) check(ctx *context) {
 
 	switch n.Case {
 	case IterationStatementWhile: // "while" '(' Expression ')' Statement
-		n.Expression.check(ctx)
+		n.Expression.check(ctx, false)
 		ctx.breaks++
 		ctx.continues++
 		n.Statement.check(ctx)
@@ -4965,11 +5004,11 @@ func (n *IterationStatement) check(ctx *context) {
 		n.Statement.check(ctx)
 		ctx.breaks--
 		ctx.continues--
-		n.Expression.check(ctx)
+		n.Expression.check(ctx, false)
 	case IterationStatementFor: // "for" '(' Expression ';' Expression ';' Expression ')' Statement
-		n.Expression.check(ctx)
-		n.Expression2.check(ctx)
-		n.Expression3.check(ctx)
+		n.Expression.check(ctx, false)
+		n.Expression2.check(ctx, false)
+		n.Expression3.check(ctx, false)
 		ctx.breaks++
 		ctx.continues++
 		n.Statement.check(ctx)
@@ -4977,8 +5016,8 @@ func (n *IterationStatement) check(ctx *context) {
 		ctx.continues--
 	case IterationStatementForDecl: // "for" '(' Declaration Expression ';' Expression ')' Statement
 		n.Declaration.check(ctx, false)
-		n.Expression.check(ctx)
-		n.Expression2.check(ctx)
+		n.Expression.check(ctx, false)
+		n.Expression2.check(ctx, false)
 		ctx.breaks++
 		ctx.continues++
 		n.Statement.check(ctx)
@@ -4996,10 +5035,10 @@ func (n *SelectionStatement) check(ctx *context) {
 
 	switch n.Case {
 	case SelectionStatementIf: // "if" '(' Expression ')' Statement
-		n.Expression.check(ctx)
+		n.Expression.check(ctx, false)
 		n.Statement.check(ctx)
 	case SelectionStatementIfElse: // "if" '(' Expression ')' Statement "else" Statement
-		n.Expression.check(ctx)
+		n.Expression.check(ctx, false)
 		n.Statement.check(ctx)
 		n.Statement2.check(ctx)
 		if !n.Expression.Operand.Type().IsScalarType() {
@@ -5016,7 +5055,7 @@ func (n *SelectionStatement) check(ctx *context) {
 
 		defer func() { ctx.breakCtx = sv }()
 
-		op := n.Expression.check(ctx)
+		op := n.Expression.check(ctx, false)
 		n.promote = op.integerPromotion(ctx, n).Type()
 		cp := ctx.casePromote
 		ctx.casePromote = n.promote
@@ -5041,7 +5080,7 @@ func (n *ExpressionStatement) check(ctx *context) Operand {
 	}
 
 	n.AttributeSpecifierList.check(ctx, nil)
-	return n.Expression.check(ctx)
+	return n.Expression.check(ctx, false)
 }
 
 func (n *LabeledStatement) check(ctx *context) {
@@ -5066,7 +5105,7 @@ func (n *LabeledStatement) check(ctx *context) {
 			break
 		}
 
-		switch op := n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr); op.Value().(type) {
+		switch op := n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false); op.Value().(type) {
 		case Int64Value, Uint64Value:
 			if t := ctx.casePromote; t.Kind() != Invalid {
 				n.ConstantExpression.Operand = op.convertTo(ctx, n, t)
@@ -5085,13 +5124,13 @@ func (n *LabeledStatement) check(ctx *context) {
 			break
 		}
 
-		switch n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr).Value().(type) {
+		switch n.ConstantExpression.check(ctx, ctx.mode|mIntConstExpr, false).Value().(type) {
 		case Int64Value, Uint64Value:
 			// ok
 		default:
 			//TODO report error
 		}
-		switch n.ConstantExpression2.check(ctx, ctx.mode|mIntConstExpr).Value().(type) {
+		switch n.ConstantExpression2.check(ctx, ctx.mode|mIntConstExpr, false).Value().(type) {
 		case Int64Value, Uint64Value:
 			// ok
 		default:
@@ -5123,4 +5162,115 @@ func setAddressTaken(n Node, d *Declarator, s string) {
 	// fmt.Printf("%v: %s, type %v (%v, %v), declared at %v, AddressTaken = true: %v\n",
 	// 	n.Position(), d.Name(), d.Type(), d.Type().Kind(), d.Type().Size(), d.Position(), s,
 	// ) //TODO-
+}
+
+// Dump returns a debug form of n.
+func (n *Initializer) Dump() string {
+	var b strings.Builder
+	f := strutil.IndentFormatter(&b, "\t")
+	n.dump(f)
+	return b.String()
+}
+
+func pos(n Node) (r token.Position) {
+	if n == nil {
+		return r
+	}
+
+	r = token.Position(n.Position())
+	if r.IsValid() {
+		r.Filename = filepath.Base(r.Filename)
+	}
+	return r
+}
+
+func (n *Initializer) dump(f strutil.Formatter) {
+	list := n.List()
+	if len(list) != 0 {
+		for i, v := range list {
+			f.Format("Initializer.List() #%d/%d: %v: off %v type %v", i, len(list), pos(v), v.Offset, v.Type())
+			if fld := v.FirstDesignatorField(); fld != nil {
+				f.Format(" [FirstDesignatorField %q]", fld.Name())
+			}
+			f.Format("\n")
+		}
+	}
+	if f0 := n.FirstDesignatorField(); f0 != nil {
+		f.Format("[FirstDesignatorField: %q, index %v, off %v, type %v] ", f0.Name(), f0.Index(), n.Offset, n.Type().Alias())
+	}
+	switch n.Case {
+	case InitializerExpr: // AssignmentExpression
+		if op := n.AssignmentExpression.Operand; op != nil {
+			n.isConst = op.IsConst()
+			n.isZero = op.IsZero()
+		}
+		var t Type
+		if n.AssignmentExpression != nil && n.AssignmentExpression.Operand != nil {
+			t = n.AssignmentExpression.Operand.Type()
+		}
+		f.Format("%v: %T@%[2]p, .Case %v, off %v,  type %v\n", pos(n), n, n.Case, n.Offset, t.Alias())
+	case InitializerInitList: // '{' InitializerList ',' '}'
+		n.InitializerList.dump(f)
+	default:
+		panic(todo("%v:", n.Position()))
+	}
+}
+
+// Dump returns a debug form of n.
+func (n *InitializerList) Dump() string {
+	var b strings.Builder
+	f := strutil.IndentFormatter(&b, "\t")
+	n.dump(f)
+	return b.String()
+}
+
+func (n *InitializerList) dump(f strutil.Formatter) {
+	if n == nil {
+		f.Format("<nil>")
+		return
+	}
+
+	f.Format("%v: %T@%[2]p, len(.List()) %v {%i\n", pos(n), n, len(n.List()))
+	list := n.List()
+	for ; n != nil; n = n.InitializerList {
+		n.Designation.dump(f)
+		n.Initializer.dump(f)
+	}
+	for i, v := range list {
+		f.Format("InitializerList.List() #%d/%d:", i, len(list))
+		v.dump(f)
+	}
+	f.Format("%u}\n")
+}
+
+func (n *Designation) dump(f strutil.Formatter) {
+	if n == nil {
+		return
+	}
+
+	cnt := 0
+	designatorField2 := false
+	for n := n.DesignatorList; n != nil; n = n.DesignatorList {
+		n.Designator.dump(f)
+		if n.Designator.Case == DesignatorField2 {
+			designatorField2 = true
+		}
+		cnt++
+	}
+	if cnt > 1 || !designatorField2 {
+		f.Format(" = ")
+	}
+}
+
+func (n *Designator) dump(f strutil.Formatter) {
+	switch n.Case {
+	case DesignatorIndex: // '[' ConstantExpression ']'
+		f.Format("[%v]", n.ConstantExpression.Operand.Value())
+	case DesignatorField: // '.' IDENTIFIER
+		f.Format(".%s", n.Token2.Value)
+	case DesignatorField2: // IDENTIFIER ':'
+		f.Format("%s:", n.Token.Value)
+	default:
+		panic(todo(""))
+	}
 }

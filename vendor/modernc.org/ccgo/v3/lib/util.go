@@ -375,7 +375,7 @@ func Shell(cmd string, args ...string) ([]byte, error) {
 func MustShell(stackTrace bool, cmd string, args ...string) []byte {
 	b, err := Shell(cmd, args...)
 	if err != nil {
-		Fatalf(stackTrace, "%s\n%s", b, err)
+		Fatalf(stackTrace, "%v %s\noutput: %s\nerr: %s", cmd, args, b, err)
 	}
 
 	return b
@@ -387,6 +387,26 @@ func Compile(args ...string) ([]byte, error) { return Shell("ccgo", args...) }
 // MustCompile is like Compile but if executes Fatal(stackTrace, err) if it fails.
 func MustCompile(stackTrace bool, args ...string) []byte {
 	return MustShell(stackTrace, "ccgo", args...)
+}
+
+// Run is like Compile, but executes in-process.
+func Run(args ...string) ([]byte, error) {
+	var b bytes.Buffer
+	t := NewTask(append([]string{"ccgo"}, args...), &b, &b)
+	err := t.Main()
+	return b.Bytes(), err
+}
+
+// MustRun is like Run but if executes Fatal(stackTrace, err) if it fails.
+func MustRun(stackTrace bool, args ...string) []byte {
+	var b bytes.Buffer
+	args = append([]string{"ccgo"}, args...)
+	t := NewTask(args, &b, &b)
+	if err := t.Main(); err != nil {
+		Fatalf(stackTrace, "%v\noutput: %s\nerr: %s", args, b.Bytes(), err)
+	}
+
+	return b.Bytes()
 }
 
 // AbsCwd returns the absolute working directory.

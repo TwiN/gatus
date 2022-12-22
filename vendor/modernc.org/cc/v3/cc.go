@@ -509,13 +509,17 @@ type Config struct {
 
 	PragmaHandler func(Pragma, []Token) // Called on pragmas, other than #pragma STDC ..., if non nil
 
-	// SharedFunctionDefinitions collects function definitions having the
-	// same position and definition. This can happen, for example, when a
-	// function is defined in a header file included multiple times. Either
-	// within a single translation unit or across translation units. In the
-	// later case just supply the same SharedFunctionDefinitions in Config
-	// when translating/parsing each translation unit.
+	// SharedFunctionDefinitions collects function definitions having the same
+	// position and definition. This can happen, for example, when a function is
+	// defined in a header file included multiple times. Either within a single
+	// translation unit or across translation units. In the later case just supply
+	// the same SharedFunctionDefinitions in Config when translating/parsing each
+	// translation unit.
 	SharedFunctionDefinitions *SharedFunctionDefinitions
+
+	// IncludeFileHandler, when non nil, is called by the preprocessor for every
+	// successfully included file.
+	IncludeFileHandler func(pos gotoken.Position, includePath string)
 
 	MaxErrors int // 0: default (10), < 0: unlimited, n: n.
 
@@ -524,6 +528,7 @@ type Config struct {
 	DebugWorkingDir                        bool // Output to stderr.
 	DoNotTypecheckAsm                      bool
 	EnableAssignmentCompatibilityChecking  bool // No such checks performed up to v3.31.0. Currently only partially implemented.
+	FixBitfieldPadding                     bool // Fix a bug in calculating field positions after a bitfield.
 	InjectTracingCode                      bool // Output to stderr.
 	LongDoubleIsDouble                     bool
 	PreprocessOnly                         bool
@@ -788,6 +793,14 @@ func (c *context) openFile(name string, sys bool) (io.ReadCloser, error) {
 // Execution of HostConfig is not free, so caching of the results is
 // recommended.
 func HostConfig(cpp string, opts ...string) (predefined string, includePaths, sysIncludePaths []string, err error) {
+	if predefined, includePaths, sysIncludePaths, err = hostConfigv3(cpp, opts...); err == nil {
+		return predefined, includePaths, sysIncludePaths, nil
+	}
+
+	return hostConfigv4(opts)
+}
+
+func hostConfigv3(cpp string, opts ...string) (predefined string, includePaths, sysIncludePaths []string, err error) {
 	if cpp == "" {
 		cpp = "cpp"
 	}
@@ -837,6 +850,74 @@ func HostConfig(cpp string, opts ...string) (predefined string, includePaths, sy
 		}
 	}
 	return "", nil, nil, fmt.Errorf("failed parsing %s -v output", cpp)
+}
+
+func hostConfigv4(opts []string) (predefined string, includePaths, sysIncludePaths []string, err error) {
+	for _, cc := range []string{os.Getenv("CC"), "cc", "gcc"} {
+		if cc == "" {
+			continue
+		}
+
+		cc, err = exec.LookPath(cc)
+		if err != nil {
+			continue
+		}
+
+		args := append(opts, "-dM", "-E", "-")
+		pre, err := exec.Command(cc, args...).CombinedOutput()
+		if err != nil {
+			continue
+		}
+
+		sep := "\n"
+		if env("GOOS", runtime.GOOS) == "windows" {
+			sep = "\r\n"
+		}
+		a := strings.Split(string(pre), sep)
+		w := 0
+		for _, v := range a {
+			if strings.HasPrefix(v, "#") {
+				a[w] = v
+				w++
+			}
+		}
+		predefined = strings.Join(a[:w], "\n")
+		args = append(opts, "-v", "-E", "-")
+		out, err := exec.Command(cc, args...).CombinedOutput()
+		if err != nil {
+			continue
+		}
+
+		a = strings.Split(string(out), sep)
+		for i := 0; i < len(a); {
+			switch a[i] {
+			case "#include \"...\" search starts here:":
+			loop:
+				for i = i + 1; i < len(a); {
+					switch v := a[i]; {
+					case strings.HasPrefix(v, "#") || v == "End of search list.":
+						break loop
+					default:
+						includePaths = append(includePaths, strings.TrimSpace(v))
+						i++
+					}
+				}
+			case "#include <...> search starts here:":
+				for i = i + 1; i < len(a); {
+					switch v := a[i]; {
+					case strings.HasPrefix(v, "#") || v == "End of search list.":
+						return predefined, includePaths, sysIncludePaths, nil
+					default:
+						sysIncludePaths = append(sysIncludePaths, strings.TrimSpace(v))
+						i++
+					}
+				}
+			default:
+				i++
+			}
+		}
+	}
+	return "", nil, nil, fmt.Errorf("cannot determine C compiler configuration")
 }
 
 func env(key, val string) string {

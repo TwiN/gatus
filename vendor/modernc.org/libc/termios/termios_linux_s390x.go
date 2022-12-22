@@ -596,7 +596,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //      array_name[restrict]
 //    GCC 3.1 supports this.
 
+// Describes a char array whose address can safely be passed as the first
+//    argument to strncpy and strncat, as the char array is not necessarily
+//    a NUL-terminated string.
+
 // Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
 
 // Determine the wordsize from the preprocessor defines.
 
@@ -891,7 +897,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -902,8 +909,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Seconds since the Epoch, visible to user code when time_t is too
@@ -955,15 +963,15 @@ type Tcflag_t = uint32 /* termios.h:25:22 */
 //    <https://www.gnu.org/licenses/>.
 
 type Termios = struct {
-	Fc_iflag  Tcflag_t
-	Fc_oflag  Tcflag_t
-	Fc_cflag  Tcflag_t
-	Fc_lflag  Tcflag_t
-	Fc_line   Cc_t
-	Fc_cc     [32]Cc_t
-	_         [3]byte
-	Fc_ispeed Speed_t
-	Fc_ospeed Speed_t
+	Fc_iflag     Tcflag_t
+	Fc_oflag     Tcflag_t
+	Fc_cflag     Tcflag_t
+	Fc_lflag     Tcflag_t
+	Fc_line      Cc_t
+	Fc_cc        [32]Cc_t
+	F__ccgo_pad1 [3]byte
+	Fc_ispeed    Speed_t
+	Fc_ospeed    Speed_t
 } /* termios-struct.h:24:1 */
 
 // -

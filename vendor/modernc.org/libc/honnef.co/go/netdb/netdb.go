@@ -713,7 +713,10 @@ func init() {
 
 		num, err := strconv.ParseInt(fields[1], 10, 32)
 		if err != nil {
-			panic(err)
+			// If we find lines that don't match the expected format we skip over them.
+			// The expected format is <protocol> <number> <aliases> ...
+			// As we're using strings.Fields for splitting the line, failures can happen if the protocol field contains white spaces.
+			continue
 		}
 
 		protoent := &Protoent{
@@ -744,11 +747,19 @@ func init() {
 			continue
 		}
 
+		// https://gitlab.com/cznic/libc/-/issues/25
+		if strings.Index(fields[1], "/") < 0 {
+			continue
+		}
+
 		name := fields[0]
 		portproto := strings.SplitN(fields[1], "/", 2)
 		port, err := strconv.ParseInt(portproto[0], 10, 32)
 		if err != nil {
-			panic(err)
+			// If we find lines that don't match the expected format we skip over them.
+			// The expected format is <service-name> <port>/<protocol> [aliases ...]
+			// As we're using strings.Fields for splitting the line, failures can happen if the service name field contains white spaces.
+			continue
 		}
 
 		proto := portproto[1]

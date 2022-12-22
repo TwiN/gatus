@@ -50,8 +50,8 @@ const (
 	BS0                            = 0000000
 	BS1                            = 0020000
 	BSDLY                          = 0020000
-	CBAUD                          = 0010017
-	CBAUDEX                        = 0010000
+	CBAUD                          = 000000010017
+	CBAUDEX                        = 000000010000
 	CBRK                           = 0
 	CDISCARD                       = 15
 	CDSUSP                         = 25
@@ -152,6 +152,7 @@ const (
 	TCSADRAIN                      = 1
 	TCSAFLUSH                      = 2
 	TCSANOW                        = 0
+	TIOCSER_TEMT                   = 0x01
 	TOSTOP                         = 0000400
 	TTYDEF_CFLAG                   = 1440
 	TTYDEF_IFLAG                   = 11554
@@ -181,6 +182,7 @@ const (
 	XCASE                          = 0000004
 	XTABS                          = 0014000
 	X_ATFILE_SOURCE                = 1
+	X_BITS_TIME64_H                = 1
 	X_BITS_TYPESIZES_H             = 1
 	X_BITS_TYPES_H                 = 1
 	X_DEFAULT_SOURCE               = 1
@@ -188,6 +190,7 @@ const (
 	X_FILE_OFFSET_BITS             = 64
 	X_HAVE_STRUCT_TERMIOS_C_ISPEED = 1
 	X_HAVE_STRUCT_TERMIOS_C_OSPEED = 1
+	X_ILP32                        = 1
 	X_POSIX_C_SOURCE               = 200809
 	X_POSIX_SOURCE                 = 1
 	X_STDC_PREDEF_H                = 1
@@ -208,7 +211,7 @@ type Wchar_t = int32 /* <builtin>:15:24 */
 type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -223,11 +226,11 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 //	POSIX Standard: 7.1-2 General Terminal Interface	<termios.h>
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -242,7 +245,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // These are defined by the user (or the compiler)
 //    to specify the desired environment:
@@ -250,6 +253,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    __STRICT_ANSI__	ISO Standard C.
 //    _ISOC99_SOURCE	Extensions to ISO C89 from ISO C99.
 //    _ISOC11_SOURCE	Extensions to ISO C99 from ISO C11.
+//    _ISOC2X_SOURCE	Extensions to ISO C99 from ISO C2X.
 //    __STDC_WANT_LIB_EXT2__
 // 			Extensions to ISO C99 from TR 27431-2:2010.
 //    __STDC_WANT_IEC_60559_BFP_EXT__
@@ -370,6 +374,8 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // If nothing (other than _GNU_SOURCE and _DEFAULT_SOURCE) is defined,
 //    define _DEFAULT_SOURCE.
 
+// This is to enable the ISO C2X extension.
+
 // This is to enable the ISO C11 extension.
 
 // This is to enable the ISO C99 extension.
@@ -392,9 +398,22 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    compatibility with various implementations of <cstdio>, this test
 //    must consider only the value of __cplusplus when compiling C++.
 
+// GNU formerly extended the scanf functions with modified format
+//    specifiers %as, %aS, and %a[...] that allocate a buffer for the
+//    input using malloc.  This extension conflicts with ISO C99, which
+//    defines %a as a standalone format specifier that reads a floating-
+//    point number; moreover, POSIX.1-2008 provides the same feature
+//    using the modifier letter 'm' instead (%ms, %mS, %m[...]).
+//
+//    We now follow C99 unless GNU extensions are active and the compiler
+//    is specifically in C89 or C++98 mode (strict or not).  For
+//    instance, with GCC, -std=gnu11 will have C99-compliant scanf with
+//    or without -D_GNU_SOURCE, but -std=c89 -D_GNU_SOURCE will have the
+//    old extension.
+
 // Get definitions of __STDC_* predefined macros, if the compiler has
 //    not preincluded this header automatically.
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -409,7 +428,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This macro indicates that the installed library is the GNU C Library.
 //    For historic reasons the value now is 6 and this will stay from now
@@ -422,7 +441,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    these macros to test for features in specific releases.
 
 // This is here only because every header file already includes this one.
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -437,7 +456,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // We are almost always included from features.h.
 
@@ -552,7 +571,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    semantics.
 //
 //    clang++ identifies itself as gcc-4.2, but has support for GNU inlining
-//    semantics, that can be checked fot by using the __GNUC_STDC_INLINE_ and
+//    semantics, that can be checked for by using the __GNUC_STDC_INLINE_ and
 //    __GNUC_GNU_INLINE__ macro definitions.
 
 // GCC 4.3 and above allow passing all anonymous arguments of an
@@ -573,10 +592,14 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    argument to strncpy and strncat, as the char array is not necessarily
 //    a NUL-terminated string.
 
+// Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
+
 // Determine the wordsize from the preprocessor defines.
 
 // Properties of long double type.  ldbl-96 version.
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -591,7 +614,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // long double is distinct from double, so there is nothing to
 //    define here.
@@ -630,7 +653,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // We need `pid_t'.
 // bits/types.h -- definitions of __*_t types underlying *_t types.
-//    Copyright (C) 2002-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2002-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -645,11 +668,11 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; use <sys/types.h> instead.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -664,43 +687,63 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Determine the wordsize from the preprocessor defines.
 
+// Bit size of the time_t type at glibc build time, x86-64 and x32 case.
+//    Copyright (C) 2018-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
+
+// For others, time size is word size.
+
 // Convenience types.
-type X__u_char = uint8   /* types.h:30:23 */
-type X__u_short = uint16 /* types.h:31:28 */
-type X__u_int = uint32   /* types.h:32:22 */
-type X__u_long = uint32  /* types.h:33:27 */
+type X__u_char = uint8   /* types.h:31:23 */
+type X__u_short = uint16 /* types.h:32:28 */
+type X__u_int = uint32   /* types.h:33:22 */
+type X__u_long = uint32  /* types.h:34:27 */
 
 // Fixed-size types, underlying types depend on word size and compiler.
-type X__int8_t = int8     /* types.h:36:21 */
-type X__uint8_t = uint8   /* types.h:37:23 */
-type X__int16_t = int16   /* types.h:38:26 */
-type X__uint16_t = uint16 /* types.h:39:28 */
-type X__int32_t = int32   /* types.h:40:20 */
-type X__uint32_t = uint32 /* types.h:41:22 */
-type X__int64_t = int64   /* types.h:46:44 */
-type X__uint64_t = uint64 /* types.h:47:46 */
+type X__int8_t = int8     /* types.h:37:21 */
+type X__uint8_t = uint8   /* types.h:38:23 */
+type X__int16_t = int16   /* types.h:39:26 */
+type X__uint16_t = uint16 /* types.h:40:28 */
+type X__int32_t = int32   /* types.h:41:20 */
+type X__uint32_t = uint32 /* types.h:42:22 */
+type X__int64_t = int64   /* types.h:47:44 */
+type X__uint64_t = uint64 /* types.h:48:46 */
 
 // Smallest types with at least a given width.
-type X__int_least8_t = X__int8_t     /* types.h:51:18 */
-type X__uint_least8_t = X__uint8_t   /* types.h:52:19 */
-type X__int_least16_t = X__int16_t   /* types.h:53:19 */
-type X__uint_least16_t = X__uint16_t /* types.h:54:20 */
-type X__int_least32_t = X__int32_t   /* types.h:55:19 */
-type X__uint_least32_t = X__uint32_t /* types.h:56:20 */
-type X__int_least64_t = X__int64_t   /* types.h:57:19 */
-type X__uint_least64_t = X__uint64_t /* types.h:58:20 */
+type X__int_least8_t = X__int8_t     /* types.h:52:18 */
+type X__uint_least8_t = X__uint8_t   /* types.h:53:19 */
+type X__int_least16_t = X__int16_t   /* types.h:54:19 */
+type X__uint_least16_t = X__uint16_t /* types.h:55:20 */
+type X__int_least32_t = X__int32_t   /* types.h:56:19 */
+type X__uint_least32_t = X__uint32_t /* types.h:57:20 */
+type X__int_least64_t = X__int64_t   /* types.h:58:19 */
+type X__uint_least64_t = X__uint64_t /* types.h:59:20 */
 
 // quad_t is also 64 bits.
-type X__quad_t = int64    /* types.h:65:37 */
-type X__u_quad_t = uint64 /* types.h:66:46 */
+type X__quad_t = int64    /* types.h:66:37 */
+type X__u_quad_t = uint64 /* types.h:67:46 */
 
 // Largest integral types.
-type X__intmax_t = int64   /* types.h:74:37 */
-type X__uintmax_t = uint64 /* types.h:75:46 */
+type X__intmax_t = int64   /* types.h:75:37 */
+type X__uintmax_t = uint64 /* types.h:76:46 */
 
 // The machine-dependent file <bits/typesizes.h> defines __*_T_TYPE
 //    macros for each of the OS types we define below.  The definitions
@@ -712,7 +755,7 @@ type X__uintmax_t = uint64 /* types.h:75:46 */
 // 	32		-- "natural" 32-bit type (always int)
 // 	64		-- "natural" 64-bit type (long or long long)
 // 	LONG32		-- 32-bit type, traditionally long
-// 	QUAD		-- 64-bit type, always long long
+// 	QUAD		-- 64-bit type, traditionally long long
 // 	WORD		-- natural type of __WORDSIZE bits (int or long)
 // 	LONGWORD	-- type of __WORDSIZE bits, traditionally long
 //
@@ -734,7 +777,7 @@ type X__uintmax_t = uint64 /* types.h:75:46 */
 // We want __extension__ before typedef's that use nonstandard base types
 //    such as `long long' in C89 mode.
 // bits/typesizes.h -- underlying types for *_t.  Linux/x86-64 version.
-//    Copyright (C) 2012-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2012-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -749,7 +792,7 @@ type X__uintmax_t = uint64 /* types.h:75:46 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // See <bits/types.h> for the meaning of these macros.  This file exists so
 //    that <bits/types.h> need not vary across different GNU platforms.
@@ -758,83 +801,8 @@ type X__uintmax_t = uint64 /* types.h:75:46 */
 
 // Number of descriptors that can fit in an `fd_set'.
 
-type X__dev_t = X__u_quad_t                /* types.h:143:25 */ // Type of device numbers.
-type X__uid_t = uint32                     /* types.h:144:25 */ // Type of user identifications.
-type X__gid_t = uint32                     /* types.h:145:25 */ // Type of group identifications.
-type X__ino_t = uint32                     /* types.h:146:25 */ // Type of file serial numbers.
-type X__ino64_t = X__u_quad_t              /* types.h:147:27 */ // Type of file serial numbers (LFS).
-type X__mode_t = uint32                    /* types.h:148:26 */ // Type of file attribute bitmasks.
-type X__nlink_t = uint32                   /* types.h:149:27 */ // Type of file link counts.
-type X__off_t = int32                      /* types.h:150:25 */ // Type of file sizes and offsets.
-type X__off64_t = X__quad_t                /* types.h:151:27 */ // Type of file sizes and offsets (LFS).
-type X__pid_t = int32                      /* types.h:152:25 */ // Type of process identifications.
-type X__fsid_t = struct{ F__val [2]int32 } /* types.h:153:26 */ // Type of file system IDs.
-type X__clock_t = int32                    /* types.h:154:27 */ // Type of CPU usage counts.
-type X__rlim_t = uint32                    /* types.h:155:26 */ // Type for resource measurement.
-type X__rlim64_t = X__u_quad_t             /* types.h:156:28 */ // Type for resource measurement (LFS).
-type X__id_t = uint32                      /* types.h:157:24 */ // General type for IDs.
-type X__time_t = int32                     /* types.h:158:26 */ // Seconds since the Epoch.
-type X__useconds_t = uint32                /* types.h:159:30 */ // Count of microseconds.
-type X__suseconds_t = int32                /* types.h:160:31 */ // Signed count of microseconds.
-
-type X__daddr_t = int32 /* types.h:162:27 */ // The type of a disk address.
-type X__key_t = int32   /* types.h:163:25 */ // Type of an IPC key.
-
-// Clock ID used in clock and timer functions.
-type X__clockid_t = int32 /* types.h:166:29 */
-
-// Timer ID returned by `timer_create'.
-type X__timer_t = uintptr /* types.h:169:12 */
-
-// Type to represent block size.
-type X__blksize_t = int32 /* types.h:172:29 */
-
-// Types from the Large File Support interface.
-
-// Type to count number of disk blocks.
-type X__blkcnt_t = int32       /* types.h:177:28 */
-type X__blkcnt64_t = X__quad_t /* types.h:178:30 */
-
-// Type to count file system blocks.
-type X__fsblkcnt_t = uint32        /* types.h:181:30 */
-type X__fsblkcnt64_t = X__u_quad_t /* types.h:182:32 */
-
-// Type to count file system nodes.
-type X__fsfilcnt_t = uint32        /* types.h:185:30 */
-type X__fsfilcnt64_t = X__u_quad_t /* types.h:186:32 */
-
-// Type of miscellaneous file system fields.
-type X__fsword_t = int32 /* types.h:189:28 */
-
-type X__ssize_t = int32 /* types.h:191:27 */ // Type of a byte count, or error.
-
-// Signed long type used in system calls.
-type X__syscall_slong_t = int32 /* types.h:194:33 */
-// Unsigned long type used in system calls.
-type X__syscall_ulong_t = uint32 /* types.h:196:33 */
-
-// These few don't really vary by system, they always correspond
-//    to one of the other defined types.
-type X__loff_t = X__off64_t /* types.h:200:19 */ // Type of file sizes and offsets (LFS).
-type X__caddr_t = uintptr   /* types.h:201:14 */
-
-// Duplicates info from stdint.h but this is used in unistd.h.
-type X__intptr_t = int32 /* types.h:204:25 */
-
-// Duplicate info from sys/socket.h.
-type X__socklen_t = uint32 /* types.h:207:23 */
-
-// C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
-type X__sig_atomic_t = int32 /* types.h:212:13 */
-
-type Pid_t = X__pid_t /* termios.h:30:17 */
-
-// Get the system-dependent definitions of `struct termios', `tcflag_t',
-//    `cc_t', `speed_t', and all the macros specifying the flag bits.
-// termios type and macro definitions.  Linux version.
-//    Copyright (C) 1993-2018 Free Software Foundation, Inc.
+// bits/time64.h -- underlying types for __time64_t.  Generic version.
+//    Copyright (C) 2018-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -849,23 +817,146 @@ type Pid_t = X__pid_t /* termios.h:30:17 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
+
+// Define __TIME64_T_TYPE so that it is always a 64-bit type.
+
+// Define a 64-bit time type alongsize the 32-bit one.
+
+type X__dev_t = X__uint64_t                /* types.h:145:25 */ // Type of device numbers.
+type X__uid_t = uint32                     /* types.h:146:25 */ // Type of user identifications.
+type X__gid_t = uint32                     /* types.h:147:25 */ // Type of group identifications.
+type X__ino_t = uint32                     /* types.h:148:25 */ // Type of file serial numbers.
+type X__ino64_t = X__uint64_t              /* types.h:149:27 */ // Type of file serial numbers (LFS).
+type X__mode_t = uint32                    /* types.h:150:26 */ // Type of file attribute bitmasks.
+type X__nlink_t = uint32                   /* types.h:151:27 */ // Type of file link counts.
+type X__off_t = int32                      /* types.h:152:25 */ // Type of file sizes and offsets.
+type X__off64_t = X__int64_t               /* types.h:153:27 */ // Type of file sizes and offsets (LFS).
+type X__pid_t = int32                      /* types.h:154:25 */ // Type of process identifications.
+type X__fsid_t = struct{ F__val [2]int32 } /* types.h:155:26 */ // Type of file system IDs.
+type X__clock_t = int32                    /* types.h:156:27 */ // Type of CPU usage counts.
+type X__rlim_t = uint32                    /* types.h:157:26 */ // Type for resource measurement.
+type X__rlim64_t = X__uint64_t             /* types.h:158:28 */ // Type for resource measurement (LFS).
+type X__id_t = uint32                      /* types.h:159:24 */ // General type for IDs.
+type X__time_t = int32                     /* types.h:160:26 */ // Seconds since the Epoch.
+type X__useconds_t = uint32                /* types.h:161:30 */ // Count of microseconds.
+type X__suseconds_t = int32                /* types.h:162:31 */ // Signed count of microseconds.
+
+type X__daddr_t = int32 /* types.h:164:27 */ // The type of a disk address.
+type X__key_t = int32   /* types.h:165:25 */ // Type of an IPC key.
+
+// Clock ID used in clock and timer functions.
+type X__clockid_t = int32 /* types.h:168:29 */
+
+// Timer ID returned by `timer_create'.
+type X__timer_t = uintptr /* types.h:171:12 */
+
+// Type to represent block size.
+type X__blksize_t = int32 /* types.h:174:29 */
+
+// Types from the Large File Support interface.
+
+// Type to count number of disk blocks.
+type X__blkcnt_t = int32        /* types.h:179:28 */
+type X__blkcnt64_t = X__int64_t /* types.h:180:30 */
+
+// Type to count file system blocks.
+type X__fsblkcnt_t = uint32        /* types.h:183:30 */
+type X__fsblkcnt64_t = X__uint64_t /* types.h:184:32 */
+
+// Type to count file system nodes.
+type X__fsfilcnt_t = uint32        /* types.h:187:30 */
+type X__fsfilcnt64_t = X__uint64_t /* types.h:188:32 */
+
+// Type of miscellaneous file system fields.
+type X__fsword_t = int32 /* types.h:191:28 */
+
+type X__ssize_t = int32 /* types.h:193:27 */ // Type of a byte count, or error.
+
+// Signed long type used in system calls.
+type X__syscall_slong_t = int32 /* types.h:196:33 */
+// Unsigned long type used in system calls.
+type X__syscall_ulong_t = uint32 /* types.h:198:33 */
+
+// These few don't really vary by system, they always correspond
+//
+//	to one of the other defined types.
+type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
+type X__caddr_t = uintptr   /* types.h:203:14 */
+
+// Duplicates info from stdint.h but this is used in unistd.h.
+type X__intptr_t = int32 /* types.h:206:25 */
+
+// Duplicate info from sys/socket.h.
+type X__socklen_t = uint32 /* types.h:209:23 */
+
+// C99: An integer type that can be accessed as an atomic entity,
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
+type X__sig_atomic_t = int32 /* types.h:214:13 */
+
+// Seconds since the Epoch, visible to user code when time_t is too
+//
+//	narrow only for consistency with the old way of widening too-narrow
+//	types.  User code should never use __time64_t.
+type X__time64_t = X__int64_t /* types.h:222:28 */
+
+type Pid_t = X__pid_t /* termios.h:30:17 */
+
+// Get the system-dependent definitions of `struct termios', `tcflag_t',
+//    `cc_t', `speed_t', and all the macros specifying the flag bits.
+// termios type and macro definitions.  Linux version.
+//    Copyright (C) 1993-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library; if not, see
+//    <https://www.gnu.org/licenses/>.
 
 type Cc_t = uint8      /* termios.h:23:23 */
 type Speed_t = uint32  /* termios.h:24:22 */
 type Tcflag_t = uint32 /* termios.h:25:22 */
 
+// struct termios definition.  Linux/generic version.
+//    Copyright (C) 2019-2020 Free Software Foundation, Inc.
+//    This file is part of the GNU C Library.
+//
+//    The GNU C Library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    The GNU C Library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with the GNU C Library.  If not, see
+//    <https://www.gnu.org/licenses/>.
+
 type Termios = struct {
-	Fc_iflag  Tcflag_t
-	Fc_oflag  Tcflag_t
-	Fc_cflag  Tcflag_t
-	Fc_lflag  Tcflag_t
-	Fc_line   Cc_t
-	Fc_cc     [32]Cc_t
-	_         [3]byte
-	Fc_ispeed Speed_t
-	Fc_ospeed Speed_t
-} /* termios.h:28:1 */
+	Fc_iflag     Tcflag_t
+	Fc_oflag     Tcflag_t
+	Fc_cflag     Tcflag_t
+	Fc_lflag     Tcflag_t
+	Fc_line      Cc_t
+	Fc_cc        [32]Cc_t
+	F__ccgo_pad1 [3]byte
+	Fc_ispeed    Speed_t
+	Fc_ospeed    Speed_t
+} /* termios-struct.h:24:1 */
 
 // -
 // Copyright (c) 1982, 1986, 1993

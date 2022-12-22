@@ -143,7 +143,7 @@ type X__uint128_t = struct {
 type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -178,7 +178,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    If fixincludes fixes it, then the fixed version is installed
 //    instead of this text.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -193,12 +193,12 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 //	ISO C99 Standard: 7.10/5.2.4.2.1 Sizes of integer types	<limits.h>
 
 // Handle feature test macros at the start of a header.
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -213,7 +213,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This header is internal to glibc and should not be included outside
 //    of glibc headers.  Headers including it must define
@@ -223,7 +223,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    header is included, not when the first system header is
 //    included.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -238,7 +238,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // These are defined by the user (or the compiler)
 //    to specify the desired environment:
@@ -246,6 +246,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    __STRICT_ANSI__	ISO Standard C.
 //    _ISOC99_SOURCE	Extensions to ISO C89 from ISO C99.
 //    _ISOC11_SOURCE	Extensions to ISO C99 from ISO C11.
+//    _ISOC2X_SOURCE	Extensions to ISO C99 from ISO C2X.
 //    __STDC_WANT_LIB_EXT2__
 // 			Extensions to ISO C99 from TR 27431-2:2010.
 //    __STDC_WANT_IEC_60559_BFP_EXT__
@@ -366,6 +367,8 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // If nothing (other than _GNU_SOURCE and _DEFAULT_SOURCE) is defined,
 //    define _DEFAULT_SOURCE.
 
+// This is to enable the ISO C2X extension.
+
 // This is to enable the ISO C11 extension.
 
 // This is to enable the ISO C99 extension.
@@ -388,9 +391,22 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    compatibility with various implementations of <cstdio>, this test
 //    must consider only the value of __cplusplus when compiling C++.
 
+// GNU formerly extended the scanf functions with modified format
+//    specifiers %as, %aS, and %a[...] that allocate a buffer for the
+//    input using malloc.  This extension conflicts with ISO C99, which
+//    defines %a as a standalone format specifier that reads a floating-
+//    point number; moreover, POSIX.1-2008 provides the same feature
+//    using the modifier letter 'm' instead (%ms, %mS, %m[...]).
+//
+//    We now follow C99 unless GNU extensions are active and the compiler
+//    is specifically in C89 or C++98 mode (strict or not).  For
+//    instance, with GCC, -std=gnu11 will have C99-compliant scanf with
+//    or without -D_GNU_SOURCE, but -std=c89 -D_GNU_SOURCE will have the
+//    old extension.
+
 // Get definitions of __STDC_* predefined macros, if the compiler has
 //    not preincluded this header automatically.
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -405,7 +421,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This macro indicates that the installed library is the GNU C Library.
 //    For historic reasons the value now is 6 and this will stay from now
@@ -418,7 +434,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    these macros to test for features in specific releases.
 
 // This is here only because every header file already includes this one.
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -433,7 +449,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // We are almost always included from features.h.
 
@@ -548,7 +564,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    semantics.
 //
 //    clang++ identifies itself as gcc-4.2, but has support for GNU inlining
-//    semantics, that can be checked fot by using the __GNUC_STDC_INLINE_ and
+//    semantics, that can be checked for by using the __GNUC_STDC_INLINE_ and
 //    __GNUC_GNU_INLINE__ macro definitions.
 
 // GCC 4.3 and above allow passing all anonymous arguments of an
@@ -569,9 +585,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    argument to strncpy and strncat, as the char array is not necessarily
 //    a NUL-terminated string.
 
+// Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
+
 // Determine the wordsize from the preprocessor defines.
 //
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -586,10 +606,10 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Properties of long double type.  ldbl-128 version.
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -604,7 +624,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // long double is distinct from double, so there is nothing to
 //    define here.
@@ -638,7 +658,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // Determine the wordsize from the preprocessor defines.
 //
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -653,7 +673,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This file is automatically generated.
 //    It defines a symbol `__stub_FUNCTION' for each function
@@ -664,10 +684,14 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    macro.
 
 // ISO/IEC TS 18661-1:2014 defines the __STDC_WANT_IEC_60559_BFP_EXT__
-//    macro.
+//    macro.  Most but not all symbols enabled by that macro in TS
+//    18661-1 are enabled unconditionally in C2X; the symbols in Annex F
+//    still require that macro in C2X.
 
 // ISO/IEC TS 18661-4:2015 defines the
-//    __STDC_WANT_IEC_60559_FUNCS_EXT__ macro.
+//    __STDC_WANT_IEC_60559_FUNCS_EXT__ macro.  Other than the reduction
+//    functions, the symbols from this TS are enabled unconditionally in
+//    C2X.
 
 // ISO/IEC TS 18661-3:2015 defines the
 //    __STDC_WANT_IEC_60559_TYPES_EXT__ macro.
@@ -694,7 +718,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    __STDC_WANT_IEC_60559_BFP_EXT__ is used to enable this feature.
 
 // POSIX adds things to <limits.h>.
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -709,7 +733,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 //	POSIX Standard: 2.9.2 Minimum Values	Added to <limits.h>
 //
@@ -717,7 +741,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // Determine the wordsize from the preprocessor defines.
 //
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -732,7 +756,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // These are the standard-mandated minimum values.
 
@@ -802,7 +826,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // Get the implementation-specific values for the above.
 // Minimum guaranteed maximum values for system limits.  Linux version.
-//    Copyright (C) 1993-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1993-2020 Free Software Foundation, Inc.
 //
 //    This file is part of the GNU C Library.
 //
@@ -818,7 +842,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library.  If not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // The kernel header pollutes the namespace with the NR_OPEN symbol
 //    and defines LINK_MAX although filesystems have different maxima.  A
@@ -868,7 +892,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // This value is a guaranteed minimum maximum.
 //    The current maximum can be got from `sysconf'.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -883,7 +907,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Never include this file directly; include <limits.h> instead.
 
@@ -915,7 +939,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 
 // This value is defined like this in regex.h.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -968,4 +992,4 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // This administrivia gets added to the end of limits.h
 //    if the system has its own version of limits.h.
 
-var _ int8 /* gen.c:2:13: */
+var _ uint8 /* gen.c:2:13: */

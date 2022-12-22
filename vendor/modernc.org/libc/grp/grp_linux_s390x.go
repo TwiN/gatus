@@ -440,7 +440,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //      array_name[restrict]
 //    GCC 3.1 supports this.
 
+// Describes a char array whose address can safely be passed as the first
+//    argument to strncpy and strncat, as the char array is not necessarily
+//    a NUL-terminated string.
+
 // Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
 
 // Determine the wordsize from the preprocessor defines.
 
@@ -734,7 +740,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -745,8 +752,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Wide character type.
@@ -757,11 +765,6 @@ type X__sig_atomic_t = int32 /* types.h:214:13 */
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
 // For the Single Unix specification we must define this type here.
@@ -769,11 +772,11 @@ type Gid_t = X__gid_t /* grp.h:37:17 */
 
 // The group structure.
 type Group = struct {
-	Fgr_name   uintptr
-	Fgr_passwd uintptr
-	Fgr_gid    X__gid_t
-	_          [4]byte
-	Fgr_mem    uintptr
+	Fgr_name     uintptr
+	Fgr_passwd   uintptr
+	Fgr_gid      X__gid_t
+	F__ccgo_pad1 [4]byte
+	Fgr_mem      uintptr
 } /* grp.h:42:1 */
 
 var _ uint8 /* gen.c:2:13: */

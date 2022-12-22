@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
@@ -69,14 +69,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\"topic\":\"example\",\"title\":\"Gatus\",\"message\":\"endpoint-name - description-1\",\"tags\":[\"x\"],\"priority\":1}",
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1","tags":["x"],"priority":1}`,
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 2},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"topic\":\"example\",\"title\":\"Gatus\",\"message\":\"endpoint-name - description-2\",\"tags\":[\"white_check_mark\"],\"priority\":2}",
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2","tags":["white_check_mark"],"priority":2}`,
 		},
 	}
 	for _, scenario := range scenarios {

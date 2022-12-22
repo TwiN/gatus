@@ -63,3 +63,19 @@ Currently, the only fields parsed are:
 - `NameServers`: The nameservers currently tied to the domain
 
 If you'd like one or more other fields to be parsed, please don't be shy and create an issue or a pull request.
+
+#### Caching referral WHOIS servers
+The way that WHOIS scales is by having one "main" WHOIS server, namely `whois.iana.org:43`, refer to other WHOIS server
+on a per-TLD basis. 
+
+In other word, let's say that you wanted to have the WHOIS information for `example.com`. 
+The first step would be to query `whois.iana.org:43` with `com`, which would return `whois.verisign-grs.com`.
+Then, you would query `whois.verisign-grs.com:43` for the WHOIS information on `example.com`.
+
+If you're querying a lot of servers, making two queries instead of one can be a little wasteful, hence `WithReferralCache(true)`:
+```go
+client := whois.NewClient().WithReferralCache(true)
+```
+The above will cache the referral WHOIS server for each TLD, so that you can directly query the appropriate WHOIS server
+instead of first querying `whois.iana.org:43` for the referral.
+

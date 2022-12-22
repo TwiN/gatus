@@ -47,7 +47,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "array-of-maps",
+			Name:                 "array-of-objects",
 			Path:                 "ids[1].id",
 			Data:                 `{"ids": [{"id": 1}, {"id": 2}]}`,
 			ExpectedOutput:       "2",
@@ -60,6 +60,14 @@ func TestEval(t *testing.T) {
 			Data:                 `{"ids": [1, 2]}`,
 			ExpectedOutput:       "1",
 			ExpectedOutputLength: 1,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "array-of-values-with-no-path",
+			Path:                 "",
+			Data:                 `[1, 2]`,
+			ExpectedOutput:       "[1 2]", // the output is an array
+			ExpectedOutputLength: 2,
 			ExpectedError:        false,
 		},
 		{
@@ -79,7 +87,15 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "array-of-maps-at-root",
+			Name:                 "array-of-objects-at-root",
+			Path:                 "[0]",
+			Data:                 `[{"id": 1}, {"id": 2}]`,
+			ExpectedOutput:       `{"id":1}`,
+			ExpectedOutputLength: 8,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "array-of-objects-with-int-at-root",
 			Path:                 "[0].id",
 			Data:                 `[{"id": 1}, {"id": 2}]`,
 			ExpectedOutput:       "1",
@@ -87,7 +103,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "array-of-maps-at-root-and-invalid-index",
+			Name:                 "array-of-objects-at-root-and-invalid-index",
 			Path:                 "[5].id",
 			Data:                 `[{"id": 1}, {"id": 2}]`,
 			ExpectedOutput:       "",
@@ -111,7 +127,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "map-of-nested-arrays",
+			Name:                 "object-with-nested-arrays",
 			Path:                 "data[1][1]",
 			Data:                 `{"data": [["a", "b", "c"], ["d", "eeeee", "f"]]}`,
 			ExpectedOutput:       "eeeee",
@@ -119,7 +135,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "map-of-arrays-of-maps",
+			Name:                 "object-with-arrays-of-objects",
 			Path:                 "data[0].apps[1].name",
 			Data:                 `{"data": [{"apps": [{"name":"app1"}, {"name":"app2"}, {"name":"app3"}]}]}`,
 			ExpectedOutput:       "app2",
@@ -127,7 +143,7 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
-			Name:                 "map-of-arrays-of-maps-with-missing-element",
+			Name:                 "object-with-arrays-of-objects-with-missing-element",
 			Path:                 "data[0].apps[1].name",
 			Data:                 `{"data": [{"apps": []}]}`,
 			ExpectedOutput:       "",

@@ -36,14 +36,27 @@ editor:
 	gofmt -l -s -w *.go
 	GOOS=darwin GOARCH=amd64 go build
 	GOOS=darwin GOARCH=arm64 go build
+	GOOS=freebsd GOARCH=386 go build
+	GOOS=freebsd GOARCH=amd64 go build
+	GOOS=freebsd GOARCH=arm go build
+	GOOS=freebsd GOARCH=arm64 go build
 	GOOS=linux GOARCH=386 go build
 	GOOS=linux GOARCH=amd64 go build
 	GOOS=linux GOARCH=arm go build
 	GOOS=linux GOARCH=arm64 go build
+	GOOS=linux GOARCH=mips go build
+	GOOS=linux GOARCH=mips64le go build
+	GOOS=linux GOARCH=mipsle go build
+	GOOS=linux GOARCH=riscv64 go build
 	GOOS=linux GOARCH=s390x go build
+	GOOS=netbsd GOARCH=386 go build
+	GOOS=netbsd GOARCH=amd64 go build
+	GOOS=netbsd GOARCH=arm go build
+	GOOS=openbsd GOARCH=386 go build
+	GOOS=openbsd GOARCH=amd64 go build
+	GOOS=openbsd GOARCH=arm64 go build
 	GOOS=windows GOARCH=386 go build
 	GOOS=windows GOARCH=amd64 go build
-	go test 2>&1 | tee log
 
 internalError:
 	egrep -ho '"internal error.*"' *.go | sort | cat -n

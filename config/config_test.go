@@ -5,21 +5,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v4/alerting"
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/alerting/provider/custom"
-	"github.com/TwiN/gatus/v4/alerting/provider/discord"
-	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v4/alerting/provider/slack"
-	"github.com/TwiN/gatus/v4/alerting/provider/teams"
-	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/config/web"
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/storage"
+	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/custom"
+	"github.com/TwiN/gatus/v5/alerting/provider/discord"
+	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
+	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
+	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
+	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/config/web"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/storage"
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
@@ -448,26 +454,21 @@ endpoints:
     url: https://twin.sh/health
     alerts:
       - type: slack
-        enabled: true
       - type: pagerduty
-        enabled: true
         failure-threshold: 7
         success-threshold: 5
         description: "Healthcheck failed 7 times in a row"
       - type: mattermost
-        enabled: true
       - type: messagebird
+        enabled: false
       - type: discord
-        enabled: true
         failure-threshold: 10
       - type: telegram
         enabled: true
       - type: twilio
-        enabled: true
         failure-threshold: 12
         success-threshold: 15
       - type: teams
-        enabled: true
     conditions:
       - "[STATUS] == 200"
 `))
@@ -979,11 +980,8 @@ endpoints:
 	if config.Alerting == nil {
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
-	if config.Alerting.PagerDuty == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
-	}
-	if config.Alerting.PagerDuty.IsValid() {
-		t.Fatal("PagerDuty alerting config should've been invalid")
+	if config.Alerting.PagerDuty != nil {
+		t.Fatal("PagerDuty alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
 
@@ -1220,87 +1218,43 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		Custom:      &custom.AlertProvider{},
 		Discord:     &discord.AlertProvider{},
+		Email:       &email.AlertProvider{},
+		GoogleChat:  &googlechat.AlertProvider{},
+		Matrix:      &matrix.AlertProvider{},
 		Mattermost:  &mattermost.AlertProvider{},
 		Messagebird: &messagebird.AlertProvider{},
+		Ntfy:        &ntfy.AlertProvider{},
+		Opsgenie:    &opsgenie.AlertProvider{},
 		PagerDuty:   &pagerduty.AlertProvider{},
 		Slack:       &slack.AlertProvider{},
 		Telegram:    &telegram.AlertProvider{},
 		Twilio:      &twilio.AlertProvider{},
 		Teams:       &teams.AlertProvider{},
 	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeCustom) != alertingConfig.Custom {
-		t.Error("expected Custom configuration")
+	scenarios := []struct {
+		alertType alert.Type
+		expected  provider.AlertProvider
+	}{
+		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
+		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
+		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
+		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
+		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
+		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
+		{alertType: alert.TypeMessagebird, expected: alertingConfig.Messagebird},
+		{alertType: alert.TypeNtfy, expected: alertingConfig.Ntfy},
+		{alertType: alert.TypeOpsgenie, expected: alertingConfig.Opsgenie},
+		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
+		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
+		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
+		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
+		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
 	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeDiscord) != alertingConfig.Discord {
-		t.Error("expected Discord configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeMattermost) != alertingConfig.Mattermost {
-		t.Error("expected Mattermost configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeMessagebird) != alertingConfig.Messagebird {
-		t.Error("expected Messagebird configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypePagerDuty) != alertingConfig.PagerDuty {
-		t.Error("expected PagerDuty configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeSlack) != alertingConfig.Slack {
-		t.Error("expected Slack configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTelegram) != alertingConfig.Telegram {
-		t.Error("expected Telegram configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTwilio) != alertingConfig.Twilio {
-		t.Error("expected Twilio configuration")
-	}
-	if alertingConfig.GetAlertingProviderByAlertType(alert.TypeTeams) != alertingConfig.Teams {
-		t.Error("expected Teams configuration")
-	}
-}
-
-// XXX: Remove this in v5.0.0
-func TestParseAndValidateConfigBytes_backwardCompatibleWithServices(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
-services:
-  - name: website
-    url: https://twin.sh/actuator/health
-    conditions:
-      - "[STATUS] == 200"
-`))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if config.Endpoints[0].URL != "https://twin.sh/actuator/health" {
-		t.Errorf("URL should have been %s", "https://twin.sh/actuator/health")
-	}
-	if config.Endpoints[0].Interval != 60*time.Second {
-		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
-	}
-}
-
-// XXX: Remove this in v5.0.0
-func TestParseAndValidateConfigBytes_backwardCompatibleMergeServicesInEndpoints(t *testing.T) {
-	config, err := parseAndValidateConfigBytes([]byte(`
-services:
-  - name: website1
-    url: https://twin.sh/actuator/health
-    conditions:
-      - "[STATUS] == 200"
-endpoints:
-  - name: website2
-    url: https://twin.sh/actuator/health
-    conditions:
-      - "[STATUS] == 200"
-`))
-	if err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if config == nil {
-		t.Fatal("Config shouldn't have been nil")
-	}
-	if len(config.Endpoints) != 2 {
-		t.Error("services should've been merged in endpoints")
+	for _, scenario := range scenarios {
+		t.Run(string(scenario.alertType), func(t *testing.T) {
+			if alertingConfig.GetAlertingProviderByAlertType(scenario.alertType) != scenario.expected {
+				t.Errorf("expected %s configuration", scenario.alertType)
+			}
+		})
 	}
 }

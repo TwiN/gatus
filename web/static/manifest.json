@@ -1,0 +1,24 @@
+{
+  "id": "gatus",
+  "name": "Gatus",
+  "short_name": "Gatus",
+  "description": "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue",
+  "lang": "en",
+  "scope": "/",
+  "start_url": "/",
+  "theme_color": "#f7f9fb",
+  "background_color": "#f7f9fb",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/logo-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -377,14 +377,13 @@ func Xlink(t *TLS, oldpath, newpath uintptr) int32 {
 
 // int dup2(int oldfd, int newfd);
 func Xdup2(t *TLS, oldfd, newfd int32) int32 {
-	panic(todo(""))
-	// n, _, err := unix.Syscall(unix.SYS_DUP2, uintptr(oldfd), uintptr(newfd), 0)
-	// if err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	n, _, err := unix.Syscall(unix.SYS_DUP2, uintptr(oldfd), uintptr(newfd), 0)
+	if err != 0 {
+		t.setErrno(err)
+		return -1
+	}
 
-	// return int32(n)
+	return int32(n)
 }
 
 // ssize_t readlink(const char *restrict path, char *restrict buf, size_t bufsize);

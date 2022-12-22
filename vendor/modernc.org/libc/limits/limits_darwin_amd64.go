@@ -167,6 +167,8 @@ type X__uint128_t = struct {
 type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
+var X__darwin_check_fd_set_overflow uintptr /* <builtin>:146:5: */
+
 // Copyright (C) 1992-2021 Free Software Foundation, Inc.
 //
 // This file is part of GCC.

@@ -59,7 +59,7 @@ func (p *project) initializerInner(tag string, off uintptr, f *function, s []*cc
 			tld.patches = append(tld.patches, initPatch{t, s[0], patchField})
 			p.w(" 0 ")
 		default:
-			p.assignmentExpression(f, s[0].AssignmentExpression, t, exprValue, fOutermost)
+			p.assignmentExpression(f, s[0].AssignmentExpression, t, exprValue, 0)
 		}
 		return
 	}
@@ -79,7 +79,7 @@ func (p *project) initializerInner(tag string, off uintptr, f *function, s []*cc
 		case cc.Struct, cc.Union:
 			if compatibleStructOrUnion(t, s[0].AssignmentExpression.Operand.Type()) {
 				p.w("%s%s", tidyComment("", s[0]), tag)
-				p.assignmentExpression(f, s[0].AssignmentExpression, t, exprValue, fOutermost)
+				p.assignmentExpression(f, s[0].AssignmentExpression, t, exprValue, 0)
 				return
 			}
 		}
@@ -87,9 +87,6 @@ func (p *project) initializerInner(tag string, off uintptr, f *function, s []*cc
 
 	if k == cc.Array && len(s) == 1 {
 		et := t.Elem()
-		if dmesgs { //TODO-
-			dmesg("%v: %v", s[0].Position(), et)
-		}
 		switch {
 		case isCharType(et):
 			// 14: An array of character type may be initialized by a character string
@@ -147,13 +144,13 @@ func (p *project) initializerInner(tag string, off uintptr, f *function, s []*cc
 	case cc.Union:
 		p.initializerUnion(tag, off, f, s, t, sc, tld, lm, tm)
 	default:
-		panic(todo("%v: internal error: %v %v", s[0].Position(), t, len(s)))
+		panic(todo("%v: internal error: %v alias %v %v", s[0].Position(), t, t.Alias(), len(s)))
 	}
 }
 
 func (p *project) initializerArray(tag string, off uintptr, f *function, s []*cc.Initializer, t cc.Type, sc cc.StorageClass, tld *tld, lm, tm map[*cc.Initializer][]cc.StringID) {
 	if len(s) == 0 {
-		p.w("%s{}", p.typ(nil, t))
+		p.w("%s%s{}", tag, p.typ(nil, t))
 		return
 	}
 
@@ -172,7 +169,7 @@ func (p *project) initializerArray(tag string, off uintptr, f *function, s []*cc
 	for _, parts = range a {
 		var comma *cc.Token
 		comma = parts[len(parts)-1].TrailingComma()
-		elemOff := parts[0].Offset - off
+		elemOff := (parts[0].Offset - off) / esz * esz
 		tag = ""
 		if mustIndex {
 			tag = fmt.Sprintf("%d:", elemOff/esz)
@@ -217,7 +214,7 @@ func (p *project) initializerArrayElement(off uintptr, s []*cc.Initializer, elem
 
 func (p *project) initializerStruct(tag string, off uintptr, f *function, s []*cc.Initializer, t cc.Type, sc cc.StorageClass, tld *tld, lm, tm map[*cc.Initializer][]cc.StringID) {
 	if len(s) == 0 {
-		p.w("%s{}", p.typ(nil, t))
+		p.w("%s%s{}", tag, p.typ(nil, t))
 		return
 	}
 
@@ -232,7 +229,7 @@ func (p *project) initializerStruct(tag string, off uintptr, f *function, s []*c
 	var fld cc.Field
 	for len(s) != 0 {
 		var comma *cc.Token
-		s, fld, parts, isZero = p.initializerStructField(off, s, t)
+		s, fld, parts, isZero = p.structInitializerParts(off, s, t)
 		if isZero {
 			continue
 		}
@@ -246,6 +243,8 @@ func (p *project) initializerStruct(tag string, off uintptr, f *function, s []*c
 		ft := fld.Type()
 		switch {
 		case fld.IsBitField():
+			bft := p.bitFileType(parts[0], fld.BitFieldBlockWidth())
+			off0 := fld.Offset()
 			first := true
 			for _, v := range parts {
 				if v.AssignmentExpression.Operand.IsZero() {
@@ -257,12 +256,11 @@ func (p *project) initializerStruct(tag string, off uintptr, f *function, s []*c
 				}
 				first = false
 				bitFld := v.Field
-				bft := p.bitFileType(bitFld.BitFieldBlockWidth())
 				p.w("%s%s", tidyComment("", v.AssignmentExpression), tag)
 				tag = ""
-				p.assignmentExpression(f, v.AssignmentExpression, bft, exprValue, fOutermost)
+				p.assignmentExpression(f, v.AssignmentExpression, bft, exprValue, 0)
 				p.w("&%#x", uint64(1)<<uint64(bitFld.BitFieldWidth())-1)
-				if o := bitFld.BitFieldOffset(); o != 0 {
+				if o := bitFld.BitFieldOffset() + 8*int((bitFld.Offset()-off0)); o != 0 {
 					p.w("<<%d", o)
 				}
 			}
@@ -283,150 +281,141 @@ func (p *project) preCommaSep(comma *cc.Token) {
 	p.w("%s", strings.TrimSpace(comma.Sep.String()))
 }
 
-func (p *project) initializerStructField(off uintptr, s []*cc.Initializer, t cc.Type) (r []*cc.Initializer, fld cc.Field, parts []*cc.Initializer, isZero bool) {
-	r = s
-	isZero = true
-	valueOff := s[0].Offset
-	nf := t.NumField()
-	nextOff := off + t.Size()
-	bits := false
-	for i := []int{0}; i[0] < nf; i[0]++ {
-		fld2 := t.FieldByIndex(i)
-		if fld == nil {
-			fld = fld2
-		}
-		if fld2.Offset()+off > valueOff {
-			nextOff = off + fld2.Offset()
+func (p *project) structInitializerParts(off uintptr, s []*cc.Initializer, t cc.Type) (r []*cc.Initializer, fld cc.Field, parts []*cc.Initializer, isZero bool) {
+	if len(s) == 0 {
+		return nil, nil, nil, true
+	}
+
+	part := s[0]
+	isZero = part.AssignmentExpression.Operand.IsZero()
+	parts = append(parts, part)
+	s = s[1:]
+	fld, _, fNext := p.containingStructField(part, off, t)
+	for len(s) != 0 {
+		part = s[0]
+		vOff := part.Offset
+		if vOff >= fNext {
 			break
 		}
 
-		if !fld2.IsBitField() {
-			fld = fld2
+		isZero = isZero && part.AssignmentExpression.Operand.IsZero()
+		parts = append(parts, part)
+		s = s[1:]
+	}
+	return s, fld, parts, isZero
+}
+
+func (p *project) containingStructField(part *cc.Initializer, off uintptr, t cc.Type) (f cc.Field, fOff, fNext uintptr) {
+	nf := t.NumField()
+	vOff := part.Offset
+	for i := []int{0}; i[0] < nf; i[0]++ {
+		f = t.FieldByIndex(i)
+		if f.IsBitField() && f.Name() == 0 { // Anonymous bit fields cannot be initialized.
 			continue
 		}
 
-		fld = fld2.BitFieldBlockFirst()
-	}
-	for len(s) != 0 {
-		if v := s[0]; v.Offset < nextOff || v.Type().Size() == 0 {
-			if v.Field != nil && v.Field.IsBitField() {
-				bits = true
-			}
-			s = s[1:]
-			parts = append(parts, v)
-			if !v.AssignmentExpression.Operand.IsZero() {
-				isZero = false
-			}
-			continue
+		fOff = off + f.Offset()
+		switch {
+		case f.IsBitField():
+			fNext = fOff + uintptr(f.BitFieldBlockWidth())>>3
+		default:
+			fNext = fOff + f.Type().Size()
 		}
+		if vOff >= fOff && vOff < fNext {
+			return f, fOff, fNext
+		}
+	}
 
-		break
-	}
-	if bits && fld.Name() == 0 {
-		for _, v := range parts {
-			if v.Field != nil && v.Field.Name() != 0 {
-				fld = v.Field
-				break
-			}
-		}
-	}
-	return r[len(parts):], fld, parts, isZero
+	panic(todo("%v: internal error", p.pos(part)))
 }
 
 func (p *project) initializerUnion(tag string, off uintptr, f *function, s []*cc.Initializer, t cc.Type, sc cc.StorageClass, tld *tld, lm, tm map[*cc.Initializer][]cc.StringID) {
 	if len(s) == 0 {
-		p.w("%s{}", p.typ(nil, t))
+		p.w("%s%s{}", tag, p.typ(nil, t))
 		return
 	}
 
-	s0 := s[0]
-	var parts []*cc.Initializer
-	var isZero bool
-	var fld cc.Field
-	s, fld, parts, isZero = p.initializerUnionField(off, s, t)
-	if len(s) != 0 {
-		panic(todo("%v: internal error: %v", s0.Position(), t))
+	if t.HasFlexibleMember() {
+		p.err(s[0], "flexible array members not supported")
+		return
 	}
 
-	if isZero {
-		p.w("%s%s%s{", initComment(s0, lm), tag, p.typ(s0, t))
+	parts, isZero := p.initializerUnionField(off, s, t)
+	if len(parts) == 0 || isZero {
+		p.w("%s%s%s{", initComment(s[0], lm), tag, p.typ(s[0], t))
 		p.w("%s}", initComment(parts[len(parts)-1], tm))
 		return
 	}
 
-	if fld0 := parts[0].FirstDesignatorField(); fld0 != nil && fld0.Index() != 0 {
-		if fld0.IsBitField() || fld.IsBitField() {
-			panic(todo(""))
+	p.w("%sfunc() (r %s) {", tag, p.typ(parts[0], t))
+	for _, part := range parts {
+		var ft cc.Type
+		fld := part.Field
+		if fld != nil && fld.IsBitField() {
 		}
 
-		fld := parts[0].Field
-		if fld.IsBitField() {
-			panic(todo(""))
+		if ft == nil {
+			ft = part.Type()
 		}
-
-		// tag: *(*T)(unsafe.Pointer(&struct{f: ft; pad _[n]byte}{f: expr}))
-		p.w("%s *(*%s)(unsafe.Pointer(&struct{f %s", tag, p.typ(s0, t), p.typ(s0, fld.Type()))
-		if pad := t.Size() - fld.Type().Size(); pad != 0 {
-			p.w("; _ [%v]byte", pad)
-		}
-		p.w("}{")
-		p.initializerInner("f:", off+fld.Offset(), f, parts, fld.Type(), sc, tld, fld, lm, tm)
-		p.w("}))")
-		return
-	}
-
-	p.w("%s%s%s{", initComment(s0, lm), tag, p.typ(s0, t))
-	ft := fld.Type()
-	tag = fmt.Sprintf("%s:", p.fieldName2(parts[0], fld))
-	switch {
-	case fld.IsBitField():
-		first := true
-		for _, v := range parts {
-			if v.AssignmentExpression.Operand.IsZero() {
-				continue
+		if ft.Kind() == cc.Array {
+			et := ft.Elem()
+			switch {
+			case isCharType(et):
+				switch x := part.AssignmentExpression.Operand.Value().(type) {
+				case cc.StringValue:
+					str := cc.StringID(x).String()
+					slen := uintptr(len(str)) + 1
+					alen := ft.Len()
+					switch {
+					case alen < slen-1:
+						p.w("copy(((*[%d]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&r))+%d)))[:], (*[%d]byte)(unsafe.Pointer(%s))[:])\n", alen, part.Offset-off, alen, p.stringLiteralString(str[:alen]))
+					case alen < slen:
+						p.w("copy(((*[%d]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&r))+%d)))[:], (*[%d]byte)(unsafe.Pointer(%s))[:])\n", alen, part.Offset-off, alen, p.stringLiteralString(str))
+					default: // alen >= slen
+						p.w("copy(((*[%d]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&r))+%d)))[:], (*[%d]byte)(unsafe.Pointer(%s))[:])\n", alen, part.Offset-off, alen, p.stringLiteralString(str+strings.Repeat("\x00", int(alen-slen))))
+					}
+					continue
+				default:
+					panic(todo("%v: %v <- %T", p.pos(part), et, x))
+				}
+			case p.isWCharType(et):
+				panic(todo(""))
 			}
-
-			if !first {
-				p.w("|")
-			}
-			first = false
-			bitFld := v.Field
-			bft := p.bitFileType(bitFld.BitFieldBlockWidth())
-			p.w("%s%s", tidyComment("", v.AssignmentExpression), tag)
-			tag = ""
-			p.assignmentExpression(f, v.AssignmentExpression, bft, exprValue, fOutermost)
-			p.w("&%#x", uint64(1)<<uint64(bitFld.BitFieldWidth())-1)
-			if o := bitFld.BitFieldOffset(); o != 0 {
+			ft = et
+		}
+		switch {
+		case fld != nil && fld.IsBitField():
+			bft := p.bitFileType(part, fld.BitFieldBlockWidth())
+			p.w("*(*%s)(unsafe.Pointer(uintptr(unsafe.Pointer(&r))+%d)) |= ", p.typ(part, bft), part.Offset-off)
+			p.assignmentExpression(f, part.AssignmentExpression, bft, exprValue, 0)
+			p.w("&%#x", uint64(1)<<uint64(fld.BitFieldWidth())-1)
+			if o := fld.BitFieldOffset(); o != 0 {
 				p.w("<<%d", o)
 			}
+		default:
+			p.w("*(*%s)(unsafe.Pointer(uintptr(unsafe.Pointer(&r))+%d)) = ", p.typ(part, ft), part.Offset-off)
+			p.assignmentExpression(f, part.AssignmentExpression, ft, exprValue, 0)
 		}
-	default:
-		p.initializerInner(tag, off+fld.Offset(), f, parts, ft, sc, tld, fld, lm, tm)
+		p.w("\n")
 	}
-	comma := parts[len(parts)-1].TrailingComma()
-	p.preCommaSep(comma)
-	p.w(",")
-	p.w("%s}", initComment(parts[len(parts)-1], tm))
+	p.w("return r\n")
+	p.w("}()")
 }
 
-func (p *project) initializerUnionField(off uintptr, s []*cc.Initializer, t cc.Type) (r []*cc.Initializer, fld cc.Field, parts []*cc.Initializer, isZero bool) {
-	r = s
+func (p *project) initializerUnionField(off uintptr, s []*cc.Initializer, t cc.Type) (parts []*cc.Initializer, isZero bool) {
 	isZero = true
-	fld = t.FieldByIndex([]int{0})
 	nextOff := off + t.Size()
 	for len(s) != 0 {
 		if v := s[0]; v.Offset < nextOff {
 			s = s[1:]
 			parts = append(parts, v)
-			if !v.AssignmentExpression.Operand.IsZero() {
-				isZero = false
-			}
+			isZero = isZero && v.AssignmentExpression.Operand.IsZero()
 			continue
 		}
 
 		break
 	}
-	return r[len(parts):], fld, parts, isZero
+	return parts, isZero
 }
 
 func compatibleStructOrUnion(t1, t2 cc.Type) bool {
@@ -494,7 +483,7 @@ func compatibleType(t1, t2 cc.Type) bool {
 	return true
 }
 
-func (p *project) bitFileType(bits int) cc.Type {
+func (p *project) bitFileType(n cc.Node, bits int) cc.Type {
 	switch bits {
 	case 8:
 		return p.task.cfg.ABI.Type(cc.UChar)
@@ -505,7 +494,7 @@ func (p *project) bitFileType(bits int) cc.Type {
 	case 64:
 		return p.task.cfg.ABI.Type(cc.ULongLong)
 	default:
-		panic(todo("%v: internal error: %v", bits))
+		panic(todo("%v: internal error: %v", n.Position(), bits))
 	}
 }
 

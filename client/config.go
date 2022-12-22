@@ -22,7 +22,7 @@ const (
 var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
-	ErrInvalidClientOAuth2Config = errors.New("invalid OAuth2 configuration, all fields are required")
+	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -49,7 +49,7 @@ type Config struct {
 	Timeout time.Duration `yaml:"timeout"`
 
 	// DNSResolver override for the HTTP client
-	// Expected format is {protocol}://{host}:{port}, e.g. tcp://1.1.1.1:53
+	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.

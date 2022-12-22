@@ -1,10 +1,58 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
 )
+
+func TestCondition_Validate(t *testing.T) {
+	scenarios := []struct {
+		condition   Condition
+		expectedErr error
+	}{
+		{condition: "[STATUS] == 200", expectedErr: nil},
+		{condition: "[STATUS] != 200", expectedErr: nil},
+		{condition: "[STATUS] <= 200", expectedErr: nil},
+		{condition: "[STATUS] >= 200", expectedErr: nil},
+		{condition: "[STATUS] < 200", expectedErr: nil},
+		{condition: "[STATUS] > 200", expectedErr: nil},
+		{condition: "[STATUS] == any(200, 201, 202, 203)", expectedErr: nil},
+		{condition: "[STATUS] == [BODY].status", expectedErr: nil},
+		{condition: "[CONNECTED] == true", expectedErr: nil},
+		{condition: "[RESPONSE_TIME] < 500", expectedErr: nil},
+		{condition: "[IP] == 127.0.0.1", expectedErr: nil},
+		{condition: "[BODY] == 1", expectedErr: nil},
+		{condition: "[BODY].test == wat", expectedErr: nil},
+		{condition: "[BODY].test.wat == wat", expectedErr: nil},
+		{condition: "[BODY].age == [BODY].id", expectedErr: nil},
+		{condition: "[BODY].users[0].id == 1", expectedErr: nil},
+		{condition: "len([BODY].users) == 100", expectedErr: nil},
+		{condition: "len([BODY].data) < 5", expectedErr: nil},
+		{condition: "has([BODY].errors) == false", expectedErr: nil},
+		{condition: "has([BODY].users[0].name) == true", expectedErr: nil},
+		{condition: "[BODY].name == pat(john*)", expectedErr: nil},
+		{condition: "[CERTIFICATE_EXPIRATION] > 48h", expectedErr: nil},
+		{condition: "[DOMAIN_EXPIRATION] > 720h", expectedErr: nil},
+		{condition: "raw == raw", expectedErr: nil},
+		{condition: "[STATUS] ? 201", expectedErr: errors.New("invalid condition: [STATUS] ? 201")},
+		{condition: "[STATUS]==201", expectedErr: errors.New("invalid condition: [STATUS]==201")},
+		{condition: "[STATUS] = = 201", expectedErr: errors.New("invalid condition: [STATUS] = = 201")},
+		{condition: "[STATUS] ==", expectedErr: errors.New("invalid condition: [STATUS] ==")},
+		{condition: "[STATUS]", expectedErr: errors.New("invalid condition: [STATUS]")},
+		// FIXME: Should return an error, but doesn't because jsonpath isn't evaluated due to body being empty in Condition.Validate()
+		//{condition: "len([BODY].users == 100", expectedErr: nil},
+	}
+	for _, scenario := range scenarios {
+		t.Run(string(scenario.condition), func(t *testing.T) {
+			if err := scenario.condition.Validate(); fmt.Sprint(err) != fmt.Sprint(scenario.expectedErr) {
+				t.Errorf("expected err %v, got %v", scenario.expectedErr, err)
+			}
+		})
+	}
+}
 
 func TestCondition_evaluate(t *testing.T) {
 	scenarios := []struct {
@@ -156,13 +204,6 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.name (INVALID) == john",
 		},
 		{
-			Name:            "body-jsonpath-complex-len",
-			Condition:       Condition("len([BODY].data.name) == 4"),
-			Result:          &Result{body: []byte("{\"data\": {\"name\": \"john\"}}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "len([BODY].data.name) == 4",
-		},
-		{
 			Name:            "body-jsonpath-complex-len-invalid",
 			Condition:       Condition("len([BODY].data.name) == john"),
 			Result:          &Result{body: []byte("{\"data\": {\"id\": 1}}")},
@@ -233,154 +274,6 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.id (10) < 5",
 		},
 		{
-			Name:            "body-len-array",
-			Condition:       Condition("len([BODY].data) == 3"),
-			Result:          &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "len([BODY].data) == 3",
-		},
-		{
-			Name:            "body-len-array-invalid",
-			Condition:       Condition("len([BODY].data) == 8"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "len([BODY].data) (INVALID) == 8",
-		},
-		{
-			Name:            "body-len-string",
-			Condition:       Condition("len([BODY].name) == 8"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "len([BODY].name) == 8",
-		},
-		{
-			Name:            "body-pattern",
-			Condition:       Condition("[BODY] == pat(*john*)"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[BODY] == pat(*john*)",
-		},
-		{
-			Name:            "body-pattern-2",
-			Condition:       Condition("[BODY].name == pat(john*)"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[BODY].name == pat(john*)",
-		},
-		{
-			Name:            "body-pattern-failure",
-			Condition:       Condition("[BODY].name == pat(bob*)"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[BODY].name (john.doe) == pat(bob*)",
-		},
-		{
-			Name:            "body-pattern-html",
-			Condition:       Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)"),
-			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">john.doe</div></body></html>`)},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[BODY] == pat(*<div id=\"user\">john.doe</div>*)",
-		},
-		{
-			Name:            "body-pattern-html-failure",
-			Condition:       Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)"),
-			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[BODY] (<!DOCTYPE html><html lang...(truncated)) == pat(*<div id=\"user\">john.doe</div>*)",
-		},
-		{
-			Name:            "body-pattern-html-failure-alt",
-			Condition:       Condition("pat(*<div id=\"user\">john.doe</div>*) == [BODY]"),
-			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "pat(*<div id=\"user\">john.doe</div>*) == [BODY] (<!DOCTYPE html><html lang...(truncated))",
-		},
-		{
-			Name:            "ip-pattern",
-			Condition:       Condition("[IP] == pat(10.*)"),
-			Result:          &Result{IP: "10.0.0.0"},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[IP] == pat(10.*)",
-		},
-		{
-			Name:            "ip-pattern-failure",
-			Condition:       Condition("[IP] == pat(10.*)"),
-			Result:          &Result{IP: "255.255.255.255"},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[IP] (255.255.255.255) == pat(10.*)",
-		},
-		{
-			Name:            "status-pattern",
-			Condition:       Condition("[STATUS] == pat(4*)"),
-			Result:          &Result{HTTPStatus: 404},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[STATUS] == pat(4*)",
-		},
-		{
-			Name:            "status-pattern-failure",
-			Condition:       Condition("[STATUS] == pat(4*)"),
-			Result:          &Result{HTTPStatus: 200},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[STATUS] (200) == pat(4*)",
-		},
-		{
-			Name:            "body-any",
-			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
-			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[BODY].name == any(john.doe, jane.doe)",
-		},
-		{
-			Name:            "body-any-2",
-			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
-			Result:          &Result{body: []byte("{\"name\": \"jane.doe\"}")},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[BODY].name == any(john.doe, jane.doe)",
-		},
-		{
-			Name:            "body-any-failure",
-			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
-			Result:          &Result{body: []byte("{\"name\": \"bob\"}")},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[BODY].name (bob) == any(john.doe, jane.doe)",
-		},
-		{
-			Name:            "status-any",
-			Condition:       Condition("[STATUS] == any(200, 429)"),
-			Result:          &Result{HTTPStatus: 200},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[STATUS] == any(200, 429)",
-		},
-		{
-			Name:            "status-any-2",
-			Condition:       Condition("[STATUS] == any(200, 429)"),
-			Result:          &Result{HTTPStatus: 429},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "[STATUS] == any(200, 429)",
-		},
-		{
-			Name:            "status-any-reverse",
-			Condition:       Condition("any(200, 429) == [STATUS]"),
-			Result:          &Result{HTTPStatus: 429},
-			ExpectedSuccess: true,
-			ExpectedOutput:  "any(200, 429) == [STATUS]",
-		},
-		{
-			Name:            "status-any-failure",
-			Condition:       Condition("[STATUS] == any(200, 429)"),
-			Result:          &Result{HTTPStatus: 404},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "[STATUS] (404) == any(200, 429)",
-		},
-		{
-			Name:                        "status-any-failure-but-dont-resolve",
-			Condition:                   Condition("[STATUS] == any(200, 429)"),
-			Result:                      &Result{HTTPStatus: 404},
-			DontResolveFailedConditions: true,
-			ExpectedSuccess:             false,
-			ExpectedOutput:              "[STATUS] == any(200, 429)",
-		},
-		{
 			Name:            "connected",
 			Condition:       Condition("[CONNECTED] == true"),
 			Result:          &Result{Connected: true},
@@ -430,11 +323,251 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (86400000) > 48h (172800000)",
 		},
 		{
+			Name:            "no-placeholders",
+			Condition:       Condition("1 == 2"),
+			Result:          &Result{},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "1 == 2",
+		},
+		///////////////
+		// Functions //
+		///////////////
+		// len
+		{
+			Name:            "len-body-jsonpath-complex",
+			Condition:       Condition("len([BODY].data.name) == 4"),
+			Result:          &Result{body: []byte("{\"data\": {\"name\": \"john\"}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].data.name) == 4",
+		},
+		{
+			Name:            "len-body-array",
+			Condition:       Condition("len([BODY]) == 3"),
+			Result:          &Result{body: []byte("[{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY]) == 3",
+		},
+		{
+			Name:            "len-body-keyed-array",
+			Condition:       Condition("len([BODY].data) == 3"),
+			Result:          &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].data) == 3",
+		},
+		{
+			Name:            "len-body-array-invalid",
+			Condition:       Condition("len([BODY].data) == 8"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "len([BODY].data) (INVALID) == 8",
+		},
+		{
+			Name:            "len-body-string",
+			Condition:       Condition("len([BODY]) == 8"),
+			Result:          &Result{body: []byte("john.doe")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY]) == 8",
+		},
+		{
+			Name:            "len-body-keyed-string",
+			Condition:       Condition("len([BODY].name) == 8"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].name) == 8",
+		},
+		{
+			Name:            "len-body-keyed-int",
+			Condition:       Condition("len([BODY].age) == 2"),
+			Result:          &Result{body: []byte(`{"age":18}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].age) == 2",
+		},
+		{
+			Name:            "len-body-keyed-bool",
+			Condition:       Condition("len([BODY].adult) == 4"),
+			Result:          &Result{body: []byte(`{"adult":true}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].adult) == 4",
+		},
+		{
+			Name:            "len-body-object-inside-array",
+			Condition:       Condition("len([BODY][0]) == 23"),
+			Result:          &Result{body: []byte(`[{"age":18,"adult":true}]`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY][0]) == 23",
+		},
+		{
+			Name:            "len-body-object-keyed-int-inside-array",
+			Condition:       Condition("len([BODY][0].age) == 2"),
+			Result:          &Result{body: []byte(`[{"age":18,"adult":true}]`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY][0].age) == 2",
+		},
+		{
+			Name:            "len-body-keyed-bool-inside-array",
+			Condition:       Condition("len([BODY][0].adult) == 4"),
+			Result:          &Result{body: []byte(`[{"age":18,"adult":true}]`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY][0].adult) == 4",
+		},
+		{
+			Name:            "len-body-object",
+			Condition:       Condition("len([BODY]) == 20"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY]) == 20",
+		},
+		// pat
+		{
+			Name:            "pat-body-1",
+			Condition:       Condition("[BODY] == pat(*john*)"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY] == pat(*john*)",
+		},
+		{
+			Name:            "pat-body-2",
+			Condition:       Condition("[BODY].name == pat(john*)"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].name == pat(john*)",
+		},
+		{
+			Name:            "pat-body-failure",
+			Condition:       Condition("[BODY].name == pat(bob*)"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].name (john.doe) == pat(bob*)",
+		},
+		{
+			Name:            "pat-body-html",
+			Condition:       Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)"),
+			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">john.doe</div></body></html>`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY] == pat(*<div id=\"user\">john.doe</div>*)",
+		},
+		{
+			Name:            "pat-body-html-failure",
+			Condition:       Condition("[BODY] == pat(*<div id=\"user\">john.doe</div>*)"),
+			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY] (<!DOCTYPE html><html lang...(truncated)) == pat(*<div id=\"user\">john.doe</div>*)",
+		},
+		{
+			Name:            "pat-body-html-failure-alt",
+			Condition:       Condition("pat(*<div id=\"user\">john.doe</div>*) == [BODY]"),
+			Result:          &Result{body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "pat(*<div id=\"user\">john.doe</div>*) == [BODY] (<!DOCTYPE html><html lang...(truncated))",
+		},
+		{
+			Name:            "pat-body-in-array",
+			Condition:       Condition("[BODY].data == pat(*Whatever*)"),
+			Result:          &Result{body: []byte("{\"data\": [\"hello\", \"world\", \"Whatever\"]}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == pat(*Whatever*)",
+		},
+		{
+			Name:            "pat-ip",
+			Condition:       Condition("[IP] == pat(10.*)"),
+			Result:          &Result{IP: "10.0.0.0"},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[IP] == pat(10.*)",
+		},
+		{
+			Name:            "pat-ip-failure",
+			Condition:       Condition("[IP] == pat(10.*)"),
+			Result:          &Result{IP: "255.255.255.255"},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[IP] (255.255.255.255) == pat(10.*)",
+		},
+		{
+			Name:            "pat-status",
+			Condition:       Condition("[STATUS] == pat(4*)"),
+			Result:          &Result{HTTPStatus: 404},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[STATUS] == pat(4*)",
+		},
+		{
+			Name:            "pat-status-failure",
+			Condition:       Condition("[STATUS] == pat(4*)"),
+			Result:          &Result{HTTPStatus: 200},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[STATUS] (200) == pat(4*)",
+		},
+		// any
+		{
+			Name:            "any-body-1",
+			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
+			Result:          &Result{body: []byte("{\"name\": \"john.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].name == any(john.doe, jane.doe)",
+		},
+		{
+			Name:            "any-body-2",
+			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
+			Result:          &Result{body: []byte("{\"name\": \"jane.doe\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].name == any(john.doe, jane.doe)",
+		},
+		{
+			Name:            "any-body-failure",
+			Condition:       Condition("[BODY].name == any(john.doe, jane.doe)"),
+			Result:          &Result{body: []byte("{\"name\": \"bob\"}")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].name (bob) == any(john.doe, jane.doe)",
+		},
+		{
+			Name:            "any-status-1",
+			Condition:       Condition("[STATUS] == any(200, 429)"),
+			Result:          &Result{HTTPStatus: 200},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[STATUS] == any(200, 429)",
+		},
+		{
+			Name:            "any-status-2",
+			Condition:       Condition("[STATUS] == any(200, 429)"),
+			Result:          &Result{HTTPStatus: 429},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[STATUS] == any(200, 429)",
+		},
+		{
+			Name:            "any-status-reverse",
+			Condition:       Condition("any(200, 429) == [STATUS]"),
+			Result:          &Result{HTTPStatus: 429},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "any(200, 429) == [STATUS]",
+		},
+		{
+			Name:            "any-status-failure",
+			Condition:       Condition("[STATUS] == any(200, 429)"),
+			Result:          &Result{HTTPStatus: 404},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[STATUS] (404) == any(200, 429)",
+		},
+		{
+			Name:                        "any-status-failure-but-dont-resolve",
+			Condition:                   Condition("[STATUS] == any(200, 429)"),
+			Result:                      &Result{HTTPStatus: 404},
+			DontResolveFailedConditions: true,
+			ExpectedSuccess:             false,
+			ExpectedOutput:              "[STATUS] == any(200, 429)",
+		},
+		// has
+		{
 			Name:            "has",
 			Condition:       Condition("has([BODY].errors) == false"),
 			Result:          &Result{body: []byte("{}")},
 			ExpectedSuccess: true,
 			ExpectedOutput:  "has([BODY].errors) == false",
+		},
+		{
+			Name:                        "has-key-of-map",
+			Condition:                   Condition("has([BODY].article) == true"),
+			Result:                      &Result{body: []byte("{\n  \"article\": {\n    \"id\": 123,\n    \"title\": \"Hello, world!\",\n    \"author\": \"John Doe\",\n    \"tags\": [\"hello\", \"world\"],\n    \"content\": \"I really like Gatus!\"\n  }\n}")},
+			DontResolveFailedConditions: false,
+			ExpectedSuccess:             true,
+			ExpectedOutput:              "has([BODY].article) == true",
 		},
 		{
 			Name:            "has-failure",
@@ -450,13 +583,6 @@ func TestCondition_evaluate(t *testing.T) {
 			DontResolveFailedConditions: true,
 			ExpectedSuccess:             false,
 			ExpectedOutput:              "has([BODY].errors) == false",
-		},
-		{
-			Name:            "no-placeholders",
-			Condition:       Condition("1 == 2"),
-			Result:          &Result{},
-			ExpectedSuccess: false,
-			ExpectedOutput:  "1 == 2",
 		},
 	}
 	for _, scenario := range scenarios {

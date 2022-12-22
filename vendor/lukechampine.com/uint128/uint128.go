@@ -2,6 +2,8 @@ package uint128 // import "lukechampine.com/uint128"
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"math/bits"
@@ -385,6 +387,21 @@ func (u Uint128) Big() *big.Int {
 	return i
 }
 
+// Scan implements fmt.Scanner.
+func (u *Uint128) Scan(s fmt.ScanState, ch rune) error {
+	i := new(big.Int)
+	if err := i.Scan(s, ch); err != nil {
+		return err
+	} else if i.Sign() < 0 {
+		return errors.New("value cannot be negative")
+	} else if i.BitLen() > 128 {
+		return errors.New("value overflows Uint128")
+	}
+	u.Lo = i.Uint64()
+	u.Hi = i.Rsh(i, 64).Uint64()
+	return nil
+}
+
 // New returns the Uint128 value (lo,hi).
 func New(lo, hi uint64) Uint128 {
 	return Uint128{lo, hi}
@@ -412,6 +429,12 @@ func FromBig(i *big.Int) (u Uint128) {
 		panic("value overflows Uint128")
 	}
 	u.Lo = i.Uint64()
-	u.Hi = new(big.Int).Rsh(i, 64).Uint64()
+	u.Hi = i.Rsh(i, 64).Uint64()
 	return u
+}
+
+// FromString parses s as a Uint128 value.
+func FromString(s string) (u Uint128, err error) {
+	_, err = fmt.Sscan(s, &u)
+	return
 }

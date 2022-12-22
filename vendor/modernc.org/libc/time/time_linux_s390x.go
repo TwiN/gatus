@@ -89,11 +89,6 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
 
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
-
 // A null pointer constant.
 
 // This defines CLOCKS_PER_SEC, which is the number of processor clock
@@ -356,7 +351,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -367,8 +363,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Seconds since the Epoch, visible to user code when time_t is too
@@ -467,18 +464,18 @@ type Time_t = X__time_t /* time_t.h:7:18 */
 
 // ISO C `broken-down time' structure.
 type Tm = struct {
-	Ftm_sec    int32
-	Ftm_min    int32
-	Ftm_hour   int32
-	Ftm_mday   int32
-	Ftm_mon    int32
-	Ftm_year   int32
-	Ftm_wday   int32
-	Ftm_yday   int32
-	Ftm_isdst  int32
-	_          [4]byte
-	Ftm_gmtoff int64
-	Ftm_zone   uintptr
+	Ftm_sec      int32
+	Ftm_min      int32
+	Ftm_hour     int32
+	Ftm_mday     int32
+	Ftm_mon      int32
+	Ftm_year     int32
+	Ftm_wday     int32
+	Ftm_yday     int32
+	Ftm_isdst    int32
+	F__ccgo_pad1 [4]byte
+	Ftm_gmtoff   int64
+	Ftm_zone     uintptr
 } /* struct_tm.h:7:1 */
 
 // NB: Include guard matches what <linux/time.h> uses.
@@ -537,7 +534,8 @@ type Tm = struct {
 //    values.
 
 // POSIX.1b structure for a time value.  This is like a `struct timeval' but
-//    has nanoseconds instead of microseconds.
+//
+//	has nanoseconds instead of microseconds.
 type Timespec = struct {
 	Ftv_sec  X__time_t
 	Ftv_nsec X__syscall_slong_t

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/test"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/test"
 )
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
@@ -141,6 +141,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	secondDescription := "description-2"
 	scenarios := []struct {
 		Name         string
+		Endpoint     core.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
 		Resolved     bool
@@ -148,23 +149,41 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\n    \"cards\": [\n  {\n    \"sections\": [\n      {\n        \"widgets\": [\n          {\n            \"keyValue\": {\n              \"topLabel\": \"endpoint-name []\",\n              \"content\": \"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e\",\n              \"contentMultiline\": \"true\",\n              \"bottomLabel\": \":: description-1\",\n              \"icon\": \"BOOKMARK\"\n            }\n          },\n          {\n            \"keyValue\": {\n              \"topLabel\": \"Condition results\",\n              \"content\": \"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e\",\n              \"contentMultiline\": \"true\",\n              \"icon\": \"DESCRIPTION\"\n            }\n          },\n          {\n            \"buttons\": [\n              {\n                \"textButton\": {\n                  \"text\": \"URL\",\n                  \"onClick\": {\n                    \"openLink\": {\n                      \"url\": \"\"\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]\n}",
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
 		},
 		{
 			Name:         "resolved",
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\n    \"cards\": [\n  {\n    \"sections\": [\n      {\n        \"widgets\": [\n          {\n            \"keyValue\": {\n              \"topLabel\": \"endpoint-name []\",\n              \"content\": \"\u003cfont color='#36A64F'\u003eAn alert has been resolved after passing successfully 5 time(s) in a row\u003c/font\u003e\",\n              \"contentMultiline\": \"true\",\n              \"bottomLabel\": \":: description-2\",\n              \"icon\": \"BOOKMARK\"\n            }\n          },\n          {\n            \"keyValue\": {\n              \"topLabel\": \"Condition results\",\n              \"content\": \"✅   [CONNECTED] == true\u003cbr\u003e✅   [STATUS] == 200\u003cbr\u003e\",\n              \"contentMultiline\": \"true\",\n              \"icon\": \"DESCRIPTION\"\n            }\n          },\n          {\n            \"buttons\": [\n              {\n                \"textButton\": {\n                  \"text\": \"URL\",\n                  \"onClick\": {\n                    \"openLink\": {\n                      \"url\": \"\"\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]\n}",
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#36A64F'\u003eAn alert has been resolved after passing successfully 5 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-2","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"✅   [CONNECTED] == true\u003cbr\u003e✅   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}},{"buttons":[{"textButton":{"text":"URL","onClick":{"openLink":{"url":"https://example.org"}}}}]}]}]}]}`,
+		},
+		{
+			Name:         "icmp-should-not-include-url", // See https://github.com/TwiN/gatus/issues/362
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "icmp://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}}]}]}]}`,
+		},
+		{
+			Name:         "tcp-should-not-include-url", // See https://github.com/TwiN/gatus/issues/362
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "tcp://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"cards":[{"sections":[{"widgets":[{"keyValue":{"topLabel":"endpoint-name","content":"\u003cfont color='#DD0000'\u003eAn alert has been triggered due to having failed 3 time(s) in a row\u003c/font\u003e","contentMultiline":"true","bottomLabel":":: description-1","icon":"BOOKMARK"}},{"keyValue":{"topLabel":"Condition results","content":"❌   [CONNECTED] == true\u003cbr\u003e❌   [STATUS] == 200\u003cbr\u003e","contentMultiline":"true","icon":"DESCRIPTION"}}]}]}]}`,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&scenario.Endpoint,
 				&scenario.Alert,
 				&core.Result{
 					ConditionResults: []*core.ConditionResult{
@@ -174,13 +193,11 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				},
 				scenario.Resolved,
 			)
-			b, _ := json.Marshal(body)
-			e, _ := json.Marshal(scenario.ExpectedBody)
-			if body != scenario.ExpectedBody {
-				t.Errorf("expected:\n%s\ngot:\n%s", e, b)
+			if string(body) != scenario.ExpectedBody {
+				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
-			if err := json.Unmarshal([]byte(body), &out); err != nil {
+			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})

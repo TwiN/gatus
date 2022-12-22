@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v4/config"
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/storage/store"
-	"github.com/TwiN/gatus/v4/watchdog"
+	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/watchdog"
 )
 
 var (

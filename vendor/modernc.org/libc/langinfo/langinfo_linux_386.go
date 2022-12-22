@@ -24,6 +24,7 @@ const (
 	X_DEFAULT_SOURCE          = 1
 	X_FEATURES_H              = 1
 	X_FILE_OFFSET_BITS        = 64
+	X_ILP32                   = 1
 	X_LANGINFO_H              = 1
 	X_NL_TYPES_H              = 1
 	X_POSIX_C_SOURCE          = 200809
@@ -36,7 +37,7 @@ const (
 )
 
 // Definition of locale category symbol values.
-//    Copyright (C) 2001-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2001-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -51,7 +52,7 @@ const (
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Construct an `nl_item' value for `nl_langinfo' from a locale category
 //    (LC_*) and an item index within the category.  Some code may depend on
@@ -524,7 +525,7 @@ type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
 // Access to locale-dependent parameters.
-//    Copyright (C) 1995-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1995-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -539,10 +540,10 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Get the type definition.
-// Copyright (C) 1996-2018 Free Software Foundation, Inc.
+// Copyright (C) 1996-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -557,9 +558,9 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -574,7 +575,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // These are defined by the user (or the compiler)
 //    to specify the desired environment:
@@ -582,6 +583,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    __STRICT_ANSI__	ISO Standard C.
 //    _ISOC99_SOURCE	Extensions to ISO C89 from ISO C99.
 //    _ISOC11_SOURCE	Extensions to ISO C99 from ISO C11.
+//    _ISOC2X_SOURCE	Extensions to ISO C99 from ISO C2X.
 //    __STDC_WANT_LIB_EXT2__
 // 			Extensions to ISO C99 from TR 27431-2:2010.
 //    __STDC_WANT_IEC_60559_BFP_EXT__
@@ -702,6 +704,8 @@ type X__float128 = float64        /* <builtin>:47:21 */
 // If nothing (other than _GNU_SOURCE and _DEFAULT_SOURCE) is defined,
 //    define _DEFAULT_SOURCE.
 
+// This is to enable the ISO C2X extension.
+
 // This is to enable the ISO C11 extension.
 
 // This is to enable the ISO C99 extension.
@@ -724,9 +728,22 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    compatibility with various implementations of <cstdio>, this test
 //    must consider only the value of __cplusplus when compiling C++.
 
+// GNU formerly extended the scanf functions with modified format
+//    specifiers %as, %aS, and %a[...] that allocate a buffer for the
+//    input using malloc.  This extension conflicts with ISO C99, which
+//    defines %a as a standalone format specifier that reads a floating-
+//    point number; moreover, POSIX.1-2008 provides the same feature
+//    using the modifier letter 'm' instead (%ms, %mS, %m[...]).
+//
+//    We now follow C99 unless GNU extensions are active and the compiler
+//    is specifically in C89 or C++98 mode (strict or not).  For
+//    instance, with GCC, -std=gnu11 will have C99-compliant scanf with
+//    or without -D_GNU_SOURCE, but -std=c89 -D_GNU_SOURCE will have the
+//    old extension.
+
 // Get definitions of __STDC_* predefined macros, if the compiler has
 //    not preincluded this header automatically.
-// Copyright (C) 1991-2018 Free Software Foundation, Inc.
+// Copyright (C) 1991-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -741,7 +758,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // This macro indicates that the installed library is the GNU C Library.
 //    For historic reasons the value now is 6 and this will stay from now
@@ -754,7 +771,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    these macros to test for features in specific releases.
 
 // This is here only because every header file already includes this one.
-// Copyright (C) 1992-2018 Free Software Foundation, Inc.
+// Copyright (C) 1992-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -769,7 +786,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // We are almost always included from features.h.
 
@@ -884,7 +901,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    semantics.
 //
 //    clang++ identifies itself as gcc-4.2, but has support for GNU inlining
-//    semantics, that can be checked fot by using the __GNUC_STDC_INLINE_ and
+//    semantics, that can be checked for by using the __GNUC_STDC_INLINE_ and
 //    __GNUC_GNU_INLINE__ macro definitions.
 
 // GCC 4.3 and above allow passing all anonymous arguments of an
@@ -905,10 +922,14 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //    argument to strncpy and strncat, as the char array is not necessarily
 //    a NUL-terminated string.
 
+// Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
+
 // Determine the wordsize from the preprocessor defines.
 
 // Properties of long double type.  ldbl-96 version.
-//    Copyright (C) 2016-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2016-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -923,7 +944,7 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // long double is distinct from double, so there is nothing to
 //    define here.
@@ -972,7 +993,7 @@ type Nl_item = int32 /* nl_types.h:36:13 */
 
 // POSIX.1-2008 extended locale interface (see locale.h).
 // Definition of locale_t.
-//    Copyright (C) 2017-2018 Free Software Foundation, Inc.
+//    Copyright (C) 2017-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //
 //    The GNU C Library is free software; you can redistribute it and/or
@@ -987,10 +1008,10 @@ type Nl_item = int32 /* nl_types.h:36:13 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // Definition of struct __locale_struct and __locale_t.
-//    Copyright (C) 1997-2018 Free Software Foundation, Inc.
+//    Copyright (C) 1997-2020 Free Software Foundation, Inc.
 //    This file is part of the GNU C Library.
 //    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1997.
 //
@@ -1006,7 +1027,7 @@ type Nl_item = int32 /* nl_types.h:36:13 */
 //
 //    You should have received a copy of the GNU Lesser General Public
 //    License along with the GNU C Library; if not, see
-//    <http://www.gnu.org/licenses/>.
+//    <https://www.gnu.org/licenses/>.
 
 // POSIX.1-2008: the locale_t type, representing a locale context
 //    (implementation-namespace version).  This type should be treated

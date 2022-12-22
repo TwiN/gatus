@@ -7,6 +7,7 @@ package libc // import "modernc.org/libc"
 import (
 	"os"
 	"strings"
+	"unicode"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -14,7 +15,7 @@ import (
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/signal"
 	"modernc.org/libc/sys/types"
-	"modernc.org/libc/uuid/uuid"
+	"modernc.org/libc/wctype"
 )
 
 // int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
@@ -455,17 +456,12 @@ func Xfopen64(t *TLS, pathname, mode uintptr) uintptr {
 	return 0
 }
 
-// void uuid_generate_random(uuid_t out);
-func Xuuid_generate_random(t *TLS, out uuid.Uuid_t) {
-	panic(todo(""))
+// int iswspace(wint_t wc);
+func Xiswspace(t *TLS, wc wctype.Wint_t) int32 {
+	return Bool32(unicode.IsSpace(rune(wc)))
 }
 
-// void uuid_unparse(uuid_t uu, char *out);
-func Xuuid_unparse(t *TLS, uu uuid.Uuid_t, out uintptr) {
-	panic(todo(""))
-}
-
-// int uuid_parse( char *in, uuid_t uu);
-func Xuuid_parse(t *TLS, in uintptr, uu uuid.Uuid_t) int32 {
-	panic(todo(""))
+// int iswalnum(wint_t wc);
+func Xiswalnum(t *TLS, wc wctype.Wint_t) int32 {
+	return Bool32(unicode.IsLetter(rune(wc)) || unicode.IsNumber(rune(wc)))
 }

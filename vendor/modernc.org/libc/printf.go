@@ -7,6 +7,7 @@ package libc // import "modernc.org/libc"
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -18,6 +19,7 @@ const (
 	modH
 	modL
 	modLL
+	modLD
 	modQ
 	modCapitalL
 	modJ
@@ -36,6 +38,8 @@ const (
 // the output stream; and conversion specifications, each of which results in
 // fetching zero or more subsequent arguments.
 func printf(format, args uintptr) []byte {
+	format0 := format
+	args0 := args
 	buf := bytes.NewBuffer(nil)
 	for {
 		switch c := *(*byte)(unsafe.Pointer(format)); c {
@@ -43,7 +47,7 @@ func printf(format, args uintptr) []byte {
 			format = printfConversion(buf, format, &args)
 		case 0:
 			if dmesgs {
-				dmesg("%v: %q", origin(1), buf.Bytes())
+				dmesg("%v: %q, %#x -> %q", origin(1), GoString(format0), args0, buf.Bytes())
 			}
 			return buf.Bytes()
 		default:
@@ -133,14 +137,17 @@ more:
 		// the output is empty.
 		format++
 		var arg int64
+		if isWindows && mod == modL {
+			mod = modNone
+		}
 		switch mod {
-		case modNone, modL, modLL, mod64:
+		case modL, modLL, mod64:
 			arg = VaInt64(args)
 		case modH:
 			arg = int64(int16(VaInt32(args)))
 		case modHH:
 			arg = int64(int8(VaInt32(args)))
-		case mod32:
+		case mod32, modNone:
 			arg = int64(VaInt32(args))
 		default:
 			panic(todo("", mod))
@@ -164,8 +171,13 @@ more:
 		// precision 0, the output is empty.
 		format++
 		var arg uint64
+		if isWindows && mod == modL {
+			mod = modNone
+		}
 		switch mod {
-		case modNone, modL, modLL, mod64:
+		case modNone:
+			arg = uint64(VaUint32(args))
+		case modL, modLL, mod64:
 			arg = VaUint64(args)
 		case modH:
 			arg = uint64(uint16(VaInt32(args)))
@@ -195,8 +207,13 @@ more:
 		// precision 0, the output is empty.
 		format++
 		var arg uint64
+		if isWindows && mod == modL {
+			mod = modNone
+		}
 		switch mod {
-		case modNone, modL, modLL, mod64:
+		case modNone:
+			arg = uint64(VaUint32(args))
+		case modL, modLL, mod64:
 			arg = VaUint64(args)
 		case modH:
 			arg = uint64(uint16(VaInt32(args)))
@@ -277,8 +294,13 @@ more:
 		// printed with an explicit precision 0, the output is empty.
 		format++
 		var arg uint64
+		if isWindows && mod == modL {
+			mod = modNone
+		}
 		switch mod {
-		case modNone, modL, modLL, mod64:
+		case modNone:
+			arg = uint64(VaUint32(args))
+		case modL, modLL, mod64:
 			arg = VaUint64(args)
 		case modH:
 			arg = uint64(uint16(VaInt32(args)))
@@ -333,7 +355,7 @@ more:
 			prec = 6
 		}
 		f := fmt.Sprintf("%s.%d%c", spec, prec, c)
-		str = fmt.Sprintf(f, arg)
+		str = fixNanInf(fmt.Sprintf(f, arg))
 	case 'G':
 		fallthrough
 	case 'g':
@@ -354,7 +376,7 @@ more:
 		}
 
 		f := fmt.Sprintf("%s.%d%c", spec, prec, c)
-		str = fmt.Sprintf(f, arg)
+		str = fixNanInf(fmt.Sprintf(f, arg))
 	case 's':
 		// If  no l modifier is present: the const char * argument is expected to be a
 		// pointer to an array of character type (pointer to a string).  Characters
@@ -385,7 +407,7 @@ more:
 			switch {
 			case hasPrecision:
 				f = fmt.Sprintf("%s.%ds", spec, prec)
-				str = fmt.Sprintf(f, GoBytes(arg, prec))
+				str = fmt.Sprintf(f, GoString(arg))
 			default:
 				f = spec + "s"
 				str = fmt.Sprintf(f, GoString(arg))
@@ -397,9 +419,17 @@ more:
 		// The void * pointer argument is printed in hexadecimal (as if by %#x or
 		// %#lx).
 		format++
-		arg := VaUintptr(args)
-		buf.WriteString("0x")
-		buf.WriteString(strconv.FormatInt(int64(arg), 16))
+		switch runtime.GOOS {
+		case "windows":
+			switch runtime.GOARCH {
+			case "386", "arm":
+				fmt.Fprintf(buf, "%08X", VaUintptr(args))
+			default:
+				fmt.Fprintf(buf, "%016X", VaUintptr(args))
+			}
+		default:
+			fmt.Fprintf(buf, "%#0x", VaUintptr(args))
+		}
 	case 'c':
 		// If no l modifier is present, the int argument is converted to an unsigned
 		// char, and the resulting character is written.  If an l modifier is present,
@@ -575,7 +605,9 @@ func parseLengthModifier(format uintptr) (_ uintptr, n int) {
 	case 'q':
 		panic(todo(""))
 	case 'L':
-		panic(todo(""))
+		format++
+		n = modLD
+		return format, n
 	case 'j':
 		panic(todo(""))
 	case 'z':
@@ -586,5 +618,16 @@ func parseLengthModifier(format uintptr) (_ uintptr, n int) {
 		panic(todo(""))
 	default:
 		return format, 0
+	}
+}
+
+func fixNanInf(s string) string {
+	switch s {
+	case "NaN":
+		return "nan"
+	case "+Inf", "-Inf":
+		return "inf"
+	default:
+		return s
 	}
 }

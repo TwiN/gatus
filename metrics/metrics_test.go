@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/core"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
@@ -75,7 +75,7 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "1.1.1.1", DNS: &core.DNS{
+	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNS: &core.DNS{
 		QueryType: "A",
 		QueryName: "example.com.",
 	}}

@@ -52,8 +52,8 @@ func TestAlert_ValidateAndSetDefaults(t *testing.T) {
 }
 
 func TestAlert_IsEnabled(t *testing.T) {
-	if (Alert{Enabled: nil}).IsEnabled() {
-		t.Error("alert.IsEnabled() should've returned false, because Enabled was set to nil")
+	if !(Alert{Enabled: nil}).IsEnabled() {
+		t.Error("alert.IsEnabled() should've returned true, because Enabled was set to nil")
 	}
 	if value := false; (Alert{Enabled: &value}).IsEnabled() {
 		t.Error("alert.IsEnabled() should've returned false, because Enabled was set to false")

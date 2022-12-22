@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/TwiN/gatus/v4/alerting"
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure
@@ -36,7 +36,7 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
-		if alertProvider != nil && alertProvider.IsValid() {
+		if alertProvider != nil {
 			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
 			var err error
 			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
@@ -70,7 +70,7 @@ func handleAlertsToResolve(endpoint *core.Endpoint, result *core.Result, alertin
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
-		if alertProvider != nil && alertProvider.IsValid() {
+		if alertProvider != nil {
 			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for endpoint=%s with description='%s' has been RESOLVED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
 			err := alertProvider.Send(endpoint, endpointAlert, result, true)
 			if err != nil {

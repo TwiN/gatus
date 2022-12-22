@@ -546,7 +546,13 @@ type X__float128 = float64        /* <builtin>:47:21 */
 //      array_name[restrict]
 //    GCC 3.1 supports this.
 
+// Describes a char array whose address can safely be passed as the first
+//    argument to strncpy and strncat, as the char array is not necessarily
+//    a NUL-terminated string.
+
 // Undefine (also defined in libc-symbols.h).
+// Copies attributes from the declaration or type referenced by
+//    the argument.
 
 // Determine the wordsize from the preprocessor defines.
 
@@ -876,7 +882,8 @@ type X__syscall_slong_t = int64 /* types.h:196:33 */
 type X__syscall_ulong_t = uint64 /* types.h:198:33 */
 
 // These few don't really vary by system, they always correspond
-//    to one of the other defined types.
+//
+//	to one of the other defined types.
 type X__loff_t = X__off64_t /* types.h:202:19 */ // Type of file sizes and offsets (LFS).
 type X__caddr_t = uintptr   /* types.h:203:14 */
 
@@ -887,8 +894,9 @@ type X__intptr_t = int64 /* types.h:206:25 */
 type X__socklen_t = uint32 /* types.h:209:23 */
 
 // C99: An integer type that can be accessed as an atomic entity,
-//    even in the presence of asynchronous interrupts.
-//    It is not currently necessary for this to be machine-specific.
+//
+//	even in the presence of asynchronous interrupts.
+//	It is not currently necessary for this to be machine-specific.
 type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Wide character type.
@@ -898,11 +906,6 @@ type X__sig_atomic_t = int32 /* types.h:214:13 */
 
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
-
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
 
 // A null pointer constant.
 
@@ -985,7 +988,8 @@ type Time_t = X__time_t /* time_t.h:7:18 */
 //    values.
 
 // POSIX.1b structure for a time value.  This is like a `struct timeval' but
-//    has nanoseconds instead of microseconds.
+//
+//	has nanoseconds instead of microseconds.
 type Timespec = struct {
 	Ftv_sec  X__time_t
 	Ftv_nsec X__syscall_slong_t
@@ -1101,7 +1105,7 @@ type Cpu_set_t = struct{ F__bits [16]X__cpu_mask } /* cpu-set.h:42:3 */
 //    License along with the GNU C Library; if not, see
 //    <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 1989-2017 Free Software Foundation, Inc.
+// Copyright (C) 1989-2020 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -1132,15 +1136,6 @@ type Cpu_set_t = struct{ F__bits [16]X__cpu_mask } /* cpu-set.h:42:3 */
 
 // This avoids lossage on SunOS but only if stdtypes.h comes first.
 //    There's no way to win with the other order!  Sun lossage.
-
-// On 4.3bsd-net2, make sure ansi.h is included, so we have
-//    one less case to deal with in the following.
-// On FreeBSD 5, machine/ansi.h does not exist anymore...
-
-// In 4.3bsd-net2, machine/ansi.h defines these symbols, which are
-//    defined if the corresponding type is *not* defined.
-//    FreeBSD-2.1 defines _MACHINE_ANSI_H_ instead of _ANSI_H_.
-//    NetBSD defines _I386_ANSI_H_ and _X86_64_ANSI_H_ instead of _ANSI_H_
 
 // Sequent's header files use _PTRDIFF_T_ in some conflicting way.
 //    Just ignore it.
@@ -1175,11 +1170,6 @@ type Cpu_set_t = struct{ F__bits [16]X__cpu_mask } /* cpu-set.h:42:3 */
 
 // Define this type if we are doing the whole job,
 //    or if we want this type in particular.
-
-//  In 4.3bsd-net2, leave these undefined to indicate that size_t, etc.
-//     are already defined.
-//  BSD/OS 3.1 and FreeBSD [23].x require the MACHINE_ANSI_H check here.
-//  NetBSD 5 requires the I386_ANSI_H and X86_64_ANSI_H checks here.
 
 // A null pointer constant.
 
@@ -1294,18 +1284,18 @@ type Clock_t = X__clock_t /* clock_t.h:7:19 */
 
 // ISO C `broken-down time' structure.
 type Tm = struct {
-	Ftm_sec    int32
-	Ftm_min    int32
-	Ftm_hour   int32
-	Ftm_mday   int32
-	Ftm_mon    int32
-	Ftm_year   int32
-	Ftm_wday   int32
-	Ftm_yday   int32
-	Ftm_isdst  int32
-	_          [4]byte
-	Ftm_gmtoff int64
-	Ftm_zone   uintptr
+	Ftm_sec      int32
+	Ftm_min      int32
+	Ftm_hour     int32
+	Ftm_mday     int32
+	Ftm_mon      int32
+	Ftm_year     int32
+	Ftm_wday     int32
+	Ftm_yday     int32
+	Ftm_isdst    int32
+	F__ccgo_pad1 [4]byte
+	Ftm_gmtoff   int64
+	Ftm_zone     uintptr
 } /* struct_tm.h:7:1 */
 
 // NB: Include guard matches what <linux/time.h> uses.
@@ -1740,7 +1730,7 @@ type X__pthread_rwlock_arch_t = struct {
 	F__pad1          uint64
 	F__pad2          uint64
 	F__flags         uint32
-	_                [4]byte
+	F__ccgo_pad1     [4]byte
 } /* struct_rwlock.h:23:1 */
 
 // Common definition of pthread_cond_t.
@@ -1756,21 +1746,24 @@ type X__pthread_cond_s = struct {
 } /* thread-shared-types.h:92:1 */
 
 // Thread identifiers.  The structure of the attribute type is not
-//    exposed on purpose.
+//
+//	exposed on purpose.
 type Pthread_t = uint64 /* pthreadtypes.h:27:27 */
 
 // Data structures for mutex handling.  The structure of the attribute
-//    type is not exposed on purpose.
+//
+//	type is not exposed on purpose.
 type Pthread_mutexattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:36:3 */
 
 // Data structure for condition variable handling.  The structure of
-//    the attribute type is not exposed on purpose.
+//
+//	the attribute type is not exposed on purpose.
 type Pthread_condattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:45:3 */
 
 // Keys for thread-specific data
@@ -1780,8 +1773,8 @@ type Pthread_key_t = uint32 /* pthreadtypes.h:49:22 */
 type Pthread_once_t = int32 /* pthreadtypes.h:53:30 */
 
 type Pthread_attr_t1 = struct {
-	_       [0]uint64
-	F__size [56]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [56]uint8
 } /* pthreadtypes.h:56:1 */
 
 type Pthread_attr_t = Pthread_attr_t1 /* pthreadtypes.h:62:30 */
@@ -1791,27 +1784,29 @@ type Pthread_mutex_t = struct{ F__data X__pthread_mutex_s } /* pthreadtypes.h:72
 type Pthread_cond_t = struct{ F__data X__pthread_cond_s } /* pthreadtypes.h:80:3 */
 
 // Data structure for reader-writer lock variable handling.  The
-//    structure of the attribute type is deliberately not exposed.
+//
+//	structure of the attribute type is deliberately not exposed.
 type Pthread_rwlock_t = struct{ F__data X__pthread_rwlock_arch_t } /* pthreadtypes.h:91:3 */
 
 type Pthread_rwlockattr_t = struct {
-	_       [0]uint64
-	F__size [8]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [8]uint8
 } /* pthreadtypes.h:97:3 */
 
 // POSIX spinlock data type.
 type Pthread_spinlock_t = int32 /* pthreadtypes.h:103:22 */
 
 // POSIX barriers data type.  The structure of the type is
-//    deliberately not exposed.
+//
+//	deliberately not exposed.
 type Pthread_barrier_t = struct {
-	_       [0]uint64
-	F__size [32]uint8
+	F__ccgo_pad1 [0]uint64
+	F__size      [32]uint8
 } /* pthreadtypes.h:112:3 */
 
 type Pthread_barrierattr_t = struct {
-	_       [0]uint32
-	F__size [4]uint8
+	F__ccgo_pad1 [0]uint32
+	F__size      [4]uint8
 } /* pthreadtypes.h:118:3 */
 
 // Copyright (C) 2000-2020 Free Software Foundation, Inc.
@@ -1870,7 +1865,7 @@ type X_pthread_cleanup_buffer = struct {
 	F__routine    uintptr
 	F__arg        uintptr
 	F__canceltype int32
-	_             [4]byte
+	F__ccgo_pad1  [4]byte
 	F__prev       uintptr
 } /* pthread.h:155:1 */
 
@@ -1880,7 +1875,7 @@ type X__pthread_unwind_buf_t = struct {
 	F__cancel_jmp_buf [1]struct {
 		F__cancel_jmp_buf X__jmp_buf
 		F__mask_was_saved int32
-		_                 [4]byte
+		F__ccgo_pad1      [4]byte
 	}
 	F__pad [4]uintptr
 } /* pthread.h:507:3 */

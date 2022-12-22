@@ -1,13 +1,14 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v4/jsonpath"
-	"github.com/TwiN/gatus/v4/pattern"
+	"github.com/TwiN/gatus/v5/jsonpath"
+	"github.com/TwiN/gatus/v5/pattern"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
 	IPPlaceholder = "[IP]"
 
-	// DNSRCodePlaceholder is a place holder for DNS_RCODE
+	// DNSRCodePlaceholder is a placeholder for DNS_RCODE
 	//
 	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
 	DNSRCodePlaceholder = "[DNS_RCODE]"
@@ -86,50 +87,59 @@ const (
 // Condition is a condition that needs to be met in order for an Endpoint to be considered healthy.
 type Condition string
 
+// Validate checks if the Condition is valid
+func (c Condition) Validate() error {
+	r := &Result{}
+	c.evaluate(r, false)
+	if len(r.Errors) != 0 {
+		return errors.New(r.Errors[0])
+	}
+	return nil
+}
+
 // evaluate the Condition with the Result of the health check
-// TODO: Add a mandatory space between each operators (e.g. " == " instead of "==") (BREAKING CHANGE)
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
-	if strings.Contains(condition, "==") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "=="), result)
+	if strings.Contains(condition, " == ") {
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
-	} else if strings.Contains(condition, "!=") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, "!="), result)
+	} else if strings.Contains(condition, " != ") {
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
-	} else if strings.Contains(condition, "<=") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<="), result)
+	} else if strings.Contains(condition, " <= ") {
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), result)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
-	} else if strings.Contains(condition, ">=") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">="), result)
+	} else if strings.Contains(condition, " >= ") {
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), result)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
-	} else if strings.Contains(condition, ">") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, ">"), result)
+	} else if strings.Contains(condition, " > ") {
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), result)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
-	} else if strings.Contains(condition, "<") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, "<"), result)
+	} else if strings.Contains(condition, " < ") {
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), result)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
-		result.AddError(fmt.Sprintf("invalid condition '%s' has been provided", condition))
+		result.AddError(fmt.Sprintf("invalid condition: %s", condition))
 		return false
 	}
 	if !success {

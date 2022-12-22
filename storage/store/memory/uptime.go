@@ -3,7 +3,7 @@ package memory
 import (
 	"time"
 
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 const (

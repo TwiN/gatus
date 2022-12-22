@@ -608,7 +608,8 @@ package cc // import "modernc.org/cc/v3"
 /*yy:case Expr       */ |	IDENTIFIER AttributeSpecifierList '=' ConstantExpression
 
 			/* [2], 6.7.2.4 Atomic type specifiers */
-			/*yy:example _Atomic(int) i; */
+			/*yy:field	list	[]*TypeSpecifier */
+			/*yy:example    _Atomic(int) i; */
 			AtomicTypeSpecifier:
 				"_Atomic" '(' TypeName ')'
 
@@ -647,6 +648,7 @@ package cc // import "modernc.org/cc/v3"
 			/*yy:field	called		bool		*/
 			/*yy:field	fnDef		bool		*/
 			/*yy:field	hasInitializer	bool		*/
+			/*yy:field	implicit	bool		*/
 			/*yy:example int *p __attribute__ ((foo)); */
 			Declarator:
 				Pointer DirectDeclarator AttributeSpecifierList %prec BELOW_ATTRIBUTE
@@ -686,6 +688,8 @@ package cc // import "modernc.org/cc/v3"
 				'*' TypeQualifiers
 			/*yy:example int **p; */
 /*yy:case Ptr        */ |	'*' TypeQualifiers Pointer
+			/*yy:example int atexit_b(void (^ _Nonnull)(void)); */
+/*yy:case Block      */ |	'^' TypeQualifiers
 
 			/*yy:field	noStorageClass */
 			/*yy:example int * const i; */

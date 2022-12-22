@@ -403,8 +403,8 @@ type Type interface {
 	// Name returns type name, if any.
 	Name() StringID
 
-	// atomic reports whether type has type qualifier "_Atomic".
-	atomic() bool
+	// IsAtomic reports whether type has type qualifier "_Atomic".
+	IsAtomic() bool
 
 	// hasConst reports whether type has type qualifier "const".
 	hasConst() bool
@@ -611,7 +611,7 @@ func (t *typeBase) check(ctx *context, td typeDescriptor, defaultInt bool) (r Ty
 			case DeclarationSpecifiersStorage: // StorageClassSpecifier DeclarationSpecifiers
 				// nop
 			case DeclarationSpecifiersTypeSpec: // TypeSpecifier DeclarationSpecifiers
-				typeSpecifiers = append(typeSpecifiers, n.TypeSpecifier)
+				typeSpecifiers = append(typeSpecifiers, n.TypeSpecifier.list()...)
 			case DeclarationSpecifiersTypeQual: // TypeQualifier DeclarationSpecifiers
 				// nop
 			case DeclarationSpecifiersFunc: // FunctionSpecifier DeclarationSpecifiers
@@ -628,7 +628,7 @@ func (t *typeBase) check(ctx *context, td typeDescriptor, defaultInt bool) (r Ty
 		for ; n != nil; n = n.SpecifierQualifierList {
 			switch n.Case {
 			case SpecifierQualifierListTypeSpec: // TypeSpecifier SpecifierQualifierList
-				typeSpecifiers = append(typeSpecifiers, n.TypeSpecifier)
+				typeSpecifiers = append(typeSpecifiers, n.TypeSpecifier.list()...)
 			case SpecifierQualifierListTypeQual: // TypeQualifier SpecifierQualifierList
 				// nop
 			case SpecifierQualifierListAlignSpec: // AlignmentSpecifier SpecifierQualifierList
@@ -931,8 +931,8 @@ func (t *typeBase) UnionCommon() Kind {
 	panic(internalErrorf("%s: UnionCommon of invalid type", t.Kind()))
 }
 
-// atomic implements Type.
-func (t *typeBase) atomic() bool { return t.flags&fAtomic != 0 }
+// IsAtomic implements Type.
+func (t *typeBase) IsAtomic() bool { return t.flags&fAtomic != 0 }
 
 // Attributes implements Type.
 func (t *typeBase) Attributes() (a []*AttributeSpecifier) { return nil }
@@ -1220,7 +1220,7 @@ func (t *typeBase) Tag() StringID {
 // string implements Type.
 func (t *typeBase) string(b *bytes.Buffer) {
 	spc := ""
-	if t.atomic() {
+	if t.IsAtomic() {
 		b.WriteString("atomic")
 		spc = " "
 	}
@@ -1944,7 +1944,7 @@ func (t *aliasType) Size() uintptr { return t.d.Type().Size() }
 // String implements Type.
 func (t *aliasType) String() string {
 	var a []string
-	if t.typeBase.atomic() {
+	if t.typeBase.IsAtomic() {
 		a = append(a, "atomic")
 	}
 	if t.typeBase.hasConst() {
@@ -1972,8 +1972,8 @@ func (t *aliasType) Tag() StringID { return t.d.Type().Tag() }
 // Name implements Type.
 func (t *aliasType) Name() StringID { return t.nm }
 
-// atomic implements Type.
-func (t *aliasType) atomic() bool { return t.d.Type().atomic() }
+// IsAtomic implements Type.
+func (t *aliasType) IsAtomic() bool { return t.d.Type().IsAtomic() }
 
 // Inline implements Type.
 func (t *aliasType) Inline() bool { return t.d.Type().Inline() }
@@ -2544,12 +2544,11 @@ func (t *taggedType) isAssingmentCompatibleOperand(rhs Operand) (r bool) {
 
 // IsCompatible implements Type.
 func (t *taggedType) IsCompatible(u Type) (r bool) {
-	// defer func() {
-	// 	u0 := u
-	// 	if !r {
-	// 		trc("TRACE %v <- %v\n%s", t, u0, debug.Stack()) //TODO-
-	// 	}
-	// }()
+	defer func() {
+		// if !r {
+		// 	trc("TRACE %v <- %v: %v (%s)", t, u0, r, origin(2)) //TODO-
+		// }
+	}()
 	if t == nil || u == nil {
 		return false
 	}

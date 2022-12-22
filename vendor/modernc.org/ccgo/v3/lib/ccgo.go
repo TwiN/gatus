@@ -18,6 +18,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -210,6 +211,7 @@ double __builtin_huge_val (void);
 double __builtin_inf (void);
 double __builtin_nan (const char *str);
 float __builtin_copysignf ( float x, float y );
+float __builtin_fabsf(float x);
 float __builtin_huge_valf (void);
 float __builtin_inff (void);
 float __builtin_nanf (const char *str);
@@ -219,18 +221,24 @@ int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os, cons
 int __builtin__snprintf_chk(char * str, size_t maxlen, int flag, size_t strlen, const char * format);
 int __builtin_abs(int j);
 int __builtin_add_overflow();
+int __builtin_clz (unsigned);
+int __builtin_isunordered(double x, double y);
+int __builtin_clzl (unsigned long);
 int __builtin_clzll (unsigned long long);
 int __builtin_constant_p_impl(int, ...);
+int __builtin_getentropy(void*, size_t);
 int __builtin_isnan(double);
 int __builtin_memcmp(const void *s1, const void *s2, size_t n);
 int __builtin_mul_overflow();
 int __builtin_popcount (unsigned int x);
+int __builtin_popcountl (unsigned long x);
 int __builtin_printf(const char *format, ...);
 int __builtin_snprintf(char *str, size_t size, const char *format, ...);
 int __builtin_sprintf(char *str, const char *format, ...);
 int __builtin_strcmp(const char *s1, const char *s2);
 int __builtin_sub_overflow();
 long __builtin_expect (long exp, long c);
+long double __builtin_fabsl(long double x);
 long double __builtin_nanl (const char *str);
 long long __builtin_llabs(long long j);
 size_t __builtin_object_size (void * ptr, int type);
@@ -244,6 +252,7 @@ void *__builtin_memset(void *s, int c, size_t n);
 void *__builtin_mmap(void *addr, size_t length, int prot, int flags, int fd, __INTPTR_TYPE__ offset);
 void *__ccgo_va_arg(__builtin_va_list ap);
 void __builtin_abort(void);
+void __builtin_bzero(void *s, size_t n);
 void __builtin_exit(int status);
 void __builtin_free(void *ptr);
 void __builtin_prefetch (const void *addr, ...);
@@ -253,13 +262,36 @@ void __ccgo_dmesg(char*, ...);
 void __ccgo_va_end(__builtin_va_list ap);
 void __ccgo_va_start(__builtin_va_list ap);
 
+#define __sync_add_and_fetch(ptr, val) \
+	__builtin_choose_expr(	\
+		__builtin_types_compatible_p(typeof(*ptr), unsigned),	\
+		__sync_add_and_fetch_uint32(ptr, val),	\
+		__TODO__	\
+	)
+
+#define __sync_fetch_and_add(ptr, val) \
+	__TODO__	\
+
+#define __sync_sub_and_fetch(ptr, val) \
+	__builtin_choose_expr(	\
+		__builtin_types_compatible_p(typeof(*ptr), unsigned),	\
+		__sync_sub_and_fetch_uint32(ptr, val),	\
+		__TODO__	\
+	)
+
+unsigned __sync_add_and_fetch_uint32(unsigned*, unsigned);
+unsigned __sync_sub_and_fetch_uint32(unsigned*, unsigned);
+
+#ifdef __APPLE__
+int (*__darwin_check_fd_set_overflow)(int, void *, int);
+#endif
+
 `
 	defaultCrt = "modernc.org/libc"
 )
 
 func origin(skip int) string {
 	pc, fn, fl, _ := runtime.Caller(skip)
-	fn = filepath.Base(fn)
 	f := runtime.FuncForPC(pc)
 	var fns string
 	if f != nil {
@@ -271,42 +303,29 @@ func origin(skip int) string {
 	return fmt.Sprintf("%s:%d:%s", fn, fl, fns)
 }
 
-func todo(s string, args ...interface{}) string { //TODO-
+func todo(s string, args ...interface{}) string {
 	switch {
 	case s == "":
 		s = fmt.Sprintf(strings.Repeat("%v ", len(args)), args...)
 	default:
 		s = fmt.Sprintf(s, args...)
 	}
-	pc, fn, fl, _ := runtime.Caller(1)
-	f := runtime.FuncForPC(pc)
-	var fns string
-	if f != nil {
-		fns = f.Name()
-		if x := strings.LastIndex(fns, "."); x > 0 {
-			fns = fns[x+1:]
-		}
-	}
-	r := fmt.Sprintf("%s:%d:%s: TODOTODO %s", fn, fl, fns, s) //TODOOK
-	if dmesgs {
-		dmesg("%v: %v", origin(1), r)
-	}
+	r := fmt.Sprintf("%s\n\tTODO %s", origin(2), s) //TODOOK
 	fmt.Fprintf(os.Stdout, "%s\n", r)
 	os.Stdout.Sync()
 	return r
 }
 
-func trc(s string, args ...interface{}) string { //TODO-
+func trc(s string, args ...interface{}) string {
 	switch {
 	case s == "":
 		s = fmt.Sprintf(strings.Repeat("%v ", len(args)), args...)
 	default:
 		s = fmt.Sprintf(s, args...)
 	}
-	_, fn, fl, _ := runtime.Caller(1)
-	r := fmt.Sprintf("%s:%d: TRC %s", fn, fl, s)
-	fmt.Fprintf(os.Stdout, "%s\n", r)
-	os.Stdout.Sync()
+	r := fmt.Sprintf("%s: TRC %s", origin(2), s)
+	fmt.Fprintf(os.Stderr, "%s\n", r)
+	os.Stderr.Sync()
 	return r
 }
 
@@ -320,6 +339,8 @@ type Task struct {
 	args                            []string
 	asts                            []*cc.AST
 	capif                           string
+	saveConfig                      string // -save-config
+	saveConfigErr                   error
 	cc                              string // $CC, default "gcc"
 	ccLookPath                      string // LookPath(cc)
 	cdb                             string // foo.json, use compile DB
@@ -338,9 +359,15 @@ type Task struct {
 	hide                            map[string]struct{} // -hide
 	hostConfigCmd                   string              // -host-config-cmd
 	hostConfigOpts                  string              // -host-config-opts
+	hostIncludes                    []string
+	hostPredefined                  string
+	hostSysIncludes                 []string
 	ignoredIncludes                 string              // -ignored-includes
+	ignoredObjects                  map[string]struct{} // -ignore-object
 	imported                        []*imported
+	includedFiles                   map[string]struct{}
 	l                               []string // -l
+	loadConfig                      string   // --load-config
 	o                               string   // -o
 	out                             io.Writer
 	pkgName                         string // -pkgname
@@ -353,6 +380,7 @@ type Task struct {
 	stderr                          io.Writer
 	stdout                          io.Writer
 	symSearchOrder                  []int                    // >= 0: asts[i], < 0 : imported[-i-1]
+	verboseCompiledb                bool                     // -verbose-compiledb
 	volatiles                       map[cc.StringID]struct{} // -volatile
 
 	// Path to a binary that will be called instead of executing
@@ -363,34 +391,37 @@ type Task struct {
 	// feature should ever set it.
 	CallOutBinary string
 
-	E                     bool // -E
-	allErrors             bool // -all-errors
-	compiledbValid        bool // -compiledb present
-	cover                 bool // -cover-instrumentation
-	coverC                bool // -cover-instrumentation-c
-	defaultUnExport       bool // -unexported-by-default
-	errTrace              bool // -err-trace
-	exportDefinesValid    bool // -export-defines present
-	exportEnumsValid      bool // -export-enums present
-	exportExternsValid    bool // -export-externs present
-	exportFieldsValid     bool // -export-fields present
-	exportStructsValid    bool // -export-structs present
-	exportTypedefsValid   bool // -export-typedefs present
-	fullPathComments      bool // -full-path-comments
-	funcSig               bool // -func-sig
-	header                bool // -header
-	isScripted            bool
-	mingw                 bool
-	noCapi                bool // -nocapi
-	nostdinc              bool // -nostdinc
-	nostdlib              bool // -nostdlib
-	panicStubs            bool // -panic-stubs
-	tracePinning          bool // -trace-pinning
-	traceTranslationUnits bool // -trace-translation-units
-	verifyStructs         bool // -verify-structs
-	version               bool // -version
-	watch                 bool // -watch-instrumentation
-	windows               bool // -windows
+	E                         bool // -E
+	allErrors                 bool // -all-errors
+	compiledbValid            bool // -compiledb present
+	configSaved               bool
+	configured                bool // hostPredefined, hostIncludes, hostSysIncludes are valid
+	cover                     bool // -cover-instrumentation
+	coverC                    bool // -cover-instrumentation-c
+	defaultUnExport           bool // -unexported-by-default
+	errTrace                  bool // -err-trace
+	exportDefinesValid        bool // -export-defines present
+	exportEnumsValid          bool // -export-enums present
+	exportExternsValid        bool // -export-externs present
+	exportFieldsValid         bool // -export-fields present
+	exportStructsValid        bool // -export-structs present
+	exportTypedefsValid       bool // -export-typedefs present
+	fullPathComments          bool // -full-path-comments
+	funcSig                   bool // -func-sig
+	header                    bool // -header
+	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
+	isScripted                bool
+	mingw                     bool
+	noCapi                    bool // -nocapi
+	nostdinc                  bool // -nostdinc
+	nostdlib                  bool // -nostdlib
+	panicStubs                bool // -panic-stubs
+	tracePinning              bool // -trace-pinning
+	traceTranslationUnits     bool // -trace-translation-units
+	verifyStructs             bool // -verify-structs
+	version                   bool // -version
+	watch                     bool // -watch-instrumentation
+	windows                   bool // -windows
 }
 
 // NewTask returns a newly created Task.
@@ -585,11 +616,19 @@ func (t *Task) Main() (err error) {
 	if dmesgs {
 		defer func() {
 			if err != nil {
+				// trc("FAIL %p: %q: %v", t, t.args, err)
 				dmesg("%v: returning from Task.Main: %v", origin(1), err)
 			}
 		}()
 
 	}
+
+	defer func() {
+		if t.saveConfigErr != nil && err == nil {
+			err = t.saveConfigErr
+		}
+	}()
+
 	if !t.isScripted && coverExperiment {
 		defer func() {
 			fmt.Fprintf(os.Stderr, "cover report:\n%s\n", coverReport())
@@ -637,24 +676,112 @@ func (t *Task) Main() (err error) {
 	opts.Opt("full-path-comments", func(opt string) error { t.fullPathComments = true; return nil })
 	opts.Opt("func-sig", func(opt string) error { t.funcSig = true; return nil })
 	opts.Opt("header", func(opt string) error { t.header = true; return nil })
+	opts.Opt("ignore-unsupported-alignment", func(opt string) error { t.ignoreUnsupportedAligment = true; return nil })
 	opts.Opt("nocapi", func(opt string) error { t.noCapi = true; return nil })
 	opts.Opt("nostdinc", func(opt string) error { t.nostdinc = true; return nil })
 	opts.Opt("panic-stubs", func(opt string) error { t.panicStubs = true; return nil })
 	opts.Opt("trace-pinning", func(opt string) error { t.tracePinning = true; return nil })
 	opts.Opt("trace-translation-units", func(opt string) error { t.traceTranslationUnits = true; return nil })
 	opts.Opt("unexported-by-default", func(opt string) error { t.defaultUnExport = true; return nil })
+	opts.Opt("verbose-compiledb", func(opt string) error { t.verboseCompiledb = true; return nil })
 	opts.Opt("verify-structs", func(opt string) error { t.verifyStructs = true; return nil })
 	opts.Opt("version", func(opt string) error { t.version = true; return nil })
 	opts.Opt("watch-instrumentation", func(opt string) error { t.watch = true; return nil })
 	opts.Opt("windows", func(opt string) error { t.windows = true; return nil })
 
+	opts.Opt("trace-included-files", func(opt string) error {
+		if t.includedFiles == nil {
+			t.includedFiles = map[string]struct{}{}
+		}
+		prev := t.cfg.IncludeFileHandler
+		t.cfg.IncludeFileHandler = func(pos token.Position, pathName string) {
+			if prev != nil {
+				prev(pos, pathName)
+			}
+			if _, ok := t.includedFiles[pathName]; !ok {
+				t.includedFiles[pathName] = struct{}{}
+				fmt.Fprintf(os.Stderr, "#include %s\n", pathName)
+			}
+		}
+		return nil
+	})
+	opts.Arg("ignore-object", false, func(arg, value string) error {
+		if t.ignoredObjects == nil {
+			t.ignoredObjects = map[string]struct{}{}
+		}
+		t.ignoredObjects[value] = struct{}{}
+		return nil
+	})
+	opts.Arg("save-config", false, func(arg, value string) error {
+		if value == "" {
+			return nil
+		}
+
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return err
+		}
+
+		t.saveConfig = abs
+		if t.includedFiles == nil {
+			t.includedFiles = map[string]struct{}{}
+		}
+		prev := t.cfg.IncludeFileHandler
+		t.cfg.IncludeFileHandler = func(pos token.Position, pathName string) {
+			if prev != nil {
+				prev(pos, pathName)
+			}
+			if _, ok := t.includedFiles[pathName]; !ok {
+				t.includedFiles[pathName] = struct{}{}
+				full := filepath.Join(abs, pathName)
+				switch _, err := os.Stat(full); {
+				case err != nil && os.IsNotExist(err):
+					// ok
+				case err != nil:
+					t.saveConfigErr = err
+					return
+				default:
+					return
+				}
+
+				b, err := ioutil.ReadFile(pathName)
+				if err != nil {
+					t.saveConfigErr = err
+					return
+				}
+
+				dir, _ := filepath.Split(full)
+				if err := os.MkdirAll(dir, 0700); err != nil {
+					t.saveConfigErr = err
+					return
+				}
+
+				if err := ioutil.WriteFile(full, b, 0600); err != nil {
+					t.saveConfigErr = err
+				}
+			}
+		}
+		return nil
+	})
+	opts.Arg("-load-config", false, func(arg, value string) error {
+		if value == "" {
+			return nil
+		}
+
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return err
+		}
+
+		t.loadConfig = abs
+		return nil
+	})
 	opts.Arg("volatile", false, func(arg, value string) error {
 		for _, v := range strings.Split(strings.TrimSpace(value), ",") {
 			t.volatiles[cc.String(v)] = struct{}{}
 		}
 		return nil
 	})
-
 	opts.Opt("nostdlib", func(opt string) error {
 		t.nostdlib = true
 		t.crt = ""
@@ -718,6 +845,10 @@ func (t *Task) Main() (err error) {
 
 				return t.createCompileDB(cmd)
 			case t.cdb != "": // foo.json ..., use DB
+				if err := t.configure(); err != nil {
+					return err
+				}
+
 				return t.useCompileDB(t.cdb, x)
 			}
 
@@ -767,11 +898,16 @@ func (t *Task) Main() (err error) {
 		}
 		t.imported[len(t.imported)-1].used = true // crt is always imported
 	}
+
+	if err := t.configure(); err != nil {
+		return err
+	}
+
 	abi, err := cc.NewABI(t.goos, t.goarch)
-	abi.Types[cc.LongDouble] = abi.Types[cc.Double]
 	if err != nil {
 		return err
 	}
+	abi.Types[cc.LongDouble] = abi.Types[cc.Double]
 
 	var re *regexp.Regexp
 	if t.ignoredIncludes != "" {
@@ -786,27 +922,19 @@ func (t *Task) Main() (err error) {
 	t.cfg.ReplaceMacroTclIeeeDoubleRounding = t.replaceTclIeeeDoubleRounding
 	t.cfg.Config3.IgnoreInclude = re
 	t.cfg.Config3.NoFieldAndBitfieldOverlap = true
-	t.cfg.Config3.PreserveWhiteSpace = true
+	t.cfg.Config3.PreserveWhiteSpace = t.saveConfig == ""
 	t.cfg.Config3.UnsignedEnums = true
-	hostConfigOpts := strings.Split(t.hostConfigOpts, ",")
-	if t.hostConfigOpts == "" {
-		hostConfigOpts = nil
-	}
-	hostPredefined, hostIncludes, hostSysIncludes, err := cc.HostConfig(t.hostConfigCmd, hostConfigOpts...)
-	if err != nil {
-		return err
-	}
 
-	if t.mingw = detectMingw(hostPredefined); t.mingw {
+	if t.mingw = detectMingw(t.hostPredefined); t.mingw {
 		t.windows = true
 	}
 	if t.nostdinc {
-		hostIncludes = nil
-		hostSysIncludes = nil
+		t.hostIncludes = nil
+		t.hostSysIncludes = nil
 	}
 	var sources []cc.Source
-	if hostPredefined != "" {
-		sources = append(sources, cc.Source{Name: "<predefined>", Value: hostPredefined})
+	if t.hostPredefined != "" {
+		sources = append(sources, cc.Source{Name: "<predefined>", Value: t.hostPredefined})
 	}
 	sources = append(sources, cc.Source{Name: "<builtin>", Value: builtin})
 	if len(t.D) != 0 {
@@ -838,12 +966,12 @@ func (t *Task) Main() (err error) {
 	// line, then in directories named in -I options, and last in the usual
 	// places
 	includePaths := append([]string{"@"}, t.I...)
-	includePaths = append(includePaths, hostIncludes...)
-	includePaths = append(includePaths, hostSysIncludes...)
+	includePaths = append(includePaths, t.hostIncludes...)
+	includePaths = append(includePaths, t.hostSysIncludes...)
 	// For headers whose names are enclosed in angle brackets ( "<>" ), the
 	// header shall be searched for only in directories named in -I options
 	// and then in the usual places.
-	sysIncludePaths := append(t.I, hostSysIncludes...)
+	sysIncludePaths := append(t.I, t.hostSysIncludes...)
 	if t.traceTranslationUnits {
 		fmt.Printf("target: %s/%s\n", t.goos, t.goarch)
 		if t.hostConfigCmd != "" {
@@ -852,11 +980,17 @@ func (t *Task) Main() (err error) {
 	}
 	for i, v := range t.sources {
 		tuSources := append(sources, v)
+		out := t.stdout
+		if t.saveConfig != "" {
+			out = io.Discard
+			t.E = true
+		}
 		if t.E {
 			t.cfg.PreprocessOnly = true
-			if err := cc.Preprocess(t.cfg, includePaths, sysIncludePaths, tuSources, t.stdout); err != nil {
+			if err := cc.Preprocess(t.cfg, includePaths, sysIncludePaths, tuSources, out); err != nil {
 				return err
 			}
+			memGuard(i, t.isScripted)
 			continue
 		}
 
@@ -881,6 +1015,81 @@ func (t *Task) Main() (err error) {
 	}
 
 	return t.link()
+}
+
+func (t *Task) configure() (err error) {
+	if t.configured {
+		return nil
+	}
+
+	type jsonConfig struct {
+		Predefined      string
+		IncludePaths    []string
+		SysIncludePaths []string
+		OS              string
+		Arch            string
+	}
+
+	t.configured = true
+	if t.loadConfig != "" {
+		path := filepath.Join(t.loadConfig, "config.json")
+		// trc("%p: LOAD_CONFIG(%s)", t, path)
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		loadConfig := &jsonConfig{}
+		if err := json.Unmarshal(b, loadConfig); err != nil {
+			return err
+		}
+
+		t.goos = loadConfig.OS
+		t.goarch = loadConfig.Arch
+		for _, v := range loadConfig.IncludePaths {
+			t.hostIncludes = append(t.hostIncludes, filepath.Join(t.loadConfig, v))
+		}
+		for _, v := range loadConfig.SysIncludePaths {
+			t.hostSysIncludes = append(t.hostSysIncludes, filepath.Join(t.loadConfig, v))
+		}
+		t.hostPredefined = loadConfig.Predefined
+		return nil
+	}
+
+	hostConfigOpts := strings.Split(t.hostConfigOpts, ",")
+	if t.hostConfigOpts == "" {
+		hostConfigOpts = nil
+	}
+	if t.hostPredefined, t.hostIncludes, t.hostSysIncludes, err = cc.HostConfig(t.hostConfigCmd, hostConfigOpts...); err != nil {
+		return err
+	}
+
+	if t.saveConfig != "" && !t.configSaved {
+		t.configSaved = true
+		// trc("%p: SAVE_CONFIG(%s)", t, t.saveConfig)
+		cfg := &jsonConfig{
+			Predefined:      t.hostPredefined,
+			IncludePaths:    t.hostIncludes,
+			SysIncludePaths: t.hostSysIncludes,
+			OS:              t.goos,
+			Arch:            t.goarch,
+		}
+		b, err := json.Marshal(cfg)
+		if err != nil {
+			return err
+		}
+
+		full := filepath.Join(t.saveConfig, "config.json")
+		if err := os.MkdirAll(t.saveConfig, 0700); err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(full, b, 0600); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t *Task) setLookPaths() (err error) {
@@ -913,6 +1122,9 @@ func (t *Task) link() (err error) {
 			return
 		}
 
+		if out, e := exec.Command("gofmt", "-r", "(x) -> x", "-l", "-s", "-w", t.o).CombinedOutput(); e != nil && err == nil {
+			err = fmt.Errorf(strings.Join([]string{string(out), e.Error()}, ": "))
+		}
 		if out, e := exec.Command("gofmt", "-l", "-s", "-w", t.o).CombinedOutput(); e != nil && err == nil {
 			err = fmt.Errorf(strings.Join([]string{string(out), e.Error()}, ": "))
 		}
@@ -977,11 +1189,20 @@ func (t *Task) scriptBuild2(script [][]string) error {
 			fmt.Printf("%s\n", cmd)
 		}
 		t2 := NewTask(append(ccgo, args...), t.stdout, t.stderr)
+		t2.cfg.IncludeFileHandler = t.cfg.IncludeFileHandler
 		t2.cfg.SharedFunctionDefinitions = t.cfg.SharedFunctionDefinitions
+		t2.configSaved = t.configSaved
+		t2.configured = t.configured
+		t2.hostIncludes = t.hostIncludes
+		t2.hostPredefined = t.hostPredefined
+		t2.hostSysIncludes = t.hostSysIncludes
+		t2.includedFiles = t.includedFiles
+		t2.isScripted = true
+		t2.loadConfig = t.loadConfig
 		t2.replaceFdZero = t.replaceFdZero
 		t2.replaceTclDefaultDoubleRounding = t.replaceTclDefaultDoubleRounding
 		t2.replaceTclIeeeDoubleRounding = t.replaceTclIeeeDoubleRounding
-		t2.isScripted = true
+		t2.saveConfig = t.saveConfig
 		if err := inDir(dir, t2.Main); err != nil {
 			return err
 		}
@@ -1004,6 +1225,10 @@ func (t *Task) scriptBuild2(script [][]string) error {
 		}
 		t.imported[len(t.imported)-1].used = true // crt is always imported
 	}
+	if t.saveConfig != "" {
+		return nil
+	}
+
 	return t.link()
 }
 
@@ -1012,7 +1237,8 @@ type cdb struct {
 	outputIndex map[string][]*cdbItem
 }
 
-func (db *cdb) find(obj map[string]*cdbItem, nm string, ver, seqLimit int, trace bool, path []string, cc, ar string) error {
+func (db *cdb) find(obj map[string]*cdbItem, nm string, ver, seqLimit int, path []string, cc, ar string, ignored map[string]struct{}) error {
+	// trc("%v: nm %q ver %v seqLimit %v path %q cc %q ar %q", origin(1), nm, ver, seqLimit, path, cc, ar)
 	var item *cdbItem
 	var k string
 	switch {
@@ -1071,6 +1297,12 @@ func (db *cdb) find(obj map[string]*cdbItem, nm string, ver, seqLimit int, trace
 		}
 	}
 	if item == nil {
+		for k := range ignored {
+			if k == nm || strings.HasSuffix(nm, k) {
+				return nil
+			}
+		}
+
 		return fmt.Errorf("not found in compile DB: %s (max seq %d), path %v", k, seqLimit, path)
 	}
 
@@ -1081,7 +1313,7 @@ func (db *cdb) find(obj map[string]*cdbItem, nm string, ver, seqLimit int, trace
 	obj[k] = item
 	var errs []string
 	for _, v := range item.sources(cc, ar) {
-		if err := db.find(obj, v, -1, item.seq, trace, append(path, nm), cc, ar); err != nil {
+		if err := db.find(obj, v, -1, item.seq, append(path, nm), cc, ar, ignored); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -1159,7 +1391,7 @@ func (t *Task) useCompileDB(fn string, args []string) error {
 	notFound := false
 	for _, v := range args {
 		v, ver := suffixNum(v, 0)
-		if err := cdb.find(obj, v, ver, -1, t.traceTranslationUnits, nil, t.ccLookPath, t.arLookPath); err != nil {
+		if err := cdb.find(obj, v, ver, -1, nil, t.ccLookPath, t.arLookPath, t.ignoredObjects); err != nil {
 			notFound = true
 			fmt.Fprintln(os.Stderr, err)
 		}
@@ -1194,6 +1426,13 @@ func (t *Task) cdbBuild(obj map[string]*cdbItem, list []string) error {
 		args, err := it.ccgoArgs(t.cc)
 		if err != nil {
 			return err
+		}
+
+		for _, v := range t.D {
+			args = append(args, "-D"+v)
+		}
+		for _, v := range t.U {
+			args = append(args, "-U"+v)
 		}
 
 		line := append([]string{it.Directory}, args...)
@@ -1236,7 +1475,10 @@ func (t *Task) createCompileDB(command []string) (rerr error) {
 out:
 	switch t.goos {
 	case "darwin", "freebsd", "netbsd":
-		if command[0] != "make" {
+		switch command[0] {
+		case "make", "gmake":
+			// ok
+		default:
 			return fmt.Errorf("usupported build command: %s", command[0])
 		}
 
@@ -1248,15 +1490,33 @@ out:
 		command = append([]string{sh, "-c"}, join(" ", command[0], "SHELL='sh -x'", command[1:]))
 		cmd = exec.Command(command[0], command[1:]...)
 		parser = makeXParser
+	case "openbsd":
+		switch command[0] {
+		case "make", "gmake":
+			// ok
+		default:
+			return fmt.Errorf("usupported build command: %s", command[0])
+		}
+
+		sh, err := exec.LookPath("sh")
+		if err != nil {
+			return err
+		}
+
+		command = append([]string{sh, "-c"}, join(" ", command[0], "SHELL='sh -x'", command[1:]))
+		cmd = exec.Command(command[0], command[1:]...)
+		parser = makeXParser2
 	case "windows":
-		if command[0] != "make" {
+		if command[0] != "make" && command[0] != "make.exe" {
 			return fmt.Errorf("usupported build command: %s", command[0])
 		}
 
 		switch s := runtime.GOOS; s {
 		case "windows":
 			argv := append([]string{"-d"}, command[1:]...)
-			command[0] += ".exe"
+			if !strings.HasSuffix(command[0], ".exe") {
+				command[0] += ".exe"
+			}
 			cmd = exec.Command(command[0], argv...)
 			parser = makeDParser
 			break out
@@ -1279,7 +1539,12 @@ out:
 	}
 	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	cw := t.newCdbMakeWriter(cwr, cwd, parser)
-	cmd.Stdout = io.MultiWriter(cw, os.Stdout)
+	switch {
+	case t.verboseCompiledb:
+		cmd.Stdout = io.MultiWriter(cw, os.Stdout)
+	default:
+		cmd.Stdout = cw
+	}
 	cmd.Stderr = cmd.Stdout
 	if dmesgs {
 		dmesg("%v: %v", origin(1), cmd.Args)
@@ -1333,18 +1598,92 @@ func isCreateArchive(s string) bool {
 	b := []byte(s)
 	sort.Slice(b, func(i, j int) bool { return b[i] < b[j] })
 	switch string(b) {
-	case "cq", "cr", "crs", "cru":
+	case "cq", "cr", "crs", "cru", "r":
 		return true
 	}
 	return false
 }
 
-func makeXParser(s string) ([]string, error) {
-	if !strings.HasPrefix(s, "+ ") {
+func hasPlusPrefix(s string) (n int, r string) {
+	for strings.HasPrefix(s, "+") {
+		n++
+		s = s[1:]
+	}
+	return n, s
+}
+
+func makeXParser(s string) (r []string, err error) {
+	switch {
+	case strings.HasPrefix(s, "libtool: link: ar "):
+		s = s[len("libtool: link:"):]
+	case strings.HasPrefix(s, "libtool: compile: "):
+		s = s[len("libtool: compile:"):]
+		for strings.HasPrefix(s, "  ") {
+			s = s[1:]
+		}
+	default:
+		var n int
+		if n, s = hasPlusPrefix(s); n == 0 {
+			return nil, nil
+		}
+	}
+
+	if !strings.HasPrefix(s, " ") {
 		return nil, nil
 	}
 
-	return shellquote.Split(s[2:])
+	s = s[1:]
+	if dmesgs {
+		dmesg("%v: source line `%s`, caller %v:", origin(1), s, origin(2))
+	}
+	r, err = shellquote.Split(s)
+	if dmesgs {
+		dmesg("%v: shellquote.Split -> %v %[2]q, %v", origin(1), r, err)
+	}
+	if err != nil {
+		if strings.Contains(err.Error(), "Unterminated single-quoted string") {
+			return nil, nil // ignore
+		}
+	}
+	if len(r) != 0 && filepath.Base(r[0]) == "libtool" {
+		r[0] = "libtool"
+	}
+	return r, err
+}
+
+func makeXParser2(s string) (r []string, err error) {
+	s = strings.TrimSpace(s)
+	switch {
+	case strings.HasPrefix(s, "libtool: link: ar "):
+		s = s[len("libtool: link:"):]
+	case strings.HasPrefix(s, "libtool: compile: "):
+		s = s[len("libtool: compile:"):]
+		for strings.HasPrefix(s, "  ") {
+			s = s[1:]
+		}
+	default:
+		var n int
+		if n, s = hasPlusPrefix(s); n != 0 {
+			return nil, nil
+		}
+	}
+
+	if dmesgs {
+		dmesg("%v: source line `%s`, caller %v:", origin(1), s, origin(2))
+	}
+	r, err = shellquote.Split(s)
+	if dmesgs {
+		dmesg("%v: shellquote.Split -> %v %[2]q, %v", origin(1), r, err)
+	}
+	if err != nil {
+		if strings.Contains(err.Error(), "Unterminated single-quoted string") {
+			return nil, nil // ignore
+		}
+	}
+	if len(r) != 0 && filepath.Base(r[0]) == "libtool" {
+		r[0] = "libtool"
+	}
+	return r, err
 }
 
 func straceParser(s string) ([]string, error) {
@@ -1415,13 +1754,16 @@ func (it *cdbItem) ccgoArgs(cc string) (r []string, err error) {
 		set.Arg("o", true, func(opt, arg string) error { return nil })
 		set.Arg("std", true, func(opt, arg string) error { return nil })
 		set.Opt("MD", func(opt string) error { return nil })
+		set.Opt("MMD", func(opt string) error { return nil })
 		set.Opt("MP", func(opt string) error { return nil })
+		set.Opt("ansi", func(opt string) error { return nil })
 		set.Opt("c", func(opt string) error { return nil })
 		set.Opt("g", func(opt string) error { return nil })
 		set.Opt("pedantic", func(opt string) error { return nil })
 		set.Opt("pipe", func(opt string) error { return nil })
 		set.Opt("pthread", func(opt string) error { return nil })
 		set.Opt("s", func(opt string) error { return nil })
+		set.Opt("w", func(opt string) error { return nil })
 		if err := set.Parse(it.Arguments[1:], func(arg string) error {
 			switch {
 			case strings.HasSuffix(arg, ".c"):
@@ -1433,13 +1775,20 @@ func (it *cdbItem) ccgoArgs(cc string) (r []string, err error) {
 				strings.HasPrefix(arg, "-m"):
 
 				// nop
+			case strings.HasPrefix(arg, ">"):
+				return opt.Skip(nil)
 			default:
-				return fmt.Errorf("unknown/unsupported option: %s", arg)
+				return fmt.Errorf("unknown/unsupported CC option: %s", arg)
 			}
 
 			return nil
 		}); err != nil {
-			return nil, err
+			switch err.(type) {
+			case opt.Skip:
+				// ok
+			default:
+				return nil, err
+			}
 		}
 
 		return r, nil
@@ -1493,16 +1842,22 @@ func (it *cdbItem) sources(cc, ar string) (r []string) {
 		return nil
 	}
 
-	switch it.Arguments[0] {
+	switch arg0 := it.Arguments[0]; arg0 {
 	case
 		"libtool",
 		ar,
+		filepath.Base(ar),
 		cc:
 
 		var prev string
 		for _, v := range it.Arguments {
-			if prev != "-o" && strings.HasSuffix(v, ".o") {
-				r = append(r, filepath.Join(it.Directory, v))
+			switch prev {
+			case "-o", "-MT", "-MF":
+				// nop
+			default:
+				if strings.HasSuffix(v, ".o") {
+					r = append(r, filepath.Join(it.Directory, v))
+				}
 			}
 			prev = v
 		}
@@ -1513,24 +1868,29 @@ func (it *cdbItem) sources(cc, ar string) (r []string) {
 }
 
 type cdbMakeWriter struct {
+	ar     string
+	arBase string
 	b      bytes.Buffer
 	cc     string
-	ar     string
 	dir    string
 	err    error
 	it     cdbItem
 	parser func(s string) ([]string, error)
+	prefix string
 	sc     *bufio.Scanner
+	t      *Task
 	w      *cdbWriter
 }
 
 func (t *Task) newCdbMakeWriter(w *cdbWriter, dir string, parser func(s string) ([]string, error)) *cdbMakeWriter {
 	const sz = 1 << 16
 	r := &cdbMakeWriter{
-		cc:     t.ccLookPath,
 		ar:     t.arLookPath,
+		arBase: filepath.Base(t.arLookPath),
+		cc:     t.ccLookPath,
 		dir:    dir,
 		parser: parser,
+		t:      t,
 		w:      w,
 	}
 	r.sc = bufio.NewScanner(&r.b)
@@ -1540,7 +1900,7 @@ func (t *Task) newCdbMakeWriter(w *cdbWriter, dir string, parser func(s string) 
 
 func (w *cdbMakeWriter) fail(err error) {
 	if w.err == nil {
-		w.err = err
+		w.err = fmt.Errorf("%v (%v)", err, origin(2))
 	}
 }
 
@@ -1551,7 +1911,15 @@ func (w *cdbMakeWriter) Write(b []byte) (int, error) {
 			panic(todo("internal error"))
 		}
 
-		s := strings.TrimSpace(w.sc.Text())
+		s := w.sc.Text()
+		if strings.HasSuffix(s, "\\") {
+			w.prefix += s[:len(s)-1]
+			continue
+		}
+
+		s = w.prefix + s
+		w.prefix = ""
+		s = strings.TrimSpace(s)
 		if edx := strings.Index(s, "Entering directory"); edx >= 0 {
 			s = s[edx+len("Entering directory"):]
 			s = strings.TrimSpace(s)
@@ -1584,7 +1952,13 @@ func (w *cdbMakeWriter) Write(b []byte) (int, error) {
 			continue
 		}
 
+		if dmesgs {
+			dmesg("%v: source line `%s`", origin(1), s)
+		}
 		args, err := w.parser(s)
+		if dmesgs {
+			dmesg("%v: parser -> %v %[2]q, %v", origin(1), args, err)
+		}
 		if err != nil {
 			w.fail(err)
 			continue
@@ -1601,14 +1975,25 @@ func (w *cdbMakeWriter) Write(b []byte) (int, error) {
 		err = nil
 		switch args[0] {
 		case w.cc:
+			if w.t.verboseCompiledb {
+				fmt.Printf("source line: %q\n", s)
+			}
 			fmt.Printf("CCGO CC: %q\n", args)
 			err = w.handleGCC(args)
 		case w.ar:
+			fallthrough
+		case w.arBase:
 			if isCreateArchive(args[1]) {
+				if w.t.verboseCompiledb {
+					fmt.Printf("source line: %q\n", s)
+				}
 				fmt.Printf("CCGO AR: %q\n", args)
 				err = w.handleAR(args)
 			}
 		case "libtool":
+			if w.t.verboseCompiledb {
+				fmt.Printf("source line: %q\n", s)
+			}
 			fmt.Printf("CCGO LIBTOOL: %q\n", args)
 			err = w.handleLibtool(args)
 		}

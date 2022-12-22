@@ -70,6 +70,7 @@ func (p *Set) Parse(opts []string, handler func(string) error) (err error) {
 
 	for len(opts) != 0 {
 		opt := opts[0]
+		opt0 := opt
 		opts = opts[1:]
 		var arg string
 	out:
@@ -90,7 +91,9 @@ func (p *Set) Parse(opts []string, handler func(string) error) (err error) {
 
 						opts = opts[1:]
 					default:
-						if err = cfg.handler(opt[:len(cfg.name)+1], name[len(cfg.name):]); err != nil {
+						opt = opt[:len(cfg.name)+1]
+						val := strings.TrimPrefix(name[len(cfg.name):], "=")
+						if err = cfg.handler(opt, val); err != nil {
 							return err
 						}
 					}
@@ -105,7 +108,7 @@ func (p *Set) Parse(opts []string, handler func(string) error) (err error) {
 			}
 			switch cfg := p.cfg[name]; {
 			case cfg == nil:
-				if err = handler(opt); err != nil {
+				if err = handler(opt0); err != nil {
 					return err
 				}
 			default:

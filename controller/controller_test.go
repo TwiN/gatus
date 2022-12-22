@@ -7,10 +7,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TwiN/gatus/v4/config"
-	"github.com/TwiN/gatus/v4/config/web"
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/test"
+	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/web"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/test"
 )
 
 func TestHandle(t *testing.T) {

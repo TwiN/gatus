@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v4/core"
-	"github.com/TwiN/gatus/v4/storage/store/common"
-	"github.com/TwiN/gatus/v4/storage/store/common/paging"
+	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 var (

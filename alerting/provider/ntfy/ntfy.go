@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 const (
@@ -69,19 +70,19 @@ type Body struct {
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, tag string
-	if len(alert.GetDescription()) > 0 {
-		message = endpoint.DisplayName() + " - " + alert.GetDescription()
-	} else {
-		message = endpoint.DisplayName()
-	}
 	if resolved {
 		tag = "white_check_mark"
+		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
 	} else {
 		tag = "x"
+		message = "An alert has been triggered due to having failed " + strconv.Itoa(alert.FailureThreshold) + " time(s) in a row"
+	}
+	if len(alert.GetDescription()) > 0 {
+		message += " with the following description: " + alert.GetDescription()
 	}
 	body, _ := json.Marshal(Body{
 		Topic:    provider.Topic,
-		Title:    "Gatus",
+		Title:    "Gatus: " + endpoint.DisplayName(),
 		Message:  message,
 		Tags:     []string{tag},
 		Priority: provider.Priority,

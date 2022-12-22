@@ -1,22 +1,27 @@
 package alerting
 
 import (
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/alerting/provider"
-	"github.com/TwiN/gatus/v4/alerting/provider/custom"
-	"github.com/TwiN/gatus/v4/alerting/provider/discord"
-	"github.com/TwiN/gatus/v4/alerting/provider/email"
-	"github.com/TwiN/gatus/v4/alerting/provider/googlechat"
-	"github.com/TwiN/gatus/v4/alerting/provider/matrix"
-	"github.com/TwiN/gatus/v4/alerting/provider/mattermost"
-	"github.com/TwiN/gatus/v4/alerting/provider/messagebird"
-	"github.com/TwiN/gatus/v4/alerting/provider/ntfy"
-	"github.com/TwiN/gatus/v4/alerting/provider/opsgenie"
-	"github.com/TwiN/gatus/v4/alerting/provider/pagerduty"
-	"github.com/TwiN/gatus/v4/alerting/provider/slack"
-	"github.com/TwiN/gatus/v4/alerting/provider/teams"
-	"github.com/TwiN/gatus/v4/alerting/provider/telegram"
-	"github.com/TwiN/gatus/v4/alerting/provider/twilio"
+	"log"
+	"reflect"
+	"strings"
+
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/custom"
+	"github.com/TwiN/gatus/v5/alerting/provider/discord"
+	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/github"
+	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
+	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
+	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
+	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
+	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 )
 
 // Config is the configuration for alerting providers
@@ -24,14 +29,17 @@ type Config struct {
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
-	// googlechat is the configuration for the Google chat alerting provider
-	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
-
 	// Discord is the configuration for the discord alerting provider
 	Discord *discord.AlertProvider `yaml:"discord,omitempty"`
 
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
+
+	// GitHub is the configuration for the github alerting provider
+	GitHub *github.AlertProvider `yaml:"github,omitempty"`
+
+	// GoogleChat is the configuration for the googlechat alerting provider
+	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
 
 	// Matrix is the configuration for the matrix alerting provider
 	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
@@ -65,92 +73,30 @@ type Config struct {
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
-func (config Config) GetAlertingProviderByAlertType(alertType alert.Type) provider.AlertProvider {
-	switch alertType {
-	case alert.TypeCustom:
-		if config.Custom == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
+func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provider.AlertProvider {
+	entityType := reflect.TypeOf(config).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		if strings.ToLower(field.Name) == string(alertType) {
+			fieldValue := reflect.ValueOf(config).Elem().Field(i)
+			if fieldValue.IsNil() {
+				return nil
+			}
+			return fieldValue.Interface().(provider.AlertProvider)
 		}
-		return config.Custom
-	case alert.TypeDiscord:
-		if config.Discord == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Discord
-	case alert.TypeEmail:
-		if config.Email == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Email
-	case alert.TypeGoogleChat:
-		if config.GoogleChat == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.GoogleChat
-	case alert.TypeMatrix:
-		if config.Matrix == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Matrix
-	case alert.TypeMattermost:
-		if config.Mattermost == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Mattermost
-	case alert.TypeMessagebird:
-		if config.Messagebird == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Messagebird
-	case alert.TypeNtfy:
-		if config.Ntfy == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Ntfy
-	case alert.TypeOpsgenie:
-		if config.Opsgenie == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Opsgenie
-	case alert.TypePagerDuty:
-		if config.PagerDuty == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.PagerDuty
-	case alert.TypeSlack:
-		if config.Slack == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Slack
-	case alert.TypeTeams:
-		if config.Teams == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Teams
-	case alert.TypeTelegram:
-		if config.Telegram == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Telegram
-	case alert.TypeTwilio:
-		if config.Twilio == nil {
-			// Since we're returning an interface, we need to explicitly return nil, even if the provider itself is nil
-			return nil
-		}
-		return config.Twilio
 	}
+	log.Printf("[alerting][GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
+}
+
+// SetAlertingProviderToNil Sets an alerting provider to nil to avoid having to revalidate it every time an
+// alert of its corresponding type is sent.
+func (config *Config) SetAlertingProviderToNil(p provider.AlertProvider) {
+	entityType := reflect.TypeOf(config).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		if field.Type == reflect.TypeOf(p) {
+			reflect.ValueOf(config).Elem().Field(i).Set(reflect.Zero(field.Type))
+		}
+	}
 }

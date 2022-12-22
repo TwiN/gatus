@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -12,11 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/client"
-	"github.com/TwiN/gatus/v4/core/ui"
-	"github.com/TwiN/gatus/v4/util"
-	"github.com/TwiN/whois"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/util"
 )
 
 type EndpointType string
@@ -36,6 +36,8 @@ const (
 
 	EndpointTypeDNS      EndpointType = "DNS"
 	EndpointTypeTCP      EndpointType = "TCP"
+	EndpointTypeSCTP     EndpointType = "SCTP"
+	EndpointTypeUDP      EndpointType = "UDP"
 	EndpointTypeICMP     EndpointType = "ICMP"
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
@@ -58,6 +60,9 @@ var (
 
 	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
+
+	// ErrInvalidConditionFormat is the error with which Gatus will panic if a condition has an invalid format
+	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '<VALUE> <COMPARATOR> <VALUE>'")
 
 	// ErrInvalidEndpointIntervalForDomainExpirationPlaceholder is the error with which Gatus will panic if an endpoint
 	// has both an interval smaller than 5 minutes and a condition with DomainExpirationPlaceholder.
@@ -132,6 +137,10 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeDNS
 	case strings.HasPrefix(endpoint.URL, "tcp://"):
 		return EndpointTypeTCP
+	case strings.HasPrefix(endpoint.URL, "sctp://"):
+		return EndpointTypeSCTP
+	case strings.HasPrefix(endpoint.URL, "udp://"):
+		return EndpointTypeUDP
 	case strings.HasPrefix(endpoint.URL, "icmp://"):
 		return EndpointTypeICMP
 	case strings.HasPrefix(endpoint.URL, "starttls://"):
@@ -197,11 +206,12 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if len(endpoint.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
 	}
-	if endpoint.Interval < 5*time.Minute {
-		for _, condition := range endpoint.Conditions {
-			if condition.hasDomainExpirationPlaceholder() {
-				return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
-			}
+	for _, c := range endpoint.Conditions {
+		if endpoint.Interval < 5*time.Minute && c.hasDomainExpirationPlaceholder() {
+			return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
+		}
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
 	if endpoint.DNS != nil {
@@ -251,14 +261,18 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	}
 	// Retrieve domain expiration if necessary
 	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
-		endpoint.getDomainExpiration(result)
+		var err error
+		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
+			result.AddError(err.Error())
+		}
 	}
-	//
+	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
 		endpoint.call(result)
 	} else {
 		result.Success = false
 	}
+	// Evaluate the conditions
 	for _, condition := range endpoint.Conditions {
 		success := condition.evaluate(result, endpoint.UIConfig.DontResolveFailedConditions)
 		if !success {
@@ -284,20 +298,11 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 }
 
 func (endpoint *Endpoint) getIP(result *Result) {
-	ips, err := net.LookupIP(result.Hostname)
-	if err != nil {
+	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
 		return
-	}
-	result.IP = ips[0].String()
-}
-
-func (endpoint *Endpoint) getDomainExpiration(result *Result) {
-	whoisClient := whois.NewClient()
-	if whoisResponse, err := whoisClient.QueryAndParse(result.Hostname); err != nil {
-		result.AddError("error querying and parsing hostname using whois client: " + err.Error())
 	} else {
-		result.DomainExpiration = time.Until(whoisResponse.ExpirationDate)
+		result.IP = ips[0].String()
 	}
 }
 
@@ -328,6 +333,12 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == EndpointTypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
+		result.Duration = time.Since(startTime)
+	} else if endpointType == EndpointTypeUDP {
+		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(endpoint.URL, "udp://"), endpoint.ClientConfig)
+		result.Duration = time.Since(startTime)
+	} else if endpointType == EndpointTypeSCTP {
+		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(endpoint.URL, "sctp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)

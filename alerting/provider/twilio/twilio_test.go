@@ -3,8 +3,8 @@ package twilio
 import (
 	"testing"
 
-	"github.com/TwiN/gatus/v4/alerting/alert"
-	"github.com/TwiN/gatus/v4/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/core"
 )
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {

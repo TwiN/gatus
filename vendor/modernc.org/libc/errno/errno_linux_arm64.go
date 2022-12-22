@@ -184,4 +184,4 @@ type X__uint128_t = struct {
 type X__builtin_va_list = uintptr /* <builtin>:46:14 */
 type X__float128 = float64        /* <builtin>:47:21 */
 
-var _ int8 /* gen.c:2:13: */
+var _ uint8 /* gen.c:2:13: */
