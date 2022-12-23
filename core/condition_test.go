@@ -232,6 +232,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY][0].id == 1",
 		},
 		{
+			Name:            "body-jsonpath-when-body-is-array-but-actual-body-is-not",
+			Condition:       Condition("[BODY][0].name == test"),
+			Result:          &Result{body: []byte("{\"statusCode\": 500, \"message\": \"Internal Server Error\"}")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY][0].name == test",
+		},
+		{
 			Name:            "body-jsonpath-complex-int",
 			Condition:       Condition("[BODY].data.id == 1"),
 			Result:          &Result{body: []byte("{\"data\": {\"id\": 1}}")},
