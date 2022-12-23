@@ -236,7 +236,7 @@ func TestCondition_evaluate(t *testing.T) {
 			Condition:       Condition("[BODY][0].name == test"),
 			Result:          &Result{body: []byte("{\"statusCode\": 500, \"message\": \"Internal Server Error\"}")},
 			ExpectedSuccess: false,
-			ExpectedOutput:  "[BODY][0].name == test",
+			ExpectedOutput:  "[BODY][0].name (INVALID) == test",
 		},
 		{
 			Name:            "body-jsonpath-complex-int",
