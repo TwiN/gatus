@@ -93,7 +93,7 @@ func extractValue(currentKey string, value interface{}) interface{} {
 		currentKeyWithoutIndex := currentKey[:startOfBracket]
 		// if currentKeyWithoutIndex contains only an index (i.e. [0] or 0)
 		if len(currentKeyWithoutIndex) == 0 {
-			array := value.([]interface{})
+			array, _ := value.([]interface{})
 			if len(array) > arrayIndex {
 				if isNestedArray {
 					return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
@@ -106,7 +106,7 @@ func extractValue(currentKey string, value interface{}) interface{} {
 			return nil
 		}
 		// if currentKeyWithoutIndex contains both a key and an index (i.e. data[0])
-		array := value.(map[string]interface{})[currentKeyWithoutIndex].([]interface{})
+		array, _ := value.(map[string]interface{})[currentKeyWithoutIndex].([]interface{})
 		if len(array) > arrayIndex {
 			if isNestedArray {
 				return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
