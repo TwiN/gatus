@@ -28,4 +28,7 @@ jobs:
           platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
           pull: true
           push: true
-          tags: ${{ env.IMAGE_REPOSITORY }}:${{ env.RELEASE }},${{ env.IMAGE_REPOSITORY }}:stable
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ env.RELEASE }}
+            ${{ env.IMAGE_REPOSITORY }}:stable
+            ${{ env.IMAGE_REPOSITORY }}:latest
