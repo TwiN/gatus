@@ -29,6 +29,7 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	}
 	// Endpoints
 	unprotected.Handle("/v1/config", ConfigHandler{securityConfig: cfg.Security}).Methods("GET")
+	protected.PathPrefix("/v1/endpoints/{key}@{instanceKey}/").Handler(ProxyRequestHandler(cfg)).Methods("GET")
 	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses(cfg)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
 	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/health/badge.svg", HealthBadge).Methods("GET")

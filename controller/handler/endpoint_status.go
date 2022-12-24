@@ -93,7 +93,7 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*cor
 	var endpointStatusesFromAllRemotes []*core.EndpointStatus
 	httpClient := client.GetHTTPClient(remoteConfig.ClientConfig)
 	for _, instance := range remoteConfig.Instances {
-		response, err := httpClient.Get(instance.URL)
+		response, err := httpClient.Get(instance.URL + "/api/v1/endpoints/statuses")
 		if err != nil {
 			return nil, err
 		}
@@ -112,6 +112,7 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*cor
 		_ = response.Body.Close()
 		for _, endpointStatus := range endpointStatuses {
 			endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
+			endpointStatus.Key = endpointStatus.Key + "@" + instance.Key
 		}
 		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
 	}
