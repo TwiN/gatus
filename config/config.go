@@ -31,10 +31,6 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
-
-	// DefaultDistributedConfigurationDirectoryPath is the default path to search for additional configuration files
-	// if a custom directory has not been configured using the GATUS_CONFIG_DIR environment variable
-	DefaultDistributedConfigurationDirectoryPath = "config/config.d"
 )
 
 var (
@@ -93,8 +89,7 @@ type Config struct {
 	// WARNING: This is in ALPHA and may change or be completely removed in the future
 	Remote *remote.Config `yaml:"remote,omitempty"`
 
-	filePath        string    // path to the file from which config was loaded from
-	distributedPath	string	  // path to the distributed directory from which config was loaded from
+	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
 }
 
@@ -113,18 +108,13 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 func (config Config) HasLoadedConfigurationFileBeenModified() bool {
 	var lastMod = config.lastFileModTime.Unix()
 
-	// check main config file
-	if fileInfo, err := os.Stat(config.filePath); err == nil {
-		if !fileInfo.ModTime().IsZero() {
-			if config.lastFileModTime.Unix() < fileInfo.ModTime().Unix() {
-				return true
-			}
-		}
+	var fileInfo, err = os.Stat(config.configPath)
+	if nil != err {
+		return false
 	}
 
-	// check distributed files
-	if len(config.distributedPath) > 0 {
-		var err = walkConfigDir(config.distributedPath, func (path string, d fs.DirEntry, err error) error {
+	if fileInfo.IsDir() {
+		err = walkConfigDir(config.configPath, func (path string, d fs.DirEntry, err error) error {
 			if info, err := d.Info(); nil == err && lastMod < info.ModTime().Unix() {
 				return ErrEarlyReturn
 			}
@@ -134,7 +124,7 @@ func (config Config) HasLoadedConfigurationFileBeenModified() bool {
 		return ErrEarlyReturn == err
 	}
 
-	return false
+	return !fileInfo.ModTime().IsZero() && config.lastFileModTime.Unix() < fileInfo.ModTime().Unix()
 }
 
 // UpdateLastFileModTime refreshes Config.lastFileModTime
@@ -144,39 +134,53 @@ func (config *Config) UpdateLastFileModTime() {
 
 // LoadConfiguration loads the full configuration composed from the main configuration file
 // and all composed configuration files
-func LoadConfiguration(filePath string, directoryPath string) (*Config, error) {
+func LoadConfiguration(configPath string) (*Config, error) {
 	var composedContents []byte
-	var usedFilePath string
+	var fileInfo os.FileInfo
+	var usedConfigPath string = ""
 
-	for _, fpath := range []string{filePath, DefaultConfigurationFilePath, DefaultFallbackConfigurationFilePath} {
-		var bytes, err = os.ReadFile(fpath)
-		if nil == err {
-			log.Printf("[config][Load] Reading configuration from configFile=%s", fpath)
-			composedContents = append(composedContents, bytes...)
-			usedFilePath = fpath
-			break
+	for _, cpath := range []string{configPath, DefaultConfigurationFilePath, DefaultFallbackConfigurationFilePath} {
+		if len(cpath) == 0 {
+			continue
 		}
+
+		var err error
+		fileInfo, err = os.Stat(cpath)
+		if nil != err {
+			continue
+		}
+
+		usedConfigPath = configPath
+		break
+	}
+	if len(usedConfigPath) == 0 {
+		return nil, ErrConfigFileNotFound
 	}
 
-	if len(directoryPath) == 0 {
-		directoryPath = DefaultDistributedConfigurationDirectoryPath
-	}
-	walkConfigDir(directoryPath, func(path string, d fs.DirEntry, err error) error {
-		var bytes, rerr = os.ReadFile(path)
-		if nil == rerr {
-			log.Printf("[config][Load] Reading configuration from configFile=%s", path)
-			composedContents = append(composedContents, bytes...)
+	if fileInfo.IsDir() {
+		walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
+			var bytes, rerr = os.ReadFile(path)
+			if nil == rerr {
+				log.Printf("[config][Load] Reading configuration from configFile=%s", path)
+				composedContents = append(composedContents, bytes...)
+			}
+			return nil
+		})
+	} else {
+		var bytes, serr = os.ReadFile(usedConfigPath)
+		if nil == serr {
+			log.Printf("[config][Load] Reading configuration from configFile=%s", configPath)
+			composedContents = bytes
+			usedConfigPath = usedConfigPath
 		}
-		return nil
-	})
+	}
 
 	if len(composedContents) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
 
 	var config, err = parseAndValidateConfigBytes(composedContents)
-	config.filePath = usedFilePath
-	config.distributedPath = directoryPath
+	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
 
 	return config, err

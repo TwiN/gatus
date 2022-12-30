@@ -53,10 +53,14 @@ func save() {
 }
 
 func loadConfiguration() (*config.Config, error) {
-	return config.LoadConfiguration(
-		os.Getenv("GATUS_CONFIG_FILE"),
-		os.Getenv("GATUS_CONFIG_DIR"),
-	)
+	var configPath = os.GetEnv("GATUS_CONFIG_PATH")
+
+	// backwards compatibility
+	if len(configPath) == 0 {
+		configPath = os.GetEnv("GATUS_CONFIG_FILE")
+	}
+
+	return config.LoadConfiguration(configPath)
 }
 
 // initializeStorage initializes the storage provider
