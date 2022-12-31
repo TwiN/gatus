@@ -16,6 +16,7 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	if cfg.Metrics {
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	}
+	router.Use(GzipHandler)
 	api := router.PathPrefix("/api").Subrouter()
 	protected := api.PathPrefix("/").Subrouter()
 	unprotected := api.PathPrefix("/").Subrouter()
@@ -29,8 +30,8 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	}
 	// Endpoints
 	unprotected.Handle("/v1/config", ConfigHandler{securityConfig: cfg.Security}).Methods("GET")
-	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses(cfg)).Methods("GET") // No GzipHandler for this one, because we cache the content as Gzipped already
-	protected.HandleFunc("/v1/endpoints/{key}/statuses", GzipHandlerFunc(EndpointStatus)).Methods("GET")
+	protected.HandleFunc("/v1/endpoints/statuses", EndpointStatuses(cfg)).Methods("GET")
+	protected.HandleFunc("/v1/endpoints/{key}/statuses", EndpointStatus).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/health/badge.svg", HealthBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/uptimes/{duration}/badge.svg", UptimeBadge).Methods("GET")
 	unprotected.HandleFunc("/v1/endpoints/{key}/response-times/{duration}/badge.svg", ResponseTimeBadge(cfg)).Methods("GET")
@@ -45,6 +46,6 @@ func CreateRouter(cfg *config.Config) *mux.Router {
 	if err != nil {
 		panic(err)
 	}
-	router.PathPrefix("/").Handler(GzipHandler(http.FileServer(http.FS(staticFileSystem))))
+	router.PathPrefix("/").Handler(http.FileServer(http.FS(staticFileSystem)))
 	return router
 }
