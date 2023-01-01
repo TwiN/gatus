@@ -131,7 +131,7 @@ The main features of Gatus are:
 ## Usage
 By default, the configuration file is expected to be at `config/config.yaml`.
 
-You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable. If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside this directory and its subdirectories are concatenated.
+You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable. If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside this directory and its subdirectories are concatenated. The previously used environment variable `GATUS_CONFIG_FILE` is deprecated but still works.
 
 Here's a simple example:
 ```yaml
