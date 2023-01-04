@@ -4,7 +4,7 @@ github.com/TwiN/g8
 # github.com/TwiN/gocache/v2 v2.2.0
 ## explicit; go 1.19
 github.com/TwiN/gocache/v2
-# github.com/TwiN/health v1.5.0
+# github.com/TwiN/health v1.6.0
 ## explicit; go 1.19
 github.com/TwiN/health
 # github.com/TwiN/whois v1.1.0

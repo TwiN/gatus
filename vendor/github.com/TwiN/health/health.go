@@ -39,10 +39,24 @@ func (h *healthHandler) WithJSON(v bool) *healthHandler {
 
 // ServeHTTP serves the HTTP request for the health handler
 func (h *healthHandler) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
-	var statusCode int
-	var body []byte
+	statusCode, body, useJSON := h.getResponseStatusCodeAndBodyAndWhetherBodyUsesJSON()
+	if useJSON {
+		writer.Header().Set("Content-Type", "application/json")
+	}
+	writer.WriteHeader(statusCode)
+	_, _ = writer.Write(body)
+}
+
+func (h *healthHandler) GetResponseStatusCodeAndBody() (statusCode int, body []byte) {
+	statusCode, body, _ = h.getResponseStatusCodeAndBodyAndWhetherBodyUsesJSON()
+	return statusCode, body
+}
+
+func (h *healthHandler) getResponseStatusCodeAndBodyAndWhetherBodyUsesJSON() (statusCode int, body []byte, useJSON bool) {
+	var status Status
+	var reason string
 	h.mutex.RLock()
-	status, reason, useJSON := h.status, h.reason, h.useJSON
+	status, reason, useJSON = h.status, h.reason, h.useJSON
 	h.mutex.RUnlock()
 	if status == Up {
 		statusCode = http.StatusOK
@@ -52,7 +66,6 @@ func (h *healthHandler) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
 	if useJSON {
 		// We can safely ignore the error here because we know that both values are strings, therefore are supported encoders.
 		body, _ = json.Marshal(responseBody{Status: string(status), Reason: reason})
-		writer.Header().Set("Content-Type", "application/json")
 	} else {
 		if len(reason) == 0 {
 			body = []byte(status)
@@ -60,8 +73,7 @@ func (h *healthHandler) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
 			body = []byte(string(status) + ": " + reason)
 		}
 	}
-	writer.WriteHeader(statusCode)
-	_, _ = writer.Write(body)
+	return
 }
 
 // Handler retrieves the health handler
