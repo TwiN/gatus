@@ -1737,4 +1737,3 @@ No such header is required to query the API.
 You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
 
 [<img src="https://github.com/math280h.png" width="50" />](https://github.com/math280h)
-[<img src="https://github.com/pyroscope-io.png" width="50" />](https://github.com/pyroscope-io)
