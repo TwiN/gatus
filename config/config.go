@@ -107,7 +107,7 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 // configuration has been loaded from has been modified since it was last read
 func (config Config) HasLoadedConfigurationFileBeenModified() bool {
 	lastMod := config.lastFileModTime.Unix()
-	fileInfo, err : = os.Stat(config.configPath)
+	fileInfo, err := os.Stat(config.configPath)
 	if err != nil {
 		return false
 	}
