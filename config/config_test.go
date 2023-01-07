@@ -29,16 +29,37 @@ import (
 )
 
 func TestLoadFileThatDoesNotExist(t *testing.T) {
-	_, err := Load("file-that-does-not-exist.yaml")
+	_, err := LoadConfiguration("file-that-does-not-exist.yaml")
 	if err == nil {
 		t.Error("Should've returned an error, because the file specified doesn't exist")
 	}
 }
 
 func TestLoadDefaultConfigurationFile(t *testing.T) {
-	_, err := LoadDefaultConfiguration()
+	_, err := LoadConfiguration("")
 	if err == nil {
 		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
+	}
+}
+
+func TestLoadConfigurationFile(t *testing.T) {
+	_, err := LoadConfiguration("../test-conf/config.yaml")
+	if nil != err {
+		t.Error("Should not have returned an error, because the configuration file exists at the provided path")
+	}
+}
+
+func TestLoadDistributedConfiguration(t *testing.T) {
+	_, err := LoadConfiguration("../test-conf/conf.d/")
+	if nil != err {
+		t.Error("Should not have returned an error, because configuration files exist at the provided path for distributed files")
+	}
+}
+
+func TestLoadCombinedConfiguration(t *testing.T) {
+	_, err := LoadConfiguration("../test-conf/empty-conf.d/")
+	if nil == err {
+		t.Error("Should have returned an error, because the configuration directory does not contain any configuration files")
 	}
 }
 
