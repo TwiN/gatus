@@ -112,10 +112,9 @@ func (config Config) HasLoadedConfigurationFileBeenModified() bool {
 	if nil != err {
 		return false
 	}
-
 	if fileInfo.IsDir() {
 		err = walkConfigDir(config.configPath, func (path string, d fs.DirEntry, err error) error {
-			if info, err := d.Info(); nil == err && lastMod < info.ModTime().Unix() {
+			if info, err := d.Info(); err == nil && lastMod < info.ModTime().Unix() {
 				return ErrEarlyReturn
 			}
 			return nil
