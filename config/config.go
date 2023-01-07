@@ -118,10 +118,8 @@ func (config Config) HasLoadedConfigurationFileBeenModified() bool {
 			}
 			return nil
 		})
-
-		return ErrEarlyReturn == err
+		return err == ErrEarlyReturn
 	}
-
 	return !fileInfo.ModTime().IsZero() && config.lastFileModTime.Unix() < fileInfo.ModTime().Unix()
 }
 
@@ -144,7 +142,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 
 		var err error
 		fileInfo, err = os.Stat(cpath)
-		if nil != err {
+		if err != nil {
 			continue
 		}
 
@@ -157,8 +155,8 @@ func LoadConfiguration(configPath string) (*Config, error) {
 
 	if fileInfo.IsDir() {
 		walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
-			var bytes, rerr = os.ReadFile(path)
-			if nil == rerr {
+			bytes, rerr := os.ReadFile(path)
+			if rerr == nil {
 				log.Printf("[config][Load] Reading configuration from configFile=%s", path)
 				composedContents = append(composedContents, bytes...)
 			}
@@ -176,11 +174,9 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	if len(composedContents) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
-
-	var config, err = parseAndValidateConfigBytes(composedContents)
+	config, err := parseAndValidateConfigBytes(composedContents)
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
-
 	return config, err
 }
 
@@ -361,27 +357,23 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 }
 
 
-// Wrapper for filepath.WalkDir that strips directories and non-config files
+// walkConfigDir is a wrapper for filepath.WalkDir that strips directories and non-config files
 func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 	if len(path) == 0 {
-		// It is ok if the user did not provide a directory
+		// If the user didn't provide a directory, we'll just use the default config file, so we can return nil now.
 		return nil
 	}
-
 	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if nil != err {
+		if err != nil {
 			return nil
 		}
-
-		if nil == d || d.IsDir() {
+		if d == nil || d.IsDir() {
 			return nil
 		}
-
 		ext := filepath.Ext(path)
-		if ".yml" != ext && ".yaml" != ext {
+		if ext != ".yml" && ext != ".yaml" {
 			return nil
 		}
-
 		return fn(path, d, err)
 	})
 }
