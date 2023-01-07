@@ -53,11 +53,10 @@ func save() {
 }
 
 func loadConfiguration() (*config.Config, error) {
-	var configPath = os.GetEnv("GATUS_CONFIG_PATH")
-
-	// backwards compatibility
+	var configPath = os.Getenv("GATUS_CONFIG_PATH")
+	// Backwards compatibility
 	if len(configPath) == 0 {
-		configPath = os.GetEnv("GATUS_CONFIG_FILE")
+		configPath = os.Getenv("GATUS_CONFIG_FILE")
 	}
 
 	return config.LoadConfiguration(configPath)
