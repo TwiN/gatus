@@ -149,7 +149,7 @@ If you want to create your own configuration, see [Docker](#docker) for informat
 
 By default, the configuration file is expected to be at `config/config.yaml`.
 
-You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable. If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside this directory and its subdirectories are concatenated. The previously used environment variable `GATUS_CONFIG_FILE` is deprecated but still works.
+You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
 
 Here's a simple example:
 ```yaml
