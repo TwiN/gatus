@@ -163,11 +163,10 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			return nil
 		})
 	} else {
-		var bytes, serr = os.ReadFile(usedConfigPath)
-		if nil == serr {
+		bytes, serr := os.ReadFile(usedConfigPath)
+		if serr == nil {
 			log.Printf("[config][Load] Reading configuration from configFile=%s", configPath)
 			composedContents = bytes
-			usedConfigPath = usedConfigPath
 		}
 	}
 
