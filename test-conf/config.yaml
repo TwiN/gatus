@@ -1,0 +1,6 @@
+endpoints:
+  - name: example
+    url: https://example.org
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
