@@ -106,10 +106,9 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 // HasLoadedConfigurationFileBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
 func (config Config) HasLoadedConfigurationFileBeenModified() bool {
-	var lastMod = config.lastFileModTime.Unix()
-
-	var fileInfo, err = os.Stat(config.configPath)
-	if nil != err {
+	lastMod := config.lastFileModTime.Unix()
+	fileInfo, err : = os.Stat(config.configPath)
+	if err != nil {
 		return false
 	}
 	if fileInfo.IsDir() {
