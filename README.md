@@ -21,14 +21,18 @@ core applications: https://status.twin.sh/
 ```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
+You can also use GitHub Container Registry if you prefer:
+```console
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+```
 For more details, see [Usage](#usage)
 </details>
+
+> ❤ Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
 ![Gatus dashboard](.github/assets/dashboard-dark.png)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
-
-Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
 
 ## Table of Contents
@@ -129,6 +133,20 @@ The main features of Gatus are:
 
 
 ## Usage
+
+<details>
+  <summary><b>Quick start</b></summary>
+
+```console
+docker run -p 8080:8080 --name gatus twinproduction/gatus
+```
+You can also use GitHub Container Registry if you prefer:
+```console
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+```
+If you want to create your own configuration, see [Docker](#docker) for information on how to mount a configuration file.
+</details>
+
 By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
@@ -211,6 +229,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].link`                             | Link to open when the button is clicked.                                                                                                    | Required `""`              |
 | `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
 
+
 ### Conditions
 Here are some examples of conditions you can use:
 
@@ -259,7 +278,7 @@ Here are some examples of conditions you can use:
 | `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
-**NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+> 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
 
 ### Storage
@@ -310,7 +329,7 @@ the client used to send the request.
 | `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
 | `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
 
-Note that some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
+> 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
@@ -366,7 +385,7 @@ endpoints:
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual endpoints with configurable descriptions and thresholds.
 
-Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
+> 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
 | Parameter              | Description                                                                                                                  | Default |
@@ -474,7 +493,7 @@ endpoints:
         send-on-resolved: true
 ```
 
-**NOTE:** Some mail servers are painfully slow.
+> ⚠ Some mail servers are painfully slow.
 
 
 #### Configuring GitHub alerts
@@ -771,6 +790,7 @@ endpoints:
 | `alerting.slack.overrides`                | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.slack.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
 | `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
+
 ```yaml
 alerting:
   slack:
@@ -1088,7 +1108,7 @@ To do that, you'll have to use the maintenance configuration:
 | `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
 | `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
 
-**Note that the maintenance configuration uses UTC.**
+> 📝 The maintenance configuration uses UTC
 
 Here's an example:
 ```yaml
@@ -1131,8 +1151,8 @@ security:
     password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 ```
 
-**WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
-and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
+> ⚠ Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
+and basic auth verifies the password against the hash on every request. As of 2023-01-06, I suggest a cost of 9.
 
 
 #### OIDC
@@ -1290,7 +1310,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-> **NOTE**: This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
+> 📝 This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
 > tells Gatus to only evaluate one endpoint at a time.
 
 To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
@@ -1346,7 +1366,7 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `
 
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
 
-**NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
+> 📝 `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
 something at the given address listening to the given port, and that a connection to that address was successfully
 established.
 
@@ -1462,7 +1482,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-**NOTE**: The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
 and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
 To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
@@ -1503,7 +1523,7 @@ to make.
 **If you are not using a file storage**, updating the configuration while Gatus is running is effectively
 the same as restarting the application.
 
-**NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
+> 📝 Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
 
 ### Endpoint groups
