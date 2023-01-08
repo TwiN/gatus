@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/TwiN/deepmerge"
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
@@ -20,12 +21,12 @@ import (
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/util"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
 	// DefaultConfigurationFilePath is the default path that will be used to search for the configuration file
-	// if a custom path isn't configured through the GATUS_CONFIG_FILE environment variable
+	// if a custom path isn't configured through the GATUS_CONFIG_PATH environment variable
 	DefaultConfigurationFilePath = "config/config.yaml"
 
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
@@ -34,17 +35,17 @@ const (
 )
 
 var (
-	// ErrNoEndpointInConfig is an error returned when a configuration file has no endpoints configured
-	ErrNoEndpointInConfig = errors.New("configuration file should contain at least 1 endpoint")
+	// ErrNoEndpointInConfig is an error returned when a configuration file or directory has no endpoints configured
+	ErrNoEndpointInConfig = errors.New("configuration should contain at least 1 endpoint")
 
-	// ErrConfigFileNotFound is an error returned when the configuration file could not be found
+	// ErrConfigFileNotFound is an error returned when a configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
 
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
 
-	// ErrEarlyReturn is returned to break out of a loop from a callback early
-	ErrEarlyReturn = errors.New("early escape")
+	// errEarlyReturn is returned to break out of a loop from a callback early
+	errEarlyReturn = errors.New("early escape")
 )
 
 // Config is the main configuration structure
@@ -94,6 +95,7 @@ type Config struct {
 }
 
 func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
+	// TODO: Should probably add a mutex here to prevent concurrent access
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
 		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
@@ -103,22 +105,22 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 	return nil
 }
 
-// HasLoadedConfigurationFileBeenModified returns whether one of the file that the
+// HasLoadedConfigurationBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
-func (config Config) HasLoadedConfigurationFileBeenModified() bool {
+func (config Config) HasLoadedConfigurationBeenModified() bool {
 	lastMod := config.lastFileModTime.Unix()
 	fileInfo, err := os.Stat(config.configPath)
 	if err != nil {
 		return false
 	}
 	if fileInfo.IsDir() {
-		err = walkConfigDir(config.configPath, func (path string, d fs.DirEntry, err error) error {
+		err = walkConfigDir(config.configPath, func(path string, d fs.DirEntry, err error) error {
 			if info, err := d.Info(); err == nil && lastMod < info.ModTime().Unix() {
-				return ErrEarlyReturn
+				return errEarlyReturn
 			}
 			return nil
 		})
-		return err == ErrEarlyReturn
+		return err == errEarlyReturn
 	}
 	return !fileInfo.ModTime().IsZero() && config.lastFileModTime.Unix() < fileInfo.ModTime().Unix()
 }
@@ -131,52 +133,83 @@ func (config *Config) UpdateLastFileModTime() {
 // LoadConfiguration loads the full configuration composed from the main configuration file
 // and all composed configuration files
 func LoadConfiguration(configPath string) (*Config, error) {
-	var composedContents []byte
+	var configBytes []byte
 	var fileInfo os.FileInfo
-	var usedConfigPath string = ""
-
-	for _, cpath := range []string{configPath, DefaultConfigurationFilePath, DefaultFallbackConfigurationFilePath} {
-		if len(cpath) == 0 {
+	var usedConfigPath string
+	// Figure out what config path we'll use (either configPath or the default config path)
+	for _, configurationPath := range []string{configPath, DefaultConfigurationFilePath, DefaultFallbackConfigurationFilePath} {
+		if len(configurationPath) == 0 {
 			continue
 		}
-
 		var err error
-		fileInfo, err = os.Stat(cpath)
+		fileInfo, err = os.Stat(configurationPath)
 		if err != nil {
 			continue
 		}
-
 		usedConfigPath = configPath
 		break
 	}
 	if len(usedConfigPath) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
-
+	var config *Config
 	if fileInfo.IsDir() {
-		walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
-			bytes, rerr := os.ReadFile(path)
-			if rerr == nil {
-				log.Printf("[config][Load] Reading configuration from configFile=%s", path)
-				composedContents = append(composedContents, bytes...)
+		err := walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				log.Printf("[config][LoadConfiguration] Error walking path=%s: %s", path, err)
+				return err
 			}
-			return nil
+			log.Printf("[config][LoadConfiguration] Reading configuration from %s", path)
+			data, err := os.ReadFile(path)
+			if err != nil {
+				log.Printf("[config][LoadConfiguration] Error reading configuration from %s: %s", path, err)
+				return fmt.Errorf("error reading configuration from file %s: %w", path, err)
+			}
+			configBytes, err = deepmerge.YAML(configBytes, data)
+			return err
 		})
+		if err != nil {
+			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
+		}
 	} else {
-		bytes, serr := os.ReadFile(usedConfigPath)
-		if serr == nil {
-			log.Printf("[config][Load] Reading configuration from configFile=%s", configPath)
-			composedContents = bytes
+		log.Printf("[config][LoadConfiguration] Reading configuration from configFile=%s", configPath)
+		if data, err := os.ReadFile(usedConfigPath); err != nil {
+			return nil, err
+		} else {
+			configBytes = data
 		}
 	}
-
-	if len(composedContents) == 0 {
+	if len(configBytes) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
-	config, err := parseAndValidateConfigBytes(composedContents)
+	config, err := parseAndValidateConfigBytes(configBytes)
+	if err != nil {
+		return nil, err
+	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
 	return config, err
+}
+
+// walkConfigDir is a wrapper for filepath.WalkDir that strips directories and non-config files
+func walkConfigDir(path string, fn fs.WalkDirFunc) error {
+	if len(path) == 0 {
+		// If the user didn't provide a directory, we'll just use the default config file, so we can return nil now.
+		return nil
+	}
+	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d == nil || d.IsDir() {
+			return nil
+		}
+		ext := filepath.Ext(path)
+		if ext != ".yml" && ext != ".yaml" {
+			return nil
+		}
+		return fn(path, d, err)
+	})
 }
 
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
@@ -353,26 +386,4 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		}
 	}
 	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
-}
-
-
-// walkConfigDir is a wrapper for filepath.WalkDir that strips directories and non-config files
-func walkConfigDir(path string, fn fs.WalkDirFunc) error {
-	if len(path) == 0 {
-		// If the user didn't provide a directory, we'll just use the default config file, so we can return nil now.
-		return nil
-	}
-	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if d == nil || d.IsDir() {
-			return nil
-		}
-		ext := filepath.Ext(path)
-		if ext != ".yml" && ext != ".yaml" {
-			return nil
-		}
-		return fn(path, d, err)
-	})
 }

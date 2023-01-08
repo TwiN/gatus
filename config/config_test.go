@@ -1,7 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -26,41 +30,270 @@ import (
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage"
+	"gopkg.in/yaml.v3"
 )
 
-func TestLoadFileThatDoesNotExist(t *testing.T) {
-	_, err := LoadConfiguration("file-that-does-not-exist.yaml")
-	if err == nil {
-		t.Error("Should've returned an error, because the file specified doesn't exist")
+func TestLoadConfiguration(t *testing.T) {
+	dir := t.TempDir()
+	scenarios := []struct {
+		name           string
+		configPath     string            // value to pass as the configPath parameter in LoadConfiguration
+		pathAndFiles   map[string]string // files to create in dir
+		expectedConfig *Config
+		expectedError  error
+	}{
+		{
+			name:       "empty-config-file",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": "",
+			},
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:          "config-file-that-does-not-exist",
+			configPath:    filepath.Join(dir, "config.yaml"),
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:       "config-file-with-endpoint-that-has-no-url",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website`,
+			},
+			expectedError: core.ErrEndpointWithNoURL,
+		},
+		{
+			name:       "config-file-with-endpoint-that-has-no-conditions",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health`,
+			},
+			expectedError: core.ErrEndpointWithNoCondition,
+		},
+		{
+			name:       "config-file",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "website",
+						URL:        "https://twin.sh/health",
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+		},
+		{
+			name:          "empty-dir",
+			configPath:    dir,
+			pathAndFiles:  map[string]string{},
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:       "dir-with-empty-config-file",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"config.yaml": "",
+			},
+			expectedError: ErrNoEndpointInConfig,
+		},
+		{
+			name:       "dir-with-two-config-files",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"config.yaml": `endpoints: 
+  - name: one
+    url: https://example.com
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 200"
+
+  - name: two
+    url: https://example.org
+    conditions:
+      - "len([BODY]) > 0"`,
+				"config.yml": `endpoints: 
+  - name: three
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "one",
+						URL:        "https://example.com",
+						Conditions: []core.Condition{"[CONNECTED] == true", "[STATUS] == 200"},
+					},
+					{
+						Name:       "two",
+						URL:        "https://example.org",
+						Conditions: []core.Condition{"len([BODY]) > 0"},
+					},
+					{
+						Name:       "three",
+						URL:        "https://twin.sh/health",
+						Conditions: []core.Condition{"[STATUS] == 200", "[BODY].status == UP"},
+					},
+				},
+			},
+		},
+		{
+			name:       "dir-with-2-config-files-deep-merge-with-map-slice-and-primitive",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"a.yaml": `
+metrics: true
+
+alerting:
+  slack:
+    webhook-url: https://hooks.slack.com/services/xxx/yyy/zzz
+
+endpoints:
+  - name: example
+    url: https://example.org
+    interval: 5s
+    conditions:
+      - "[STATUS] == 200"`,
+				"b.yaml": `
+debug: true
+
+alerting:
+  discord:
+    webhook-url: https://discord.com/api/webhooks/xxx/yyy
+
+endpoints:
+  - name: frontend
+    url: https://example.com
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Debug:   true,
+				Metrics: true,
+				Alerting: &alerting.Config{
+					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
+					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz"},
+				},
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "example",
+						URL:        "https://example.org",
+						Interval:   5 * time.Second,
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+					{
+						Name:       "frontend",
+						URL:        "https://example.com",
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			for path, content := range scenario.pathAndFiles {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0644); err != nil {
+					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
+				}
+			}
+			defer func(pathAndFiles map[string]string) {
+				for path := range pathAndFiles {
+					_ = os.Remove(filepath.Join(dir, path))
+				}
+			}(scenario.pathAndFiles)
+			config, err := LoadConfiguration(scenario.configPath)
+			if !errors.Is(err, scenario.expectedError) {
+				t.Errorf("[%s] expected error %v, got %v", scenario.name, scenario.expectedError, err)
+				return
+			} else if err != nil && errors.Is(err, scenario.expectedError) {
+				return
+			}
+			// parse the expected output so that expectations are closer to reality (under the right circumstances, even I can be poetic)
+			expectedConfigAsYAML, _ := yaml.Marshal(scenario.expectedConfig)
+			expectedConfigAfterBeingParsedAndValidated, err := parseAndValidateConfigBytes(expectedConfigAsYAML)
+			if err != nil {
+				t.Fatalf("[%s] failed to parse expected config: %v", scenario.name, err)
+			}
+			// Marshal em' before comparing em' so that we don't have to deal with formatting and ordering
+			actualConfigAsYAML, err := yaml.Marshal(config)
+			if err != nil {
+				t.Fatalf("[%s] failed to marshal actual config: %v", scenario.name, err)
+			}
+			expectedConfigAfterBeingParsedAndValidatedAsYAML, _ := yaml.Marshal(expectedConfigAfterBeingParsedAndValidated)
+			if string(actualConfigAsYAML) != string(expectedConfigAfterBeingParsedAndValidatedAsYAML) {
+				t.Errorf("[%s] expected config %s, got %s", scenario.name, string(expectedConfigAfterBeingParsedAndValidatedAsYAML), string(actualConfigAsYAML))
+			}
+		})
 	}
 }
 
-func TestLoadDefaultConfigurationFile(t *testing.T) {
-	_, err := LoadConfiguration("")
-	if err == nil {
-		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
-	}
-}
+func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
 
-func TestLoadConfigurationFile(t *testing.T) {
-	_, err := LoadConfiguration("../test-conf/config.yaml")
-	if nil != err {
-		t.Error("Should not have returned an error, because the configuration file exists at the provided path")
-	}
-}
+	configFilePath := filepath.Join(dir, "config.yaml")
+	_ = os.WriteFile(configFilePath, []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0644)
 
-func TestLoadDistributedConfiguration(t *testing.T) {
-	_, err := LoadConfiguration("../test-conf/conf.d/")
-	if nil != err {
-		t.Error("Should not have returned an error, because configuration files exist at the provided path for distributed files")
-	}
-}
-
-func TestLoadCombinedConfiguration(t *testing.T) {
-	_, err := LoadConfiguration("../test-conf/empty-conf.d/")
-	if nil == err {
-		t.Error("Should have returned an error, because the configuration directory does not contain any configuration files")
-	}
+	t.Run("config-file-as-config-path", func(t *testing.T) {
+		config, err := LoadConfiguration(configFilePath)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
+		}
+		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
+		// Update the config file
+		if err = os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`), 0644); err != nil {
+			t.Fatalf("failed to overwrite config file: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+		}
+	})
+	t.Run("config-directory-as-config-path", func(t *testing.T) {
+		config, err := LoadConfiguration(dir)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
+		}
+		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
+		// Update the config file
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0644); err != nil {
+			t.Fatalf("failed to overwrite config file: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+		}
+	})
 }
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
@@ -1240,6 +1473,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Custom:      &custom.AlertProvider{},
 		Discord:     &discord.AlertProvider{},
 		Email:       &email.AlertProvider{},
+		GitHub:      &github.AlertProvider{},
 		GoogleChat:  &googlechat.AlertProvider{},
 		Matrix:      &matrix.AlertProvider{},
 		Mattermost:  &mattermost.AlertProvider{},
@@ -1259,6 +1493,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
+		{alertType: alert.TypeGitHub, expected: alertingConfig.GitHub},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},

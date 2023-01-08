@@ -53,12 +53,11 @@ func save() {
 }
 
 func loadConfiguration() (*config.Config, error) {
-	var configPath = os.Getenv("GATUS_CONFIG_PATH")
+	configPath := os.Getenv("GATUS_CONFIG_PATH")
 	// Backwards compatibility
 	if len(configPath) == 0 {
 		configPath = os.Getenv("GATUS_CONFIG_FILE")
 	}
-
 	return config.LoadConfiguration(configPath)
 }
 
@@ -79,14 +78,14 @@ func initializeStorage(cfg *config.Config) {
 	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+		log.Printf("[main][initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
 }
 
 func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 		time.Sleep(30 * time.Second)
-		if cfg.HasLoadedConfigurationFileBeenModified() {
+		if cfg.HasLoadedConfigurationBeenModified() {
 			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
 			stop()
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.

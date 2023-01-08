@@ -3,14 +3,17 @@ module github.com/TwiN/gatus/v5
 go 1.19
 
 require (
+	github.com/TwiN/deepmerge v0.1.0
 	github.com/TwiN/g8 v1.4.0
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/whois v1.1.0
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
+	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
 	github.com/lib/pq v1.10.7
 	github.com/miekg/dns v1.1.50
 	github.com/prometheus/client_golang v1.14.0
@@ -18,13 +21,8 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
 	gopkg.in/mail.v2 v2.3.1
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.19.5
-)
-
-require (
-	github.com/google/go-github/v48 v48.2.0
-	github.com/google/go-querystring v1.1.0 // indirect
 )
 
 require (
@@ -33,7 +31,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

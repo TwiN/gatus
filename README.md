@@ -147,10 +147,6 @@ docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
 If you want to create your own configuration, see [Docker](#docker) for information on how to mount a configuration file.
 </details>
 
-By default, the configuration file is expected to be at `config/config.yaml`.
-
-You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable. If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside this directory and its subdirectories are concatenated. The previously used environment variable `GATUS_CONFIG_FILE` is deprecated but still works.
-
 Here's a simple example:
 ```yaml
 endpoints:
@@ -174,7 +170,18 @@ This example would look similar to this:
 
 ![Simple example](.github/assets/example.png)
 
-Note that you can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+By default, the configuration file is expected to be at `config/config.yaml`.
+
+You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
+
+If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside said directory and its
+subdirectories are merged like so:
+- All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
+- All slices/arrays are appended (i.e. you can define `endpoints` in multiple files and each endpoint will be added to the final list of endpoints)
+- Parameters with a primitive value (e.g. `debug`, `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
+    - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
+
+> 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 
 If you want to test it locally, see [Docker](#docker).
 
