@@ -1,0 +1,21 @@
+endpoints:
+  - name: check-if-api-is-healthy
+    group: backend
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 1000"
+
+  - name: check-if-website-is-pingable
+    url: "icmp://example.org"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+
+  - name: check-domain-expiration
+    url: "https://example.org"
+    interval: 6h
+    conditions:
+      - "[DOMAIN_EXPIRATION] > 720h"

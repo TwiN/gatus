@@ -3,12 +3,14 @@ on:
   pull_request:
     paths-ignore:
       - '*.md'
+      - '.examples/*'
   push:
     branches:
       - master
     paths-ignore:
       - '*.md'
       - '.github/*'
+      - '.examples/*'
 jobs:
   test:
     runs-on: ubuntu-latest

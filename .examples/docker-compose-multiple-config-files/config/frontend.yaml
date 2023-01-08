@@ -1,0 +1,8 @@
+endpoints:
+  - name: make-sure-html-rendering-works
+    group: frontend
+    url: "https://example.org"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == pat(*<h1>Example Domain</h1>*)" # Check for header in HTML page
