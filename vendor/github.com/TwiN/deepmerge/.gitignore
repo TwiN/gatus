@@ -1,0 +1,13 @@
+# IDE
+*.iml
+.idea
+.vscode
+
+# OS
+.DS_Store
+
+# JS
+node_modules
+
+# Go
+/vendor

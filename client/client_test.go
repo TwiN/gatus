@@ -36,6 +36,7 @@ func TestGetHTTPClient(t *testing.T) {
 }
 
 func TestGetDomainExpiration(t *testing.T) {
+	t.Parallel()
 	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
 		t.Fatalf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
@@ -63,6 +64,7 @@ func TestGetDomainExpiration(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
+	t.Parallel()
 	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond}); !success {
 		t.Error("expected true")
 		if rtt == 0 {
@@ -121,6 +123,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
@@ -171,6 +174,7 @@ func TestCanPerformTLS(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)

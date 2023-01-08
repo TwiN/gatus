@@ -1,6 +1,7 @@
 package store
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -566,6 +567,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestInitialize(t *testing.T) {
+	dir := t.TempDir()
 	type Scenario struct {
 		Name        string
 		Cfg         *storage.Config
@@ -594,7 +596,7 @@ func TestInitialize(t *testing.T) {
 		},
 		{
 			Name:        "sqlite-with-path",
-			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: t.TempDir() + "/TestInitialize_sqlite-with-path.db"},
+			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: filepath.Join(dir, "TestInitialize_sqlite-with-path.db")},
 			ExpectedErr: nil,
 		},
 	}
@@ -629,7 +631,7 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestAutoSave(t *testing.T) {
-	file := t.TempDir() + "/TestAutoSave.db"
+	file := filepath.Join(t.TempDir(), "/TestAutoSave.db")
 	if err := Initialize(&storage.Config{Path: file}); err != nil {
 		t.Fatal("shouldn't have returned an error")
 	}
