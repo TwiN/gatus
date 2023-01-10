@@ -57,6 +57,7 @@ func loadConfiguration() (*config.Config, error) {
 	// Backwards compatibility
 	if len(configPath) == 0 {
 		configPath = os.Getenv("GATUS_CONFIG_FILE")
+		log.Println("WARNING: GATUS_CONFIG_FILE is deprecated. Please use GATUS_CONFIG_PATH instead.")
 	}
 	return config.LoadConfiguration(configPath)
 }
