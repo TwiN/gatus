@@ -146,7 +146,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 		if err != nil {
 			continue
 		}
-		usedConfigPath = configPath
+		usedConfigPath = configurationPath
 		break
 	}
 	if len(usedConfigPath) == 0 {
