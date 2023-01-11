@@ -3,7 +3,7 @@ module github.com/TwiN/gatus/v5
 go 1.19
 
 require (
-	github.com/TwiN/deepmerge v0.1.0
+	github.com/TwiN/deepmerge v0.2.0
 	github.com/TwiN/g8 v1.4.0
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0

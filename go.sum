@@ -57,8 +57,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/TwiN/deepmerge v0.1.0 h1:xVFKkF0WCcIoJANSVf102NZIorVIAldT/G+Jv/uYn8A=
-github.com/TwiN/deepmerge v0.1.0/go.mod h1:cR9OWsvI13y+FxrbnPLuF6BX2tbYeOjkiI6JWjEGqAE=
+github.com/TwiN/deepmerge v0.2.0 h1:8P1tp2qDXllX6V1Ailg2XA074easAcvLMmW9v1jn0aE=
+github.com/TwiN/deepmerge v0.2.0/go.mod h1:cR9OWsvI13y+FxrbnPLuF6BX2tbYeOjkiI6JWjEGqAE=
 github.com/TwiN/g8 v1.4.0 h1:RUk5xTtxKCdMo0GGSbBVyjtAAfi2nqVbA9E0C4u5Cxo=
 github.com/TwiN/g8 v1.4.0/go.mod h1:ECyGJsoIb99klUfvVQoS1StgRLte9yvvPigGrHdy284=
 github.com/TwiN/gocache/v2 v2.2.0 h1:M3B36KyH24BntxLrLaUb2kgTdq8DzCnfod0IekLG57w=

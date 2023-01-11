@@ -1,4 +1,4 @@
-# github.com/TwiN/deepmerge v0.1.0
+# github.com/TwiN/deepmerge v0.2.0
 ## explicit; go 1.19
 github.com/TwiN/deepmerge
 # github.com/TwiN/g8 v1.4.0

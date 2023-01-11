@@ -1,11 +1,11 @@
 package deepmerge
 
 import (
-	"gopkg.in/yaml.v3"
+	"encoding/json"
 )
 
-// YAML merges the contents of src into dst
-func YAML(dst, src []byte, optionalConfig ...Config) ([]byte, error) {
+// JSON merges the contents of src into dst
+func JSON(dst, src []byte, optionalConfig ...Config) ([]byte, error) {
 	var cfg Config
 	if len(optionalConfig) > 0 {
 		cfg = optionalConfig[0]
@@ -13,11 +13,11 @@ func YAML(dst, src []byte, optionalConfig ...Config) ([]byte, error) {
 		cfg = Config{PreventMultipleDefinitionsOfKeysWithPrimitiveValue: true}
 	}
 	var dstMap, srcMap map[string]interface{}
-	err := yaml.Unmarshal(dst, &dstMap)
+	err := json.Unmarshal(dst, &dstMap)
 	if err != nil {
 		return nil, err
 	}
-	err = yaml.Unmarshal(src, &srcMap)
+	err = json.Unmarshal(src, &srcMap)
 	if err != nil {
 		return nil, err
 	}
@@ -27,5 +27,5 @@ func YAML(dst, src []byte, optionalConfig ...Config) ([]byte, error) {
 	if err = DeepMerge(dstMap, srcMap, cfg); err != nil {
 		return nil, err
 	}
-	return yaml.Marshal(dstMap)
+	return json.Marshal(dstMap)
 }
