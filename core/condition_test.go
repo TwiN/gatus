@@ -117,7 +117,7 @@ func TestCondition_evaluate(t *testing.T) {
 			Condition:       Condition("[RESPONSE_TIME] < potato"),
 			Result:          &Result{Duration: 50 * time.Millisecond},
 			ExpectedSuccess: false,
-			ExpectedOutput:  "[RESPONSE_TIME] (50) < potato (0)", // Non-numerical values automatically resolve to 0
+			ExpectedOutput:  "[RESPONSE_TIME] (50) < potato (NaN)", // Non-numerical values automatically resolve to NaN
 		},
 		{
 			Name:            "response-time-using-greater-than",
@@ -202,6 +202,13 @@ func TestCondition_evaluate(t *testing.T) {
 			Result:          &Result{body: []byte("{\"data\": {\"id\": 1}}")},
 			ExpectedSuccess: false,
 			ExpectedOutput:  "[BODY].data.name (INVALID) == john",
+		},
+		{
+			Name:            "body-jsonpath-complex-number-invalid",
+			Condition:       Condition("[BODY].data.id < 3"),
+			Result:          &Result{body: []byte("{\"data\": {\"id\": \"a string\"}}")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].data.id (NaN) < 3",
 		},
 		{
 			Name:            "body-jsonpath-complex-len-invalid",

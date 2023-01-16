@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -328,8 +329,8 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			resolvedNumericalParameters = append(resolvedNumericalParameters, float64(duration.Milliseconds()))
 		} else if number, err := strconv.ParseFloat(element, 64); err != nil {
-			// Default to 0 if the string couldn't be converted to an integer
-			resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
+			// Default to NaN if the string couldn't be converted to a number
+			resolvedNumericalParameters = append(resolvedNumericalParameters, math.NaN())
 		} else {
 			resolvedNumericalParameters = append(resolvedNumericalParameters, number)
 		}
