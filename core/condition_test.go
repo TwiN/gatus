@@ -246,6 +246,87 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.id == 1",
 		},
 		{
+			Name:            "body-jsonpath-complex-big-int",
+			Condition:       Condition("[BODY].data.val == 10000000000"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val == 10000000000",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-int-numerical-only-operator",
+			Condition:       Condition("[BODY].data.val <= 10000000000"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val <= 10000000000",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-int-failure",
+			Condition:       Condition("[BODY].data.val != 10000000000"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000}}")},
+			ExpectedSuccess: false,
+			// This is formatted by walk/Sprintf("%v"), which will use scientific notation for large numbers.
+			ExpectedOutput:  "[BODY].data.val (1e+10) != 10000000000",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-int-failure-numerical-only-operator",
+			Condition:       Condition("[BODY].data.val < 10000000000"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000}}")},
+			ExpectedSuccess: false,
+			// This is formatted by prettifyNumericalParameters, which will never use scientific notation.
+			ExpectedOutput:  "[BODY].data.val (10000000000) < 10000000000",
+		},
+		{
+			Name:            "body-jsonpath-complex-float",
+			Condition:       Condition("[BODY].data.val == 1.5"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 1.5}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val == 1.5",
+		},
+		{
+			Name:            "body-jsonpath-complex-float-scientific",
+			Condition:       Condition("[BODY].data.val == 1.5e3"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 1500}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val == 1.5e3",
+		},
+		{
+			Name:            "body-jsonpath-complex-float-scientific-numerical-only-operator",
+			Condition:       Condition("[BODY].data.val <= 1.5e3"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 1500}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val <= 1.5e3",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-float",
+			Condition:       Condition("[BODY].data.val == 10000000000.5"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000.5}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val == 10000000000.5",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-float-numerical-only-operator",
+			Condition:       Condition("[BODY].data.val <= 10000000000.5"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000.5}}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data.val <= 10000000000.5",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-float-failure",
+			Condition:       Condition("[BODY].data.val != 10000000000.5"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000.5}}")},
+			ExpectedSuccess: false,
+			// This is formatted by walk/Sprintf("%v"), which will use scientific notation for large numbers.
+			ExpectedOutput:  "[BODY].data.val (1.00000000005e+10) != 10000000000.5",
+		},
+		{
+			Name:            "body-jsonpath-complex-big-float-failure-numerical-only-operator",
+			Condition:       Condition("[BODY].data.val < 10000000000.5"),
+			Result:          &Result{body: []byte("{\"data\": {\"val\": 10000000000.5}}")},
+			ExpectedSuccess: false,
+			// This is formatted by prettifyNumericalParameters, which will never use scientific notation.
+			ExpectedOutput:  "[BODY].data.val (10000000000.5) < 10000000000.5",
+		},
+		{
 			Name:            "body-jsonpath-complex-array-int",
 			Condition:       Condition("[BODY].data[1].id == 2"),
 			Result:          &Result{body: []byte("{\"data\": [{\"id\": 1}, {\"id\": 2}, {\"id\": 3}]}")},

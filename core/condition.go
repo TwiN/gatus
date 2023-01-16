@@ -217,6 +217,15 @@ func isEqual(first, second string) bool {
 			return false
 		}
 	}
+
+	// If both are numeric, force a numeric comparison.
+	// Ensures valid comparison for numbers expressed in decimal, scientific, etc.
+	firstNumeric, firstParseErr := strconv.ParseFloat(first, 64)
+	secondNumeric, secondParseErr := strconv.ParseFloat(second, 64)
+	if firstParseErr == nil && secondParseErr == nil {
+		return firstNumeric == secondNumeric
+	}
+
 	return first == second
 }
 
@@ -291,12 +300,12 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
+func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []float64) {
 	parameters, resolvedParameters := sanitizeAndResolve(list, result)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
-			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
-		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
+			resolvedNumericalParameters = append(resolvedNumericalParameters, float64(duration.Milliseconds()))
+		} else if number, err := strconv.ParseFloat(element, 64); err != nil {
 			// Default to 0 if the string couldn't be converted to an integer
 			resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
 		} else {
@@ -306,8 +315,8 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 	return parameters, resolvedNumericalParameters
 }
 
-func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
-	return prettify(parameters, []string{strconv.Itoa(int(resolvedParameters[0])), strconv.Itoa(int(resolvedParameters[1]))}, operator)
+func prettifyNumericalParameters(parameters []string, resolvedParameters []float64, operator string) string {
+	return prettify(parameters, []string{strconv.FormatFloat(resolvedParameters[0], 'f', -1, 64), strconv.FormatFloat(resolvedParameters[1], 'f', -1, 64)}, operator)
 }
 
 // prettify returns a string representation of a condition with its parameters resolved between parentheses
