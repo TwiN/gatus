@@ -672,6 +672,50 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedSuccess:             false,
 			ExpectedOutput:              "has([BODY].errors) == false",
 		},
+		// str
+		{
+			Name:            "str-no-placeholders",
+			Condition:       Condition("55 != str(55.0)"),
+			Result:          &Result{body: []byte("{}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "55 != str(55.0)",
+		},
+		{
+			Name:            "str-with-placeholder",
+			Condition:       Condition("[BODY].value != str(55e3)"),
+			Result:          &Result{body: []byte("{ \"value\": \"55.0000\" }")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].value != str(55e3)",
+		},
+		{
+			Name:            "str-leaves-body-placeholder",
+			Condition:       Condition("[BODY].value == str([BODY])"),
+			Result:          &Result{body: []byte("{ \"value\": \"[BODY]\" }")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].value == str([BODY])",
+		},
+		{
+			Name:            "str-leaves-status-placeholder",
+			Condition:       Condition("[BODY].value == str([STATUS])"),
+			Result:          &Result{body: []byte("{ \"value\": \"[STATUS]\" }")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].value == str([STATUS])",
+		},
+		{
+			Name:            "str-failure",
+			Condition:       Condition("[BODY].value == str([BODY])"),
+			Result:          &Result{body: []byte("{ \"value\": \"[NOT BODY]\" }")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].value ([NOT BODY]) == str([BODY]) ([BODY])",
+		},
+		{
+			Name:                        "str-failure-but-dont-resolve",
+			Condition:                   Condition("[BODY].value == str([BODY])"),
+			Result:                      &Result{body: []byte("{ \"value\": \"[NOT BODY]\" }")},
+			DontResolveFailedConditions: true,
+			ExpectedSuccess:             false,
+			ExpectedOutput:  "[BODY].value == str([BODY])",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

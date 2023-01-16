@@ -70,6 +70,12 @@ const (
 	// Usage: [IP] == any(1.1.1.1, 1.0.0.1)
 	AnyFunctionPrefix = "any("
 
+	// StrFunctionPrefix is the prefix for the str function
+	//
+	// Usage: [BODY].val == str(55e3)
+	//        55 != str(55.0)
+	StrFunctionPrefix = "str("
+
 	// FunctionSuffix is the suffix for all functions
 	FunctionSuffix = ")"
 
@@ -216,6 +222,18 @@ func isEqual(first, second string) bool {
 			}
 			return false
 		}
+		var isFirstStr, isSecondStr bool
+		if strings.HasPrefix(first, StrFunctionPrefix) && firstHasFunctionSuffix {
+			isFirstStr = true
+			first = strings.TrimSuffix(strings.TrimPrefix(first, StrFunctionPrefix), FunctionSuffix)
+		}
+		if strings.HasPrefix(second, StrFunctionPrefix) && secondHasFunctionSuffix {
+			isSecondStr = true
+			second = strings.TrimSuffix(strings.TrimPrefix(second, StrFunctionPrefix), FunctionSuffix)
+		}
+		if isFirstStr || isSecondStr {
+			return first == second
+		}
 	}
 
 	// If both are numeric, force a numeric comparison.
@@ -267,6 +285,10 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 				if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
 					checkingForExistence = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
+				}
+				if strings.HasPrefix(element, StrFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
+					element = strings.TrimSuffix(strings.TrimPrefix(element, StrFunctionPrefix), FunctionSuffix)
+					break
 				}
 				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
 				if checkingForExistence {

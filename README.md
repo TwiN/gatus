@@ -285,6 +285,7 @@ Here are some examples of conditions you can use:
 | `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.                                                                                                                         | `has([BODY].errors) == false`      |
 | `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
+| `str`    | Specifies that the string passed as parameter should not be parsed/evaluated. Placeholders inside will not be evaluated. Works only with `==` and `!=`.                                                                             | `[BODY].val == str(55e3)`          |
 
 > 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
