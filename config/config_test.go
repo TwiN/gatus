@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
