@@ -352,6 +352,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		alert.TypeNtfy,
 		alert.TypeOpsgenie,
 		alert.TypePagerDuty,
+		alert.TypePushover,
 		alert.TypeSlack,
 		alert.TypeTeams,
 		alert.TypeTelegram,

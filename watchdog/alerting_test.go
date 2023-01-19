@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -203,6 +204,42 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	verify(t, endpoint, 0, 1, false, "The alert should've been resolved")
 }
 
+func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Clearenv()
+
+	cfg := &config.Config{
+		Debug: true,
+		Alerting: &alerting.Config{
+			Pushover: &pushover.AlertProvider{
+				ApplicationKey: "000000000000000000000000000000",
+				UserKey:        "000000000000000000000000000000",
+			},
+		},
+	}
+	enabled := true
+	endpoint := &core.Endpoint{
+		URL: "https://example.com",
+		Alerts: []*alert.Alert{
+			{
+				Type:             alert.TypePushover,
+				Enabled:          &enabled,
+				FailureThreshold: 1,
+				SuccessThreshold: 1,
+				SendOnResolved:   &enabled,
+				Triggered:        false,
+			},
+		},
+		NumberOfFailuresInARow: 0,
+	}
+
+	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	verify(t, endpoint, 1, 0, true, "")
+
+	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	verify(t, endpoint, 0, 1, false, "The alert should've been resolved")
+}
+
 func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
@@ -270,6 +307,16 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertingConfig: &alerting.Config{
 				PagerDuty: &pagerduty.AlertProvider{
 					IntegrationKey: "00000000000000000000000000000000",
+				},
+			},
+		},
+		{
+			Name:      "pushover",
+			AlertType: alert.TypePushover,
+			AlertingConfig: &alerting.Config{
+				Pushover: &pushover.AlertProvider{
+					ApplicationKey: "000000000000000000000000000000",
+					UserKey:        "000000000000000000000000000000",
 				},
 			},
 		},

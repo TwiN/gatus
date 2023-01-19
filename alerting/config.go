@@ -1,6 +1,7 @@
 package alerting
 
 import (
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"log"
 	"reflect"
 	"strings"
@@ -58,6 +59,9 @@ type Config struct {
 
 	// PagerDuty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty,omitempty"`
+
+	// PagerDuty is the configuration for the pagerduty alerting provider
+	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
 
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack,omitempty"`
