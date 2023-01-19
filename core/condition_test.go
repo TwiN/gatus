@@ -183,6 +183,34 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY] == test",
 		},
 		{
+			Name:            "body-numerical-equal",
+			Condition:       Condition("[BODY] == 123"),
+			Result:          &Result{body: []byte("123")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY] == 123",
+		},
+		{
+			Name:            "body-numerical-less-than",
+			Condition:       Condition("[BODY] < 124"),
+			Result:          &Result{body: []byte("123")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY] < 124",
+		},
+		{
+			Name:            "body-numerical-greater-than",
+			Condition:       Condition("[BODY] > 122"),
+			Result:          &Result{body: []byte("123")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY] > 122",
+		},
+		{
+			Name:            "body-numerical-greater-than-failure",
+			Condition:       Condition("[BODY] > 123"),
+			Result:          &Result{body: []byte("100")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY] (100) > 123",
+		},
+		{
 			Name:            "body-jsonpath",
 			Condition:       Condition("[BODY].status == UP"),
 			Result:          &Result{body: []byte("{\"status\":\"UP\"}")},
@@ -594,6 +622,7 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			t.Parallel()
 			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)

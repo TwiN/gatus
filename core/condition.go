@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
+// Placeholders
 const (
 	// StatusPlaceholder is a placeholder for a HTTP status.
 	//
@@ -49,7 +50,10 @@ const (
 
 	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
 	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
+)
 
+// Functions
+const (
 	// LengthFunctionPrefix is the prefix for the length function
 	//
 	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
@@ -72,7 +76,10 @@ const (
 
 	// FunctionSuffix is the suffix for all functions
 	FunctionSuffix = ")"
+)
 
+// Other constants
+const (
 	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
 	InvalidConditionElementSuffix = "(INVALID)"
 
