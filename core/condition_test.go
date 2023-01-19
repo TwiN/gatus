@@ -622,7 +622,6 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			t.Parallel()
 			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
