@@ -1,8 +1,11 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -69,6 +72,10 @@ const (
 	// Usage: [IP] == pat(192.168.*.*)
 	PatternFunctionPrefix = "pat("
 
+	//
+	// For block number comparison
+	BlockNumFunctionPrefix = "blockNum("
+
 	// AnyFunctionPrefix is the prefix for the any function
 	//
 	// Usage: [IP] == any(1.1.1.1, 1.0.0.1)
@@ -111,13 +118,13 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bo
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
 		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
-		success = isEqual(resolvedParameters[0], resolvedParameters[1])
+		success = isEqual(result, resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
 		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
-		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
+		success = !isEqual(result, resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
@@ -174,12 +181,233 @@ func (c Condition) hasIPPlaceholder() bool {
 	return strings.Contains(string(c), IPPlaceholder)
 }
 
+func decodeHex(hex interface{}) (int64, error) {
+	hexStr := fmt.Sprintf("%v", hex)
+	value, err := strconv.ParseInt(hexStr[2:], 16, 64)
+	if err != nil {
+		return 0, err
+	}
+	return value, nil
+}
+
+type cosmosBlock2 struct {
+	Height string `json:"height"`
+}
+
+type cosmosBlock1 struct {
+	Header cosmosBlock2 `json:"header"`
+}
+
+type cosmosBlock struct {
+	Block cosmosBlock1 `json:"block"`
+}
+
+func ethBlockNum(result *Result, compareRpcs []string, first string) (int64, int64, bool) {
+	var firstI, secondI int64
+
+	firstI, err := decodeHex(first)
+	if err != nil {
+		result.AddError(err.Error())
+		return 0, 0, false
+	}
+
+	for _, compareRpc := range compareRpcs {
+		resp, err := http.Post(
+			compareRpc,
+			"application/json",
+			bytes.NewBuffer([]byte(`{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}`)),
+		)
+		if err != nil {
+			continue
+		}
+
+		var res map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			continue
+		}
+
+		secondI, err = decodeHex(res["result"])
+		if err != nil {
+			continue
+		}
+	}
+	if secondI == 0 {
+		result.AddError("error grabbing block from external rpc")
+		return 0, 0, false
+	}
+
+	return firstI, secondI, true
+}
+
+func cosmosBlockNum(result *Result, compareRpcs []string, first string) (int64, int64, bool) {
+	var firstI, secondI int64
+	firstI, err := strconv.ParseInt(first, 10, 64)
+	if err != nil {
+		result.AddError(err.Error())
+		return 0, 0, false
+	}
+
+	for _, compareRpc := range compareRpcs {
+		resp, err := http.Get(compareRpc)
+		if err != nil {
+			continue
+		}
+
+		var res cosmosBlock
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			continue
+		}
+
+		secondI, err = strconv.ParseInt(res.Block.Header.Height, 10, 64)
+		if err != nil {
+			continue
+		}
+	}
+	if secondI == 0 {
+		result.AddError("error grabbing block from external rpc")
+		return 0, 0, false
+	}
+
+	return firstI, secondI, true
+}
+
+func starknetBlockNum(result *Result, compareRpcs []string, first string) (int64, int64, bool) {
+	var firstI, secondI int64
+	firstI, err := strconv.ParseInt(first, 10, 64)
+	if err != nil {
+		result.AddError(err.Error())
+		return 0, 0, false
+	}
+
+	for _, compareRpc := range compareRpcs {
+		resp, err := http.Get(compareRpc)
+		if err != nil {
+			continue
+		}
+
+		var res map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			continue
+		}
+
+		secondStr := fmt.Sprintf("%v", res["block_number"])
+		secondI, err = strconv.ParseInt(secondStr, 10, 64)
+		if err != nil {
+			continue
+		}
+	}
+	if secondI == 0 {
+		result.AddError("error grabbing block from external rpc")
+		return 0, 0, false
+	}
+
+	return firstI, secondI, true
+}
+
+func aptosBlockNum(result *Result, compareRpcs []string, first string) (int64, int64, bool) {
+	var firstI, secondI int64
+
+	firstI, err := strconv.ParseInt(first, 10, 64)
+	if err != nil {
+		result.AddError(err.Error())
+		return 0, 0, false
+	}
+
+	for _, compareRpc := range compareRpcs {
+		resp, err := http.Get(compareRpc)
+		if err != nil {
+			continue
+		}
+
+		var res map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			continue
+		}
+
+		secondStr := fmt.Sprintf("%v", res["block_height"])
+		secondI, err = strconv.ParseInt(secondStr, 10, 64)
+		if err != nil {
+			continue
+		}
+	}
+	if secondI == 0 {
+		result.AddError("error grabbing block from external rpc")
+		return 0, 0, false
+	}
+
+	return firstI, secondI, true
+}
+
+func blockNum(result *Result, first, second string) bool {
+	//
+	// Skip evaluation on init (or else it breaks)
+	if strings.Contains(first, InvalidConditionElementSuffix) {
+		return false
+	}
+
+	args := strings.Split(second, ",")
+	if len(args) < 3 {
+		result.AddError("Bad configuration! " + second)
+		return false
+	}
+	deltaThreshold, err := strconv.ParseInt(args[0], 10, 64)
+	if err != nil {
+		result.AddError(err.Error())
+		return false
+	}
+	var firstI, secondI int64
+	chainType := args[1]
+
+	compareRpc := args[2:]
+
+	switch chainType {
+	case "eth":
+		var isOk bool
+		firstI, secondI, isOk = ethBlockNum(result, compareRpc, first)
+		if !isOk {
+			return isOk
+		}
+
+	case "cosmos":
+		var isOk bool
+		firstI, secondI, isOk = cosmosBlockNum(result, compareRpc, first)
+		if !isOk {
+			return isOk
+		}
+
+	case "starknet":
+		var isOk bool
+		firstI, secondI, isOk = starknetBlockNum(result, compareRpc, first)
+		if !isOk {
+			return isOk
+		}
+
+	case "aptos":
+		var isOk bool
+		firstI, secondI, isOk = aptosBlockNum(result, compareRpc, first)
+		if !isOk {
+			return isOk
+		}
+	default:
+		result.AddError("bad chainType " + chainType)
+		return false
+
+	}
+
+	result.AddError(fmt.Sprintf("rpc: %d, reference: %d", firstI, secondI))
+	return !(secondI-firstI > deltaThreshold)
+}
+
 // isEqual compares two strings.
 //
 // Supports the "pat" and the "any" functions.
 // i.e. if one of the parameters starts with PatternFunctionPrefix and ends with FunctionSuffix, it will be treated like
 // a pattern.
-func isEqual(first, second string) bool {
+func isEqual(result *Result, first, second string) bool {
 	firstHasFunctionSuffix := strings.HasSuffix(first, FunctionSuffix)
 	secondHasFunctionSuffix := strings.HasSuffix(second, FunctionSuffix)
 	if firstHasFunctionSuffix || secondHasFunctionSuffix {
@@ -192,6 +420,11 @@ func isEqual(first, second string) bool {
 			isSecondPattern = true
 			second = strings.TrimSuffix(strings.TrimPrefix(second, PatternFunctionPrefix), FunctionSuffix)
 		}
+		if strings.HasPrefix(second, BlockNumFunctionPrefix) && secondHasFunctionSuffix {
+			second = strings.TrimSuffix(strings.TrimPrefix(second, BlockNumFunctionPrefix), FunctionSuffix)
+			return blockNum(result, first, second)
+		}
+
 		if isFirstPattern && !isSecondPattern {
 			return pattern.Match(first, second)
 		} else if !isFirstPattern && isSecondPattern {
