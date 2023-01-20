@@ -8,13 +8,16 @@ import (
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func CreateRouter(cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 	if cfg.Metrics {
-		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
+		router.Handle("/metrics", promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+			DisableCompression: true,
+		}))).Methods("GET")
 	}
 	router.Use(GzipHandler)
 	api := router.PathPrefix("/api").Subrouter()
