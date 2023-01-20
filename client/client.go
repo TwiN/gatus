@@ -16,6 +16,8 @@ import (
 	"github.com/TwiN/whois"
 	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
+	
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
@@ -35,6 +37,14 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+// GetGRPCHealthClient returns a GRPC HealthCheck client from the configuration passed
+func GetGRPCHealthClient(config *Config, hostPort string) (healthpb.HealthClient, error) {
+	if config == nil {
+		return defaultGrpcConfig.getGRPCHealthClient(hostPort)
+	}
+	return config.getGRPCHealthClient(hostPort)
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires

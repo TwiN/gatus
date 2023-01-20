@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -42,6 +44,7 @@ const (
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
+	EndpointTypeGRPC     EndpointType = "GRPC"
 	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
@@ -69,6 +72,15 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+
+	// ErrInvalidGrpcServiceName is the error when a service name other than grpc.health.v[n].Health or unavailable service is passed.
+	ErrInvalidGrpcServiceName = errors.New("Only grpc.health.v[n].Health remote service is supported: ")
+
+	// ErrInvalidGrpcMethodName is the error when a method other than Check of the grpc.health.v[n].Health or unavailable method is passed.
+	ErrInvalidGrpcMethodName = errors.New("Only Check method of the grpc.health.v[n].Health service is supported: ")
+
+	// ErrInvalidGrpcHealthCheckRequestBody is the error when parsing is failed to extract the service name to check.
+	ErrInvalidGrpcHealthCheckRequestBody = errors.New("Not able to find the service name: ")
 )
 
 // Endpoint is the configuration of a monitored
@@ -152,6 +164,8 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
+	case strings.HasPrefix(endpoint.URL, "//") && len(endpoint.GRPC.Service) > 0:
+		return EndpointTypeGRPC
 	default:
 		return EndpointTypeUNKNOWN
 	}
@@ -345,6 +359,50 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
+	} else if endpointType == EndpointTypeGRPC {
+		// sanitize the the grpc request
+		reg := regexp.MustCompile(`^grpc\.health\.v\d\.Health$`)
+		if reg.FindStringIndex(endpoint.GRPC.Service) == nil {
+			err := fmt.Errorf("%v: %s", ErrInvalidGrpcServiceName, endpoint.GRPC.Service)
+			result.AddError(err.Error())
+			return
+		}
+
+		if endpoint.GRPC.Method != "Check" {
+			err := fmt.Errorf("%v: %s", ErrInvalidGrpcMethodName, endpoint.GRPC.Method)
+			result.AddError(err.Error())
+			return
+		}
+
+		// extract the service name to check
+	var serviceNameToCheck string = ""	// empty service name means to check the overall server status
+	reg = regexp.MustCompile(`"service":\s*"?([^"]*)"?`)
+	data := reg.FindSubmatch([]byte(endpoint.GRPC.Body))
+
+	if data != nil {
+		var sname string
+		i := 0
+		for _, one := range data {					
+			if i == 1 {
+				sname = string(one)
+			}
+			i++
+		}
+		sname = strings.TrimSpace(sname)
+		log.Println("Service Name to Check:"+sname)
+		serviceNameToCheck = sname
+	} else {
+		err := fmt.Errorf("%v: %s", ErrInvalidGrpcHealthCheckRequestBody, endpoint.GRPC.Body)
+		result.AddError(err.Error())
+		return
+	}
+
+	// preprocess GRPC url and headers
+	hostPort = strings.TrimSpace(hostPort)
+	hostPort = strings.TrimPrefix(hostPort, "//")
+	
+
+	// TBD
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)

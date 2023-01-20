@@ -3,31 +3,56 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
+
+	// importing the common health remove service across EG gRPC servers. 
+	// Any servers built on top of the EG Stark SDK has this service out of the box.
+	// If a target server is not built with the Stark SDK, the server should be updated to 
+	// enable this optional standard health check service.
+	// https://github.com/grpc/grpc/blob/master/doc/health-checking.md for details.
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 const (
 	defaultHTTPTimeout = 10 * time.Second
+	defaultGRPCTimeout = 10 * time.Second
 )
 
 var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
+	
+	// ErrFailedToLoadCert is the error when a cert is read from a folder and loading the cert is failed. 
+	ErrFailedToLoadCert = errors.New("Failed to load a server certificate in the configuration")
 
-	defaultConfig = Config{
+	// ErrFailedToParseCert is the error when a cert is identified but failed to parse it.
+	ErrFailedToParseCert = errors.New("Failed to parse the server certificate")
+
+	defaultConfig = Config {
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
+	}
+
+	defaultGrpcConfig = Config {
+		Insecure:       false,
+		Timeout:        defaultGRPCTimeout,
 	}
 )
 
@@ -37,7 +62,8 @@ func GetDefaultConfig() *Config {
 	return &cfg
 }
 
-// Config is the configuration for clients
+// Config is the configuration for both HTTP and GRPC clients. Only Insecure, Timeout and Cert are 
+// valid for GRPC clients
 type Config struct {
 	// Insecure determines whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
@@ -57,6 +83,9 @@ type Config struct {
 	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
 	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
+
+	// Cert is a file path where a server certifcate is at when the client connection is allowed with the server certificate. 
+	Cert string `yaml:"cert,omitempty"`
 
 	httpClient *http.Client
 }
@@ -196,4 +225,43 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
 	return oauth2cfg.Client(ctx)
+}
+
+func (c *Config) getGRPCHealthClient(hostPort string) (healthpb.HealthClient, error) {
+	// initial tls configuration
+	tlsConfig := &tls.Config {
+		InsecureSkipVerify: c.Insecure,
+	}
+
+	// handle the server certificate if given
+	if len(c.Cert) != 0 {
+		// load a server certificate from local disk 
+		serverCertPath := c.Cert
+		serverCA, err := os.ReadFile(serverCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("%v: %w", ErrFailedToLoadCert, err)
+		}
+
+		certPool := x509.NewCertPool()
+		if !certPool.AppendCertsFromPEM(serverCA) {
+			return nil, fmt.Errorf("%v: %w", ErrFailedToParseCert, err)
+		}
+
+		// update the tls configuration with the server cert.
+		tlsConfig.RootCAs = certPool
+	}
+
+  // create the connection
+	// (TODO) currently mTLS is not supported. If a gRPC server requires a mTLS, the following
+	// has to be updated to set the healthcheck client certificate. 
+	// (Currently no HybridCKO gRPC servers on a test env requires mTLS) 
+  creds := credentials.NewTLS(tlsConfig)
+  conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
+  if err != nil {
+    log.Fatalf("not able to connect: %v", err)
+  }
+  defer conn.Close()
+	
+	healthClient := healthpb.NewHealthClient(conn)
+	return healthClient, nil
 }
