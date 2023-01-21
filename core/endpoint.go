@@ -297,8 +297,7 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 				if len(port) == 0 {
 					result.AddError(ErrInvalidGRPCUrl.Error())	
 				}
-				result.Hostname = urlObject.Hostname() 	// Prepended "//" is stripped
-				endpoint.URL = result.Hostname+":"+port	// now GRPC's endpoint.URL shouldn't have prepended "//"
+				result.Hostname = urlObject.Hostname() 	// Prepended "//" and :<port> are stripped
 			}
 		}
 	} else {
@@ -410,7 +409,8 @@ func (endpoint *Endpoint) call(result *Result) {
 		var grpcResponse *healthpb.HealthCheckResponse
 
 		/// HealthCheck Client
-		conn, err := client.GetGRPCClientConnection(endpoint.ClientConfig, endpoint.URL)
+		hostPort := strings.TrimPrefix(endpoint.URL, "//")
+		conn, err := client.GetGRPCClientConnection(endpoint.ClientConfig, hostPort)
 		if err != nil {
 			result.AddError(err.Error())
 			return
@@ -527,7 +527,6 @@ func (endpoint *Endpoint) buildGRPCRequest() (GrpcServiceNameToCheck, error) {
 			i++
 		}
 		sname = strings.TrimSpace(sname)
-		log.Println("Service Name to Check:"+sname)
 		serviceNameToCheck = GrpcServiceNameToCheck(sname)
 	} else {
 		return "", fmt.Errorf("%v: %s", ErrInvalidGrpcHealthCheckRequestBody, endpoint.GRPC.Body)
