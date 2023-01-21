@@ -2,12 +2,18 @@ package core
 
 import (
 	"time"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // Result of the evaluation of a Endpoint
 type Result struct {
 	// HTTPStatus is the HTTP response status code
 	HTTPStatus int `json:"status"`
+
+	// Possible values: HealthCheckResponse_UNKNOWN, HealthCheckResponse_SERVING, HealthCheckResponse_NOT_SERVING, 
+	// HealthCheckResponse_SERVICE_UNKNOWN
+	// See https://pkg.go.dev/google.golang.org/grpc@v1.51.0/health/grpc_health_v1#HealthCheckResponse_ServingStatus
+	GRPCHealthStatus healthpb.HealthCheckResponse_ServingStatus `json:"grpcHealthStatus"`
 
 	// DNSRCode is the response code of a DNS query in a human-readable format
 	//

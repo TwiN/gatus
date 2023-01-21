@@ -59,6 +59,10 @@ endpoints:
       method: Check
       body: |
         {"service": ""}
+    client:
+      insecure: true
+      timeout: 10s
+      certpath: abc.pem    
     interval: 1h
     conditions:
       - "[BODY].status == SERVING"

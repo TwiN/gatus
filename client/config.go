@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -18,14 +17,6 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
-
-	// importing the common health remove service across EG gRPC servers. 
-	// Any servers built on top of the EG Stark SDK has this service out of the box.
-	// If a target server is not built with the Stark SDK, the server should be updated to 
-	// enable this optional standard health check service.
-	// https://github.com/grpc/grpc/blob/master/doc/health-checking.md for details.
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 const (
@@ -37,12 +28,8 @@ var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
-	
-	// ErrFailedToLoadCert is the error when a cert is read from a folder and loading the cert is failed. 
-	ErrFailedToLoadCert = errors.New("Failed to load a server certificate in the configuration")
-
-	// ErrFailedToParseCert is the error when a cert is identified but failed to parse it.
-	ErrFailedToParseCert = errors.New("Failed to parse the server certificate")
+	ErrFailedToParseCert         = errors.New("Failed to parse the server certificate")
+	ErrFailedToCreateClientConnection = errors.New("Failed to create a client connection")
 
 	defaultConfig = Config {
 		Insecure:       false,
@@ -84,7 +71,12 @@ type Config struct {
 	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
-	// Cert is a file path where a server certifcate is at when the client connection is allowed with the server certificate. 
+	// Cert is a file path where a server certifcate is at when the client connection requires the server certificate to pass.
+	// If both CertPath and Cert are passed, CertPath is ignored. If Cert is not passed, the certificate at CertPath is loaded
+	// into Cert. 
+	CertPath string `yaml:"certpath,omitempty"`
+
+	// text representation of the server certificate. If both CertPath and Cert are passed, CertPath is ignored.
 	Cert string `yaml:"cert,omitempty"`
 
 	httpClient *http.Client
@@ -227,7 +219,7 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	return oauth2cfg.Client(ctx)
 }
 
-func (c *Config) getGRPCHealthClient(hostPort string) (healthpb.HealthClient, error) {
+func (c *Config) getGRPCClientConnection(hostPort string) (*grpc.ClientConn, error) {
 	// initial tls configuration
 	tlsConfig := &tls.Config {
 		InsecureSkipVerify: c.Insecure,
@@ -235,16 +227,11 @@ func (c *Config) getGRPCHealthClient(hostPort string) (healthpb.HealthClient, er
 
 	// handle the server certificate if given
 	if len(c.Cert) != 0 {
-		// load a server certificate from local disk 
-		serverCertPath := c.Cert
-		serverCA, err := os.ReadFile(serverCertPath)
-		if err != nil {
-			return nil, fmt.Errorf("%v: %w", ErrFailedToLoadCert, err)
-		}
-
+		// parse and append a server certificate
+		serverCA := []byte(c.Cert)
 		certPool := x509.NewCertPool()
 		if !certPool.AppendCertsFromPEM(serverCA) {
-			return nil, fmt.Errorf("%v: %w", ErrFailedToParseCert, err)
+			return nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.Cert)
 		}
 
 		// update the tls configuration with the server cert.
@@ -258,10 +245,8 @@ func (c *Config) getGRPCHealthClient(hostPort string) (healthpb.HealthClient, er
   creds := credentials.NewTLS(tlsConfig)
   conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
   if err != nil {
-    log.Fatalf("not able to connect: %v", err)
+		return nil, fmt.Errorf("%v: %w", ErrFailedToCreateClientConnection, err)
   }
-  defer conn.Close()
-	
-	healthClient := healthpb.NewHealthClient(conn)
-	return healthClient, nil
+  
+	return conn, nil
 }
