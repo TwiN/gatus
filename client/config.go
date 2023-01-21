@@ -3,7 +3,9 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -13,21 +15,31 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
 	defaultHTTPTimeout = 10 * time.Second
+	defaultGRPCTimeout = 10 * time.Second
 )
 
 var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
+	ErrFailedToParseCert         = errors.New("Failed to parse the server certificate")
+	ErrFailedToCreateClientConnection = errors.New("Failed to create a client connection")
 
-	defaultConfig = Config{
+	defaultConfig = Config {
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
+	}
+
+	defaultGrpcConfig = Config {
+		Insecure:       false,
+		Timeout:        defaultGRPCTimeout,
 	}
 )
 
@@ -37,7 +49,8 @@ func GetDefaultConfig() *Config {
 	return &cfg
 }
 
-// Config is the configuration for clients
+// Config is the configuration for both HTTP and GRPC clients. Only Insecure, Timeout and Cert are 
+// valid for GRPC clients
 type Config struct {
 	// Insecure determines whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
@@ -57,6 +70,14 @@ type Config struct {
 	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
 	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
+
+	// Cert is a file path where a server certifcate is at when the client connection requires the server certificate to pass.
+	// If both CertPath and Cert are passed, CertPath is ignored. If Cert is not passed, the certificate at CertPath is loaded
+	// into Cert. 
+	CertPath string `yaml:"certpath,omitempty"`
+
+	// text representation of the server certificate. If both CertPath and Cert are passed, CertPath is ignored.
+	Cert string `yaml:"cert,omitempty"`
 
 	httpClient *http.Client
 }
@@ -196,4 +217,36 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
 	return oauth2cfg.Client(ctx)
+}
+
+func (c *Config) getGRPCClientConnection(hostPort string) (*grpc.ClientConn, error) {
+	// initial tls configuration
+	tlsConfig := &tls.Config {
+		InsecureSkipVerify: c.Insecure,
+	}
+
+	// handle the server certificate if given
+	if len(c.Cert) != 0 {
+		// parse and append a server certificate
+		serverCA := []byte(c.Cert)
+		certPool := x509.NewCertPool()
+		if !certPool.AppendCertsFromPEM(serverCA) {
+			return nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.Cert)
+		}
+
+		// update the tls configuration with the server cert.
+		tlsConfig.RootCAs = certPool
+	}
+
+  // create the connection
+	// (TODO) currently mTLS is not supported. If a gRPC server requires a mTLS, the following
+	// has to be updated to set the healthcheck client certificate. 
+	// (Currently no HybridCKO gRPC servers on a test env requires mTLS) 
+  creds := credentials.NewTLS(tlsConfig)
+  conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
+  if err != nil {
+		return nil, fmt.Errorf("%v: %w", ErrFailedToCreateClientConnection, err)
+  }
+  
+	return conn, nil
 }

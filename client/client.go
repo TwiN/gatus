@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/whois"
 	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -35,6 +36,14 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+// GetGRPCClientConnection returns a GRPC client connection from the configuration passed
+func GetGRPCClientConnection(config *Config, hostPort string) (*grpc.ClientConn, error) {
+	if config == nil {
+		return defaultGrpcConfig.getGRPCClientConnection(hostPort)
+	}
+	return config.getGRPCClientConnection(hostPort)
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires
