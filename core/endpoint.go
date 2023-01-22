@@ -2,8 +2,8 @@ package core
 
 import (
 	"bytes"
-	"crypto/x509"
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,10 +22,13 @@ import (
 	"github.com/TwiN/gatus/v5/util"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-	// importing the common health remove service across EG gRPC servers. 
+	"google.golang.org/grpc/peer"
+
+	// importing the common health remove service across EG gRPC servers.
 	// Any servers built on top of the EG Stark SDK has this service out of the box.
-	// If a target server is not built with the Stark SDK, the server should be updated to 
+	// If a target server is not built with the Stark SDK, the server should be updated to
 	// enable this optional standard health check service.
 	// https://github.com/grpc/grpc/blob/master/doc/health-checking.md for details.
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -296,7 +299,7 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 				if len(port) == 0 {
 					result.AddError(ErrInvalidGRPCUrl.Error())	
 				}
-				result.Hostname = urlObject.Hostname() 	// Prepended "//" and :<port> are stripped
+				result.Hostname = urlObject.Hostname() 	// "//" and :<port> are stripped
 			}
 		}
 	} else {
@@ -405,45 +408,38 @@ func (endpoint *Endpoint) call(result *Result) {
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
 	} else if endpointType == EndpointTypeGRPC {
-		var grpcResponse *healthpb.HealthCheckResponse
-
-		/// HealthCheck Client
-		hostPort := strings.TrimPrefix(endpoint.URL, "//")
-		conn, err := client.GetGRPCClientConnection(endpoint.ClientConfig, hostPort)
+		healthClient, conn, err := client.GetGRPCHealthClient(endpoint.ClientConfig, endpoint.URL)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
-		healthClient := healthpb.NewHealthClient(conn)
-		// for gracelful connection close
 		defer conn.Close()
-
 		/// Outgoing Context
 		ctx, cancel := context.WithTimeout(context.Background(), endpoint.ClientConfig.Timeout)
 		if len(endpoint.Headers) > 0 {
 			md := metadata.New(endpoint.Headers)
 			ctx = metadata.NewOutgoingContext(ctx, md)	
 		}
-		// for graceful cancel
 		defer cancel()
 
 		/// Execute Check method of HealthClient
+		// for now, response headers are not used and reserved for future
 		var respHeaders metadata.MD
 		request := &healthpb.HealthCheckRequest {
 			Service: string(endpoint.GrpcConfig.ServiceNameToCheck),
 		}
-		grpcResponse, err = healthClient.Check(ctx, request, grpc.Header(&respHeaders))
+		rpcPeer := new(peer.Peer)
+		grpcResponse, err := healthClient.Check(ctx, request, grpc.Header(&respHeaders), grpc.Peer(rpcPeer))
 		result.Duration = time.Since(startTime)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
-		
-		// for now, response headers are not used for condition checks yet. maybe for future
-		// log.Printf("Response Headers: %v\n", respHeaders)
-
-		// TODO: result.CertificateExpiration for gRPC? 
-
+		tlsInfo := rpcPeer.AuthInfo.(credentials.TLSInfo) 
+		if len(tlsInfo.State.PeerCertificates) > 0 {
+			certificate := tlsInfo.State.PeerCertificates[0]
+			result.CertificateExpiration = time.Until(certificate.NotAfter)
+		}
 		result.GRPCHealthStatus = grpcResponse.GetStatus()
 		// https://pkg.go.dev/google.golang.org/grpc@v1.51.0/health/grpc_health_v1#HealthCheckResponse_ServingStatus for possible
 		// return values (0 ~ 3 as int32)

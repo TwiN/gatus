@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
+	"net/url"
 	"runtime"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
 	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
@@ -38,12 +40,28 @@ func GetHTTPClient(config *Config) *http.Client {
 	return config.getHTTPClient()
 }
 
-// GetGRPCClientConnection returns a GRPC client connection from the configuration passed
-func GetGRPCClientConnection(config *Config, hostPort string) (*grpc.ClientConn, error) {
+// GetGRPCHealthClient returns a GRPC health client for the given GRPC url
+func GetGRPCHealthClient(config *Config, urlStr string) (healthpb.HealthClient, *grpc.ClientConn, error) {
+	urlObject, _ := url.Parse(urlStr)
+	hostPort := urlObject.Hostname()+":"+urlObject.Port()
+
+	var conn *grpc.ClientConn
 	if config == nil {
-		return defaultGrpcConfig.getGRPCClientConnection(hostPort)
+		c, err := defaultGrpcConfig.getGRPCClientConnection(hostPort)
+		if err != nil {
+			return nil, nil, err
+		}
+		conn = c
+	} else {
+		c, err := config.getGRPCClientConnection(hostPort)
+		if err != nil {
+			return nil, nil, err
+		}
+		conn = c
 	}
-	return config.getGRPCClientConnection(hostPort)
+
+	healthClient := healthpb.NewHealthClient(conn)
+	return healthClient, conn, nil
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires
@@ -193,7 +211,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	return true, 0
 }
 
-// InjectHTTPClient is used to inject a custom HTTP client for testing purposes
+// InjecthttpClient is used to inject a custom HTTP client for testing purposes
 func InjectHTTPClient(httpClient *http.Client) {
 	injectedHTTPClient = httpClient
 }
