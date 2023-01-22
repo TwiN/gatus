@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -28,10 +29,13 @@ var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
-	ErrFailedToParseCert         = errors.New("Failed to parse the server certificate")
-	ErrFailedToCreateClientConnection = errors.New("Failed to create a client connection")
+  ErrFileNotExist              = errors.New("file not exists: ")
+	ErrFailedToLoadCert          = errors.New("failed to load a server certificate in the configuration")
+  ErrFailedToParseCert         = errors.New("Failed to parse the server certificate")
+	ErrFailedToCreateConnection  = errors.New("Failed to create a client connection")
+ 
 
-	defaultConfig = Config {
+	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
@@ -49,8 +53,7 @@ func GetDefaultConfig() *Config {
 	return &cfg
 }
 
-// Config is the configuration for both HTTP and GRPC clients. Only Insecure, Timeout and Cert are 
-// valid for GRPC clients
+// Config is the configuration for clients
 type Config struct {
 	// Insecure determines whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
@@ -71,13 +74,12 @@ type Config struct {
 	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
-	// Cert is a file path where a server certifcate is at when the client connection requires the server certificate to pass.
-	// If both CertPath and Cert are passed, CertPath is ignored. If Cert is not passed, the certificate at CertPath is loaded
-	// into Cert. 
+	// Cert is a file path where a server certifcate is at when the client connection requires the certificate.
+	// If CertPath is passed, the file will be loaded into the cert.
 	CertPath string `yaml:"certpath,omitempty"`
 
-	// text representation of the server certificate. If both CertPath and Cert are passed, CertPath is ignored.
-	Cert string `yaml:"cert,omitempty"`
+	// text representation of the server certificate. If CertPath is passed, the file will be loaded into the cert.
+	cert string
 
 	httpClient *http.Client
 }
@@ -111,6 +113,19 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
 		return ErrInvalidClientOAuth2Config
 	}
+  if len(c.CertPath) != 0 {
+    _, err := os.Stat(c.CertPath)
+    if os.IsNotExist(err) {
+      return fmt.Errorf("%v: %s", ErrFileNotExist, c.CertPath)
+    }
+
+    // load a server certificate from the local disk 
+		serverCA, err := os.ReadFile(c.CertPath)
+		if err != nil {
+			return fmt.Errorf("%v: %w", ErrFailedToLoadCert, err)
+		}
+		c.cert = string(serverCA)
+  }
 	return nil
 }
 
@@ -226,12 +241,12 @@ func (c *Config) getGRPCClientConnection(hostPort string) (*grpc.ClientConn, err
 	}
 
 	// handle the server certificate if given
-	if len(c.Cert) != 0 {
+	if len(c.cert) != 0 {
 		// parse and append a server certificate
-		serverCA := []byte(c.Cert)
+		serverCA := []byte(c.cert)
 		certPool := x509.NewCertPool()
 		if !certPool.AppendCertsFromPEM(serverCA) {
-			return nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.Cert)
+			return nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.cert)
 		}
 
 		// update the tls configuration with the server cert.
@@ -245,7 +260,7 @@ func (c *Config) getGRPCClientConnection(hostPort string) (*grpc.ClientConn, err
   creds := credentials.NewTLS(tlsConfig)
   conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
   if err != nil {
-		return nil, fmt.Errorf("%v: %w", ErrFailedToCreateClientConnection, err)
+		return nil, fmt.Errorf("%v: %w", ErrFailedToCreateConnection, err)
   }
   
 	return conn, nil

@@ -12,14 +12,13 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core/ui"
+	grpcConfig "github.com/TwiN/gatus/v5/grpc"
 	"github.com/TwiN/gatus/v5/util"
 
 	"google.golang.org/grpc"
@@ -34,7 +33,6 @@ import (
 )
 
 type EndpointType string
-type GrpcServiceNameToCheck string
 
 const (
 	// HostHeader is the name of the header used to specify the host
@@ -86,18 +84,6 @@ var (
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
 
-	// ErrInvalidGrpcServiceName is the error when a service name other than grpc.health.v[n].Health or unavailable service is passed.
-	ErrInvalidGrpcServiceName = errors.New("Only grpc.health.v[n].Health remote service is supported: ")
-
-	// ErrInvalidGrpcMethodName is the error when a method other than Check of the grpc.health.v[n].Health or unavailable method is passed.
-	ErrInvalidGrpcMethodName = errors.New("Only Check method of the grpc.health.v[n].Health service is supported: ")
-
-	// ErrInvalidGrpcHealthCheckRequestBody is the error when parsing is failed to extract the service name to check.
-	ErrInvalidGrpcHealthCheckRequestBody = errors.New("Not able to find the service name: ")
-
-	// ErrFailedToLoadCert is the error when a cert is read from a folder and loading the cert is failed. 
-	ErrFailedToLoadCert = errors.New("Failed to load a server certificate in the configuration")
-
 	// ErrInvalidGRPCUrl is the error when the GRPC URL is not in this format "//<hostname>:<port>" 
 	ErrInvalidGRPCUrl = errors.New("Invalid GRPC URL string")
 )
@@ -128,9 +114,6 @@ type Endpoint struct {
 	// GraphQL is whether to wrap the body in a query param ({"query":"$body"})
 	GraphQL bool `yaml:"graphql,omitempty"`
 
-	// GRPC used to wrap the RPC request with the service, method and body  
-	GRPC Grpc `yaml:"grpc,omitempty"`
-
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
@@ -142,6 +125,9 @@ type Endpoint struct {
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
+
+	// GrpcConfig used to wrap the RPC request with the service, method and body  
+	GrpcConfig *grpcConfig.Config `yaml:"grpc,omitempty"`
 
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -165,6 +151,7 @@ func (endpoint Endpoint) IsEnabled() bool {
 }
 
 // Type returns the endpoint type
+// GRPC url should start with "//" and both hostname and port should be passed in the "//<hostname>:<port>"" format.
 func (endpoint Endpoint) Type() EndpointType {
 	switch {
 	case endpoint.DNS != nil:
@@ -183,7 +170,7 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
-	case strings.HasPrefix(endpoint.URL, "//") && len(endpoint.GRPC.Service) > 0:
+	case strings.HasPrefix(endpoint.URL, "//"):
 		return EndpointTypeGRPC
 	default:
 		return EndpointTypeUNKNOWN
@@ -198,6 +185,15 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	} else {
 		if err := endpoint.ClientConfig.ValidateAndSetDefaults(); err != nil {
 			return err
+		}
+	}
+	if endpoint.Type() == EndpointTypeGRPC {
+		if endpoint.GrpcConfig == nil {
+			endpoint.GrpcConfig = grpcConfig.GetDefaultConfig()
+		} else {
+			if err := endpoint.GrpcConfig.ValidateAndSetDefaults(); err != nil {
+				return err
+			}
 		}
 	}
 	if endpoint.UIConfig == nil {
@@ -283,9 +279,8 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	// Parse or extract hostname from URL
 	if endpoint.DNS != nil {
 		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
-	} else if len(endpoint.GRPC.Service) != 0 {
-		// sanitize endpoint.URL. GRPC url should start with "//" and both hostname and port should be 
-		// passed in //<hostname>:<port> format.
+	} else if len(endpoint.GrpcConfig.Service) != 0 {
+		// sanitize endpoint.URL against GRPC. 
 		if !strings.HasPrefix(endpoint.URL, "//") {
 			result.AddError(ErrInvalidGRPCUrl.Error())
 		} else {
@@ -364,13 +359,13 @@ func (endpoint *Endpoint) call(result *Result) {
 	var response *http.Response
 	var err error
 	var certificate *x509.Certificate
-	var serviceNameToCheck GrpcServiceNameToCheck
 
 	endpointType := endpoint.Type()
 	if endpointType == EndpointTypeHTTP {
 		request = endpoint.buildHTTPRequest()
 	} else if endpointType == EndpointTypeGRPC {
-		serviceNameToCheck, err = endpoint.buildGRPCRequest()
+		// TODO. rethink if buildGRPCRequest add any value as it simply preprocess for headers.
+		err = endpoint.buildGRPCRequest()
 		if err != nil {
 			// just log and ignore the error so it will fail later during the time tracked. 
 			// When failed user will be notified as configured in alert 
@@ -431,7 +426,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		/// Execute Check method of HealthClient
 		var respHeaders metadata.MD
 		request := &healthpb.HealthCheckRequest {
-			Service: string(serviceNameToCheck),
+			Service: string(endpoint.GrpcConfig.ServiceNameToCheck),
 		}
 		grpcResponse, err = healthClient.Check(ctx, request, grpc.Header(&respHeaders))
 		result.Duration = time.Since(startTime)
@@ -482,57 +477,14 @@ func (endpoint *Endpoint) call(result *Result) {
 // It doesn't build a request but just pre-process params required when a GRPC client is created later.
 // These should not be time tracked as they are just prep before making a gRPC request.
 // Hence call this method before time is tracked. 
-func (endpoint *Endpoint) buildGRPCRequest() (GrpcServiceNameToCheck, error) {
-	// load the cert file
-	if len(endpoint.ClientConfig.Cert) == 0 && len(endpoint.ClientConfig.CertPath) != 0 {
-		// load a server certificate from local disk 
-		serverCertPath := endpoint.ClientConfig.Cert
-		serverCA, err := os.ReadFile(serverCertPath)
-		if err != nil {
-			return "", fmt.Errorf("%v: %w", ErrFailedToLoadCert, err)
-		}
-		endpoint.ClientConfig.Cert = string(serverCA)
-	}
-
-	// preprosess headers
+func (endpoint *Endpoint) buildGRPCRequest() error {
+	// preprocess the headers. Expand if the value contains a function.
 	for _, v := range endpoint.Headers {
 		// TODO check if the header value contains fuctions.
 		
 		fmt.Println(""+v)
 	}
-
-	// sanitize the the grpc request
-	reg := regexp.MustCompile(`^grpc\.health\.v\d\.Health$`)
-	if reg.FindStringIndex(endpoint.GRPC.Service) == nil {
-		return "", fmt.Errorf("%v: %s", ErrInvalidGrpcServiceName, endpoint.GRPC.Service)
-	}
-
-	if endpoint.GRPC.Method != "Check" {
-		return "", fmt.Errorf("%v: %s", ErrInvalidGrpcMethodName, endpoint.GRPC.Method)
-	}
-
-	// extract the service name to check
-	// empty service name means to check the overall server status
-	var serviceNameToCheck GrpcServiceNameToCheck = ""
-	reg = regexp.MustCompile(`"service":\s*"?([^"]*)"?`)
-	data := reg.FindSubmatch([]byte(endpoint.GRPC.Body))
-
-	if data != nil {
-		var sname string
-		i := 0
-		for _, one := range data {					
-			if i == 1 {
-				sname = string(one)
-			}
-			i++
-		}
-		sname = strings.TrimSpace(sname)
-		serviceNameToCheck = GrpcServiceNameToCheck(sname)
-	} else {
-		return "", fmt.Errorf("%v: %s", ErrInvalidGrpcHealthCheckRequestBody, endpoint.GRPC.Body)
-	}
-
-	return serviceNameToCheck, nil
+	return nil
 }
 
 func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
