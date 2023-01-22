@@ -34,22 +34,29 @@ var (
   ErrFailedToParseCert         = errors.New("Failed to parse the server certificate")
 	ErrFailedToCreateConnection  = errors.New("Failed to create a client connection")
  
-
+  // default client configuration for non-grpc
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultHTTPTimeout,
 	}
-
+  // default client configuration for grpc. gRPC client does not handle 302 redirects.
+  // a gRPC client is not meant to be a full HTTP client. For example, cookies and redirects are not part of gRPC.
 	defaultGrpcConfig = Config {
 		Insecure:       false,
 		Timeout:        defaultGRPCTimeout,
 	}
 )
 
-// GetDefaultConfig returns a copy of the default configuration
+// GetDefaultConfig returns a copy of the default client configuration for non-grpc.
 func GetDefaultConfig() *Config {
 	cfg := defaultConfig
+	return &cfg
+}
+
+// GetGrpcDefaultConfig returns a copy of the default client configuration for grpc.
+func GetGrpcDefaultConfig() *Config {
+  cfg := defaultGrpcConfig
 	return &cfg
 }
 

@@ -181,7 +181,11 @@ func (endpoint Endpoint) Type() EndpointType {
 func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	// Set default values
 	if endpoint.ClientConfig == nil {
-		endpoint.ClientConfig = client.GetDefaultConfig()
+		if endpoint.Type() == EndpointTypeGRPC {
+			endpoint.ClientConfig = client.GetGrpcDefaultConfig()
+		} else {
+			endpoint.ClientConfig = client.GetDefaultConfig()
+		}
 	} else {
 		if err := endpoint.ClientConfig.ValidateAndSetDefaults(); err != nil {
 			return err
