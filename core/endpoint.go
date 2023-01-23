@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -218,6 +217,12 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if len(endpoint.Headers) == 0 {
 		endpoint.Headers = make(map[string]string)
+	} else {
+		for _, v := range endpoint.Headers {
+			// TODO check if the header value contains fuctions.
+			
+			fmt.Println(""+v)
+		}
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
 	if _, userAgentHeaderExists := endpoint.Headers[UserAgentHeader]; !userAgentHeaderExists {
@@ -370,14 +375,6 @@ func (endpoint *Endpoint) call(result *Result) {
 	endpointType := endpoint.Type()
 	if endpointType == EndpointTypeHTTP {
 		request = endpoint.buildHTTPRequest()
-	} else if endpointType == EndpointTypeGRPC {
-		// TODO. rethink if buildGRPCRequest add any value as it simply preprocess for headers.
-		err = endpoint.buildGRPCRequest()
-		if err != nil {
-			// just log and ignore the error so it will fail later during the time tracked. 
-			// When failed user will be notified as configured in alert 
-			log.Printf("%v", err)
-		}
 	}
 	startTime := time.Now()
 
@@ -472,19 +469,6 @@ func (endpoint *Endpoint) call(result *Result) {
 			}
 		}
 	}
-}
-
-// It doesn't build a request but just pre-process params required when a GRPC client is created later.
-// These should not be time tracked as they are just prep before making a gRPC request.
-// Hence call this method before time is tracked. 
-func (endpoint *Endpoint) buildGRPCRequest() error {
-	// preprocess the headers. Expand if the value contains a function.
-	for _, v := range endpoint.Headers {
-		// TODO check if the header value contains fuctions.
-		
-		fmt.Println(""+v)
-	}
-	return nil
 }
 
 func (endpoint *Endpoint) buildHTTPRequest() *http.Request {

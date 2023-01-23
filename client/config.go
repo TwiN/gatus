@@ -17,7 +17,9 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 const (
@@ -89,6 +91,8 @@ type Config struct {
 	cert string
 
 	httpClient *http.Client
+  grpcClientConn *grpc.ClientConn
+  grpcHealthClient healthpb.HealthClient
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -241,34 +245,46 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	return oauth2cfg.Client(ctx)
 }
 
-func (c *Config) getGRPCClientConnection(hostPort string) (*grpc.ClientConn, error) {
-	// initial tls configuration
-	tlsConfig := &tls.Config {
-		InsecureSkipVerify: c.Insecure,
-	}
+// Note that unlike a http client, client.dns-resolver and client.oauth2 are not supported for the grpc health check client. 
+func (c *Config) getGRPCHealthClient(hostPort string) (healthpb.HealthClient, *grpc.ClientConn, error) {
+  if c.grpcHealthClient == nil || c.grpcClientConn == nil || c.isGrpcClientConnShtdown() {
+    // initial tls configuration
+    tlsConfig := &tls.Config {
+      InsecureSkipVerify: c.Insecure,
+    }
 
-	// handle the server certificate if given
-	if len(c.cert) != 0 {
-		// parse and append a server certificate
-		serverCA := []byte(c.cert)
-		certPool := x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(serverCA) {
-			return nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.cert)
-		}
+    // handle the server certificate if given
+    if len(c.cert) != 0 {
+      // parse and append a server certificate
+      serverCA := []byte(c.cert)
+      certPool := x509.NewCertPool()
+      if !certPool.AppendCertsFromPEM(serverCA) {
+        return nil, nil, fmt.Errorf("%v: %v", ErrFailedToParseCert, c.cert)
+      }
 
-		// update the tls configuration with the server cert.
-		tlsConfig.RootCAs = certPool
-	}
+      // update the tls configuration with the server cert.
+      tlsConfig.RootCAs = certPool
+    }
 
-  // create the connection
-	// (TODO) currently mTLS is not supported. If a gRPC server requires a mTLS, the following
-	// has to be updated to set the healthcheck client certificate. 
-	// (Currently no HybridCKO gRPC servers on a test env requires mTLS) 
-  creds := credentials.NewTLS(tlsConfig)
-  conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
-  if err != nil {
-		return nil, fmt.Errorf("%v: %w", ErrFailedToCreateConnection, err)
+    // create the connection
+    // (TODO) currently mTLS is not supported. If a gRPC server requires a mTLS for health check, 
+    // it would be ideal to request to remove mTLS for the health check.
+    creds := credentials.NewTLS(tlsConfig)
+    conn, err := grpc.Dial(hostPort, grpc.WithTransportCredentials(creds))
+    if err != nil {
+      return nil, nil, fmt.Errorf("%v: %w", ErrFailedToCreateConnection, err)
+    }
+    c.grpcClientConn = conn
+    c.grpcHealthClient = healthpb.NewHealthClient(conn)
+  }
+  return c.grpcHealthClient, c.grpcClientConn, nil
+}
+
+func (c *Config) isGrpcClientConnShtdown() bool {
+  if c.grpcClientConn == nil {
+    return true
   }
   
-	return conn, nil
+  connState :=c.grpcClientConn.GetState()
+  return connState == connectivity.Shutdown
 }

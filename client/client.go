@@ -45,23 +45,10 @@ func GetGRPCHealthClient(config *Config, urlStr string) (healthpb.HealthClient, 
 	urlObject, _ := url.Parse(urlStr)
 	hostPort := urlObject.Hostname()+":"+urlObject.Port()
 
-	var conn *grpc.ClientConn
 	if config == nil {
-		c, err := defaultGrpcConfig.getGRPCClientConnection(hostPort)
-		if err != nil {
-			return nil, nil, err
-		}
-		conn = c
-	} else {
-		c, err := config.getGRPCClientConnection(hostPort)
-		if err != nil {
-			return nil, nil, err
-		}
-		conn = c
-	}
-
-	healthClient := healthpb.NewHealthClient(conn)
-	return healthClient, conn, nil
+		return defaultGrpcConfig.getGRPCHealthClient(hostPort)
+	} 
+	return config.getGRPCHealthClient(hostPort)
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires
