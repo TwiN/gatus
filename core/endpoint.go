@@ -172,7 +172,7 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
-	case strings.HasPrefix(endpoint.URL, "//"):
+	case strings.HasPrefix(endpoint.URL, "grpc://"):
 		return EndpointTypeGRPC
 	default:
 		return EndpointTypeUNKNOWN
@@ -299,7 +299,7 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
 	} else if len(endpoint.GrpcConfig.Service) != 0 {
 		// sanitize endpoint.URL against GRPC. 
-		if !strings.HasPrefix(endpoint.URL, "//") {
+		if !strings.HasPrefix(endpoint.URL, "grpc://") {
 			result.AddError(ErrInvalidGRPCUrl.Error())
 		} else {
 			urlObject, err := url.Parse(endpoint.URL)
