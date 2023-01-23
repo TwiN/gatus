@@ -793,7 +793,7 @@ endpoints:
 #### Configuring Pushover alerts
 | Parameter                                       | Description                                                                                | Default                      |
 |:------------------------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------|
-| `alerting.pushover`                             | Configuration for alerts of type `pagerduty`                                               | `{}`                         |
+| `alerting.pushover`                             | Configuration for alerts of type `pushover`                                                | `{}`                         |
 | `alerting.pushover.application-key`             | Pushover Application key                                                                   | `""`                         |
 | `alerting.pushover.user-key`                    | User or group key                                                                          | `""`                         |
 | `alerting.pushover.title`                       | A fixed title for all messages sent via Pushover                                           | Name of your App in Pushover |
@@ -802,7 +802,7 @@ endpoints:
 
 ```yaml
 alerting:
-  pagerduty:
+  pushover:
     application-key: "******************************"
     user-key: "******************************"
 

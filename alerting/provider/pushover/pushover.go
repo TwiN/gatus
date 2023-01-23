@@ -17,7 +17,7 @@ const (
 	defaultPriority = 0
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Messagebird
+// AlertProvider is the configuration necessary for sending an alert using Pushover
 type AlertProvider struct {
 	// Key used to authenticate the application sending
 	// See "Your Applications" on the dashboard, or add a new one: https://pushover.net/apps/build
@@ -47,7 +47,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-// Reference doc for messagebird: https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
+// Reference doc for pushover: https://pushover.net/api
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
