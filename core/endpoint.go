@@ -215,13 +215,19 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if len(endpoint.Method) == 0 {
 		endpoint.Method = http.MethodGet
 	}
+	// In endpoints[].headers, a text header value can contain load(<file-path>) function. The file-loaded string will
+	// replace the function part from the header value. You can prepend ~ in the path.  
+	// "Authorization": "Token Principal-JWT=load(~/.identity-jwt)"
 	if len(endpoint.Headers) == 0 {
 		endpoint.Headers = make(map[string]string)
 	} else {
-		for _, v := range endpoint.Headers {
-			// TODO check if the header value contains fuctions.
-			
-			fmt.Println(""+v)
+		for key, value := range endpoint.Headers {
+			value, exist, err := HandleLoadFuctionIfExist(value)
+			if err != nil {
+				return err
+			} else if exist {
+				endpoint.Headers[key] = value
+			}
 		}
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
