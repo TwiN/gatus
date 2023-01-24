@@ -51,19 +51,4 @@ endpoints:
     interval: 1h
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
-
-  - name: price-aggregation-service
-    url: "grpc://price-aggregation-service-grpc.org:443"
-    grpc:
-      service: grpc.health.v1.Health
-      method: Check
-      body: |
-        {"service": ""}
-    client:
-      insecure: true
-      timeout: 10s
-      certpath: abc.pem    
-    interval: 1h
-    conditions:
-      - "[BODY].status == SERVING"
-      - "[RESPONSE_TIME] < 3000" 
+      

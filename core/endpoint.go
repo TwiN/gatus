@@ -297,21 +297,16 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	// Parse or extract hostname from URL
 	if endpoint.DNS != nil {
 		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
-	} else if len(endpoint.GrpcConfig.Service) != 0 {
-		// sanitize endpoint.URL against GRPC. 
-		if !strings.HasPrefix(endpoint.URL, "grpc://") {
-			result.AddError(ErrInvalidGRPCUrl.Error())
+	} else if endpoint.Type() == EndpointTypeGRPC {
+		urlObject, err := url.Parse(endpoint.URL)
+		if err != nil {
+			result.AddError(err.Error())
 		} else {
-			urlObject, err := url.Parse(endpoint.URL)
-			if err != nil {
-				result.AddError(err.Error())
-			} else {
-				port := urlObject.Port()
-				if len(port) == 0 {
-					result.AddError(ErrInvalidGRPCUrl.Error())	
-				}
-				result.Hostname = urlObject.Hostname() 	// "//" and :<port> are stripped
+			port := urlObject.Port()
+			if len(port) == 0 {
+				result.AddError(ErrInvalidGRPCUrl.Error())	
 			}
+			result.Hostname = urlObject.Hostname() 	// "//" and :<port> are stripped
 		}
 	} else {
 		urlObject, err := url.Parse(endpoint.URL)
