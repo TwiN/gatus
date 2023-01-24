@@ -56,8 +56,6 @@ type Config struct {
 	Body string `yaml:"body,omitempty"`
 
 	ServiceNameToCheck GrpcServiceNameToCheck
-
-	//httpClient *http.Client TODO
 }
 
 // ValidateAndSetDefaults validates the grpc configuration and sets the default values if necessary
