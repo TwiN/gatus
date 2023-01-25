@@ -21,7 +21,7 @@ const (
 type AlertProvider struct {
 	// Key used to authenticate the application sending
 	// See "Your Applications" on the dashboard, or add a new one: https://pushover.net/apps/build
-	ApplicationKey string `yaml:"application-key"`
+	ApplicationToken string `yaml:"application-token"`
 
 	// Key of the user or group the messages should be sent to
 	UserKey string `yaml:"user-key"`
@@ -43,7 +43,7 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = defaultPriority
 	}
-	return len(provider.ApplicationKey) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2
+	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2
 }
 
 // Send an alert using the provider
@@ -84,7 +84,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
 	}
 	body, _ := json.Marshal(Body{
-		Token:    provider.ApplicationKey,
+		Token:    provider.ApplicationToken,
 		User:     provider.UserKey,
 		Title:    provider.Title,
 		Message:  message,

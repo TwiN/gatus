@@ -686,7 +686,7 @@ alerting:
   pagerduty:
     integration-key: "00000000000000000000000000000000"
   pushover:
-    application-key: "000000000000000000000000000000"
+    application-token: "000000000000000000000000000000"
     user-key: "000000000000000000000000000000"
   mattermost:
     webhook-url: "http://example.com"
@@ -887,7 +887,7 @@ alerting:
       failure-threshold: 7
       success-threshold: 5
   pushover:
-    application-key: "000000000000000000000000000000"
+    application-token: "000000000000000000000000000000"
     user-key: "000000000000000000000000000000"
     default-alert:
       enabled: true
@@ -980,8 +980,8 @@ endpoints:
 	if config.Alerting.Pushover.GetDefaultAlert() == nil {
 		t.Fatal("Pushover.GetDefaultAlert() shouldn't have returned nil")
 	}
-	if config.Alerting.Pushover.ApplicationKey != "000000000000000000000000000000" {
-		t.Errorf("Pushover application key should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.ApplicationKey)
+	if config.Alerting.Pushover.ApplicationToken != "000000000000000000000000000000" {
+		t.Errorf("Pushover application token should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.ApplicationToken)
 	}
 	if config.Alerting.Pushover.UserKey != "000000000000000000000000000000" {
 		t.Errorf("Pushover user key should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.UserKey)
@@ -1289,7 +1289,7 @@ func TestParseAndValidateConfigBytesWithInvalidPushoverAlertingConfig(t *testing
 	config, err := parseAndValidateConfigBytes([]byte(`
 alerting:
   pushover:
-    application-key: "INVALID_KEY"
+    application-token: "INVALID_TOKEN"
 endpoints:
   - name: website
     url: https://twin.sh/health

@@ -212,8 +212,8 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 		Debug: true,
 		Alerting: &alerting.Config{
 			Pushover: &pushover.AlertProvider{
-				ApplicationKey: "000000000000000000000000000000",
-				UserKey:        "000000000000000000000000000000",
+				ApplicationToken: "000000000000000000000000000000",
+				UserKey:          "000000000000000000000000000000",
 			},
 		},
 	}
@@ -315,8 +315,8 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypePushover,
 			AlertingConfig: &alerting.Config{
 				Pushover: &pushover.AlertProvider{
-					ApplicationKey: "000000000000000000000000000000",
-					UserKey:        "000000000000000000000000000000",
+					ApplicationToken: "000000000000000000000000000000",
+					UserKey:          "000000000000000000000000000000",
 				},
 			},
 		},
