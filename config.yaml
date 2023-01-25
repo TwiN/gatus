@@ -51,4 +51,16 @@ endpoints:
     interval: 1h
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
+
+  - name: grpc-service
+    url: "grpc://grpc-service.example.com:443"
+    interval: 1m
+    client:
+      insecure: true
+      timeout: 3s
+    headers:
+      Authorization: "Bearer =load(~/.identity-jwt)"
+    conditions:
+      - "[BODY].status == SERVING"
+      - "[RESPONSE_TIME] < 3000"      
       

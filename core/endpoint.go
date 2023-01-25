@@ -142,6 +142,8 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	loadedFiles map[string]LoadedFile
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -215,18 +217,20 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if len(endpoint.Method) == 0 {
 		endpoint.Method = http.MethodGet
 	}
+
+	if endpoint.loadedFiles == nil {
+		endpoint.loadedFiles = make(map[string]LoadedFile)
+	}
+
 	// In endpoints[].headers, a text header value can contain load(<file-path>) function. The file-loaded string will
 	// replace the function part from the header value. You can prepend ~ in the path.  
 	// "Authorization": "Token Principal-JWT=load(~/.identity-jwt)"
 	if len(endpoint.Headers) == 0 {
 		endpoint.Headers = make(map[string]string)
 	} else {
-		for key, value := range endpoint.Headers {
-			value, exist, err := HandleLoadFuctionIfExist(value)
-			if err != nil {
+		for _, value := range endpoint.Headers {
+			if _, err := HandleLoadFuctionIfExist(endpoint.loadedFiles, value); err != nil {
 				return err
-			} else if exist {
-				endpoint.Headers[key] = value
 			}
 		}
 	}
@@ -415,7 +419,13 @@ func (endpoint *Endpoint) call(result *Result) {
 		/// Outgoing Context
 		ctx, cancel := context.WithTimeout(context.Background(), endpoint.ClientConfig.Timeout)
 		if len(endpoint.Headers) > 0 {
-			md := metadata.New(endpoint.Headers)
+			var headers map[string]string = make(map[string]string)
+			for k, v := range endpoint.Headers {
+				v, _ = HandleLoadFuctionIfExist(endpoint.loadedFiles, v)
+				headers[k] = v
+			}
+
+			md := metadata.New(headers)
 			ctx = metadata.NewOutgoingContext(ctx, md)	
 		}
 		defer cancel()
@@ -485,6 +495,7 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	}
 	request, _ := http.NewRequest(endpoint.Method, endpoint.URL, bodyBuffer)
 	for k, v := range endpoint.Headers {
+		v, _ = HandleLoadFuctionIfExist(endpoint.loadedFiles, v)
 		request.Header.Set(k, v)
 		if k == HostHeader {
 			request.Host = v
