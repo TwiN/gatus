@@ -68,7 +68,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Basic](#basic)
     - [OIDC](#oidc)
   - [Metrics](#metrics)
-  - [Remote instances (EXPERIMENTAL)](#remote-instances--experimental-)
+  - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)

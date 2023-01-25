@@ -60,7 +60,7 @@ type Config struct {
 	// PagerDuty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty,omitempty"`
 
-	// Pushover is the configuration for the pagerduty alerting provider
+	// Pushover is the configuration for the pushover alerting provider
 	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
 
 	// Slack is the configuration for the slack alerting provider
