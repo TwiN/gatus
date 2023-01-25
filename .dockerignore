@@ -6,3 +6,4 @@ Dockerfile
 web/app
 *.db
 testdata
+*.sh
