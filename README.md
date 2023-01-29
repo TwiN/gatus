@@ -296,6 +296,9 @@ Here are some examples of conditions you can use:
 | `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
 | `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
 
+The results for each endpoint health check as well as the data for uptime and the past events must be persisted
+so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
+
 - If `storage.type` is `memory` (default):
 ```yaml
 # Note that this is the default value, and you can omit the storage configuration altogether to achieve the same result.
