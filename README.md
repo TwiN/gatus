@@ -10,7 +10,7 @@
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
-checks can be paired with alerting via Slack, PagerDuty, Discord, Twilio and more.
+checks can be paired with alerting via Slack, PagerDuty, Pushover, Discord, Twilio and more.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twin.sh/
@@ -56,6 +56,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
+    - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
@@ -411,6 +412,7 @@ ignored.
 | `alerting.ntfy`        | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                      | `{}`    |
 | `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
 | `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
+| `alerting.pushover`    | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).          | `{}`    |
 | `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`    |
 | `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`    |
 | `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`    |
@@ -790,6 +792,38 @@ endpoints:
         description: "healthcheck failed"
 ```
 
+
+#### Configuring Pushover alerts
+| Parameter                              | Description                                                                                | Default                      |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:-----------------------------|
+| `alerting.pushover`                    | Configuration for alerts of type `pushover`                                                | `{}`                         |
+| `alerting.pushover.application-token`  | Pushover Application token                                                                 | `""`                         |
+| `alerting.pushover.user-key`           | User or group key                                                                          | `""`                         |
+| `alerting.pushover.title`              | A fixed title for all messages sent via Pushover                                           | Name of your App in Pushover |
+| `alerting.pushover.priority`           | Priority of all messages, ranging from -2 (very low) to 2 (Emergency)                      | `0`                          |
+| `alerting.pushover.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                          |
+
+```yaml
+alerting:
+  pushover:
+    application-token: "******************************"
+    user-key: "******************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: pushover
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 #### Configuring Slack alerts
 | Parameter                                 | Description                                                                                | Default       |

@@ -22,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -684,6 +685,9 @@ alerting:
     webhook-url: "http://example.org"
   pagerduty:
     integration-key: "00000000000000000000000000000000"
+  pushover:
+    application-token: "000000000000000000000000000000"
+    user-key: "000000000000000000000000000000"
   mattermost:
     webhook-url: "http://example.com"
     client:
@@ -723,6 +727,7 @@ endpoints:
         failure-threshold: 12
         success-threshold: 15
       - type: teams
+      - type: pushover
     conditions:
       - "[STATUS] == 200"
 `))
@@ -749,8 +754,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 8 {
-		t.Fatal("There should've been 8 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -850,6 +855,13 @@ endpoints:
 	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
 	}
+
+	if config.Endpoints[0].Alerts[8].Type != alert.TypePushover {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePushover, config.Endpoints[0].Alerts[8].Type)
+	}
+	if !config.Endpoints[0].Alerts[8].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -874,6 +886,14 @@ alerting:
       description: default description
       failure-threshold: 7
       success-threshold: 5
+  pushover:
+    application-token: "000000000000000000000000000000"
+    user-key: "000000000000000000000000000000"
+    default-alert:
+      enabled: true
+      description: default description
+      failure-threshold: 5
+      success-threshold: 3
   mattermost:
     webhook-url: "http://example.com"
     default-alert:
@@ -917,6 +937,7 @@ endpoints:
      - type: telegram
      - type: twilio
      - type: teams
+     - type: pushover
    conditions:
      - "[STATUS] == 200"
 `))
@@ -951,6 +972,19 @@ endpoints:
 	}
 	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
 		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
+	}
+
+	if config.Alerting.Pushover == nil || !config.Alerting.Pushover.IsValid() {
+		t.Fatal("Pushover alerting config should've been valid")
+	}
+	if config.Alerting.Pushover.GetDefaultAlert() == nil {
+		t.Fatal("Pushover.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.Pushover.ApplicationToken != "000000000000000000000000000000" {
+		t.Errorf("Pushover application token should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.ApplicationToken)
+	}
+	if config.Alerting.Pushover.UserKey != "000000000000000000000000000000" {
+		t.Errorf("Pushover user key should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.UserKey)
 	}
 
 	if config.Alerting.Mattermost == nil || !config.Alerting.Mattermost.IsValid() {
@@ -1026,8 +1060,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 8 {
-		t.Fatal("There should've been 8 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1129,6 +1163,19 @@ endpoints:
 	}
 	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[8].Type != alert.TypePushover {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePushover, config.Endpoints[0].Alerts[8].Type)
+	}
+	if !config.Endpoints[0].Alerts[8].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[8].FailureThreshold != 5 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[8].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[8].SuccessThreshold != 3 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[8].SuccessThreshold)
 	}
 
 }
@@ -1238,6 +1285,32 @@ endpoints:
 		t.Fatal("PagerDuty alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
+func TestParseAndValidateConfigBytesWithInvalidPushoverAlertingConfig(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  pushover:
+    application-token: "INVALID_TOKEN"
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    alerts:
+      - type: pushover
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Pushover != nil {
+		t.Fatal("Pushover alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
+	}
+}
 
 func TestParseAndValidateConfigBytesWithCustomAlertingConfig(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
@@ -1266,7 +1339,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1311,7 +1384,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1351,7 +1424,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1481,6 +1554,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Ntfy:        &ntfy.AlertProvider{},
 		Opsgenie:    &opsgenie.AlertProvider{},
 		PagerDuty:   &pagerduty.AlertProvider{},
+		Pushover:    &pushover.AlertProvider{},
 		Slack:       &slack.AlertProvider{},
 		Telegram:    &telegram.AlertProvider{},
 		Twilio:      &twilio.AlertProvider{},
@@ -1501,6 +1575,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeNtfy, expected: alertingConfig.Ntfy},
 		{alertType: alert.TypeOpsgenie, expected: alertingConfig.Opsgenie},
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
+		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},

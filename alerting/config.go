@@ -18,6 +18,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -58,6 +59,9 @@ type Config struct {
 
 	// PagerDuty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty,omitempty"`
+
+	// Pushover is the configuration for the pushover alerting provider
+	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
 
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack,omitempty"`
