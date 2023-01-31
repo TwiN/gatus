@@ -1,6 +1,18 @@
+# IDE
+*.iml
 .idea
 .vscode
+
+# OS
 .DS_Store
+
+# JS
+node_modules
+
+# Go
+/vendor
+
+# Misc
 *.db
 *.db-shm
 *.db-wal
