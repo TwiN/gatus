@@ -7,5 +7,6 @@ make docker-build
 docker run --publish 127.0.0.1:8080:8080 \
            --name gatus \
            --volume `pwd`/gatus_configuration:/config:ro \
+           --volume `pwd`/data/:/data/:rw \
            --detach \
            twinproduction/gatus:latest
