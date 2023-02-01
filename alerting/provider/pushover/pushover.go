@@ -34,6 +34,10 @@ type AlertProvider struct {
 	// default: 0
 	Priority int `yaml:"priority,omitempty"`
 
+	// Sound of the messages (see: https://pushover.net/api#sounds)
+	// default: "" (pushover)
+	Sound string `yaml:"sound,omitempty"`
+
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
@@ -73,6 +77,7 @@ type Body struct {
 	Title    string `json:"title,omitempty"`
 	Message  string `json:"message"`
 	Priority int    `json:"priority"`
+	Sound    string `json:"sound,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -89,6 +94,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		Title:    provider.Title,
 		Message:  message,
 		Priority: provider.priority(),
+		Sound:    provider.Sound,
 	})
 	return body
 }
