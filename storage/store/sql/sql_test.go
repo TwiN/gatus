@@ -97,7 +97,7 @@ func TestNewStore(t *testing.T) {
 func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db", false)
 	defer store.Close()
-	now := time.Now().Round(time.Minute)
+	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
 	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
