@@ -1534,7 +1534,34 @@ endpoints:
 	}
 }
 
-func TestParseAndValidateConfigBytesWithNoEndpointsOrAutoDiscovery(t *testing.T) {
+func TestParseAndValidateConfigBytesWithLiteralDollarSign(t *testing.T) {
+	os.Setenv("GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign", "whatever")
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[BODY] == $$GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign"
+      - "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
+	}
+	if config.Endpoints[0].Conditions[0] != "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign" {
+		t.Errorf("Condition should have been %s", "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign")
+	}
+	if config.Endpoints[0].Conditions[1] != "[BODY] == whatever" {
+		t.Errorf("Condition should have been %s", "[BODY] == whatever")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if err != ErrNoEndpointInConfig {
 		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
