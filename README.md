@@ -801,7 +801,7 @@ endpoints:
 | `alerting.pushover.user-key`           | User or group key                                                                               | `""`                         |
 | `alerting.pushover.title`              | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
 | `alerting.pushover.priority`           | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
-| `alerting.pushover.sound`              | Sound of all messages<br/ >See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
+| `alerting.pushover.sound`              | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
 | `alerting.pushover.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
 
 ```yaml
