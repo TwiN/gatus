@@ -1301,11 +1301,11 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repository as follows:
 
 ```console
-helm repo add gatus https://avakarev.github.io/gatus-chart
+helm repo add minicloudlabs https://minicloudlabs.github.io/helm-charts
 ```
 
-To get more details, please check chart's [configuration](https://github.com/avakarev/gatus-chart#configuration)
-and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-example)
+To get more details, please check [chart's configuration](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#configuration)
+and [helmfile example](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#helmfileyaml-example)
 
 
 ### Terraform
