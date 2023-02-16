@@ -302,10 +302,18 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 	parameters, resolvedParameters := sanitizeAndResolve(list, result)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
+			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
-			// Default to 0 if the string couldn't be converted to an integer
-			resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
+			// It's not an int, so we'll check if it's a float
+			if f, err := strconv.ParseFloat(element, 64); err == nil {
+				// It's a float, but we'll convert it to an int. We're losing precision here, but it's better than
+				// just returning 0.
+				resolvedNumericalParameters = append(resolvedNumericalParameters, int64(f))
+			} else {
+				// Default to 0 if the string couldn't be converted to an integer or a float
+				resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
+			}
 		} else {
 			resolvedNumericalParameters = append(resolvedNumericalParameters, number)
 		}

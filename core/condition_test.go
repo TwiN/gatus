@@ -295,6 +295,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.id (1) > 5",
 		},
 		{
+			Name:            "body-jsonpath-float-using-greater-than-issue433", // As of v5.3.1, Gatus will convert a float to an int. We're losing precision, but it's better than just returning 0
+			Condition:       Condition("[BODY].balance > 100"),
+			Result:          &Result{body: []byte(`{"balance": "123.40000000000005"}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].balance > 100",
+		},
+		{
 			Name:            "body-jsonpath-complex-int-using-less-than",
 			Condition:       Condition("[BODY].data.id < 5"),
 			Result:          &Result{body: []byte("{\"data\": {\"id\": 2}}")},

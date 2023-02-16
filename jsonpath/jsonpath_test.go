@@ -158,6 +158,22 @@ func TestEval(t *testing.T) {
 			ExpectedOutputLength: 0,
 			ExpectedError:        true,
 		},
+		{
+			Name:                 "float-as-string",
+			Path:                 "balance",
+			Data:                 `{"balance": "123.40000000000005"}`,
+			ExpectedOutput:       "123.40000000000005",
+			ExpectedOutputLength: 18,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "float-as-number",
+			Path:                 "balance",
+			Data:                 `{"balance": 123.40000000000005}`,
+			ExpectedOutput:       "123.40000000000005",
+			ExpectedOutputLength: 18,
+			ExpectedError:        false,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
