@@ -15,6 +15,8 @@ checks can be paired with alerting via Slack, Teams, PagerDuty, Discord, Twilio 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twin.sh/
 
+_Looking for a hosted solution? Check out [Gatus.io](https://gatus.io)._
+
 <details>
   <summary><b>Quick start</b></summary>
 
