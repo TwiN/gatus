@@ -280,8 +280,6 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		}
 	}
 	result.Timestamp = time.Now()
-	// No need to keep the body after the endpoint has been evaluated
-	result.body = nil
 	// Clean up parameters that we don't need to keep in the results
 	if endpoint.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
@@ -356,9 +354,9 @@ func (endpoint *Endpoint) call(result *Result) {
 		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
-		// Only read the body if there's a condition that uses the BodyPlaceholder
+		// Only read the Body if there's a condition that uses the BodyPlaceholder
 		if endpoint.needsToReadBody() {
-			result.body, err = io.ReadAll(response.Body)
+			result.Body, err = io.ReadAll(response.Body)
 			if err != nil {
 				result.AddError("error reading response body:" + err.Error())
 			}
@@ -387,7 +385,7 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any condition that requires the response body to be read
+// needsToReadBody checks if there's any condition that requires the response Body to be read
 func (endpoint *Endpoint) needsToReadBody() bool {
 	for _, condition := range endpoint.Conditions {
 		if condition.hasBodyPlaceholder() {

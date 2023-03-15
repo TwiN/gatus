@@ -44,12 +44,11 @@ type Result struct {
 	// DomainExpiration is the duration before the domain expires
 	DomainExpiration time.Duration `json:"-"`
 
-	// body is the response body
+	// Body is the response body
 	//
-	// Note that this variable is only used during the evaluation of an Endpoint's health.
-	// This means that the call Endpoint.EvaluateHealth both populates the body (if necessary)
-	// and sets it to nil after the evaluation has been completed.
-	body []byte
+	// Note that this field is not persisted in the storage.
+	// It is used for health evaluation as well as debugging purposes.
+	Body []byte `json:"-"`
 }
 
 // AddError adds an error to the result's list of errors.
