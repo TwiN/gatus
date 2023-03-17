@@ -15,7 +15,7 @@ checks can be paired with alerting via Slack, Teams, PagerDuty, Discord, Twilio 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twin.sh/
 
-_Looking for a hosted solution? Check out [Gatus.io](https://gatus.io)._
+_Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
 
 <details>
   <summary><b>Quick start</b></summary>
@@ -1782,4 +1782,6 @@ No such header is required to query the API.
 ## Sponsors
 You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
 
-[<img src="https://github.com/math280h.png" width="50" />](https://github.com/math280h)
+_There is currently no sponsors_
+
+<!-- [<img src="https://github.com/$user.png" width="50" />](https://github.com/$user) -->
