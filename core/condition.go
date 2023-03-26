@@ -33,7 +33,7 @@ const (
 	// Values that could replace the placeholder: 1, 500, 1000, ...
 	ResponseTimePlaceholder = "[RESPONSE_TIME]"
 
-	// BodyPlaceholder is a placeholder for the body of the response
+	// BodyPlaceholder is a placeholder for the Body of the response
 	//
 	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
 	BodyPlaceholder = "[BODY]"
@@ -232,7 +232,7 @@ func isEqual(first, second string) bool {
 func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
-	body := strings.TrimSpace(string(result.body))
+	body := strings.TrimSpace(string(result.Body))
 	for i, element := range elements {
 		element = strings.TrimSpace(element)
 		parameters[i] = element
@@ -266,7 +266,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 					checkingForExistence = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.Body)
 				if checkingForExistence {
 					if err != nil {
 						element = "false"

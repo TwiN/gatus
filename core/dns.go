@@ -61,26 +61,26 @@ func (d *DNS) query(url string, result *Result) {
 		switch rr.Header().Rrtype {
 		case dns.TypeA:
 			if a, ok := rr.(*dns.A); ok {
-				result.body = []byte(a.A.String())
+				result.Body = []byte(a.A.String())
 			}
 		case dns.TypeAAAA:
 			if aaaa, ok := rr.(*dns.AAAA); ok {
-				result.body = []byte(aaaa.AAAA.String())
+				result.Body = []byte(aaaa.AAAA.String())
 			}
 		case dns.TypeCNAME:
 			if cname, ok := rr.(*dns.CNAME); ok {
-				result.body = []byte(cname.Target)
+				result.Body = []byte(cname.Target)
 			}
 		case dns.TypeMX:
 			if mx, ok := rr.(*dns.MX); ok {
-				result.body = []byte(mx.Mx)
+				result.Body = []byte(mx.Mx)
 			}
 		case dns.TypeNS:
 			if ns, ok := rr.(*dns.NS); ok {
-				result.body = []byte(ns.Ns)
+				result.Body = []byte(ns.Ns)
 			}
 		default:
-			result.body = []byte("query type is not supported yet")
+			result.Body = []byte("query type is not supported yet")
 		}
 	}
 }
