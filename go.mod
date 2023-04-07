@@ -1,6 +1,6 @@
 module github.com/TwiN/gatus/v5
 
-go 1.19
+go 1.20
 
 require (
 	github.com/TwiN/deepmerge v0.2.0
