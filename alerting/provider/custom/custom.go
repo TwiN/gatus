@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -50,16 +51,17 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, specificAlert *alert.Alert, resolved bool) *http.Request {
 	body, url, method := provider.Body, provider.URL, provider.Method
-	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", specificAlert.GetDescription())
+	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", specificAlert.GetDescription())
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpoint.Name)
 	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", endpoint.Name)
 	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", endpoint.Group)
 	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", endpoint.Group)
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", endpoint.URL)
 	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", endpoint.URL)
+
 	if resolved {
 		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
 		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
@@ -71,6 +73,14 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 		method = http.MethodGet
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
+
+	// Find custom alert in the endpoint, and check if there is custom url
+	// If so, use that one, if not use the url
+	customURL := getCustomURLFromEndpoint(endpoint)
+	if customURL != "" {
+		url = customURL
+	}
+
 	request, _ := http.NewRequest(method, url, bodyBuffer)
 	for k, v := range provider.Headers {
 		request.Header.Set(k, v)
@@ -78,7 +88,22 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 	return request
 }
 
+func getCustomURLFromEndpoint(endpoint *core.Endpoint) string {
+	if endpoint == nil || endpoint.Alerts == nil {
+		return ""
+	}
+
+	for _, element := range endpoint.Alerts {
+		if element.Type == alert.TypeCustom && element.CustomURL != "" {
+			return element.CustomURL
+		}
+	}
+
+	return ""
+}
+
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+	log.Printf("[config][Custom], USAOO")
 	request := provider.buildHTTPRequest(endpoint, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {

@@ -54,6 +54,12 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool `yaml:"-"`
+
+	// CustomURL is an additional attribute for custom alerts. Gatus by default provides only one custom alert,
+	// but our requirement is to send multiple custom requests to different URLs.
+	// This field overrides the added URL in the custom alert declaration for this endpoint.
+	// Note that for other types of alerts, this field does not have any effect.
+	CustomURL string `yaml:"custom-url,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one
