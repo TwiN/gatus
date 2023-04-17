@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -103,7 +102,6 @@ func getCustomURLFromEndpoint(endpoint *core.Endpoint) string {
 }
 
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	log.Printf("[config][Custom], USAOO")
 	request := provider.buildHTTPRequest(endpoint, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
