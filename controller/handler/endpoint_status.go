@@ -1,14 +1,11 @@
 package handler
 
 import (
-	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/client"
@@ -31,25 +28,14 @@ var (
 )
 
 // EndpointStatuses handles requests to retrieve all EndpointStatus
-// Due to the size of the response, this function leverages a cache.
-// Must not be wrapped by GzipHandler
+// Due to how intensive this operation can be on the storage, this function leverages a cache.
 func EndpointStatuses(cfg *config.Config) http.HandlerFunc {
 	return func(writer http.ResponseWriter, r *http.Request) {
 		page, pageSize := extractPageAndPageSizeFromRequest(r)
-		gzipped := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
-		var exists bool
-		var value interface{}
-		if gzipped {
-			writer.Header().Set("Content-Encoding", "gzip")
-			value, exists = cache.Get(fmt.Sprintf("endpoint-status-%d-%d-gzipped", page, pageSize))
-		} else {
-			value, exists = cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
-		}
+		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
 		var data []byte
 		if !exists {
 			var err error
-			buffer := &bytes.Buffer{}
-			gzipWriter := gzip.NewWriter(buffer)
 			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
 			if err != nil {
 				log.Printf("[handler][EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
@@ -69,14 +55,7 @@ func EndpointStatuses(cfg *config.Config) http.HandlerFunc {
 				http.Error(writer, "unable to marshal object to JSON", http.StatusInternalServerError)
 				return
 			}
-			_, _ = gzipWriter.Write(data)
-			_ = gzipWriter.Close()
-			gzippedData := buffer.Bytes()
 			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
-			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d-gzipped", page, pageSize), gzippedData, cacheTTL)
-			if gzipped {
-				data = gzippedData
-			}
 		} else {
 			data = value.([]byte)
 		}

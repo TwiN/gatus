@@ -1,7 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -18,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -26,20 +31,270 @@ import (
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage"
+	"gopkg.in/yaml.v3"
 )
 
-func TestLoadFileThatDoesNotExist(t *testing.T) {
-	_, err := Load("file-that-does-not-exist.yaml")
-	if err == nil {
-		t.Error("Should've returned an error, because the file specified doesn't exist")
+func TestLoadConfiguration(t *testing.T) {
+	dir := t.TempDir()
+	scenarios := []struct {
+		name           string
+		configPath     string            // value to pass as the configPath parameter in LoadConfiguration
+		pathAndFiles   map[string]string // files to create in dir
+		expectedConfig *Config
+		expectedError  error
+	}{
+		{
+			name:       "empty-config-file",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": "",
+			},
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:          "config-file-that-does-not-exist",
+			configPath:    filepath.Join(dir, "config.yaml"),
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:       "config-file-with-endpoint-that-has-no-url",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website`,
+			},
+			expectedError: core.ErrEndpointWithNoURL,
+		},
+		{
+			name:       "config-file-with-endpoint-that-has-no-conditions",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health`,
+			},
+			expectedError: core.ErrEndpointWithNoCondition,
+		},
+		{
+			name:       "config-file",
+			configPath: filepath.Join(dir, "config.yaml"),
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "website",
+						URL:        "https://twin.sh/health",
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+		},
+		{
+			name:          "empty-dir",
+			configPath:    dir,
+			pathAndFiles:  map[string]string{},
+			expectedError: ErrConfigFileNotFound,
+		},
+		{
+			name:       "dir-with-empty-config-file",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"config.yaml": "",
+			},
+			expectedError: ErrNoEndpointInConfig,
+		},
+		{
+			name:       "dir-with-two-config-files",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"config.yaml": `endpoints: 
+  - name: one
+    url: https://example.com
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 200"
+
+  - name: two
+    url: https://example.org
+    conditions:
+      - "len([BODY]) > 0"`,
+				"config.yml": `endpoints: 
+  - name: three
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "one",
+						URL:        "https://example.com",
+						Conditions: []core.Condition{"[CONNECTED] == true", "[STATUS] == 200"},
+					},
+					{
+						Name:       "two",
+						URL:        "https://example.org",
+						Conditions: []core.Condition{"len([BODY]) > 0"},
+					},
+					{
+						Name:       "three",
+						URL:        "https://twin.sh/health",
+						Conditions: []core.Condition{"[STATUS] == 200", "[BODY].status == UP"},
+					},
+				},
+			},
+		},
+		{
+			name:       "dir-with-2-config-files-deep-merge-with-map-slice-and-primitive",
+			configPath: dir,
+			pathAndFiles: map[string]string{
+				"a.yaml": `
+metrics: true
+
+alerting:
+  slack:
+    webhook-url: https://hooks.slack.com/services/xxx/yyy/zzz
+
+endpoints:
+  - name: example
+    url: https://example.org
+    interval: 5s
+    conditions:
+      - "[STATUS] == 200"`,
+				"b.yaml": `
+debug: true
+
+alerting:
+  discord:
+    webhook-url: https://discord.com/api/webhooks/xxx/yyy
+
+endpoints:
+  - name: frontend
+    url: https://example.com
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Debug:   true,
+				Metrics: true,
+				Alerting: &alerting.Config{
+					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
+					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz"},
+				},
+				Endpoints: []*core.Endpoint{
+					{
+						Name:       "example",
+						URL:        "https://example.org",
+						Interval:   5 * time.Second,
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+					{
+						Name:       "frontend",
+						URL:        "https://example.com",
+						Conditions: []core.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			for path, content := range scenario.pathAndFiles {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0644); err != nil {
+					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
+				}
+			}
+			defer func(pathAndFiles map[string]string) {
+				for path := range pathAndFiles {
+					_ = os.Remove(filepath.Join(dir, path))
+				}
+			}(scenario.pathAndFiles)
+			config, err := LoadConfiguration(scenario.configPath)
+			if !errors.Is(err, scenario.expectedError) {
+				t.Errorf("[%s] expected error %v, got %v", scenario.name, scenario.expectedError, err)
+				return
+			} else if err != nil && errors.Is(err, scenario.expectedError) {
+				return
+			}
+			// parse the expected output so that expectations are closer to reality (under the right circumstances, even I can be poetic)
+			expectedConfigAsYAML, _ := yaml.Marshal(scenario.expectedConfig)
+			expectedConfigAfterBeingParsedAndValidated, err := parseAndValidateConfigBytes(expectedConfigAsYAML)
+			if err != nil {
+				t.Fatalf("[%s] failed to parse expected config: %v", scenario.name, err)
+			}
+			// Marshal em' before comparing em' so that we don't have to deal with formatting and ordering
+			actualConfigAsYAML, err := yaml.Marshal(config)
+			if err != nil {
+				t.Fatalf("[%s] failed to marshal actual config: %v", scenario.name, err)
+			}
+			expectedConfigAfterBeingParsedAndValidatedAsYAML, _ := yaml.Marshal(expectedConfigAfterBeingParsedAndValidated)
+			if string(actualConfigAsYAML) != string(expectedConfigAfterBeingParsedAndValidatedAsYAML) {
+				t.Errorf("[%s] expected config %s, got %s", scenario.name, string(expectedConfigAfterBeingParsedAndValidatedAsYAML), string(actualConfigAsYAML))
+			}
+		})
 	}
 }
 
-func TestLoadDefaultConfigurationFile(t *testing.T) {
-	_, err := LoadDefaultConfiguration()
-	if err == nil {
-		t.Error("Should've returned an error, because there's no configuration files at the default path nor the default fallback path")
-	}
+func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	configFilePath := filepath.Join(dir, "config.yaml")
+	_ = os.WriteFile(configFilePath, []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0644)
+
+	t.Run("config-file-as-config-path", func(t *testing.T) {
+		config, err := LoadConfiguration(configFilePath)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
+		}
+		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
+		// Update the config file
+		if err = os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`), 0644); err != nil {
+			t.Fatalf("failed to overwrite config file: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+		}
+	})
+	t.Run("config-directory-as-config-path", func(t *testing.T) {
+		config, err := LoadConfiguration(dir)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
+		}
+		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
+		// Update the config file
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0644); err != nil {
+			t.Fatalf("failed to overwrite config file: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+		}
+	})
 }
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
@@ -430,6 +685,9 @@ alerting:
     webhook-url: "http://example.org"
   pagerduty:
     integration-key: "00000000000000000000000000000000"
+  pushover:
+    application-token: "000000000000000000000000000000"
+    user-key: "000000000000000000000000000000"
   mattermost:
     webhook-url: "http://example.com"
     client:
@@ -469,6 +727,7 @@ endpoints:
         failure-threshold: 12
         success-threshold: 15
       - type: teams
+      - type: pushover
     conditions:
       - "[STATUS] == 200"
 `))
@@ -495,8 +754,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 8 {
-		t.Fatal("There should've been 8 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -596,6 +855,13 @@ endpoints:
 	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
 	}
+
+	if config.Endpoints[0].Alerts[8].Type != alert.TypePushover {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePushover, config.Endpoints[0].Alerts[8].Type)
+	}
+	if !config.Endpoints[0].Alerts[8].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -620,6 +886,14 @@ alerting:
       description: default description
       failure-threshold: 7
       success-threshold: 5
+  pushover:
+    application-token: "000000000000000000000000000000"
+    user-key: "000000000000000000000000000000"
+    default-alert:
+      enabled: true
+      description: default description
+      failure-threshold: 5
+      success-threshold: 3
   mattermost:
     webhook-url: "http://example.com"
     default-alert:
@@ -663,6 +937,7 @@ endpoints:
      - type: telegram
      - type: twilio
      - type: teams
+     - type: pushover
    conditions:
      - "[STATUS] == 200"
 `))
@@ -697,6 +972,19 @@ endpoints:
 	}
 	if config.Alerting.PagerDuty.IntegrationKey != "00000000000000000000000000000000" {
 		t.Errorf("PagerDuty integration key should've been %s, but was %s", "00000000000000000000000000000000", config.Alerting.PagerDuty.IntegrationKey)
+	}
+
+	if config.Alerting.Pushover == nil || !config.Alerting.Pushover.IsValid() {
+		t.Fatal("Pushover alerting config should've been valid")
+	}
+	if config.Alerting.Pushover.GetDefaultAlert() == nil {
+		t.Fatal("Pushover.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.Pushover.ApplicationToken != "000000000000000000000000000000" {
+		t.Errorf("Pushover application token should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.ApplicationToken)
+	}
+	if config.Alerting.Pushover.UserKey != "000000000000000000000000000000" {
+		t.Errorf("Pushover user key should've been %s, but was %s", "000000000000000000000000000000", config.Alerting.Pushover.UserKey)
 	}
 
 	if config.Alerting.Mattermost == nil || !config.Alerting.Mattermost.IsValid() {
@@ -772,8 +1060,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 8 {
-		t.Fatal("There should've been 8 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -875,6 +1163,19 @@ endpoints:
 	}
 	if config.Endpoints[0].Alerts[7].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[7].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[8].Type != alert.TypePushover {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePushover, config.Endpoints[0].Alerts[8].Type)
+	}
+	if !config.Endpoints[0].Alerts[8].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[8].FailureThreshold != 5 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[8].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[8].SuccessThreshold != 3 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[8].SuccessThreshold)
 	}
 
 }
@@ -984,6 +1285,32 @@ endpoints:
 		t.Fatal("PagerDuty alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
+func TestParseAndValidateConfigBytesWithInvalidPushoverAlertingConfig(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  pushover:
+    application-token: "INVALID_TOKEN"
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    alerts:
+      - type: pushover
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.Pushover != nil {
+		t.Fatal("Pushover alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
+	}
+}
 
 func TestParseAndValidateConfigBytesWithCustomAlertingConfig(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
@@ -1012,7 +1339,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1057,7 +1384,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1097,7 +1424,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Custom == nil {
-		t.Fatal("PagerDuty alerting config shouldn't have been nil")
+		t.Fatal("Custom alerting config shouldn't have been nil")
 	}
 	if !config.Alerting.Custom.IsValid() {
 		t.Fatal("Custom alerting config should've been valid")
@@ -1207,7 +1534,34 @@ endpoints:
 	}
 }
 
-func TestParseAndValidateConfigBytesWithNoEndpointsOrAutoDiscovery(t *testing.T) {
+func TestParseAndValidateConfigBytesWithLiteralDollarSign(t *testing.T) {
+	os.Setenv("GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign", "whatever")
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[BODY] == $$GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign"
+      - "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Endpoints[0].URL != "https://twin.sh/health" {
+		t.Errorf("URL should have been %s", "https://twin.sh/health")
+	}
+	if config.Endpoints[0].Conditions[0] != "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign" {
+		t.Errorf("Condition should have been %s", "[BODY] == $GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign")
+	}
+	if config.Endpoints[0].Conditions[1] != "[BODY] == whatever" {
+		t.Errorf("Condition should have been %s", "[BODY] == whatever")
+	}
+}
+
+func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if err != ErrNoEndpointInConfig {
 		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
@@ -1219,6 +1573,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Custom:      &custom.AlertProvider{},
 		Discord:     &discord.AlertProvider{},
 		Email:       &email.AlertProvider{},
+		GitHub:      &github.AlertProvider{},
 		GoogleChat:  &googlechat.AlertProvider{},
 		Matrix:      &matrix.AlertProvider{},
 		Mattermost:  &mattermost.AlertProvider{},
@@ -1226,6 +1581,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Ntfy:        &ntfy.AlertProvider{},
 		Opsgenie:    &opsgenie.AlertProvider{},
 		PagerDuty:   &pagerduty.AlertProvider{},
+		Pushover:    &pushover.AlertProvider{},
 		Slack:       &slack.AlertProvider{},
 		Telegram:    &telegram.AlertProvider{},
 		Twilio:      &twilio.AlertProvider{},
@@ -1238,6 +1594,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
+		{alertType: alert.TypeGitHub, expected: alertingConfig.GitHub},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
@@ -1245,6 +1602,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeNtfy, expected: alertingConfig.Ntfy},
 		{alertType: alert.TypeOpsgenie, expected: alertingConfig.Opsgenie},
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
+		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},

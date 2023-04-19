@@ -52,14 +52,15 @@ func save() {
 	}
 }
 
-func loadConfiguration() (cfg *config.Config, err error) {
-	customConfigFile := os.Getenv("GATUS_CONFIG_FILE")
-	if len(customConfigFile) > 0 {
-		cfg, err = config.Load(customConfigFile)
-	} else {
-		cfg, err = config.LoadDefaultConfiguration()
+func loadConfiguration() (*config.Config, error) {
+	configPath := os.Getenv("GATUS_CONFIG_PATH")
+	// Backwards compatibility
+	if len(configPath) == 0 {
+		if configPath = os.Getenv("GATUS_CONFIG_FILE"); len(configPath) > 0 {
+			log.Println("WARNING: GATUS_CONFIG_FILE is deprecated. Please use GATUS_CONFIG_PATH instead.")
+		}
 	}
-	return
+	return config.LoadConfiguration(configPath)
 }
 
 // initializeStorage initializes the storage provider
@@ -79,14 +80,14 @@ func initializeStorage(cfg *config.Config) {
 	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[config][validateStorageConfig] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+		log.Printf("[main][initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
 }
 
 func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 		time.Sleep(30 * time.Second)
-		if cfg.HasLoadedConfigurationFileBeenModified() {
+		if cfg.HasLoadedConfigurationBeenModified() {
 			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
 			stop()
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.

@@ -7,7 +7,7 @@ install:
 	go build -mod vendor -o $(BINARY) .
 
 run:
-	GATUS_CONFIG_FILE=./config.yaml ./$(BINARY)
+	GATUS_CONFIG_PATH=./config.yaml ./$(BINARY)
 
 clean:
 	rm $(BINARY)

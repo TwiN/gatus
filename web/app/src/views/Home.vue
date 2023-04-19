@@ -1,14 +1,15 @@
 <template>
   <Loading v-if="!retrievedData" class="h-64 w-64 px-4 my-24"/>
-  <slot v-else>
+  <slot>
     <Endpoints
+        v-show="retrievedData"
         :endpointStatuses="endpointStatuses"
         :showStatusOnHover="true"
         @showTooltip="showTooltip"
         @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
         :showAverageResponseTime="showAverageResponseTime"
     />
-    <Pagination @page="changePage"/>
+    <Pagination v-show="retrievedData" @page="changePage"/>
   </slot>
   <Settings @refreshData="fetchData"/>
 </template>
@@ -31,6 +32,7 @@ export default {
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     fetchData() {
+      this.retrievedData = false;
       fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`, {credentials: 'include'})
       .then(response => {
         this.retrievedData = true;

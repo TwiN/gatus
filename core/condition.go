@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
+// Placeholders
 const (
 	// StatusPlaceholder is a placeholder for a HTTP status.
 	//
@@ -32,7 +33,7 @@ const (
 	// Values that could replace the placeholder: 1, 500, 1000, ...
 	ResponseTimePlaceholder = "[RESPONSE_TIME]"
 
-	// BodyPlaceholder is a placeholder for the body of the response
+	// BodyPlaceholder is a placeholder for the Body of the response
 	//
 	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
 	BodyPlaceholder = "[BODY]"
@@ -49,7 +50,10 @@ const (
 
 	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
 	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
+)
 
+// Functions
+const (
 	// LengthFunctionPrefix is the prefix for the length function
 	//
 	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
@@ -72,7 +76,10 @@ const (
 
 	// FunctionSuffix is the suffix for all functions
 	FunctionSuffix = ")"
+)
 
+// Other constants
+const (
 	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
 	InvalidConditionElementSuffix = "(INVALID)"
 
@@ -225,7 +232,7 @@ func isEqual(first, second string) bool {
 func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
-	body := strings.TrimSpace(string(result.body))
+	body := strings.TrimSpace(string(result.Body))
 	for i, element := range elements {
 		element = strings.TrimSpace(element)
 		parameters[i] = element
@@ -259,7 +266,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 					checkingForExistence = true
 					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
 				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.body)
+				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.Body)
 				if checkingForExistence {
 					if err != nil {
 						element = "false"
@@ -295,10 +302,18 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 	parameters, resolvedParameters := sanitizeAndResolve(list, result)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
+			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
-			// Default to 0 if the string couldn't be converted to an integer
-			resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
+			// It's not an int, so we'll check if it's a float
+			if f, err := strconv.ParseFloat(element, 64); err == nil {
+				// It's a float, but we'll convert it to an int. We're losing precision here, but it's better than
+				// just returning 0.
+				resolvedNumericalParameters = append(resolvedNumericalParameters, int64(f))
+			} else {
+				// Default to 0 if the string couldn't be converted to an integer or a float
+				resolvedNumericalParameters = append(resolvedNumericalParameters, 0)
+			}
 		} else {
 			resolvedNumericalParameters = append(resolvedNumericalParameters, number)
 		}

@@ -90,12 +90,12 @@ func TestIntegrationQuery(t *testing.T) {
 			}
 			if test.inputDNS.QueryType == "NS" {
 				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
-				if !pattern.Match(test.expectedBody, string(result.body)) {
-					t.Errorf("got %s, expected result %s,", string(result.body), test.expectedBody)
+				if !pattern.Match(test.expectedBody, string(result.Body)) {
+					t.Errorf("got %s, expected result %s,", string(result.Body), test.expectedBody)
 				}
 			} else {
-				if string(result.body) != test.expectedBody {
-					t.Errorf("got %s, expected result %s,", string(result.body), test.expectedBody)
+				if string(result.Body) != test.expectedBody {
+					t.Errorf("got %s, expected result %s,", string(result.Body), test.expectedBody)
 				}
 			}
 		})

@@ -14,8 +14,8 @@ import (
 
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/whois"
-	"github.com/go-ping/ping"
 	"github.com/ishidawataru/sctp"
+	ping "github.com/prometheus-community/pro-bing"
 )
 
 var (
@@ -168,7 +168,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	// See https://github.com/TwiN/gatus/issues/132
 	//
 	// Note that for this to work on Linux, Gatus must run with sudo privileges.
-	// See https://github.com/go-ping/ping#linux
+	// See https://github.com/prometheus-community/pro-bing#linux
 	pinger.SetPrivileged(runtime.GOOS != "darwin")
 	err = pinger.Run()
 	if err != nil {

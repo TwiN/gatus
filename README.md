@@ -1,4 +1,4 @@
-![Gatus](.github/assets/logo-with-dark-text.png)
+[![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
 ![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
@@ -10,10 +10,12 @@
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
-checks can be paired with alerting via Slack, PagerDuty, Discord, Twilio and more.
+checks can be paired with alerting via Slack, Teams, PagerDuty, Discord, Twilio and many more.
 
 I personally deploy it in my Kubernetes cluster and let it monitor the status of my
 core applications: https://status.twin.sh/
+
+_Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
 
 <details>
   <summary><b>Quick start</b></summary>
@@ -21,14 +23,18 @@ core applications: https://status.twin.sh/
 ```console
 docker run -p 8080:8080 --name gatus twinproduction/gatus
 ```
+You can also use GitHub Container Registry if you prefer:
+```console
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+```
 For more details, see [Usage](#usage)
 </details>
+
+> ❤ Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
 ![Gatus dashboard](.github/assets/dashboard-dark.png)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
-
-Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
 
 ## Table of Contents
@@ -53,6 +59,7 @@ Like this project? Please consider [sponsoring me](https://github.com/sponsors/T
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
+    - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
@@ -132,9 +139,19 @@ The main features of Gatus are:
 
 
 ## Usage
-By default, the configuration file is expected to be at `config/config.yaml`.
 
-You can specify a custom path by setting the `GATUS_CONFIG_FILE` environment variable.
+<details>
+  <summary><b>Quick start</b></summary>
+
+```console
+docker run -p 8080:8080 --name gatus twinproduction/gatus
+```
+You can also use GitHub Container Registry if you prefer:
+```console
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+```
+If you want to create your own configuration, see [Docker](#docker) for information on how to mount a configuration file.
+</details>
 
 Here's a simple example:
 ```yaml
@@ -146,18 +163,31 @@ endpoints:
       - "[STATUS] == 200"         # Status must be 200
       - "[BODY].status == UP"     # The json path "$.status" must be equal to UP
       - "[RESPONSE_TIME] < 300"   # Response time must be under 300ms
-  - name: example
+
+  - name: make-sure-header-is-rendered
     url: "https://example.org/"
     interval: 60s
     conditions:
-      - "[STATUS] == 200"
+      - "[STATUS] == 200"                          # Status must be 200
+      - "[BODY] == pat(*<h1>Example Domain</h1>*)" # Body must contain the specified header
 ```
 
 This example would look similar to this:
 
 ![Simple example](.github/assets/example.png)
 
-Note that you can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+By default, the configuration file is expected to be at `config/config.yaml`.
+
+You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
+
+If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside said directory and its
+subdirectories are merged like so:
+- All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
+- All slices/arrays are appended (i.e. you can define `endpoints` in multiple files and each endpoint will be added to the final list of endpoints)
+- Parameters with a primitive value (e.g. `debug`, `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
+    - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
+
+> 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -256,14 +286,14 @@ Here are some examples of conditions you can use:
 
 
 #### Functions
-| Function | Description                                                                                                    | Example                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------|:-----------------------------------|
-| `len`    | Returns the length of the object/slice. Works only with the `[BODY]` placeholder.                              | `len([BODY].username) > 8`         |
-| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.    | `has([BODY].errors) == false`      |
-| `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`. | `[IP] == pat(192.168.*)`           |
-| `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.     | `[BODY].ip == any(127.0.0.1, ::1)` |
+| Function | Description                                                                                                                                                                                                                         | Example                            |
+|:---------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------|
+| `len`    | If the given path leads to an array, returns its length. Otherwise, the JSON at the given path is minified and converted to a string, and the resulting number of characters is returned. Works only with the `[BODY]` placeholder. | `len([BODY].username) > 8`         |
+| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.                                                                                                                         | `has([BODY].errors) == false`      |
+| `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
+| `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
-**NOTE**: Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+> 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
 
 ### Storage
@@ -273,6 +303,9 @@ Here are some examples of conditions you can use:
 | `storage.path`    | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
 | `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
 | `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+
+The results for each endpoint health check as well as the data for uptime and the past events must be persisted
+so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
 
 - If `storage.type` is `memory` (default):
 ```yaml
@@ -314,7 +347,7 @@ the client used to send the request.
 | `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
 | `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
 
-Note that some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
+> 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
@@ -370,7 +403,7 @@ endpoints:
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual endpoints with configurable descriptions and thresholds.
 
-Note that if an alerting provider is not properly configured, all alerts configured with the provider's type will be
+> 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
 | Parameter              | Description                                                                                                                  | Default |
@@ -386,6 +419,7 @@ ignored.
 | `alerting.ntfy`        | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                      | `{}`    |
 | `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
 | `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
+| `alerting.pushover`    | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).          | `{}`    |
 | `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`    |
 | `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`    |
 | `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`    |
@@ -478,7 +512,7 @@ endpoints:
         send-on-resolved: true
 ```
 
-**NOTE:** Some mail servers are painfully slow.
+> ⚠ Some mail servers are painfully slow.
 
 
 #### Configuring GitHub alerts
@@ -766,15 +800,49 @@ endpoints:
 ```
 
 
+#### Configuring Pushover alerts
+| Parameter                              | Description                                                                                     | Default                      |
+|:---------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
+| `alerting.pushover`                    | Configuration for alerts of type `pushover`                                                     | `{}`                         |
+| `alerting.pushover.application-token`  | Pushover application token                                                                      | `""`                         |
+| `alerting.pushover.user-key`           | User or group key                                                                               | `""`                         |
+| `alerting.pushover.title`              | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
+| `alerting.pushover.priority`           | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
+| `alerting.pushover.sound`              | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
+| `alerting.pushover.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
+
+```yaml
+alerting:
+  pushover:
+    application-token: "******************************"
+    user-key: "******************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: pushover
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
 #### Configuring Slack alerts
-| Parameter                                | Description                                                                                | Default       |
-|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`                         | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`             | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.slack.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.slack.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.slack.overrides[].webhook-url` | Slack Webhook URL                                                                          | `""`          |
+| Parameter                                 | Description                                                                                | Default       |
+|:------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.slack`                          | Configuration for alerts of type `slack`                                                   | `{}`          |
+| `alerting.slack.webhook-url`              | Slack Webhook URL                                                                          | Required `""` |
+| `alerting.slack.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.slack.overrides`                | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.slack.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
+
 ```yaml
 alerting:
   slack:
@@ -804,7 +872,6 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Teams alerts
-
 | Parameter                                | Description                                                                                | Default       |
 |:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`          |
@@ -1092,7 +1159,7 @@ To do that, you'll have to use the maintenance configuration:
 | `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
 | `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
 
-**Note that the maintenance configuration uses UTC.**
+> 📝 The maintenance configuration uses UTC
 
 Here's an example:
 ```yaml
@@ -1135,8 +1202,8 @@ security:
     password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 ```
 
-**WARNING:** Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
-and basic auth verifies the password against the hash on every request. As of 2022-01-08, I suggest a cost of 8.
+> ⚠ Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
+and basic auth verifies the password against the hash on every request. As of 2023-01-06, I suggest a cost of 9.
 
 
 #### OIDC
@@ -1252,11 +1319,11 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repository as follows:
 
 ```console
-helm repo add gatus https://avakarev.github.io/gatus-chart
+helm repo add minicloudlabs https://minicloudlabs.github.io/helm-charts
 ```
 
-To get more details, please check chart's [configuration](https://github.com/avakarev/gatus-chart#configuration)
-and [helmfile example](https://github.com/avakarev/gatus-chart#helmfileyaml-example)
+To get more details, please check [chart's configuration](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#configuration)
+and [helmfile example](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#helmfileyaml-example)
 
 
 ### Terraform
@@ -1305,7 +1372,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-> **NOTE**: This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
+> 📝 This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
 > tells Gatus to only evaluate one endpoint at a time.
 
 To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
@@ -1361,7 +1428,7 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `
 
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
 
-**NOTE**: `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
+> 📝 `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
 something at the given address listening to the given port, and that a connection to that address was successfully
 established.
 
@@ -1412,6 +1479,8 @@ endpoints:
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
+If you run Gatus on Linux, please read the Linux section on https://github.com/prometheus-community/pro-bing#linux
+if you encounter any problems.
 
 ### Monitoring an endpoint using DNS queries
 Defining a `dns` configuration in an endpoint will automatically mark said endpoint as an endpoint of type DNS:
@@ -1477,7 +1546,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-**NOTE**: The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
 and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
 To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
@@ -1518,7 +1587,7 @@ to make.
 **If you are not using a file storage**, updating the configuration while Gatus is running is effectively
 the same as restarting the application.
 
-**NOTE:** Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
+> 📝 Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
 
 ### Endpoint groups
@@ -1731,5 +1800,6 @@ No such header is required to query the API.
 ## Sponsors
 You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
 
-[<img src="https://github.com/math280h.png" width="50" />](https://github.com/math280h)
-[<img src="https://github.com/pyroscope-io.png" width="50" />](https://github.com/pyroscope-io)
+_There is currently no sponsors_
+
+<!-- [<img src="https://github.com/$user.png" width="50" />](https://github.com/$user) -->

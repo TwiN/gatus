@@ -1,5 +1,9 @@
 name: benchmark
 on:
+  workflow_run:
+    workflows: [publish-latest]
+    branches: [master]
+    types: [completed]
   workflow_dispatch:
     inputs:
       repository:
@@ -16,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.19
-          repository: "${{ github.event.inputs.repository }}"
-          ref: "${{ github.event.inputs.ref }}"
+          repository: "${{ github.event.inputs.repository || 'TwiN/gatus' }}"
+          ref: "${{ github.event.inputs.ref || 'master' }}"
       - uses: actions/checkout@v3
       - name: Benchmark
         run: go test -bench=. ./storage/store

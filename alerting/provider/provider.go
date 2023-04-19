@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -67,6 +68,7 @@ var (
 	_ AlertProvider = (*ntfy.AlertProvider)(nil)
 	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
+	_ AlertProvider = (*pushover.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)

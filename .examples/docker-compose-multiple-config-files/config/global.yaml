@@ -1,0 +1,8 @@
+metrics: true
+debug: false
+ui:
+  header: Example Company
+  link: https://example.org
+  buttons:
+    - name: "Home"
+      link: "https://example.org"

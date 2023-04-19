@@ -3,18 +3,20 @@ on:
   pull_request:
     paths-ignore:
       - '*.md'
+      - '.examples/**'
   push:
     branches:
       - master
     paths-ignore:
       - '*.md'
-      - '.github/*'
+      - '.github/**'
+      - '.examples/**'
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.19
       - uses: actions/checkout@v3
@@ -26,6 +28,6 @@ jobs:
         # was configured by the "Set up Go" step (otherwise, it'd use sudo's "go" executable)
         run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.txt

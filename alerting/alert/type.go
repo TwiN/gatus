@@ -38,6 +38,9 @@ const (
 	// TypePagerDuty is the Type for the pagerduty alerting provider
 	TypePagerDuty Type = "pagerduty"
 
+	// TypePushover is the Type for the pushover alerting provider
+	TypePushover Type = "pushover"
+
 	// TypeSlack is the Type for the slack alerting provider
 	TypeSlack Type = "slack"
 
