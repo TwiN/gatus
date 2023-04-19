@@ -3,7 +3,7 @@ package web
 import (
 	"testing"
 
-	"github.com/TwiN/gatus/v4/test"
+	"github.com/TwiN/gatus/v5/test"
 )
 
 func TestGetDefaultConfig(t *testing.T) {
