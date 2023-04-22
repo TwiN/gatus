@@ -2,8 +2,6 @@ package web
 
 import (
 	"testing"
-
-	"github.com/TwiN/gatus/v5/test"
 )
 
 func TestGetDefaultConfig(t *testing.T) {
@@ -14,7 +12,7 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.Address != DefaultAddress {
 		t.Error("expected default config to have the default address")
 	}
-	if defaultConfig.Tls != (TLSConfig{}) {
+	if defaultConfig.TLS != nil {
 		t.Error("expected default config to have TLS disabled")
 	}
 }
@@ -70,38 +68,51 @@ func TestConfig_SocketAddress(t *testing.T) {
 }
 
 func TestConfig_TLSConfig(t *testing.T) {
-	privateKeyPath, publicKeyPath := test.UnsafeSelfSignedCertificates(t.TempDir())
-
 	scenarios := []struct {
 		name        string
 		cfg         *Config
 		expectedErr bool
 	}{
 		{
-			name:        "including TLS",
-			cfg:         &Config{Tls: (TLSConfig{CertificateFile: publicKeyPath, PrivateKeyFile: privateKeyPath})},
+			name:        "good-tls-config",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../../testdata/cert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
 			expectedErr: false,
 		},
 		{
-			name:        "TLS with missing crt file",
-			cfg:         &Config{Tls: (TLSConfig{CertificateFile: "doesnotexist", PrivateKeyFile: privateKeyPath})},
+			name:        "missing-crt-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "doesnotexist", PrivateKeyFile: "../../testdata/cert.key"}},
 			expectedErr: true,
 		},
 		{
-			name:        "TLS with missing key file",
-			cfg:         &Config{Tls: (TLSConfig{CertificateFile: publicKeyPath, PrivateKeyFile: "doesnotexist"})},
+			name:        "bad-crt-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../../testdata/badcert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "missing-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../../testdata/cert.pem", PrivateKeyFile: "doesnotexist"}},
+			expectedErr: true,
+		},
+		{
+			name:        "bad-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../../testdata/cert.pem", PrivateKeyFile: "../../testdata/badcert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "bad-cert-and-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../../testdata/badcert.pem", PrivateKeyFile: "../../testdata/badcert.key"}},
 			expectedErr: true,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			cfg, err := scenario.cfg.TLSConfig()
+			err := scenario.cfg.ValidateAndSetDefaults()
 			if (err != nil) != scenario.expectedErr {
 				t.Errorf("expected the existence of an error to be %v, got %v", scenario.expectedErr, err)
 				return
 			}
 			if !scenario.expectedErr {
-				if cfg == nil {
+				if scenario.cfg.TLS.tlsConfig == nil {
 					t.Error("TLS configuration was not correctly loaded although no error was returned")
 				}
 			}
