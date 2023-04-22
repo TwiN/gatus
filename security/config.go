@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	"github.com/TwiN/g8"
+	g8 "github.com/TwiN/g8/v2"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 )

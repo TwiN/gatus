@@ -36,8 +36,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/TwiN/deepmerge v0.2.0 h1:8P1tp2qDXllX6V1Ailg2XA074easAcvLMmW9v1jn0aE=
 github.com/TwiN/deepmerge v0.2.0/go.mod h1:cR9OWsvI13y+FxrbnPLuF6BX2tbYeOjkiI6JWjEGqAE=
-github.com/TwiN/g8 v1.4.0 h1:RUk5xTtxKCdMo0GGSbBVyjtAAfi2nqVbA9E0C4u5Cxo=
-github.com/TwiN/g8 v1.4.0/go.mod h1:ECyGJsoIb99klUfvVQoS1StgRLte9yvvPigGrHdy284=
+github.com/TwiN/g8/v2 v2.0.0 h1:+hwIbRLMhDd2iwHzkZUPp2FkX7yTx8ddYOnS91HkDqQ=
+github.com/TwiN/g8/v2 v2.0.0/go.mod h1:4sVAF27q8T8ISggRa/Fb0drw7wpB22B6eWd+/+SGMqE=
 github.com/TwiN/gocache/v2 v2.2.0 h1:M3B36KyH24BntxLrLaUb2kgTdq8DzCnfod0IekLG57w=
 github.com/TwiN/gocache/v2 v2.2.0/go.mod h1:SnUuBsrwGQeNcDG6vhkOMJnqErZM0JGjgIkuKryokYA=
 github.com/TwiN/health v1.6.0 h1:L2ks575JhRgQqWWOfKjw9B0ec172hx7GdToqkYUycQM=
