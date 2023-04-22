@@ -24,11 +24,7 @@ func Handle(cfg *config.Config) {
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		router = handler.DevelopmentCORS(router)
 	}
-	tlsConfig, err := cfg.Web.TLSConfig()
-	if err != nil {
-		panic(err) // Should be unreachable, because the config is validated before
-	}
-
+	tlsConfig := cfg.Web.TLSConfig()
 	server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Web.Address, cfg.Web.Port),
 		TLSConfig:    tlsConfig,
