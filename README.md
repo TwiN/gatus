@@ -67,8 +67,9 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
-    - [Basic](#basic)
+    - [Basic Authentication](#basic-authentication)
     - [OIDC](#oidc)
+  - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -87,7 +88,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
-  - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
+  - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)>
   - [Monitoring domain expiration](#monitoring-domain-expiration)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
@@ -228,6 +229,8 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                                           | Web configuration.                                                                                                                          | `{}`                       |
 | `web.address`                                   | Address to listen on.                                                                                                                       | `0.0.0.0`                  |
 | `web.port`                                      | Port to listen on.                                                                                                                          | `8080`                     |
+| `web.tls.certificate-file`                      | Optional public certificate file for TLS in PEM format.                                                                                     | ``                         |
+| `web.tls.private-key-file`                      | Optional private key file for TLS in PEM format.                                                                                            | ``                         |
 | `ui`                                            | UI configuration.                                                                                                                           | `{}`                       |
 | `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                   | `Health Dashboard ǀ Gatus` |
 | `ui.description`                                | Meta description for the page.                                                                                                              | `Gatus is an advanced...`. |
@@ -1053,13 +1056,13 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 
 
 #### Setting a default alert
-| Parameter                                     | Description                                                                   | Default |
-|:----------------------------------------------|:------------------------------------------------------------------------------|:--------|
-| `alerting.*.default-alert.enabled`            | Whether to enable the alert                                                   | N/A     |
-| `alerting.*.default-alert.failure-threshold`  | Number of failures in a row needed before triggering the alert                | N/A     |
-| `alerting.*.default-alert.success-threshold`  | Number of successes in a row before an ongoing incident is marked as resolved | N/A     |
-| `alerting.*.default-alert.send-on-resolved`   | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
-| `alerting.*.default-alert.description`        | Description of the alert. Will be included in the alert sent                  | N/A     |
+| Parameter                                    | Description                                                                   | Default |
+|:---------------------------------------------|:------------------------------------------------------------------------------|:--------|
+| `alerting.*.default-alert.enabled`           | Whether to enable the alert                                                   | N/A     |
+| `alerting.*.default-alert.failure-threshold` | Number of failures in a row needed before triggering the alert                | N/A     |
+| `alerting.*.default-alert.success-threshold` | Number of successes in a row before an ongoing incident is marked as resolved | N/A     |
+| `alerting.*.default-alert.send-on-resolved`  | Whether to send a notification once a triggered alert is marked as resolved   | N/A     |
+| `alerting.*.default-alert.description`       | Description of the alert. Will be included in the alert sent                  | N/A     |
 
 > ⚠ You must still specify the `type` of the alert in the endpoint configuration even if you set the default alert of a provider.
 
@@ -1175,14 +1178,14 @@ maintenance:
 
 
 ### Security
-| Parameter                        | Description                  | Default       |
-|:---------------------------------|:-----------------------------|:--------------|
-| `security`                       | Security configuration       | `{}`          |
-| `security.basic`                 | HTTP Basic configuration     | `{}`          |
-| `security.oidc`                  | OpenID Connect configuration | `{}`          |
+| Parameter        | Description                  | Default |
+|:-----------------|:-----------------------------|:--------|
+| `security`       | Security configuration       | `{}`    |
+| `security.basic` | HTTP Basic configuration     | `{}`    |
+| `security.oidc`  | OpenID Connect configuration | `{}`    |
 
 
-#### Basic
+#### Basic Authentication
 | Parameter                               | Description                                                                        | Default       |
 |:----------------------------------------|:-----------------------------------------------------------------------------------|:--------------|
 | `security.basic`                        | HTTP Basic configuration                                                           | `{}`          |
@@ -1226,6 +1229,17 @@ security:
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
 
+### TLS Encryption
+Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
+The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
+
+```yaml
+web:
+  port: 4443
+  tls:
+    certificate-file: "server.crt"
+    private-key-file: "server.key"
+```
 
 ### Metrics
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
@@ -1253,12 +1267,12 @@ This is an experimental feature. It may be removed or updated in a breaking mann
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
 Use at your own risk.
 
-| Parameter                          | Description                                  | Default        |
-|:-----------------------------------|:---------------------------------------------|:---------------|
-| `remote`                           | Remote configuration                         | `{}`           |
-| `remote.instances`                 | List of remote instances                     | Required `[]`  |
-| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`           |
-| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""`  |
+| Parameter                          | Description                                  | Default       |
+|:-----------------------------------|:---------------------------------------------|:--------------|
+| `remote`                           | Remote configuration                         | `{}`          |
+| `remote.instances`                 | List of remote instances                     | Required `[]` |
+| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`          |
+| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""` |
 
 ```yaml
 remote:
@@ -1386,11 +1400,11 @@ simple health checks used for alerting (PagerDuty/Twilio) to `30s`.
 
 
 ### Default timeouts
-| Endpoint type  | Timeout |
-|:---------------|:--------|
-| HTTP           | 10s     |
-| TCP            | 10s     |
-| ICMP           | 10s     |
+| Endpoint type | Timeout |
+|:--------------|:--------|
+| HTTP          | 10s     |
+| TCP           | 10s     |
+| ICMP          | 10s     |
 
 To modify the timeout, see [Client configuration](#client-configuration).
 
