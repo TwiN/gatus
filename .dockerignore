@@ -5,3 +5,4 @@ Dockerfile
 .git
 web/app
 *.db
+testdata
