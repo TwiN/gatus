@@ -8,6 +8,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/metrics"
@@ -30,15 +31,15 @@ func Monitor(cfg *config.Config) {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(777 * time.Millisecond)
-			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
+			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
 		}
 	}
 }
 
 // monitor a single endpoint in a loop
-func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
+func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
 	// Run it immediately on start
-	execute(endpoint, alertingConfig, maintenanceConfig, disableMonitoringLock, enabledMetrics, debug)
+	execute(endpoint, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
 	// Loop for the next executions
 	for {
 		select {
@@ -46,16 +47,22 @@ func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 			log.Printf("[watchdog][monitor] Canceling current execution of group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
 			return
 		case <-time.After(endpoint.Interval):
-			execute(endpoint, alertingConfig, maintenanceConfig, disableMonitoringLock, enabledMetrics, debug)
+			execute(endpoint, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
 		}
 	}
 }
 
-func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, disableMonitoringLock, enabledMetrics, debug bool) {
+func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
 		monitoringMutex.Lock()
+		defer monitoringMutex.Unlock()
+	}
+	// If there's a connectivity checker configured, check if Gatus has internet connectivity
+	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
+		log.Println("[watchdog][execute] No connectivity; skipping execution")
+		return
 	}
 	if debug {
 		log.Printf("[watchdog][execute] Monitoring group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
@@ -78,9 +85,6 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	}
 	if debug {
 		log.Printf("[watchdog][execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", endpoint.Interval, endpoint.Group, endpoint.Name)
-	}
-	if !disableMonitoringLock {
-		monitoringMutex.Unlock()
 	}
 }
 

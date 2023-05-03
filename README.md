@@ -71,6 +71,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [OIDC](#oidc)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
+  - [Connectivity](#connectivity)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
   - [Docker](#docker)
@@ -1254,6 +1255,28 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
+
+### Connectivity
+| Parameter                       | Description                                | Default       |
+|:--------------------------------|:-------------------------------------------|:--------------|
+| `connectivity`                  | Connectivity configuration                 | `{}`          |
+| `connectivity.checker`          | Connectivity checker configuration         | Required `{}` |
+| `connectivity.checker.target`   | Host to use for validating connectivity    | Required `""` |
+| `connectivity.checker.interval` | Interval at which to validate connectivity | `1m`          |
+
+While Gatus is used to monitor other services, it is possible for Gatus itself to lose connectivity to the internet.
+In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure 
+Gatus to periodically check for internet connectivity.
+
+All endpoint executions are skipped while the connectivity checker deems connectivity to be down.
+
+```yaml
+connectivity:
+  checker:
+    target: 1.1.1.1:53
+    interval: 60s
+```
 
 
 ### Remote instances (EXPERIMENTAL)

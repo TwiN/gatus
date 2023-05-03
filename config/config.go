@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/config/ui"
@@ -90,6 +91,9 @@ type Config struct {
 	// Remote is the configuration for remote Gatus instances
 	// WARNING: This is in ALPHA and may change or be completely removed in the future
 	Remote *remote.Config `yaml:"remote,omitempty"`
+
+	// Connectivity is the configuration for connectivity
+	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
 
 	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
@@ -252,8 +256,18 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateRemoteConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateConnectivityConfig(config); err != nil {
+			return nil, err
+		}
 	}
 	return
+}
+
+func validateConnectivityConfig(config *Config) error {
+	if config.Connectivity != nil {
+		return config.Connectivity.ValidateAndSetDefaults()
+	}
+	return nil
 }
 
 func validateRemoteConfig(config *Config) error {
