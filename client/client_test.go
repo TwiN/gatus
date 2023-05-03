@@ -191,6 +191,9 @@ func TestCanCreateTCPConnection(t *testing.T) {
 	if CanCreateTCPConnection("127.0.0.1", &Config{Timeout: 5 * time.Second}) {
 		t.Error("should've failed, because there's no port in the address")
 	}
+	if !CanCreateTCPConnection("1.1.1.1:53", &Config{Timeout: 5 * time.Second}) {
+		t.Error("should've succeeded, because that IP should always™ be up")
+	}
 }
 
 // This test checks if a HTTP client configured with `configureOAuth2()` automatically
