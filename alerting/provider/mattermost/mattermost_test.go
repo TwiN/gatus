@@ -64,7 +64,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 }
 
 func TestAlertProvider_Send(t *testing.T) {
-	defer client.InjectHTTPClient(nil)
+	config := client.GetDefaultConfig()
+	defer config.InjectHTTPClient(nil)
 	firstDescription := "description-1"
 	secondDescription := "description-2"
 	scenarios := []struct {
@@ -118,7 +119,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
+			config.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,

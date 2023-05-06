@@ -200,7 +200,8 @@ func TestCanCreateTCPConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
-	defer InjectHTTPClient(nil)
+	config := GetDefaultConfig()
+	defer config.InjectHTTPClient(nil)
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
 		ClientSecret: "secretsauce",
@@ -234,7 +235,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 		}),
 	}
 	mockHttpClientWithOAuth := configureOAuth2(mockHttpClient, *oAuth2Config)
-	InjectHTTPClient(mockHttpClientWithOAuth)
+	config.InjectHTTPClient(mockHttpClientWithOAuth)
 	request, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:8282", http.NoBody)
 	if err != nil {
 		t.Error("expected no error, got", err.Error())

@@ -17,7 +17,8 @@ import (
 )
 
 func TestEndpoint(t *testing.T) {
-	defer client.InjectHTTPClient(nil)
+	config := client.GetDefaultConfig()
+	defer config.InjectHTTPClient(nil)
 	scenarios := []struct {
 		Name             string
 		Endpoint         Endpoint
@@ -191,9 +192,9 @@ func TestEndpoint(t *testing.T) {
 				if scenario.Endpoint.ClientConfig != nil && scenario.Endpoint.ClientConfig.Timeout > 0 {
 					mockClient.Timeout = scenario.Endpoint.ClientConfig.Timeout
 				}
-				client.InjectHTTPClient(mockClient)
+				config.InjectHTTPClient(mockClient)
 			} else {
-				client.InjectHTTPClient(nil)
+				config.InjectHTTPClient(nil)
 			}
 			scenario.Endpoint.ValidateAndSetDefaults()
 			result := scenario.Endpoint.EvaluateHealth()

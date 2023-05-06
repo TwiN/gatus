@@ -185,6 +185,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
-func InjectHTTPClient(httpClient *http.Client) {
-	injectedHTTPClient = httpClient
+func (c *Config) InjectHTTPClient(httpClient *http.Client) {
+	// injectedHTTPClient = httpClient
+	c.httpClient = httpClient
 }
