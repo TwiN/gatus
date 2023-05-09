@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
 	ping "github.com/prometheus-community/pro-bing"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -159,6 +160,41 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 		return true, peerCertificates[0], nil
 	}
 	return true, verifiedChains[0][0], nil
+}
+
+// CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
+// using the SSH protocol.
+func CanCreateSSHConnection(address, port, user, password string, config *Config) (bool, *ssh.Client, error) {
+	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, cli, nil
+}
+
+// ExecuteSSHCommand executes a command to an address using the SSH protocol.
+func ExecuteSSHCommand(cli *ssh.Client, command string, config *Config) (bool, error) {
+	defer cli.Close()
+
+	sess, err := cli.NewSession()
+	if err != nil {
+		return false, err
+	}
+
+	if err := sess.Run(command); err != nil {
+		return false, err
+	}
+
+	defer sess.Close()
+
+	return true, nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged

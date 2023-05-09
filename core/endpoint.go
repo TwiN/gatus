@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core/ui"
 	"github.com/TwiN/gatus/v5/util"
+	"golang.org/x/crypto/ssh"
 )
 
 type EndpointType string
@@ -43,6 +44,7 @@ const (
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
 	EndpointTypeWS       EndpointType = "WEBSOCKET"
+	EndpointTypeSSH      EndpointType = "SSH"
 	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
@@ -70,6 +72,12 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+	// ErrEndpointWithoutSSHUser is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a user.
+	ErrEndpointWithoutSSHUser = errors.New("you must specify a user for each endpoint with SSH")
+	// ErrEndpointWithoutSSHPassword is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a password.
+	ErrEndpointWithoutSSHPassword = errors.New("you must specify a password for each endpoint with SSH")
+	// ErrEndpointWithoutSSHCommand is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a command.
+	ErrEndpointWithoutSSHCommand = errors.New("you must specify a command for each endpoint with SSH")
 )
 
 // Endpoint is the configuration of a monitored
@@ -121,6 +129,37 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// SSH is the configuration of SSH monitoring.
+	SSH *SSH `yaml:"ssh,omitempty"`
+}
+
+type SSH struct {
+	// Port is the port to connect to the SSH server.
+	Port string `yaml:"port,omitempty"`
+	// User is the username to use when connecting to the SSH server.
+	User string `yaml:"user,omitempty"`
+	// Password is the password to use when connecting to the SSH server.
+	Password string `yaml:"password,omitempty"`
+	// Command is the command to execute on the SSH server to determine the health of the endpoint.
+	Command string `yaml:"command,omitempty"`
+}
+
+// Validate validates the endpoint
+func (s *SSH) ValidateAndSetDefaults() error {
+	if s.Port == "" {
+		s.Port = "22"
+	}
+	if s.User == "" {
+		return ErrEndpointWithoutSSHUser
+	}
+	if s.Password == "" {
+		return ErrEndpointWithoutSSHPassword
+	}
+	if s.Command == "" {
+		return ErrEndpointWithoutSSHCommand
+	}
+	return nil
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -152,6 +191,8 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeHTTP
 	case strings.HasPrefix(endpoint.URL, "ws://") || strings.HasPrefix(endpoint.URL, "wss://"):
 		return EndpointTypeWS
+	case strings.HasPrefix(endpoint.URL, "ssh://"):
+		return EndpointTypeSSH
 	default:
 		return EndpointTypeUNKNOWN
 	}
@@ -227,6 +268,9 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	_, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(endpoint.Body)))
 	if err != nil {
 		return err
+	}
+	if endpoint.SSH != nil {
+		return endpoint.SSH.ValidateAndSetDefaults()
 	}
 	return nil
 }
@@ -350,6 +394,19 @@ func (endpoint *Endpoint) call(result *Result) {
 			result.AddError(err.Error())
 			return
 		}
+	} else if endpointType == EndpointTypeSSH {
+		var cli *ssh.Client
+		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSH.Port, endpoint.SSH.User, endpoint.SSH.Password, endpoint.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Success, err = client.ExecuteSSHCommand(cli, endpoint.SSH.Command, endpoint.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Duration = time.Since(startTime)
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)

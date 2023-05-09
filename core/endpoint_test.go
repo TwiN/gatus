@@ -256,6 +256,7 @@ func TestEndpoint_Type(t *testing.T) {
 	type args struct {
 		URL string
 		DNS *DNS
+		SSH *SSH
 	}
 	tests := []struct {
 		args args
@@ -324,6 +325,17 @@ func TestEndpoint_Type(t *testing.T) {
 				URL: "ws://example.com/",
 			},
 			want: EndpointTypeWS,
+		},
+		{
+			args: args{
+				URL: "ssh://example.com:22",
+				SSH: &SSH{
+					User:     "root",
+					Password: "password",
+					Command:  "uptime",
+				},
+			},
+			want: EndpointTypeSSH,
 		},
 		{
 			args: args{
@@ -451,6 +463,78 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	}
 	if endpoint.DNS.QueryName != "example.com." {
 		t.Error("Endpoint.dns.query-name should be formatted with . suffix")
+	}
+}
+
+func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
+	tests := []struct {
+		name        string
+		port        string
+		user        string
+		password    string
+		command     string
+		expectedErr error
+	}{
+		{
+			name:        "fail when has no user",
+			port:        "22",
+			user:        "",
+			password:    "password",
+			command:     "uptime",
+			expectedErr: ErrEndpointWithoutSSHUser,
+		},
+		{
+			name:        "fail when has no password",
+			port:        "22",
+			user:        "user",
+			password:    "",
+			command:     "uptime",
+			expectedErr: ErrEndpointWithoutSSHPassword,
+		},
+		{
+			name:        "fail when has no command",
+			port:        "22",
+			user:        "user",
+			password:    "password",
+			command:     "",
+			expectedErr: ErrEndpointWithoutSSHCommand,
+		},
+		{
+			name:        "success when has no port because, 22, default port is set",
+			port:        "",
+			user:        "user",
+			password:    "password",
+			command:     "uptime",
+			expectedErr: nil,
+		},
+		{
+			name:        "success when all fields are set",
+			port:        "22",
+			user:        "user",
+			password:    "password",
+			command:     "uptime",
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			endpoint := &Endpoint{
+				Name: "ssh-test",
+				URL:  "https://example.com",
+				SSH: &SSH{
+					Port:     test.port,
+					User:     test.user,
+					Password: test.password,
+					Command:  test.command,
+				},
+				Conditions: []Condition{Condition("[EXIT_CODE] == 0")},
+			}
+			err := endpoint.ValidateAndSetDefaults()
+			if err != test.expectedErr {
+				t.Errorf("expected error %v, got %v", test.expectedErr, err)
+			}
+		})
 	}
 }
 
@@ -677,6 +761,55 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
+	tests := []struct {
+		name       string
+		endpoint   Endpoint
+		conditions []Condition
+		success    bool
+	}{
+		{
+			name: "ssh-success",
+			endpoint: Endpoint{
+				Name: "ssh-success",
+				URL:  "ssh://localhost",
+				SSH: &SSH{
+					User:     "test",
+					Password: "test",
+					Command:  "uptime",
+				},
+			},
+			conditions: []Condition{Condition("[EXIT_CODE] == 0")},
+			success:    true,
+		},
+		{
+			name: "ssh-failure",
+			endpoint: Endpoint{
+				Name: "ssh-failure",
+				URL:  "ssh://localhost",
+				SSH: &SSH{
+					User:     "test",
+					Password: "test",
+					Command:  "uptime",
+				},
+			},
+			conditions: []Condition{Condition("[EXIT_CODE] == 1")},
+			success:    false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.endpoint.ValidateAndSetDefaults()
+			test.endpoint.Conditions = test.conditions
+			result := test.endpoint.EvaluateHealth()
+			if result.Success != test.success {
+				t.Errorf("Expected success to be %v, but was %v", test.success, result.Success)
+			}
+		})
 	}
 }
 

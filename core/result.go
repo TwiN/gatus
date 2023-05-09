@@ -49,6 +49,9 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
+
+    // ExitCode is the exit code of the command executed by a ssh:// endpoint to check its health.
+	ExitCode int `json:"exit_code,omitempty"`
 }
 
 // AddError adds an error to the result's list of errors.

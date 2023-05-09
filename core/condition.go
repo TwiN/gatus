@@ -50,6 +50,9 @@ const (
 
 	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
 	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
+
+	// ExitCodePlaceholder is a placeholder for the exit code of a command.
+	ExitCodePlaceholder = "[EXIT_CODE]"
 )
 
 // Functions
@@ -150,7 +153,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bo
 		return false
 	}
 	if !success {
-		//log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
+		// log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
@@ -253,6 +256,8 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		case DomainExpirationPlaceholder:
 			element = strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10)
+		case ExitCodePlaceholder:
+			element = strconv.Itoa(result.ExitCode)
 		default:
 			// if contains the BodyPlaceholder, then evaluate json path
 			if strings.Contains(element, BodyPlaceholder) {
