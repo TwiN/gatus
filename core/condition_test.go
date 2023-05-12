@@ -371,62 +371,6 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedSuccess: false,
 			ExpectedOutput:  "1 == 2",
 		},
-        {
-            Name:            "exit-code-zero",
-            Condition:       Condition("[EXIT_CODE] == 0"),
-            Result:          &Result{ExitCode: 0},
-            ExpectedSuccess: true,
-            ExpectedOutput:  "[EXIT_CODE] == 0",
-        },
-        {
-            Name:            "exit-code-zero-failure",
-            Condition:       Condition("[EXIT_CODE] == 0"),
-            Result:          &Result{ExitCode: 1},
-            ExpectedSuccess: false,
-            ExpectedOutput:  "[EXIT_CODE] (1) == 0",
-        },
-        {
-            Name:            "exit-code-greater-than-zero",
-            Condition:       Condition("[EXIT_CODE] > 0"),
-            Result:          &Result{ExitCode: 1},
-            ExpectedSuccess: true,
-            ExpectedOutput:  "[EXIT_CODE] > 0",
-        },
-        {
-            Name:            "exit-code-greater-than-zero-failure",
-            Condition:       Condition("[EXIT_CODE] > 0"),
-            Result:          &Result{ExitCode: 0},
-            ExpectedSuccess: false,
-            ExpectedOutput:  "[EXIT_CODE] (0) > 0",
-        },
-        {
-            Name:            "exit-code-less-than-zero",
-            Condition:       Condition("[EXIT_CODE] < 0"),
-            Result:          &Result{ExitCode: -1},
-            ExpectedSuccess: true,
-            ExpectedOutput:  "[EXIT_CODE] < 0",
-        },
-        {
-            Name:            "exit-code-less-than-zero-failure",
-            Condition:       Condition("[EXIT_CODE] < 0"),
-            Result:          &Result{ExitCode: 0},
-            ExpectedSuccess: false,
-            ExpectedOutput:  "[EXIT_CODE] (0) < 0",
-        },
-        {
-            Name:            "exit-code-not-zero",
-            Condition:       Condition("[EXIT_CODE] != 0"),
-            Result:          &Result{ExitCode: 1},
-            ExpectedSuccess: true,
-            ExpectedOutput:  "[EXIT_CODE] != 0",
-        },
-        {
-            Name:            "exit-code-not-zero-failure",
-            Condition:       Condition("[EXIT_CODE] != 0"),
-            Result:          &Result{ExitCode: 0},
-            ExpectedSuccess: false,
-            ExpectedOutput:  "[EXIT_CODE] (0) != 0",
-        },
 		///////////////
 		// Functions //
 		///////////////

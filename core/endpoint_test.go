@@ -330,9 +330,8 @@ func TestEndpoint_Type(t *testing.T) {
 			args: args{
 				URL: "ssh://example.com:22",
 				SSH: &SSH{
-					User:     "root",
+					Username: "root",
 					Password: "password",
-					Command:  "uptime",
 				},
 			},
 			want: EndpointTypeSSH,
@@ -469,50 +468,26 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 	tests := []struct {
 		name        string
-		port        string
-		user        string
+		username    string
 		password    string
-		command     string
 		expectedErr error
 	}{
 		{
 			name:        "fail when has no user",
-			port:        "22",
-			user:        "",
+			username:    "",
 			password:    "password",
-			command:     "uptime",
-			expectedErr: ErrEndpointWithoutSSHUser,
+			expectedErr: ErrEndpointWithoutSSHUsername,
 		},
 		{
 			name:        "fail when has no password",
-			port:        "22",
-			user:        "user",
+			username:    "username",
 			password:    "",
-			command:     "uptime",
 			expectedErr: ErrEndpointWithoutSSHPassword,
 		},
 		{
-			name:        "fail when has no command",
-			port:        "22",
-			user:        "user",
-			password:    "password",
-			command:     "",
-			expectedErr: ErrEndpointWithoutSSHCommand,
-		},
-		{
-			name:        "success when has no port because, 22, default port is set",
-			port:        "",
-			user:        "user",
-			password:    "password",
-			command:     "uptime",
-			expectedErr: nil,
-		},
-		{
 			name:        "success when all fields are set",
-			port:        "22",
-			user:        "user",
+			username:    "username",
 			password:    "password",
-			command:     "uptime",
 			expectedErr: nil,
 		},
 	}
@@ -523,12 +498,10 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSH: &SSH{
-					Port:     test.port,
-					User:     test.user,
+					Username: test.username,
 					Password: test.password,
-					Command:  test.command,
 				},
-				Conditions: []Condition{Condition("[EXIT_CODE] == 0")},
+				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}
 			err := endpoint.ValidateAndSetDefaults()
 			if err != test.expectedErr {
@@ -777,12 +750,12 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 				Name: "ssh-success",
 				URL:  "ssh://localhost",
 				SSH: &SSH{
-					User:     "test",
+					Username: "test",
 					Password: "test",
-					Command:  "uptime",
 				},
+				Body: "{ \"command\": \"uptime\" }",
 			},
-			conditions: []Condition{Condition("[EXIT_CODE] == 0")},
+			conditions: []Condition{Condition("[STATUS] == 0")},
 			success:    true,
 		},
 		{
@@ -791,12 +764,12 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 				Name: "ssh-failure",
 				URL:  "ssh://localhost",
 				SSH: &SSH{
-					User:     "test",
+					Username: "test",
 					Password: "test",
-					Command:  "uptime",
 				},
+				Body: "{ \"command\": \"uptime\" }",
 			},
-			conditions: []Condition{Condition("[EXIT_CODE] == 1")},
+			conditions: []Condition{Condition("[STATUS] == 1")},
 			success:    false,
 		},
 	}

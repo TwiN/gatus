@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/net/websocket"
@@ -164,13 +165,26 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
 // using the SSH protocol.
-func CanCreateSSHConnection(address, port, user, password string, config *Config) (bool, *ssh.Client, error) {
+func CanCreateSSHConnection(address, username, password string, config *Config) (bool, *ssh.Client, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, nil, errors.New("invalid address for ssh, format must be host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+
 	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
-		User: user,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:            username,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(password),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout: config.Timeout,
 	})
 	if err != nil {
 		return false, nil, err
@@ -180,21 +194,41 @@ func CanCreateSSHConnection(address, port, user, password string, config *Config
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
-func ExecuteSSHCommand(cli *ssh.Client, command string, config *Config) (bool, error) {
+func ExecuteSSHCommand(cli *ssh.Client, body string, config *Config) (bool, int, error) {
+	type Body struct {
+		Command string `json:"command"`
+	}
+
 	defer cli.Close()
+
+	var b Body
+	if err := json.Unmarshal([]byte(body), &b); err != nil {
+		return false, 0, err
+	}
 
 	sess, err := cli.NewSession()
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
-	if err := sess.Run(command); err != nil {
-		return false, err
+	err = sess.Start(b.Command)
+	if err != nil {
+		return false, 0, err
 	}
 
 	defer sess.Close()
 
-	return true, nil
+	err = sess.Wait()
+	if err == nil {
+		return true, 0, nil
+	}
+
+	e, ok := err.(*ssh.ExitError)
+	if !ok {
+		return false, 0, err
+	}
+
+	return true, e.ExitStatus(), nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged

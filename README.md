@@ -216,10 +216,8 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                            | `""`                       |
 | `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                                   | `""`                       |
 | `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH command](#monitoring-an-endpoint-using-ssh-command). | `""`                       |
-| `endpoints[].ssh.port`                          | SSH port (e.g. 22)                                                                                                                          | `""`                       |
-| `endpoints[].ssh.user`                          | SSH user (e.g. example)                                                                                                                     | Required `""`              |
+| `endpoints[].ssh.username`                      | SSH username (e.g. example)                                                                                                                 | Required `""`              |
 | `endpoints[].ssh.password`                      | SSH password (e.g. password)                                                                                                                | Required `""`              |
-| `endpoints[].ssh.command`                       | SSH command (e.g. uptime)                                                                                                                   | Required `""`              |
 | `endpoints[].alerts[].type`                     | Type of alert. <br />See [Alerting](#alerting) for all valid types.                                                                             | Required `""`              |
 | `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                    | `true`                     |
 | `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                                 | `3`                        |
@@ -1596,21 +1594,23 @@ You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh:\\`
 ```yaml
 endpoints:
   - name: ssh-example
-    url: "ssh://example.com"
+    url: "ssh://example.com:22" # port is optional. Default is 22.
     ssh:
-      port: "22"
-      username: "root"
+      username: "username"
       password: "password"
-      command: "uptime"
+    body: | 
+      {
+        "command": "uptime"
+      }
     interval: 1m
     conditions:
       - "[CONNECTED] == true"
-      - "[EXIT_CODE] == 0"
+      - "[STATUS] == 0"
 ```
 
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
-- `[EXIT_CODE]` resolves to the exit code of the command executed on the remote server (e.g. `0` for success, `1` for failure) to check SSH's availability.
+- `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
 
 ### Monitoring an endpoint using STARTTLS
 If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS
