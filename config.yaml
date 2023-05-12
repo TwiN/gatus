@@ -2,7 +2,7 @@ endpoints:
   - name: front-end
     group: core
     url: "https://twin.sh/health"
-    interval: 5m
+    interval: 1s
     conditions:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
@@ -51,3 +51,5 @@ endpoints:
     interval: 1h
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
+storage:
+  maximum-number-of-results: 1000

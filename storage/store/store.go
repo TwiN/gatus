@@ -97,20 +97,24 @@ func Initialize(cfg *storage.Config) error {
 		log.Println("[store][Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
 		cfg = &storage.Config{}
 	}
+	if cfg.MaximumNumberOfResults == 0 && cfg.MaximumNumberOfEvents == 0 {
+		cfg.MaximumNumberOfResults = storage.DefaultMaximumNumberOfResults
+		cfg.MaximumNumberOfEvents = storage.DefaultMaximumNumberOfEvents
+	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
 		log.Printf("[store][Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		store, _ = memory.NewStore()
+		store, _ = memory.NewStore(cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 	}
 	return nil
 }

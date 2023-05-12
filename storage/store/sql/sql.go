@@ -28,13 +28,15 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a clean up
-	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
-	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
+	uptimeCleanUpThreshold = 10 * 24 * time.Hour // Maximum uptime age before triggering a clean up
 
 	uptimeRetention = 7 * 24 * time.Hour
 
 	cacheTTL = 10 * time.Minute
+
+	eventsAboveMaximumCleanUpThreshold = 10
+
+	resultsAboveMaximumCleanUpThreshold = 10
 )
 
 var (
@@ -56,17 +58,27 @@ type Store struct {
 	// writeThroughCache is a cache used to drastically decrease read latency by pre-emptively
 	// caching writes as they happen. If nil, writes are not cached.
 	writeThroughCache *gocache.Cache
+
+	// maximumNumberOfResults is the maximum number of results that an endpoint can have
+	maximumNumberOfResults int
+	// maximumNumberOfEvents is the maximum number of events that an endpoint can have
+	maximumNumberOfEvents int
 }
 
 // NewStore initializes the database and creates the schema if it doesn't already exist in the path specified
-func NewStore(driver, path string, caching bool) (*Store, error) {
+func NewStore(driver, path string, caching bool, maximumNumberOfResults int, maximumNumberOfEvents int) (*Store, error) {
 	if len(driver) == 0 {
 		return nil, ErrDatabaseDriverNotSpecified
 	}
 	if len(path) == 0 {
 		return nil, ErrPathNotSpecified
 	}
-	store := &Store{driver: driver, path: path}
+	store := &Store{
+		driver:                 driver,
+		path:                   path,
+		maximumNumberOfResults: maximumNumberOfResults,
+		maximumNumberOfEvents:  maximumNumberOfEvents,
+	}
 	var err error
 	if store.db, err = sql.Open(driver, path); err != nil {
 		return nil, err
@@ -294,7 +306,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 		// Clean up old events if there's more than twice the maximum number of events
 		// This lets us both keep the table clean without impacting performance too much
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
-		if numberOfEvents > eventsCleanUpThreshold {
+		if numberOfEvents > int64(s.maximumNumberOfEvents+eventsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointEvents(tx, endpointID); err != nil {
 				log.Printf("[sql][Insert] Failed to delete old events for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			}
@@ -311,7 +323,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 	if err != nil {
 		log.Printf("[sql][Insert] Failed to retrieve total number of results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 	} else {
-		if numberOfResults > resultsCleanUpThreshold {
+		if numberOfResults > int64(s.maximumNumberOfResults+resultsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
 				log.Printf("[sql][Insert] Failed to delete old results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			}
@@ -811,7 +823,7 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 				)
 		`,
 		endpointID,
-		common.MaximumNumberOfEvents,
+		s.maximumNumberOfEvents,
 	)
 	return err
 }
@@ -831,7 +843,7 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 				)
 		`,
 		endpointID,
-		common.MaximumNumberOfResults,
+		s.maximumNumberOfResults,
 	)
 	return err
 }

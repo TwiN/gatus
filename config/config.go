@@ -259,6 +259,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
 	return
 }
@@ -282,7 +283,9 @@ func validateRemoteConfig(config *Config) error {
 func validateStorageConfig(config *Config) error {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{
-			Type: storage.TypeMemory,
+			Type:                   storage.TypeMemory,
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 		}
 	} else {
 		if err := config.Storage.ValidateAndSetDefaults(); err != nil {

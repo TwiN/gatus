@@ -2,7 +2,6 @@ package memory
 
 import (
 	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
@@ -51,7 +50,7 @@ func getStartAndEndIndex(numberOfResults int, page, pageSize int) (int, int) {
 
 // AddResult adds a Result to EndpointStatus.Results and makes sure that there are
 // no more than MaximumNumberOfResults results in the Results slice
-func AddResult(ss *core.EndpointStatus, result *core.Result) {
+func AddResult(ss *core.EndpointStatus, result *core.Result, maximumNumberOfResults int, maximumNumberOfEvents int) {
 	if ss == nil {
 		return
 	}
@@ -59,11 +58,11 @@ func AddResult(ss *core.EndpointStatus, result *core.Result) {
 		// Check if there's any change since the last result
 		if ss.Results[len(ss.Results)-1].Success != result.Success {
 			ss.Events = append(ss.Events, core.NewEventFromResult(result))
-			if len(ss.Events) > common.MaximumNumberOfEvents {
+			if len(ss.Events) > maximumNumberOfEvents {
 				// Doing ss.Events[1:] would usually be sufficient, but in the case where for some reason, the slice has
 				// more than one extra element, we can get rid of all of them at once and thus returning the slice to a
 				// length of MaximumNumberOfEvents by using ss.Events[len(ss.Events)-MaximumNumberOfEvents:] instead
-				ss.Events = ss.Events[len(ss.Events)-common.MaximumNumberOfEvents:]
+				ss.Events = ss.Events[len(ss.Events)-maximumNumberOfEvents:]
 			}
 		}
 	} else {
@@ -71,11 +70,11 @@ func AddResult(ss *core.EndpointStatus, result *core.Result) {
 		ss.Events = append(ss.Events, core.NewEventFromResult(result))
 	}
 	ss.Results = append(ss.Results, result)
-	if len(ss.Results) > common.MaximumNumberOfResults {
+	if len(ss.Results) > maximumNumberOfResults {
 		// Doing ss.Results[1:] would usually be sufficient, but in the case where for some reason, the slice has more
 		// than one extra element, we can get rid of all of them at once and thus returning the slice to a length of
 		// MaximumNumberOfResults by using ss.Results[len(ss.Results)-MaximumNumberOfResults:] instead
-		ss.Results = ss.Results[len(ss.Results)-common.MaximumNumberOfResults:]
+		ss.Results = ss.Results[len(ss.Results)-maximumNumberOfResults:]
 	}
 	processUptimeAfterResult(ss.Uptime, result)
 }

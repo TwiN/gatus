@@ -14,7 +14,10 @@
           @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
           :showAverageResponseTime="showAverageResponseTime"
       />
-      <Pagination @page="changePage"/>
+      <Pagination
+          @page="changePage"
+          :maximumNumberOfResults="20"
+      />
     </slot>
     <div v-if="endpointStatus && endpointStatus.key" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">UPTIME</h1>

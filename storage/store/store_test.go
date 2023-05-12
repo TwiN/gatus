@@ -90,15 +90,15 @@ type Scenario struct {
 }
 
 func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", false)
+	sqliteStore, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+".db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStoreWithCaching, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+"-with-caching.db", true)
+	sqliteStoreWithCaching, err := sql.NewStore("sqlite", t.TempDir()+"/"+testName+"-with-caching.db", true, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
@@ -135,7 +135,7 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testEndpoint, &firstResult)
 			scenario.Store.Insert(&testEndpoint, &secondResult)
-			endpointStatus, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			endpointStatus, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != nil {
 				t.Fatal("shouldn't have returned an error, got", err.Error())
 			}
@@ -165,21 +165,21 @@ func TestStore_GetEndpointStatusForMissingStatusReturnsNil(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
-			endpointStatus, err := scenario.Store.GetEndpointStatus("nonexistantgroup", "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			endpointStatus, err := scenario.Store.GetEndpointStatus("nonexistantgroup", "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != common.ErrEndpointNotFound {
 				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
 			if endpointStatus != nil {
 				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, testEndpoint.Name)
 			}
-			endpointStatus, err = scenario.Store.GetEndpointStatus(testEndpoint.Group, "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			endpointStatus, err = scenario.Store.GetEndpointStatus(testEndpoint.Group, "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != common.ErrEndpointNotFound {
 				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
 			if endpointStatus != nil {
 				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, "nonexistantname")
 			}
-			endpointStatus, err = scenario.Store.GetEndpointStatus("nonexistantgroup", testEndpoint.Name, paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			endpointStatus, err = scenario.Store.GetEndpointStatus("nonexistantgroup", testEndpoint.Name, paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != common.ErrEndpointNotFound {
 				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
@@ -459,7 +459,7 @@ func TestStore_Insert(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
 			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
-			ss, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			ss, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err)
 			}

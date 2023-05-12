@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"github.com/TwiN/gatus/v5/storage"
 	"testing"
 	"time"
 
@@ -50,7 +51,7 @@ func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	// Start 12 days ago
 	timestamp := now.Add(-12 * 24 * time.Hour)
 	for timestamp.Unix() <= now.Unix() {
-		AddResult(status, &core.Result{Timestamp: timestamp, Success: true})
+		AddResult(status, &core.Result{Timestamp: timestamp, Success: true}, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 		if len(status.Uptime.HourlyStatistics) > numberOfHoursInTenDays {
 			t.Errorf("At no point in time should there be more than %d entries in status.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(status.Uptime.HourlyStatistics))
 		}
