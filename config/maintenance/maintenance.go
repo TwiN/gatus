@@ -82,7 +82,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if err != nil {
 		return err
 	}
-	if c.Duration <= 0 || c.Duration >= 24*time.Hour {
+	if c.Duration <= 0 || c.Duration > 24*time.Hour {
 		return errInvalidMaintenanceDuration
 	}
 	return nil
