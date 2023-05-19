@@ -58,9 +58,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
 			},
 			ExpectedResult: &Result{
-				Success:   false,
-				Connected: true,
-				Hostname:  "twin.sh",
+				Success:        false,
+				Connected:      true,
+				Hostname:       "twin.sh",
+				Severity:       Severity{Critical: true},
+				SeverityStatus: Critical,
 				ConditionResults: []*ConditionResult{
 					{Condition: "[STATUS] == 200", Success: true},
 					{Condition: "[BODY].status (DOWN) == UP", Success: false},
@@ -79,9 +81,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[STATUS] == 200"},
 			},
 			ExpectedResult: &Result{
-				Success:   false,
-				Connected: true,
-				Hostname:  "twin.sh",
+				Success:        false,
+				Connected:      true,
+				Hostname:       "twin.sh",
+				Severity:       Severity{Critical: true},
+				SeverityStatus: Critical,
 				ConditionResults: []*ConditionResult{
 					{Condition: "[STATUS] (502) == 200", Success: false},
 				},
@@ -100,9 +104,11 @@ func TestEndpoint(t *testing.T) {
 				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
 			},
 			ExpectedResult: &Result{
-				Success:   false,
-				Connected: true,
-				Hostname:  "twin.sh",
+				Success:        false,
+				Connected:      true,
+				Hostname:       "twin.sh",
+				Severity:       Severity{Critical: true},
+				SeverityStatus: Critical,
 				ConditionResults: []*ConditionResult{
 					// Because UIConfig.DontResolveFailedConditions is true, the values in the condition should not be resolved
 					{Condition: "[CERTIFICATE_EXPIRATION] > 100h", Success: false},
@@ -147,9 +153,11 @@ func TestEndpoint(t *testing.T) {
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
 			ExpectedResult: &Result{
-				Success:   false,
-				Connected: false,
-				Hostname:  "", // Because Endpoint.UIConfig.HideHostname is true, this should be empty.
+				Success:        false,
+				Connected:      false,
+				Severity:       Severity{Critical: true},
+				SeverityStatus: Critical,
+				Hostname:       "", // Because Endpoint.UIConfig.HideHostname is true, this should be empty.
 				ConditionResults: []*ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},
@@ -170,9 +178,11 @@ func TestEndpoint(t *testing.T) {
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
 			ExpectedResult: &Result{
-				Success:   false,
-				Connected: false,
-				Hostname:  "twin.sh",
+				Success:        false,
+				Connected:      false,
+				Severity:       Severity{Critical: true},
+				SeverityStatus: Critical,
+				Hostname:       "twin.sh",
 				ConditionResults: []*ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},

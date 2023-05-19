@@ -32,6 +32,7 @@ func (s *Store) createPostgresSchema() error {
 			errors                 TEXT      NOT NULL,
 			connected              BOOLEAN   NOT NULL,
 			status                 BIGINT    NOT NULL,
+			severity_status        INTEGER   NOT NULL,
 			dns_rcode              TEXT      NOT NULL,
 			certificate_expiration BIGINT    NOT NULL,
 			domain_expiration      BIGINT    NOT NULL,
@@ -67,6 +68,10 @@ func (s *Store) createPostgresSchema() error {
 		)
 	`)
 	// Silent table modifications
-	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0`)
+	_, _ = s.db.Exec(`
+		ALTER TABLE endpoint_results
+		ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0,
+		ADD IF NOT EXISTS severity_status INTEGER NOT NULL DEFAULT 0;
+	`)
 	return err
 }

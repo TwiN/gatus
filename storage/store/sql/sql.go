@@ -439,8 +439,8 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *core.
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, severity_status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			RETURNING endpoint_result_id
 		`,
 		endpointID,
@@ -448,6 +448,7 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *core.
 		strings.Join(result.Errors, arraySeparator),
 		result.Connected,
 		result.HTTPStatus,
+		result.SeverityStatus,
 		result.DNSRCode,
 		result.CertificateExpiration,
 		result.DomainExpiration,
@@ -591,7 +592,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*core.Result, err error) {
 	rows, err := tx.Query(
 		`
-			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
+			SELECT endpoint_result_id, success, errors, connected, status, severity_status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
 			FROM endpoint_results
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
@@ -609,7 +610,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		result := &core.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
+		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.SeverityStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
 			log.Printf("[sql][getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil

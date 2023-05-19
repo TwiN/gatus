@@ -44,6 +44,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 - [Configuration](#configuration)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
+    - [Severity](#severity)
     - [Functions](#functions)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
@@ -279,7 +280,6 @@ Here are some examples of conditions you can use:
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 | `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
 
-
 #### Placeholders
 | Placeholder                | Description                                                                               | Example of resolved value                    |
 |:---------------------------|:------------------------------------------------------------------------------------------|:---------------------------------------------|
@@ -292,6 +292,16 @@ Here are some examples of conditions you can use:
 | `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
 
+#### Severity
+
+For failure case you can specify index of severity for each condition. Example of usage: `Low :: [STATUS] == 200`. For case, when severity index is omitted, critical severity will be used.
+
+| Available Severity statuses |
+|:----------------------------|
+|`Low`                        |
+|`Medium`                     |
+|`High`                       |
+|`Critical`                   |
 
 #### Functions
 | Function | Description                                                                                                                                                                                                                         | Example                            |

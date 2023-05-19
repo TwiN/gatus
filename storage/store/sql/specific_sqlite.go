@@ -32,9 +32,10 @@ func (s *Store) createSQLiteSchema() error {
 			errors                 TEXT      NOT NULL,
 			connected              INTEGER   NOT NULL,
 			status                 INTEGER   NOT NULL,
+			severity_status        INTEGER   NOT NULL,
 			dns_rcode              TEXT      NOT NULL,
 			certificate_expiration INTEGER   NOT NULL,
-		    domain_expiration      INTEGER   NOT NULL,
+			domain_expiration      INTEGER   NOT NULL,
 			hostname               TEXT      NOT NULL,
 			ip                     TEXT      NOT NULL,
 			duration               INTEGER   NOT NULL,
@@ -67,6 +68,9 @@ func (s *Store) createSQLiteSchema() error {
 		)
 	`)
 	// Silent table modifications TODO: Remove this
-	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD domain_expiration INTEGER NOT NULL DEFAULT 0`)
+	_, _ = s.db.Exec(`
+		ALTER TABLE endpoint_results ADD domain_expiration INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE endpoint_results ADD severity_status INTEGER NOT NULL DEFAULT 0;
+	`)
 	return err
 }

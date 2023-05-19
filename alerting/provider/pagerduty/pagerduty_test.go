@@ -173,6 +173,26 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_pagerDutySeverity(t *testing.T) {
+	alertProvider := new(AlertProvider)
+	scenarios := []struct {
+		result                                       *core.Result
+		actualSeverityString, expectedSeverityString string
+	}{
+		{result: &core.Result{Severity: core.Severity{}}, actualSeverityString: "critical", expectedSeverityString: "critical"},
+		{result: &core.Result{Severity: core.Severity{Low: true, Medium: true, High: true, Critical: true}}, actualSeverityString: "critical", expectedSeverityString: "critical"},
+		{result: &core.Result{Severity: core.Severity{Low: true, Medium: true, High: true}}, actualSeverityString: "error", expectedSeverityString: "error"},
+		{result: &core.Result{Severity: core.Severity{Low: true, Medium: true}}, actualSeverityString: "warning", expectedSeverityString: "warning"},
+		{result: &core.Result{Severity: core.Severity{Low: true}}, actualSeverityString: "info", expectedSeverityString: "info"},
+	}
+
+	for _, scenario := range scenarios {
+		if alertProvider.pagerDutySeverity(scenario.result) != scenario.expectedSeverityString {
+			t.Errorf("expected %v, got %v", scenario.expectedSeverityString, scenario.actualSeverityString)
+		}
+	}
+}
+
 func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 	scenarios := []struct {
 		Name           string

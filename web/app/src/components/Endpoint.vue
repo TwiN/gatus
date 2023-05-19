@@ -29,6 +29,9 @@
           </slot>
           <slot v-for="result in data.results" :key="result">
             <span v-if="result.success" class="status status-success rounded bg-success" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+            <span v-else-if="result.severity_status === 1" class="status status-warning rounded bg-cyan-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+            <span v-else-if="result.severity_status === 2" class="status status-warning rounded bg-yellow-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
+            <span v-else-if="result.severity_status === 3" class="status status-warning rounded bg-orange-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
             <span v-else class="status status-failure rounded bg-red-600" @mouseenter="showTooltip(result, $event)" @mouseleave="showTooltip(null, $event)"></span>
           </slot>
         </slot>
@@ -172,12 +175,17 @@ export default {
   content: "✓";
 }
 
+.status.status-warning::after {
+  content: "!";
+}
+
 .status.status-failure::after {
   content: "X";
 }
 
 @media screen and (max-width: 600px) {
   .status.status-success::after,
+  .status.status-warning::after,
   .status.status-failure::after {
     content: " ";
     white-space: pre;
