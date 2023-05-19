@@ -54,8 +54,8 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 }
 
 func TestAlertProvider_Send(t *testing.T) {
-	config := client.GetDefaultConfig()
-	defer config.InjectHTTPClient(nil)
+	clientConfig := client.GetDefaultConfig()
+	defer clientConfig.InjectHTTPClient(nil)
 	firstDescription := "description-1"
 	secondDescription := "description-2"
 	scenarios := []struct {
@@ -84,7 +84,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Provider.githubClient = github.NewClient(nil)
-			config.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
+			clientConfig.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
 				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
