@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
@@ -25,10 +26,16 @@ type AlertProvider struct {
 	repositoryOwner string
 	repositoryName  string
 	githubClient    *github.Client
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+	}
 	if len(provider.Token) == 0 || len(provider.RepositoryURL) == 0 {
 		return false
 	}

@@ -24,10 +24,16 @@ type AlertProvider struct {
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+	}
 	return len(provider.AccessKey) > 0 && len(provider.Originator) > 0 && len(provider.Recipients) > 0
 }
 
@@ -41,7 +47,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", fmt.Sprintf("AccessKey %s", provider.AccessKey))
-	response, err := client.GetHTTPClient(nil).Do(request)
+	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}

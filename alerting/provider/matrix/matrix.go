@@ -24,6 +24,9 @@ type AlertProvider struct {
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 // Override is a case under which the default integration is overridden
@@ -48,6 +51,9 @@ type MatrixProviderConfig struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+	}
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
@@ -83,7 +89,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(nil).Do(request)
+	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
