@@ -550,6 +550,8 @@ endpoints:
         description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
 ```
 
+![GitHub alert](.github/assets/github-alerts.png)
+
 #### Configuring Gitlab alerts
 | Parameter                           | Description                                                                                                | Default       |
 |:------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
