@@ -364,6 +364,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		alert.TypeCustom,
 		alert.TypeDiscord,
 		alert.TypeGitHub,
+		alert.TypeGitlab,
 		alert.TypeGoogleChat,
 		alert.TypeEmail,
 		alert.TypeMatrix,
