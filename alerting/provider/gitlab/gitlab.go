@@ -12,7 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
-	"github.com/dchest/uniuri"
+	"github.com/google/uuid"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Gitlab
@@ -50,7 +50,7 @@ func (provider *AlertProvider) IsValid() bool {
 // or closes the relevant issue(s) if the resolved parameter passed is true.
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	if len(alert.ResolveKey) == 0 {
-		alert.ResolveKey = uniuri.NewLen(uniuri.UUIDLen)
+		alert.ResolveKey = uuid.NewString()
 	}
 
 	buffer := bytes.NewBuffer(provider.buildAlertBody(endpoint, alert, result, resolved))
