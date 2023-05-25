@@ -51,7 +51,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
-    - [Configuring Gitlab alerts](#configuring-gitlab-alerts)
+    - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -412,7 +412,7 @@ ignored.
 | `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
 | `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
 | `alerting.github`      | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                | `{}`    |
-| `alerting.gitlab`      | Configuration for alerts of type `gitlab`. <br />See [Configuring Gitlab alerts](#configuring-gitlab-alerts).                | `{}`    |
+| `alerting.gitlab`      | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                | `{}`    |
 | `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
 | `alerting.matrix`      | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
@@ -552,11 +552,11 @@ endpoints:
 
 ![GitHub alert](.github/assets/github-alerts.png)
 
-#### Configuring Gitlab alerts
+#### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                | Default       |
 |:------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.gitlab`                   | Configuration for alerts of type `gitlab`                                                                       | `{}`          |
-| `alerting.gitlab.webhook-url`       | Gitlab alert webhook URL (e.g. `https://gitlab.com/hlidotbe/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
+| `alerting.gitlab.webhook-url`       | GitLab alert webhook URL (e.g. `https://gitlab.com/hlidotbe/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
 | `alerting.gitlab.authorization-key` | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata.      | Required `""` |
 | `alerting.gitlab.severity`          | Override default severity (critical), can be one of `critical, high, medium, low, info, unknown`                | `""`          |
 | `alerting.gitlab.monitoring-tool`   | Override the monitoring tool name (gatus)                                                                       | `"gatus"`     |
@@ -564,7 +564,7 @@ endpoints:
 | `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""` |
 | `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                     | N/A           |
 
-The Gitlab alerting provider creates an alert prefixed with `🚨 (gatus):` and suffixed with the endpoint's display
+The GitLab alerting provider creates an alert prefixed with `🚨 (gatus):` and suffixed with the endpoint's display
 name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the alert will be automatically
 closed when the alert is resolved. See
 https://docs.gitlab.com/ee/operations/incident_management/integrations.html#configuration to configure the endpoint.
@@ -591,7 +591,7 @@ endpoints:
         description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
 ```
 
-![Gitlab alert](.github/assets/gitlab-alerts.png)
+![GitLab alert](.github/assets/gitlab-alerts.png)
 
 
 #### Configuring Google Chat alerts

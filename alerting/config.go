@@ -40,8 +40,8 @@ type Config struct {
 	// GitHub is the configuration for the github alerting provider
 	GitHub *github.AlertProvider `yaml:"github,omitempty"`
 
-	// Gitlab is the configuration for the gitlab alerting provider
-	Gitlab *gitlab.AlertProvider `yaml:"gitlab,omitempty"`
+	// GitLab is the configuration for the gitlab alerting provider
+	GitLab *gitlab.AlertProvider `yaml:"gitlab,omitempty"`
 
 	// GoogleChat is the configuration for the googlechat alerting provider
 	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
