@@ -17,7 +17,7 @@ const (
 	// TypeGitHub is the Type for the github alerting provider
 	TypeGitHub Type = "github"
 
-	// TypeGitLab is the Type for the github alerting provider
+	// TypeGitLab is the Type for the gitlab alerting provider
 	TypeGitLab Type = "gitlab"
 
 	// TypeGoogleChat is the Type for the googlechat alerting provider
