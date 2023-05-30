@@ -17,8 +17,8 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using GitLab
 type AlertProvider struct {
-	WebhookURL       string `yaml:"webhook-url"`       // The URL of the GitHub repository to create issues in
-	AuthorizationKey string `yaml:"authorization-key"` // Token requires at least RW on issues and RO on metadata
+	WebhookURL       string `yaml:"webhook-url"`       // The webhook url provided by GitLab
+	AuthorizationKey string `yaml:"authorization-key"` // The authorization key provided by GitLab
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
