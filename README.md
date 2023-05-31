@@ -564,7 +564,7 @@ endpoints:
 | `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""` |
 | `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                     | N/A           |
 
-The GitLab alerting provider creates an alert prefixed with `🚨 (gatus):` and suffixed with the endpoint's display
+The GitLab alerting provider creates an alert prefixed with `alert(gatus):` and suffixed with the endpoint's display
 name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the alert will be automatically
 closed when the alert is resolved. See
 https://docs.gitlab.com/ee/operations/incident_management/integrations.html#configuration to configure the endpoint.
