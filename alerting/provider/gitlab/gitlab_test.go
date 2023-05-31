@@ -118,14 +118,14 @@ func TestAlertProvider_buildAlertBody(t *testing.T) {
 			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 3},
-			ExpectedBody: "{\"title\":\"🚨 (gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
+			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
 		},
 		{
 			Name:         "no-description",
 			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{FailureThreshold: 10},
-			ExpectedBody: "{\"title\":\"🚨 (gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 10 time(s) in a row\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
+			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 10 time(s) in a row\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
 		},
 	}
 	for _, scenario := range scenarios {
