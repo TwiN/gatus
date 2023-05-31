@@ -102,7 +102,7 @@ func (provider *AlertProvider) service(endpoint *core.Endpoint) string {
 // buildAlertBody builds the body of the alert
 func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	body := AlertBody{
-		Title:                 fmt.Sprintf("🚨 (%s): %s", provider.monitoringTool(), provider.service(endpoint)),
+		Title:                 fmt.Sprintf("alert(%s): %s", provider.monitoringTool(), provider.service(endpoint)),
 		StartTime:             result.Timestamp.Format(time.RFC3339),
 		Service:               provider.service(endpoint),
 		MonitoringTool:        provider.monitoringTool(),
