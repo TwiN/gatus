@@ -90,7 +90,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
-  - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)>
+  - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
