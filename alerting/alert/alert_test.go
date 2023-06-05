@@ -2,6 +2,7 @@ package alert
 
 import (
 	"testing"
+	"time"
 )
 
 func TestAlert_ValidateAndSetDefaults(t *testing.T) {
@@ -60,6 +61,20 @@ func TestAlert_IsEnabled(t *testing.T) {
 	}
 	if value := true; !(Alert{Enabled: &value}).IsEnabled() {
 		t.Error("alert.IsEnabled() should've returned true, because Enabled was set to true")
+	}
+	if value := true; !(Alert{Enabled: &value, CronSchedule: "* * * * *"}).IsEnabled() {
+		t.Error("alert.IsEnabled() should've returned true, because Enabled was set to true and CronSchedule was set to '* * * * *'")
+	}
+
+	// test cron schedule
+	nowFn := func() time.Time { return time.Date(2019, time.January, 1, 15, 0, 0, 0, time.UTC) }
+	if value := true; (Alert{Enabled: &value, CronSchedule: "* 16 * * *", nowFn: nowFn}).IsEnabled() {
+		t.Error("alert.IsEnabled() should've returned false, because Enabled was set to true and CronSchedule was set to 4pm and current hour is 3pm")
+	}
+
+	nowFn = func() time.Time { return time.Date(2019, time.January, 1, 16, 14, 0, 0, time.UTC) }
+	if value := true; !(Alert{Enabled: &value, CronSchedule: "* 16 * * *", nowFn: nowFn}).IsEnabled() {
+		t.Error("alert.IsEnabled() should've returned true, because Enabled was set to true and CronSchedule was set to 4pm and current hour is 4:14pm")
 	}
 }
 

@@ -3,6 +3,9 @@ package alert
 import (
 	"errors"
 	"strings"
+	"time"
+
+	"github.com/adhocore/gronx"
 )
 
 var (
@@ -41,6 +44,9 @@ type Alert struct {
 	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
 	SuccessThreshold int `yaml:"success-threshold"`
 
+	// CronSchedule defines the cron schedule at which the alert should be triggered
+	CronSchedule string `yaml:"cron-schedule"`
+
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
 	ResolveKey string `yaml:"-"`
@@ -54,6 +60,8 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool `yaml:"-"`
+
+	nowFn func() time.Time // For testing purposes
 }
 
 // ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one
@@ -78,9 +86,32 @@ func (alert Alert) GetDescription() string {
 	return *alert.Description
 }
 
-// IsEnabled returns whether an alert is enabled or not
+// IsEnabled returns whether an alert is enabled or not. Also checks the cron schedule if set.
 // Returns true if not set
 func (alert Alert) IsEnabled() bool {
+	cronAllowed := func(cs string) bool {
+		if alert.CronSchedule == "" { // no cron set, allow
+			return true
+		}
+		gron := gronx.New()
+		if !gron.IsValid(cs) {
+			return true // invalid cron, allow
+		}
+		nowFn := time.Now // default to time.Now, but allow override for testing
+		if alert.nowFn != nil {
+			nowFn = alert.nowFn
+		}
+		v, err := gron.IsDue(alert.CronSchedule, nowFn())
+		if err != nil {
+			return true // cron check failed, allow
+		}
+		return v
+	}
+
+	if !cronAllowed(alert.CronSchedule) {
+		return false
+	}
+
 	if alert.Enabled == nil {
 		return true
 	}

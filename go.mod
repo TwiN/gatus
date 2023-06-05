@@ -8,6 +8,7 @@ require (
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/whois v1.1.0
+	github.com/adhocore/gronx v1.1.2
 	github.com/coreos/go-oidc/v3 v3.5.0
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.3.0
