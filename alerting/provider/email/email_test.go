@@ -83,7 +83,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:        AlertProvider{},
 			Alert:           alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:        true,
-			ExpectedSubject: "[endpoint-name] Alert resolved",
+			ExpectedSubject: "[endpoint-name] Alert triggered",
 			ExpectedBody:    "An alert for endpoint-name has been resolved after passing successfully 5 time(s) in a row\n\nAlert description: description-2\n\nCondition results:\n✅ [CONNECTED] == true\n✅ [STATUS] == 200\n",
 		},
 	}
