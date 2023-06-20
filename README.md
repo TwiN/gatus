@@ -1712,7 +1712,11 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
+### Exposing Gatus UI on a custom URL.
 
+Currently, you can expose the Gatus UI using a custom fully qualified domain name (FQDN) such as `gatus.customdomain.com`. However, it does not support path-based routing, which means you cannot access it through a URL like `common.customdomain.com/gatus`. 
+
+For more information, you can refer to the issue discussed in detail at https://github.com/TwiN/gatus/issues/88.
 
 ### Keeping your configuration small
 While not specific to Gatus, you can leverage YAML anchors to create a default configuration.
