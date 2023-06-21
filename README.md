@@ -95,6 +95,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
+  - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Badges](#badges)
@@ -1697,6 +1698,12 @@ endpoints:
 The configuration above will result in a dashboard that looks like this:
 
 ![Gatus Endpoint Groups](.github/assets/endpoint-groups.png)
+
+
+### Exposing Gatus on a custom path
+Currently, you can expose the Gatus UI using a fully qualified domain name (FQDN) such as `status.example.org`. However, it does not support path-based routing, which means you cannot expose it through a URL like `example.org/status/`.
+
+For more information, see https://github.com/TwiN/gatus/issues/88.
 
 
 ### Exposing Gatus on a custom port
