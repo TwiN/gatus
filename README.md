@@ -1712,9 +1712,9 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
-### Exposing Gatus UI on a custom URL.
 
-Currently, you can expose the Gatus UI using a custom fully qualified domain name (FQDN) such as `status.example.org`. However, it does not support path-based routing, which means you cannot access it through a URL like `example.org/status/`. 
+### Exposing Gatus on a subpath
+Currently, you can expose the Gatus UI using a fully qualified domain name (FQDN) such as `status.example.org`. However, it does not support path-based routing, which means you cannot expose it through a URL like `example.org/status/`.
 
 For more information, you can refer to the issue discussed in detail at https://github.com/TwiN/gatus/issues/88.
 
