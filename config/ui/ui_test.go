@@ -7,11 +7,12 @@ import (
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	cfg := &Config{
-		Title:       "",
-		Description: "",
-		Header:      "",
-		Logo:        "",
-		Link:        "",
+		Title:           "",
+		Description:     "",
+		Header:          "",
+		Logo:            "",
+		Link:            "",
+		RefreshInterval: 0,
 	}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())
@@ -24,6 +25,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	}
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
+	}
+	if cfg.RefreshInterval != defaultRefreshInterval {
+		t.Errorf("expected refreshInterval to be %d, got %d", defaultRefreshInterval, cfg.RefreshInterval)
 	}
 }
 
@@ -73,5 +77,8 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 	if defaultConfig.Logo != defaultLogo {
 		t.Error("expected GetDefaultConfig() to return defaultLogo, got", defaultConfig.Logo)
+	}
+	if defaultConfig.RefreshInterval != defaultRefreshInterval {
+		t.Error("expected GetDefaultConfig() to return defaultLogo, got", defaultConfig.RefreshInterval)
 	}
 }
