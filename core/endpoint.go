@@ -42,6 +42,7 @@ const (
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
+	EndpointTypeWS       EndpointType = "WS"
 	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
@@ -97,6 +98,9 @@ type Endpoint struct {
 	// GraphQL is whether to wrap the body in a query param ({"query":"$body"})
 	GraphQL bool `yaml:"graphql,omitempty"`
 
+	// JsonRPC is whether to wrap the body in as a JSON RPC 2.0 method call. First word becomes method name and the rest becomes parameters
+	JsonRPC bool `yaml:"jsonrpc,omitempty"`
+
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
@@ -149,6 +153,8 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
+	case strings.HasPrefix(endpoint.URL, "ws://") || strings.HasPrefix(endpoint.URL, "wss://"):
+		return EndpointTypeWS
 	default:
 		return EndpointTypeUNKNOWN
 	}
@@ -188,6 +194,21 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	// and endpoint.GraphQL is set to true
 	if _, contentTypeHeaderExists := endpoint.Headers[ContentTypeHeader]; !contentTypeHeaderExists && endpoint.GraphQL {
 		endpoint.Headers[ContentTypeHeader] = "application/json"
+	}
+	// Wraps the body as JSON RPC 2.0 method
+	if endpoint.JsonRPC {
+		method_name := ""
+		method_parameters := ""
+
+		if len(endpoint.Body) > 0 {
+			slices := strings.Split(endpoint.Body, " ")
+			method_name = slices[0]
+
+			if len(slices) > 1 {
+				method_parameters = strings.Join(slices[1:], ",")
+			}
+		}
+		endpoint.Body = "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"" + method_name + "\", \"parameters\": [" + method_parameters + "]}\n"
 	}
 	for _, endpointAlert := range endpoint.Alerts {
 		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
@@ -340,6 +361,9 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
+	} else if endpointType == EndpointTypeWS {
+		queryWebSocket(endpoint, result)
+		result.Duration = time.Since(startTime)
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
