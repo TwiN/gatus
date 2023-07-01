@@ -7,11 +7,8 @@
             {{ collapsed ? '&#9660;' : '&#9650;' }}
           </span>
           {{ name }}
-          <span v-if="unhealthyCount" class="float-right text-yellow-500 text-sm w-7 hover:scale-110" title="Partial Outage">
-            <span v-if="unhealthyCount<100" class="rounded-xl bg-yellow-500 text-gray-900 font-bold leading-6 float-right w-6 h-6 text-center hover:scale-110">{{unhealthyCount}}</span>
-            <ExclamationCircleIcon v-if="unhealthyCount>=100" />
-          </span>
-          <span v-if="unhealthyCount==0" class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
+          <span v-if="unhealthyCount" class="rounded-xl bg-red-600 text-white px-2 font-bold leading-6 float-right h-6 text-center hover:scale-110 text-sm" title="Partial Outage">{{unhealthyCount}}</span>
+          <span v-if="unhealthyCount === 0" class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
             <CheckCircleIcon />
           </span>
         </h5>
@@ -33,14 +30,13 @@
 
 <script>
 import Endpoint from './Endpoint.vue';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/20/solid'
+import { CheckCircleIcon } from '@heroicons/vue/20/solid'
 
 export default {
   name: 'EndpointGroup',
   components: {
     Endpoint,
-    CheckCircleIcon,
-    ExclamationCircleIcon
+    CheckCircleIcon
   },
   props: {
     name: String,
