@@ -38,11 +38,11 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = DefaultPriority
 	}
-	tokenValid := true
+	isTokenValid := true
 	if len(provider.Token) > 0 {
-		tokenValid = strings.HasPrefix(provider.Token, "tk_")
+		isTokenValid = strings.HasPrefix(provider.Token, "tk_")
 	}
-	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6 && tokenValid
+	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6 && isTokenValid
 }
 
 // Send an alert using the provider
@@ -54,8 +54,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if len(provider.Token) > 0 {
-		authString := fmt.Sprintf("Bearer %s", provider.Token)
-		request.Header.Set("Authorization", authString)
+		request.Header.Set("Authorization", "Bearer "+provider.Token)
 	}
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
