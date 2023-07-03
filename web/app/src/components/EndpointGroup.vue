@@ -8,7 +8,7 @@
           </span>
           {{ name }}
           <span v-if="unhealthyCount" class="rounded-xl bg-red-600 text-white px-2 font-bold leading-6 float-right h-6 text-center hover:scale-110 text-sm" title="Partial Outage">{{unhealthyCount}}</span>
-          <span v-if="unhealthyCount === 0" class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
+          <span v-else class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
             <CheckCircleIcon />
           </span>
         </h5>
