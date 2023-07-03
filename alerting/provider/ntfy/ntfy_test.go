@@ -25,6 +25,16 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "valid-with-token",
+			provider: AlertProvider{Topic: "example", Priority: 1, Token: "tk_faketoken"},
+			expected: true,
+		},
+		{
+			name:     "invalid-token",
+			provider: AlertProvider{Topic: "example", Priority: 1, Token: "xx_faketoken"},
+			expected: false,
+		},
+		{
 			name:     "invalid-topic",
 			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "", Priority: 1},
 			expected: false,
