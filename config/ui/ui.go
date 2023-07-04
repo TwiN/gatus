@@ -23,13 +23,13 @@ var (
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title           string   `yaml:"title,omitempty"`                    // Title of the page
-	Description     string   `yaml:"description,omitempty"`              // Meta description of the page
-	Header          string   `yaml:"header,omitempty"`                   // Header is the text at the top of the page
-	Logo            string   `yaml:"logo,omitempty"`                     // Logo to display on the page
-	Link            string   `yaml:"link,omitempty"`                     // Link to open when clicking on the logo
-	Buttons         []Button `yaml:"buttons,omitempty"`                  // Buttons to display below the header
-	RefreshInterval int      `yaml:"default-refresh-interval,omitempty"` // Default Interval in seconds at which the page gets refreshed
+	Title                  string   `yaml:"title,omitempty"`                    // Title of the page
+	Description            string   `yaml:"description,omitempty"`              // Meta description of the page
+	Header                 string   `yaml:"header,omitempty"`                   // Header is the text at the top of the page
+	Logo                   string   `yaml:"logo,omitempty"`                     // Logo to display on the page
+	Link                   string   `yaml:"link,omitempty"`                     // Link to open when clicking on the logo
+	Buttons                []Button `yaml:"buttons,omitempty"`                  // Buttons to display below the header
+	DefaultRefreshInterval int      `yaml:"default-refresh-interval,omitempty"` // Default Interval in seconds at which the page gets refreshed
 }
 
 // Button is the configuration for a button on the UI
@@ -49,12 +49,12 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
-		Title:           defaultTitle,
-		Description:     defaultDescription,
-		Header:          defaultHeader,
-		Logo:            defaultLogo,
-		Link:            defaultLink,
-		RefreshInterval: defaultRefreshInterval,
+		Title:                  defaultTitle,
+		Description:            defaultDescription,
+		Header:                 defaultHeader,
+		Logo:                   defaultLogo,
+		Link:                   defaultLink,
+		DefaultRefreshInterval: defaultRefreshInterval,
 	}
 }
 
@@ -72,8 +72,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.Header) == 0 {
 		cfg.Header = defaultLink
 	}
-	if cfg.RefreshInterval != 10 && cfg.RefreshInterval != 30 && cfg.RefreshInterval != 60 && cfg.RefreshInterval != 120 && cfg.RefreshInterval != 300 && cfg.RefreshInterval != 600 {
-		cfg.RefreshInterval = defaultRefreshInterval
+	if cfg.DefaultRefreshInterval != 10 && cfg.DefaultRefreshInterval != 30 && cfg.DefaultRefreshInterval != 60 && cfg.DefaultRefreshInterval != 120 && cfg.DefaultRefreshInterval != 300 && cfg.DefaultRefreshInterval != 600 {
+		cfg.DefaultRefreshInterval = defaultRefreshInterval
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
