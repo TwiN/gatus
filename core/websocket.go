@@ -5,11 +5,15 @@ import (
 )
 
 func queryWebSocket(endpoint *Endpoint, result *Result) {
-	origin := "http://localhost/"
+	const (
+		Origin             = "http://localhost/"
+		MaximumMessageSize = 1024 // in bytes
+	)
+
 	url := endpoint.URL
 	message := endpoint.Body
 
-	config, err := websocket.NewConfig(url, origin)
+	config, err := websocket.NewConfig(url, Origin)
 	if err != nil {
 		result.AddError("Error configuring WS connection:" + err.Error())
 		return
@@ -29,8 +33,8 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 		return
 	}
 
-	// Read message (1 kByte)
-	var msg = make([]byte, 1024)
+	// Read message
+	var msg = make([]byte, MaximumMessageSize)
 	var n int
 	if n, err = ws.Read(msg); err != nil {
 		result.AddError("Error reading WS message" + err.Error())
@@ -38,4 +42,7 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 	}
 
 	result.Body = msg[:n]
+
+	// Close socket
+	defer ws.Close()
 }
