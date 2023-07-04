@@ -25,8 +25,7 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 
 	// Write message
 	if _, err := ws.Write([]byte(message)); err != nil {
-		//fmt.Println("Error writing:", err)
-		result.AddError("Erro writing WS message" + err.Error())
+		result.AddError("Error writing WS message" + err.Error())
 		return
 	}
 
@@ -34,7 +33,7 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 	var msg = make([]byte, 1024)
 	var n int
 	if n, err = ws.Read(msg); err != nil {
-		result.AddError("Erro reading WS message" + err.Error())
+		result.AddError("Error reading WS message" + err.Error())
 		return
 	}
 

@@ -98,7 +98,7 @@ type Endpoint struct {
 	// GraphQL is whether to wrap the body in a query param ({"query":"$body"})
 	GraphQL bool `yaml:"graphql,omitempty"`
 
-	// JsonRPC is wether to wrap the body in as a JSON RPC 2.0 method call. First word becomes method name and the rest becomes parameters
+	// JsonRPC is whether to wrap the body in as a JSON RPC 2.0 method call. First word becomes method name and the rest becomes parameters
 	JsonRPC bool `yaml:"jsonrpc,omitempty"`
 
 	// Headers of the request
