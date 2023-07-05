@@ -41,8 +41,8 @@ github.com/TwiN/gocache/v2 v2.2.0 h1:M3B36KyH24BntxLrLaUb2kgTdq8DzCnfod0IekLG57w
 github.com/TwiN/gocache/v2 v2.2.0/go.mod h1:SnUuBsrwGQeNcDG6vhkOMJnqErZM0JGjgIkuKryokYA=
 github.com/TwiN/health v1.6.0 h1:L2ks575JhRgQqWWOfKjw9B0ec172hx7GdToqkYUycQM=
 github.com/TwiN/health v1.6.0/go.mod h1:Z6TszwQPMvtSiVx1QMidVRgvVr4KZGfiwqcD7/Z+3iw=
-github.com/TwiN/whois v1.1.1 h1:2xXZmpGQRtbkffuHpGVJNmJ4Bt4WmzXUlXKlPwwo0N4=
-github.com/TwiN/whois v1.1.1/go.mod h1:VOJAH4+3chAik5gva5zxJNXv2voEHjMNCf1y07sqj9w=
+github.com/TwiN/whois v1.1.2 h1:jlcOL/1k+pV4ZQqzu6EfjiTHuxB8KDRHTygxJx/OAfU=
+github.com/TwiN/whois v1.1.2/go.mod h1:VOJAH4+3chAik5gva5zxJNXv2voEHjMNCf1y07sqj9w=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
