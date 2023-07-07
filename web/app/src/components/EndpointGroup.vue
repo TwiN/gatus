@@ -7,11 +7,9 @@
             {{ collapsed ? '&#9660;' : '&#9650;' }}
           </span>
           {{ name }}
-          <span v-if="healthy" class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
+          <span v-if="unhealthyCount" class="rounded-xl bg-red-600 text-white px-2 font-bold leading-6 float-right h-6 text-center hover:scale-110 text-sm" title="Partial Outage">{{unhealthyCount}}</span>
+          <span v-else class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
             <CheckCircleIcon />
-          </span>
-          <span v-else class="float-right text-yellow-500 text-sm w-7 hover:scale-110" title="Partial Outage">
-            <ExclamationCircleIcon />
           </span>
         </h5>
       </div>
@@ -32,14 +30,13 @@
 
 <script>
 import Endpoint from './Endpoint.vue';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/20/solid'
+import { CheckCircleIcon } from '@heroicons/vue/20/solid'
 
 export default {
   name: 'EndpointGroup',
   components: {
     Endpoint,
-    CheckCircleIcon,
-    ExclamationCircleIcon
+    CheckCircleIcon
   },
   props: {
     name: String,
@@ -49,22 +46,17 @@ export default {
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     healthCheck() {
+      let unhealthyCount = 0
       if (this.endpoints) {
         for (let i in this.endpoints) {
           if (this.endpoints[i].results && this.endpoints[i].results.length > 0) {
             if (!this.endpoints[i].results[this.endpoints[i].results.length-1].success) {
-              if (this.healthy) {
-                this.healthy = false;
-              }
-              return;
+              unhealthyCount++
             }
           }
         }
       }
-      // Set the endpoint group to healthy (only if it's currently unhealthy)
-      if (!this.healthy) {
-        this.healthy = true;
-      }
+      this.unhealthyCount = unhealthyCount;
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
@@ -87,7 +79,7 @@ export default {
   },
   data() {
     return {
-      healthy: true,
+      unhealthyCount: 0,
       collapsed: sessionStorage.getItem(`gatus:endpoint-group:${this.name}:collapsed`) === "true"
     }
   }

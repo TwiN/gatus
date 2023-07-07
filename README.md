@@ -734,6 +734,7 @@ endpoints:
 | `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
 | `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
 | `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
+| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics          | `""`              |
 | `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
 | `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
 
@@ -746,6 +747,7 @@ alerting:
   ntfy:
     topic: "gatus-test-topic"
     priority: 2
+    token: faketoken
     default-alert:
       failure-threshold: 3
       send-on-resolved: true
