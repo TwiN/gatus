@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -23,6 +24,7 @@ type AlertProvider struct {
 	Topic    string `yaml:"topic"`
 	URL      string `yaml:"url,omitempty"`      // Defaults to DefaultURL
 	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
+	Token    string `yaml:"token,omitempty"`    // Defaults to ""
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -36,7 +38,11 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = DefaultPriority
 	}
-	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6
+	isTokenValid := true
+	if len(provider.Token) > 0 {
+		isTokenValid = strings.HasPrefix(provider.Token, "tk_")
+	}
+	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6 && isTokenValid
 }
 
 // Send an alert using the provider
@@ -47,6 +53,9 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if len(provider.Token) > 0 {
+		request.Header.Set("Authorization", "Bearer "+provider.Token)
+	}
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
