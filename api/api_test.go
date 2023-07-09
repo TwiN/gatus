@@ -67,6 +67,30 @@ func TestNew(t *testing.T) {
 			Path:         "/index.html",
 			ExpectedCode: fiber.StatusMovedPermanently,
 		},
+		{
+			Name:         "index-should-return-200-even-if-not-authenticated",
+			Path:         "/",
+			ExpectedCode: fiber.StatusOK,
+			WithSecurity: true,
+		},
+		{
+			Name:         "endpoints-should-return-401-if-not-authenticated",
+			Path:         "/api/v1/endpoints/statuses",
+			ExpectedCode: fiber.StatusUnauthorized,
+			WithSecurity: true,
+		},
+		{
+			Name:         "config-should-return-200-even-if-not-authenticated",
+			Path:         "/api/v1/config",
+			ExpectedCode: fiber.StatusOK,
+			WithSecurity: true,
+		},
+		{
+			Name:         "config-should-always-return-200",
+			Path:         "/api/v1/config",
+			ExpectedCode: fiber.StatusOK,
+			WithSecurity: false,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
