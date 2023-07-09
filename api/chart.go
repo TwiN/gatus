@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"github.com/wcharczuk/go-chart/v2"
 	"github.com/wcharczuk/go-chart/v2/drawing"
 )
@@ -29,9 +29,8 @@ var (
 	}
 )
 
-func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	duration := vars["duration"]
+func ResponseTimeChart(c *fiber.Ctx) error {
+	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
 	case "7d":
@@ -39,23 +38,19 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		http.Error(writer, "Durations supported: 7d, 24h", http.StatusBadRequest)
-		return
+		return c.Status(400).SendString("Durations supported: 7d, 24h")
 	}
-	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(vars["key"], from, time.Now())
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			http.Error(writer, err.Error(), http.StatusNotFound)
+			return c.Status(404).SendString(err.Error())
 		} else if err == common.ErrInvalidTimeRange {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-		} else {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return c.Status(400).SendString(err.Error())
 		}
-		return
+		return c.Status(500).SendString(err.Error())
 	}
 	if len(hourlyAverageResponseTime) == 0 {
-		http.Error(writer, "", http.StatusNoContent)
-		return
+		return c.Status(204).SendString("")
 	}
 	series := chart.TimeSeries{
 		Name: "Average response time per hour",
@@ -111,12 +106,13 @@ func ResponseTimeChart(writer http.ResponseWriter, r *http.Request) {
 		},
 		Series: []chart.Series{series},
 	}
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	writer.Header().Set("Cache-Control", "no-cache, no-store")
-	writer.Header().Set("Expires", "0")
-	writer.WriteHeader(http.StatusOK)
-	if err := graph.Render(chart.SVG, writer); err != nil {
-		log.Println("[handler][ResponseTimeChart] Failed to render response time chart:", err.Error())
-		return
+	c.Set("Content-Type", "image/svg+xml")
+	c.Set("Cache-Control", "no-cache, no-store")
+	c.Set("Expires", "0")
+	c.Status(http.StatusOK)
+	if err := graph.Render(chart.SVG, c); err != nil {
+		log.Println("[api][ResponseTimeChart] Failed to render response time chart:", err.Error())
+		return c.Status(500).SendString(err.Error())
 	}
+	return nil
 }

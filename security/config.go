@@ -2,10 +2,13 @@ package security
 
 import (
 	"encoding/base64"
+	"log"
 	"net/http"
 
 	g8 "github.com/TwiN/g8/v2"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,20 +32,20 @@ func (c *Config) IsValid() bool {
 }
 
 // RegisterHandlers registers all handlers required based on the security configuration
-func (c *Config) RegisterHandlers(router *mux.Router) error {
+func (c *Config) RegisterHandlers(router fiber.Router) error {
 	if c.OIDC != nil {
 		if err := c.OIDC.initialize(); err != nil {
 			return err
 		}
-		router.HandleFunc("/oidc/login", c.OIDC.loginHandler)
-		router.HandleFunc("/authorization-code/callback", c.OIDC.callbackHandler)
+		router.All("/oidc/login", c.OIDC.loginHandler)
+		router.All("/authorization-code/callback", adaptor.HTTPHandlerFunc(c.OIDC.callbackHandler))
 	}
 	return nil
 }
 
 // ApplySecurityMiddleware applies an authentication middleware to the router passed.
-// The router passed should be a subrouter in charge of handlers that require authentication.
-func (c *Config) ApplySecurityMiddleware(api *mux.Router) error {
+// The router passed should be a sub-router in charge of handlers that require authentication.
+func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 	if c.OIDC != nil {
 		// We're going to use g8 for session handling
 		clientProvider := g8.NewClientProvider(func(token string) *g8.Client {
@@ -61,7 +64,7 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) error {
 		// TODO: g8: Add a way to update cookie after? would need the writer
 		authorizationService := g8.NewAuthorizationService().WithClientProvider(clientProvider)
 		c.gate = g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
-		api.Use(c.gate.Protect)
+		router.Use(adaptor.HTTPMiddleware(c.gate.Protect))
 	} else if c.Basic != nil {
 		var decodedBcryptHash []byte
 		if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
@@ -71,29 +74,35 @@ func (c *Config) ApplySecurityMiddleware(api *mux.Router) error {
 				return err
 			}
 		}
-		api.Use(func(handler http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				usernameEntered, passwordEntered, ok := r.BasicAuth()
+		router.Use(basicauth.New(basicauth.Config{
+			Authorizer: func(username, password string) bool {
 				if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
-					if !ok || usernameEntered != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(passwordEntered)) != nil {
-						w.Header().Set("WWW-Authenticate", "Basic")
-						w.WriteHeader(http.StatusUnauthorized)
-						_, _ = w.Write([]byte("Unauthorized"))
-						return
+					if username != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(password)) != nil {
+						return false
 					}
 				}
-				handler.ServeHTTP(w, r)
-			})
-		})
+				return true
+			},
+			Unauthorized: func(ctx *fiber.Ctx) error {
+				ctx.Set("WWW-Authenticate", "Basic")
+				return ctx.Status(401).SendString("Unauthorized")
+			},
+		}))
 	}
 	return nil
 }
 
 // IsAuthenticated checks whether the user is authenticated
 // If the Config does not warrant authentication, it will always return true.
-func (c *Config) IsAuthenticated(r *http.Request) bool {
+func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 	if c.gate != nil {
-		token := c.gate.ExtractTokenFromRequest(r)
+		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
+		request, err := adaptor.ConvertRequest(ctx, false)
+		if err != nil {
+			log.Printf("[IsAuthenticated] Unexpected error converting request: %v", err)
+			return false
+		}
+		token := c.gate.ExtractTokenFromRequest(request)
 		_, hasSession := sessions.Get(token)
 		return hasSession
 	}

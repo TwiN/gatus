@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/gofiber/fiber/v2"
 )
 
 func TestHandle(t *testing.T) {
@@ -34,13 +35,15 @@ func TestHandle(t *testing.T) {
 	defer os.Clearenv()
 	Handle(cfg)
 	defer Shutdown()
-	request, _ := http.NewRequest("GET", "/health", http.NoBody)
-	responseRecorder := httptest.NewRecorder()
-	server.Handler.ServeHTTP(responseRecorder, request)
-	if responseRecorder.Code != http.StatusOK {
+	request := httptest.NewRequest("GET", "/health", http.NoBody)
+	response, err := app.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != 200 {
 		t.Error("expected GET /health to return status code 200")
 	}
-	if server == nil {
+	if app == nil {
 		t.Fatal("server should've been set (but because we set ROUTER_TEST, it shouldn't have been started)")
 	}
 }
@@ -74,13 +77,15 @@ func TestHandleTLS(t *testing.T) {
 			defer os.Clearenv()
 			Handle(cfg)
 			defer Shutdown()
-			request, _ := http.NewRequest("GET", "/health", http.NoBody)
-			responseRecorder := httptest.NewRecorder()
-			server.Handler.ServeHTTP(responseRecorder, request)
-			if responseRecorder.Code != scenario.expectedStatusCode {
-				t.Errorf("expected GET /health to return status code %d, got %d", scenario.expectedStatusCode, responseRecorder.Code)
+			request := httptest.NewRequest("GET", "/health", http.NoBody)
+			response, err := app.Test(request)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if server == nil {
+			if response.StatusCode != scenario.expectedStatusCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.expectedStatusCode, response.StatusCode)
+			}
+			if app == nil {
 				t.Fatal("server should've been set (but because we set ROUTER_TEST, it shouldn't have been started)")
 			}
 		})
@@ -89,9 +94,9 @@ func TestHandleTLS(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	// Pretend that we called controller.Handle(), which initializes the server variable
-	server = &http.Server{}
+	app = fiber.New()
 	Shutdown()
-	if server != nil {
+	if app != nil {
 		t.Error("server should've been shut down")
 	}
 }

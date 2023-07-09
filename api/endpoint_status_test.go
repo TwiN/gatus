@@ -1,6 +1,7 @@
-package handler
+package api
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -97,8 +98,8 @@ func TestEndpointStatus(t *testing.T) {
 	}
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter(cfg)
-
+	api := New(cfg)
+	router := api.Router()
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -130,14 +131,16 @@ func TestEndpointStatus(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
+			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
 			}
-			responseRecorder := httptest.NewRecorder()
-			router.ServeHTTP(responseRecorder, request)
-			if responseRecorder.Code != scenario.ExpectedCode {
-				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, responseRecorder.Code)
+			response, err := router.Test(request)
+			if err != nil {
+				return
+			}
+			if response.StatusCode != scenario.ExpectedCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 		})
 	}
@@ -153,8 +156,8 @@ func TestEndpointStatuses(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	router := CreateRouter(&config.Config{Metrics: true})
-
+	api := New(&config.Config{Metrics: true})
+	router := api.Router()
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -196,15 +199,21 @@ func TestEndpointStatuses(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
-			responseRecorder := httptest.NewRecorder()
-			router.ServeHTTP(responseRecorder, request)
-			if responseRecorder.Code != scenario.ExpectedCode {
-				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, responseRecorder.Code)
+			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
+			response, err := router.Test(request)
+			if err != nil {
+				return
 			}
-			output := responseRecorder.Body.String()
-			if output != scenario.ExpectedBody {
-				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, output)
+			defer response.Body.Close()
+			if response.StatusCode != scenario.ExpectedCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
+			}
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				t.Error("expected err to be nil, but was", err)
+			}
+			if string(body) != scenario.ExpectedBody {
+				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
 			}
 		})
 	}

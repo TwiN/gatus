@@ -1,10 +1,10 @@
-package handler
+package api
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/gofiber/fiber/v2"
 )
 
 const (
@@ -18,9 +18,9 @@ const (
 	MaximumPageSize = common.MaximumNumberOfResults
 )
 
-func extractPageAndPageSizeFromRequest(r *http.Request) (page int, pageSize int) {
+func extractPageAndPageSizeFromRequest(c *fiber.Ctx) (page, pageSize int) {
 	var err error
-	if pageParameter := r.URL.Query().Get("page"); len(pageParameter) == 0 {
+	if pageParameter := c.Query("page"); len(pageParameter) == 0 {
 		page = DefaultPage
 	} else {
 		page, err = strconv.Atoi(pageParameter)
@@ -31,7 +31,7 @@ func extractPageAndPageSizeFromRequest(r *http.Request) (page int, pageSize int)
 			page = DefaultPage
 		}
 	}
-	if pageSizeParameter := r.URL.Query().Get("pageSize"); len(pageSizeParameter) == 0 {
+	if pageSizeParameter := c.Query("pageSize"); len(pageSizeParameter) == 0 {
 		pageSize = DefaultPageSize
 	} else {
 		pageSize, err = strconv.Atoi(pageSizeParameter)
