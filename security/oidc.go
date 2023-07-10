@@ -117,7 +117,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, subject := range c.AllowedSubjects {
-		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
+		if strings.EqualFold(subject, idToken.Subject) {
 			c.setSessionCookie(w, idToken)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
