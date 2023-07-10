@@ -47,32 +47,23 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			AllowCredentials: true,
 		}))
 	}
-	apiRouter := app.Group("/api")
-	protectedAPIRouter := apiRouter.Group("/")
-	unprotectedAPIRouter := apiRouter.Group("/")
+	// Middlewares
+	app.Use(recover.New())
+	app.Use(compress.New())
+	// Define metrics handler, if necessary
 	if cfg.Metrics {
 		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			DisableCompression: true,
 		}))
 		app.Get("/metrics", adaptor.HTTPHandler(metricsHandler))
 	}
-	// Security (ORDER IS IMPORTANT: middlewares must be applied before the routes are registered)
-	if cfg.Security != nil {
-		if err := cfg.Security.RegisterHandlers(app); err != nil {
-			panic(err)
-		}
-		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
-			panic(err)
-		}
-	}
-	// Middlewares
-	app.Use(recover.New())
-	app.Use(compress.New())
-	// Routes
-	handler := ConfigHandler{securityConfig: cfg.Security}
-	unprotectedAPIRouter.Get("/v1/config", handler.GetConfig)
-	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
-	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
+	// Define main router
+	apiRouter := app.Group("/api")
+	////////////////////////
+	// UNPROTECTED ROUTES //
+	////////////////////////
+	unprotectedAPIRouter := apiRouter.Group("/")
+	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security}.GetConfig)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", HealthBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration/badge.svg", UptimeBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/badge.svg", ResponseTimeBadge(cfg))
@@ -102,5 +93,20 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		Index:  "index.html",
 		Browse: true,
 	}))
+	//////////////////////
+	// PROTECTED ROUTES //
+	//////////////////////
+	// ORDER IS IMPORTANT: all routes applied AFTER the security middleware will require authn
+	protectedAPIRouter := apiRouter.Group("/")
+	if cfg.Security != nil {
+		if err := cfg.Security.RegisterHandlers(app); err != nil {
+			panic(err)
+		}
+		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
+			panic(err)
+		}
+	}
+	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
 	return app
 }
