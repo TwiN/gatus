@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"net/http"
@@ -31,38 +31,13 @@ func TestBadge(t *testing.T) {
 		},
 	}
 
-	testSuccessfulResult = core.Result{
-		Hostname:              "example.org",
-		IP:                    "127.0.0.1",
-		HTTPStatus:            200,
-		Errors:                nil,
-		Connected:             true,
-		Success:               true,
-		Timestamp:             timestamp,
-		Duration:              150 * time.Millisecond,
-		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
-			{
-				Condition: "[STATUS] == 200",
-				Success:   true,
-			},
-			{
-				Condition: "[RESPONSE_TIME] < 500",
-				Success:   true,
-			},
-			{
-				Condition: "[CERTIFICATE_EXPIRATION] < 72h",
-				Success:   true,
-			},
-		},
-	}
-
 	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
 	cfg.Endpoints[1].UIConfig = ui.GetDefaultConfig()
 
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter(cfg)
+	api := New(cfg)
+	router := api.Router()
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -153,14 +128,16 @@ func TestBadge(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
+			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
 			}
-			responseRecorder := httptest.NewRecorder()
-			router.ServeHTTP(responseRecorder, request)
-			if responseRecorder.Code != scenario.ExpectedCode {
-				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, responseRecorder.Code)
+			response, err := router.Test(request)
+			if err != nil {
+				return
+			}
+			if response.StatusCode != scenario.ExpectedCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 		})
 	}
@@ -264,6 +241,32 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	cfg := &config.Config{
 		Metrics:   true,
 		Endpoints: []*core.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
+	}
+
+	testSuccessfulResult := core.Result{
+		Hostname:              "example.org",
+		IP:                    "127.0.0.1",
+		HTTPStatus:            200,
+		Errors:                nil,
+		Connected:             true,
+		Success:               true,
+		Timestamp:             time.Now(),
+		Duration:              150 * time.Millisecond,
+		CertificateExpiration: 10 * time.Hour,
+		ConditionResults: []*core.ConditionResult{
+			{
+				Condition: "[STATUS] == 200",
+				Success:   true,
+			},
+			{
+				Condition: "[RESPONSE_TIME] < 500",
+				Success:   true,
+			},
+			{
+				Condition: "[CERTIFICATE_EXPIRATION] < 72h",
+				Success:   true,
+			},
+		},
 	}
 
 	store.Get().Insert(&firstTestEndpoint, &testSuccessfulResult)

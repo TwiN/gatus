@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"net/http"
@@ -30,7 +30,8 @@ func TestResponseTimeChart(t *testing.T) {
 	}
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
-	router := CreateRouter(cfg)
+	api := New(cfg)
+	router := api.Router()
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -61,14 +62,16 @@ func TestResponseTimeChart(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", scenario.Path, http.NoBody)
+			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
 			}
-			responseRecorder := httptest.NewRecorder()
-			router.ServeHTTP(responseRecorder, request)
-			if responseRecorder.Code != scenario.ExpectedCode {
-				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, responseRecorder.Code)
+			response, err := router.Test(request)
+			if err != nil {
+				return
+			}
+			if response.StatusCode != scenario.ExpectedCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 		})
 	}

@@ -1,9 +1,11 @@
-package handler
+package api
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
 )
 
 func TestExtractPageAndPageSizeFromRequest(t *testing.T) {
@@ -54,8 +56,12 @@ func TestExtractPageAndPageSizeFromRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run("page-"+scenario.Page+"-pageSize-"+scenario.PageSize, func(t *testing.T) {
-			request, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/statuses?page=%s&pageSize=%s", scenario.Page, scenario.PageSize), http.NoBody)
-			actualPage, actualPageSize := extractPageAndPageSizeFromRequest(request)
+			//request := httptest.NewRequest("GET", fmt.Sprintf("/api/v1/statuses?page=%s&pageSize=%s", scenario.Page, scenario.PageSize), http.NoBody)
+			app := fiber.New()
+			c := app.AcquireCtx(&fasthttp.RequestCtx{})
+			defer app.ReleaseCtx(c)
+			c.Request().SetRequestURI(fmt.Sprintf("/api/v1/statuses?page=%s&pageSize=%s", scenario.Page, scenario.PageSize))
+			actualPage, actualPageSize := extractPageAndPageSizeFromRequest(c)
 			if actualPage != scenario.ExpectedPage {
 				t.Errorf("expected %d, got %d", scenario.ExpectedPage, actualPage)
 			}
