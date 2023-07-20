@@ -22,16 +22,22 @@ func Handle(cfg *config.Config) {
 	server.ReadTimeout = 15 * time.Second
 	server.WriteTimeout = 15 * time.Second
 	server.IdleTimeout = 15 * time.Second
-	server.TLSConfig = cfg.Web.TLSConfig()
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
 	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
-	if server.TLSConfig != nil {
-		log.Println("[controller][Handle]", app.ListenTLS(cfg.Web.SocketAddress(), "", ""))
+	if cfg.Web.HasTLS() {
+		err := app.ListenTLS(cfg.Web.SocketAddress(), cfg.Web.TLS.CertificateFile, cfg.Web.TLS.PrivateKeyFile)
+		if err != nil {
+			log.Fatal("[controller][Handle]", err)
+		}
 	} else {
-		log.Println("[controller][Handle]", app.Listen(cfg.Web.SocketAddress()))
+		err := app.Listen(cfg.Web.SocketAddress())
+		if err != nil {
+			log.Fatal("[controller][Handle]", err)
+		}
 	}
+	log.Println("[controller][Handle] Server has shut down successfully")
 }
 
 // Shutdown stops the server

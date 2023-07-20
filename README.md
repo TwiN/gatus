@@ -1278,14 +1278,14 @@ Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/5
 
 ### TLS Encryption
 Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
-The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
 
+The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests:
 ```yaml
 web:
   port: 4443
   tls:
-    certificate-file: "server.crt"
-    private-key-file: "server.key"
+    certificate-file: "certificate.crt"
+    private-key-file: "private.key"
 ```
 
 ### Metrics

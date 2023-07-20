@@ -34,8 +34,6 @@ type TLSConfig struct {
 
 	// PrivateKeyFile is the private key file for TLS in PEM format.
 	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
-
-	tlsConfig *tls.Config
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -57,11 +55,15 @@ func (web *Config) ValidateAndSetDefaults() error {
 	}
 	// Try to load the TLS certificates
 	if web.TLS != nil {
-		if err := web.TLS.loadConfig(); err != nil {
+		if err := web.TLS.isValid(); err != nil {
 			return fmt.Errorf("invalid tls config: %w", err)
 		}
 	}
 	return nil
+}
+
+func (web *Config) HasTLS() bool {
+	return web.TLS != nil && len(web.TLS.CertificateFile) > 0 && len(web.TLS.PrivateKeyFile) > 0
 }
 
 // SocketAddress returns the combination of the Address and the Port
@@ -69,21 +71,13 @@ func (web *Config) SocketAddress() string {
 	return fmt.Sprintf("%s:%d", web.Address, web.Port)
 }
 
-func (t *TLSConfig) loadConfig() error {
+func (t *TLSConfig) isValid() error {
 	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
-		certificate, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
+		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
 		if err != nil {
 			return err
 		}
-		t.tlsConfig = &tls.Config{Certificates: []tls.Certificate{certificate}}
 		return nil
 	}
 	return errors.New("certificate-file and private-key-file must be specified")
-}
-
-func (web *Config) TLSConfig() *tls.Config {
-	if web.TLS != nil {
-		return web.TLS.tlsConfig
-	}
-	return nil
 }
