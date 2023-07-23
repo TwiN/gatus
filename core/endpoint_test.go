@@ -315,6 +315,18 @@ func TestEndpoint_Type(t *testing.T) {
 		},
 		{
 			args: args{
+				URL: "wss://example.com/",
+			},
+			want: EndpointTypeWS,
+		},
+		{
+			args: args{
+				URL: "ws://example.com/",
+			},
+			want: EndpointTypeWS,
+		},
+		{
+			args: args{
 				URL: "invalid://example.org",
 			},
 			want: EndpointTypeUNKNOWN,
@@ -591,6 +603,55 @@ func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	body, _ := io.ReadAll(request.Body)
 	if !strings.HasPrefix(string(body), "{\"query\":") {
 		t.Error("request.body should've started with '{\"query\":', but it didn't:", string(body))
+	}
+}
+
+func TestEndpoint_buildBodyWithJsonRPCEnabled(t *testing.T) {
+	type args struct {
+		Body    string
+		JsonRPC bool
+	}
+	tests := []struct {
+		args args
+		want string
+	}{
+		{
+			args: args{
+				JsonRPC: false,
+				Body:    "foo"},
+			want: `foo`,
+		},
+		{
+			args: args{
+				JsonRPC: true,
+				Body:    "foo"},
+			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": []}` + "\n",
+		},
+		{
+			args: args{
+				JsonRPC: true,
+				Body:    "foo bar"},
+			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": [bar]}` + "\n",
+		},
+		{
+			args: args{
+				JsonRPC: true,
+				Body:    "foo bar baz"},
+			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": [bar,baz]}` + "\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.want), func(t *testing.T) {
+			endpoint := Endpoint{
+				Body:    tt.args.Body,
+				JsonRPC: tt.args.JsonRPC,
+			}
+			endpoint.ValidateAndSetDefaults()
+			if got := endpoint.Body; got != tt.want {
+				t.Errorf("Endpoint.Body = '%v', want '%v'", got, tt.want)
+			}
+		})
 	}
 }
 
