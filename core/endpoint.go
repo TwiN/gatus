@@ -208,7 +208,7 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 				method_parameters = strings.Join(slices[1:], ",")
 			}
 		}
-		endpoint.Body = "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"" + method_name + "\", \"parameters\": [" + method_parameters + "]}\n"
+		endpoint.Body = "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"" + method_name + "\", \"params\": [" + method_parameters + "]}\n"
 	}
 	for _, endpointAlert := range endpoint.Alerts {
 		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
