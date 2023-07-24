@@ -1,0 +1,165 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/Welcome7",
+    "definitions": {
+        "Welcome7": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "alerting": {
+                    "$ref": "#/definitions/Alerting"
+                },
+                "endpoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Endpoint"
+                    }
+                }
+            },
+            "required": [
+                "alerting",
+                "endpoints"
+            ],
+            "title": "Welcome7"
+        },
+        "Alerting": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "email": {
+                    "$ref": "#/definitions/Email"
+                }
+            },
+            "required": [
+                "email"
+            ],
+            "title": "Alerting"
+        },
+        "Email": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Override"
+                    }
+                }
+            },
+            "required": [
+                "from",
+                "host",
+                "overrides",
+                "password",
+                "port",
+                "to",
+                "username"
+            ],
+            "title": "Email"
+        },
+        "Override": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "group",
+                "to"
+            ],
+            "title": "Override"
+        },
+        "Endpoint": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "qt-uri-protocols": [
+                        "https"
+                    ]
+                },
+                "interval": {
+                    "type": "string"
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "alerts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Alert"
+                    }
+                },
+                "group": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "alerts",
+                "conditions",
+                "interval",
+                "name",
+                "url"
+            ],
+            "title": "Endpoint"
+        },
+        "Alert": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "send-on-resolved": {
+                    "type": "boolean"
+                },
+                "failure-threshold": {
+                    "type": "integer"
+                },
+                "success-threshold": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "description",
+                "send-on-resolved",
+                "type"
+            ],
+            "title": "Alert"
+        }
+    }
+}
