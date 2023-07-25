@@ -21,6 +21,7 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 
 	// Dial URL
 	ws, err := websocket.DialConfig(config)
+	defer ws.Close()
 	if err != nil {
 		result.AddError("Error dialing WS:" + err.Error())
 		return
@@ -42,7 +43,4 @@ func queryWebSocket(endpoint *Endpoint, result *Result) {
 	}
 
 	result.Body = msg[:n]
-
-	// Close socket
-	defer ws.Close()
 }
