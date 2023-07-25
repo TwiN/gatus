@@ -214,7 +214,6 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries).     | `""`                       |
 | `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                            | `""`                       |
 | `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                                   | `""`                       |
-| `endpoints[].jsonrpc`                           | Whether to wrap the request `body` in a JSON RPC 2.0 method call.<br />See [Monitoring a WebSocket endpoint](#monitoring-a-websocket-endpoint). | `false`                    |
 | `endpoints[].alerts[].type`                     | Type of alert. <br />See [Alerting](#alerting) for all valid types.                                                                             | Required `""`              |
 | `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                    | `true`                     |
 | `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                                 | `3`                        |
@@ -1546,12 +1545,6 @@ endpoints:
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
 shows whether the connected was successfully established.
-
-Additionaly, the optional `jsonrpc` flag specifies whether to wrap the request
-body in a JSON RPC 2.0 method call, in which the first word becomes method name
-and the rest becomes parameters. For example, if the `body` is set to `status`
-and `jsonrpc` is set to `true`, Gatus will send the following as the WebSocket
-message: `{{"jsonrpc":"2.0","method":"status","params":[],"id":1}}`.
 
 ### Monitoring an endpoint using ICMP
 By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more

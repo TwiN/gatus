@@ -606,55 +606,6 @@ func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
 	}
 }
 
-func TestEndpoint_buildBodyWithJsonRPCEnabled(t *testing.T) {
-	type args struct {
-		Body    string
-		JsonRPC bool
-	}
-	tests := []struct {
-		args args
-		want string
-	}{
-		{
-			args: args{
-				JsonRPC: false,
-				Body:    "foo"},
-			want: `foo`,
-		},
-		{
-			args: args{
-				JsonRPC: true,
-				Body:    "foo"},
-			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": []}` + "\n",
-		},
-		{
-			args: args{
-				JsonRPC: true,
-				Body:    "foo bar"},
-			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": [bar]}` + "\n",
-		},
-		{
-			args: args{
-				JsonRPC: true,
-				Body:    "foo bar baz"},
-			want: `{"jsonrpc": "2.0", "id": 1, "method": "foo", "params": [bar,baz]}` + "\n",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.want), func(t *testing.T) {
-			endpoint := Endpoint{
-				Body:    tt.args.Body,
-				JsonRPC: tt.args.JsonRPC,
-			}
-			endpoint.ValidateAndSetDefaults()
-			if got := endpoint.Body; got != tt.want {
-				t.Errorf("Endpoint.Body = '%v', want '%v'", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestIntegrationEvaluateHealth(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	bodyCondition := Condition("[BODY].status == UP")
