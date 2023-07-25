@@ -131,6 +131,8 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 	firstResult.Timestamp = now.Add(-time.Minute)
 	secondResult := testUnsuccessfulResult
 	secondResult.Timestamp = now
+	thirdResult := testSuccessfulResult
+	thirdResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			scenario.Store.Insert(&testEndpoint, &firstResult)
@@ -153,6 +155,14 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 			}
 			if endpointStatus.Results[0].Timestamp.After(endpointStatus.Results[1].Timestamp) {
 				t.Error("The result at index 0 should've been older than the result at index 1")
+			}
+			scenario.Store.Insert(&testEndpoint, &thirdResult)
+			endpointStatus, err = scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			if err != nil {
+				t.Fatal("shouldn't have returned an error, got", err.Error())
+			}
+			if len(endpointStatus.Results) != 3 {
+				t.Fatalf("endpointStatus.Results should've had 3 entries")
 			}
 			scenario.Store.Clear()
 		})
@@ -457,8 +467,8 @@ func TestStore_Insert(t *testing.T) {
 	secondResult.Timestamp = now
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
-			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
 			ss, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
 			if err != nil {
 				t.Error("shouldn't have returned an error, got", err)
@@ -472,7 +482,7 @@ func TestStore_Insert(t *testing.T) {
 			if len(ss.Results) != 2 {
 				t.Fatalf("Endpoint '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 			}
-			for i, expectedResult := range []core.Result{testSuccessfulResult, testUnsuccessfulResult} {
+			for i, expectedResult := range []core.Result{firstResult, secondResult} {
 				if expectedResult.HTTPStatus != ss.Results[i].HTTPStatus {
 					t.Errorf("Result at index %d should've had a HTTPStatus of %d, got %d", i, ss.Results[i].HTTPStatus, expectedResult.HTTPStatus)
 				}
