@@ -13,7 +13,7 @@ require (
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.3.0
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
-	github.com/lib/pq v1.10.7
+	github.com/lib/pq v1.10.9
 	github.com/miekg/dns v1.1.54
 	github.com/prometheus-community/pro-bing v0.2.0
 	github.com/prometheus/client_golang v1.16.0
