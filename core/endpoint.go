@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
 	"time"
@@ -310,10 +311,10 @@ func (endpoint *Endpoint) call(result *Result) {
 	var err error
 	var certificate *x509.Certificate
 	endpointType := endpoint.Type()
-	if endpointType == EndpointTypeHTTP {
-		request = endpoint.buildHTTPRequest()
-	}
 	startTime := time.Now()
+	if endpointType == EndpointTypeHTTP {
+		request = endpoint.buildHTTPRequest(&startTime)
+	}
 	if endpointType == EndpointTypeDNS {
 		endpoint.DNS.query(endpoint.URL, result)
 		result.Duration = time.Since(startTime)
@@ -364,7 +365,7 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
-func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
+func (endpoint *Endpoint) buildHTTPRequest(startTime *time.Time) *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if endpoint.GraphQL {
 		graphQlBody := map[string]string{
@@ -382,6 +383,13 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 			request.Host = v
 		}
 	}
+	clientTrace := &httptrace.ClientTrace{
+		DNSDone: func(info httptrace.DNSDoneInfo) {
+			*startTime = time.Now()
+		},
+	}
+	clientTraceCtx := httptrace.WithClientTrace(request.Context(), clientTrace)
+	request = request.WithContext(clientTraceCtx)
 	return request
 }
 
