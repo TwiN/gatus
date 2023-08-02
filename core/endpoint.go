@@ -364,6 +364,12 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
+func (endpoint *Endpoint) CloseHTTPConnection() {
+	if endpoint.Type() == EndpointTypeHTTP {
+		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
+	}
+}
+
 func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if endpoint.GraphQL {

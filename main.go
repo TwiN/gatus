@@ -27,7 +27,7 @@ func main() {
 	go func() {
 		<-signalChannel
 		log.Println("Received termination signal, attempting to gracefully shut down")
-		stop()
+		stop(cfg)
 		save()
 		done <- true
 	}()
@@ -41,8 +41,8 @@ func start(cfg *config.Config) {
 	go listenToConfigurationFileChanges(cfg)
 }
 
-func stop() {
-	watchdog.Shutdown()
+func stop(cfg *config.Config) {
+	watchdog.Shutdown(cfg)
 	controller.Shutdown()
 }
 
@@ -89,7 +89,7 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 		time.Sleep(30 * time.Second)
 		if cfg.HasLoadedConfigurationBeenModified() {
 			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
-			stop()
+			stop(cfg)
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
 			updatedConfig, err := loadConfiguration()
@@ -104,6 +104,7 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 					panic(err)
 				}
 			}
+			store.Get().Close()
 			initializeStorage(updatedConfig)
 			start(updatedConfig)
 			return
