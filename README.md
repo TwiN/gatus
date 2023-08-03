@@ -734,6 +734,7 @@ endpoints:
 | `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
 | `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
 | `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
+| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics          | `""`              |
 | `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
 | `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
 
@@ -746,6 +747,7 @@ alerting:
   ntfy:
     topic: "gatus-test-topic"
     priority: 2
+    token: faketoken
     default-alert:
       failure-threshold: 3
       send-on-resolved: true
@@ -1277,14 +1279,14 @@ Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/5
 
 ### TLS Encryption
 Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
-The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests.
 
+The example below shows an example configuration which makes gatus respond on port 4443 to HTTPS requests:
 ```yaml
 web:
   port: 4443
   tls:
-    certificate-file: "server.crt"
-    private-key-file: "server.key"
+    certificate-file: "certificate.crt"
+    private-key-file: "private.key"
 ```
 
 ### Metrics

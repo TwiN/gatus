@@ -1,8 +1,7 @@
-package handler
+package api
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
 const (
@@ -35,10 +34,9 @@ var (
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for {duration}: 7d, 24h, 1h
-func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
-	variables := mux.Vars(request)
-	duration := variables["duration"]
+// Valid values for :duration -> 7d, 24h, 1h
+func UptimeBadge(c *fiber.Ctx) error {
+	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
 	case "7d":
@@ -48,35 +46,30 @@ func UptimeBadge(writer http.ResponseWriter, request *http.Request) {
 	case "1h":
 		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
-		http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
-		return
+		return c.Status(400).SendString("Durations supported: 7d, 24h, 1h")
 	}
-	key := variables["key"]
+	key := c.Params("key")
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			http.Error(writer, err.Error(), http.StatusNotFound)
+			return c.Status(404).SendString(err.Error())
 		} else if err == common.ErrInvalidTimeRange {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-		} else {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return c.Status(400).SendString(err.Error())
 		}
-		return
+		return c.Status(500).SendString(err.Error())
 	}
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Expires", "0")
-	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(generateUptimeBadgeSVG(duration, uptime))
+	c.Set("Content-Type", "image/svg+xml")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("Expires", "0")
+	return c.Status(200).Send(generateUptimeBadgeSVG(duration, uptime))
 }
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for {duration}: 7d, 24h, 1h
-func ResponseTimeBadge(config *config.Config) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		variables := mux.Vars(request)
-		duration := variables["duration"]
+// Valid values for :duration -> 7d, 24h, 1h
+func ResponseTimeBadge(config *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		duration := c.Params("duration")
 		var from time.Time
 		switch duration {
 		case "7d":
@@ -86,44 +79,37 @@ func ResponseTimeBadge(config *config.Config) http.HandlerFunc {
 		case "1h":
 			from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
 		default:
-			http.Error(writer, "Durations supported: 7d, 24h, 1h", http.StatusBadRequest)
-			return
+			return c.Status(400).SendString("Durations supported: 7d, 24h, 1h")
 		}
-		key := variables["key"]
+		key := c.Params("key")
 		averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 		if err != nil {
 			if err == common.ErrEndpointNotFound {
-				http.Error(writer, err.Error(), http.StatusNotFound)
+				return c.Status(404).SendString(err.Error())
 			} else if err == common.ErrInvalidTimeRange {
-				http.Error(writer, err.Error(), http.StatusBadRequest)
-			} else {
-				http.Error(writer, err.Error(), http.StatusInternalServerError)
+				return c.Status(400).SendString(err.Error())
 			}
-			return
+			return c.Status(500).SendString(err.Error())
 		}
-		writer.Header().Set("Content-Type", "image/svg+xml")
-		writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		writer.Header().Set("Expires", "0")
-		writer.WriteHeader(http.StatusOK)
-		_, _ = writer.Write(generateResponseTimeBadgeSVG(duration, averageResponseTime, key, config))
+		c.Set("Content-Type", "image/svg+xml")
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Set("Expires", "0")
+		return c.Status(200).Send(generateResponseTimeBadgeSVG(duration, averageResponseTime, key, config))
 	}
 }
 
 // HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
-func HealthBadge(writer http.ResponseWriter, request *http.Request) {
-	variables := mux.Vars(request)
-	key := variables["key"]
+func HealthBadge(c *fiber.Ctx) error {
+	key := c.Params("key")
 	pagingConfig := paging.NewEndpointStatusParams()
 	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
 	if err != nil {
 		if err == common.ErrEndpointNotFound {
-			http.Error(writer, err.Error(), http.StatusNotFound)
+			return c.Status(404).SendString(err.Error())
 		} else if err == common.ErrInvalidTimeRange {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-		} else {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return c.Status(400).SendString(err.Error())
 		}
-		return
+		return c.Status(500).SendString(err.Error())
 	}
 	healthStatus := HealthStatusUnknown
 	if len(status.Results) > 0 {
@@ -133,11 +119,10 @@ func HealthBadge(writer http.ResponseWriter, request *http.Request) {
 			healthStatus = HealthStatusDown
 		}
 	}
-	writer.Header().Set("Content-Type", "image/svg+xml")
-	writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	writer.Header().Set("Expires", "0")
-	writer.WriteHeader(http.StatusOK)
-	_, _ = writer.Write(generateHealthBadgeSVG(healthStatus))
+	c.Set("Content-Type", "image/svg+xml")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("Expires", "0")
+	return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {

@@ -32,7 +32,6 @@ export default {
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     fetchData() {
-      this.retrievedData = false;
       fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`, {credentials: 'include'})
       .then(response => {
         this.retrievedData = true;
@@ -50,6 +49,7 @@ export default {
       });
     },
     changePage(page) {
+      this.retrievedData = false; // Show loading only on page change or on initial load
       this.currentPage = page;
       this.fetchData();
     },
@@ -69,6 +69,7 @@ export default {
     }
   },
   created() {
+    this.retrievedData = false; // Show loading only on page change or on initial load
     this.fetchData();
   }
 }
