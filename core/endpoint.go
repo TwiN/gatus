@@ -364,7 +364,7 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
-// Close closes HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
+// Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
 // on configuration reload.
 // More context on https://github.com/TwiN/gatus/issues/536
 func (endpoint *Endpoint) Close() {
