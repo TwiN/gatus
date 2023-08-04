@@ -364,7 +364,13 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
-func (endpoint *Endpoint) CloseHTTPConnection() {
+/*
+This function is using to close HTTP connection between watchdog and endpoints
+So we can avoid dangling socket file descriptors
+If we find similar issue to this in the future, we can add the disconnection method in this function
+Reference: https://github.com/TwiN/gatus/issues/536
+*/
+func (endpoint *Endpoint) Close() {
 	if endpoint.Type() == EndpointTypeHTTP {
 		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
 	}

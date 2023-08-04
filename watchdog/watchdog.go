@@ -99,7 +99,7 @@ func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
 func Shutdown(cfg *config.Config) {
 	// Disable all the old HTTP connections
 	for _, endpoint := range cfg.Endpoints {
-		endpoint.CloseHTTPConnection()
+		endpoint.Close()
 	}
 	cancelFunc()
 }
