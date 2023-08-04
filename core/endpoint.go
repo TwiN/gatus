@@ -364,6 +364,15 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
+// Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
+// on configuration reload.
+// More context on https://github.com/TwiN/gatus/issues/536
+func (endpoint *Endpoint) Close() {
+	if endpoint.Type() == EndpointTypeHTTP {
+		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
+	}
+}
+
 func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if endpoint.GraphQL {
