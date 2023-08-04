@@ -15,7 +15,7 @@ require (
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
 	github.com/lib/pq v1.10.9
 	github.com/miekg/dns v1.1.54
-	github.com/prometheus-community/pro-bing v0.2.0
+	github.com/prometheus-community/pro-bing v0.3.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/valyala/fasthttp v1.48.0
 	github.com/wcharczuk/go-chart/v2 v2.1.0
@@ -57,8 +57,8 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/image v0.5.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
