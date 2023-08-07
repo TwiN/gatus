@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -182,6 +183,41 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 		return true, pinger.Statistics().MaxRtt
 	}
 	return true, 0
+}
+
+// Open a websocket connection, write `body` and return a message from the server
+func queryWebSocket(address string, config *Config, body string) (bool, string, error) {
+	const (
+		Origin             = "http://localhost/"
+		MaximumMessageSize = 1024 // in bytes
+	)
+
+	wsConfig, err := websocket.NewConfig(address, Origin)
+	if err != nil {
+		return false, "", errors.New("Error configuring WS connection:" + err.Error())
+	}
+
+	// Dial URL
+	ws, err := websocket.DialConfig(wsConfig)
+	if err != nil {
+		return false, "", errors.New("Error dialing WS:" + err.Error())
+	}
+	defer ws.Close()
+	connected := true
+
+	// Write message
+	if _, err := ws.Write([]byte(body)); err != nil {
+		return false, "", errors.New("Error writing WS body" + err.Error())
+	}
+
+	// Read message
+	var msg = make([]byte, MaximumMessageSize)
+	var n int
+	if n, err = ws.Read(msg); err != nil {
+		return false, "", errors.New("Error reading WS message" + err.Error())
+	}
+
+	return connected, string(msg[:n]), nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
