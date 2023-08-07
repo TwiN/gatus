@@ -51,3 +51,13 @@ endpoints:
     interval: 1h
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
+
+  - name: tls-example
+    url: "tls://127.0.0.1:8095"
+    interval: 1m
+    client:
+      timeout: 5s
+      insecure: true
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
