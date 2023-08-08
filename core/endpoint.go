@@ -344,7 +344,7 @@ func (endpoint *Endpoint) call(result *Result) {
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
 	} else if endpointType == EndpointTypeWS {
-		result.Connected, result.Body, err = client.queryWebSocket(endpoint.URL, endpoint.ClientConfig)
+		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.ClientConfig, endpoint.Body)
 		result.Duration = time.Since(startTime)
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
