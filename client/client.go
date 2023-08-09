@@ -194,29 +194,24 @@ func QueryWebSocket(address string, config *Config, body string) (bool, []byte, 
 
 	wsConfig, err := websocket.NewConfig(address, Origin)
 	if err != nil {
-		return false, nil, errors.New("Error configuring WS connection:" + err.Error())
+		return false, nil, fmt.Errorf("error configuring websocket connection: %w", err)
 	}
-
 	// Dial URL
 	ws, err := websocket.DialConfig(wsConfig)
 	if err != nil {
-		return false, nil, errors.New("Error dialing WS:" + err.Error())
+		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
 	connected := true
-
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
-		return false, nil, errors.New("Error writing WS body" + err.Error())
+		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
 	}
-
 	// Read message
-	var msg = make([]byte, MaximumMessageSize)
-	var n int
-	if n, err = ws.Read(msg); err != nil {
-		return false, nil, errors.New("Error reading WS message" + err.Error())
+	msg := make([]byte, MaximumMessageSize)
+	if n, err := ws.Read(msg); err != nil {
+		return false, nil, fmt.Errorf("error reading websocket message: %w", err)
 	}
-
 	return connected, msg[:n], nil
 }
 
