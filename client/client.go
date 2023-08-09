@@ -143,14 +143,20 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
 func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
-	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, nil)
+	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
+		InsecureSkipVerify: config.Insecure,
+	})
 	if err != nil {
 		return
 	}
 	defer connection.Close()
 	verifiedChains := connection.ConnectionState().VerifiedChains
+	// If config.Insecure is set to true, verifiedChains will be an empty list []
+	// We should get the parsed certificates from PeerCertificates, it can't be empty on the client side
+	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
-		return
+		peerCertificates := connection.ConnectionState().PeerCertificates
+		return true, peerCertificates[0], nil
 	}
 	return true, verifiedChains[0][0], nil
 }
