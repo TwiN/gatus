@@ -208,8 +208,9 @@ func QueryWebSocket(address string, config *Config, body string) (bool, []byte, 
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
 	}
 	// Read message
+	var n int
 	msg := make([]byte, MaximumMessageSize)
-	if n, err := ws.Read(msg); err != nil {
+	if n, err = ws.Read(msg); err != nil {
 		return false, nil, fmt.Errorf("error reading websocket message: %w", err)
 	}
 	return connected, msg[:n], nil
