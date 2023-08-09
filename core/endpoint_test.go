@@ -315,6 +315,18 @@ func TestEndpoint_Type(t *testing.T) {
 		},
 		{
 			args: args{
+				URL: "wss://example.com/",
+			},
+			want: EndpointTypeWS,
+		},
+		{
+			args: args{
+				URL: "ws://example.com/",
+			},
+			want: EndpointTypeWS,
+		},
+		{
+			args: args{
 				URL: "invalid://example.org",
 			},
 			want: EndpointTypeUNKNOWN,
