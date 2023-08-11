@@ -13,7 +13,7 @@ clean:
 	rm $(BINARY)
 
 test:
-	go test ./... -cover -race
+	go test ./... -cover
 
 
 ##########

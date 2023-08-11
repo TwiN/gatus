@@ -157,7 +157,7 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 				t.Error("The result at index 0 should've been older than the result at index 1")
 			}
 			scenario.Store.Insert(&testEndpoint, &thirdResult)
-			endpointStatus, err = scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, common.MaximumNumberOfEvents).WithResults(1, common.MaximumNumberOfResults))
+			endpointStatus, err = scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if err != nil {
 				t.Fatal("shouldn't have returned an error, got", err.Error())
 			}
