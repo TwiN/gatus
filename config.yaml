@@ -5,11 +5,11 @@ endpoints:
     ssh:
       username: "example"
       password: "example"
-    body: | 
+    body: |
       {
         "command": "uptime"
       }
-    interval: 1s
+    interval: 1m
     conditions:
       - "[STATUS] == 0"
   - name: front-end
