@@ -1546,7 +1546,7 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connected was successfully established.
+shows whether the connection was successfully established.
 
 ### Monitoring an endpoint using ICMP
 By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more

@@ -346,6 +346,10 @@ func (endpoint *Endpoint) call(result *Result) {
 	} else if endpointType == EndpointTypeWS {
 		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.ClientConfig, endpoint.Body)
 		result.Duration = time.Since(startTime)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
