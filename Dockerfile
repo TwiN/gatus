@@ -1,16 +1,16 @@
 # Build the go application into a binary
-FROM golang:alpine as builder
+FROM --platform=linux/amd64 golang:alpine as builder
 RUN apk --update add ca-certificates
 WORKDIR /app
 COPY . ./
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o gatus .
 
 # Run Tests inside docker image if you don't have a configured go environment
 #RUN apk update && apk add --virtual build-dependencies build-base gcc
 #RUN go test ./... -mod vendor
 
 # Run the binary on an empty container
-FROM scratch
+FROM --platform=linux/amd64 scratch
 COPY --from=builder /app/gatus .
 COPY --from=builder /app/config.yaml ./config/config.yaml
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
