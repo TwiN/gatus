@@ -69,7 +69,7 @@ type Body struct {
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
 	var message, results string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.SuccessThreshold)
 	} else {
 		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.FailureThreshold)
 	}
