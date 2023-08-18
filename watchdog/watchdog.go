@@ -90,6 +90,12 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
+	// If user has set the failed-interval field, update enpoint interval due to its previous failure
+	if !endpoint.IntervalChanged && !result.Success && endpoint.FailedInterval.Seconds() > 0 {
+		endpoint.Interval = endpoint.FailedInterval
+		endpoint.IntervalChanged = true
+		log.Println("[watchdog][UpdateEndpointStatuses] Endpoint checking interval changed to", endpoint.FailedInterval.String())
+	}
 	if err := store.Get().Insert(endpoint, result); err != nil {
 		log.Println("[watchdog][UpdateEndpointStatuses] Failed to insert data in storage:", err.Error())
 	}

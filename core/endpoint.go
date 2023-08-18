@@ -104,6 +104,12 @@ type Endpoint struct {
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`
 
+	// FailedInterval is the duration we'll use to replace Interval when an endpoint stauts check is failed
+	FailedInterval time.Duration `yaml:"failed-interval,omitempty"`
+
+	// IntervalChanged is whether the endpoint's Interval has changed before
+	IntervalChanged bool `"omitempty"`
+
 	// Conditions used to determine the health of the endpoint
 	Conditions []Condition `yaml:"conditions"`
 
@@ -228,6 +234,8 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if err != nil {
 		return err
 	}
+	// Initialize the IntervalChanged to false
+	endpoint.IntervalChanged = false
 	return nil
 }
 
