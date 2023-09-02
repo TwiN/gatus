@@ -131,7 +131,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{ID: "123"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 3 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\\n*Condition results*\\n✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\\n\",\"parse_mode\":\"MARKDOWN\"}",
+			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 5 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\\n*Condition results*\\n✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\\n\",\"parse_mode\":\"MARKDOWN\"}",
 		},
 	}
 	for _, scenario := range scenarios {

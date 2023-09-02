@@ -42,6 +42,7 @@ const (
 	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
 	EndpointTypeTLS      EndpointType = "TLS"
 	EndpointTypeHTTP     EndpointType = "HTTP"
+	EndpointTypeWS       EndpointType = "WEBSOCKET"
 	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
 )
 
@@ -149,6 +150,8 @@ func (endpoint Endpoint) Type() EndpointType {
 		return EndpointTypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
 		return EndpointTypeHTTP
+	case strings.HasPrefix(endpoint.URL, "ws://") || strings.HasPrefix(endpoint.URL, "wss://"):
+		return EndpointTypeWS
 	default:
 		return EndpointTypeUNKNOWN
 	}
@@ -340,6 +343,13 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
+	} else if endpointType == EndpointTypeWS {
+		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.ClientConfig, endpoint.Body)
+		result.Duration = time.Since(startTime)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
 	} else {
 		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
@@ -361,6 +371,15 @@ func (endpoint *Endpoint) call(result *Result) {
 				result.AddError("error reading response body:" + err.Error())
 			}
 		}
+	}
+}
+
+// Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
+// on configuration reload.
+// More context on https://github.com/TwiN/gatus/issues/536
+func (endpoint *Endpoint) Close() {
+	if endpoint.Type() == EndpointTypeHTTP {
+		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
 	}
 }
 

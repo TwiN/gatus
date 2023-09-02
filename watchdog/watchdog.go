@@ -96,6 +96,10 @@ func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
 }
 
 // Shutdown stops monitoring all endpoints
-func Shutdown() {
+func Shutdown(cfg *config.Config) {
+	// Disable all the old HTTP connections
+	for _, endpoint := range cfg.Endpoints {
+		endpoint.Close()
+	}
 	cancelFunc()
 }
