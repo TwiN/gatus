@@ -194,19 +194,19 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
-func ExecuteSSHCommand(cli *ssh.Client, body string, config *Config) (bool, int, error) {
+func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, error) {
 	type Body struct {
 		Command string `json:"command"`
 	}
 
-	defer cli.Close()
+	defer sshClient.Close()
 
 	var b Body
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
 		return false, 0, err
 	}
 
-	sess, err := cli.NewSession()
+	sess, err := sshClient.NewSession()
 	if err != nil {
 		return false, 0, err
 	}
