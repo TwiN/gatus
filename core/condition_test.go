@@ -288,6 +288,27 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.id > 0",
 		},
 		{
+			Name:            "body-jsonpath-hexadecimal-int-using-greater-than",
+			Condition:       Condition("[BODY].data > 0"),
+			Result:          &Result{Body: []byte("{\"data\": \"0x1\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data > 0",
+		},
+		{
+			Name:            "body-jsonpath-octal-int-using-greater-than",
+			Condition:       Condition("[BODY].data > 0"),
+			Result:          &Result{Body: []byte("{\"data\": \"0o1\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data > 0",
+		},
+		{
+			Name:            "body-jsonpath-binary-int-using-greater-than",
+			Condition:       Condition("[BODY].data > 0"),
+			Result:          &Result{Body: []byte("{\"data\": \"0b1\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data > 0",
+		},
+		{
 			Name:            "body-jsonpath-complex-int-using-greater-than-failure",
 			Condition:       Condition("[BODY].data.id > 5"),
 			Result:          &Result{Body: []byte("{\"data\": {\"id\": 1}}")},

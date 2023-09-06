@@ -304,7 +304,7 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
-		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
+		} else if number, err := strconv.ParseInt(element, 0, 64); err != nil {
 			// It's not an int, so we'll check if it's a float
 			if f, err := strconv.ParseFloat(element, 64); err == nil {
 				// It's a float, but we'll convert it to an int. We're losing precision here, but it's better than
