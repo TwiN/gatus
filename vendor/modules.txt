@@ -1,17 +1,17 @@
 # github.com/TwiN/deepmerge v0.2.0
-## explicit; go 1.19
+## explicit; go 1.20
 github.com/TwiN/deepmerge
 # github.com/TwiN/g8 v1.4.0
-## explicit; go 1.19
+## explicit; go 1.20
 github.com/TwiN/g8
 # github.com/TwiN/gocache/v2 v2.2.0
-## explicit; go 1.19
+## explicit; go 1.20
 github.com/TwiN/gocache/v2
 # github.com/TwiN/health v1.6.0
-## explicit; go 1.19
+## explicit; go 1.20
 github.com/TwiN/health
 # github.com/TwiN/whois v1.1.0
-## explicit; go 1.19
+## explicit; go 1.20
 github.com/TwiN/whois
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
@@ -102,7 +102,7 @@ github.com/wcharczuk/go-chart/v2
 github.com/wcharczuk/go-chart/v2/drawing
 github.com/wcharczuk/go-chart/v2/matrix
 github.com/wcharczuk/go-chart/v2/roboto
-# golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+# golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 ## explicit; go 1.17
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -116,7 +116,7 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
-# golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
+# golang.org/x/image v0.5.0
 ## explicit; go 1.12
 golang.org/x/image/draw
 golang.org/x/image/font
@@ -125,7 +125,7 @@ golang.org/x/image/math/fixed
 # golang.org/x/mod v0.5.1
 ## explicit; go 1.17
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+# golang.org/x/net v0.0.0-20220906165146-f3363e06e74c
 ## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/context
