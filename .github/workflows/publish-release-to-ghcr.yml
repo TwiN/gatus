@@ -20,7 +20,7 @@ jobs:
       - name: Get the release
         run: echo RELEASE=${GITHUB_REF/refs\/tags\//} >> $GITHUB_ENV
       - name: Login to Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
