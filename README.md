@@ -190,6 +190,8 @@ subdirectories are merged like so:
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+> 
+> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
 
 If you want to test it locally, see [Docker](#docker).
 
