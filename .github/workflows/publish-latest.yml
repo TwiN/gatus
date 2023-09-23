@@ -5,12 +5,12 @@ on:
     branches: [master]
     types: [completed]
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.event.workflow_run.head_repository.full_name }}::${{ github.event.workflow_run.head_branch }} - ${{ github.workflow }}
   cancel-in-progress: true
 jobs:
   publish-latest:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success') && (github.event.pull_request.head.repo.full_name == github.repository) }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3

@@ -1,4 +1,17 @@
 endpoints:
+  - name: ssh
+    group: core
+    url: "ssh://example.org"
+    ssh:
+      username: "example"
+      password: "example"
+    body: |
+      {
+        "command": "uptime"
+      }
+    interval: 1m
+    conditions:
+      - "[STATUS] == 0"
   - name: front-end
     group: core
     url: "https://twin.sh/health"

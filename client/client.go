@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/net/websocket"
@@ -17,6 +18,7 @@ import (
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
 	ping "github.com/prometheus-community/pro-bing"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -159,6 +161,74 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 		return true, peerCertificates[0], nil
 	}
 	return true, verifiedChains[0][0], nil
+}
+
+// CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
+// using the SSH protocol.
+func CanCreateSSHConnection(address, username, password string, config *Config) (bool, *ssh.Client, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, nil, errors.New("invalid address for ssh, format must be host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+
+	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:            username,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		Timeout: config.Timeout,
+	})
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, cli, nil
+}
+
+// ExecuteSSHCommand executes a command to an address using the SSH protocol.
+func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, error) {
+	type Body struct {
+		Command string `json:"command"`
+	}
+
+	defer sshClient.Close()
+
+	var b Body
+	if err := json.Unmarshal([]byte(body), &b); err != nil {
+		return false, 0, err
+	}
+
+	sess, err := sshClient.NewSession()
+	if err != nil {
+		return false, 0, err
+	}
+
+	err = sess.Start(b.Command)
+	if err != nil {
+		return false, 0, err
+	}
+
+	defer sess.Close()
+
+	err = sess.Wait()
+	if err == nil {
+		return true, 0, nil
+	}
+
+	e, ok := err.(*ssh.ExitError)
+	if !ok {
+		return false, 0, err
+	}
+
+	return true, e.ExitStatus(), nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
