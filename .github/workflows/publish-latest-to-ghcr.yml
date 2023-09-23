@@ -10,7 +10,7 @@ concurrency:
 jobs:
   publish-latest-to-ghcr:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (github.event.workflow_run.head.repo.full_name == github.repository) }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success') && (github.event.workflow_run.head_repository.full_name == github.repository) }}
     permissions:
       contents: read
       packages: write
