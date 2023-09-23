@@ -10,7 +10,7 @@ concurrency:
 jobs:
   publish-latest:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (github.event.pull_request.head.repo.full_name == github.repository) }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success') && (github.event.workflow_run.head_repository.full_name == github.repository) }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
