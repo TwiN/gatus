@@ -5,7 +5,7 @@ on:
     branches: [master]
     types: [completed]
 concurrency:
-  group: ${{ github.event.workflow_run.head_repository.full_name }}::${{ github.event.workflow_run.head_branch }} - ${{ github.workflow }}
+  group: ${{ github.event.workflow_run.head_repository.full_name }}::${{ github.event.workflow_run.head_branch }}::${{ github.workflow }}
   cancel-in-progress: true
 jobs:
   publish-latest:
