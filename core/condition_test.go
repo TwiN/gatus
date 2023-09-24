@@ -295,6 +295,27 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data > 0",
 		},
 		{
+			Name:            "body-jsonpath-hexadecimal-int-len",
+			Condition:       Condition("len([BODY].data) == 3"),
+			Result:          &Result{Body: []byte("{\"data\": \"0x1\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].data) == 3",
+		},
+		{
+			Name:            "body-jsonpath-hexadecimal-int-greater",
+			Condition:       Condition("[BODY].data >= 1"),
+			Result:          &Result{Body: []byte("{\"data\": \"0x01\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data >= 1",
+		},
+		{
+			Name:            "body-jsonpath-hexadecimal-int-0x01-len",
+			Condition:       Condition("len([BODY].data) == 4"),
+			Result:          &Result{Body: []byte("{\"data\": \"0x01\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([BODY].data) == 4",
+		},
+		{
 			Name:            "body-jsonpath-octal-int-using-greater-than",
 			Condition:       Condition("[BODY].data > 0"),
 			Result:          &Result{Body: []byte("{\"data\": \"0o1\"}")},
