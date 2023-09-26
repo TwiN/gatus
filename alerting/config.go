@@ -1,7 +1,6 @@
 package alerting
 
 import (
-	"github.com/TwiN/gatus/v5/alerting/provider/ses"
 	"log"
 	"reflect"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/ses"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -68,6 +68,9 @@ type Config struct {
 	// Pushover is the configuration for the pushover alerting provider
 	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
 
+	// Ses is the configuration for the ses alerting provider
+	Ses *ses.AlertProvider `yaml:"ses,omitempty"`
+
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack,omitempty"`
 
@@ -79,9 +82,6 @@ type Config struct {
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`
-
-	// Ses is the configuration for the ses alerting provider
-	Ses *ses.AlertProvider `yaml:"ses,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type

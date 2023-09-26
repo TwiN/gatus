@@ -44,6 +44,9 @@ const (
 	// TypePushover is the Type for the pushover alerting provider
 	TypePushover Type = "pushover"
 
+	// TypeSes is the Type for the ses alerting provider
+	TypeSes Type = "ses"
+
 	// TypeSlack is the Type for the slack alerting provider
 	TypeSlack Type = "slack"
 
@@ -55,7 +58,4 @@ const (
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
-
-	// TypeSes is the Type for the ses alerting provider
-	TypeSes Type = "ses"
 )
