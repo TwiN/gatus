@@ -1,6 +1,7 @@
 package alerting
 
 import (
+	"github.com/TwiN/gatus/v5/alerting/provider/ses"
 	"log"
 	"reflect"
 	"strings"
@@ -78,6 +79,9 @@ type Config struct {
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`
+
+	// Ses is the configuration for the ses alerting provider
+	Ses *ses.AlertProvider `yaml:"ses,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type

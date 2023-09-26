@@ -55,4 +55,7 @@ const (
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
+
+	// TypeSes is the Type for the ses alerting provider
+	TypeSes Type = "ses"
 )

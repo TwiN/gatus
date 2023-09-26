@@ -378,6 +378,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		alert.TypeTeams,
 		alert.TypeTelegram,
 		alert.TypeTwilio,
+		alert.TypeSes,
 	}
 	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {

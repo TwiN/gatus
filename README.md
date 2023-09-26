@@ -1041,6 +1041,42 @@ endpoints:
 ```
 
 
+#### Configuring Ses alerts
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.ses`                 | Settings for alerts of type `ses`                                                          | `{}`          |
+| `alerting.ses.accessKeyId`     | AWS Access Key Id                                                                          | Optional `""` |
+| `alerting.ses.secretAccessKey` | AWS Secret Access Key                                                                      | Optional `""` |
+| `alerting.ses.region`          | AWS Region                                                                                 | Required `""` |
+| `alerting.ses.from`            | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
+| `alerting.ses.to`              | Comma separated list of email address to notify                                            | Required `""` |
+| `alerting.ses.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  ses:
+    accessKeyId: "..."
+    secretAccessKey: "..."
+    region: "us-east-1"
+    from: "status@gatus.io"
+    to: "user@gatus.io"
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ses
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |
 |:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
