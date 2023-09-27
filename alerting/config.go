@@ -29,7 +29,7 @@ import (
 
 // Config is the configuration for alerting providers
 type Config struct {
-	// AWSSes is the configuration for the awsses alerting provider
+	// AWSSes is the configuration for the aws-ses alerting provider
 	AWSSimpleEmailService *awsses.AlertProvider `yaml:"aws-ses,omitempty"`
 
 	// Custom is the configuration for the custom alerting provider
@@ -89,7 +89,8 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 	entityType := reflect.TypeOf(config).Elem()
 	for i := 0; i < entityType.NumField(); i++ {
 		field := entityType.Field(i)
-		if strings.ToLower(field.Name) == string(alertType) {
+		tag := strings.Split(field.Tag.Get("yaml"), ",")[0]
+		if tag == string(alertType) {
 			fieldValue := reflect.ValueOf(config).Elem().Field(i)
 			if fieldValue.IsNil() {
 				return nil
