@@ -1,4 +1,4 @@
-package ses
+package awsses
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	invalidProviderWithOneKey := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyId: "1"}
+	invalidProviderWithOneKey := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}
 	if invalidProviderWithOneKey.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
@@ -20,7 +20,7 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithKeys := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyId: "1", SecretAccessKey: "1"}
+	validProviderWithKeys := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}
 	if !validProviderWithKeys.IsValid() {
 		t.Error("provider should've been valid")
 	}

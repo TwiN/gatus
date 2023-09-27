@@ -2,6 +2,7 @@ package provider
 
 import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
@@ -15,7 +16,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
-	"github.com/TwiN/gatus/v5/alerting/provider/ses"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -59,6 +59,7 @@ func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
 
 var (
 	// Validate interface implementation on compile
+	_ AlertProvider = (*awsses.AlertProvider)(nil)
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
@@ -72,7 +73,6 @@ var (
 	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
 	_ AlertProvider = (*pushover.AlertProvider)(nil)
-	_ AlertProvider = (*ses.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)

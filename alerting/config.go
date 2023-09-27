@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
@@ -20,7 +21,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
-	"github.com/TwiN/gatus/v5/alerting/provider/ses"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
@@ -29,6 +29,9 @@ import (
 
 // Config is the configuration for alerting providers
 type Config struct {
+	// AWSSes is the configuration for the awsses alerting provider
+	AWSSimpleEmailService *awsses.AlertProvider `yaml:"aws-awsses,omitempty"`
+
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
@@ -67,9 +70,6 @@ type Config struct {
 
 	// Pushover is the configuration for the pushover alerting provider
 	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
-
-	// Ses is the configuration for the ses alerting provider
-	Ses *ses.AlertProvider `yaml:"ses,omitempty"`
 
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack,omitempty"`

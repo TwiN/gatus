@@ -48,6 +48,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -1041,22 +1042,22 @@ endpoints:
 ```
 
 
-#### Configuring Ses alerts
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.ses`                 | Settings for alerts of type `ses`                                                          | `{}`          |
-| `alerting.ses.accessKeyId`     | AWS Access Key Id                                                                          | Optional `""` |
-| `alerting.ses.secretAccessKey` | AWS Secret Access Key                                                                      | Optional `""` |
-| `alerting.ses.region`          | AWS Region                                                                                 | Required `""` |
-| `alerting.ses.from`            | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
-| `alerting.ses.to`              | Comma separated list of email address to notify                                            | Required `""` |
-| `alerting.ses.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+#### Configuring AWS Ses alerts
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
+| `alerting.aws-ses.access-key-id`     | AWS Access Key ID                                                                          | Optional `""` |
+| `alerting.aws-ses.secret-access-key` | AWS Secret Access Key                                                                      | Optional `""` |
+| `alerting.aws-ses.region`            | AWS Region                                                                                 | Required `""` |
+| `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
+| `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
+| `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 ```yaml
 alerting:
-  ses:
-    accessKeyId: "..."
-    secretAccessKey: "..."
+  aws-ses:
+    access-key-id: "..."
+    secret-access-key: "..."
     region: "us-east-1"
     from: "status@gatus.io"
     to: "user@gatus.io"
@@ -1070,7 +1071,7 @@ endpoints:
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
     alerts:
-      - type: ses
+      - type: aws-ses
         failure-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"

@@ -1,4 +1,4 @@
-package ses
+package awsses
 
 import (
 	"fmt"
@@ -18,8 +18,8 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
-	AccessKeyId     string `yaml:"accessKeyId"`
-	SecretAccessKey string `yaml:"secretAccessKey"`
+	AccessKeyID     string `yaml:"access-key-id"`
+	SecretAccessKey string `yaml:"secret-access-key"`
 	Region          string `yaml:"region"`
 
 	From string `yaml:"from"`
@@ -51,7 +51,7 @@ func (provider *AlertProvider) IsValid() bool {
 	}
 
 	return len(provider.From) > 0 && len(provider.To) > 0 &&
-		((len(provider.AccessKeyId) == 0 && len(provider.SecretAccessKey) == 0) || (len(provider.AccessKeyId) > 0 && len(provider.SecretAccessKey) > 0))
+		((len(provider.AccessKeyID) == 0 && len(provider.SecretAccessKey) == 0) || (len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0))
 }
 
 // Send an alert using the provider
@@ -164,8 +164,8 @@ func (provider AlertProvider) CreateSesSession() (*session.Session, error) {
 		Region: aws.String(provider.Region),
 	}
 
-	if len(provider.AccessKeyId) > 0 && len(provider.SecretAccessKey) > 0 {
-		config.Credentials = credentials.NewStaticCredentials(provider.AccessKeyId, provider.SecretAccessKey, "")
+	if len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0 {
+		config.Credentials = credentials.NewStaticCredentials(provider.AccessKeyID, provider.SecretAccessKey, "")
 	}
 
 	return session.NewSession(config)
