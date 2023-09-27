@@ -1077,6 +1077,8 @@ endpoints:
         description: "healthcheck failed"
 ```
 
+Make sure you have the ability to use `ses:SendEmail`.
+
 
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |

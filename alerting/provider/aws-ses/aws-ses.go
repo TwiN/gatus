@@ -1,4 +1,4 @@
-package awsses
+package aws_ses
 
 import (
 	"fmt"
@@ -65,16 +65,11 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	svc := ses.New(sess)
 
 	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
-
 	emails := strings.Split(provider.getToForGroup(endpoint.Group), ",")
-	var CCEmails []*string
-	for _, cc := range emails {
-		CCEmails = append(CCEmails, &cc)
-	}
 
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
-			ToAddresses: CCEmails,
+			ToAddresses: aws.StringSlice(emails),
 		},
 		Message: &ses.Message{
 			Body: &ses.Body{
