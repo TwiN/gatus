@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -19,6 +18,7 @@ import (
 	"github.com/ishidawataru/sctp"
 	ping "github.com/prometheus-community/pro-bing"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/net/websocket"
 )
 
 var (
@@ -261,16 +261,18 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	return true, 0
 }
 
-// Open a websocket connection, write `body` and return a message from the server
-func QueryWebSocket(address string, config *Config, body string) (bool, []byte, error) {
+// QueryWebSocket opens a websocket connection, write `body` and return a message from the server
+func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) {
 	const (
 		Origin             = "http://localhost/"
 		MaximumMessageSize = 1024 // in bytes
 	)
-
 	wsConfig, err := websocket.NewConfig(address, Origin)
 	if err != nil {
 		return false, nil, fmt.Errorf("error configuring websocket connection: %w", err)
+	}
+	if config != nil {
+		wsConfig.Dialer = &net.Dialer{Timeout: config.Timeout}
 	}
 	// Dial URL
 	ws, err := websocket.DialConfig(wsConfig)
@@ -278,7 +280,6 @@ func QueryWebSocket(address string, config *Config, body string) (bool, []byte, 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
-	connected := true
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
@@ -289,7 +290,7 @@ func QueryWebSocket(address string, config *Config, body string) (bool, []byte, 
 	if n, err = ws.Read(msg); err != nil {
 		return false, nil, fmt.Errorf("error reading websocket message: %w", err)
 	}
-	return connected, msg[:n], nil
+	return true, msg[:n], nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes

@@ -253,3 +253,14 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 		t.Error("exptected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
 	}
 }
+
+func TestQueryWebSocket(t *testing.T) {
+	_, _, err := QueryWebSocket("", "body", &Config{Timeout: 2 * time.Second})
+	if err == nil {
+		t.Error("expected an error due to the address being invalid")
+	}
+	_, _, err = QueryWebSocket("ws://example.org", "body", &Config{Timeout: 2 * time.Second})
+	if err == nil {
+		t.Error("expected an error due to the target not being websocket-friendly")
+	}
+}
