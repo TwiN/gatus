@@ -1042,7 +1042,7 @@ endpoints:
 ```
 
 
-#### Configuring AWS Ses alerts
+#### Configuring AWS SES alerts
 | Parameter                            | Description                                                                                | Default       |
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
