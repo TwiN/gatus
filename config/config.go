@@ -361,7 +361,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		return
 	}
 	alertTypes := []alert.Type{
-		alert.TypeAWSSes,
+		alert.TypeAWSSES,
 		alert.TypeCustom,
 		alert.TypeDiscord,
 		alert.TypeGitHub,

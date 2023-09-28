@@ -5,8 +5,8 @@ package alert
 type Type string
 
 const (
-	// TypeAWSSes is the Type for the aws-ses alerting provider
-	TypeAWSSes Type = "aws-ses"
+	// TypeAWSSES is the Type for the aws-ses alerting provider
+	TypeAWSSES Type = "aws-ses"
 
 	// TypeCustom is the Type for the custom alerting provider
 	TypeCustom Type = "custom"

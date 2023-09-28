@@ -29,7 +29,7 @@ import (
 
 // Config is the configuration for alerting providers
 type Config struct {
-	// AWSSes is the configuration for the aws-ses alerting provider
+	// AWSSES is the configuration for the aws-ses alerting provider
 	AWSSimpleEmailService *aws_ses.AlertProvider `yaml:"aws-ses,omitempty"`
 
 	// Custom is the configuration for the custom alerting provider
