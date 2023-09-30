@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultHTTPTimeout = 10 * time.Second
+	defaultTimeout = 10 * time.Second
 )
 
 var (
@@ -27,7 +27,7 @@ var (
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
-		Timeout:        defaultHTTPTimeout,
+		Timeout:        defaultTimeout,
 	}
 )
 
