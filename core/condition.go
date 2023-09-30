@@ -224,6 +224,14 @@ func isEqual(first, second string) bool {
 			return false
 		}
 	}
+
+	// test if inputs are integers
+	firstInt, err1 := strconv.ParseInt(first, 0, 64)
+	secondInt, err2 := strconv.ParseInt(second, 0, 64)
+	if err1 == nil && err2 == nil {
+		return firstInt == secondInt
+	}
+
 	return first == second
 }
 
