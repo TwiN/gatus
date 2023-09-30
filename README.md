@@ -476,10 +476,10 @@ endpoints:
 | `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
 | `alerting.email.to`                | Email(s) to send the alerts to                                                             | Required `""` |
 | `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.email.client.insecure`   | Whether to skip TLS verification                                                           | `false`       |
 | `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
 | `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
-| `alerting.email.client.insecure`   | The email client does not verify the TLS certificate of the mail server                    | `false`       |
 
 ```yaml
 alerting:
@@ -490,15 +490,13 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
+    client:
+      insecure: false
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
       - group: "core"
         to: "recipient3@example.com,recipient4@example.com"
-    # You can configure the email client to skip TLS verification
-    # defaults to false
-    client:
-      insecure: false
 
 endpoints:
   - name: website
