@@ -1912,13 +1912,3 @@ No such header is required to query the API.
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
-
-
-## Sponsors
-You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
-
-<!-- _There is currently no sponsors_ -->
-
-[<img src="https://github.com/8ball030.png" width="50" />](https://github.com/8ball030)
-
-<!-- [<img src="https://github.com/$user.png" width="50" />](https://github.com/$user) -->
