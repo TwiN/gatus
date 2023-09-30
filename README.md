@@ -479,6 +479,7 @@ endpoints:
 | `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
 | `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
+| `alerting.email.client.insecure`   | The email client does not verify the TLS certificate of the mail server                    | `false`       |
 
 ```yaml
 alerting:
@@ -494,6 +495,10 @@ alerting:
     overrides:
       - group: "core"
         to: "recipient3@example.com,recipient4@example.com"
+    # You can configure the email client to skip TLS verification
+    # defaults to false
+    client:
+      insecure: false
 
 endpoints:
   - name: website
