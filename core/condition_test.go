@@ -295,7 +295,7 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data > 0",
 		},
 		{
-			Name:            "body-jsonpath-hexadecimal-int-using-greater-than-without-strings",
+			Name:            "body-jsonpath-hexadecimal-int-using-equal",
 			Condition:       Condition("[BODY].data == 2"),
 			Result:          &Result{Body: []byte("{\"data\": \"0x2\"}")},
 			ExpectedSuccess: true,
@@ -330,11 +330,25 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data > 0",
 		},
 		{
+			Name:            "body-jsonpath-octal-int-using-equal",
+			Condition:       Condition("[BODY].data == 2"),
+			Result:          &Result{Body: []byte("{\"data\": \"0o2\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == 2",
+		},
+		{
 			Name:            "body-jsonpath-binary-int-using-greater-than",
 			Condition:       Condition("[BODY].data > 0"),
 			Result:          &Result{Body: []byte("{\"data\": \"0b1\"}")},
 			ExpectedSuccess: true,
 			ExpectedOutput:  "[BODY].data > 0",
+		},
+		{
+			Name:            "body-jsonpath-binary-int-using-equal",
+			Condition:       Condition("[BODY].data == 2"),
+			Result:          &Result{Body: []byte("{\"data\": \"0b0010\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == 2",
 		},
 		{
 			Name:            "body-jsonpath-complex-int-using-greater-than-failure",
