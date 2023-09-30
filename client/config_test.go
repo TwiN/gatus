@@ -13,7 +13,7 @@ func TestConfig_getHTTPClient(t *testing.T) {
 	if !(insecureClient.Transport).(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Error("expected Config.Insecure set to true to cause the HTTP client to skip certificate verification")
 	}
-	if insecureClient.Timeout != defaultHTTPTimeout {
+	if insecureClient.Timeout != defaultTimeout {
 		t.Error("expected Config.Timeout to default the HTTP client to a timeout of 10s")
 	}
 	request, _ := http.NewRequest("GET", "", nil)

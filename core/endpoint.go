@@ -139,7 +139,7 @@ type SSH struct {
 	Password string `yaml:"password,omitempty"`
 }
 
-// Validate validates the endpoint
+// ValidateAndSetDefaults validates the endpoint
 func (s *SSH) ValidateAndSetDefaults() error {
 	if s.Username == "" {
 		return ErrEndpointWithoutSSHUsername
@@ -376,12 +376,12 @@ func (endpoint *Endpoint) call(result *Result) {
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
 	} else if endpointType == EndpointTypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.ClientConfig, endpoint.Body)
-		result.Duration = time.Since(startTime)
+		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.Body, endpoint.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
+		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeSSH {
 		var cli *ssh.Client
 		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSH.Username, endpoint.SSH.Password, endpoint.ClientConfig)
