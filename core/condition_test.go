@@ -295,11 +295,32 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data > 0",
 		},
 		{
-			Name:            "body-jsonpath-hexadecimal-int-using-equal",
+			Name:            "body-jsonpath-hexadecimal-int-using-equal-to-0x1",
+			Condition:       Condition("[BODY].data == 1"),
+			Result:          &Result{Body: []byte("{\"data\": \"0x1\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == 1",
+		},
+		{
+			Name:            "body-jsonpath-hexadecimal-int-using-equal-to-0x2",
 			Condition:       Condition("[BODY].data == 2"),
 			Result:          &Result{Body: []byte("{\"data\": \"0x2\"}")},
 			ExpectedSuccess: true,
 			ExpectedOutput:  "[BODY].data == 2",
+		},
+		{
+			Name:            "body-jsonpath-hexadecimal-int-using-equal-to-0xF",
+			Condition:       Condition("[BODY].data == 15"),
+			Result:          &Result{Body: []byte("{\"data\": \"0xF\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == 15",
+		},
+		{
+			Name:            "body-jsonpath-hexadecimal-int-using-equal-to-0xC0ff33",
+			Condition:       Condition("[BODY].data == 12648243"),
+			Result:          &Result{Body: []byte("{\"data\": \"0xC0ff33\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].data == 12648243",
 		},
 		{
 			Name:            "body-jsonpath-hexadecimal-int-len",
