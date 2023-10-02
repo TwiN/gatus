@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
-	"github.com/TwiN/gatus/v5/alerting/provider/aws-ses"
+	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
@@ -30,7 +30,7 @@ import (
 // Config is the configuration for alerting providers
 type Config struct {
 	// AWSSimpleEmailService is the configuration for the aws-ses alerting provider
-	AWSSimpleEmailService *aws_ses.AlertProvider `yaml:"aws-ses,omitempty"`
+	AWSSimpleEmailService *awsses.AlertProvider `yaml:"aws-ses,omitempty"`
 
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`

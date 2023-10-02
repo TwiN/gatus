@@ -1,4 +1,4 @@
-package aws_ses
+package awsses
 
 import (
 	"testing"
