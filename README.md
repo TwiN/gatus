@@ -1062,8 +1062,8 @@ alerting:
     access-key-id: "..."
     secret-access-key: "..."
     region: "us-east-1"
-    from: "status@gatus.io"
-    to: "user@gatus.io"
+    from: "status@example.com"
+    to: "user@example.com"
 
 endpoints:
   - name: website
