@@ -224,6 +224,14 @@ func isEqual(first, second string) bool {
 			return false
 		}
 	}
+
+	// test if inputs are integers
+	firstInt, err1 := strconv.ParseInt(first, 0, 64)
+	secondInt, err2 := strconv.ParseInt(second, 0, 64)
+	if err1 == nil && err2 == nil {
+		return firstInt == secondInt
+	}
+
 	return first == second
 }
 
@@ -304,7 +312,7 @@ func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []st
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
-		} else if number, err := strconv.ParseInt(element, 10, 64); err != nil {
+		} else if number, err := strconv.ParseInt(element, 0, 64); err != nil {
 			// It's not an int, so we'll check if it's a float
 			if f, err := strconv.ParseFloat(element, 64); err == nil {
 				// It's a float, but we'll convert it to an int. We're losing precision here, but it's better than
