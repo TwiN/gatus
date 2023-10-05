@@ -7,7 +7,7 @@ require (
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
-	github.com/TwiN/whois v1.1.3
+	github.com/TwiN/whois v1.1.7
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/google/go-github/v48 v48.2.0
