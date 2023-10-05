@@ -1,11 +1,13 @@
 package email
 
 import (
+	"crypto/tls"
 	"fmt"
 	"math"
 	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
 	gomail "gopkg.in/mail.v2"
 )
@@ -18,6 +20,9 @@ type AlertProvider struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	To       string `yaml:"to"`
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -62,16 +67,20 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 	d := gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
+	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
+		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	return d.DialAndSend(m)
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
 func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) (string, string) {
-	var message, results string
-	subject := fmt.Sprintf("[%s] Alert triggered", endpoint.DisplayName())
+	var subject, message, results string
 	if resolved {
+		subject = fmt.Sprintf("[%s] Alert resolved", endpoint.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 	} else {
+		subject = fmt.Sprintf("[%s] Alert triggered", endpoint.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
 	for _, conditionResult := range result.ConditionResults {

@@ -90,6 +90,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring a WebSocket endpoint](#monitoring-a-websocket-endpoint)
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
+  - [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
@@ -190,6 +191,8 @@ subdirectories are merged like so:
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+> 
+> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -214,6 +217,9 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries).     | `""`                       |
 | `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                            | `""`                       |
 | `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                                   | `""`                       |
+| `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh). | `""`                       |
+| `endpoints[].ssh.username`                      | SSH username (e.g. example)                                                                                                                 | Required `""`              |
+| `endpoints[].ssh.password`                      | SSH password (e.g. password)                                                                                                                | Required `""`              |
 | `endpoints[].alerts[].type`                     | Type of alert. <br />See [Alerting](#alerting) for all valid types.                                                                             | Required `""`              |
 | `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                    | `true`                     |
 | `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                                 | `3`                        |
@@ -470,6 +476,7 @@ endpoints:
 | `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
 | `alerting.email.to`                | Email(s) to send the alerts to                                                             | Required `""` |
 | `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.email.client.insecure`   | Whether to skip TLS verification                                                           | `false`       |
 | `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
 | `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
@@ -483,6 +490,8 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
+    client:
+      insecure: false
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
@@ -1585,6 +1594,28 @@ There are two placeholders that can be used in the conditions for endpoints of t
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
+### Monitoring an endpoint using SSH
+You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh:\\`:
+```yaml
+endpoints:
+  - name: ssh-example
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: "username"
+      password: "password"
+    body: | 
+      {
+        "command": "uptime"
+      }
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+```
+
+The following placeholders are supported for endpoints of type SSH:
+- `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
+- `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
 
 ### Monitoring an endpoint using STARTTLS
 If you have an email server that you want to ensure there are no problems with, monitoring it through STARTTLS
@@ -1600,7 +1631,6 @@ endpoints:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
-
 
 ### Monitoring an endpoint using TLS
 Monitoring endpoints using SSL/TLS encryption, such as LDAP over TLS, can help detect certificate expiration:
@@ -1885,13 +1915,3 @@ No such header is required to query the API.
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
-
-
-## Sponsors
-You can find the full list of sponsors [here](https://github.com/sponsors/TwiN).
-
-<!-- _There is currently no sponsors_ -->
-
-[<img src="https://github.com/8ball030.png" width="50" />](https://github.com/8ball030)
-
-<!-- [<img src="https://github.com/$user.png" width="50" />](https://github.com/$user) -->

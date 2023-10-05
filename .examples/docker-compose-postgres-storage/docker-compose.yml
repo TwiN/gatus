@@ -18,6 +18,10 @@ services:
     restart: always
     ports:
       - "8080:8080"
+    environment:
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=gatus
     volumes:
       - ./config:/config
     networks:

@@ -1,6 +1,6 @@
 storage:
   type: postgres
-  path: "postgres://username:password@postgres:5432/gatus?sslmode=disable"
+  path: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
 
 endpoints:
   - name: back-end
