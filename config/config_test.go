@@ -303,6 +303,8 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 storage:
   type: sqlite
   path: %s
+  maximum-number-of-results: 10
+  maximum-number-of-events: 5
 maintenance:
   enabled: true
   start: 00:00
@@ -350,6 +352,9 @@ endpoints:
 	}
 	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
 		t.Error("expected storage to be set to sqlite, got", config.Storage)
+	}
+	if config.Storage == nil || config.Storage.MaximumNumberOfResults != 10 || config.Storage.MaximumNumberOfEvents != 5 {
+		t.Error("expected MaximumNumberOfResults and MaximumNumberOfEvents to be set to 10 and 5, got", config.Storage.MaximumNumberOfResults, config.Storage.MaximumNumberOfEvents)
 	}
 	if config.UI == nil || config.UI.Title != "T" || config.UI.Header != "H" || config.UI.Link != "https://example.org" || len(config.UI.Buttons) != 2 || config.UI.Buttons[0].Name != "Home" || config.UI.Buttons[0].Link != "https://example.org" || config.UI.Buttons[1].Name != "Status page" || config.UI.Buttons[1].Link != "https://status.example.org" {
 		t.Error("expected ui to be set to T, H, https://example.org, 2 buttons, Home and Status page, got", config.UI)

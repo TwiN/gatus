@@ -17,15 +17,22 @@ type Store struct {
 	sync.RWMutex
 
 	cache *gocache.Cache
+
+	// maximumNumberOfResults is the maximum number of results that an endpoint can have
+	maximumNumberOfResults int
+	// maximumNumberOfEvents is the maximum number of events that an endpoint can have
+	maximumNumberOfEvents int
 }
 
 // NewStore creates a new store using gocache.Cache
 //
 // This store holds everything in memory, and if the file parameter is not blank,
 // supports eventual persistence.
-func NewStore() (*Store, error) {
+func NewStore(maximumNumberOfResults int, maximumNumberOfEvents int) (*Store, error) {
 	store := &Store{
-		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		cache:                  gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		maximumNumberOfResults: maximumNumberOfResults,
+		maximumNumberOfEvents:  maximumNumberOfEvents,
 	}
 	return store, nil
 }
@@ -151,7 +158,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(status.(*core.EndpointStatus), result)
+	AddResult(status.(*core.EndpointStatus), result, s.maximumNumberOfResults, s.maximumNumberOfEvents)
 	s.cache.Set(key, status)
 	s.Unlock()
 	return nil

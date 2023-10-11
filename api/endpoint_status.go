@@ -20,7 +20,7 @@ import (
 // Due to how intensive this operation can be on the storage, this function leverages a cache.
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		page, pageSize := extractPageAndPageSizeFromRequest(c)
+		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
 		var data []byte
 		if !exists {
@@ -83,25 +83,27 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*cor
 }
 
 // EndpointStatus retrieves a single core.EndpointStatus by group and endpoint name
-func EndpointStatus(c *fiber.Ctx) error {
-	page, pageSize := extractPageAndPageSizeFromRequest(c)
-	endpointStatus, err := store.Get().GetEndpointStatusByKey(c.Params("key"), paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
-	if err != nil {
-		if err == common.ErrEndpointNotFound {
-			return c.Status(404).SendString(err.Error())
+func EndpointStatus(cfg *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
+		endpointStatus, err := store.Get().GetEndpointStatusByKey(c.Params("key"), paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
+		if err != nil {
+			if err == common.ErrEndpointNotFound {
+				return c.Status(404).SendString(err.Error())
+			}
+			log.Printf("[api][EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
+			return c.Status(500).SendString(err.Error())
 		}
-		log.Printf("[api][EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
-		return c.Status(500).SendString(err.Error())
+		if endpointStatus == nil { // XXX: is this check necessary?
+			log.Printf("[api][EndpointStatus] Endpoint with key=%s not found", c.Params("key"))
+			return c.Status(404).SendString("not found")
+		}
+		output, err := json.Marshal(endpointStatus)
+		if err != nil {
+			log.Printf("[api][EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
+			return c.Status(500).SendString("unable to marshal object to JSON")
+		}
+		c.Set("Content-Type", "application/json")
+		return c.Status(200).Send(output)
 	}
-	if endpointStatus == nil { // XXX: is this check necessary?
-		log.Printf("[api][EndpointStatus] Endpoint with key=%s not found", c.Params("key"))
-		return c.Status(404).SendString("not found")
-	}
-	output, err := json.Marshal(endpointStatus)
-	if err != nil {
-		log.Printf("[api][EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
-		return c.Status(500).SendString("unable to marshal object to JSON")
-	}
-	c.Set("Content-Type", "application/json")
-	return c.Status(200).Send(output)
 }

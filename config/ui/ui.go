@@ -5,6 +5,7 @@ import (
 	"errors"
 	"html/template"
 
+	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
@@ -28,6 +29,8 @@ type Config struct {
 	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
 	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
+
+	MaximumNumberOfResults int // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
 }
 
 // Button is the configuration for a button on the UI
@@ -47,11 +50,12 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
-		Title:       defaultTitle,
-		Description: defaultDescription,
-		Header:      defaultHeader,
-		Logo:        defaultLogo,
-		Link:        defaultLink,
+		Title:                  defaultTitle,
+		Description:            defaultDescription,
+		Header:                 defaultHeader,
+		Logo:                   defaultLogo,
+		Link:                   defaultLink,
+		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
 

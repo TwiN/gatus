@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <script type="text/javascript">
-      window.config = {logo: "{{ .Logo }}", header: "{{ .Header }}", link: "{{ .Link }}", buttons: []};{{- range .Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+      window.config = {logo: "{{ .Logo }}", header: "{{ .Header }}", link: "{{ .Link }}", buttons: [], maximumNumberOfResults: "{{ .MaximumNumberOfResults }}"};{{- range .Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
     </script>
     <title>{{ .Title }}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />

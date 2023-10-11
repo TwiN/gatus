@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/gatus/v5/storage"
 )
 
 var (
@@ -95,6 +96,10 @@ func TestEndpointStatus(t *testing.T) {
 				Group: "core",
 			},
 		},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
 	}
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
 	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
@@ -156,7 +161,13 @@ func TestEndpointStatuses(t *testing.T) {
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	api := New(&config.Config{Metrics: true})
+	api := New(&config.Config{
+		Metrics: true,
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	})
 	router := api.Router()
 	type Scenario struct {
 		Name         string
