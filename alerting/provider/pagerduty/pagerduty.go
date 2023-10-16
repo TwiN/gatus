@@ -119,10 +119,26 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		Payload: Payload{
 			Summary:  message,
 			Source:   "Gatus",
-			Severity: "critical",
+			Severity: provider.pagerDutySeverity(result),
 		},
 	})
 	return body
+}
+
+// Returns PagerDuty severity based on result severity represented as a string
+func (provider *AlertProvider) pagerDutySeverity(result *core.Result) string {
+	switch severity := result.Severity; {
+	case severity.Critical:
+		return "critical"
+	case severity.High:
+		return "error"
+	case severity.Medium:
+		return "warning"
+	case severity.Low:
+		return "info"
+	default:
+		return "critical"
+	}
 }
 
 // getIntegrationKeyForGroup returns the appropriate pagerduty integration key for a given group

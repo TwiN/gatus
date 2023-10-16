@@ -308,10 +308,23 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		result.Success = false
 	}
 	// Evaluate the conditions
-	for _, condition := range endpoint.Conditions {
+	for index, condition := range endpoint.Conditions {
 		success := condition.evaluate(result, endpoint.UIConfig.DontResolveFailedConditions)
 		if !success {
 			result.Success = false
+
+			switch severityStatus := result.ConditionResults[index].SeverityStatus; {
+			case severityStatus == Low:
+				result.Severity.Low = true
+			case severityStatus == Medium:
+				result.Severity.Medium = true
+			case severityStatus == High:
+				result.Severity.High = true
+			case severityStatus == Critical:
+				result.Severity.Critical = true
+			}
+
+			result.SeverityStatus = result.determineSeverityStatus()
 		}
 	}
 	result.Timestamp = time.Now()

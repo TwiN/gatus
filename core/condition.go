@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -106,7 +107,8 @@ func (c Condition) Validate() error {
 
 // evaluate the Condition with the Result of the health check
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
-	condition := string(c)
+	severityStatus := None
+	severityByCondition, condition := c.sanitizeSeverityCondition()
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
@@ -151,9 +153,34 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bo
 	}
 	if !success {
 		//log.Printf("[Condition][evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
+		severityStatus = severityByCondition
 	}
-	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
+	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success, SeverityStatus: severityStatus})
 	return success
+}
+
+// Extracts severity status from condition.
+// Returns separated SeverityStatus and condition
+func (c Condition) sanitizeSeverityCondition() (SeverityStatus, string) {
+	severityStatus, complexCondition := Critical, string(c)
+	regex, _ := regexp.Compile(`(Low|Medium|High|Critical) :: (.+)`)
+	matchedStringsSlice := regex.FindStringSubmatch(complexCondition)
+	if len(matchedStringsSlice) == 0 {
+		return severityStatus, complexCondition
+	}
+
+	switch foundSeverityStatus := matchedStringsSlice[1]; {
+	case foundSeverityStatus == "Low":
+		severityStatus = Low
+	case foundSeverityStatus == "Medium":
+		severityStatus = Medium
+	case foundSeverityStatus == "High":
+		severityStatus = High
+	case foundSeverityStatus == "Critical":
+		severityStatus = Critical
+	}
+
+	return severityStatus, matchedStringsSlice[2]
 }
 
 // hasBodyPlaceholder checks whether the condition has a BodyPlaceholder
