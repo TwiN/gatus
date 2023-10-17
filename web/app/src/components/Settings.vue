@@ -33,7 +33,7 @@ export default {
   props: {},
   methods: {
     setRefreshInterval(seconds) {
-      sessionStorage.setItem('gatus:refresh-interval', seconds);
+      localStorage.setItem('gatus:refresh-interval', seconds);
       let that = this;
       this.refreshIntervalHandler = setInterval(function () {
         that.refreshData();
@@ -78,7 +78,7 @@ export default {
   },
   data() {
     return {
-      refreshInterval: sessionStorage.getItem('gatus:refresh-interval') < 10 ? 300 : parseInt(sessionStorage.getItem('gatus:refresh-interval')),
+      refreshInterval: localStorage.getItem('gatus:refresh-interval') < 10 ? 300 : parseInt(localStorage.getItem('gatus:refresh-interval')),
       refreshIntervalHandler: 0,
       darkMode: true
     }

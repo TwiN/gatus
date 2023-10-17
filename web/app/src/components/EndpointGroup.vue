@@ -60,7 +60,7 @@ export default {
     },
     toggleGroup() {
       this.collapsed = !this.collapsed;
-      sessionStorage.setItem(`gatus:endpoint-group:${this.name}:collapsed`, this.collapsed);
+      localStorage.setItem(`gatus:endpoint-group:${this.name}:collapsed`, this.collapsed);
     },
     showTooltip(result, event) {
       this.$emit('showTooltip', result, event);
@@ -80,7 +80,7 @@ export default {
   data() {
     return {
       unhealthyCount: 0,
-      collapsed: sessionStorage.getItem(`gatus:endpoint-group:${this.name}:collapsed`) === "true"
+      collapsed: localStorage.getItem(`gatus:endpoint-group:${this.name}:collapsed`) === "true"
     }
   }
 }
