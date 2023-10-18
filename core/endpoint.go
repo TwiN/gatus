@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -45,7 +46,9 @@ const (
 	EndpointTypeHTTP     EndpointType = "HTTP"
 	EndpointTypeWS       EndpointType = "WEBSOCKET"
 	EndpointTypeSSH      EndpointType = "SSH"
-	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
+
+	EndpointTypeSCRIPT  EndpointType = "SCRIPT"
+	EndpointTypeUNKNOWN EndpointType = "UNKNOWN"
 )
 
 var (
@@ -76,6 +79,9 @@ var (
 	ErrEndpointWithoutSSHUsername = errors.New("you must specify a username for each endpoint with SSH")
 	// ErrEndpointWithoutSSHPassword is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a password.
 	ErrEndpointWithoutSSHPassword = errors.New("you must specify a password for each endpoint with SSH")
+
+	// ErrEndpointScriptNoCommand is the error with which Gatus will panic if an endpoint is configured to be a script, with no command
+	ErrEndpointScriptNoCommand = errors.New("you must specify command for scripts endpoints")
 )
 
 // Endpoint is the configuration of a monitored
@@ -130,6 +136,13 @@ type Endpoint struct {
 
 	// SSH is the configuration of SSH monitoring.
 	SSH *SSH `yaml:"ssh,omitempty"`
+
+	Script *Script `yaml:"script,omitempty"`
+}
+
+type Script struct {
+	Command     string            `yaml:"command,omitempty"`
+	Environment map[string]string `yaml:"environment,omitempty"`
 }
 
 type SSH struct {
@@ -161,6 +174,9 @@ func (endpoint Endpoint) IsEnabled() bool {
 // Type returns the endpoint type
 func (endpoint Endpoint) Type() EndpointType {
 	switch {
+
+	case endpoint.Script != nil:
+		return EndpointTypeSCRIPT
 	case endpoint.DNS != nil:
 		return EndpointTypeDNS
 	case strings.HasPrefix(endpoint.URL, "tcp://"):
@@ -232,7 +248,14 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if strings.ContainsAny(endpoint.Name, "\"\\") || strings.ContainsAny(endpoint.Group, "\"\\") {
 		return ErrEndpointWithInvalidNameOrGroup
 	}
-	if len(endpoint.URL) == 0 {
+	if endpoint.Type() == EndpointTypeSCRIPT {
+		if len(endpoint.Script.Command) == 0 {
+			return ErrEndpointScriptNoCommand
+		}
+		//TODO : handle default environement
+	}
+
+	if len(endpoint.URL) == 0 && endpoint.Type() != EndpointTypeSCRIPT {
 		return ErrEndpointWithNoURL
 	}
 	if len(endpoint.Conditions) == 0 {
@@ -349,6 +372,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		request = endpoint.buildHTTPRequest()
 	}
 	startTime := time.Now()
+
 	if endpointType == EndpointTypeDNS {
 		endpoint.DNS.query(endpoint.URL, result)
 		result.Duration = time.Since(startTime)
@@ -364,6 +388,38 @@ func (endpoint *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
+	} else if endpointType == EndpointTypeSCRIPT {
+		//log.Printf("[endpoint][monitor] Executing command=%s; endpoint=%s", endpoint.Script.Command, endpoint.Name)
+
+		// Split command
+		command := strings.Fields(endpoint.Script.Command)
+		cmd := exec.Command(command[0], command[1:]...)
+
+		// bind stderr / stdout
+		var outb, errb bytes.Buffer
+		cmd.Stdout = &outb
+		cmd.Stderr = &errb
+
+		// propagate custom environement
+		for key, value := range endpoint.Script.Environment {
+			log.Printf("[endpoint][monitor] endpoint=%s inject env %s %s", endpoint.Name, key, value)
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+		}
+		// Execute command
+		err := cmd.Run()
+		result.Duration = time.Since(startTime)
+
+		if err != nil {
+			result.AddError(err.Error())
+		}
+
+		// Fetch script exit code / stderr / stdout
+		result.ScriptExitCode = cmd.ProcessState.ExitCode()
+		result.ScriptStderr = errb.Bytes()
+		result.ScriptStdout = outb.Bytes()
+
+		// log.Printf("[endpoint][monitor] endpoint=%s stdout : '%s'", endpoint.Name, result.ScriptStdout)
+
 	} else if endpointType == EndpointTypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
@@ -478,3 +534,5 @@ func (endpoint *Endpoint) needsToRetrieveIP() bool {
 	}
 	return false
 }
+
+//

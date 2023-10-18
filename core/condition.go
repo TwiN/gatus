@@ -50,6 +50,10 @@ const (
 
 	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
 	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
+
+	ScriptExitCode = "[EXIT_CODE]"
+	ScriptStdOut   = "[STDOUT]"
+	ScriptStdErr   = "[STDERR]"
 )
 
 // Functions
@@ -261,6 +265,12 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
 		case DomainExpirationPlaceholder:
 			element = strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10)
+		case ScriptExitCode:
+			element = strconv.FormatInt(int64(result.ScriptExitCode), 10)
+		case ScriptStdErr:
+			element = string(result.ScriptStderr)
+		case ScriptStdOut:
+			element = string(result.ScriptStdout)
 		default:
 			// if contains the BodyPlaceholder, then evaluate json path
 			if strings.Contains(element, BodyPlaceholder) {
