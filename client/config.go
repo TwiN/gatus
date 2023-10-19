@@ -13,6 +13,8 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
+
+	"google.golang.org/api/idtoken"
 )
 
 const (
@@ -23,6 +25,7 @@ var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
+	ErrInvalidClientIAPConfig    = errors.New("invalid IAP configuration: must define all fields for IAP programmatic authentication (audience)")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -58,6 +61,9 @@ type Config struct {
 	// See configureOAuth2 for more details.
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
+	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
+	IAPConfig *IAPConfig `yaml:"iap,omitempty"`
+
 	httpClient *http.Client
 }
 
@@ -76,6 +82,11 @@ type OAuth2Config struct {
 	Scopes       []string `yaml:"scopes"` // e.g. ["openid"]
 }
 
+// IAPConfig is the configuration for the Google Cloud Identity-Aware-Proxy
+type IAPConfig struct {
+	Audience string `yaml:"audience"` // e.g. "toto.apps.googleusercontent.com"
+}
+
 // ValidateAndSetDefaults validates the client configuration and sets the default values if necessary
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
@@ -89,6 +100,9 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
 		return ErrInvalidClientOAuth2Config
+	}
+	if c.HasIAPConfig() && !c.IAPConfig.isValid() {
+		return ErrInvalidClientIAPConfig
 	}
 	return nil
 }
@@ -128,6 +142,16 @@ func (c *Config) parseDNSResolver() (*DNSResolverConfig, error) {
 // HasOAuth2Config returns true if the client has OAuth2 configuration parameters
 func (c *Config) HasOAuth2Config() bool {
 	return c.OAuth2Config != nil
+}
+
+// HasIAPConfig returns true if the client has IAP configuration parameters
+func (c *Config) HasIAPConfig() bool {
+	return c.IAPConfig != nil
+}
+
+// isValid() returns true if the IAP configuration is valid
+func (c *IAPConfig) isValid() bool {
+	return len(c.Audience) > 0
 }
 
 // isValid() returns true if the OAuth2 configuration is valid
@@ -178,11 +202,54 @@ func (c *Config) getHTTPClient() *http.Client {
 				}
 			}
 		}
-		if c.HasOAuth2Config() {
+		if c.HasOAuth2Config() && c.HasIAPConfig() {
+			log.Println("[client][getHTTPClient] Error: Both IAP and Oauth2 configuration are present.")
+		} else if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
+		} else if c.HasIAPConfig() {
+			c.httpClient = configureIAP(c.httpClient, *c.IAPConfig)
 		}
 	}
 	return c.httpClient
+}
+
+// validateIAPToken returns a boolean that will define is the iap token can be fetch
+// and if is it valid.
+func validateIAPToken(ctx context.Context, c IAPConfig) bool {
+	ts, err := idtoken.NewTokenSource(ctx, c.Audience)
+	if err != nil {
+		log.Println("[client][ValidateIAPToken] Claiming Identity token failed. error:", err.Error())
+		return false
+	}
+	tok, err := ts.Token()
+	if err != nil {
+		log.Println("[client][ValidateIAPToken] Get IAP token failed. error:", err.Error())
+		return false
+	}
+	payload, err := idtoken.Validate(ctx, tok.AccessToken, c.Audience)
+	_ = payload
+	if err != nil {
+		log.Println("[client][ValidateIAPToken] Token Validation failed. error:", err.Error())
+		return false
+	}
+	return true
+}
+
+// configureIAP returns an HTTP client that will obtain and refresh IAP tokens as necessary.
+// The returned Client and its Transport should not be modified.
+func configureIAP(httpClient *http.Client, c IAPConfig) *http.Client {
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
+	if validateIAPToken(ctx, c) {
+		ts, err := idtoken.NewTokenSource(ctx, c.Audience)
+		if err != nil {
+			log.Println("[client][ConfigureIAP] Claiming Token Source failed. error:", err.Error())
+			return httpClient
+		}
+		client := oauth2.NewClient(ctx, ts)
+		client.Timeout = httpClient.Timeout
+		return client
+	}
+	return httpClient
 }
 
 // configureOAuth2 returns an HTTP client that will obtain and refresh tokens as necessary.
@@ -195,5 +262,7 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 		TokenURL:     c.TokenURL,
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
-	return oauth2cfg.Client(ctx)
+	client := oauth2cfg.Client(ctx)
+	client.Timeout = httpClient.Timeout
+	return client
 }
