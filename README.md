@@ -413,7 +413,7 @@ This example shows how you can use the `client.iap` configuration to query a bac
 ```yaml
 endpoints:
   - name: with-custom-iap
-    url: "https://my.protected.iap.app/health"
+    url: "https://my.iap.protected.app/health"
     client:
       iap:
         audience: "XXXXXXXX-XXXXXXXXXXXX.apps.googleusercontent.com"
