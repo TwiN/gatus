@@ -354,6 +354,9 @@ the client used to send the request.
 | `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
 | `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
 | `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
+| `client.iap`                  | Google Identity-Aware-Proxy client configuration.                          | `{}`            |
+| `client.iap.audience`         | The IAP audience. (client-id of the IAP oauth2 credential).                | required `""`   |
+
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -406,6 +409,18 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+This example shows how you can use the `client.iap` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
+```yaml
+endpoints:
+  - name: with-custom-iap
+    url: "https://my.protected.iap.app/health"
+    client:
+      iap:
+        audience: "XXXXXXXX-XXXXXXXXXXXX.apps.googleusercontent.com"
+    conditions:
+      - "[STATUS] == 200"
+```
+> 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
