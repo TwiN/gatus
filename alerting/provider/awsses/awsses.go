@@ -16,7 +16,7 @@ const (
 	CharSet = "UTF-8"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using PagerDuty
+// AlertProvider is the configuration necessary for sending an alert using AWS Simple Email Service
 type AlertProvider struct {
 	AccessKeyID     string `yaml:"access-key-id"`
 	SecretAccessKey string `yaml:"secret-access-key"`
@@ -50,20 +50,19 @@ func (provider *AlertProvider) IsValid() bool {
 		}
 	}
 
+	// if both AccessKeyID and SecretAccessKey are specified, we'll use these to authenticate,
+	// otherwise if neither are specified, then we'll fall back on IAM authentication.
 	return len(provider.From) > 0 && len(provider.To) > 0 &&
 		((len(provider.AccessKeyID) == 0 && len(provider.SecretAccessKey) == 0) || (len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0))
 }
 
 // Send an alert using the provider
-//
-// Relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	sess, err := provider.CreateSesSession()
 	if err != nil {
 		return err
 	}
 	svc := ses.New(sess)
-
 	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
 	emails := strings.Split(provider.getToForGroup(endpoint.Group), ",")
 
@@ -85,7 +84,6 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		},
 		Source: aws.String(provider.From),
 	}
-
 	_, err = svc.SendEmail(input)
 
 	if err != nil {
