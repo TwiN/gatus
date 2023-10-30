@@ -54,6 +54,9 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool `yaml:"-"`
+
+	// Consecutive defines whether the alert should be triggered consecutively on each failure threshold multiple
+	Consecutive bool `yaml:"consecutive,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one

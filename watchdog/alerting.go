@@ -26,12 +26,25 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 	endpoint.NumberOfFailuresInARow++
 	for _, endpointAlert := range endpoint.Alerts {
 		// If the alert hasn't been triggered, move to the next one
-		if !endpointAlert.IsEnabled() || endpointAlert.FailureThreshold > endpoint.NumberOfFailuresInARow {
+		if !endpointAlert.IsEnabled() {
 			continue
 		}
-		if endpointAlert.Triggered {
+		shouldSendAlert := false
+		// Check if endpointAlert is set to trigger alerts consecutively
+		if endpointAlert.Consecutive {
+			// If NumberOfFailuresInARow is a multiple of FailureThreshold, then we should send an alert
+			if endpoint.NumberOfFailuresInARow%endpointAlert.FailureThreshold == 0 {
+				shouldSendAlert = true
+				log.Printf("[watchdog][handleAlertsToTrigger] Consecutive alerting enabled. Alert triggered for endpoint=%s as it meets the failure threshold multiple", endpoint.Name)
+			}
+		} else if !endpointAlert.Consecutive && (endpointAlert.FailureThreshold == endpoint.NumberOfFailuresInARow || endpointAlert.FailureThreshold < endpoint.NumberOfFailuresInARow) && !endpointAlert.Triggered {
+			// For non-consecutive alerts, send the alert once when FailureThreshold equals NumberOfFailuresInARow
+			shouldSendAlert = true
+		}
+		// If we shouldn't send an alert based on the above conditions, move to the next iteration
+		if !shouldSendAlert {
 			if debug {
-				log.Printf("[watchdog][handleAlertsToTrigger] Alert for endpoint=%s with description='%s' has already been TRIGGERED, skipping", endpoint.Name, endpointAlert.GetDescription())
+				log.Printf("[watchdog][handleAlertsToTrigger] Alert for endpoint=%s with description='%s' should not be triggered, skipping", endpoint.Name, endpointAlert.GetDescription())
 			}
 			continue
 		}
