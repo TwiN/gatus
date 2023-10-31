@@ -63,6 +63,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	firstDescription := "description-1"
 	secondDescription := "description-2"
+	title := "provider-title"
 	scenarios := []struct {
 		Name             string
 		Provider         AlertProvider
@@ -111,6 +112,16 @@ func TestAlertProvider_Send(t *testing.T) {
 			}),
 			ExpectedError: true,
 		},
+		{
+			Name:     "triggered-with-modified-title",
+			Provider: AlertProvider{Title: title},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -139,6 +150,7 @@ func TestAlertProvider_Send(t *testing.T) {
 func TestAlertProvider_buildRequestBody(t *testing.T) {
 	firstDescription := "description-1"
 	secondDescription := "description-2"
+	title := "provider-title"
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
@@ -159,6 +171,13 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"color\":3066993,\"fields\":[{\"name\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n:white_check_mark: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
+		},
+		{
+			Name:         "triggered-with-modified-title",
+			Provider:     AlertProvider{Title: title},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n:x: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
 		},
 	}
 	for _, scenario := range scenarios {
