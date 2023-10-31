@@ -7,9 +7,9 @@
           <div class="text-3xl xl:text-5xl lg:text-4xl font-light">{{ header }}</div>
         </div>
         <div class="w-1/4 flex justify-end">
-          <component :is="link ? 'a' : 'div'" :href="link" target="_blank" style="width:100px">
-            <img v-if="logo" :src="logo" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;" />
-            <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width: 100px; min-width: 50px; min-height:50px;" />
+          <component :is="link ? 'a' : 'div'" :href="link" target="_blank" class="flex items-center justify-center" style="width:100px;min-height:100px;">
+            <img v-if="logo" :src="logo" alt="Gatus" class="object-scale-down" style="max-width:100px;min-width:50px;min-height:50px;" />
+            <img v-else src="./assets/logo.svg" alt="Gatus" class="object-scale-down" style="max-width:100px;min-width:50px;min-height:50px;" />
           </component>
         </div>
       </div>
