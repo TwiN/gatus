@@ -83,16 +83,16 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		}
 		results += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
 	}
-	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = "\n" + alertDescription
+	if len(alert.GetDescription()) > 0 {
+		message += " with the following description: " + alert.GetDescription()
 	}
+	message += results
 	title := "Gatus: " + endpoint.DisplayName()
 	if provider.Title != "" {
 		title = provider.Title
 	}
 	body, _ := json.Marshal(Body{
-		Message:  message + description + results,
+		Message:  message,
 		Title:    title,
 		Priority: provider.Priority,
 	})
