@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -49,6 +50,9 @@ type Config struct {
 
 	// GoogleChat is the configuration for the googlechat alerting provider
 	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
+
+	// Gotify is the configuration for the gotify alerting provider
+	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
 
 	// Matrix is the configuration for the matrix alerting provider
 	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
