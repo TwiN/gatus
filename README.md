@@ -48,6 +48,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -440,6 +441,7 @@ ignored.
 |:-------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.discord`                         | Configuration for alerts of type `discord`                                                 | `{}`          |
 | `alerting.discord.webhook-url`             | Discord Webhook URL                                                                        | Required `""` |
+| `alerting.discord.title`                   | Title of the notification                                                                  |  `":helmet_with_white_cross: Gatus"`         |
 | `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
@@ -1042,6 +1044,46 @@ endpoints:
         send-on-resolved: true
         description: "healthcheck failed"
 ```
+
+
+#### Configuring AWS SES alerts
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
+| `alerting.aws-ses.access-key-id`     | AWS Access Key ID                                                                          | Optional `""` |
+| `alerting.aws-ses.secret-access-key` | AWS Secret Access Key                                                                      | Optional `""` |
+| `alerting.aws-ses.region`            | AWS Region                                                                                 | Required `""` |
+| `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
+| `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
+| `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  aws-ses:
+    access-key-id: "..."
+    secret-access-key: "..."
+    region: "us-east-1"
+    from: "status@example.com"
+    to: "user@example.com"
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: aws-ses
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
+
+Make sure you have the ability to use `ses:SendEmail`.
 
 
 #### Configuring custom alerts

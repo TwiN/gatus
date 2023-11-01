@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
@@ -28,6 +29,9 @@ import (
 
 // Config is the configuration for alerting providers
 type Config struct {
+	// AWSSimpleEmailService is the configuration for the aws-ses alerting provider
+	AWSSimpleEmailService *awsses.AlertProvider `yaml:"aws-ses,omitempty"`
+
 	// Custom is the configuration for the custom alerting provider
 	Custom *custom.AlertProvider `yaml:"custom,omitempty"`
 
@@ -85,7 +89,8 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 	entityType := reflect.TypeOf(config).Elem()
 	for i := 0; i < entityType.NumField(); i++ {
 		field := entityType.Field(i)
-		if strings.ToLower(field.Name) == string(alertType) {
+		tag := strings.Split(field.Tag.Get("yaml"), ",")[0]
+		if tag == string(alertType) {
 			fieldValue := reflect.ValueOf(config).Elem().Field(i)
 			if fieldValue.IsNil() {
 				return nil

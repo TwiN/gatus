@@ -8,6 +8,7 @@ require (
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/whois v1.1.7
+	github.com/aws/aws-sdk-go v1.45.16
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/google/go-github/v48 v48.2.0
@@ -38,6 +39,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kr/text v0.2.0 // indirect
