@@ -468,20 +468,21 @@ endpoints:
 
 
 #### Configuring Email alerts
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.email`                   | Configuration for alerts of type `email`                                                   | `{}`          |
-| `alerting.email.from`              | Email used to send the alert                                                               | Required `""` |
-| `alerting.email.username`          | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`          |
-| `alerting.email.password`          | Password of the SMTP server used to send the alert                                         | Required `""` |
-| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
-| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
-| `alerting.email.to`                | Email(s) to send the alerts to                                                             | Required `""` |
-| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.email.client.insecure`   | Whether to skip TLS verification                                                           | `false`       |
-| `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
+| Parameter                               | Description                                                                                | Default       |
+|:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.email`                        | Configuration for alerts of type `email`                                                   | `{}`          |
+| `alerting.email.from`                   | Email used to send the alert                                                               | Required `""` |
+| `alerting.email.username`               | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`          |
+| `alerting.email.password`               | Password of the SMTP server used to send the alert                                         | Required `""` |
+| `alerting.email.host`                   | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
+| `alerting.email.port`                   | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
+| `alerting.email.to`                     | Email(s) to send the alerts to                                                             | Required `""` |
+| `alerting.email.disable-authentictaion` | Disables authentication. Useful for SMTP relays using IP-based authentication              | `false`       |
+| `alerting.email.default-alert`          | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.email.client.insecure`        | Whether to skip TLS verification                                                           | `false`       |
+| `alerting.email.overrides`              | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.email.overrides[].group`      | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.email.overrides[].to`         | Email(s) to send the alerts to                                                             | `""`          |
 
 ```yaml
 alerting:
