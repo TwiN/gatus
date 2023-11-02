@@ -14,12 +14,13 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using SMTP
 type AlertProvider struct {
-	From     string `yaml:"from"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	To       string `yaml:"to"`
+	From        string `yaml:"from"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	To          string `yaml:"to"`
+	DisableAuth bool   `yaml:"disable-authentication"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -49,7 +50,7 @@ func (provider *AlertProvider) IsValid() bool {
 		}
 	}
 
-	return len(provider.From) > 0 && len(provider.Password) > 0 && len(provider.Host) > 0 && len(provider.To) > 0 && provider.Port > 0 && provider.Port < math.MaxUint16
+	return len(provider.From) > 0 && (provider.DisableAuth || len(provider.Password) > 0) && len(provider.Host) > 0 && len(provider.To) > 0 && provider.Port > 0 && provider.Port < math.MaxUint16
 }
 
 // Send an alert using the provider
@@ -66,7 +67,14 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	m.SetHeader("To", strings.Split(provider.getToForGroup(endpoint.Group), ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
-	d := gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
+	var d *gomail.Dialer
+	if provider.DisableAuth {
+		// Create a dialer with no authentication
+		d = &gomail.Dialer{Host: provider.Host, Port: provider.Port}
+	} else {
+		// Create an authenticated dialer
+		d = gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
+	}
 	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
