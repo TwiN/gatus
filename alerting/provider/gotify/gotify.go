@@ -19,8 +19,8 @@ type AlertProvider struct {
 	// ServerURL is the URL of the Gotify server
 	ServerURL string `yaml:"server-url"`
 
-	// AppToken is the token of the application to send messages to
-	AppToken string `yaml:"app-token"`
+	// Token is the token to use when sending a message to the Gotify server
+	Token string `yaml:"token"`
 
 	// Priority is the priority of the message
 	Priority int `yaml:"priority,omitempty"` // Defaults to DefaultPriority
@@ -37,13 +37,13 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = DefaultPriority
 	}
-	return len(provider.ServerURL) > 0 && len(provider.AppToken) > 0
+	return len(provider.ServerURL) > 0 && len(provider.Token) > 0
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.ServerURL+"/message?token="+provider.AppToken, buffer)
+	request, err := http.NewRequest(http.MethodPost, provider.ServerURL+"/message?token="+provider.Token, buffer)
 	if err != nil {
 		return err
 	}
