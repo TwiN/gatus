@@ -67,10 +67,17 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	m.SetHeader("To", strings.Split(provider.getToForGroup(endpoint.Group), ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
+
+	localName := "localhost"
+	fromParts := strings.Split(provider.From, `@`)
+	if len(fromParts) == 2 {
+		localName = fromParts[1]
+	}
+
 	var d *gomail.Dialer
 	if provider.DisableAuth {
 		// Create a dialer with no authentication
-		d = &gomail.Dialer{Host: provider.Host, Port: provider.Port}
+		d = &gomail.Dialer{Host: provider.Host, Port: provider.Port, LocalName: localName}
 	} else {
 		// Create an authenticated dialer
 		d = gomail.NewDialer(provider.Host, provider.Port, username, provider.Password)
