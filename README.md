@@ -645,7 +645,7 @@ endpoints:
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:-----------------------|
 | `alerting.gotify`                             | Configuration for alerts of type `gotify`                                                   | `{}`                   |
 | `alerting.gotify.server-url`                  | Gotify server URL                                                                           | Required `""`          |
-| `alerting.gotify.app-token`                   | Token that is used for authentication.                                                      | Required `""`          |
+| `alerting.gotify.token`                       | Token that is used for authentication.                                                      | Required `""`          |
 | `alerting.gotify.priority`                    | Priority of the alert according to Gotify standarts.                                        | `5`                    |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                    |
 | `alerting.gotify.title`                       | Title of the notification                                                                   |  `"Gatus: <endpoint>"` |
@@ -654,7 +654,7 @@ endpoints:
 alerting:
   gotify:
     server-url: "https://gotify.example"
-    app-token: "**************"
+    token: "**************"
 
 endpoints:
   - name: website
