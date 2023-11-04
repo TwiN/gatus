@@ -20,7 +20,6 @@ type AlertProvider struct {
 	Host        string `yaml:"host"`
 	Port        int    `yaml:"port"`
 	To          string `yaml:"to"`
-	DisableAuth bool   `yaml:"disable-authentication"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -50,7 +49,7 @@ func (provider *AlertProvider) IsValid() bool {
 		}
 	}
 
-	return len(provider.From) > 0 && (provider.DisableAuth || len(provider.Password) > 0) && len(provider.Host) > 0 && len(provider.To) > 0 && provider.Port > 0 && provider.Port < math.MaxUint16
+	return len(provider.From) > 0 && len(provider.Host) > 0 && len(provider.To) > 0 && provider.Port > 0 && provider.Port < math.MaxUint16
 }
 
 // Send an alert using the provider
@@ -68,14 +67,15 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 
-	localName := "localhost"
-	fromParts := strings.Split(provider.From, `@`)
-	if len(fromParts) == 2 {
-		localName = fromParts[1]
-	}
-
 	var d *gomail.Dialer
-	if provider.DisableAuth {
+	if len(provider.Password) == 0 {
+		// Get the domain in the From address
+		localName := "localhost"
+		fromParts := strings.Split(provider.From, `@`)
+		if len(fromParts) == 2 {
+			localName = fromParts[1]
+		}
+
 		// Create a dialer with no authentication
 		d = &gomail.Dialer{Host: provider.Host, Port: provider.Port, LocalName: localName}
 	} else {

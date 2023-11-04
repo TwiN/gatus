@@ -18,8 +18,8 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithAuthenticationDisabled(t *testing.T) {
-	validProvider := AlertProvider{From: "from@example.com", DisableAuth: true, Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}
+func TestAlertProvider_IsValidWithNoCredentials(t *testing.T) {
+	validProvider := AlertProvider{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
