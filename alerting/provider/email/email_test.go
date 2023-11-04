@@ -18,6 +18,13 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_IsValidWithNoCredentials(t *testing.T) {
+	validProvider := AlertProvider{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}
+	if !validProvider.IsValid() {
+		t.Error("provider should've been valid")
+	}
+}
+
 func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
