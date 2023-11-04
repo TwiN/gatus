@@ -14,12 +14,12 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using SMTP
 type AlertProvider struct {
-	From        string `yaml:"from"`
-	Username    string `yaml:"username"`
-	Password    string `yaml:"password"`
-	Host        string `yaml:"host"`
-	Port        int    `yaml:"port"`
-	To          string `yaml:"to"`
+	From     string `yaml:"from"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	To       string `yaml:"to"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -66,7 +66,6 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	m.SetHeader("To", strings.Split(provider.getToForGroup(endpoint.Group), ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
-
 	var d *gomail.Dialer
 	if len(provider.Password) == 0 {
 		// Get the domain in the From address
@@ -75,7 +74,6 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 		if len(fromParts) == 2 {
 			localName = fromParts[1]
 		}
-
 		// Create a dialer with no authentication
 		d = &gomail.Dialer{Host: provider.Host, Port: provider.Port, LocalName: localName}
 	} else {
