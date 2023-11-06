@@ -107,6 +107,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Health](#health)
     - [Response time](#response-time)
   - [API](#api)
+  - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 - [Sponsors](#sponsors)
 
@@ -1991,6 +1992,11 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
+
+### Installing as binary
+You can download Gatus as a binary using the following command:
+
+`go install github.com/TwiN/gatus/v5@latest`
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
