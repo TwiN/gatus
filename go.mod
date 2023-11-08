@@ -8,7 +8,7 @@ require (
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/whois v1.1.7
-	github.com/aws/aws-sdk-go v1.45.16
+	github.com/aws/aws-sdk-go v1.47.5
 	github.com/coreos/go-oidc/v3 v3.7.0
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/google/go-github/v48 v48.2.0
