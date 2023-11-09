@@ -1996,7 +1996,9 @@ No such header is required to query the API.
 ### Installing as binary
 You can download Gatus as a binary using the following command:
 
-`go install github.com/TwiN/gatus/v5@latest`
+```
+go install github.com/TwiN/gatus/v5@latest
+```
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
