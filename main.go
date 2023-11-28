@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -14,6 +15,10 @@ import (
 )
 
 func main() {
+	if delayInSeconds, _ := strconv.Atoi(os.Getenv("GATUS_DELAY_START_SECONDS")); delayInSeconds > 0 {
+		log.Printf("Delaying start by %d seconds", delayInSeconds)
+		time.Sleep(time.Duration(delayInSeconds) * time.Second)
+	}
 	cfg, err := loadConfiguration()
 	if err != nil {
 		panic(err)
