@@ -8,7 +8,8 @@ require (
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/whois v1.1.7
-	github.com/coreos/go-oidc/v3 v3.6.0
+	github.com/aws/aws-sdk-go v1.47.9
+	github.com/coreos/go-oidc/v3 v3.7.0
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.3.1
@@ -17,11 +18,12 @@ require (
 	github.com/miekg/dns v1.1.56
 	github.com/prometheus-community/pro-bing v0.3.0
 	github.com/prometheus/client_golang v1.17.0
-	github.com/valyala/fasthttp v1.49.0
+	github.com/valyala/fasthttp v1.50.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	golang.org/x/crypto v0.14.0
 	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.13.0
+	google.golang.org/api v0.148.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.26.0
@@ -43,6 +45,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -65,8 +68,7 @@ require (
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
-	google.golang.org/api v0.148.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a // indirect
 	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect

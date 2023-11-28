@@ -13,7 +13,6 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
-
 	"google.golang.org/api/idtoken"
 )
 
@@ -25,7 +24,7 @@ var (
 	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
-	ErrInvalidClientIAPConfig    = errors.New("invalid IAP configuration: must define all fields for IAP programmatic authentication (audience)")
+	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -62,7 +61,7 @@ type Config struct {
 	OAuth2Config *OAuth2Config `yaml:"oauth2,omitempty"`
 
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
-	IAPConfig *IAPConfig `yaml:"iap,omitempty"`
+	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
 	httpClient *http.Client
 }
@@ -203,7 +202,7 @@ func (c *Config) getHTTPClient() *http.Client {
 			}
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {
-			log.Println("[client][getHTTPClient] Error: Both IAP and Oauth2 configuration are present.")
+			log.Println("[client][getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
 		} else if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		} else if c.HasIAPConfig() {
@@ -213,7 +212,7 @@ func (c *Config) getHTTPClient() *http.Client {
 	return c.httpClient
 }
 
-// validateIAPToken returns a boolean that will define is the iap token can be fetch
+// validateIAPToken returns a boolean that will define if the google identity-aware-proxy token can be fetch
 // and if is it valid.
 func validateIAPToken(ctx context.Context, c IAPConfig) bool {
 	ts, err := idtoken.NewTokenSource(ctx, c.Audience)
@@ -223,7 +222,7 @@ func validateIAPToken(ctx context.Context, c IAPConfig) bool {
 	}
 	tok, err := ts.Token()
 	if err != nil {
-		log.Println("[client][ValidateIAPToken] Get IAP token failed. error:", err.Error())
+		log.Println("[client][ValidateIAPToken] Get Identity-Aware-Proxy token failed. error:", err.Error())
 		return false
 	}
 	payload, err := idtoken.Validate(ctx, tok.AccessToken, c.Audience)
@@ -235,7 +234,7 @@ func validateIAPToken(ctx context.Context, c IAPConfig) bool {
 	return true
 }
 
-// configureIAP returns an HTTP client that will obtain and refresh IAP tokens as necessary.
+// configureIAP returns an HTTP client that will obtain and refresh Identity-Aware-Proxy tokens as necessary.
 // The returned Client and its Transport should not be modified.
 func configureIAP(httpClient *http.Client, c IAPConfig) *http.Client {
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)

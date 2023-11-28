@@ -48,6 +48,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -191,7 +192,7 @@ subdirectories are merged like so:
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
-> 
+>
 > See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
 
 If you want to test it locally, see [Docker](#docker).
@@ -343,20 +344,19 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for
 the client used to send the request.
 
-| Parameter                     | Description                                                                | Default         |
-|:------------------------------|:---------------------------------------------------------------------------|:----------------|
-| `client.insecure`             | Whether to skip verifying the server's certificate chain and host name.    | `false`         |
-| `client.ignore-redirect`      | Whether to ignore redirects (true) or follow them (false, default).        | `false`         |
-| `client.timeout`              | Duration before timing out.                                                | `10s`           |
-| `client.dns-resolver`         | Override the DNS resolver using the format `{proto}://{host}:{port}`.      | `""`            |
-| `client.oauth2`               | OAuth2 client configuration.                                               | `{}`            |
-| `client.oauth2.token-url`     | The token endpoint URL                                                     | required `""`   |
-| `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
-| `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
-| `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
-| `client.iap`                  | Google Identity-Aware-Proxy client configuration.                          | `{}`            |
-| `client.iap.audience`         | The IAP audience. (client-id of the IAP oauth2 credential).                | required `""`   |
-
+| Parameter                              | Description                                                                 | Default         |
+| :------------------------------------- | :-------------------------------------------------------------------------- | :-------------- |
+| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
+| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
+| `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
+| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
+| `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
+| `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
+| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
+| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`    | required `""`   |
+| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
+| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
+| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -409,13 +409,13 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-This example shows how you can use the `client.iap` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
+This example shows how you can use the `client.identity-aware-proxy` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
 ```yaml
 endpoints:
   - name: with-custom-iap
     url: "https://my.iap.protected.app/health"
     client:
-      iap:
+      identity-aware-proxy:
         audience: "XXXXXXXX-XXXXXXXXXXXX.apps.googleusercontent.com"
     conditions:
       - "[STATUS] == 200"
@@ -455,6 +455,7 @@ ignored.
 |:-------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.discord`                         | Configuration for alerts of type `discord`                                                 | `{}`          |
 | `alerting.discord.webhook-url`             | Discord Webhook URL                                                                        | Required `""` |
+| `alerting.discord.title`                   | Title of the notification                                                                  |  `":helmet_with_white_cross: Gatus"`         |
 | `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
@@ -1059,6 +1060,46 @@ endpoints:
 ```
 
 
+#### Configuring AWS SES alerts
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
+| `alerting.aws-ses.access-key-id`     | AWS Access Key ID                                                                          | Optional `""` |
+| `alerting.aws-ses.secret-access-key` | AWS Secret Access Key                                                                      | Optional `""` |
+| `alerting.aws-ses.region`            | AWS Region                                                                                 | Required `""` |
+| `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
+| `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
+| `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  aws-ses:
+    access-key-id: "..."
+    secret-access-key: "..."
+    region: "us-east-1"
+    from: "status@example.com"
+    to: "user@example.com"
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: aws-ses
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
+
+Make sure you have the ability to use `ses:SendEmail`.
+
+
 #### Configuring custom alerts
 | Parameter                       | Description                                                                                | Default       |
 |:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
@@ -1337,7 +1378,7 @@ See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafan
 | `connectivity.checker.interval` | Interval at which to validate connectivity | `1m`          |
 
 While Gatus is used to monitor other services, it is possible for Gatus itself to lose connectivity to the internet.
-In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure 
+In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure
 Gatus to periodically check for internet connectivity.
 
 All endpoint executions are skipped while the connectivity checker deems connectivity to be down.
@@ -1355,7 +1396,7 @@ This feature allows you to retrieve endpoint statuses from a remote Gatus instan
 
 There are two main use cases for this:
 - You have multiple Gatus instances running on different machines, and you wish to visually expose the statuses through a single dashboard
-- You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve 
+- You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve
 
 This is an experimental feature. It may be removed or updated in a breaking manner at any time. Furthermore,
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
@@ -1618,7 +1659,7 @@ endpoints:
     ssh:
       username: "username"
       password: "password"
-    body: | 
+    body: |
       {
         "command": "uptime"
       }
@@ -1676,7 +1717,7 @@ endpoints:
 ```
 
 > ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
-and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
+and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
@@ -1808,7 +1849,7 @@ endpoints:
     url: "https://example.org"
 
   - name: anchor-example-2
-    <<: *defaults 
+    <<: *defaults
     group: example              # This will override the group defined in &defaults
     url: "https://example.com"
 
@@ -1887,10 +1928,10 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 
-##### How to change the color thresholds of the response time badge  
-To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.   
-The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]  
-All five values must be given in milliseconds (ms).  
+##### How to change the color thresholds of the response time badge
+To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
+The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]
+All five values must be given in milliseconds (ms).
 
 ```
 endpoints:

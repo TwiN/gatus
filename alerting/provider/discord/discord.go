@@ -21,6 +21,9 @@ type AlertProvider struct {
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
+
+	// Title is the title of the message that will be sent
+	Title string `yaml:"title,omitempty"`
 }
 
 // Override is a case under which the default integration is overridden
@@ -105,11 +108,15 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
+	title := ":helmet_with_white_cross: Gatus"
+	if provider.Title != "" {
+		title = provider.Title
+	}
 	body, _ := json.Marshal(Body{
 		Content: "",
 		Embeds: []Embed{
 			{
-				Title:       ":helmet_with_white_cross: Gatus",
+				Title:       title,
 				Description: message + description,
 				Color:       colorCode,
 				Fields: []Field{
