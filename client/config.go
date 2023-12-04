@@ -100,7 +100,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
 	}
-	// limit for pro-ping, bellow 25 it's not working
+	// limit for pro-ping, below 25 it's not working
 	if c.Size < 25 {
 		c.Size = 25
 	}
