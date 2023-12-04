@@ -241,12 +241,16 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	}
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
+	pinger.Size = config.Size
 	// Set the pinger's privileged mode to true for every GOOS except darwin
 	// See https://github.com/TwiN/gatus/issues/132
 	//
 	// Note that for this to work on Linux, Gatus must run with sudo privileges.
 	// See https://github.com/prometheus-community/pro-bing#linux
 	pinger.SetPrivileged(runtime.GOOS != "darwin")
+	if config.Df {
+		pinger.SetDoNotFragment(true)
+	}
 	err = pinger.Run()
 	if err != nil {
 		return false, 0

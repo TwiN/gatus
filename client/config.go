@@ -18,6 +18,7 @@ import (
 
 const (
 	defaultTimeout = 10 * time.Second
+	defaultSize = 0
 )
 
 var (
@@ -30,6 +31,8 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
+		Df:             false,
+		Size:           defaultSize,
 	}
 )
 
@@ -49,6 +52,12 @@ type Config struct {
 
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
+
+	// Df set for the client
+	Df bool `yaml:"df"`
+
+	// Size of the packet
+	Size int `yaml:"size"`
 
 	// DNSResolver override for the HTTP client
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
@@ -90,6 +99,10 @@ type IAPConfig struct {
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
+	}
+	// limit for pro-ping, bellow 25 it's not working
+	if c.Size < 25 {
+		c.Size = 25
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
