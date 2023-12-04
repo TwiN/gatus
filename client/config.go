@@ -18,6 +18,7 @@ import (
 
 const (
 	defaultTimeout = 10 * time.Second
+	// By default, an ICMP packet can a size of 0
 	defaultSize = 0
 )
 
