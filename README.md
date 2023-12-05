@@ -48,7 +48,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
-    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -66,6 +65,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
@@ -109,7 +109,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [API](#api)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
-- [Sponsors](#sponsors)
 
 
 ## Why Gatus?
@@ -351,6 +350,8 @@ the client used to send the request.
 | `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
 | `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
 | `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
+| `client.df`                            | Option to set the DoNotFragement bit for ICMP packet                        | `false`         |
+| `client.size`                          | Size of the ICMP packet                                                     | `25`            |
 | `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
 | `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
 | `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
@@ -362,6 +363,8 @@ the client used to send the request.
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
+
+> 📝 The size and df (Don't Fragment flag) parameters are only use for ICMP requests (ping). [These parameters can be used to validate MTU](https://stackoverflow.com/questions/45953716/when-to-set-dont-fragment-flag-in-ip-header)
 
 This default configuration is as follows:
 ```yaml
