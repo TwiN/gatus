@@ -54,7 +54,7 @@ type Config struct {
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
-	// Df set for the client
+	// Don't Fragment flag (DF) for the client
 	Df bool `yaml:"df"`
 
 	// Size of the packet
