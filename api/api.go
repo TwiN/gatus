@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/TwiN/gatus/v5/config"
 	static "github.com/TwiN/gatus/v5/web"
@@ -34,12 +35,28 @@ func (a *API) Router() *fiber.App {
 	return a.router
 }
 
+func getReadBufferSize() int {
+	bufferSizeStr, exists := os.LookupEnv("GATUS_API_READ_BUFFER_SIZE")
+	if !exists {
+		return 4096 // Default value
+	}
+
+	bufferSize, err := strconv.Atoi(bufferSizeStr)
+	if err != nil {
+		log.Printf("Error converting GATUS_API_READ_BUFFER_SIZE to integer: %s", err.Error())
+		return 4096 // Default value in case of conversion error
+	}
+
+	return bufferSize
+}
+
 func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			log.Printf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
+		ReadBufferSize: getReadBufferSize(),
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		app.Use(cors.New(cors.Config{
