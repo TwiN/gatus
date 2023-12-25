@@ -101,6 +101,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Endpoint groups](#endpoint-groups)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Badges](#badges)
     - [Uptime](#uptime)
@@ -1862,6 +1863,10 @@ variable instead, you can use that environment variable directly in the configur
 web:
   port: ${PORT}
 ```
+
+
+### Configuring a startup delay
+If, for any reason, you need Gatus to wait for a given amount of time before monitoring the endpoints on application start, you can use the `GATUS_DELAY_START_SECONDS` environment variable to make Gatus sleep on startup.
 
 
 ### Keeping your configuration small
