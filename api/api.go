@@ -40,13 +40,11 @@ func getReadBufferSize() int {
 	if !exists {
 		return 4096 // Default value
 	}
-
 	bufferSize, err := strconv.Atoi(bufferSizeStr)
 	if err != nil {
 		log.Printf("Error converting GATUS_API_READ_BUFFER_SIZE to integer: %s", err.Error())
 		return 4096 // Default value in case of conversion error
 	}
-
 	return bufferSize
 }
 
