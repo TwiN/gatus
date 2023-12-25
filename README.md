@@ -195,7 +195,7 @@ subdirectories are merged like so:
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
-> 
+>
 > See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
 
 If you want to test it locally, see [Docker](#docker).
@@ -347,17 +347,19 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for
 the client used to send the request.
 
-| Parameter                     | Description                                                                | Default         |
-|:------------------------------|:---------------------------------------------------------------------------|:----------------|
-| `client.insecure`             | Whether to skip verifying the server's certificate chain and host name.    | `false`         |
-| `client.ignore-redirect`      | Whether to ignore redirects (true) or follow them (false, default).        | `false`         |
-| `client.timeout`              | Duration before timing out.                                                | `10s`           |
-| `client.dns-resolver`         | Override the DNS resolver using the format `{proto}://{host}:{port}`.      | `""`            |
-| `client.oauth2`               | OAuth2 client configuration.                                               | `{}`            |
-| `client.oauth2.token-url`     | The token endpoint URL                                                     | required `""`   |
-| `client.oauth2.client-id`     | The client id which should be used for the `Client credentials flow`       | required `""`   |
-| `client.oauth2.client-secret` | The client secret which should be used for the `Client credentials flow`   | required `""`   |
-| `client.oauth2.scopes[]`      | A list of `scopes` which should be used for the `Client credentials flow`. | required `[""]` |
+| Parameter                              | Description                                                                 | Default         |
+| :------------------------------------- | :-------------------------------------------------------------------------- | :-------------- |
+| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
+| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
+| `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
+| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
+| `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
+| `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
+| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
+| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`    | required `""`   |
+| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
+| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
+| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -410,6 +412,18 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+This example shows how you can use the `client.identity-aware-proxy` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
+```yaml
+endpoints:
+  - name: with-custom-iap
+    url: "https://my.iap.protected.app/health"
+    client:
+      identity-aware-proxy:
+        audience: "XXXXXXXX-XXXXXXXXXXXX.apps.googleusercontent.com"
+    conditions:
+      - "[STATUS] == 200"
+```
+> 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
@@ -1403,7 +1417,7 @@ See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafan
 | `connectivity.checker.interval` | Interval at which to validate connectivity | `1m`          |
 
 While Gatus is used to monitor other services, it is possible for Gatus itself to lose connectivity to the internet.
-In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure 
+In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure
 Gatus to periodically check for internet connectivity.
 
 All endpoint executions are skipped while the connectivity checker deems connectivity to be down.
@@ -1421,7 +1435,7 @@ This feature allows you to retrieve endpoint statuses from a remote Gatus instan
 
 There are two main use cases for this:
 - You have multiple Gatus instances running on different machines, and you wish to visually expose the statuses through a single dashboard
-- You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve 
+- You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve
 
 This is an experimental feature. It may be removed or updated in a breaking manner at any time. Furthermore,
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
@@ -1684,7 +1698,7 @@ endpoints:
     ssh:
       username: "username"
       password: "password"
-    body: | 
+    body: |
       {
         "command": "uptime"
       }
@@ -1742,7 +1756,7 @@ endpoints:
 ```
 
 > ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
-and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`). 
+and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
@@ -1878,7 +1892,7 @@ endpoints:
     url: "https://example.org"
 
   - name: anchor-example-2
-    <<: *defaults 
+    <<: *defaults
     group: example              # This will override the group defined in &defaults
     url: "https://example.com"
 
@@ -1957,10 +1971,10 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 
-##### How to change the color thresholds of the response time badge  
-To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.   
-The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]  
-All five values must be given in milliseconds (ms).  
+##### How to change the color thresholds of the response time badge
+To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
+The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]
+All five values must be given in milliseconds (ms).
 
 ```
 endpoints:
