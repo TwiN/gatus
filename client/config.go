@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultTimeout = 10 * time.Second
-	// By default, an ICMP packet can a size of 0
+	// By default, an ICMP packet can have a size of 0
 	defaultSize = 0
 )
 
@@ -28,12 +28,16 @@ var (
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 
+
+
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
-		Df:             false,
-		Size:           defaultSize,
+		Icmp: &Icmp{ 
+			Df:   false,
+			Size: defaultSize,
+		},
 	}
 )
 
@@ -54,15 +58,12 @@ type Config struct {
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
 
-	// Don't Fragment flag (DF) for the client
-	Df bool `yaml:"df"`
-
-	// Size of the packet
-	Size int `yaml:"size"`
-
 	// DNSResolver override for the HTTP client
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
+
+	// See ICMP for more details.
+	Icmp *Icmp `yaml:"icmp,omitempty"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
@@ -83,6 +84,14 @@ type DNSResolverConfig struct {
 	Port     string
 }
 
+// ICMP is the configuration for the ICMP client specific config
+type Icmp struct {
+	// Don't Fragment flag (DF) for the client
+	Df bool `yaml:"df"`
+	// Size of the packet
+	Size int `yaml:"size"`
+}
+
 // OAuth2Config is the configuration for the OAuth2 client credentials flow
 type OAuth2Config struct {
 	TokenURL     string   `yaml:"token-url"` // e.g. https://dev-12345678.okta.com/token
@@ -101,10 +110,21 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
 	}
-	// limit for pro-ping, below 25 it's not working
-	if c.Size < 25 {
-		c.Size = 25
-	}
+
+    // Only validate or set defaults for Icmp if it's not nil
+    if c.Icmp != nil {
+        // limit for pro-ping, below 25 it's not working
+        if c.Icmp.Size < 25 {
+            c.Icmp.Size = 25
+        }
+    } else {
+        // If Icmp is nil, let's initialize it with default values
+        c.Icmp = &Icmp{
+            Df:   false,
+            Size: 25,  
+        }
+    }
+
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
 		if _, err := c.parseDNSResolver(); err != nil {

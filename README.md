@@ -350,9 +350,9 @@ the client used to send the request.
 | `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
 | `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
 | `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
-| `client.df`                            | Option to set the DoNotFragement bit for ICMP packet                        | `false`         |
-| `client.size`                          | Size of the ICMP packet                                                     | `25`            |
 | `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
+| `client.icmp.df`                       | Option to set the DoNotFragement bit for ICMP packet                        | `false`         |
+| `client.icmp.size`                     | Size of the ICMP packet                                                     | `25`            |
 | `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
 | `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
 | `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
