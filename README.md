@@ -364,7 +364,7 @@ the client used to send the request.
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
-> 📝 The size and df (Don't Fragment flag) parameters are only use for ICMP requests (ping). [These parameters can be used to validate MTU](https://stackoverflow.com/questions/45953716/when-to-set-dont-fragment-flag-in-ip-header)
+> 📝 The ICMP parameters, including size and the 'Don't Fragment' (DF) flag, are utilized exclusively for ICMP pings. [These parameters can be used to validate MTU](https://stackoverflow.com/questions/45953716/when-to-set-dont-fragment-flag-in-ip-header)
 
 This default configuration is as follows:
 ```yaml
