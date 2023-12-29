@@ -28,8 +28,6 @@ var (
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 
-
-
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
@@ -124,7 +122,6 @@ func (c *Config) ValidateAndSetDefaults() error {
             Size: 25,  
         }
     }
-
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
 		if _, err := c.parseDNSResolver(); err != nil {
