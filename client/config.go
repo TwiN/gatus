@@ -32,8 +32,8 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
-		Icmp: &ICMPConfig{ 
-			Df:   false,
+		ICMPConfig: &ICMPConfig{ 
+			DF:   false,
 			Size: defaultSize,
 		},
 	}
@@ -61,7 +61,7 @@ type Config struct {
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
 	// See ICMP for more details.
-	Icmp *ICMPConfig `yaml:"icmp,omitempty"`
+	ICMPConfig *ICMPConfig `yaml:"icmp,omitempty"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
@@ -108,15 +108,15 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 
     // Only validate or set defaults for Icmp if it's not nil
-    if c.Icmp != nil {
+    if c.ICMPConfig != nil {
         // limit for pro-ping, below 25 it's not working
-        if c.Icmp.Size < 25 {
-            c.Icmp.Size = 25
+        if c.ICMPConfig.Size < 25 {
+            c.ICMPConfig.Size = 25
         }
     } else {
         // If Icmp is nil, let's initialize it with default values
-        c.Icmp = &Icmp{
-            Df:   false,
+        c.ICMPConfig = &ICMPConfig{
+            DF:   false,
             Size: 25,  
         }
     }
