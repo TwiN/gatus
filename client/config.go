@@ -83,11 +83,9 @@ type DNSResolverConfig struct {
 }
 
 // ICMP is the configuration for the ICMP client specific config
-type Icmp struct {
-	// Don't Fragment flag (DF) for the client
-	Df bool `yaml:"df"`
-	// Size of the packet
-	Size int `yaml:"size"`
+type ICMPConfig struct {
+	DF bool `yaml:"df"`    // Don't Fragment flag used for the ICMP client
+	Size int `yaml:"size"` // Size of the packet
 }
 
 // OAuth2Config is the configuration for the OAuth2 client credentials flow
