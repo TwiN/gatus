@@ -32,7 +32,7 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
-		Icmp: &Icmp{ 
+		Icmp: &ICMPConfig{ 
 			Df:   false,
 			Size: defaultSize,
 		},
@@ -61,7 +61,7 @@ type Config struct {
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
 	// See ICMP for more details.
-	Icmp *Icmp `yaml:"icmp,omitempty"`
+	Icmp *ICMPConfig `yaml:"icmp,omitempty"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
