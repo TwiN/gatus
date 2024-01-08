@@ -18,8 +18,6 @@ import (
 
 const (
 	defaultTimeout = 10 * time.Second
-	// By default, an ICMP packet can have a size of 0
-	defaultSize = 0
 )
 
 var (
@@ -34,7 +32,6 @@ var (
 		Timeout:        defaultTimeout,
 		ICMPConfig: &ICMPConfig{ 
 			DF:   false,
-			Size: defaultSize,
 		},
 	}
 )
@@ -84,7 +81,7 @@ type DNSResolverConfig struct {
 
 // ICMP is the configuration for the ICMP client specific config
 type ICMPConfig struct {
-	DF bool `yaml:"df"`    // Don't Fragment flag used for the ICMP client
+	DF bool `yaml:"df"` // Don't Fragment flag used for the ICMP client
 	Size int `yaml:"size"` // Size of the packet
 }
 
@@ -109,15 +106,15 @@ func (c *Config) ValidateAndSetDefaults() error {
 
     // Only validate or set defaults for Icmp if it's not nil
     if c.ICMPConfig != nil {
-        // limit for pro-ping, below 25 it's not working
-        if c.ICMPConfig.Size < 25 {
-            c.ICMPConfig.Size = 25
+        // limit for pro-ping, below 24 it's not working
+        if c.ICMPConfig.Size < 24 {
+            c.ICMPConfig.Size = 24
         }
     } else {
         // If Icmp is nil, let's initialize it with default values
         c.ICMPConfig = &ICMPConfig{
             DF:   false,
-            Size: 25,  
+            Size: 24,
         }
     }
 	if c.HasCustomDNSResolver() {
