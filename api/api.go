@@ -40,6 +40,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			log.Printf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
+		Network: fiber.NetworkTCP,
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		app.Use(cors.New(cors.Config{
