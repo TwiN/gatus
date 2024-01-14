@@ -88,7 +88,6 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Duration <= 0 || c.Duration > 24*time.Hour {
 		return errInvalidMaintenanceDuration
 	}
-
 	if c.Timezone != "" {
 		c.TimezoneLocation, err = time.LoadLocation(c.Timezone)
 		if err != nil {
@@ -98,7 +97,6 @@ func (c *Config) ValidateAndSetDefaults() error {
 		c.Timezone = "UTC"
 		c.TimezoneLocation = time.UTC
 	}
-
 	return nil
 }
 
