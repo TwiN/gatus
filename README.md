@@ -106,6 +106,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
+    - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
   - [API](#api)
   - [Installing as binary](#installing-as-binary)
@@ -1955,6 +1956,25 @@ the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/health/badge.svg
 ```
+
+
+#### Health (Shields.io)
+![Health](https://img.shields.io/endpoint?url=https%3A%2F%2Fstatus.twin.sh%2Fapi%2Fv1%2Fendpoints%2Fcore_blog-external%2Fhealth%2Fbadge.shields)
+
+The path to generate a badge is the following:
+```
+/api/v1/endpoints/{key}/health/badge.shields
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the current status of the endpoint `frontend` in the group `core`,
+the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/health/badge.shields
+```
+
+See more information about the Shields.io badge endpoint [here](https://shields.io/badges/endpoint-badge).
 
 
 #### Response time
