@@ -40,6 +40,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			log.Printf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
+		ReadBufferSize: getReadBufferSize(),
 		Network: fiber.NetworkTCP,
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
@@ -110,4 +111,17 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
 	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
 	return app
+}
+
+func getReadBufferSize() int {
+	bufferSizeStr, exists := os.LookupEnv("GATUS_API_READ_BUFFER_SIZE")
+	if !exists {
+		return 4096 // Default value
+	}
+	bufferSize, err := strconv.Atoi(bufferSizeStr)
+	if err != nil {
+		log.Printf("Error converting GATUS_API_READ_BUFFER_SIZE to integer: %s", err.Error())
+		return 4096 // Default value in case of conversion error
+	}
+	return bufferSize
 }
