@@ -38,6 +38,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -48,7 +49,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
-    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -66,6 +66,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
@@ -107,10 +108,10 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Uptime](#uptime)
     - [Health](#health)
     - [Response time](#response-time)
+      - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
-- [Sponsors](#sponsors)
 
 
 ## Why Gatus?
@@ -1504,7 +1505,7 @@ Gatus can be deployed on Terraform by using the following module: [terraform-kub
 
 ## Running the tests
 ```console
-go test ./... -mod vendor
+go test -v ./...
 ```
 
 
