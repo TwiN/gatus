@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -27,9 +28,11 @@ var (
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 
 	defaultConfig = Config{
-		Insecure:       false,
-		IgnoreRedirect: false,
-		Timeout:        defaultTimeout,
+		Insecure:              false,
+		IgnoreRedirect:        false,
+		Timeout:               defaultTimeout,
+		ClientCertificateFile: "",
+		ClientPrivateKeyFile:  "",
 	}
 )
 
@@ -46,6 +49,12 @@ type Config struct {
 
 	// IgnoreRedirect determines whether to ignore redirects (true) or follow them (false, default)
 	IgnoreRedirect bool `yaml:"ignore-redirect,omitempty"`
+
+	// ClientCertificateFile is the path to the client certificate for mTLS in PEM format.
+	ClientCertificateFile string `yaml:"client-certificate-file,omitempty"`
+
+	// ClientPrivateKeyFile is the path to the private key file for mTLS in PEM format.
+	ClientPrivateKeyFile string `yaml:"client-private-key-file,omitempty"`
 
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
@@ -148,6 +157,11 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
+// HasClientTlsConfig returns true if the client has client certificate parameters
+func (c *Config) HasClientTlsConfig() bool {
+	return c.ClientCertificateFile != "" && c.ClientPrivateKeyFile != ""
+}
+
 // isValid() returns true if the IAP configuration is valid
 func (c *IAPConfig) isValid() bool {
 	return len(c.Audience) > 0
@@ -158,8 +172,43 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
+// isClientTlsValid returns true if the client tls certificates are valid
+func (c *Config) isClientTlsValid() bool {
+	_, err := os.Stat(c.ClientCertificateFile)
+	if err != nil {
+		log.Panic("client certificate not found")
+		return false
+	}
+	_, err = os.Stat(c.ClientPrivateKeyFile)
+	if err != nil {
+		log.Panic("client private key not found")
+		return false
+	}
+	_, err = tls.LoadX509KeyPair(c.ClientCertificateFile, c.ClientPrivateKeyFile)
+	if err != nil {
+		log.Panic("error loading client certificates")
+		return false
+	}
+	return true
+}
+
 // GetHTTPClient return an HTTP client matching the Config's parameters.
 func (c *Config) getHTTPClient() *http.Client {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: c.Insecure,
+	}
+
+	if c.HasClientTlsConfig() && c.isClientTlsValid() {
+		clientTLSCert, err := tls.LoadX509KeyPair(c.ClientCertificateFile, c.ClientPrivateKeyFile)
+		if err != nil {
+			return nil
+		}
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: c.Insecure,
+			Certificates:       []tls.Certificate{clientTLSCert},
+			Renegotiation:      tls.RenegotiateOnceAsClient,
+		}
+	}
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{
 			Timeout: c.Timeout,
@@ -167,9 +216,7 @@ func (c *Config) getHTTPClient() *http.Client {
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 20,
 				Proxy:               http.ProxyFromEnvironment,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: c.Insecure,
-				},
+				TLSClientConfig:     tlsConfig,
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if c.IgnoreRedirect {
