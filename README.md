@@ -355,6 +355,8 @@ the client used to send the request.
 | `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
 | `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
 | `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
+| `client.client-certificate-file`       | Path to a client certificate (in PEM format) for mTLS configurations        | `""`            |
+| `client.client-private-key-file`       | Path to a client private key (in PEM format) for mTLS configurations        | `""`            |
 | `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
 | `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
 | `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
@@ -389,6 +391,22 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 ```
+
+Here's an mTLS example with the client configuration under `endpoints[]`:
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    client:
+      insecure: false
+      ignore-redirect: false
+      timeout: 10s
+      client-certificate-file: /path/to/user_cert.pem
+      client-private-key-file: /path/to/user_key.pem
+    conditions:
+      - "[STATUS] == 200"
+```
+Note that if running in a container, you must volume mount the certificate and key itno the container.
 
 This example shows how you can specify a custom DNS resolver:
 ```yaml
