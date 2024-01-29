@@ -131,9 +131,10 @@ if no traffic makes it to your applications. This puts you in a situation where 
 that will notify you about the degradation of your services rather than you reassuring them that you're working on
 fixing the issue before they even know about it.
 
-
 ## Features
+
 The main features of Gatus are:
+
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
@@ -144,7 +145,6 @@ The main features of Gatus are:
 - **Dark mode**
 
 ![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
-
 
 ## Usage
 
@@ -359,6 +359,7 @@ the client used to send the request.
 | `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
 | `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`    | required `""`   |
 | `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
+| `client.proxy-url`                     | The URL of the proxy to use for the client                                  | `""`            |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
 
@@ -366,15 +367,18 @@ the client used to send the request.
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
+
 ```yaml
 client:
   insecure: false
   ignore-redirect: false
   timeout: 10s
 ```
+
 Note that this configuration is only available under `endpoints[]`, `alerting.mattermost` and `alerting.custom`.
 
 Here's an example with the client configuration under `endpoints[]`:
+
 ```yaml
 endpoints:
   - name: website
@@ -387,7 +391,20 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+Here's an example with the client using a proxy:
+
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    client:
+      proxy-url: http://proxy.example.com:8080
+    conditions:
+      - "[STATUS] == 200"
+```
+
 This example shows how you can specify a custom DNS resolver:
+
 ```yaml
 endpoints:
   - name: with-custom-dns-resolver
@@ -399,6 +416,7 @@ endpoints:
 ```
 
 This example shows how you can use the `client.oauth2` configuration to query a backend API with `Bearer token`:
+
 ```yaml
 endpoints:
   - name: with-custom-oauth2
@@ -414,6 +432,7 @@ endpoints:
 ```
 
 This example shows how you can use the `client.identity-aware-proxy` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
+
 ```yaml
 endpoints:
   - name: with-custom-iap
@@ -424,6 +443,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 ```
+
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
 ### Alerting
