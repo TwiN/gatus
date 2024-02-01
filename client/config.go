@@ -30,6 +30,9 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
+		ICMPConfig: &ICMPConfig{ 
+			DF:   false,
+		},
 	}
 )
 
@@ -54,6 +57,9 @@ type Config struct {
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
+	// See ICMP for more details.
+	ICMPConfig *ICMPConfig `yaml:"icmp,omitempty"`
+
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
 	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
@@ -71,6 +77,12 @@ type DNSResolverConfig struct {
 	Protocol string
 	Host     string
 	Port     string
+}
+
+// ICMP is the configuration for the ICMP client specific config
+type ICMPConfig struct {
+	DF bool `yaml:"df"` // Don't Fragment flag used for the ICMP client
+	Size int `yaml:"size"` // Size of the packet
 }
 
 // OAuth2Config is the configuration for the OAuth2 client credentials flow
@@ -91,6 +103,20 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
 	}
+
+    // Only validate or set defaults for Icmp if it's not nil
+    if c.ICMPConfig != nil {
+        // limit for pro-ping, below 24 it's not working
+        if c.ICMPConfig.Size < 24 {
+            c.ICMPConfig.Size = 24
+        }
+    } else {
+        // If Icmp is nil, let's initialize it with default values
+        c.ICMPConfig = &ICMPConfig{
+            DF:   false,
+            Size: 24,
+        }
+    }
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
 		if _, err := c.parseDNSResolver(); err != nil {

@@ -355,6 +355,8 @@ the client used to send the request.
 | `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
 | `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
 | `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
+| `client.icmp.df`                       | Option to set the DoNotFragement bit for ICMP packet                        | `false`         |
+| `client.icmp.size`                     | Size of the ICMP packet                                                     | `25`            |
 | `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
 | `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
 | `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
@@ -365,6 +367,8 @@ the client used to send the request.
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
+
+> 📝 The ICMP parameters, including size and the 'Don't Fragment' (DF) flag, are utilized exclusively for ICMP pings. [These parameters can be used to validate MTU](https://stackoverflow.com/questions/45953716/when-to-set-dont-fragment-flag-in-ip-header)
 
 This default configuration is as follows:
 ```yaml
