@@ -83,6 +83,8 @@ func TestPing(t *testing.T) {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
+	// Can't perform integration tests (e.g. pinging public targets by single-stacked hostname) here,
+	// because ICMP is blocked in the network of GitHub-hosted runners.
 	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
 		t.Error("expected false, because the IP isn't an IPv4 address")
 		if rtt != 0 {
