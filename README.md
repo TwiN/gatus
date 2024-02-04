@@ -38,6 +38,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -48,7 +49,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
-    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -66,6 +66,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
@@ -106,11 +107,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
+    - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
+      - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
-- [Sponsors](#sponsors)
 
 
 ## Why Gatus?
@@ -1516,7 +1518,7 @@ Gatus can be deployed on Terraform by using the following module: [terraform-kub
 
 ## Running the tests
 ```console
-go test ./... -mod vendor
+go test -v ./...
 ```
 
 
@@ -1967,6 +1969,25 @@ the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/health/badge.svg
 ```
+
+
+#### Health (Shields.io)
+![Health](https://img.shields.io/endpoint?url=https%3A%2F%2Fstatus.twin.sh%2Fapi%2Fv1%2Fendpoints%2Fcore_blog-external%2Fhealth%2Fbadge.shields)
+
+The path to generate a badge is the following:
+```
+/api/v1/endpoints/{key}/health/badge.shields
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the current status of the endpoint `frontend` in the group `core`,
+the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/health/badge.shields
+```
+
+See more information about the Shields.io badge endpoint [here](https://shields.io/badges/endpoint-badge).
 
 
 #### Response time
