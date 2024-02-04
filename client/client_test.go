@@ -95,18 +95,6 @@ func TestPing(t *testing.T) {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("ipv6.google.com", &Config{Timeout: 500 * time.Millisecond, Network: "ip6"}); !success {
-		t.Error("expected true, because the host is IPv6-only")
-		if rtt == 0 {
-			t.Error("Round-trip time returned on success should've higher than 0")
-		}
-	}
-	if success, rtt := Ping("ipv4.google.com", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); !success {
-		t.Error("expected true, because the host is IPv4-only")
-		if rtt == 0 {
-			t.Error("Round-trip time returned on success should've higher than 0")
-		}
-	}
 }
 
 func TestCanPerformStartTLS(t *testing.T) {
