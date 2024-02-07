@@ -130,6 +130,9 @@ type Endpoint struct {
 
 	// SSH is the configuration of SSH monitoring.
 	SSH *SSH `yaml:"ssh,omitempty"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	LastReminderSent time.Time `yaml:"-"`
 }
 
 type SSH struct {
