@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/web"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
 	fiber "github.com/gofiber/fiber/v2"
@@ -26,6 +27,10 @@ type API struct {
 
 func New(cfg *config.Config) *API {
 	api := &API{}
+	if cfg.Web == nil {
+		log.Println("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
+		cfg.Web = web.GetDefaultConfig()
+	}
 	api.router = api.createRouter(cfg)
 	return api
 }
@@ -40,7 +45,8 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			log.Printf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
-		Network: fiber.NetworkTCP,
+		ReadBufferSize: cfg.Web.ReadBufferSize,
+		Network:        fiber.NetworkTCP,
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		app.Use(cors.New(cors.Config{
