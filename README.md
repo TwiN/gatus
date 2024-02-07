@@ -426,17 +426,6 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 ```
-
-This example shows how you can use the `client.network` configuration to enforce IPv6 for ICMP endpoints:
-```yaml
-endpoints:
-  - name: ping-example
-    url: "icmp://example.com"
-    client:
-      network: "ip6"
-    conditions:
-      - "[CONNECTED] == true"
-```
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
 ### Alerting
