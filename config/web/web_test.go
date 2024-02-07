@@ -12,6 +12,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.Address != DefaultAddress {
 		t.Error("expected default config to have the default address")
 	}
+	if defaultConfig.ReadBufferSize != DefaultReadBufferSize {
+		t.Error("expected default config to have the default read buffer size")
+	}
 	if defaultConfig.TLS != nil {
 		t.Error("expected default config to have TLS disabled")
 	}
@@ -19,18 +22,20 @@ func TestGetDefaultConfig(t *testing.T) {
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	scenarios := []struct {
-		name            string
-		cfg             *Config
-		expectedAddress string
-		expectedPort    int
-		expectedErr     bool
+		name                   string
+		cfg                    *Config
+		expectedAddress        string
+		expectedPort           int
+		expectedReadBufferSize int
+		expectedErr            bool
 	}{
 		{
-			name:            "no-explicit-config",
-			cfg:             &Config{},
-			expectedAddress: "0.0.0.0",
-			expectedPort:    8080,
-			expectedErr:     false,
+			name:                   "no-explicit-config",
+			cfg:                    &Config{},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           8080,
+			expectedReadBufferSize: 8192,
+			expectedErr:            false,
 		},
 		{
 			name:        "invalid-port",
@@ -38,25 +43,52 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedErr: true,
 		},
 		{
-			name:            "with-good-tls-config",
-			cfg:             &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "../../testdata/cert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
-			expectedAddress: "0.0.0.0",
-			expectedPort:    443,
-			expectedErr:     false,
+			name:                   "read-buffer-size-below-minimum",
+			cfg:                    &Config{ReadBufferSize: 1024},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           8080,
+			expectedReadBufferSize: MinimumReadBufferSize, // minimum is 4096, default is 8192.
+			expectedErr:            false,
 		},
 		{
-			name:            "with-bad-tls-config",
-			cfg:             &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "../../testdata/badcert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
-			expectedAddress: "0.0.0.0",
-			expectedPort:    443,
-			expectedErr:     true,
+			name:                   "read-buffer-size-at-minimum",
+			cfg:                    &Config{ReadBufferSize: MinimumReadBufferSize},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           8080,
+			expectedReadBufferSize: 4096,
+			expectedErr:            false,
 		},
 		{
-			name:            "with-partial-tls-config",
-			cfg:             &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "", PrivateKeyFile: "../../testdata/cert.key"}},
-			expectedAddress: "0.0.0.0",
-			expectedPort:    443,
-			expectedErr:     true,
+			name:                   "custom-read-buffer-size",
+			cfg:                    &Config{ReadBufferSize: 65536},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           8080,
+			expectedReadBufferSize: 65536,
+			expectedErr:            false,
+		},
+		{
+			name:                   "with-good-tls-config",
+			cfg:                    &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "../../testdata/cert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           443,
+			expectedReadBufferSize: 8192,
+			expectedErr:            false,
+		},
+		{
+			name:                   "with-bad-tls-config",
+			cfg:                    &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "../../testdata/badcert.pem", PrivateKeyFile: "../../testdata/cert.key"}},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           443,
+			expectedReadBufferSize: 8192,
+			expectedErr:            true,
+		},
+		{
+			name:                   "with-partial-tls-config",
+			cfg:                    &Config{Port: 443, TLS: &TLSConfig{CertificateFile: "", PrivateKeyFile: "../../testdata/cert.key"}},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           443,
+			expectedReadBufferSize: 8192,
+			expectedErr:            true,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -68,10 +100,13 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			}
 			if !scenario.expectedErr {
 				if scenario.cfg.Port != scenario.expectedPort {
-					t.Errorf("expected port to be %d, got %d", scenario.expectedPort, scenario.cfg.Port)
+					t.Errorf("expected Port to be %d, got %d", scenario.expectedPort, scenario.cfg.Port)
+				}
+				if scenario.cfg.ReadBufferSize != scenario.expectedReadBufferSize {
+					t.Errorf("expected ReadBufferSize to be %d, got %d", scenario.expectedReadBufferSize, scenario.cfg.ReadBufferSize)
 				}
 				if scenario.cfg.Address != scenario.expectedAddress {
-					t.Errorf("expected address to be %s, got %s", scenario.expectedAddress, scenario.cfg.Address)
+					t.Errorf("expected Address to be %s, got %s", scenario.expectedAddress, scenario.cfg.Address)
 				}
 			}
 		})
