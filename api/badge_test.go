@@ -111,6 +111,21 @@ func TestBadge(t *testing.T) {
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
+			Name:         "badge-shields-health-up",
+			Path:         "/api/v1/endpoints/core_frontend/health/badge.shields",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-shields-health-down",
+			Path:         "/api/v1/endpoints/core_backend/health/badge.shields",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-shields-health-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/health/badge.shields",
+			ExpectedCode: http.StatusNotFound,
+		},
+		{
 			Name:         "chart-response-time-24h",
 			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,

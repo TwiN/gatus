@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -123,6 +124,36 @@ func HealthBadge(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Set("Expires", "0")
 	return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
+}
+
+func HealthBadgeShields(c *fiber.Ctx) error {
+	key := c.Params("key")
+	pagingConfig := paging.NewEndpointStatusParams()
+	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+	if err != nil {
+		if err == common.ErrEndpointNotFound {
+			return c.Status(404).SendString(err.Error())
+		} else if err == common.ErrInvalidTimeRange {
+			return c.Status(400).SendString(err.Error())
+		}
+		return c.Status(500).SendString(err.Error())
+	}
+	healthStatus := HealthStatusUnknown
+	if len(status.Results) > 0 {
+		if status.Results[0].Success {
+			healthStatus = HealthStatusUp
+		} else {
+			healthStatus = HealthStatusDown
+		}
+	}
+	c.Set("Content-Type", "application/json")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("Expires", "0")
+	jsonData, err := generateHealthBadgeShields(healthStatus)
+	if err != nil {
+		return c.Status(500).SendString(err.Error())
+	}
+	return c.Status(200).Send(jsonData)
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -299,6 +330,17 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
 	return svg
 }
 
+func generateHealthBadgeShields(healthStatus string) ([]byte, error) {
+	color := getBadgeShieldsColorFromHealth(healthStatus)
+	data := map[string]interface{}{
+		"schemaVersion": 1,
+		"label":         "gatus",
+		"message":       healthStatus,
+		"color":         color,
+	}
+	return json.Marshal(data)
+}
+
 func getBadgeColorFromHealth(healthStatus string) string {
 	if healthStatus == HealthStatusUp {
 		return badgeColorHexAwesome
@@ -306,4 +348,13 @@ func getBadgeColorFromHealth(healthStatus string) string {
 		return badgeColorHexVeryBad
 	}
 	return badgeColorHexPassable
+}
+
+func getBadgeShieldsColorFromHealth(healthStatus string) string {
+	if healthStatus == HealthStatusUp {
+		return "brightgreen"
+	} else if healthStatus == HealthStatusDown {
+		return "red"
+	}
+	return "yellow"
 }

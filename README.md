@@ -38,6 +38,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 
 
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Why Gatus?](#why-gatus)
 - [Features](#features)
 - [Usage](#usage)
@@ -48,7 +49,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
-    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
@@ -66,6 +66,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts](#configuring-teams-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
@@ -106,11 +107,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
+    - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
+      - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
-- [Sponsors](#sponsors)
 
 
 ## Why Gatus?
@@ -204,57 +206,58 @@ If you want to test it locally, see [Docker](#docker).
 ## Configuration
 | Parameter                                       | Description                                                                                                                                 | Default                    |
 |:------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `debug`                                         | Whether to enable debug logs.                                                                                                                   | `false`                    |
-| `metrics`                                       | Whether to expose metrics at /metrics.                                                                                                          | `false`                    |
-| `storage`                                       | [Storage configuration](#storage)                                                                                                               | `{}`                       |
-| `endpoints`                                     | List of endpoints to monitor.                                                                                                                   | Required `[]`              |
-| `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                                | `true`                     |
-| `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                          | Required `""`              |
-| `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                          | `""`                       |
-| `endpoints[].url`                               | URL to send the request to.                                                                                                                     | Required `""`              |
-| `endpoints[].method`                            | Request method.                                                                                                                                 | `GET`                      |
-| `endpoints[].conditions`                        | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions).                                                   | `[]`                       |
-| `endpoints[].interval`                          | Duration to wait between every status check.                                                                                                    | `60s`                      |
-| `endpoints[].graphql`                           | Whether to wrap the body in a query param (`{"query":"$body"}`).                                                                                | `false`                    |
-| `endpoints[].body`                              | Request body.                                                                                                                                   | `""`                       |
-| `endpoints[].headers`                           | Request headers.                                                                                                                                | `{}`                       |
-| `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries).     | `""`                       |
-| `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                            | `""`                       |
-| `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                                   | `""`                       |
-| `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh). | `""`                       |
+| `debug`                                         | Whether to enable debug logs.                                                                                                               | `false`                    |
+| `metrics`                                       | Whether to expose metrics at /metrics.                                                                                                      | `false`                    |
+| `storage`                                       | [Storage configuration](#storage)                                                                                                           | `{}`                       |
+| `endpoints`                                     | List of endpoints to monitor.                                                                                                               | Required `[]`              |
+| `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                            | `true`                     |
+| `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                      | Required `""`              |
+| `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `""`                       |
+| `endpoints[].url`                               | URL to send the request to.                                                                                                                 | Required `""`              |
+| `endpoints[].method`                            | Request method.                                                                                                                             | `GET`                      |
+| `endpoints[].conditions`                        | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions).                                               | `[]`                       |
+| `endpoints[].interval`                          | Duration to wait between every status check.                                                                                                | `60s`                      |
+| `endpoints[].graphql`                           | Whether to wrap the body in a query param (`{"query":"$body"}`).                                                                            | `false`                    |
+| `endpoints[].body`                              | Request body.                                                                                                                               | `""`                       |
+| `endpoints[].headers`                           | Request headers.                                                                                                                            | `{}`                       |
+| `endpoints[].dns`                               | Configuration for an endpoint of type DNS. <br />See [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries). | `""`                       |
+| `endpoints[].dns.query-type`                    | Query type (e.g. MX)                                                                                                                        | `""`                       |
+| `endpoints[].dns.query-name`                    | Query name (e.g. example.com)                                                                                                               | `""`                       |
+| `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh).                 | `""`                       |
 | `endpoints[].ssh.username`                      | SSH username (e.g. example)                                                                                                                 | Required `""`              |
 | `endpoints[].ssh.password`                      | SSH password (e.g. password)                                                                                                                | Required `""`              |
-| `endpoints[].alerts[].type`                     | Type of alert. <br />See [Alerting](#alerting) for all valid types.                                                                             | Required `""`              |
-| `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                    | `true`                     |
-| `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                                 | `3`                        |
-| `endpoints[].alerts[].success-threshold`        | Number of successes in a row before an ongoing incident is marked as resolved.                                                                  | `2`                        |
-| `endpoints[].alerts[].send-on-resolved`         | Whether to send a notification once a triggered alert is marked as resolved.                                                                    | `false`                    |
-| `endpoints[].alerts[].description`              | Description of the alert. Will be included in the alert sent.                                                                                   | `""`                       |
-| `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                                  | `{}`                       |
-| `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                         | `{}`                       |
-| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                     | `false`                    |
-| `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                                  | `false`                    |
-| `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                                | `false`                    |
-| `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                            | `[50, 200, 300, 500, 750]` |
-| `alerting`                                      | [Alerting configuration](#alerting).                                                                                                            | `{}`                       |
-| `security`                                      | [Security configuration](#security).                                                                                                            | `{}`                       |
-| `disable-monitoring-lock`                       | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                             | `false`                    |
-| `skip-invalid-config-update`                    | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).            | `false`                    |
-| `web`                                           | Web configuration.                                                                                                                              | `{}`                       |
-| `web.address`                                   | Address to listen on.                                                                                                                           | `0.0.0.0`                  |
-| `web.port`                                      | Port to listen on.                                                                                                                              | `8080`                     |
-| `web.tls.certificate-file`                      | Optional public certificate file for TLS in PEM format.                                                                                         | ``                         |
-| `web.tls.private-key-file`                      | Optional private key file for TLS in PEM format.                                                                                                | ``                         |
-| `ui`                                            | UI configuration.                                                                                                                               | `{}`                       |
-| `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                       | `Health Dashboard ǀ Gatus` |
-| `ui.description`                                | Meta description for the page.                                                                                                                  | `Gatus is an advanced...`. |
-| `ui.header`                                     | Header at the top of the dashboard.                                                                                                             | `Health Status`            |
-| `ui.logo`                                       | URL to the logo to display.                                                                                                                     | `""`                       |
-| `ui.link`                                       | Link to open when the logo is clicked.                                                                                                          | `""`                       |
-| `ui.buttons`                                    | List of buttons to display below the header.                                                                                                    | `[]`                       |
-| `ui.buttons[].name`                             | Text to display on the button.                                                                                                                  | Required `""`              |
-| `ui.buttons[].link`                             | Link to open when the button is clicked.                                                                                                        | Required `""`              |
-| `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                      | `{}`                       |
+| `endpoints[].alerts[].type`                     | Type of alert. <br />See [Alerting](#alerting) for all valid types.                                                                         | Required `""`              |
+| `endpoints[].alerts[].enabled`                  | Whether to enable the alert.                                                                                                                | `true`                     |
+| `endpoints[].alerts[].failure-threshold`        | Number of failures in a row needed before triggering the alert.                                                                             | `3`                        |
+| `endpoints[].alerts[].success-threshold`        | Number of successes in a row before an ongoing incident is marked as resolved.                                                              | `2`                        |
+| `endpoints[].alerts[].send-on-resolved`         | Whether to send a notification once a triggered alert is marked as resolved.                                                                | `false`                    |
+| `endpoints[].alerts[].description`              | Description of the alert. Will be included in the alert sent.                                                                               | `""`                       |
+| `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
+| `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
+| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                 | `false`                    |
+| `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                              | `false`                    |
+| `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
+| `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `alerting`                                      | [Alerting configuration](#alerting).                                                                                                        | `{}`                       |
+| `security`                                      | [Security configuration](#security).                                                                                                        | `{}`                       |
+| `disable-monitoring-lock`                       | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                         | `false`                    |
+| `skip-invalid-config-update`                    | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).        | `false`                    |
+| `web`                                           | Web configuration.                                                                                                                          | `{}`                       |
+| `web.address`                                   | Address to listen on.                                                                                                                       | `0.0.0.0`                  |
+| `web.port`                                      | Port to listen on.                                                                                                                          | `8080`                     |
+| `web.read-buffer-size`                          | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                                 | `8192`                     |
+| `web.tls.certificate-file`                      | Optional public certificate file for TLS in PEM format.                                                                                     | ``                         |
+| `web.tls.private-key-file`                      | Optional private key file for TLS in PEM format.                                                                                            | ``                         |
+| `ui`                                            | UI configuration.                                                                                                                           | `{}`                       |
+| `ui.title`                                      | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                   | `Health Dashboard ǀ Gatus` |
+| `ui.description`                                | Meta description for the page.                                                                                                              | `Gatus is an advanced...`. |
+| `ui.header`                                     | Header at the top of the dashboard.                                                                                                         | `Health Status`            |
+| `ui.logo`                                       | URL to the logo to display.                                                                                                                 | `""`                       |
+| `ui.link`                                       | Link to open when the logo is clicked.                                                                                                      | `""`                       |
+| `ui.buttons`                                    | List of buttons to display below the header.                                                                                                | `[]`                       |
+| `ui.buttons[].name`                             | Text to display on the button.                                                                                                              | Required `""`              |
+| `ui.buttons[].link`                             | Link to open when the button is clicked.                                                                                                    | Required `""`              |
+| `maintenance`                                   | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
 
 
 ### Conditions
@@ -362,6 +365,7 @@ the client used to send the request.
 | `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
+| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -1522,7 +1526,7 @@ Gatus can be deployed on Terraform by using the following module: [terraform-kub
 
 ## Running the tests
 ```console
-go test ./... -mod vendor
+go test -v ./...
 ```
 
 
@@ -1924,6 +1928,17 @@ endpoints:
 </details>
 
 
+### How to fix 431 Request Header Fields Too Large error
+Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,
+you may run into this issue. This could be because the request headers are too large, e.g. big cookies.
+
+By default, `web.read-buffer-size` is set to `8192`, but increasing this value like so will increase the read buffer size:
+```yaml
+web:
+  read-buffer-size: 32768
+```
+
+
 ### Badges
 #### Uptime
 ![Uptime 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/1h/badge.svg)
@@ -1973,6 +1988,25 @@ the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/health/badge.svg
 ```
+
+
+#### Health (Shields.io)
+![Health](https://img.shields.io/endpoint?url=https%3A%2F%2Fstatus.twin.sh%2Fapi%2Fv1%2Fendpoints%2Fcore_blog-external%2Fhealth%2Fbadge.shields)
+
+The path to generate a badge is the following:
+```
+/api/v1/endpoints/{key}/health/badge.shields
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the current status of the endpoint `frontend` in the group `core`,
+the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/health/badge.shields
+```
+
+See more information about the Shields.io badge endpoint [here](https://shields.io/badges/endpoint-badge).
 
 
 #### Response time

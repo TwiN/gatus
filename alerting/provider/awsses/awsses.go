@@ -2,6 +2,8 @@ package awsses
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/core"
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
-	"strings"
 )
 
 const (
@@ -148,7 +149,7 @@ func (provider *AlertProvider) getToForGroup(group string) string {
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }
 
