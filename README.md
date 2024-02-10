@@ -104,6 +104,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
+  - [Proxy client configuration](#proxy-client-configuration)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -388,18 +389,6 @@ endpoints:
       insecure: false
       ignore-redirect: false
       timeout: 10s
-    conditions:
-      - "[STATUS] == 200"
-```
-
-Here's an example with the client using a proxy:
-
-```yaml
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    client:
-      proxy-url: http://proxy.example.com:8080
     conditions:
       - "[STATUS] == 200"
 ```
@@ -1927,6 +1916,19 @@ endpoints:
 ```
 </details>
 
+### Proxy client configuration
+
+You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
+
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    client:
+      proxy-url: http://proxy.example.com:8080
+    conditions:
+      - "[STATUS] == 200"
+```
 
 ### Badges
 #### Uptime
