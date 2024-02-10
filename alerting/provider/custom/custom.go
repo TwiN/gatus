@@ -93,6 +93,6 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

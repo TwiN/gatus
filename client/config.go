@@ -31,6 +31,7 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
+		Network:        "ip",
 	}
 )
 
@@ -68,6 +69,9 @@ type Config struct {
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
 	httpClient *http.Client
+
+	// Network (ip, ip4 or ip6) for the ICMP client
+	Network string `yaml:"network"`
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
