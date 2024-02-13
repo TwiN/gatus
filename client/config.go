@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -26,14 +25,13 @@ var (
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
+	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
 
 	defaultConfig = Config{
-		Insecure:              false,
-		IgnoreRedirect:        false,
-		Timeout:               defaultTimeout,
-		Network:               "ip",
-		ClientCertificateFile: "",
-		ClientPrivateKeyFile:  "",
+		Insecure:       false,
+		IgnoreRedirect: false,
+		Timeout:        defaultTimeout,
+		Network:        "ip",
 	}
 )
 
@@ -50,12 +48,6 @@ type Config struct {
 
 	// IgnoreRedirect determines whether to ignore redirects (true) or follow them (false, default)
 	IgnoreRedirect bool `yaml:"ignore-redirect,omitempty"`
-
-	// ClientCertificateFile is the path to the client certificate for mTLS in PEM format.
-	ClientCertificateFile string `yaml:"client-certificate-file,omitempty"`
-
-	// ClientPrivateKeyFile is the path to the private key file for mTLS in PEM format.
-	ClientPrivateKeyFile string `yaml:"client-private-key-file,omitempty"`
 
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
@@ -77,6 +69,9 @@ type Config struct {
 
 	// Network (ip, ip4 or ip6) for the ICMP client
 	Network string `yaml:"network"`
+
+	// TLS configuration (optional)
+	TLS *TLSConfig `yaml:"tls,omitempty"`
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -99,6 +94,17 @@ type IAPConfig struct {
 	Audience string `yaml:"audience"` // e.g. "toto.apps.googleusercontent.com"
 }
 
+// TLSConfig is the configuration for mTLS configurations
+type TLSConfig struct {
+	// CertificateFile is the public certificate for TLS in PEM format.
+	CertificateFile string `yaml:"certificate-file,omitempty"`
+
+	// PrivateKeyFile is the private key file for TLS in PEM format.
+	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
+
+	RenegotiationSupport string `yaml:"renegotiation,omitempty"`
+}
+
 // ValidateAndSetDefaults validates the client configuration and sets the default values if necessary
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
@@ -115,6 +121,11 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.HasIAPConfig() && !c.IAPConfig.isValid() {
 		return ErrInvalidClientIAPConfig
+	}
+	if c.HasTlsConfig() {
+		if err := c.TLS.isValid(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -161,9 +172,9 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
-// HasClientTlsConfig returns true if the client has client certificate parameters
-func (c *Config) HasClientTlsConfig() bool {
-	return c.ClientCertificateFile != "" && c.ClientPrivateKeyFile != ""
+// HasTlsConfig returns true if the client has client certificate parameters
+func (c *Config) HasTlsConfig() bool {
+	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
 }
 
 // isValid() returns true if the IAP configuration is valid
@@ -176,24 +187,16 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
-// isClientTlsValid returns true if the client tls certificates are valid
-func (c *Config) isClientTlsValid() bool {
-	_, err := os.Stat(c.ClientCertificateFile)
-	if err != nil {
-		log.Panic("client certificate not found")
-		return false
+// isValid() returns nil if the client tls certificates are valid, otherwise returns an error
+func (t *TLSConfig) isValid() error {
+	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
+		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	_, err = os.Stat(c.ClientPrivateKeyFile)
-	if err != nil {
-		log.Panic("client private key not found")
-		return false
-	}
-	_, err = tls.LoadX509KeyPair(c.ClientCertificateFile, c.ClientPrivateKeyFile)
-	if err != nil {
-		log.Panic("error loading client certificates")
-		return false
-	}
-	return true
+	return ErrInvalidClientTLSConfig
 }
 
 // GetHTTPClient return an HTTP client matching the Config's parameters.
@@ -201,17 +204,8 @@ func (c *Config) getHTTPClient() *http.Client {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.Insecure,
 	}
-
-	if c.HasClientTlsConfig() && c.isClientTlsValid() {
-		clientTLSCert, err := tls.LoadX509KeyPair(c.ClientCertificateFile, c.ClientPrivateKeyFile)
-		if err != nil {
-			return nil
-		}
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: c.Insecure,
-			Certificates:       []tls.Certificate{clientTLSCert},
-			Renegotiation:      tls.RenegotiateOnceAsClient,
-		}
+	if c.HasTlsConfig() && c.TLS.isValid() == nil {
+		tlsConfig = configureTLS(tlsConfig, *c.TLS)
 	}
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{
@@ -315,4 +309,24 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	client := oauth2cfg.Client(ctx)
 	client.Timeout = httpClient.Timeout
 	return client
+}
+
+// configureTLS returns a TLS Config that will enable mTLS
+func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
+	clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
+	if err != nil {
+		return nil
+	}
+	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
+	tlsConfig.Renegotiation = tls.RenegotiateNever
+
+	renegotionSupport := map[string]tls.RenegotiationSupport{
+		"once":   tls.RenegotiateOnceAsClient,
+		"freely": tls.RenegotiateFreelyAsClient,
+		"never":  tls.RenegotiateNever,
+	}
+	if val, ok := renegotionSupport[c.RenegotiationSupport]; ok {
+		tlsConfig.Renegotiation = val
+	}
+	return tlsConfig
 }
