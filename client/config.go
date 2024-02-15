@@ -196,7 +196,6 @@ func (c *Config) getHTTPClient() *http.Client {
 				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
 		}
-
 		if c.HasCustomDNSResolver() {
 			dnsResolver, err := c.parseDNSResolver()
 			if err != nil {
