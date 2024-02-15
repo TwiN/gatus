@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -77,5 +78,31 @@ func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
 				t.Errorf("ValidateAndSetDefaults() error=%v, wantErr=%v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestConfig_getHTTPClient_withCustomProxyURL(t *testing.T) {
+	proxyURL := "http://proxy.example.com:8080"
+	cfg := &Config{
+		ProxyURL: proxyURL,
+	}
+	cfg.ValidateAndSetDefaults()
+	client := cfg.getHTTPClient()
+	transport := client.Transport.(*http.Transport)
+	if transport.Proxy == nil {
+		t.Errorf("expected Config.ProxyURL to set the HTTP client's proxy to %s", proxyURL)
+	}
+	req := &http.Request{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   "www.example.com",
+		},
+	}
+	expectProxyURL, err := transport.Proxy(req)
+	if err != nil {
+		t.Errorf("can't proxy the request %s", proxyURL)
+	}
+	if proxyURL != expectProxyURL.String() {
+		t.Errorf("expected Config.ProxyURL to set the HTTP client's proxy to %s", proxyURL)
 	}
 }
