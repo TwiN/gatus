@@ -92,7 +92,6 @@ func TestConfig_getHTTPClient_withCustomProxyURL(t *testing.T) {
 	if transport.Proxy == nil {
 		t.Errorf("expected Config.ProxyURL to set the HTTP client's proxy to %s", proxyURL)
 	}
-
 	req := &http.Request{
 		URL: &url.URL{
 			Scheme: "http",
