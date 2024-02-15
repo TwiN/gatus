@@ -134,7 +134,6 @@ that will notify you about the degradation of your services rather than you reas
 fixing the issue before they even know about it.
 
 ## Features
-
 The main features of Gatus are:
 
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
