@@ -10,15 +10,15 @@ require (
 	github.com/TwiN/whois v1.1.7
 	github.com/aws/aws-sdk-go v1.47.9
 	github.com/coreos/go-oidc/v3 v3.7.0
-	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/google/go-github/v48 v48.2.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.5.0
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062
 	github.com/lib/pq v1.10.9
 	github.com/miekg/dns v1.1.56
 	github.com/prometheus-community/pro-bing v0.3.0
 	github.com/prometheus/client_golang v1.18.0
-	github.com/valyala/fasthttp v1.50.0
+	github.com/valyala/fasthttp v1.51.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	golang.org/x/crypto v0.18.0
 	golang.org/x/net v0.17.0
@@ -47,10 +47,10 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
