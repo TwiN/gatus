@@ -116,7 +116,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 		address  string
 		insecure bool
 	}
-	tests := []struct {
+	scenarios := []struct {
 		name          string
 		args          args
 		wantConnected bool
@@ -147,9 +147,9 @@ func TestCanPerformStartTLS(t *testing.T) {
 			wantErr:       false,
 		},
 	}
-	for _, tt := range tests {
-		item := tt
-		t.Run(tt.name, func(t *testing.T) {
+	for _, scenario := range scenarios {
+		item := scenario
+		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
 			connected, _, err := CanPerformStartTLS(item.args.address, &Config{Insecure: item.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != item.wantErr {
