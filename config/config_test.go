@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -1614,5 +1615,141 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 				t.Errorf("expected %s configuration", scenario.alertType)
 			}
 		})
+	}
+}
+
+func TestExpandingOfFileEnvironmentVariables(t *testing.T) {
+	secretValue := "http://user:password@example.com"
+
+	tempFile, err := os.CreateTemp("", "")
+	if err != nil {
+		t.Errorf("unable to create temporary file: %s", err.Error())
+	}
+
+	t.Cleanup(func() {
+		_ = os.Remove(tempFile.Name())
+	})
+
+	if _, err := io.WriteString(tempFile, secretValue); err != nil {
+		t.Errorf("unable to write secret to temporary file: %s", err.Error())
+	}
+
+	os.Setenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE", tempFile.Name())
+	t.Cleanup(func() {
+		defer os.Unsetenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE")
+	})
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: ${GATUS_TestExpandingOfFileEnvironmentVariables}
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Errorf("unable to parse config file: %s", err.Error())
+	}
+
+	actualValue := config.Endpoints[0].URL
+	if actualValue != secretValue {
+		t.Errorf(
+			"secret value was not set correctly, expected: '%s' but got '%s'",
+			secretValue,
+			actualValue,
+		)
+	}
+}
+
+func TestExpandingOfFileEnvironmentVariablesUnset(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: http://${GATUS_TestExpandingOfFileEnvironmentVariablesUnset}localhost:8080
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Errorf("unable to parse config file: %s", err.Error())
+	}
+
+	actualValue := config.Endpoints[0].URL
+	if actualValue != "http://localhost:8080" {
+		t.Errorf(
+			"should default to empty string when variables aren't set, expected: %s but got %s",
+			"http://localhost:8080",
+			actualValue,
+		)
+	}
+}
+
+func TestExpandingOfFileEnvironmentVariablesMissingFile(t *testing.T) {
+	os.Setenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE", "TestExpandingOfFileEnvironmentVariablesMissingFile.txt")
+	t.Cleanup(func() {
+		os.Unsetenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE")
+	})
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: http://${GATUS_TestExpandingOfFileEnvironmentVariablesMissingFile}localhost:8080
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Errorf("unable to parse config file: %s", err.Error())
+	}
+
+	actualValue := config.Endpoints[0].URL
+	if actualValue != "http://localhost:8080" {
+		t.Errorf(
+			"should default to empty string when variables aren't set, expected: %s but got %s",
+			"http://localhost:8080",
+			actualValue,
+		)
+	}
+}
+
+func TestExpandingOfFileEnvironmentVariablesSetTwice(t *testing.T) {
+	secretValue := "http://user:password@example.com"
+	otherSecretValue := "http://user:hunter123@example.com"
+
+	tempFile, err := os.CreateTemp("", "")
+	if err != nil {
+		t.Errorf("unable to create temporary file: %s", err.Error())
+	}
+
+	t.Cleanup(func() {
+		_ = os.Remove(tempFile.Name())
+	})
+
+	if _, err := io.WriteString(tempFile, secretValue); err != nil {
+		t.Errorf("unable to write secret to temporary file: %s", err.Error())
+	}
+
+	os.Setenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE", tempFile.Name())
+	os.Setenv("GATUS_TestExpandingOfFileEnvironmentVariables", otherSecretValue)
+	t.Cleanup(func() {
+		os.Unsetenv("GATUS_TestExpandingOfFileEnvironmentVariables_FILE")
+		os.Unsetenv("GATUS_TestExpandingOfFileEnvironmentVariables")
+	})
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: ${GATUS_TestExpandingOfFileEnvironmentVariables}
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Errorf("unable to parse config file: %s", err.Error())
+	}
+
+	actualValue := config.Endpoints[0].URL
+	if actualValue != secretValue {
+		t.Errorf(
+			"secret value was not set correctly, expected: '%s' but got '%s'",
+			secretValue,
+			actualValue,
+		)
 	}
 }
