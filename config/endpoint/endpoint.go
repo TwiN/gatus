@@ -48,6 +48,9 @@ const (
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
 	TypeUNKNOWN  Type = "UNKNOWN"
+
+	Origin       = "http://localhost"
+	OriginHeader = "Origin"
 )
 
 var (
@@ -203,6 +206,14 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	if _, contentTypeHeaderExists := e.Headers[ContentTypeHeader]; !contentTypeHeaderExists && e.GraphQL {
 		e.Headers[ContentTypeHeader] = "application/json"
 	}
+
+	// Automatically add Origin header for websocket endpoints if there isn't one specified
+	if e.Type() == TypeWS {
+		if _, originHeaderExists := e.Headers[OriginHeader]; !originHeaderExists {
+			e.Headers[OriginHeader] = Origin
+		}
+	}
+
 	if len(e.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
 	}
@@ -376,7 +387,7 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	} else if endpointType == TypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.Body, e.ClientConfig)
+		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.Body, e.Headers[OriginHeader], e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
