@@ -596,15 +596,15 @@ endpoints:
 ![GitHub alert](.github/assets/github-alerts.png)
 
 #### Configuring GitLab alerts
-| Parameter                           | Description                                                                                                | Default       |
+| Parameter                           | Description                                                                                                     | Default       |
 |:------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.gitlab`                   | Configuration for alerts of type `gitlab`                                                                       | `{}`          |
 | `alerting.gitlab.webhook-url`       | GitLab alert webhook URL (e.g. `https://gitlab.com/hlidotbe/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
-| `alerting.gitlab.authorization-key` | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata.      | Required `""` |
+| `alerting.gitlab.authorization-key` | GitLab alert authorization key.                                                                                 | Required `""` |
 | `alerting.gitlab.severity`          | Override default severity (critical), can be one of `critical, high, medium, low, info, unknown`                | `""`          |
 | `alerting.gitlab.monitoring-tool`   | Override the monitoring tool name (gatus)                                                                       | `"gatus"`     |
 | `alerting.gitlab.environment-name`  | Set gitlab environment's name. Required to display alerts on a dashboard.                                       | `""`          |
-| `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""` |
+| `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""`          |
 | `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                     | N/A           |
 
 The GitLab alerting provider creates an alert prefixed with `alert(gatus):` and suffixed with the endpoint's display
