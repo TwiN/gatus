@@ -1,9 +1,9 @@
 module github.com/TwiN/gatus/v5
 
-go 1.20
+go 1.21
 
 require (
-	github.com/TwiN/deepmerge v0.2.0
+	github.com/TwiN/deepmerge v0.2.1
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.2.0
 	github.com/TwiN/health v1.6.0

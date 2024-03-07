@@ -4,8 +4,8 @@ cloud.google.com/go/compute v1.23.0/go.mod h1:4tCnrn48xsqlwSAiLf1HXMQk8CONslYbdi
 cloud.google.com/go/compute/metadata v0.2.3 h1:mg4jlk7mCAj6xXp9UJ4fjI9VUI5rubuGBW5aJ7UnBMY=
 cloud.google.com/go/compute/metadata v0.2.3/go.mod h1:VAV5nSsACxMJvgaAuX6Pk2AawlZn8kiOGuCv6gTkwuA=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/TwiN/deepmerge v0.2.0 h1:8P1tp2qDXllX6V1Ailg2XA074easAcvLMmW9v1jn0aE=
-github.com/TwiN/deepmerge v0.2.0/go.mod h1:cR9OWsvI13y+FxrbnPLuF6BX2tbYeOjkiI6JWjEGqAE=
+github.com/TwiN/deepmerge v0.2.1 h1:GowJr9O4THTVW4awX63x1BVg1hgr4q+35XKKCYbwsSs=
+github.com/TwiN/deepmerge v0.2.1/go.mod h1:LVBmCEBQvibYSF8Gyl/NqhHXH7yIiT7Ozqf9dHxGPW0=
 github.com/TwiN/g8/v2 v2.0.0 h1:+hwIbRLMhDd2iwHzkZUPp2FkX7yTx8ddYOnS91HkDqQ=
 github.com/TwiN/g8/v2 v2.0.0/go.mod h1:4sVAF27q8T8ISggRa/Fb0drw7wpB22B6eWd+/+SGMqE=
 github.com/TwiN/gocache/v2 v2.2.0 h1:M3B36KyH24BntxLrLaUb2kgTdq8DzCnfod0IekLG57w=
