@@ -200,6 +200,13 @@ subdirectories are merged like so:
 >
 > See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
 
+> Docker secrets are also supported by using environment variables that end in the
+> `_FILE` suffix (such as `POSTGRES_PASSWORD_FILE`). In that case, Gatus will
+> read the file at the path given by the environment variable and use the
+> contents of the file.
+>
+> See [examples/docker-compose-secrets/config/config.yaml](.examples/docker-compose-secrets/config/config.yaml) for an example.
+
 If you want to test it locally, see [Docker](#docker).
 
 
