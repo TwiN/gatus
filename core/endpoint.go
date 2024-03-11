@@ -35,6 +35,9 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
+	Origin       = "http://localhost"
+	OriginHeader = "Origin"
+
 	EndpointTypeDNS      EndpointType = "DNS"
 	EndpointTypeTCP      EndpointType = "TCP"
 	EndpointTypeSCTP     EndpointType = "SCTP"
@@ -221,6 +224,14 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if _, contentTypeHeaderExists := endpoint.Headers[ContentTypeHeader]; !contentTypeHeaderExists && endpoint.GraphQL {
 		endpoint.Headers[ContentTypeHeader] = "application/json"
 	}
+
+	// Automatically add Origin header for websocket endpoints if there isn't one specified
+	if endpoint.Type() == EndpointTypeWS {
+		if _, originHeaderExists := endpoint.Headers[OriginHeader]; !originHeaderExists {
+			endpoint.Headers[OriginHeader] = Origin
+		}
+	}
+
 	for _, endpointAlert := range endpoint.Alerts {
 		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
 			return err
@@ -376,7 +387,7 @@ func (endpoint *Endpoint) call(result *Result) {
 	} else if endpointType == EndpointTypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
 	} else if endpointType == EndpointTypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.Body, endpoint.ClientConfig)
+		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.Body, endpoint.Headers[OriginHeader], endpoint.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
