@@ -49,6 +49,11 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
+
+	// for script
+	ScriptExitCode int    `json:"exitCode"`
+	ScriptStdout   []byte `json:"-"`
+	ScriptStderr   []byte `json:"-"`
 }
 
 // AddError adds an error to the result's list of errors.
