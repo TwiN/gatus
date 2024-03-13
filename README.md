@@ -364,7 +364,11 @@ the client used to send the request.
 | `client.proxy-url`                     | The URL of the proxy to use for the client                                  | `""`            |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
+| `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.       | `""`            |
+| `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.       | `""`            |
+| `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).      | `"never"`       |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
+
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
@@ -436,6 +440,21 @@ endpoints:
 ```
 
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
+
+This example shows you how you cna use the `client.tls` configuration to perform an mTLS query to a backend API:
+```yaml
+endpoints:
+  - name: website
+    url: "https://your.mtls.protected.app/health"
+    client:
+      tls:
+        certificate-file: /path/to/user_cert.pem
+        private-key-file: /path/to/user_key.pem
+        renegotiation: once
+    conditions:
+      - "[STATUS] == 200"
+```
+> 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each

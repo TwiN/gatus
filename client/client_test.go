@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"testing"
@@ -288,5 +289,48 @@ func TestQueryWebSocket(t *testing.T) {
 	_, _, err = QueryWebSocket("ws://example.org", "body", &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
+	}
+}
+
+func TestTlsRenegotiation(t *testing.T) {
+	tests := []struct {
+		name           string
+		cfg            TLSConfig
+		expectedConfig tls.RenegotiationSupport
+	}{
+		{
+			name:           "default",
+			cfg:            TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "never",
+			cfg:            TLSConfig{RenegotiationSupport: "never", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "once",
+			cfg:            TLSConfig{RenegotiationSupport: "once", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateOnceAsClient,
+		},
+		{
+			name:           "freely",
+			cfg:            TLSConfig{RenegotiationSupport: "freely", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateFreelyAsClient,
+		},
+		{
+			name:           "not-valid-and-broken",
+			cfg:            TLSConfig{RenegotiationSupport: "invalid", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tls := &tls.Config{}
+			tlsConfig := configureTLS(tls, test.cfg)
+			if tlsConfig.Renegotiation != test.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			}
+		})
 	}
 }
