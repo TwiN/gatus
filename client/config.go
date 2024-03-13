@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"time"
@@ -43,6 +44,9 @@ func GetDefaultConfig() *Config {
 
 // Config is the configuration for clients
 type Config struct {
+	// ProxyURL is the URL of the proxy to use for the client
+	ProxyURL string `yaml:"proxy-url,omitempty"`
+
 	// Insecure determines whether to skip verifying the server's certificate chain and host name
 	Insecure bool `yaml:"insecure,omitempty"`
 
@@ -224,6 +228,14 @@ func (c *Config) getHTTPClient() *http.Client {
 				// Follow redirects
 				return nil
 			},
+		}
+		if c.ProxyURL != "" {
+			proxyURL, err := url.Parse(c.ProxyURL)
+			if err != nil {
+				log.Println("[client][getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring custom proxy due to error:", err.Error())
+			} else {
+				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+			}
 		}
 		if c.HasCustomDNSResolver() {
 			dnsResolver, err := c.parseDNSResolver()

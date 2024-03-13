@@ -104,6 +104,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
+  - [Proxy client configuration](#proxy-client-configuration)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -132,9 +133,9 @@ if no traffic makes it to your applications. This puts you in a situation where 
 that will notify you about the degradation of your services rather than you reassuring them that you're working on
 fixing the issue before they even know about it.
 
-
 ## Features
 The main features of Gatus are:
+
 - **Highly flexible health check conditions**: While checking the response status may be enough for some use cases, Gatus goes much further and allows you to add conditions on the response time, the response body and even the IP address.
 - **Ability to use Gatus for user acceptance tests**: Thanks to the point above, you can leverage this application to create automated user acceptance tests.
 - **Very easy to configure**: Not only is the configuration designed to be as readable as possible, it's also extremely easy to add a new service or a new endpoint to monitor.
@@ -145,7 +146,6 @@ The main features of Gatus are:
 - **Dark mode**
 
 ![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
-
 
 ## Usage
 
@@ -361,6 +361,7 @@ the client used to send the request.
 | `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
 | `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`    | required `""`   |
 | `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
+| `client.proxy-url`                     | The URL of the proxy to use for the client                                  | `""`            |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
 | `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.       | `""`            |
@@ -373,15 +374,18 @@ the client used to send the request.
 in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
+
 ```yaml
 client:
   insecure: false
   ignore-redirect: false
   timeout: 10s
 ```
+
 Note that this configuration is only available under `endpoints[]`, `alerting.mattermost` and `alerting.custom`.
 
 Here's an example with the client configuration under `endpoints[]`:
+
 ```yaml
 endpoints:
   - name: website
@@ -395,6 +399,7 @@ endpoints:
 ```
 
 This example shows how you can specify a custom DNS resolver:
+
 ```yaml
 endpoints:
   - name: with-custom-dns-resolver
@@ -406,6 +411,7 @@ endpoints:
 ```
 
 This example shows how you can use the `client.oauth2` configuration to query a backend API with `Bearer token`:
+
 ```yaml
 endpoints:
   - name: with-custom-oauth2
@@ -421,6 +427,7 @@ endpoints:
 ```
 
 This example shows how you can use the `client.identity-aware-proxy` configuration to query a backend API with `Bearer token` using Google Identity-Aware-Proxy:
+
 ```yaml
 endpoints:
   - name: with-custom-iap
@@ -431,6 +438,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 ```
+
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
 This example shows you how you cna use the `client.tls` configuration to perform an mTLS query to a backend API:
@@ -607,15 +615,15 @@ endpoints:
 ![GitHub alert](.github/assets/github-alerts.png)
 
 #### Configuring GitLab alerts
-| Parameter                           | Description                                                                                                | Default       |
+| Parameter                           | Description                                                                                                     | Default       |
 |:------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.gitlab`                   | Configuration for alerts of type `gitlab`                                                                       | `{}`          |
 | `alerting.gitlab.webhook-url`       | GitLab alert webhook URL (e.g. `https://gitlab.com/hlidotbe/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
-| `alerting.gitlab.authorization-key` | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata.      | Required `""` |
+| `alerting.gitlab.authorization-key` | GitLab alert authorization key.                                                                                 | Required `""` |
 | `alerting.gitlab.severity`          | Override default severity (critical), can be one of `critical, high, medium, low, info, unknown`                | `""`          |
 | `alerting.gitlab.monitoring-tool`   | Override the monitoring tool name (gatus)                                                                       | `"gatus"`     |
 | `alerting.gitlab.environment-name`  | Set gitlab environment's name. Required to display alerts on a dashboard.                                       | `""`          |
-| `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""` |
+| `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""`          |
 | `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                     | N/A           |
 
 The GitLab alerting provider creates an alert prefixed with `alert(gatus):` and suffixed with the endpoint's display
@@ -1928,6 +1936,19 @@ endpoints:
 ```
 </details>
 
+### Proxy client configuration
+
+You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
+
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    client:
+      proxy-url: http://proxy.example.com:8080
+    conditions:
+      - "[STATUS] == 200"
+```
 
 ### How to fix 431 Request Header Fields Too Large error
 Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,
