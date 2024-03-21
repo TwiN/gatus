@@ -24,6 +24,9 @@ type AlertProvider struct {
 
 	// Title is the title of the message that will be sent
 	Title string `yaml:"title,omitempty"`
+
+        // Content is the content of the message that will be sent
+        Content string `yaml:"content,omitempty"`
 }
 
 // Override is a case under which the default integration is overridden
@@ -109,11 +112,15 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		description = ":\n> " + alertDescription
 	}
 	title := ":helmet_with_white_cross: Gatus"
+        content := "You can configure a ping mention with content"
 	if provider.Title != "" {
 		title = provider.Title
 	}
+	if provider.Content != "" {
+		content = provider.Content
+	}
 	body, _ := json.Marshal(Body{
-		Content: "",
+		Content: content,
 		Embeds: []Embed{
 			{
 				Title:       title,
