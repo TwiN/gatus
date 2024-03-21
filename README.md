@@ -485,7 +485,6 @@ alerting:
     title: "Example Title"
     content: "Hey <@123456789012345678" look!"
 
-
 endpoints:
   - name: website
     url: "https://twin.sh/health"
