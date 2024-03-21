@@ -112,7 +112,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		description = ":\n> " + alertDescription
 	}
 	title := ":helmet_with_white_cross: Gatus"
-        content := "You can configure a ping mention with content"
+        content := ""
 	if provider.Title != "" {
 		title = provider.Title
 	}
