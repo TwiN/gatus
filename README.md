@@ -483,7 +483,7 @@ alerting:
   discord:
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
     title: "Example Title"
-    content: "Hey <@123456789012345678" look!"
+    content: "Hey <@123456789012345678> look!"
 
 endpoints:
   - name: website
