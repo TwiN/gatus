@@ -55,7 +55,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
-    - [Configuring JetBrain Space alerts](#configuring-jetbrains-space-alerts)
+    - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
@@ -712,9 +712,9 @@ Here's an example of what the notifications look like:
 | `alerting.jetbrainsspace.project`                  | JetBrains Space project name                                                                | Required `""`          |
 | `alerting.jetbrainsspace.channel-id`               | JetBrains Space Chat Channel ID                                                             | Required `""`          |
 | `alerting.jetbrainsspace.token`                    | Token that is used for authentication.                                                      | Required `""`          |
-| `alerting.jetbrainsspace.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)  | N/A           |
-| `alerting.jetbrainsspace.overrides`                | List of overrides that may be prioritized over the default configuration                    | `[]`          |
-| `alerting.jetbrainsspace.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.jetbrainsspace.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)  | N/A                    |
+| `alerting.jetbrainsspace.overrides`                | List of overrides that may be prioritized over the default configuration                    | `[]`                   |
+| `alerting.jetbrainsspace.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration         | `""`                   |
 
 ```yaml
 alerting:
