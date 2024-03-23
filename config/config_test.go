@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -706,6 +707,10 @@ alerting:
     to: "+1-234-567-8901"
   teams:
     webhook-url: "http://example.com"
+  jetbrainsspace:
+    project: "foo"
+    channel-id: "bar"
+    token: "baz"
 
 endpoints:
   - name: website
@@ -728,6 +733,7 @@ endpoints:
         success-threshold: 15
       - type: teams
       - type: pushover
+      - type: jetbrainsspace
     conditions:
       - "[STATUS] == 200"
 `))
@@ -754,8 +760,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 9 {
-		t.Fatal("There should've been 9 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 10 {
+		t.Fatal("There should've been 10 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -862,6 +868,12 @@ endpoints:
 	if !config.Endpoints[0].Alerts[8].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
+	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
+	}
+	if !config.Endpoints[0].Alerts[9].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -923,6 +935,14 @@ alerting:
     webhook-url: "http://example.com"
     default-alert:
       enabled: true
+  jetbrainsspace:
+    project: "foo"
+    channel-id: "bar"
+    token: "baz"
+    default-alert:
+      enabled: true
+      failure-threshold: 5
+      success-threshold: 3
 
 endpoints:
  - name: website
@@ -938,6 +958,7 @@ endpoints:
      - type: twilio
      - type: teams
      - type: pushover
+     - type: jetbrainsspace
    conditions:
      - "[STATUS] == 200"
 `))
@@ -1049,6 +1070,21 @@ endpoints:
 	if config.Alerting.Teams.GetDefaultAlert() == nil {
 		t.Fatal("Teams.GetDefaultAlert() shouldn't have returned nil")
 	}
+	if config.Alerting.JetBrainsSpace == nil || !config.Alerting.JetBrainsSpace.IsValid() {
+		t.Fatal("JetBrainsSpace alerting config should've been valid")
+	}
+	if config.Alerting.JetBrainsSpace.GetDefaultAlert() == nil {
+		t.Fatal("JetBrainsSpace.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.JetBrainsSpace.Project != "foo" {
+		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "foo", config.Alerting.JetBrainsSpace.Project)
+	}
+	if config.Alerting.JetBrainsSpace.ChannelID != "bar" {
+		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "bar", config.Alerting.JetBrainsSpace.ChannelID)
+	}
+	if config.Alerting.JetBrainsSpace.Token != "baz" {
+		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "baz", config.Alerting.JetBrainsSpace.Token)
+	}
 
 	// Endpoints
 	if len(config.Endpoints) != 1 {
@@ -1060,8 +1096,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 9 {
-		t.Fatal("There should've been 9 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 10 {
+		t.Fatal("There should've been 10 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1178,6 +1214,18 @@ endpoints:
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[8].SuccessThreshold)
 	}
 
+	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
+	}
+	if !config.Endpoints[0].Alerts[9].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[9].FailureThreshold != 5 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[9].SuccessThreshold != 3 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[9].SuccessThreshold)
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlertAndMultipleAlertsOfSameTypeWithOverriddenParameters(t *testing.T) {
@@ -1570,22 +1618,23 @@ func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
-		Custom:      &custom.AlertProvider{},
-		Discord:     &discord.AlertProvider{},
-		Email:       &email.AlertProvider{},
-		GitHub:      &github.AlertProvider{},
-		GoogleChat:  &googlechat.AlertProvider{},
-		Matrix:      &matrix.AlertProvider{},
-		Mattermost:  &mattermost.AlertProvider{},
-		Messagebird: &messagebird.AlertProvider{},
-		Ntfy:        &ntfy.AlertProvider{},
-		Opsgenie:    &opsgenie.AlertProvider{},
-		PagerDuty:   &pagerduty.AlertProvider{},
-		Pushover:    &pushover.AlertProvider{},
-		Slack:       &slack.AlertProvider{},
-		Telegram:    &telegram.AlertProvider{},
-		Twilio:      &twilio.AlertProvider{},
-		Teams:       &teams.AlertProvider{},
+		Custom:         &custom.AlertProvider{},
+		Discord:        &discord.AlertProvider{},
+		Email:          &email.AlertProvider{},
+		GitHub:         &github.AlertProvider{},
+		GoogleChat:     &googlechat.AlertProvider{},
+		JetBrainsSpace: &jetbrainsspace.AlertProvider{},
+		Matrix:         &matrix.AlertProvider{},
+		Mattermost:     &mattermost.AlertProvider{},
+		Messagebird:    &messagebird.AlertProvider{},
+		Ntfy:           &ntfy.AlertProvider{},
+		Opsgenie:       &opsgenie.AlertProvider{},
+		PagerDuty:      &pagerduty.AlertProvider{},
+		Pushover:       &pushover.AlertProvider{},
+		Slack:          &slack.AlertProvider{},
+		Telegram:       &telegram.AlertProvider{},
+		Twilio:         &twilio.AlertProvider{},
+		Teams:          &teams.AlertProvider{},
 	}
 	scenarios := []struct {
 		alertType alert.Type
@@ -1596,6 +1645,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitHub, expected: alertingConfig.GitHub},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
+		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
 		{alertType: alert.TypeMessagebird, expected: alertingConfig.Messagebird},
