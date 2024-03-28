@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -278,6 +279,17 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					Host:     "mail.example.com",
 					Port:     587,
 					To:       "to@example.com",
+				},
+			},
+		},
+		{
+			Name:      "jetbrainsspace",
+			AlertType: alert.TypeJetBrainsSpace,
+			AlertingConfig: &alerting.Config{
+				JetBrainsSpace: &jetbrainsspace.AlertProvider{
+					Project:   "foo",
+					ChannelID: "bar",
+					Token:     "baz",
 				},
 			},
 		},
