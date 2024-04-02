@@ -124,7 +124,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 			return
 		}
 	}
-	log.Printf("[security][callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
+	log.Printf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 

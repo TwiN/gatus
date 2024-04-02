@@ -151,7 +151,7 @@ func (s *SSH) ValidateAndSetDefaults() error {
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
-func (endpoint Endpoint) IsEnabled() bool {
+func (endpoint *Endpoint) IsEnabled() bool {
 	if endpoint.Enabled == nil {
 		return true
 	}
@@ -159,7 +159,7 @@ func (endpoint Endpoint) IsEnabled() bool {
 }
 
 // Type returns the endpoint type
-func (endpoint Endpoint) Type() EndpointType {
+func (endpoint *Endpoint) Type() EndpointType {
 	switch {
 	case endpoint.DNS != nil:
 		return EndpointTypeDNS
@@ -264,7 +264,7 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 }
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
-func (endpoint Endpoint) DisplayName() string {
+func (endpoint *Endpoint) DisplayName() string {
 	if len(endpoint.Group) > 0 {
 		return endpoint.Group + "/" + endpoint.Name
 	}
@@ -272,7 +272,7 @@ func (endpoint Endpoint) DisplayName() string {
 }
 
 // Key returns the unique key for the Endpoint
-func (endpoint Endpoint) Key() string {
+func (endpoint *Endpoint) Key() string {
 	return util.ConvertGroupAndEndpointNameToKey(endpoint.Group, endpoint.Name)
 }
 

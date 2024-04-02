@@ -15,6 +15,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -53,6 +54,9 @@ type Config struct {
 
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
+
+	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
+	JetBrainsSpace *jetbrainsspace.AlertProvider `yaml:"jetbrainsspace,omitempty"`
 
 	// Matrix is the configuration for the matrix alerting provider
 	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
@@ -102,7 +106,7 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 			return fieldValue.Interface().(provider.AlertProvider)
 		}
 	}
-	log.Printf("[alerting][GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
+	log.Printf("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
 }
 

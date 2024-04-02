@@ -78,7 +78,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 			var payload pagerDutyResponsePayload
 			if err = json.Unmarshal(body, &payload); err != nil {
 				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
-				log.Printf("[pagerduty][Send] Ran into error unmarshaling pagerduty response: %s", err.Error())
+				log.Printf("[pagerduty.Send] Ran into error unmarshaling pagerduty response: %s", err.Error())
 			} else {
 				alert.ResolveKey = payload.DedupKey
 			}

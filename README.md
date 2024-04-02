@@ -1,11 +1,14 @@
 [![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
 ![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
+[![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ka9RySaQ9K)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
+
+
 
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
@@ -55,6 +58,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
+    - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
@@ -444,26 +448,27 @@ individual endpoints with configurable descriptions and thresholds.
 > 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
 ignored.
 
-| Parameter              | Description                                                                                                                  | Default |
-|:-----------------------|:-----------------------------------------------------------------------------------------------------------------------------|:--------|
-| `alerting.custom`      | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).    | `{}`    |
-| `alerting.discord`     | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).             | `{}`    |
-| `alerting.email`       | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                   | `{}`    |
-| `alerting.github`      | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                | `{}`    |
-| `alerting.gitlab`      | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                | `{}`    |
-| `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
-| `alerting.gotify`      | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                | `{}`    |
-| `alerting.matrix`      | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                | `{}`    |
-| `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
-| `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
-| `alerting.ntfy`        | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                      | `{}`    |
-| `alerting.opsgenie`    | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).          | `{}`    |
-| `alerting.pagerduty`   | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).       | `{}`    |
-| `alerting.pushover`    | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).          | `{}`    |
-| `alerting.slack`       | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                   | `{}`    |
-| `alerting.teams`       | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                   | `{}`    |
-| `alerting.telegram`    | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).          | `{}`    |
-| `alerting.twilio`      | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                     | `{}`    |
+| Parameter                 | Description                                                                                                                              | Default |
+|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:--------|
+| `alerting.custom`         | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).                | `{}`    |
+| `alerting.discord`        | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                         | `{}`    |
+| `alerting.email`          | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                               | `{}`    |
+| `alerting.github`         | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                            | `{}`    |
+| `alerting.gitlab`         | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                            | `{}`    |
+| `alerting.googlechat`     | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).              | `{}`    |
+| `alerting.gotify`         | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                            | `{}`    |
+| `alerting.jetbrainsspace` | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts).  | `{}`    |
+| `alerting.matrix`         | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                            | `{}`    |
+| `alerting.mattermost`     | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).                | `{}`    |
+| `alerting.messagebird`    | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts).             | `{}`    |
+| `alerting.ntfy`           | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                  | `{}`    |
+| `alerting.opsgenie`       | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                      | `{}`    |
+| `alerting.pagerduty`      | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                   | `{}`    |
+| `alerting.pushover`       | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                      | `{}`    |
+| `alerting.slack`          | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                               | `{}`    |
+| `alerting.teams`          | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                               | `{}`    |
+| `alerting.telegram`       | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                      | `{}`    |
+| `alerting.twilio`         | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                 | `{}`    |
 
 
 #### Configuring Discord alerts
@@ -701,6 +706,41 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Gotify notifications](.github/assets/gotify-alerts.png)
+
+
+#### Configuring JetBrains Space alerts
+| Parameter                                          | Description                                                                                 | Default                |
+|:---------------------------------------------------|:--------------------------------------------------------------------------------------------|:-----------------------|
+| `alerting.jetbrainsspace`                          | Configuration for alerts of type `jetbrainsspace`                                           | `{}`                   |
+| `alerting.jetbrainsspace.project`                  | JetBrains Space project name                                                                | Required `""`          |
+| `alerting.jetbrainsspace.channel-id`               | JetBrains Space Chat Channel ID                                                             | Required `""`          |
+| `alerting.jetbrainsspace.token`                    | Token that is used for authentication.                                                      | Required `""`          |
+| `alerting.jetbrainsspace.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)  | N/A                    |
+| `alerting.jetbrainsspace.overrides`                | List of overrides that may be prioritized over the default configuration                    | `[]`                   |
+| `alerting.jetbrainsspace.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration         | `""`                   |
+
+```yaml
+alerting:
+  jetbrainsspace:
+    project: myproject
+    channel-id: ABCDE12345
+    token: "**************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: jetbrainsspace
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![JetBrains Space notifications](.github/assets/jetbrains-space-alerts.png)
 
 
 #### Configuring Matrix alerts

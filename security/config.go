@@ -99,7 +99,7 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
 		request, err := adaptor.ConvertRequest(ctx, false)
 		if err != nil {
-			log.Printf("[IsAuthenticated] Unexpected error converting request: %v", err)
+			log.Printf("[security.IsAuthenticated] Unexpected error converting request: %v", err)
 			return false
 		}
 		token := c.gate.ExtractTokenFromRequest(request)

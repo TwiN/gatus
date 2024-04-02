@@ -260,6 +260,27 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY][0].id == 1",
 		},
 		{
+			Name:            "body-jsonpath-when-body-has-null-parameter",
+			Condition:       Condition("[BODY].data == OK"),
+			Result:          &Result{Body: []byte(`{"data": null}"`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].data (INVALID) == OK",
+		},
+		{
+			Name:            "body-jsonpath-when-body-has-array-with-null",
+			Condition:       Condition("[BODY].items[0] == OK"),
+			Result:          &Result{Body: []byte(`{"items": [null, null]}"`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].items[0] (INVALID) == OK",
+		},
+		{
+			Name:            "body-jsonpath-when-body-is-null",
+			Condition:       Condition("[BODY].data == OK"),
+			Result:          &Result{Body: []byte(`null`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY].data (INVALID) == OK",
+		},
+		{
 			Name:            "body-jsonpath-when-body-is-array-but-actual-body-is-not",
 			Condition:       Condition("[BODY][0].name == test"),
 			Result:          &Result{Body: []byte("{\"statusCode\": 500, \"message\": \"Internal Server Error\"}")},

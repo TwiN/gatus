@@ -25,19 +25,19 @@ func Handle(cfg *config.Config) {
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
-	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
+	log.Println("[controller.Handle] Listening on " + cfg.Web.SocketAddress())
 	if cfg.Web.HasTLS() {
 		err := app.ListenTLS(cfg.Web.SocketAddress(), cfg.Web.TLS.CertificateFile, cfg.Web.TLS.PrivateKeyFile)
 		if err != nil {
-			log.Fatal("[controller][Handle]", err)
+			log.Fatal("[controller.Handle]", err)
 		}
 	} else {
 		err := app.Listen(cfg.Web.SocketAddress())
 		if err != nil {
-			log.Fatal("[controller][Handle]", err)
+			log.Fatal("[controller.Handle]", err)
 		}
 	}
-	log.Println("[controller][Handle] Server has shut down successfully")
+	log.Println("[controller.Handle] Server has shut down successfully")
 }
 
 // Shutdown stops the server

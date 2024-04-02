@@ -161,13 +161,13 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	if fileInfo.IsDir() {
 		err := walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
-				log.Printf("[config][LoadConfiguration] Error walking path=%s: %s", path, err)
+				log.Printf("[config.LoadConfiguration] Error walking path=%s: %s", path, err)
 				return err
 			}
-			log.Printf("[config][LoadConfiguration] Reading configuration from %s", path)
+			log.Printf("[config.LoadConfiguration] Reading configuration from %s", path)
 			data, err := os.ReadFile(path)
 			if err != nil {
-				log.Printf("[config][LoadConfiguration] Error reading configuration from %s: %s", path, err)
+				log.Printf("[config.LoadConfiguration] Error reading configuration from %s: %s", path, err)
 				return fmt.Errorf("error reading configuration from file %s: %w", path, err)
 			}
 			configBytes, err = deepmerge.YAML(configBytes, data)
@@ -177,7 +177,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
 		}
 	} else {
-		log.Printf("[config][LoadConfiguration] Reading configuration from configFile=%s", configPath)
+		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", configPath)
 		if data, err := os.ReadFile(usedConfigPath); err != nil {
 			return nil, err
 		} else {
@@ -326,13 +326,13 @@ func validateWebConfig(config *Config) error {
 func validateEndpointsConfig(config *Config) error {
 	for _, endpoint := range config.Endpoints {
 		if config.Debug {
-			log.Printf("[config][validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
+			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
 		}
 		if err := endpoint.ValidateAndSetDefaults(); err != nil {
 			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
 		}
 	}
-	log.Printf("[config][validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	return nil
 }
 
@@ -340,7 +340,7 @@ func validateSecurityConfig(config *Config) error {
 	if config.Security != nil {
 		if config.Security.IsValid() {
 			if config.Debug {
-				log.Printf("[config][validateSecurityConfig] Basic security configuration has been validated")
+				log.Printf("[config.validateSecurityConfig] Basic security configuration has been validated")
 			}
 		} else {
 			// If there was an attempt to configure security, then it must mean that some confidential or private
@@ -357,7 +357,7 @@ func validateSecurityConfig(config *Config) error {
 // sets the default alert values when none are set.
 func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.Endpoint, debug bool) {
 	if alertingConfig == nil {
-		log.Printf("[config][validateAlertingConfig] Alerting is not configured")
+		log.Printf("[config.validateAlertingConfig] Alerting is not configured")
 		return
 	}
 	alertTypes := []alert.Type{
@@ -368,6 +368,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 		alert.TypeGitLab,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
+		alert.TypeJetBrainsSpace,
 		alert.TypeEmail,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
@@ -392,7 +393,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 						for alertIndex, endpointAlert := range endpoint.Alerts {
 							if alertType == endpointAlert.Type {
 								if debug {
-									log.Printf("[config][validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, endpoint.Name)
+									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, endpoint.Name)
 								}
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}
@@ -401,7 +402,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 				}
 				validProviders = append(validProviders, alertType)
 			} else {
-				log.Printf("[config][validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
+				log.Printf("[config.validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
 				invalidProviders = append(invalidProviders, alertType)
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
@@ -409,5 +410,5 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 			invalidProviders = append(invalidProviders, alertType)
 		}
 	}
-	log.Printf("[config][validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+	log.Printf("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }

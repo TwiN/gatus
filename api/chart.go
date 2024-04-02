@@ -111,7 +111,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	c.Set("Expires", "0")
 	c.Status(http.StatusOK)
 	if err := graph.Render(chart.SVG, c); err != nil {
-		log.Println("[api][ResponseTimeChart] Failed to render response time chart:", err.Error())
+		log.Println("[api.ResponseTimeChart] Failed to render response time chart:", err.Error())
 		return c.Status(500).SendString(err.Error())
 	}
 	return nil

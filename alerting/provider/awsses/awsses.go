@@ -59,7 +59,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	sess, err := provider.CreateSesSession()
+	sess, err := provider.createSession()
 	if err != nil {
 		return err
 	}
@@ -153,14 +153,12 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }
 
-func (provider AlertProvider) CreateSesSession() (*session.Session, error) {
+func (provider *AlertProvider) createSession() (*session.Session, error) {
 	config := &aws.Config{
 		Region: aws.String(provider.Region),
 	}
-
 	if len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0 {
 		config.Credentials = credentials.NewStaticCredentials(provider.AccessKeyID, provider.SecretAccessKey, "")
 	}
-
 	return session.NewSession(config)
 }
