@@ -31,13 +31,13 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 		}
 		if endpointAlert.Triggered {
 			if debug {
-				log.Printf("[watchdog][handleAlertsToTrigger] Alert for endpoint=%s with description='%s' has already been TRIGGERED, skipping", endpoint.Name, endpointAlert.GetDescription())
+				log.Printf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' has already been TRIGGERED, skipping", endpoint.Name, endpointAlert.GetDescription())
 			}
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
-			log.Printf("[watchdog][handleAlertsToTrigger] Sending %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
+			log.Printf("[watchdog.handleAlertsToTrigger] Sending %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
 			var err error
 			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
@@ -47,12 +47,12 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 				err = alertProvider.Send(endpoint, endpointAlert, result, false)
 			}
 			if err != nil {
-				log.Printf("[watchdog][handleAlertsToTrigger] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
+				log.Printf("[watchdog.handleAlertsToTrigger] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
 			} else {
 				endpointAlert.Triggered = true
 			}
 		} else {
-			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type)
+			log.Printf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
 	}
 }
@@ -71,13 +71,13 @@ func handleAlertsToResolve(endpoint *core.Endpoint, result *core.Result, alertin
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
-			log.Printf("[watchdog][handleAlertsToResolve] Sending %s alert because alert for endpoint=%s with description='%s' has been RESOLVED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
+			log.Printf("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint=%s with description='%s' has been RESOLVED", endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
 			err := alertProvider.Send(endpoint, endpointAlert, result, true)
 			if err != nil {
-				log.Printf("[watchdog][handleAlertsToResolve] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
+				log.Printf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint=%s: %s", endpoint.Name, err.Error())
 			}
 		} else {
-			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type)
+			log.Printf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
 	}
 	endpoint.NumberOfFailuresInARow = 0

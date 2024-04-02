@@ -241,13 +241,13 @@ func TestEndpoint(t *testing.T) {
 }
 
 func TestEndpoint_IsEnabled(t *testing.T) {
-	if !(Endpoint{Enabled: nil}).IsEnabled() {
+	if !(&Endpoint{Enabled: nil}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned true, because Enabled was set to nil")
 	}
-	if value := false; (Endpoint{Enabled: &value}).IsEnabled() {
+	if value := false; (&Endpoint{Enabled: &value}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned false, because Enabled was set to false")
 	}
-	if value := true; !(Endpoint{Enabled: &value}).IsEnabled() {
+	if value := true; !(&Endpoint{Enabled: &value}).IsEnabled() {
 		t.Error("Endpoint.IsEnabled() should've returned true, because Enabled was set to true")
 	}
 }
