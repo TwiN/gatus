@@ -117,8 +117,15 @@ func extractValue(currentKey string, value interface{}) interface{} {
 	}
 	if valueAsSlice, ok := value.([]interface{}); ok {
 		// If the type is a slice, return it
+		// This happens when the body (value) is a JSON array
 		return valueAsSlice
 	}
-	// otherwise, it's a map
-	return value.(map[string]interface{})[currentKey]
+	if valueAsMap, ok := value.(map[string]interface{}); ok {
+		// If the value is a map, then we get the currentKey from that map
+		// This happens when the body (value) is a JSON object
+		return valueAsMap[currentKey]
+	}
+	// If the value is neither a map, nor a slice, nor an index, then we cannot retrieve the currentKey
+	// from said value. This usually happens when the body (value) is null.
+	return value
 }
