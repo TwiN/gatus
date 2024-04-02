@@ -106,7 +106,7 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 			return fieldValue.Interface().(provider.AlertProvider)
 		}
 	}
-	log.Printf("[alerting][GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
+	log.Printf("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
 }
 
