@@ -30,9 +30,15 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		if len(token) == 0 {
 			return c.Status(401).SendString("bearer token must not be empty")
 		}
-		externalEndpoint := cfg.GetExternalEndpointByKey(c.Params("key"))
+		key := c.Params("key")
+		externalEndpoint := cfg.GetExternalEndpointByKey(key)
 		if externalEndpoint == nil {
+			log.Printf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
+		}
+		if externalEndpoint.Token != token {
+			log.Printf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
+			return c.Status(401).SendString("invalid token")
 		}
 		// Persist the result in the storage
 		result := &core.Result{
