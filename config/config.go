@@ -67,14 +67,17 @@ type Config struct {
 	// Disabling this may lead to inaccurate response times
 	DisableMonitoringLock bool `yaml:"disable-monitoring-lock,omitempty"`
 
-	// Security Configuration for securing access to Gatus
+	// Security is the configuration for securing access to Gatus
 	Security *security.Config `yaml:"security,omitempty"`
 
-	// Alerting Configuration for alerting
+	// Alerting is the configuration for alerting providers
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
 
-	// Endpoints List of endpoints to monitor
+	// Endpoints is the list of endpoints to monitor
 	Endpoints []*core.Endpoint `yaml:"endpoints,omitempty"`
+
+	// ExternalEndpoints is the list of all external endpoints
+	ExternalEndpoints []*core.ExternalEndpoint `yaml:"external-endpoints,omitempty"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
@@ -110,9 +113,20 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 	return nil
 }
 
+func (config *Config) GetExternalEndpointByKey(key string) *core.ExternalEndpoint {
+	// TODO: Should probably add a mutex here to prevent concurrent access
+	for i := 0; i < len(config.ExternalEndpoints); i++ {
+		ee := config.ExternalEndpoints[i]
+		if util.ConvertGroupAndEndpointNameToKey(ee.Group, ee.Name) == key {
+			return ee
+		}
+	}
+	return nil
+}
+
 // HasLoadedConfigurationBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
-func (config Config) HasLoadedConfigurationBeenModified() bool {
+func (config *Config) HasLoadedConfigurationBeenModified() bool {
 	lastMod := config.lastFileModTime.Unix()
 	fileInfo, err := os.Stat(config.configPath)
 	if err != nil {
@@ -125,7 +139,7 @@ func (config Config) HasLoadedConfigurationBeenModified() bool {
 			}
 			return nil
 		})
-		return err == errEarlyReturn
+		return errors.Is(err, errEarlyReturn)
 	}
 	return !fileInfo.ModTime().IsZero() && config.lastFileModTime.Unix() < fileInfo.ModTime().Unix()
 }
@@ -135,7 +149,7 @@ func (config *Config) UpdateLastFileModTime() {
 	config.lastFileModTime = time.Now()
 }
 
-// LoadConfiguration loads the full configuration composed from the main configuration file
+// LoadConfiguration loads the full configuration composed of the main configuration file
 // and all composed configuration files
 func LoadConfiguration(configPath string) (*Config, error) {
 	var configBytes []byte

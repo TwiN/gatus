@@ -55,12 +55,6 @@ var (
 	// ErrEndpointWithNoURL is the error with which Gatus will panic if an endpoint is configured with no url
 	ErrEndpointWithNoURL = errors.New("you must specify an url for each endpoint")
 
-	// ErrEndpointWithNoName is the error with which Gatus will panic if an endpoint is configured with no name
-	ErrEndpointWithNoName = errors.New("you must specify a name for each endpoint")
-
-	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
-	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
-
 	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 
@@ -166,11 +160,8 @@ func (endpoint *Endpoint) Type() EndpointType {
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
 func (endpoint *Endpoint) ValidateAndSetDefaults() error {
-	if len(endpoint.Name) == 0 {
-		return ErrEndpointWithNoName
-	}
-	if strings.ContainsAny(endpoint.Name, "\"\\") || strings.ContainsAny(endpoint.Group, "\"\\") {
-		return ErrEndpointWithInvalidNameOrGroup
+	if err := validateEndpointNameGroupAndAlerts(endpoint.Name, endpoint.Group, endpoint.Alerts); err != nil {
+		return err
 	}
 	if len(endpoint.URL) == 0 {
 		return ErrEndpointWithNoURL
@@ -206,11 +197,6 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	// and endpoint.GraphQL is set to true
 	if _, contentTypeHeaderExists := endpoint.Headers[ContentTypeHeader]; !contentTypeHeaderExists && endpoint.GraphQL {
 		endpoint.Headers[ContentTypeHeader] = "application/json"
-	}
-	for _, endpointAlert := range endpoint.Alerts {
-		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
 	}
 	if len(endpoint.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
