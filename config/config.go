@@ -255,6 +255,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateEndpointsConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateExternalEndpointsConfig(config); err != nil {
+			return nil, err
+		}
 		if err := validateWebConfig(config); err != nil {
 			return nil, err
 		}
@@ -347,6 +350,19 @@ func validateEndpointsConfig(config *Config) error {
 		}
 	}
 	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+	return nil
+}
+
+func validateExternalEndpointsConfig(config *Config) error {
+	for _, externalEndpoint := range config.ExternalEndpoints {
+		if config.Debug {
+			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", externalEndpoint.Name)
+		}
+		if err := externalEndpoint.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid external endpoint %s: %w", externalEndpoint.DisplayName(), err)
+		}
+	}
+	log.Printf("[config.validateExternalEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }
 
