@@ -103,7 +103,6 @@ type Config struct {
 }
 
 func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
-	// TODO: Should probably add a mutex here to prevent concurrent access
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
 		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
@@ -114,7 +113,6 @@ func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
 }
 
 func (config *Config) GetExternalEndpointByKey(key string) *core.ExternalEndpoint {
-	// TODO: Should probably add a mutex here to prevent concurrent access
 	for i := 0; i < len(config.ExternalEndpoints); i++ {
 		ee := config.ExternalEndpoints[i]
 		if util.ConvertGroupAndEndpointNameToKey(ee.Group, ee.Name) == key {

@@ -17,7 +17,7 @@ type SSH struct {
 	Password string `yaml:"password,omitempty"`
 }
 
-// validateAndSetDefaults validates the endpoint
+// validate validates the endpoint
 func (s *SSH) validate() error {
 	if len(s.Username) == 0 {
 		return ErrEndpointWithoutSSHUsername

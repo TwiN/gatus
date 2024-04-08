@@ -216,9 +216,9 @@ If you want to test it locally, see [Docker](#docker).
 | `debug`                      | Whether to enable debug logs.                                                                                                        | `false`                    |
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
 | `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
+| `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
 | `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                               | Required `[]`              |
 | `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                             | `[]`                       |
-| `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
 | `security`                   | [Security configuration](#security).                                                                                                 | `{}`                       |
 | `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                  | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false`                    |
@@ -302,6 +302,15 @@ external-endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
+
+To push the status of an external endpoint, the request would have to look like this:
+```
+POST /api/v1/endpoints/{key}/external?success={success}
+```
+Where:
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+  - Using the example configuration above, the key would be `core_ext-ep-test`.
+- `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 
 
 ### Conditions
@@ -411,7 +420,7 @@ the client used to send the request.
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
-in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
+> in ICMP requests (ping), therefore, setting `client.insecure` to `true` for an endpoint of that type will not do anything.
 
 This default configuration is as follows:
 
@@ -512,7 +521,7 @@ endpoints:
 ```
 
 > 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
-ignored.
+> ignored.
 
 | Parameter                 | Description                                                                                                                              | Default |
 |:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:--------|
@@ -1473,7 +1482,7 @@ security:
 ```
 
 > ⚠ Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
-and basic auth verifies the password against the hash on every request. As of 2023-01-06, I suggest a cost of 9.
+> and basic auth verifies the password against the hash on every request. As of 2023-01-06, I suggest a cost of 9.
 
 
 #### OIDC
@@ -1723,8 +1732,8 @@ Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
 
 > 📝 `[CONNECTED] == true` does not guarantee that the endpoint itself is healthy - it only guarantees that there's
-something at the given address listening to the given port, and that a connection to that address was successfully
-established.
+> something at the given address listening to the given port, and that a connection to that address was successfully
+> established.
 
 
 ### Monitoring a UDP endpoint
@@ -1886,9 +1895,9 @@ endpoints:
 ```
 
 > ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
-and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
-To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
-using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
+> and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
+> To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
+> using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
 
 ### disable-monitoring-lock
