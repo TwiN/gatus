@@ -5,12 +5,14 @@
       <code id="tooltip-timestamp">{{ prettifyTimestamp(result.timestamp) }}</code>
       <div class="tooltip-title">Response time:</div>
       <code id="tooltip-response-time">{{ (result.duration / 1000000).toFixed(0) }}ms</code>
-      <div class="tooltip-title">Conditions:</div>
-      <code id="tooltip-conditions">
-        <slot v-for="conditionResult in result.conditionResults" :key="conditionResult">
-          {{ conditionResult.success ? "&#10003;" : "X" }} ~ {{ conditionResult.condition }}<br/>
-        </slot>
-      </code>
+      <slot v-if="result.conditionResults && result.conditionResults.length">
+        <div class="tooltip-title">Conditions:</div>
+        <code id="tooltip-conditions">
+          <slot v-for="conditionResult in result.conditionResults" :key="conditionResult">
+            {{ conditionResult.success ? "&#10003;" : "X" }} ~ {{ conditionResult.condition }}<br/>
+          </slot>
+        </code>
+      </slot>
       <div id="tooltip-errors-container" v-if="result.errors && result.errors.length">
         <div class="tooltip-title">Errors:</div>
         <code id="tooltip-errors">

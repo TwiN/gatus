@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/core/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -272,10 +273,13 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 }
 
 func getBadgeColorFromResponseTime(responseTime int, key string, cfg *config.Config) string {
-	endpoint := cfg.GetEndpointByKey(key)
+	thresholds := ui.GetDefaultConfig().Badge.ResponseTime.Thresholds
+	if endpoint := cfg.GetEndpointByKey(key); endpoint != nil {
+		thresholds = endpoint.UIConfig.Badge.ResponseTime.Thresholds
+	}
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
-		if responseTime <= endpoint.UIConfig.Badge.ResponseTime.Thresholds[i] {
+		if responseTime <= thresholds[i] {
 			return badgeColors[i]
 		}
 	}

@@ -7,7 +7,7 @@ import (
 // Result of the evaluation of a Endpoint
 type Result struct {
 	// HTTPStatus is the HTTP response status code
-	HTTPStatus int `json:"status"`
+	HTTPStatus int `json:"status,omitempty"`
 
 	// DNSRCode is the response code of a DNS query in a human-readable format
 	//
@@ -30,7 +30,7 @@ type Result struct {
 	Errors []string `json:"errors,omitempty"`
 
 	// ConditionResults results of the Endpoint's conditions
-	ConditionResults []*ConditionResult `json:"conditionResults"`
+	ConditionResults []*ConditionResult `json:"conditionResults,omitempty"`
 
 	// Success whether the result signifies a success or not
 	Success bool `json:"success"`
