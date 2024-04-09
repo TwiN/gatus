@@ -138,6 +138,7 @@ if no traffic makes it to your applications. This puts you in a situation where 
 that will notify you about the degradation of your services rather than you reassuring them that you're working on
 fixing the issue before they even know about it.
 
+
 ## Features
 The main features of Gatus are:
 
@@ -151,6 +152,7 @@ The main features of Gatus are:
 - **Dark mode**
 
 ![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+
 
 ## Usage
 
@@ -277,7 +279,7 @@ This allows you to monitor anything you want, even when what you want to check l
 
 For instance:
 - You can create your own agent that lives in a private network and pushes the status of your services to a publicly-exposed Gatus instance
-- You can monitor services that are not supported by Gatus
+- You can monitor services that are not supported by Gatus 
 - You can implement your own monitoring system while using Gatus as the dashboard
 
 | Parameter                      | Description                                                                                                            | Default       |
@@ -2062,19 +2064,6 @@ endpoints:
 ```
 </details>
 
-### Proxy client configuration
-
-You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
-
-```yaml
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    client:
-      proxy-url: http://proxy.example.com:8080
-    conditions:
-      - "[STATUS] == 200"
-```
 
 ### Proxy client configuration
 
@@ -2090,6 +2079,19 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+### Proxy client configuration
+
+You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
+
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    client:
+      proxy-url: http://proxy.example.com:8080
+    conditions:
+      - "[STATUS] == 200"
+```
 
 ### How to fix 431 Request Header Fields Too Large error
 Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,
