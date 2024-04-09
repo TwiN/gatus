@@ -83,6 +83,9 @@ func initializeStorage(cfg *config.Config) {
 	for _, endpoint := range cfg.Endpoints {
 		keys = append(keys, endpoint.Key())
 	}
+	for _, externalEndpoint := range cfg.ExternalEndpoints {
+		keys = append(keys, externalEndpoint.Key())
+	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
 		log.Printf("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)

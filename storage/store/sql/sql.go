@@ -556,7 +556,7 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 		key,
 	).Scan(&id, &group, &name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, "", "", common.ErrEndpointNotFound
 		}
 		return 0, "", "", err
@@ -738,7 +738,7 @@ func (s *Store) getEndpointID(tx *sql.Tx, endpoint *core.Endpoint) (int64, error
 	var id int64
 	err := tx.QueryRow("SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1", endpoint.Key()).Scan(&id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, common.ErrEndpointNotFound
 		}
 		return 0, err
@@ -788,7 +788,7 @@ func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) 
 	var success bool
 	err := tx.QueryRow("SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&success)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, errNoRowsReturned
 		}
 		return false, err

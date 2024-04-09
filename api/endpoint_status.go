@@ -65,13 +65,13 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*cor
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			_ = response.Body.Close()
-			log.Printf("[handler.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
 		}
 		var endpointStatuses []*core.EndpointStatus
 		if err = json.Unmarshal(body, &endpointStatuses); err != nil {
 			_ = response.Body.Close()
-			log.Printf("[handler.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
 		}
 		_ = response.Body.Close()
