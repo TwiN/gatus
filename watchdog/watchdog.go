@@ -44,12 +44,15 @@ func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[watchdog][monitor] Canceling current execution of group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
+			log.Printf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
 			return
 		case <-time.After(endpoint.Interval):
 			execute(endpoint, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
 		}
 	}
+	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
+	// Alerting is checked every time an external endpoint is pushed to Gatus, so they're not monitored
+	// periodically like they are for normal endpoints.
 }
 
 func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
@@ -61,11 +64,11 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	}
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
-		log.Println("[watchdog][execute] No connectivity; skipping execution")
+		log.Println("[watchdog.execute] No connectivity; skipping execution")
 		return
 	}
 	if debug {
-		log.Printf("[watchdog][execute] Monitoring group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
+		log.Printf("[watchdog.execute] Monitoring group=%s; endpoint=%s", endpoint.Group, endpoint.Name)
 	}
 	result := endpoint.EvaluateHealth()
 	if enabledMetrics {
@@ -73,25 +76,25 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	}
 	UpdateEndpointStatuses(endpoint, result)
 	if debug && !result.Success {
-		log.Printf("[watchdog][execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", endpoint.Group, endpoint.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
+		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", endpoint.Group, endpoint.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
 	} else {
-		log.Printf("[watchdog][execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", endpoint.Group, endpoint.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", endpoint.Group, endpoint.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 	if !maintenanceConfig.IsUnderMaintenance() {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
 		HandleAlerting(endpoint, result, alertingConfig, debug)
 	} else if debug {
-		log.Println("[watchdog][execute] Not handling alerting because currently in the maintenance window")
+		log.Println("[watchdog.execute] Not handling alerting because currently in the maintenance window")
 	}
 	if debug {
-		log.Printf("[watchdog][execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", endpoint.Interval, endpoint.Group, endpoint.Name)
+		log.Printf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", endpoint.Interval, endpoint.Group, endpoint.Name)
 	}
 }
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
 	if err := store.Get().Insert(endpoint, result); err != nil {
-		log.Println("[watchdog][UpdateEndpointStatuses] Failed to insert data in storage:", err.Error())
+		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
 	}
 }
 

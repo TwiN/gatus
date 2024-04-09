@@ -232,7 +232,7 @@ func (c *Config) getHTTPClient() *http.Client {
 		if c.ProxyURL != "" {
 			proxyURL, err := url.Parse(c.ProxyURL)
 			if err != nil {
-				log.Println("[client][getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring custom proxy due to error:", err.Error())
+				log.Println("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring custom proxy due to error:", err.Error())
 			} else {
 				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
@@ -242,7 +242,7 @@ func (c *Config) getHTTPClient() *http.Client {
 			if err != nil {
 				// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
 				// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
-				log.Println("[client][getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error:", err.Error())
+				log.Println("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error:", err.Error())
 			} else {
 				dialer := &net.Dialer{
 					Resolver: &net.Resolver{
@@ -259,7 +259,7 @@ func (c *Config) getHTTPClient() *http.Client {
 			}
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {
-			log.Println("[client][getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
+			log.Println("[client.getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
 		} else if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		} else if c.HasIAPConfig() {
@@ -274,18 +274,18 @@ func (c *Config) getHTTPClient() *http.Client {
 func validateIAPToken(ctx context.Context, c IAPConfig) bool {
 	ts, err := idtoken.NewTokenSource(ctx, c.Audience)
 	if err != nil {
-		log.Println("[client][ValidateIAPToken] Claiming Identity token failed. error:", err.Error())
+		log.Println("[client.ValidateIAPToken] Claiming Identity token failed. error:", err.Error())
 		return false
 	}
 	tok, err := ts.Token()
 	if err != nil {
-		log.Println("[client][ValidateIAPToken] Get Identity-Aware-Proxy token failed. error:", err.Error())
+		log.Println("[client.ValidateIAPToken] Get Identity-Aware-Proxy token failed. error:", err.Error())
 		return false
 	}
 	payload, err := idtoken.Validate(ctx, tok.AccessToken, c.Audience)
 	_ = payload
 	if err != nil {
-		log.Println("[client][ValidateIAPToken] Token Validation failed. error:", err.Error())
+		log.Println("[client.ValidateIAPToken] Token Validation failed. error:", err.Error())
 		return false
 	}
 	return true
@@ -298,7 +298,7 @@ func configureIAP(httpClient *http.Client, c IAPConfig) *http.Client {
 	if validateIAPToken(ctx, c) {
 		ts, err := idtoken.NewTokenSource(ctx, c.Audience)
 		if err != nil {
-			log.Println("[client][ConfigureIAP] Claiming Token Source failed. error:", err.Error())
+			log.Println("[client.ConfigureIAP] Claiming Token Source failed. error:", err.Error())
 			return httpClient
 		}
 		client := oauth2.NewClient(ctx, ts)

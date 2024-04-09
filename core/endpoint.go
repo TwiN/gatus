@@ -55,12 +55,6 @@ var (
 	// ErrEndpointWithNoURL is the error with which Gatus will panic if an endpoint is configured with no url
 	ErrEndpointWithNoURL = errors.New("you must specify an url for each endpoint")
 
-	// ErrEndpointWithNoName is the error with which Gatus will panic if an endpoint is configured with no name
-	ErrEndpointWithNoName = errors.New("you must specify a name for each endpoint")
-
-	// ErrEndpointWithInvalidNameOrGroup is the error with which Gatus will panic if an endpoint has an invalid character where it shouldn't
-	ErrEndpointWithInvalidNameOrGroup = errors.New("endpoint name and group must not have \" or \\")
-
 	// ErrUnknownEndpointType is the error with which Gatus will panic if an endpoint has an unknown type
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 
@@ -72,13 +66,9 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
-	// ErrEndpointWithoutSSHUsername is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a user.
-	ErrEndpointWithoutSSHUsername = errors.New("you must specify a username for each endpoint with SSH")
-	// ErrEndpointWithoutSSHPassword is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a password.
-	ErrEndpointWithoutSSHPassword = errors.New("you must specify a password for each endpoint with SSH")
 )
 
-// Endpoint is the configuration of a monitored
+// Endpoint is the configuration of a service to be monitored
 type Endpoint struct {
 	// Enabled defines whether to enable the monitoring of the endpoint
 	Enabled *bool `yaml:"enabled,omitempty"`
@@ -94,6 +84,9 @@ type Endpoint struct {
 
 	// DNS is the configuration of DNS monitoring
 	DNS *DNS `yaml:"dns,omitempty"`
+
+	// SSH is the configuration of SSH monitoring.
+	SSH *SSH `yaml:"ssh,omitempty"`
 
 	// Method of the request made to the url of the endpoint
 	Method string `yaml:"method,omitempty"`
@@ -127,31 +120,10 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
-
-	// SSH is the configuration of SSH monitoring.
-	SSH *SSH `yaml:"ssh,omitempty"`
-}
-
-type SSH struct {
-	// Username is the username to use when connecting to the SSH server.
-	Username string `yaml:"username,omitempty"`
-	// Password is the password to use when connecting to the SSH server.
-	Password string `yaml:"password,omitempty"`
-}
-
-// ValidateAndSetDefaults validates the endpoint
-func (s *SSH) ValidateAndSetDefaults() error {
-	if s.Username == "" {
-		return ErrEndpointWithoutSSHUsername
-	}
-	if s.Password == "" {
-		return ErrEndpointWithoutSSHPassword
-	}
-	return nil
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
-func (endpoint Endpoint) IsEnabled() bool {
+func (endpoint *Endpoint) IsEnabled() bool {
 	if endpoint.Enabled == nil {
 		return true
 	}
@@ -159,7 +131,7 @@ func (endpoint Endpoint) IsEnabled() bool {
 }
 
 // Type returns the endpoint type
-func (endpoint Endpoint) Type() EndpointType {
+func (endpoint *Endpoint) Type() EndpointType {
 	switch {
 	case endpoint.DNS != nil:
 		return EndpointTypeDNS
@@ -188,7 +160,12 @@ func (endpoint Endpoint) Type() EndpointType {
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
 func (endpoint *Endpoint) ValidateAndSetDefaults() error {
-	// Set default values
+	if err := validateEndpointNameGroupAndAlerts(endpoint.Name, endpoint.Group, endpoint.Alerts); err != nil {
+		return err
+	}
+	if len(endpoint.URL) == 0 {
+		return ErrEndpointWithNoURL
+	}
 	if endpoint.ClientConfig == nil {
 		endpoint.ClientConfig = client.GetDefaultConfig()
 	} else {
@@ -221,20 +198,6 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if _, contentTypeHeaderExists := endpoint.Headers[ContentTypeHeader]; !contentTypeHeaderExists && endpoint.GraphQL {
 		endpoint.Headers[ContentTypeHeader] = "application/json"
 	}
-	for _, endpointAlert := range endpoint.Alerts {
-		if err := endpointAlert.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
-	}
-	if len(endpoint.Name) == 0 {
-		return ErrEndpointWithNoName
-	}
-	if strings.ContainsAny(endpoint.Name, "\"\\") || strings.ContainsAny(endpoint.Group, "\"\\") {
-		return ErrEndpointWithInvalidNameOrGroup
-	}
-	if len(endpoint.URL) == 0 {
-		return ErrEndpointWithNoURL
-	}
 	if len(endpoint.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
 	}
@@ -249,6 +212,9 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.DNS != nil {
 		return endpoint.DNS.validateAndSetDefault()
 	}
+	if endpoint.SSH != nil {
+		return endpoint.SSH.validate()
+	}
 	if endpoint.Type() == EndpointTypeUNKNOWN {
 		return ErrUnknownEndpointType
 	}
@@ -257,14 +223,11 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if err != nil {
 		return err
 	}
-	if endpoint.SSH != nil {
-		return endpoint.SSH.ValidateAndSetDefaults()
-	}
 	return nil
 }
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
-func (endpoint Endpoint) DisplayName() string {
+func (endpoint *Endpoint) DisplayName() string {
 	if len(endpoint.Group) > 0 {
 		return endpoint.Group + "/" + endpoint.Name
 	}
@@ -272,8 +235,17 @@ func (endpoint Endpoint) DisplayName() string {
 }
 
 // Key returns the unique key for the Endpoint
-func (endpoint Endpoint) Key() string {
+func (endpoint *Endpoint) Key() string {
 	return util.ConvertGroupAndEndpointNameToKey(endpoint.Group, endpoint.Name)
+}
+
+// Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
+// on configuration reload.
+// More context on https://github.com/TwiN/gatus/issues/536
+func (endpoint *Endpoint) Close() {
+	if endpoint.Type() == EndpointTypeHTTP {
+		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
+	}
 }
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
@@ -416,15 +388,6 @@ func (endpoint *Endpoint) call(result *Result) {
 				result.AddError("error reading response body:" + err.Error())
 			}
 		}
-	}
-}
-
-// Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
-// on configuration reload.
-// More context on https://github.com/TwiN/gatus/issues/536
-func (endpoint *Endpoint) Close() {
-	if endpoint.Type() == EndpointTypeHTTP {
-		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
 	}
 }
 

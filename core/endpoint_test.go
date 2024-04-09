@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -123,6 +124,7 @@ func TestEndpoint(t *testing.T) {
 				Name:       "website-health",
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[DOMAIN_EXPIRATION] > 100h"},
+				Interval:   5 * time.Minute,
 			},
 			ExpectedResult: &Result{
 				Success:   true,
@@ -195,7 +197,10 @@ func TestEndpoint(t *testing.T) {
 			} else {
 				client.InjectHTTPClient(nil)
 			}
-			scenario.Endpoint.ValidateAndSetDefaults()
+			err := scenario.Endpoint.ValidateAndSetDefaults()
+			if err != nil {
+				t.Error("did not expect an error, got", err)
+			}
 			result := scenario.Endpoint.EvaluateHealth()
 			if result.Success != scenario.ExpectedResult.Success {
 				t.Errorf("Expected success to be %v, got %v", scenario.ExpectedResult.Success, result.Success)
@@ -241,13 +246,13 @@ func TestEndpoint(t *testing.T) {
 }
 
 func TestEndpoint_IsEnabled(t *testing.T) {
-	if !(Endpoint{Enabled: nil}).IsEnabled() {
+	if !(&Endpoint{Enabled: nil}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned true, because Enabled was set to nil")
 	}
-	if value := false; (Endpoint{Enabled: &value}).IsEnabled() {
+	if value := false; (&Endpoint{Enabled: &value}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned false, because Enabled was set to false")
 	}
-	if value := true; !(Endpoint{Enabled: &value}).IsEnabled() {
+	if value := true; !(&Endpoint{Enabled: &value}).IsEnabled() {
 		t.Error("Endpoint.IsEnabled() should've returned true, because Enabled was set to true")
 	}
 }
@@ -430,7 +435,10 @@ func TestEndpoint_ValidateAndSetDefaultsWithClientConfig(t *testing.T) {
 			Timeout:        0,
 		},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	if endpoint.ClientConfig == nil {
 		t.Error("client configuration should've been set to the default configuration")
 	} else {
@@ -466,7 +474,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 }
 
 func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name        string
 		username    string
 		password    string
@@ -492,20 +500,20 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
 			endpoint := &Endpoint{
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSH: &SSH{
-					Username: test.username,
-					Password: test.password,
+					Username: scenario.username,
+					Password: scenario.password,
 				},
 				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}
 			err := endpoint.ValidateAndSetDefaults()
-			if err != test.expectedErr {
-				t.Errorf("expected error %v, got %v", test.expectedErr, err)
+			if !errors.Is(err, scenario.expectedErr) {
+				t.Errorf("expected error %v, got %v", scenario.expectedErr, err)
 			}
 		})
 	}
@@ -575,7 +583,10 @@ func TestEndpoint_buildHTTPRequest(t *testing.T) {
 		URL:        "https://twin.sh/health",
 		Conditions: []Condition{condition},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	request := endpoint.buildHTTPRequest()
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
@@ -598,7 +609,10 @@ func TestEndpoint_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 			"User-Agent": "Test/2.0",
 		},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	request := endpoint.buildHTTPRequest()
 	if request.Method != "GET" {
 		t.Error("request.Method should've been GET, but was", request.Method)
@@ -622,7 +636,10 @@ func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 			"Host": "example.com",
 		},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	request := endpoint.buildHTTPRequest()
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
@@ -649,7 +666,10 @@ func TestEndpoint_buildHTTPRequestWithGraphQLEnabled(t *testing.T) {
   }
 }`,
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	request := endpoint.buildHTTPRequest()
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
@@ -671,7 +691,10 @@ func TestIntegrationEvaluateHealth(t *testing.T) {
 		URL:        "https://twin.sh/health",
 		Conditions: []Condition{condition, bodyCondition},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Condition '%s' should have been a success", condition)
@@ -699,7 +722,10 @@ func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
 			HideURL: true,
 		},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	result := endpoint.EvaluateHealth()
 	if result.Success {
 		t.Error("Because one of the conditions was invalid, result.Success should have been false")
@@ -724,7 +750,10 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 		},
 		Conditions: []Condition{conditionSuccess, conditionBody},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' and '%s' should have been a success", conditionSuccess, conditionBody)
@@ -792,7 +821,10 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 		URL:        "icmp://127.0.0.1",
 		Conditions: []Condition{"[CONNECTED] == true"},
 	}
-	endpoint.ValidateAndSetDefaults()
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
 	result := endpoint.EvaluateHealth()
 	if !result.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' should have been a success", endpoint.Conditions[0])

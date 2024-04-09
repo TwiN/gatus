@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"math"
 	"net/http"
@@ -42,9 +43,9 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	}
 	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
 	if err != nil {
-		if err == common.ErrEndpointNotFound {
+		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
-		} else if err == common.ErrInvalidTimeRange {
+		} else if errors.Is(err, common.ErrInvalidTimeRange) {
 			return c.Status(400).SendString(err.Error())
 		}
 		return c.Status(500).SendString(err.Error())
@@ -111,7 +112,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	c.Set("Expires", "0")
 	c.Status(http.StatusOK)
 	if err := graph.Render(chart.SVG, c); err != nil {
-		log.Println("[api][ResponseTimeChart] Failed to render response time chart:", err.Error())
+		log.Println("[api.ResponseTimeChart] Failed to render response time chart:", err.Error())
 		return c.Status(500).SendString(err.Error())
 	}
 	return nil
