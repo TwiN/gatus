@@ -312,6 +312,8 @@ Where:
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 
+You must also pass the token as a `Bearer` token in the `Authorization` header.
+
 
 ### Conditions
 Here are some examples of conditions you can use:
