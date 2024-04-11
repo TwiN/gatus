@@ -13,7 +13,7 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{
-		MatrixProviderConfig: MatrixProviderConfig{
+		ProviderConfig: ProviderConfig{
 			AccessToken:    "",
 			InternalRoomID: "",
 		},
@@ -22,7 +22,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
-		MatrixProviderConfig: MatrixProviderConfig{
+		ProviderConfig: ProviderConfig{
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
 		},
@@ -31,7 +31,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		t.Error("provider should've been valid")
 	}
 	validProviderWithHomeserver := AlertProvider{
-		MatrixProviderConfig: MatrixProviderConfig{
+		ProviderConfig: ProviderConfig{
 			ServerURL:      "https://example.com",
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
@@ -47,7 +47,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		Overrides: []Override{
 			{
 				Group: "",
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					AccessToken:    "",
 					InternalRoomID: "",
 				},
@@ -61,7 +61,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		Overrides: []Override{
 			{
 				Group: "group",
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					AccessToken:    "",
 					InternalRoomID: "",
 				},
@@ -72,14 +72,14 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		MatrixProviderConfig: MatrixProviderConfig{
+		ProviderConfig: ProviderConfig{
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
 		},
 		Overrides: []Override{
 			{
 				Group: "group",
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -232,12 +232,12 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput MatrixProviderConfig
+		ExpectedOutput ProviderConfig
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -245,7 +245,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup: "",
-			ExpectedOutput: MatrixProviderConfig{
+			ExpectedOutput: ProviderConfig{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
@@ -254,7 +254,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -262,7 +262,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup: "group",
-			ExpectedOutput: MatrixProviderConfig{
+			ExpectedOutput: ProviderConfig{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
@@ -271,7 +271,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -279,7 +279,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group: "group",
-						MatrixProviderConfig: MatrixProviderConfig{
+						ProviderConfig: ProviderConfig{
 							ServerURL:      "https://example01.com",
 							AccessToken:    "12",
 							InternalRoomID: "!a:example01.com",
@@ -288,7 +288,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				},
 			},
 			InputGroup: "",
-			ExpectedOutput: MatrixProviderConfig{
+			ExpectedOutput: ProviderConfig{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
 				InternalRoomID: "!a:example.com",
@@ -297,7 +297,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				MatrixProviderConfig: MatrixProviderConfig{
+				ProviderConfig: ProviderConfig{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -305,7 +305,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group: "group",
-						MatrixProviderConfig: MatrixProviderConfig{
+						ProviderConfig: ProviderConfig{
 							ServerURL:      "https://example01.com",
 							AccessToken:    "12",
 							InternalRoomID: "!a:example01.com",
@@ -314,7 +314,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 				},
 			},
 			InputGroup: "group",
-			ExpectedOutput: MatrixProviderConfig{
+			ExpectedOutput: ProviderConfig{
 				ServerURL:      "https://example01.com",
 				AccessToken:    "12",
 				InternalRoomID: "!a:example01.com",

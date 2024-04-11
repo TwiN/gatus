@@ -17,8 +17,10 @@ type AlertProvider struct {
 	Project   string `yaml:"project"`    // JetBrains Space Project name
 	ChannelID string `yaml:"channel-id"` // JetBrains Space Chat Channel ID
 	Token     string `yaml:"token"`      // JetBrains Space Bearer Token
-	// DefaultAlert is the defarlt alert configuration to use for endpoints with an alert of the appropriate type
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
@@ -73,7 +75,7 @@ type Body struct {
 type Content struct {
 	ClassName string    `json:"className"`
 	Style     string    `json:"style"`
-	Sections  []Section `json:"sections"`
+	Sections  []Section `json:"sections,omitempty"`
 }
 
 type Section struct {
@@ -112,7 +114,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			}},
 		},
 	}
-
 	if resolved {
 		body.Content.Style = "SUCCESS"
 		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -120,7 +121,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		body.Content.Style = "WARNING"
 		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
-
 	for _, conditionResult := range result.ConditionResults {
 		icon := "warning"
 		style := "WARNING"
@@ -128,7 +128,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			icon = "success"
 			style = "SUCCESS"
 		}
-
 		body.Content.Sections[0].Elements = append(body.Content.Sections[0].Elements, Element{
 			ClassName: "MessageText",
 			Accessory: Accessory{
@@ -141,9 +140,8 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			Content: conditionResult.Condition,
 		})
 	}
-
-	jsonBody, _ := json.Marshal(body)
-	return jsonBody
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // getChannelIDForGroup returns the appropriate channel ID to for a given group override

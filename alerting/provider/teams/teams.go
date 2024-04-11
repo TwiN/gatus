@@ -69,7 +69,7 @@ type Body struct {
 	ThemeColor string    `json:"themeColor"`
 	Title      string    `json:"title"`
 	Text       string    `json:"text"`
-	Sections   []Section `json:"sections"`
+	Sections   []Section `json:"sections,omitempty"`
 }
 
 type Section struct {
@@ -87,7 +87,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
-	var results string
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -95,26 +95,27 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "&#x274C;"
 		}
-		results += fmt.Sprintf("%s - `%s`<br/>", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s - `%s`<br/>", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ": " + alertDescription
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		Type:       "MessageCard",
 		Context:    "http://schema.org/extensions",
 		ThemeColor: color,
 		Title:      "&#x1F6A8; Gatus",
 		Text:       message + description,
-		Sections: []Section{
-			{
-				ActivityTitle: "Condition results",
-				Text:          results,
-			},
-		},
-	})
-	return body
+	}
+	if len(formattedConditionResults) > 0 {
+		body.Sections = append(body.Sections, Section{
+			ActivityTitle: "Condition results",
+			Text:          formattedConditionResults,
+		})
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group

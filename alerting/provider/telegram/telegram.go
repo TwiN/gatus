@@ -67,33 +67,37 @@ type Body struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results string
+	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.SuccessThreshold)
 	} else {
 		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.FailureThreshold)
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✅"
-		} else {
-			prefix = "❌"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n*Condition results*\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var text string
 	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n\n*Condition results*\n%s", message, alert.GetDescription(), results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n%s", message, alert.GetDescription(), formattedConditionResults)
 	} else {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Condition results*\n%s", message, results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}
-	body, _ := json.Marshal(Body{
+	bodyAsJSON, _ := json.Marshal(Body{
 		ChatID:    provider.ID,
 		Text:      text,
 		ParseMode: "MARKDOWN",
 	})
-	return body
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
