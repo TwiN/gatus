@@ -144,6 +144,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Provider     AlertProvider
 		Endpoint     core.Endpoint
 		Alert        alert.Alert
+		NoConditions bool
 		Resolved     bool
 		ExpectedBody string
 	}{
@@ -164,6 +165,15 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
 		},
 		{
+			Name:         "triggered-with-no-conditions",
+			NoConditions: true,
+			Provider:     AlertProvider{},
+			Endpoint:     core.Endpoint{Name: "name"},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\"}]}",
+		},
+		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Endpoint:     core.Endpoint{Name: "name"},
@@ -182,14 +192,18 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*core.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*core.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+				}
+			}
 			body := scenario.Provider.buildRequestBody(
 				&scenario.Endpoint,
 				&scenario.Alert,
 				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
-						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
-					},
+					ConditionResults: conditionResults,
 				},
 				scenario.Resolved,
 			)

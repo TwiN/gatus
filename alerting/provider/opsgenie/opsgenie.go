@@ -116,7 +116,7 @@ func (provider *AlertProvider) sendRequest(url, method string, payload interface
 }
 
 func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) alertCreateRequest {
-	var message, description, results string
+	var message, description string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
 		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -127,6 +127,7 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 	if endpoint.Group != "" {
 		message = fmt.Sprintf("[%s] %s", endpoint.Group, message)
 	}
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -134,9 +135,9 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 		} else {
 			prefix = "▢"
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
-	description = description + "\n" + results
+	description = description + "\n" + formattedConditionResults
 	key := buildKey(endpoint)
 	details := map[string]string{
 		"endpoint:url":    endpoint.URL,
