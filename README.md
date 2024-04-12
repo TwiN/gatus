@@ -699,16 +699,16 @@ endpoints:
 
 
 #### Configuring GitLab alerts
-| Parameter                           | Description                                                                                                     | Default       |
-|:------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
-| `alerting.gitlab`                   | Configuration for alerts of type `gitlab`                                                                       | `{}`          |
-| `alerting.gitlab.webhook-url`       | GitLab alert webhook URL (e.g. `https://gitlab.com/hlidotbe/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
-| `alerting.gitlab.authorization-key` | GitLab alert authorization key.                                                                                 | Required `""` |
-| `alerting.gitlab.severity`          | Override default severity (critical), can be one of `critical, high, medium, low, info, unknown`                | `""`          |
-| `alerting.gitlab.monitoring-tool`   | Override the monitoring tool name (gatus)                                                                       | `"gatus"`     |
-| `alerting.gitlab.environment-name`  | Set gitlab environment's name. Required to display alerts on a dashboard.                                       | `""`          |
-| `alerting.gitlab.service`           | Override endpoint displayname                                                                                   | `""`          |
-| `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                     | N/A           |
+| Parameter                           | Description                                                                                                         | Default       |
+|:------------------------------------|:--------------------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gitlab`                   | Configuration for alerts of type `gitlab`                                                                           | `{}`          |
+| `alerting.gitlab.webhook-url`       | GitLab alert webhook URL (e.g. `https://gitlab.com/yourusername/example/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json`) | Required `""` |
+| `alerting.gitlab.authorization-key` | GitLab alert authorization key.                                                                                     | Required `""` |
+| `alerting.gitlab.severity`          | Override default severity (critical), can be one of `critical, high, medium, low, info, unknown`                    | `""`          |
+| `alerting.gitlab.monitoring-tool`   | Override the monitoring tool name (gatus)                                                                           | `"gatus"`     |
+| `alerting.gitlab.environment-name`  | Set gitlab environment's name. Required to display alerts on a dashboard.                                           | `""`          |
+| `alerting.gitlab.service`           | Override endpoint display name                                                                                      | `""`          |
+| `alerting.gitlab.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                         | N/A           |
 
 The GitLab alerting provider creates an alert prefixed with `alert(gatus):` and suffixed with the endpoint's display
 name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the alert will be automatically
@@ -772,14 +772,14 @@ endpoints:
 
 
 #### Configuring Gotify alerts
-| Parameter                                     | Description                                                                                 | Default                |
-|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:-----------------------|
-| `alerting.gotify`                             | Configuration for alerts of type `gotify`                                                   | `{}`                   |
-| `alerting.gotify.server-url`                  | Gotify server URL                                                                           | Required `""`          |
-| `alerting.gotify.token`                       | Token that is used for authentication.                                                      | Required `""`          |
-| `alerting.gotify.priority`                    | Priority of the alert according to Gotify standarts.                                        | `5`                    |
-| `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                    |
-| `alerting.gotify.title`                       | Title of the notification                                                                   |  `"Gatus: <endpoint>"` |
+| Parameter                                     | Description                                                                                 | Default               |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:----------------------|
+| `alerting.gotify`                             | Configuration for alerts of type `gotify`                                                   | `{}`                  |
+| `alerting.gotify.server-url`                  | Gotify server URL                                                                           | Required `""`         |
+| `alerting.gotify.token`                       | Token that is used for authentication.                                                      | Required `""`         |
+| `alerting.gotify.priority`                    | Priority of the alert according to Gotify standards.                                        | `5`                   |
+| `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
+| `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
 
 ```yaml
 alerting:
