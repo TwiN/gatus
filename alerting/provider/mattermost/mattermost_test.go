@@ -46,7 +46,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		},
 	}
 	if providerWithInvalidOverrideWebHookUrl.IsValid() {
-		t.Error("provider WebHookURL shoudn't have been valid")
+		t.Error("provider WebHookURL shouldn't have been valid")
 	}
 
 	providerWithValidOverride := AlertProvider{

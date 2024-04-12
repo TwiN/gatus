@@ -277,7 +277,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 	// to us as `X-Org-Authorization` header, we check here if the value matches
 	// our expected token `secret-token`
 	if response.Header.Get("X-Org-Authorization") != "Bearer secret-token" {
-		t.Error("exptected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
+		t.Error("expected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
 	}
 }
 
