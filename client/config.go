@@ -26,6 +26,7 @@ var (
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
+	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -72,6 +73,9 @@ type Config struct {
 
 	// Network (ip, ip4 or ip6) for the ICMP client
 	Network string `yaml:"network"`
+
+	// TLS configuration (optional)
+	TLS *TLSConfig `yaml:"tls,omitempty"`
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -94,6 +98,17 @@ type IAPConfig struct {
 	Audience string `yaml:"audience"` // e.g. "toto.apps.googleusercontent.com"
 }
 
+// TLSConfig is the configuration for mTLS configurations
+type TLSConfig struct {
+	// CertificateFile is the public certificate for TLS in PEM format.
+	CertificateFile string `yaml:"certificate-file,omitempty"`
+
+	// PrivateKeyFile is the private key file for TLS in PEM format.
+	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
+
+	RenegotiationSupport string `yaml:"renegotiation,omitempty"`
+}
+
 // ValidateAndSetDefaults validates the client configuration and sets the default values if necessary
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
@@ -110,6 +125,11 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.HasIAPConfig() && !c.IAPConfig.isValid() {
 		return ErrInvalidClientIAPConfig
+	}
+	if c.HasTlsConfig() {
+		if err := c.TLS.isValid(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -156,6 +176,11 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
+// HasTlsConfig returns true if the client has client certificate parameters
+func (c *Config) HasTlsConfig() bool {
+	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
+}
+
 // isValid() returns true if the IAP configuration is valid
 func (c *IAPConfig) isValid() bool {
 	return len(c.Audience) > 0
@@ -166,8 +191,26 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
+// isValid() returns nil if the client tls certificates are valid, otherwise returns an error
+func (t *TLSConfig) isValid() error {
+	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
+		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return ErrInvalidClientTLSConfig
+}
+
 // GetHTTPClient return an HTTP client matching the Config's parameters.
 func (c *Config) getHTTPClient() *http.Client {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: c.Insecure,
+	}
+	if c.HasTlsConfig() && c.TLS.isValid() == nil {
+		tlsConfig = configureTLS(tlsConfig, *c.TLS)
+	}
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{
 			Timeout: c.Timeout,
@@ -175,9 +218,7 @@ func (c *Config) getHTTPClient() *http.Client {
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 20,
 				Proxy:               http.ProxyFromEnvironment,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: c.Insecure,
-				},
+				TLSClientConfig:     tlsConfig,
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if c.IgnoreRedirect {
@@ -280,4 +321,24 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	client := oauth2cfg.Client(ctx)
 	client.Timeout = httpClient.Timeout
 	return client
+}
+
+// configureTLS returns a TLS Config that will enable mTLS
+func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
+	clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
+	if err != nil {
+		return nil
+	}
+	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
+	tlsConfig.Renegotiation = tls.RenegotiateNever
+
+	renegotionSupport := map[string]tls.RenegotiationSupport{
+		"once":   tls.RenegotiateOnceAsClient,
+		"freely": tls.RenegotiateFreelyAsClient,
+		"never":  tls.RenegotiateNever,
+	}
+	if val, ok := renegotionSupport[c.RenegotiationSupport]; ok {
+		tlsConfig.Renegotiation = val
+	}
+	return tlsConfig
 }

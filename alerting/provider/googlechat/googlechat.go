@@ -121,7 +121,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		color = "#DD0000"
 		message = fmt.Sprintf("<font color='%s'>An alert has been triggered due to having failed %d time(s) in a row</font>", color, alert.FailureThreshold)
 	}
-	var results string
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -129,7 +129,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "❌"
 		}
-		results += fmt.Sprintf("%s   %s<br>", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s   %s<br>", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
@@ -150,19 +150,21 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 									Icon:             "BOOKMARK",
 								},
 							},
-							{
-								KeyValue: &KeyValue{
-									TopLabel:         "Condition results",
-									Content:          results,
-									ContentMultiline: "true",
-									Icon:             "DESCRIPTION",
-								},
-							},
 						},
 					},
 				},
 			},
 		},
+	}
+	if len(formattedConditionResults) > 0 {
+		payload.Cards[0].Sections[0].Widgets = append(payload.Cards[0].Sections[0].Widgets, Widgets{
+			KeyValue: &KeyValue{
+				TopLabel:         "Condition results",
+				Content:          formattedConditionResults,
+				ContentMultiline: "true",
+				Icon:             "DESCRIPTION",
+			},
+		})
 	}
 	if endpoint.Type() == core.EndpointTypeHTTP {
 		// We only include a button targeting the URL if the endpoint is an HTTP endpoint
@@ -179,8 +181,8 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			},
 		})
 	}
-	body, _ := json.Marshal(payload)
-	return body
+	bodyAsJSON, _ := json.Marshal(payload)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group

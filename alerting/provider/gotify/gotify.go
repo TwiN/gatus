@@ -68,12 +68,13 @@ type Body struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results string
+	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 	} else {
 		message = fmt.Sprintf("An alert for `%s` has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -81,22 +82,22 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "✕"
 		}
-		results += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
 	}
 	if len(alert.GetDescription()) > 0 {
 		message += " with the following description: " + alert.GetDescription()
 	}
-	message += results
+	message += formattedConditionResults
 	title := "Gatus: " + endpoint.DisplayName()
 	if provider.Title != "" {
 		title = provider.Title
 	}
-	body, _ := json.Marshal(Body{
+	bodyAsJSON, _ := json.Marshal(Body{
 		Message:  message,
 		Title:    title,
 		Priority: provider.Priority,
 	})
-	return body
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

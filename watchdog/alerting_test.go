@@ -377,7 +377,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMatrix,
 			AlertingConfig: &alerting.Config{
 				Matrix: &matrix.AlertProvider{
-					MatrixProviderConfig: matrix.MatrixProviderConfig{
+					ProviderConfig: matrix.ProviderConfig{
 						ServerURL:      "https://example.com",
 						AccessToken:    "1",
 						InternalRoomID: "!a:example.com",

@@ -50,7 +50,6 @@ func (provider *AlertProvider) IsValid() bool {
 			registeredGroups[override.Group] = true
 		}
 	}
-
 	// if both AccessKeyID and SecretAccessKey are specified, we'll use these to authenticate,
 	// otherwise if neither are specified, then we'll fall back on IAM authentication.
 	return len(provider.From) > 0 && len(provider.To) > 0 &&
@@ -112,7 +111,7 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 
 // buildMessageSubjectAndBody builds the message subject and body
 func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) (string, string) {
-	var subject, message, results string
+	var subject, message string
 	if resolved {
 		subject = fmt.Sprintf("[%s] Alert resolved", endpoint.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -120,20 +119,24 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *core.Endpoin
 		subject = fmt.Sprintf("[%s] Alert triggered", endpoint.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✅"
-		} else {
-			prefix = "❌"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n\nCondition results:\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = "\n\nAlert description: " + alertDescription
 	}
-	return subject, message + description + "\n\nCondition results:\n" + results
+	return subject, message + description + formattedConditionResults
 }
 
 // getToForGroup returns the appropriate email integration to for a given group

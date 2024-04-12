@@ -116,6 +116,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Name         string
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		Resolved     bool
 		ExpectedBody string
 	}{
@@ -133,18 +134,28 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     true,
 			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 5 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\\n*Condition results*\\n✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\\n\",\"parse_mode\":\"MARKDOWN\"}",
 		},
+		{
+			Name:         "resolved-with-no-conditions",
+			NoConditions: true,
+			Provider:     AlertProvider{ID: "123"},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 5 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\",\"parse_mode\":\"MARKDOWN\"}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*core.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*core.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+				}
+			}
 			body := scenario.Provider.buildRequestBody(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
-						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
-					},
-				},
+				&core.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {

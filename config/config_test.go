@@ -304,11 +304,13 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 storage:
   type: sqlite
   path: %s
+
 maintenance:
   enabled: true
   start: 00:00
   duration: 4h
   every: [Monday, Thursday]
+
 ui:
   title: T
   header: H
@@ -318,6 +320,16 @@ ui:
       link: "https://example.org"
     - name: "Status page"
       link: "https://status.example.org"
+
+external-endpoints:
+  - name: ext-ep-test
+    group: core
+    token: "potato"
+    alerts:
+      - type: discord
+        description: "healthcheck failed"
+        send-on-resolved: true
+
 endpoints:
   - name: website
     url: https://twin.sh/health
@@ -358,10 +370,33 @@ endpoints:
 	if mc := config.Maintenance; mc == nil || mc.Start != "00:00" || !mc.IsEnabled() || mc.Duration != 4*time.Hour || len(mc.Every) != 2 {
 		t.Error("Expected Config.Maintenance to be configured properly")
 	}
+	if len(config.ExternalEndpoints) != 1 {
+		t.Error("Should have returned one external endpoint")
+	}
+	if config.ExternalEndpoints[0].Name != "ext-ep-test" {
+		t.Errorf("Name should have been %s", "ext-ep-test")
+	}
+	if config.ExternalEndpoints[0].Group != "core" {
+		t.Errorf("Group should have been %s", "core")
+	}
+	if config.ExternalEndpoints[0].Token != "potato" {
+		t.Errorf("Token should have been %s", "potato")
+	}
+	if len(config.ExternalEndpoints[0].Alerts) != 1 {
+		t.Error("Should have returned one alert")
+	}
+	if config.ExternalEndpoints[0].Alerts[0].Type != alert.TypeDiscord {
+		t.Errorf("Type should have been %s", alert.TypeDiscord)
+	}
+	if config.ExternalEndpoints[0].Alerts[0].FailureThreshold != 3 {
+		t.Errorf("FailureThreshold should have been %d, got %d", 3, config.ExternalEndpoints[0].Alerts[0].FailureThreshold)
+	}
+	if config.ExternalEndpoints[0].Alerts[0].SuccessThreshold != 2 {
+		t.Errorf("SuccessThreshold should have been %d, got %d", 2, config.ExternalEndpoints[0].Alerts[0].SuccessThreshold)
+	}
 	if len(config.Endpoints) != 3 {
 		t.Error("Should have returned two endpoints")
 	}
-
 	if config.Endpoints[0].URL != "https://twin.sh/health" {
 		t.Errorf("URL should have been %s", "https://twin.sh/health")
 	}
@@ -383,7 +418,6 @@ endpoints:
 	if len(config.Endpoints[0].Conditions) != 1 {
 		t.Errorf("There should have been %d conditions", 1)
 	}
-
 	if config.Endpoints[1].URL != "https://api.github.com/healthz" {
 		t.Errorf("URL should have been %s", "https://api.github.com/healthz")
 	}

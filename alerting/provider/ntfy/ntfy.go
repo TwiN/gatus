@@ -78,7 +78,7 @@ type Body struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results, tag string
+	var message, formattedConditionResults, tag string
 	if resolved {
 		tag = "white_check_mark"
 		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
@@ -93,12 +93,12 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "🔴"
 		}
-		results += fmt.Sprintf("\n%s %s", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("\n%s %s", prefix, conditionResult.Condition)
 	}
 	if len(alert.GetDescription()) > 0 {
 		message += " with the following description: " + alert.GetDescription()
 	}
-	message += results
+	message += formattedConditionResults
 	body, _ := json.Marshal(Body{
 		Topic:    provider.Topic,
 		Title:    "Gatus: " + endpoint.DisplayName(),

@@ -50,6 +50,9 @@ func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 			execute(endpoint, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
 		}
 	}
+	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
+	// Alerting is checked every time an external endpoint is pushed to Gatus, so they're not monitored
+	// periodically like they are for normal endpoints.
 }
 
 func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
@@ -91,7 +94,7 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
 	if err := store.Get().Insert(endpoint, result); err != nil {
-		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert data in storage:", err.Error())
+		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
 	}
 }
 

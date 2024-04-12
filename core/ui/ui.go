@@ -29,6 +29,7 @@ var (
 	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
 )
 
+// ValidateAndSetDefaults validates the UI configuration and sets the default values
 func (config *Config) ValidateAndSetDefaults() error {
 	if config.Badge != nil {
 		if len(config.Badge.ResponseTime.Thresholds) != 5 {

@@ -24,7 +24,7 @@ import (
 	"github.com/TwiN/gatus/v5/core"
 )
 
-// AlertProvider is the interface that each providers should implement
+// AlertProvider is the interface that each provider should implement
 type AlertProvider interface {
 	// IsValid returns whether the provider's configuration is valid
 	IsValid() bool
