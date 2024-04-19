@@ -299,6 +299,9 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		}
 		result.Hostname = ""
 	}
+	if endpoint.UIConfig.HideConditions {
+		result.ConditionResults = nil
+	}
 	return result
 }
 
