@@ -1839,7 +1839,7 @@ endpoints:
       query-name: "example.com"
       query-type: "A"
     conditions:
-      - "[BODY] == 93.184.216.34"
+      - "[BODY] == 93.184.215.14"
       - "[DNS_RCODE] == NOERROR"
 ```
 
