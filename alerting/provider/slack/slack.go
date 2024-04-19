@@ -71,7 +71,7 @@ type Attachment struct {
 	Text   string  `json:"text"`
 	Short  bool    `json:"short"`
 	Color  string  `json:"color"`
-	Fields []Field `json:"fields"`
+	Fields []Field `json:"fields,omitempty"`
 }
 
 type Field struct {
@@ -82,7 +82,7 @@ type Field struct {
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, color, results string
+	var message, color string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
 		color = "#36A64F"
@@ -90,6 +90,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -97,13 +98,13 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		Text: "",
 		Attachments: []Attachment{
 			{
@@ -111,17 +112,18 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 				Text:  message + description,
 				Short: false,
 				Color: color,
-				Fields: []Field{
-					{
-						Title: "Condition results",
-						Value: results,
-						Short: false,
-					},
-				},
 			},
 		},
-	})
-	return body
+	}
+	if len(formattedConditionResults) > 0 {
+		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
+			Title: "Condition results",
+			Value: formattedConditionResults,
+			Short: false,
+		})
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group

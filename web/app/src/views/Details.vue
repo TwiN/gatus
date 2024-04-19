@@ -1,6 +1,6 @@
 <template>
   <router-link to="../"
-               class="absolute top-2 left-2 inline-block px-2 pb-0.5 text-lg text-black bg-gray-100 rounded hover:bg-gray-200 focus:outline-none border border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-600">
+               class="absolute top-2 left-5 inline-block px-2 pb-0.5 text-sm text-black bg-gray-100 rounded hover:bg-gray-200 focus:outline-none border border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-600">
     &larr;
   </router-link>
   <div>
@@ -34,7 +34,7 @@
         </div>
       </div>
     </div>
-    <div v-if="endpointStatus && endpointStatus.key" class="mt-12">
+    <div v-if="endpointStatus && endpointStatus.key && showResponseTimeChartAndBadges" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
       <hr/>
       <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6"/>
@@ -118,7 +118,6 @@ export default {
           response.json().then(data => {
             if (JSON.stringify(this.endpointStatus) !== JSON.stringify(data)) {
               this.endpointStatus = data;
-              this.uptime = data.uptime;
               let events = [];
               for (let i = data.events.length - 1; i >= 0; i--) {
                 let event = data.events[i];
@@ -148,6 +147,15 @@ export default {
                 events.push(event);
               }
               this.events = events;
+              // Check if there's any non-0 response time data
+              // If there isn't, it's likely an external endpoint, which means we should
+              // hide the response time chart and badges
+              for (let i = 0; i < data.results.length; i++) {
+                if (data.results[i].duration > 0) {
+                  this.showResponseTimeChartAndBadges = true;
+                  break;
+                }
+              }
             }
           });
         } else {
@@ -183,13 +191,13 @@ export default {
   data() {
     return {
       endpointStatus: {},
-      uptime: {},
       events: [],
       hourlyAverageResponseTime: {},
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
       showAverageResponseTime: true,
+      showResponseTimeChartAndBadges: false,
       chartLabels: [],
       chartValues: [],
     }

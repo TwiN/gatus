@@ -1,4 +1,4 @@
-package mattermost
+package jetbrainsspace
 
 import (
 	"encoding/json"
@@ -11,12 +11,12 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{WebhookURL: ""}
+func TestAlertDefaultProvider_IsValid(t *testing.T) {
+	invalidProvider := AlertProvider{Project: ""}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{WebhookURL: "http://example.com"}
+	validProvider := AlertProvider{Project: "foo", ChannelID: "bar", Token: "baz"}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -24,37 +24,37 @@ func TestAlertProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
+		Project: "foobar",
 		Overrides: []Override{
 			{
-				WebhookURL: "http://example.com",
-				Group:      "",
+				ChannelID: "http://example.com",
+				Group:     "",
 			},
 		},
 	}
-
 	if providerWithInvalidOverrideGroup.IsValid() {
 		t.Error("provider Group shouldn't have been valid")
 	}
-
-	providerWithInvalidOverrideWebHookUrl := AlertProvider{
+	providerWithInvalidOverrideTo := AlertProvider{
+		Project: "foobar",
 		Overrides: []Override{
 			{
-
-				WebhookURL: "",
-				Group:      "group",
+				ChannelID: "",
+				Group:     "group",
 			},
 		},
 	}
-	if providerWithInvalidOverrideWebHookUrl.IsValid() {
-		t.Error("provider WebHookURL shouldn't have been valid")
+	if providerWithInvalidOverrideTo.IsValid() {
+		t.Error("provider integration key shouldn't have been valid")
 	}
-
 	providerWithValidOverride := AlertProvider{
-		WebhookURL: "http://example.com",
+		Project:   "foo",
+		ChannelID: "bar",
+		Token:     "baz",
 		Overrides: []Override{
 			{
-				WebhookURL: "http://example.com",
-				Group:      "group",
+				ChannelID: "foobar",
+				Group:     "group",
 			},
 		},
 	}
@@ -146,6 +146,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
+		Endpoint     core.Endpoint
 		Alert        alert.Alert
 		Resolved     bool
 		ExpectedBody string
@@ -153,22 +154,40 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered",
 			Provider:     AlertProvider{},
+			Endpoint:     core.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\"text\":\"\",\"username\":\"gatus\",\"icon_url\":\"https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"fallback\":\"Gatus - An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row\",\"text\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
+			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
+		},
+		{
+			Name:         "triggered-with-group",
+			Provider:     AlertProvider{},
+			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
+			Endpoint:     core.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"text\":\"\",\"username\":\"gatus\",\"icon_url\":\"https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"fallback\":\"Gatus - An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row\",\"text\":\"An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
+			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
+		},
+		{
+			Name:         "resolved-with-group",
+			Provider:     AlertProvider{},
+			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&scenario.Endpoint,
 				&scenario.Alert,
 				&core.Result{
 					ConditionResults: []*core.ConditionResult{
@@ -198,7 +217,7 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
+func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 	tests := []struct {
 		Name           string
 		Provider       AlertProvider
@@ -208,54 +227,52 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
-				Overrides:  nil,
+				ChannelID: "bar",
 			},
 			InputGroup:     "",
-			ExpectedOutput: "http://example.com",
+			ExpectedOutput: "bar",
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
-				Overrides:  nil,
+				ChannelID: "bar",
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "http://example.com",
+			ExpectedOutput: "bar",
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
+				ChannelID: "bar",
 				Overrides: []Override{
 					{
-						Group:      "group",
-						WebhookURL: "http://example01.com",
+						Group:     "group",
+						ChannelID: "foobar",
 					},
 				},
 			},
 			InputGroup:     "",
-			ExpectedOutput: "http://example.com",
+			ExpectedOutput: "bar",
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
+				ChannelID: "bar",
 				Overrides: []Override{
 					{
-						Group:      "group",
-						WebhookURL: "http://example01.com",
+						Group:     "group",
+						ChannelID: "foobar",
 					},
 				},
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "http://example01.com",
+			ExpectedOutput: "foobar",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			if got := tt.Provider.getWebhookURLForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getToForGroup() = %v, want %v", got, tt.ExpectedOutput)
+			if got := tt.Provider.getChannelIDForGroup(tt.InputGroup); got != tt.ExpectedOutput {
+				t.Errorf("AlertProvider.getChannelIDForGroup() = %v, want %v", got, tt.ExpectedOutput)
 			}
 		})
 	}

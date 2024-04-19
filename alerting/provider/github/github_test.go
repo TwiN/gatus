@@ -112,6 +112,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Endpoint     core.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		ExpectedBody string
 	}{
 		{
@@ -122,24 +123,34 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\n> description-1\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
 		},
 		{
-			Name:         "no-description",
+			Name:         "triggered-with-no-description",
 			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{FailureThreshold: 10},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
 		},
+		{
+			Name:         "triggered-with-no-conditions",
+			NoConditions: true,
+			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 10},
+			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row:\n> description-1",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*core.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*core.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: true},
+					{Condition: "[STATUS] == 200", Success: false},
+				}
+			}
 			body := scenario.Provider.buildIssueBody(
 				&scenario.Endpoint,
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: true},
-						{Condition: "[STATUS] == 200", Success: false},
-					},
-				},
+				&core.Result{ConditionResults: conditionResults},
 			)
 			if strings.TrimSpace(body) != strings.TrimSpace(scenario.ExpectedBody) {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)

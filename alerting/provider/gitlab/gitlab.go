@@ -25,10 +25,13 @@ type AlertProvider struct {
 
 	// Severity can be one of: critical, high, medium, low, info, unknown. Defaults to critical
 	Severity string `yaml:"severity,omitempty"`
+
 	// MonitoringTool overrides the name sent to gitlab. Defaults to gatus
 	MonitoringTool string `yaml:"monitoring-tool,omitempty"`
+
 	// EnvironmentName is the name of the associated GitLab environment. Required to display alerts on a dashboard.
 	EnvironmentName string `yaml:"environment-name,omitempty"`
+
 	// Service affected. Defaults to endpoint display name
 	Service string `yaml:"service,omitempty"`
 }
@@ -52,7 +55,6 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 	if len(alert.ResolveKey) == 0 {
 		alert.ResolveKey = uuid.NewString()
 	}
-
 	buffer := bytes.NewBuffer(provider.buildAlertBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.WebhookURL, buffer)
 	if err != nil {
@@ -114,16 +116,18 @@ func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *al
 	if resolved {
 		body.EndTime = result.Timestamp.Format(time.RFC3339)
 	}
-
-	var results string
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = ":white_check_mark:"
-		} else {
-			prefix = ":x:"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n\n## Condition results\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = ":white_check_mark:"
+			} else {
+				prefix = ":x:"
+			}
+			formattedConditionResults += fmt.Sprintf("- %s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("- %s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
@@ -135,10 +139,9 @@ func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *al
 	} else {
 		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
 	}
-	body.Description = message + description + "\n\n## Condition results\n" + results
-
-	json, _ := json.Marshal(body)
-	return json
+	body.Description = message + description + formattedConditionResults
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

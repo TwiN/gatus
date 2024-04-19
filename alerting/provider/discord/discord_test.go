@@ -155,6 +155,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Name         string
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		Resolved     bool
 		ExpectedBody string
 	}{
@@ -179,18 +180,30 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     false,
 			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n:x: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
 		},
+		{
+			Name:         "triggered-with-no-conditions",
+			NoConditions: true,
+			Provider:     AlertProvider{Title: title},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332}]}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*core.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*core.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+					{Condition: "[BODY] != \"\"", Success: scenario.Resolved},
+				}
+			}
 			body := scenario.Provider.buildRequestBody(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
-						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
-						{Condition: "[BODY] != \"\"", Success: scenario.Resolved},
-					},
+					ConditionResults: conditionResults,
 				},
 				scenario.Resolved,
 			)

@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -23,7 +24,7 @@ import (
 	"github.com/TwiN/gatus/v5/core"
 )
 
-// AlertProvider is the interface that each providers should implement
+// AlertProvider is the interface that each provider should implement
 type AlertProvider interface {
 	// IsValid returns whether the provider's configuration is valid
 	IsValid() bool
@@ -66,6 +67,7 @@ var (
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
+	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
