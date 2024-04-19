@@ -4,6 +4,9 @@ import "errors"
 
 // Config is the UI configuration for core.Endpoint
 type Config struct {
+	// HideConditions whether to hide the condition results on the UI
+	HideConditions bool `yaml:"hide-conditions"`
+
 	// HideHostname whether to hide the hostname in the Result
 	HideHostname bool `yaml:"hide-hostname"`
 
@@ -52,6 +55,7 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		HideURL:                     false,
 		DontResolveFailedConditions: false,
+		HideConditions:              false,
 		Badge: &Badge{
 			ResponseTime: &ResponseTime{
 				Thresholds: []int{50, 200, 300, 500, 750},
