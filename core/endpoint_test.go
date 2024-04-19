@@ -93,6 +93,25 @@ func TestEndpoint(t *testing.T) {
 			}),
 		},
 		{
+			Name: "failed-status-condition-with-hidden-conditions",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{HideConditions: true},
+			},
+			ExpectedResult: &Result{
+				Success:          false,
+				Connected:        true,
+				Hostname:         "twin.sh",
+				ConditionResults: []*ConditionResult{}, // Because UIConfig.HideConditions is true, the condition results should not be shown.
+				DomainExpiration: 0,                    // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
+			}),
+		},
+		{
 			Name: "condition-with-failed-certificate-expiration",
 			Endpoint: Endpoint{
 				Name:       "website-health",
