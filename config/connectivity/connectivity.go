@@ -41,7 +41,7 @@ type Checker struct {
 	lastCheck   time.Time
 }
 
-func (c Checker) Check() bool {
+func (c *Checker) Check() bool {
 	return client.CanCreateTCPConnection(c.Target, &client.Config{Timeout: 5 * time.Second})
 }
 
