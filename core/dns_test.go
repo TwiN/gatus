@@ -24,7 +24,7 @@ func TestIntegrationQuery(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "93.184.216.34",
+			expectedBody:    "93.184.215.14",
 		},
 		{
 			name: "test DNS with type AAAA",
@@ -34,7 +34,7 @@ func TestIntegrationQuery(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "2606:2800:220:1:248:1893:25c8:1946",
+			expectedBody:    "2606:2800:21f:cb07:6820:80da:af6b:8b2c",
 		},
 		{
 			name: "test DNS with type CNAME",
