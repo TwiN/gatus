@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/TwiN/gatus/v5/jsonpath"
 	"io"
 	"net"
 	"net/http"
@@ -120,6 +121,9 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// OnErrorAdd is the message or [BODY] or part of [BODY].json to add to the result's errors if the endpoint fails
+	OnErrorAdd string `yaml:"onErrorAdd,omitempty"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -302,6 +306,25 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	if endpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
+
+	if endpoint.OnErrorAdd != "" && !result.Success {
+		if endpoint.OnErrorAdd == BodyPlaceholder && len(result.Body) > 0 {
+			result.Errors = append(result.Errors, string(result.Body))
+		} else if strings.Contains(endpoint.OnErrorAdd, BodyPlaceholder) && len(result.Body) > 0 {
+			resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(
+				strings.TrimPrefix(endpoint.OnErrorAdd, BodyPlaceholder), "."), result.Body)
+			if err != nil {
+				result.Errors = append(result.Errors, "Decoding of endpoint.OnErrorAdd failed: "+err.Error())
+			} else {
+				if resolvedElementLength > 0 {
+					result.Errors = append(result.Errors, resolvedElement)
+				}
+			}
+		} else {
+			result.Errors = append(result.Errors, endpoint.OnErrorAdd)
+		}
+	}
+
 	return result
 }
 
@@ -417,6 +440,9 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 
 // needsToReadBody checks if there's any condition that requires the response Body to be read
 func (endpoint *Endpoint) needsToReadBody() bool {
+	if strings.Contains(endpoint.OnErrorAdd, BodyPlaceholder) {
+		return true
+	}
 	for _, condition := range endpoint.Conditions {
 		if condition.hasBodyPlaceholder() {
 			return true

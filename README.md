@@ -272,6 +272,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                              | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].onErrorAdd`                        | Add whole response Body ("[BODY]") or part of JSON ("[BODY].error") when an error occurs.                                                   | `""`                       |
 
 
 ### External Endpoints
