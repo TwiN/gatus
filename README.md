@@ -54,6 +54,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitHub alerts](#configuring-github-alerts)
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
+    - [Configuring Gotify alerts](#configuring-gotify-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
@@ -424,6 +425,7 @@ ignored.
 | `alerting.github`      | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                | `{}`    |
 | `alerting.gitlab`      | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                | `{}`    |
 | `alerting.googlechat`  | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).  | `{}`    |
+| `alerting.gotify`      | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                | `{}`    |
 | `alerting.matrix`      | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                | `{}`    |
 | `alerting.mattermost`  | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).    | `{}`    |
 | `alerting.messagebird` | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts). | `{}`    |
@@ -469,20 +471,20 @@ endpoints:
 
 
 #### Configuring Email alerts
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.email`                   | Configuration for alerts of type `email`                                                   | `{}`          |
-| `alerting.email.from`              | Email used to send the alert                                                               | Required `""` |
-| `alerting.email.username`          | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.  | `""`          |
-| `alerting.email.password`          | Password of the SMTP server used to send the alert                                         | Required `""` |
-| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)                                            | Required `""` |
-| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                          | Required `0`  |
-| `alerting.email.to`                | Email(s) to send the alerts to                                                             | Required `""` |
-| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.email.client.insecure`   | Whether to skip TLS verification                                                           | `false`       |
-| `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                             | `""`          |
+| Parameter                          | Description                                                                                   | Default       |
+|:-----------------------------------|:----------------------------------------------------------------------------------------------|:--------------|
+| `alerting.email`                   | Configuration for alerts of type `email`                                                      | `{}`          |
+| `alerting.email.from`              | Email used to send the alert                                                                  | Required `""` |
+| `alerting.email.username`          | Username of the SMTP server used to send the alert. If empty, uses `alerting.email.from`.     | `""`          |
+| `alerting.email.password`          | Password of the SMTP server used to send the alert. If empty, no authentication is performed. | `""`          |
+| `alerting.email.host`              | Host of the mail server (e.g. `smtp.gmail.com`)                                               | Required `""` |
+| `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                             | Required `0`  |
+| `alerting.email.to`                | Email(s) to send the alerts to                                                                | Required `""` |
+| `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)    | N/A           |
+| `alerting.email.client.insecure`   | Whether to skip TLS verification                                                              | `false`       |
+| `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                      | `[]`          |
+| `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration           | `""`          |
+| `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                                | `""`          |
 
 ```yaml
 alerting:
@@ -637,6 +639,41 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
+
+
+#### Configuring Gotify alerts
+| Parameter                                     | Description                                                                                 | Default                |
+|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:-----------------------|
+| `alerting.gotify`                             | Configuration for alerts of type `gotify`                                                   | `{}`                   |
+| `alerting.gotify.server-url`                  | Gotify server URL                                                                           | Required `""`          |
+| `alerting.gotify.token`                       | Token that is used for authentication.                                                      | Required `""`          |
+| `alerting.gotify.priority`                    | Priority of the alert according to Gotify standarts.                                        | `5`                    |
+| `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                    |
+| `alerting.gotify.title`                       | Title of the notification                                                                   |  `"Gatus: <endpoint>"` |
+
+```yaml
+alerting:
+  gotify:
+    server-url: "https://gotify.example"
+    token: "**************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: gotify
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![Gotify notifications](.github/assets/gotify-alerts.png)
 
 
 #### Configuring Matrix alerts

@@ -26,6 +26,9 @@ const (
 	// TypeGoogleChat is the Type for the googlechat alerting provider
 	TypeGoogleChat Type = "googlechat"
 
+	// TypeGotify is the Type for the gotify alerting provider
+	TypeGotify Type = "gotify"
+
 	// TypeMatrix is the Type for the matrix alerting provider
 	TypeMatrix Type = "matrix"
 
