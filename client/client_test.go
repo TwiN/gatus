@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"testing"
@@ -79,6 +80,32 @@ func TestPing(t *testing.T) {
 	}
 	if success, rtt := Ping("192.168.152.153", &Config{Timeout: 500 * time.Millisecond}); success {
 		t.Error("expected false, because the IP is valid but the host should be unreachable")
+		if rtt != 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
+	}
+	// Can't perform integration tests (e.g. pinging public targets by single-stacked hostname) here,
+	// because ICMP is blocked in the network of GitHub-hosted runners.
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+		t.Error("expected true")
+		if rtt == 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
+	}
+	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+		t.Error("expected true")
+		if rtt == 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
+	}
+	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
+		t.Error("expected false, because the IP isn't an IPv4 address")
+		if rtt != 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
+	}
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, Network: "ip6"}); success {
+		t.Error("expected false, because the IP isn't an IPv6 address")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
@@ -250,7 +277,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 	// to us as `X-Org-Authorization` header, we check here if the value matches
 	// our expected token `secret-token`
 	if response.Header.Get("X-Org-Authorization") != "Bearer secret-token" {
-		t.Error("exptected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
+		t.Error("expected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
 	}
 }
 
@@ -262,5 +289,48 @@ func TestQueryWebSocket(t *testing.T) {
 	_, _, err = QueryWebSocket("ws://example.org", "body", &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
+	}
+}
+
+func TestTlsRenegotiation(t *testing.T) {
+	tests := []struct {
+		name           string
+		cfg            TLSConfig
+		expectedConfig tls.RenegotiationSupport
+	}{
+		{
+			name:           "default",
+			cfg:            TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "never",
+			cfg:            TLSConfig{RenegotiationSupport: "never", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "once",
+			cfg:            TLSConfig{RenegotiationSupport: "once", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateOnceAsClient,
+		},
+		{
+			name:           "freely",
+			cfg:            TLSConfig{RenegotiationSupport: "freely", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateFreelyAsClient,
+		},
+		{
+			name:           "not-valid-and-broken",
+			cfg:            TLSConfig{RenegotiationSupport: "invalid", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tls := &tls.Config{}
+			tlsConfig := configureTLS(tls, test.cfg)
+			if tlsConfig.Renegotiation != test.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			}
+		})
 	}
 }

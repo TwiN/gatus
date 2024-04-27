@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -283,6 +284,17 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			},
 		},
 		{
+			Name:      "jetbrainsspace",
+			AlertType: alert.TypeJetBrainsSpace,
+			AlertingConfig: &alerting.Config{
+				JetBrainsSpace: &jetbrainsspace.AlertProvider{
+					Project:   "foo",
+					ChannelID: "bar",
+					Token:     "baz",
+				},
+			},
+		},
+		{
 			Name:      "mattermost",
 			AlertType: alert.TypeMattermost,
 			AlertingConfig: &alerting.Config{
@@ -366,7 +378,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMatrix,
 			AlertingConfig: &alerting.Config{
 				Matrix: &matrix.AlertProvider{
-					MatrixProviderConfig: matrix.MatrixProviderConfig{
+					ProviderConfig: matrix.ProviderConfig{
 						ServerURL:      "https://example.com",
 						AccessToken:    "1",
 						InternalRoomID: "!a:example.com",

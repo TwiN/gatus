@@ -75,7 +75,7 @@ func (alert *Alert) ValidateAndSetDefaults() error {
 }
 
 // GetDescription retrieves the description of the alert
-func (alert Alert) GetDescription() string {
+func (alert *Alert) GetDescription() string {
 	if alert.Description == nil {
 		return ""
 	}
@@ -84,7 +84,7 @@ func (alert Alert) GetDescription() string {
 
 // IsEnabled returns whether an alert is enabled or not
 // Returns true if not set
-func (alert Alert) IsEnabled() bool {
+func (alert *Alert) IsEnabled() bool {
 	if alert.Enabled == nil {
 		return true
 	}
@@ -92,7 +92,7 @@ func (alert Alert) IsEnabled() bool {
 }
 
 // IsSendingOnResolved returns whether an alert is sending on resolve or not
-func (alert Alert) IsSendingOnResolved() bool {
+func (alert *Alert) IsSendingOnResolved() bool {
 	if alert.SendOnResolved == nil {
 		return false
 	}

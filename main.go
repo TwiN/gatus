@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -14,6 +15,10 @@ import (
 )
 
 func main() {
+	if delayInSeconds, _ := strconv.Atoi(os.Getenv("GATUS_DELAY_START_SECONDS")); delayInSeconds > 0 {
+		log.Printf("Delaying start by %d seconds", delayInSeconds)
+		time.Sleep(time.Duration(delayInSeconds) * time.Second)
+	}
 	cfg, err := loadConfiguration()
 	if err != nil {
 		panic(err)
@@ -78,9 +83,12 @@ func initializeStorage(cfg *config.Config) {
 	for _, endpoint := range cfg.Endpoints {
 		keys = append(keys, endpoint.Key())
 	}
+	for _, externalEndpoint := range cfg.ExternalEndpoints {
+		keys = append(keys, externalEndpoint.Key())
+	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[main][initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+		log.Printf("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
 }
 
@@ -88,15 +96,15 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 		time.Sleep(30 * time.Second)
 		if cfg.HasLoadedConfigurationBeenModified() {
-			log.Println("[main][listenToConfigurationFileChanges] Configuration file has been modified")
+			log.Println("[main.listenToConfigurationFileChanges] Configuration file has been modified")
 			stop(cfg)
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
 			updatedConfig, err := loadConfiguration()
 			if err != nil {
 				if cfg.SkipInvalidConfigUpdate {
-					log.Println("[main][listenToConfigurationFileChanges] Failed to load new configuration:", err.Error())
-					log.Println("[main][listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
+					log.Println("[main.listenToConfigurationFileChanges] Failed to load new configuration:", err.Error())
+					log.Println("[main.listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
 					// Update the last file modification time to avoid trying to process the same invalid configuration again
 					cfg.UpdateLastFileModTime()
 					continue

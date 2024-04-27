@@ -235,10 +235,7 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
 func Ping(address string, config *Config) (bool, time.Duration) {
-	pinger, err := ping.NewPinger(address)
-	if err != nil {
-		return false, 0
-	}
+	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
 	// Set the pinger's privileged mode to true for every GOOS except darwin
@@ -247,7 +244,8 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	// Note that for this to work on Linux, Gatus must run with sudo privileges.
 	// See https://github.com/prometheus-community/pro-bing#linux
 	pinger.SetPrivileged(runtime.GOOS != "darwin")
-	err = pinger.Run()
+	pinger.SetNetwork(config.Network)
+	err := pinger.Run()
 	if err != nil {
 		return false, 0
 	}

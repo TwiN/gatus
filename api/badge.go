@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/core/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -51,9 +54,9 @@ func UptimeBadge(c *fiber.Ctx) error {
 	key := c.Params("key")
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
-		if err == common.ErrEndpointNotFound {
+		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
-		} else if err == common.ErrInvalidTimeRange {
+		} else if errors.Is(err, common.ErrInvalidTimeRange) {
 			return c.Status(400).SendString(err.Error())
 		}
 		return c.Status(500).SendString(err.Error())
@@ -67,7 +70,7 @@ func UptimeBadge(c *fiber.Ctx) error {
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for :duration -> 7d, 24h, 1h
-func ResponseTimeBadge(config *config.Config) fiber.Handler {
+func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		duration := c.Params("duration")
 		var from time.Time
@@ -84,9 +87,9 @@ func ResponseTimeBadge(config *config.Config) fiber.Handler {
 		key := c.Params("key")
 		averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 		if err != nil {
-			if err == common.ErrEndpointNotFound {
+			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
-			} else if err == common.ErrInvalidTimeRange {
+			} else if errors.Is(err, common.ErrInvalidTimeRange) {
 				return c.Status(400).SendString(err.Error())
 			}
 			return c.Status(500).SendString(err.Error())
@@ -94,7 +97,7 @@ func ResponseTimeBadge(config *config.Config) fiber.Handler {
 		c.Set("Content-Type", "image/svg+xml")
 		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		c.Set("Expires", "0")
-		return c.Status(200).Send(generateResponseTimeBadgeSVG(duration, averageResponseTime, key, config))
+		return c.Status(200).Send(generateResponseTimeBadgeSVG(duration, averageResponseTime, key, cfg))
 	}
 }
 
@@ -104,9 +107,9 @@ func HealthBadge(c *fiber.Ctx) error {
 	pagingConfig := paging.NewEndpointStatusParams()
 	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
 	if err != nil {
-		if err == common.ErrEndpointNotFound {
+		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
-		} else if err == common.ErrInvalidTimeRange {
+		} else if errors.Is(err, common.ErrInvalidTimeRange) {
 			return c.Status(400).SendString(err.Error())
 		}
 		return c.Status(500).SendString(err.Error())
@@ -123,6 +126,36 @@ func HealthBadge(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Set("Expires", "0")
 	return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
+}
+
+func HealthBadgeShields(c *fiber.Ctx) error {
+	key := c.Params("key")
+	pagingConfig := paging.NewEndpointStatusParams()
+	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+	if err != nil {
+		if errors.Is(err, common.ErrEndpointNotFound) {
+			return c.Status(404).SendString(err.Error())
+		} else if errors.Is(err, common.ErrInvalidTimeRange) {
+			return c.Status(400).SendString(err.Error())
+		}
+		return c.Status(500).SendString(err.Error())
+	}
+	healthStatus := HealthStatusUnknown
+	if len(status.Results) > 0 {
+		if status.Results[0].Success {
+			healthStatus = HealthStatusUp
+		} else {
+			healthStatus = HealthStatusDown
+		}
+	}
+	c.Set("Content-Type", "application/json")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("Expires", "0")
+	jsonData, err := generateHealthBadgeShields(healthStatus)
+	if err != nil {
+		return c.Status(500).SendString(err.Error())
+	}
+	return c.Status(200).Send(jsonData)
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
@@ -240,10 +273,13 @@ func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key 
 }
 
 func getBadgeColorFromResponseTime(responseTime int, key string, cfg *config.Config) string {
-	endpoint := cfg.GetEndpointByKey(key)
+	thresholds := ui.GetDefaultConfig().Badge.ResponseTime.Thresholds
+	if endpoint := cfg.GetEndpointByKey(key); endpoint != nil {
+		thresholds = endpoint.UIConfig.Badge.ResponseTime.Thresholds
+	}
 	// the threshold config requires 5 values, so we can be sure it's set here
 	for i := 0; i < 5; i++ {
-		if responseTime <= endpoint.UIConfig.Badge.ResponseTime.Thresholds[i] {
+		if responseTime <= thresholds[i] {
 			return badgeColors[i]
 		}
 	}
@@ -299,6 +335,17 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
 	return svg
 }
 
+func generateHealthBadgeShields(healthStatus string) ([]byte, error) {
+	color := getBadgeShieldsColorFromHealth(healthStatus)
+	data := map[string]interface{}{
+		"schemaVersion": 1,
+		"label":         "gatus",
+		"message":       healthStatus,
+		"color":         color,
+	}
+	return json.Marshal(data)
+}
+
 func getBadgeColorFromHealth(healthStatus string) string {
 	if healthStatus == HealthStatusUp {
 		return badgeColorHexAwesome
@@ -306,4 +353,13 @@ func getBadgeColorFromHealth(healthStatus string) string {
 		return badgeColorHexVeryBad
 	}
 	return badgeColorHexPassable
+}
+
+func getBadgeShieldsColorFromHealth(healthStatus string) string {
+	if healthStatus == HealthStatusUp {
+		return "brightgreen"
+	} else if healthStatus == HealthStatusDown {
+		return "red"
+	}
+	return "yellow"
 }

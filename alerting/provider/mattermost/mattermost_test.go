@@ -46,7 +46,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		},
 	}
 	if providerWithInvalidOverrideWebHookUrl.IsValid() {
-		t.Error("provider WebHookURL shoudn't have been valid")
+		t.Error("provider WebHookURL shouldn't have been valid")
 	}
 
 	providerWithValidOverride := AlertProvider{
@@ -190,10 +190,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
-	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")
 	}
-	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
 	}
 }

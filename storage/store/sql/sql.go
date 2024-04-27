@@ -231,16 +231,16 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 	}
 	endpointID, err := s.getEndpointID(tx, endpoint)
 	if err != nil {
-		if err == common.ErrEndpointNotFound {
+		if errors.Is(err, common.ErrEndpointNotFound) {
 			// Endpoint doesn't exist in the database, insert it
 			if endpointID, err = s.insertEndpoint(tx, endpoint); err != nil {
 				_ = tx.Rollback()
-				log.Printf("[sql][Insert] Failed to create endpoint with group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to create endpoint with group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			log.Printf("[sql][Insert] Failed to retrieve id of endpoint with group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to retrieve id of endpoint with group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			return err
 		}
 	}
@@ -256,7 +256,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 	numberOfEvents, err := s.getNumberOfEventsByEndpointID(tx, endpointID)
 	if err != nil {
 		// Silently fail
-		log.Printf("[sql][Insert] Failed to retrieve total number of events for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve total number of events for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -266,18 +266,18 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 		})
 		if err != nil {
 			// Silently fail
-			log.Printf("[sql][Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", core.EventStart, endpoint.Group, endpoint.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", core.EventStart, endpoint.Group, endpoint.Name, err.Error())
 		}
 		event := core.NewEventFromResult(result)
 		if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 			// Silently fail
-			log.Printf("[sql][Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, endpoint.Group, endpoint.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, endpoint.Group, endpoint.Name, err.Error())
 		}
 	} else {
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
-			log.Printf("[sql][Insert] Failed to retrieve outcome of previous result for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to retrieve outcome of previous result for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
@@ -287,7 +287,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 				event := core.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
-					log.Printf("[sql][Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, endpoint.Group, endpoint.Name, err.Error())
+					log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, endpoint.Group, endpoint.Name, err.Error())
 				}
 			}
 		}
@@ -296,40 +296,40 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
 		if numberOfEvents > eventsCleanUpThreshold {
 			if err = s.deleteOldEndpointEvents(tx, endpointID); err != nil {
-				log.Printf("[sql][Insert] Failed to delete old events for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old events for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			}
 		}
 	}
 	// Second, we need to insert the result.
 	if err = s.insertEndpointResult(tx, endpointID, result); err != nil {
-		log.Printf("[sql][Insert] Failed to insert result for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to insert result for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByEndpointID(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql][Insert] Failed to retrieve total number of results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve total number of results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 	} else {
 		if numberOfResults > resultsCleanUpThreshold {
 			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
-				log.Printf("[sql][Insert] Failed to delete old results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old results for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			}
 		}
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
 	if err = s.updateEndpointUptime(tx, endpointID, result); err != nil {
-		log.Printf("[sql][Insert] Failed to update uptime for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to update uptime for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 	}
 	// Clean up old uptime entries
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestEndpointUptimeEntry(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql][Insert] Failed to retrieve oldest endpoint uptime entry for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 	} else {
 		if ageOfOldestUptimeEntry > uptimeCleanUpThreshold {
 			if err = s.deleteOldUptimeEntries(tx, endpointID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
-				log.Printf("[sql][Insert] Failed to delete old uptime entries for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old uptime entries for group=%s; endpoint=%s: %s", endpoint.Group, endpoint.Name, err.Error())
 			}
 		}
 	}
@@ -339,7 +339,7 @@ func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
 			s.writeThroughCache.Delete(cacheKey)
 			endpointKey, params, err := extractKeyAndParamsFromCacheKey(cacheKey)
 			if err != nil {
-				log.Printf("[sql][Insert] Silently deleting cache key %s instead of refreshing due to error: %s", cacheKey, err.Error())
+				log.Printf("[sql.Insert] Silently deleting cache key %s instead of refreshing due to error: %s", cacheKey, err.Error())
 				continue
 			}
 			// Retrieve the endpoint status by key, which will in turn refresh the cache
@@ -370,7 +370,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {
-		log.Printf("[sql][DeleteAllEndpointStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
+		log.Printf("[sql.DeleteAllEndpointStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
 		return 0
 	}
 	if s.writeThroughCache != nil {
@@ -406,7 +406,7 @@ func (s *Store) Close() {
 
 // insertEndpoint inserts an endpoint in the store and returns the generated id of said endpoint
 func (s *Store) insertEndpoint(tx *sql.Tx, endpoint *core.Endpoint) (int64, error) {
-	//log.Printf("[sql][insertEndpoint] Inserting endpoint with group=%s and name=%s", endpoint.Group, endpoint.Name)
+	//log.Printf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", endpoint.Group, endpoint.Name)
 	var id int64
 	err := tx.QueryRow(
 		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
@@ -531,12 +531,12 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	endpointStatus := core.NewEndpointStatus(group, endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
-			log.Printf("[sql][getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
+			log.Printf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
 		}
 	}
 	if parameters.ResultsPageSize > 0 {
 		if endpointStatus.Results, err = s.getEndpointResultsByEndpointID(tx, endpointID, parameters.ResultsPage, parameters.ResultsPageSize); err != nil {
-			log.Printf("[sql][getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
+			log.Printf("[sql.getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
 	if s.writeThroughCache != nil {
@@ -556,7 +556,7 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 		key,
 	).Scan(&id, &group, &name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, "", "", common.ErrEndpointNotFound
 		}
 		return 0, "", "", err
@@ -611,7 +611,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		var joinedErrors string
 		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
-			log.Printf("[sql][getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
+			log.Printf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
@@ -738,7 +738,7 @@ func (s *Store) getEndpointID(tx *sql.Tx, endpoint *core.Endpoint) (int64, error
 	var id int64
 	err := tx.QueryRow("SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1", endpoint.Key()).Scan(&id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, common.ErrEndpointNotFound
 		}
 		return 0, err
@@ -788,7 +788,7 @@ func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) 
 	var success bool
 	err := tx.QueryRow("SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&success)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, errNoRowsReturned
 		}
 		return false, err

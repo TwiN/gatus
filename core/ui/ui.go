@@ -4,6 +4,9 @@ import "errors"
 
 // Config is the UI configuration for core.Endpoint
 type Config struct {
+	// HideConditions whether to hide the condition results on the UI
+	HideConditions bool `yaml:"hide-conditions"`
+
 	// HideHostname whether to hide the hostname in the Result
 	HideHostname bool `yaml:"hide-hostname"`
 
@@ -29,6 +32,7 @@ var (
 	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
 )
 
+// ValidateAndSetDefaults validates the UI configuration and sets the default values
 func (config *Config) ValidateAndSetDefaults() error {
 	if config.Badge != nil {
 		if len(config.Badge.ResponseTime.Thresholds) != 5 {
@@ -51,6 +55,7 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		HideURL:                     false,
 		DontResolveFailedConditions: false,
+		HideConditions:              false,
 		Badge: &Badge{
 			ResponseTime: &ResponseTime{
 				Thresholds: []int{50, 200, 300, 500, 750},
