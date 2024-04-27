@@ -66,7 +66,7 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 				endpoint.LastReminderSent = time.Now()
 			}
 		} else {
-			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being due, because the provider wasn't configured properly", endpointAlert.Type)
+			log.Printf("[watchdog][handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
 	}
 }
