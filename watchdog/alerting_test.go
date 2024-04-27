@@ -500,7 +500,7 @@ func TestHandleAlertingWithReminderInterval(t *testing.T) {
 				SuccessThreshold: 3,
 				SendOnResolved:   &enabled,
 				Triggered:        false,
-				ReminderInterval: 1 * time.Second,
+				RepeatInterval:   1 * time.Second,
 			},
 		},
 	}

@@ -46,8 +46,8 @@ type Alert struct {
 	// ongoing/triggered incidents
 	ResolveKey string `yaml:"-"`
 
-	// ReminderInterval is the interval between reminders
-	ReminderInterval time.Duration `yaml:"reminder-interval,omitempty"`
+	// RepeatInterval is the interval between reminders
+	RepeatInterval time.Duration `yaml:"repeat-interval,omitempty"`
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value
 	// should be set back to false. It is used to prevent the same alert from going out twice.

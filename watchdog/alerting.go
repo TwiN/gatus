@@ -33,7 +33,7 @@ func handleAlertsToTrigger(endpoint *core.Endpoint, result *core.Result, alertin
 		// Determine if an initial alert should be sent
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent
-		sendReminder := endpointAlert.Triggered && endpointAlert.ReminderInterval > 0 && time.Since(endpoint.LastReminderSent) >= endpointAlert.ReminderInterval
+		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 && time.Since(endpoint.LastReminderSent) >= endpointAlert.RepeatInterval
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			if debug {
