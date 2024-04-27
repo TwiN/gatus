@@ -488,7 +488,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, endpoint, 0, 2, false, "")
 }
 
-func TestHandleAlertingWithReminderInterval(t *testing.T) {
+func TestHandleAlertingWithRepeatInterval(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
 
