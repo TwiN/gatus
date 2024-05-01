@@ -75,6 +75,9 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 	for k, v := range provider.Headers {
 		request.Header.Set(k, v)
 	}
+	if len(provider.Headers["Content-Type"]) == 0 {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	return request
 }
 
