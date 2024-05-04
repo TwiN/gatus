@@ -1133,14 +1133,15 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Teams alerts
-| Parameter                                | Description                                                                                | Default       |
-|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`          |
-| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""` |
-| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
+| Parameter                                | Description                                                                                | Default             |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
+| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
+| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
+| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
+| `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
+| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
 
 ```yaml
 alerting:
