@@ -2231,6 +2231,23 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
+#### Raw Data
+Gatus exposes the raw data for one of your monitored endpoints.
+This allows you to track and aggregate data in your own applications for monitored endpoints. For instance if you want to track uptime for a period longer than 7 days.
+
+##### Uptime
+The path to get raw uptime data for an endpoint is:
+```
+/api/v1/endpoints/{key}/uptimes/{duration}
+```
+Where:
+- `{duration}` is `7d`, `24h` or `1h`
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/uptimes/24h
+```
 
 ### Installing as binary
 You can download Gatus as a binary using the following command:
