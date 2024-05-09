@@ -204,6 +204,29 @@ func TestEndpoint(t *testing.T) {
 			},
 			MockRoundTripper: nil,
 		},
+		{
+			Name: "failed-status-with-error-from-body",
+			Endpoint: Endpoint{
+				Name:       "website-health",
+				URL:        "https://twin.sh/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				OnErrorAdd: "[BODY].error",
+			},
+			ExpectedResult: &Result{
+				Success:   false,
+				Connected: true,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[STATUS] (502) == 200", Success: false},
+				},
+				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+				Errors:           []string{"something went wrong"},
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: io.NopCloser(strings.NewReader(
+					"{\"error\":\"something went wrong\"}"))}
+			}),
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
