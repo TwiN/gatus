@@ -37,7 +37,7 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	TypeDNS      Type = "Config"
+	TypeDNS      Type = "DNS"
 	TypeTCP      Type = "TCP"
 	TypeSCTP     Type = "SCTP"
 	TypeUDP      Type = "UDP"
