@@ -8,7 +8,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	gomail "gopkg.in/mail.v2"
 )
 
@@ -53,17 +53,17 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	var username string
 	if len(provider.Username) > 0 {
 		username = provider.Username
 	} else {
 		username = provider.From
 	}
-	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
+	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", provider.From)
-	m.SetHeader("To", strings.Split(provider.getToForGroup(endpoint.Group), ",")...)
+	m.SetHeader("To", strings.Split(provider.getToForGroup(ep.Group), ",")...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 	var d *gomail.Dialer
@@ -87,14 +87,14 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) (string, string) {
+func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
-		subject = fmt.Sprintf("[%s] Alert resolved", endpoint.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		subject = fmt.Sprintf("[%s] Alert triggered", endpoint.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		subject = fmt.Sprintf("[%s] Alert triggered", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	var formattedConditionResults string
 	if len(result.ConditionResults) > 0 {

@@ -1,6 +1,8 @@
-package core
+package endpoint
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewEventFromResult(t *testing.T) {
 	if event := NewEventFromResult(&Result{Success: true}); event.Type != EventHealthy {

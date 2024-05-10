@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -116,10 +116,10 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -142,7 +142,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
-		Endpoint     core.Endpoint
+		Endpoint     endpoint.Endpoint
 		Alert        alert.Alert
 		NoConditions bool
 		Resolved     bool
@@ -151,7 +151,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name"},
+			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -159,7 +159,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -168,7 +168,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Name:         "triggered-with-no-conditions",
 			NoConditions: true,
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name"},
+			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\"}]}",
@@ -176,7 +176,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name"},
+			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -184,7 +184,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -192,9 +192,9 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			var conditionResults []*core.ConditionResult
+			var conditionResults []*endpoint.ConditionResult
 			if !scenario.NoConditions {
-				conditionResults = []*core.ConditionResult{
+				conditionResults = []*endpoint.ConditionResult{
 					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 				}
@@ -202,7 +202,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
 				&scenario.Endpoint,
 				&scenario.Alert,
-				&core.Result{
+				&endpoint.Result{
 					ConditionResults: conditionResults,
 				},
 				scenario.Resolved,

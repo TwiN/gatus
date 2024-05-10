@@ -16,9 +16,14 @@ import (
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
+	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
+)
+
+const (
+	dnsPort = 53
 )
 
 var (
@@ -289,6 +294,49 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error reading websocket message: %w", err)
 	}
 	return true, msg[:n], nil
+}
+
+func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
+	if !strings.Contains(url, ":") {
+		url = fmt.Sprintf("%s:%d", url, dnsPort)
+	}
+	queryTypeAsUint16 := dns.StringToType[queryType]
+	c := new(dns.Client)
+	m := new(dns.Msg)
+	m.SetQuestion(queryName, queryTypeAsUint16)
+	r, _, err := c.Exchange(m, url)
+	if err != nil {
+		return false, "", nil, err
+	}
+	connected = true
+	dnsRcode = dns.RcodeToString[r.Rcode]
+	for _, rr := range r.Answer {
+		switch rr.Header().Rrtype {
+		case dns.TypeA:
+			if a, ok := rr.(*dns.A); ok {
+				body = []byte(a.A.String())
+			}
+		case dns.TypeAAAA:
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				body = []byte(aaaa.AAAA.String())
+			}
+		case dns.TypeCNAME:
+			if cname, ok := rr.(*dns.CNAME); ok {
+				body = []byte(cname.Target)
+			}
+		case dns.TypeMX:
+			if mx, ok := rr.(*dns.MX); ok {
+				body = []byte(mx.Mx)
+			}
+		case dns.TypeNS:
+			if ns, ok := rr.(*dns.NS); ok {
+				body = []byte(ns.Ns)
+			}
+		default:
+			body = []byte("query type is not supported yet")
+		}
+	}
+	return connected, dnsRcode, body, nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes

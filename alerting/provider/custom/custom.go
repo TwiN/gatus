@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
@@ -50,16 +50,16 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
 	body, url, method := provider.Body, provider.URL, provider.Method
 	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", endpoint.Name)
-	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", endpoint.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", endpoint.Group)
-	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", endpoint.Group)
-	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", endpoint.URL)
-	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", endpoint.URL)
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
+	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
+	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
+	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
 	if resolved {
 		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
 		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
@@ -78,8 +78,8 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 	return request
 }
 
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	request := provider.buildHTTPRequest(endpoint, alert, resolved)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	request := provider.buildHTTPRequest(ep, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return err

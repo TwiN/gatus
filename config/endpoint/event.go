@@ -1,6 +1,8 @@
-package core
+package endpoint
 
-import "time"
+import (
+	"time"
+)
 
 // Event is something that happens at a specific time
 type Event struct {
