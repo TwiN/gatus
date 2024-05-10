@@ -7,11 +7,10 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure
-func HandleAlerting(ep *endpoint.Endpoint, result *result.Result, alertingConfig *alerting.Config, debug bool) {
+func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config, debug bool) {
 	if alertingConfig == nil {
 		return
 	}
@@ -22,7 +21,7 @@ func HandleAlerting(ep *endpoint.Endpoint, result *result.Result, alertingConfig
 	}
 }
 
-func handleAlertsToTrigger(ep *endpoint.Endpoint, result *result.Result, alertingConfig *alerting.Config, debug bool) {
+func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config, debug bool) {
 	ep.NumberOfSuccessesInARow = 0
 	ep.NumberOfFailuresInARow++
 	for _, endpointAlert := range ep.Alerts {
@@ -58,7 +57,7 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *result.Result, alertin
 	}
 }
 
-func handleAlertsToResolve(ep *endpoint.Endpoint, result *result.Result, alertingConfig *alerting.Config, debug bool) {
+func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config, debug bool) {
 	ep.NumberOfSuccessesInARow++
 	for _, endpointAlert := range ep.Alerts {
 		if !endpointAlert.IsEnabled() || !endpointAlert.Triggered || endpointAlert.SuccessThreshold > ep.NumberOfSuccessesInARow {

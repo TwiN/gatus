@@ -9,7 +9,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	gomail "gopkg.in/mail.v2"
 )
 
@@ -54,7 +53,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	var username string
 	if len(provider.Username) > 0 {
 		username = provider.Username
@@ -88,7 +87,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) (string, string) {
+func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
 		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())

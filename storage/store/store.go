@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
@@ -35,7 +34,7 @@ type Store interface {
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
 	// Insert adds the observed result for the specified endpoint into the store
-	Insert(ep *endpoint.Endpoint, result *result.Result) error
+	Insert(ep *endpoint.Endpoint, result *endpoint.Result) error
 
 	// DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 	//

@@ -9,7 +9,6 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -35,8 +34,8 @@ func TestBadge(t *testing.T) {
 	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
 	cfg.Endpoints[1].UIConfig = ui.GetDefaultConfig()
 
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &result.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &result.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
@@ -259,7 +258,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		Endpoints: []*endpoint.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
 	}
 
-	testSuccessfulResult := result.Result{
+	testSuccessfulResult := endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -269,7 +268,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		Timestamp:             time.Now(),
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*result.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,

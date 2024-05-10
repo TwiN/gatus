@@ -1,4 +1,4 @@
-package result
+package endpoint
 
 // ConditionResult result of a Condition
 type ConditionResult struct {

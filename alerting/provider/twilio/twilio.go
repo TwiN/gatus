@@ -11,7 +11,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Twilio
@@ -31,7 +30,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(ep, alert, result, resolved)))
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", provider.SID), buffer)
 	if err != nil {
@@ -52,7 +51,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) string {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())

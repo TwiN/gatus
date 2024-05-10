@@ -14,7 +14,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/test"
@@ -25,7 +24,7 @@ func TestEndpoint(t *testing.T) {
 	scenarios := []struct {
 		Name             string
 		Endpoint         Endpoint
-		ExpectedResult   *result.Result
+		ExpectedResult   *Result
 		MockRoundTripper test.MockRoundTripper
 	}{
 		{
@@ -35,11 +34,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP", "[CERTIFICATE_EXPIRATION] > 24h"},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   true,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[STATUS] == 200", Success: true},
 					{Condition: "[BODY].status == UP", Success: true},
 					{Condition: "[CERTIFICATE_EXPIRATION] > 24h", Success: true},
@@ -61,11 +60,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[STATUS] == 200", Success: true},
 					{Condition: "[BODY].status (DOWN) == UP", Success: false},
 				},
@@ -82,11 +81,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200"},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[STATUS] (502) == 200", Success: false},
 				},
 				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -103,12 +102,12 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[STATUS] == 200"},
 				UIConfig:   &ui.Config{HideConditions: true},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:          false,
 				Connected:        true,
 				Hostname:         "twin.sh",
-				ConditionResults: []*result.ConditionResult{}, // Because UIConfig.HideConditions is true, the condition results should not be shown.
-				DomainExpiration: 0,                           // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+				ConditionResults: []*ConditionResult{}, // Because UIConfig.HideConditions is true, the condition results should not be shown.
+				DomainExpiration: 0,                    // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 			},
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
@@ -122,11 +121,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[CERTIFICATE_EXPIRATION] > 100h"},
 				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					// Because UIConfig.DontResolveFailedConditions is true, the values in the condition should not be resolved
 					{Condition: "[CERTIFICATE_EXPIRATION] > 100h", Success: false},
 				},
@@ -148,11 +147,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[DOMAIN_EXPIRATION] > 100h"},
 				Interval:   5 * time.Minute,
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   true,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[DOMAIN_EXPIRATION] > 100h", Success: true},
 				},
 				DomainExpiration: 999999 * time.Hour, // Note that this test only checks if it's non-zero.
@@ -170,11 +169,11 @@ func TestEndpoint(t *testing.T) {
 				UIConfig:     &ui.Config{HideHostname: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   false,
 				Connected: false,
 				Hostname:  "", // Because Endpoint.UIConfig.HideHostname is true, this should be empty.
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -193,11 +192,11 @@ func TestEndpoint(t *testing.T) {
 				UIConfig:     &ui.Config{HideURL: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
-			ExpectedResult: &result.Result{
+			ExpectedResult: &Result{
 				Success:   false,
 				Connected: false,
 				Hostname:  "twin.sh",
-				ConditionResults: []*result.ConditionResult{
+				ConditionResults: []*ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -874,7 +873,7 @@ func TestEndpoint_getIP(t *testing.T) {
 		URL:        "",
 		Conditions: []Condition{"[CONNECTED] == true"},
 	}
-	r := &result.Result{}
+	r := &Result{}
 	endpoint.getIP(r)
 	if len(r.Errors) == 0 {
 		t.Error("endpoint.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")

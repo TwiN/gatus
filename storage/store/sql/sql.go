@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/util"
@@ -225,7 +224,7 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
+func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -250,10 +249,10 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 	// A new event must be added if either of the following cases happen:
 	// 1. There is only 1 event. The total number of events for an endpoint can only be 1 if the only existing event is
 	//    of type EventStart, in which case we will have to create a new event of type EventHealthy or EventUnhealthy
-	//    based on r.Success.
-	// 2. The lastResult.Success != r.Success. This implies that the endpoint went from healthy to unhealthy or
+	//    based on result.Success.
+	// 2. The lastResult.Success != result.Success. This implies that the endpoint went from healthy to unhealthy or
 	//    vice-versa, in which case we will have to create a new event of type EventHealthy or EventUnhealthy
-	//	  based on r.Success.
+	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByEndpointID(tx, endpointID)
 	if err != nil {
 		// Silently fail
@@ -263,13 +262,13 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
 		err = s.insertEndpointEvent(tx, endpointID, &endpoint.Event{
 			Type:      endpoint.EventStart,
-			Timestamp: r.Timestamp.Add(-50 * time.Millisecond),
+			Timestamp: result.Timestamp.Add(-50 * time.Millisecond),
 		})
 		if err != nil {
 			// Silently fail
 			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", endpoint.EventStart, ep.Group, ep.Name, err.Error())
 		}
-		event := endpoint.NewEventFromResult(r)
+		event := endpoint.NewEventFromResult(result)
 		if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 			// Silently fail
 			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, ep.Group, ep.Name, err.Error())
@@ -284,8 +283,8 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
 			// that the endpoint either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
 			// an event to mark the change in state
-			if lastResultSuccess != r.Success {
-				event := endpoint.NewEventFromResult(r)
+			if lastResultSuccess != result.Success {
+				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
 					log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, ep.Group, ep.Name, err.Error())
@@ -302,7 +301,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 		}
 	}
 	// Second, we need to insert the result.
-	if err = s.insertEndpointResult(tx, endpointID, r); err != nil {
+	if err = s.insertEndpointResult(tx, endpointID, result); err != nil {
 		log.Printf("[sql.Insert] Failed to insert result for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
@@ -320,7 +319,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
-	if err = s.updateEndpointUptime(tx, endpointID, r); err != nil {
+	if err = s.updateEndpointUptime(tx, endpointID, result); err != nil {
 		log.Printf("[sql.Insert] Failed to update uptime for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
 	}
 	// Clean up old uptime entries
@@ -436,7 +435,7 @@ func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *endpoin
 }
 
 // insertEndpointResult inserts a result in the store
-func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *result.Result) error {
+func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *endpoint.Result) error {
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
@@ -463,7 +462,7 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *resul
 	return s.insertConditionResults(tx, endpointResultID, result.ConditionResults)
 }
 
-func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*result.ConditionResult) error {
+func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*endpoint.ConditionResult) error {
 	var err error
 	for _, cr := range conditionResults {
 		_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES ($1, $2, $3)",
@@ -478,7 +477,7 @@ func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, condi
 	return nil
 }
 
-func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *result.Result) error {
+func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *endpoint.Result) error {
 	unixTimestampFlooredAtHour := result.Timestamp.Truncate(time.Hour).Unix()
 	var successfulExecutions int
 	if result.Success {
@@ -589,7 +588,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	return
 }
 
-func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*result.Result, err error) {
+func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*endpoint.Result, err error) {
 	rows, err := tx.Query(
 		`
 			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
@@ -605,22 +604,22 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	if err != nil {
 		return nil, err
 	}
-	idResultMap := make(map[int64]*result.Result)
+	idResultMap := make(map[int64]*endpoint.Result)
 	for rows.Next() {
-		r := &result.Result{}
+		result := &endpoint.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &r.Success, &joinedErrors, &r.Connected, &r.HTTPStatus, &r.DNSRCode, &r.CertificateExpiration, &r.DomainExpiration, &r.Hostname, &r.IP, &r.Duration, &r.Timestamp)
+		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
 			log.Printf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
-			r.Errors = strings.Split(joinedErrors, arraySeparator)
+			result.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
 		// This is faster than using a subselect
-		results = append([]*result.Result{r}, results...)
-		idResultMap[id] = r
+		results = append([]*endpoint.Result{result}, results...)
+		idResultMap[id] = result
 	}
 	if len(idResultMap) == 0 {
 		// If there's no result, we'll just return an empty/nil slice
@@ -644,7 +643,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	}
 	defer rows.Close() // explicitly defer the close in case an error happens during the scan
 	for rows.Next() {
-		conditionResult := &result.ConditionResult{}
+		conditionResult := &endpoint.ConditionResult{}
 		var endpointResultID int64
 		if err = rows.Scan(&endpointResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
 			return

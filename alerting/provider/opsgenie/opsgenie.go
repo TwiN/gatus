@@ -12,7 +12,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 const (
@@ -60,7 +59,7 @@ func (provider *AlertProvider) IsValid() bool {
 // Send an alert using the provider
 //
 // Relevant: https://docs.opsgenie.com/docs/alert-api
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	err := provider.createAlert(ep, alert, result, resolved)
 	if err != nil {
 		return err
@@ -82,7 +81,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return nil
 }
 
-func (provider *AlertProvider) createAlert(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) createAlert(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	payload := provider.buildCreateRequestBody(ep, alert, result, resolved)
 	return provider.sendRequest(restAPI, http.MethodPost, payload)
 }
@@ -116,7 +115,7 @@ func (provider *AlertProvider) sendRequest(url, method string, payload interface
 	return nil
 }
 
-func (provider *AlertProvider) buildCreateRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) alertCreateRequest {
+func (provider *AlertProvider) buildCreateRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) alertCreateRequest {
 	var message, description string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription())

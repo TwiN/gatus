@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func BenchmarkProcessUptimeAfterResult(b *testing.B) {
@@ -15,7 +14,7 @@ func BenchmarkProcessUptimeAfterResult(b *testing.B) {
 	// Start 12000 days ago
 	timestamp := now.Add(-12000 * 24 * time.Hour)
 	for n := 0; n < b.N; n++ {
-		processUptimeAfterResult(uptime, &result.Result{
+		processUptimeAfterResult(uptime, &endpoint.Result{
 			Duration:  18 * time.Millisecond,
 			Success:   n%15 == 0,
 			Timestamp: timestamp,

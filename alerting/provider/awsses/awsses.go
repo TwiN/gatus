@@ -6,7 +6,6 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -58,7 +57,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	sess, err := provider.createSession()
 	if err != nil {
 		return err
@@ -111,7 +110,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) (string, string) {
+func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
 		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())

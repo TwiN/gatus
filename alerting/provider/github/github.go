@@ -9,7 +9,6 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
 )
@@ -71,7 +70,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	title := "alert(gatus): " + ep.DisplayName()
 	if !resolved {
 		_, _, err := provider.githubClient.Issues.Create(context.Background(), provider.repositoryOwner, provider.repositoryName, &github.IssueRequest{
@@ -105,7 +104,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildIssueBody builds the body of the issue
-func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result) string {
+func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result) string {
 	var formattedConditionResults string
 	if len(result.ConditionResults) > 0 {
 		formattedConditionResults = "\n\n## Condition results\n"

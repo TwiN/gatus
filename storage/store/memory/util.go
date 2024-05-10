@@ -2,7 +2,6 @@ package memory
 
 import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
@@ -19,7 +18,7 @@ func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatu
 	numberOfResults := len(ss.Results)
 	resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
 	if resultsStart < 0 || resultsEnd < 0 {
-		shallowCopy.Results = []*result.Result{}
+		shallowCopy.Results = []*endpoint.Result{}
 	} else {
 		shallowCopy.Results = ss.Results[resultsStart:resultsEnd]
 	}
@@ -52,7 +51,7 @@ func getStartAndEndIndex(numberOfResults int, page, pageSize int) (int, int) {
 
 // AddResult adds a Result to Status.Results and makes sure that there are
 // no more than MaximumNumberOfResults results in the Results slice
-func AddResult(ss *endpoint.Status, result *result.Result) {
+func AddResult(ss *endpoint.Status, result *endpoint.Result) {
 	if ss == nil {
 		return
 	}

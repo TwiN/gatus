@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
@@ -28,7 +27,7 @@ var (
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
-	testSuccessfulResult = result.Result{
+	testSuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -38,7 +37,7 @@ var (
 		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*result.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -53,7 +52,7 @@ var (
 			},
 		},
 	}
-	testUnsuccessfulResult = result.Result{
+	testUnsuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -63,7 +62,7 @@ var (
 		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*result.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,

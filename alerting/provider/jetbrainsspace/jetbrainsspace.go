@@ -10,7 +10,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using JetBrains Space
@@ -47,7 +46,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", provider.Project)
 	request, err := http.NewRequest(http.MethodPost, url, buffer)
@@ -104,7 +103,7 @@ type Icon struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	body := Body{
 		Channel: "id:" + provider.getChannelIDForGroup(ep.Group),
 		Content: Content{

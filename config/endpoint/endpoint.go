@@ -16,7 +16,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/util"
@@ -252,8 +251,8 @@ func (e *Endpoint) Close() {
 }
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
-func (e *Endpoint) EvaluateHealth() *result.Result {
-	r := &result.Result{Success: true, Errors: []string{}}
+func (e *Endpoint) EvaluateHealth() *Result {
+	r := &Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
 	if e.DNSConfig != nil {
 		r.Hostname = strings.TrimSuffix(e.URL, ":53")
@@ -308,7 +307,7 @@ func (e *Endpoint) EvaluateHealth() *result.Result {
 	return r
 }
 
-func (e *Endpoint) getIP(result *result.Result) {
+func (e *Endpoint) getIP(result *Result) {
 	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
 		return
@@ -317,7 +316,7 @@ func (e *Endpoint) getIP(result *result.Result) {
 	}
 }
 
-func (e *Endpoint) call(result *result.Result) {
+func (e *Endpoint) call(result *Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error

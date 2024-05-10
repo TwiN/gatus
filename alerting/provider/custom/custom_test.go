@@ -9,7 +9,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -93,8 +92,8 @@ func TestAlertProvider_Send(t *testing.T) {
 			err := scenario.Provider.Send(
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&result.Result{
-					ConditionResults: []*result.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
