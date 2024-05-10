@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/util"
 )
 
 var (
@@ -72,7 +71,7 @@ func (externalEndpoint *ExternalEndpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (externalEndpoint *ExternalEndpoint) Key() string {
-	return util.ConvertGroupAndEndpointNameToKey(externalEndpoint.Group, externalEndpoint.Name)
+	return ConvertGroupAndEndpointNameToKey(externalEndpoint.Group, externalEndpoint.Name)
 }
 
 // ToEndpoint converts the ExternalEndpoint to an Endpoint

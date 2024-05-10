@@ -18,7 +18,6 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
-	"github.com/TwiN/gatus/v5/util"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -238,7 +237,7 @@ func (e *Endpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (e *Endpoint) Key() string {
-	return util.ConvertGroupAndEndpointNameToKey(e.Group, e.Name)
+	return ConvertGroupAndEndpointNameToKey(e.Group, e.Name)
 }
 
 // Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
