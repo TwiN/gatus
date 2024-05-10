@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
@@ -78,7 +79,7 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 	return request
 }
 
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	request := provider.buildHTTPRequest(endpoint, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {

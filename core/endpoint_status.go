@@ -1,6 +1,9 @@
 package core
 
-import "github.com/TwiN/gatus/v5/util"
+import (
+	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/util"
+)
 
 // EndpointStatus contains the evaluation Results of an Endpoint
 type EndpointStatus struct {
@@ -14,7 +17,7 @@ type EndpointStatus struct {
 	Key string `json:"key"`
 
 	// Results is the list of endpoint evaluation results
-	Results []*Result `json:"results"`
+	Results []*result.Result `json:"results"`
 
 	// Events is a list of events
 	Events []*Event `json:"events,omitempty"`
@@ -33,7 +36,7 @@ func NewEndpointStatus(group, name string) *EndpointStatus {
 		Name:    name,
 		Group:   group,
 		Key:     util.ConvertGroupAndEndpointNameToKey(group, name),
-		Results: make([]*Result, 0),
+		Results: make([]*result.Result, 0),
 		Events:  make([]*Event, 0),
 		Uptime:  NewUptime(),
 	}

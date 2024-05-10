@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -91,8 +92,8 @@ func TestAlertProvider_Send(t *testing.T) {
 			err := scenario.Provider.Send(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&result.Result{
+					ConditionResults: []*result.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -145,9 +146,9 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			var conditionResults []*core.ConditionResult
+			var conditionResults []*result.ConditionResult
 			if !scenario.NoConditions {
-				conditionResults = []*core.ConditionResult{
+				conditionResults = []*result.ConditionResult{
 					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 				}
@@ -155,7 +156,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{ConditionResults: conditionResults},
+				&result.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {

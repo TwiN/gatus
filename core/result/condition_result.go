@@ -1,4 +1,4 @@
-package core
+package result
 
 // ConditionResult result of a Condition
 type ConditionResult struct {

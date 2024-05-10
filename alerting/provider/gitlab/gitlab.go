@@ -12,6 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/google/uuid"
 )
 
@@ -51,7 +52,7 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	if len(alert.ResolveKey) == 0 {
 		alert.ResolveKey = uuid.NewString()
 	}
@@ -102,7 +103,7 @@ func (provider *AlertProvider) service(endpoint *core.Endpoint) string {
 }
 
 // buildAlertBody builds the body of the alert
-func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	body := AlertBody{
 		Title:                 fmt.Sprintf("alert(%s): %s", provider.monitoringTool(), provider.service(endpoint)),
 		StartTime:             result.Timestamp.Format(time.RFC3339),

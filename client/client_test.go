@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v5/core/dns"
+	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -332,5 +334,99 @@ func TestTlsRenegotiation(t *testing.T) {
 				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
 			}
 		})
+	}
+}
+
+func TestQueryDNS(t *testing.T) {
+	tests := []struct {
+		name            string
+		inputDNS        dns.Config
+		inputURL        string
+		expectedDNSCode string
+		expectedBody    string
+		isErrExpected   bool
+	}{
+		{
+			name: "test Config with type A",
+			inputDNS: dns.Config{
+				QueryType: "A",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "93.184.215.14",
+		},
+		{
+			name: "test Config with type AAAA",
+			inputDNS: dns.Config{
+				QueryType: "AAAA",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "2606:2800:21f:cb07:6820:80da:af6b:8b2c",
+		},
+		{
+			name: "test Config with type CNAME",
+			inputDNS: dns.Config{
+				QueryType: "CNAME",
+				QueryName: "en.wikipedia.org.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dyna.wikimedia.org.",
+		},
+		{
+			name: "test Config with type MX",
+			inputDNS: dns.Config{
+				QueryType: "MX",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    ".",
+		},
+		{
+			name: "test Config with type NS",
+			inputDNS: dns.Config{
+				QueryType: "NS",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "*.iana-servers.net.",
+		},
+		{
+			name: "test Config with fake type and retrieve error",
+			inputDNS: dns.Config{
+				QueryType: "B",
+				QueryName: "example",
+			},
+			inputURL:      "8.8.8.8",
+			isErrExpected: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, dnsRCode, body, err := QueryDNS(test.inputDNS.QueryType, test.inputDNS.QueryName, test.inputURL)
+			if test.isErrExpected && err == nil {
+				t.Errorf("there should be an error")
+			}
+			if dnsRCode != test.expectedDNSCode {
+				t.Errorf("expected DNSRCode to be %s, got %s", test.expectedDNSCode, dnsRCode)
+			}
+			if test.inputDNS.QueryType == "NS" {
+				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
+				if !pattern.Match(test.expectedBody, string(body)) {
+					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				}
+			} else {
+				if string(body) != test.expectedBody {
+					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				}
+			}
+		})
+		time.Sleep(5 * time.Millisecond)
 	}
 }

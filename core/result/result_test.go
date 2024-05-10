@@ -1,4 +1,4 @@
-package core
+package result
 
 import (
 	"testing"

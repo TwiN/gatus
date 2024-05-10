@@ -1,6 +1,10 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	"github.com/TwiN/gatus/v5/core/result"
+)
 
 // Event is something that happens at a specific time
 type Event struct {
@@ -26,7 +30,7 @@ var (
 )
 
 // NewEventFromResult creates an Event from a Result
-func NewEventFromResult(result *Result) *Event {
+func NewEventFromResult(result *result.Result) *Event {
 	event := &Event{Timestamp: result.Timestamp}
 	if result.Success {
 		event.Type = EventHealthy

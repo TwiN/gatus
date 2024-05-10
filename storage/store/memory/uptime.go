@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
-func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
+func processUptimeAfterResult(uptime *core.Uptime, result *result.Result) {
 	if uptime.HourlyStatistics == nil {
 		uptime.HourlyStatistics = make(map[int64]*core.HourlyUptimeStatistics)
 	}

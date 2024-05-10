@@ -15,6 +15,9 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core/dns"
+	"github.com/TwiN/gatus/v5/core/result"
+	sshconfig "github.com/TwiN/gatus/v5/core/ssh"
 	"github.com/TwiN/gatus/v5/core/ui"
 	"github.com/TwiN/gatus/v5/util"
 	"golang.org/x/crypto/ssh"
@@ -35,7 +38,7 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	EndpointTypeDNS      EndpointType = "DNS"
+	EndpointTypeDNS      EndpointType = "Config"
 	EndpointTypeTCP      EndpointType = "TCP"
 	EndpointTypeSCTP     EndpointType = "SCTP"
 	EndpointTypeUDP      EndpointType = "UDP"
@@ -82,12 +85,6 @@ type Endpoint struct {
 	// URL to send the request to
 	URL string `yaml:"url"`
 
-	// DNS is the configuration of DNS monitoring
-	DNS *DNS `yaml:"dns,omitempty"`
-
-	// SSH is the configuration of SSH monitoring.
-	SSH *SSH `yaml:"ssh,omitempty"`
-
 	// Method of the request made to the url of the endpoint
 	Method string `yaml:"method,omitempty"`
 
@@ -108,6 +105,12 @@ type Endpoint struct {
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
+
+	// DNSConfig is the configuration for DNS monitoring
+	DNSConfig *dns.Config `yaml:"dns,omitempty"`
+
+	// SSH is the configuration for SSH monitoring
+	SSHConfig *sshconfig.Config `yaml:"ssh,omitempty"`
 
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -133,7 +136,7 @@ func (endpoint *Endpoint) IsEnabled() bool {
 // Type returns the endpoint type
 func (endpoint *Endpoint) Type() EndpointType {
 	switch {
-	case endpoint.DNS != nil:
+	case endpoint.DNSConfig != nil:
 		return EndpointTypeDNS
 	case strings.HasPrefix(endpoint.URL, "tcp://"):
 		return EndpointTypeTCP
@@ -209,11 +212,11 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
-	if endpoint.DNS != nil {
-		return endpoint.DNS.validateAndSetDefault()
+	if endpoint.DNSConfig != nil {
+		return endpoint.DNSConfig.ValidateAndSetDefault()
 	}
-	if endpoint.SSH != nil {
-		return endpoint.SSH.validate()
+	if endpoint.SSHConfig != nil {
+		return endpoint.SSHConfig.Validate()
 	}
 	if endpoint.Type() == EndpointTypeUNKNOWN {
 		return ErrUnknownEndpointType
@@ -249,63 +252,63 @@ func (endpoint *Endpoint) Close() {
 }
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
-func (endpoint *Endpoint) EvaluateHealth() *Result {
-	result := &Result{Success: true, Errors: []string{}}
+func (endpoint *Endpoint) EvaluateHealth() *result.Result {
+	r := &result.Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
-	if endpoint.DNS != nil {
-		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
+	if endpoint.DNSConfig != nil {
+		r.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
 	} else {
 		urlObject, err := url.Parse(endpoint.URL)
 		if err != nil {
-			result.AddError(err.Error())
+			r.AddError(err.Error())
 		} else {
-			result.Hostname = urlObject.Hostname()
+			r.Hostname = urlObject.Hostname()
 		}
 	}
 	// Retrieve IP if necessary
 	if endpoint.needsToRetrieveIP() {
-		endpoint.getIP(result)
+		endpoint.getIP(r)
 	}
 	// Retrieve domain expiration if necessary
-	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+	if endpoint.needsToRetrieveDomainExpiration() && len(r.Hostname) > 0 {
 		var err error
-		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
-			result.AddError(err.Error())
+		if r.DomainExpiration, err = client.GetDomainExpiration(r.Hostname); err != nil {
+			r.AddError(err.Error())
 		}
 	}
 	// Call the endpoint (if there's no errors)
-	if len(result.Errors) == 0 {
-		endpoint.call(result)
+	if len(r.Errors) == 0 {
+		endpoint.call(r)
 	} else {
-		result.Success = false
+		r.Success = false
 	}
 	// Evaluate the conditions
 	for _, condition := range endpoint.Conditions {
-		success := condition.evaluate(result, endpoint.UIConfig.DontResolveFailedConditions)
+		success := condition.evaluate(r, endpoint.UIConfig.DontResolveFailedConditions)
 		if !success {
-			result.Success = false
+			r.Success = false
 		}
 	}
-	result.Timestamp = time.Now()
+	r.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
 	if endpoint.UIConfig.HideURL {
-		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
+		for errIdx, errorString := range r.Errors {
+			r.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
 		}
 	}
 	if endpoint.UIConfig.HideHostname {
-		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
+		for errIdx, errorString := range r.Errors {
+			r.Errors[errIdx] = strings.ReplaceAll(errorString, r.Hostname, "<redacted>")
 		}
-		result.Hostname = ""
+		r.Hostname = ""
 	}
 	if endpoint.UIConfig.HideConditions {
-		result.ConditionResults = nil
+		r.ConditionResults = nil
 	}
-	return result
+	return r
 }
 
-func (endpoint *Endpoint) getIP(result *Result) {
+func (endpoint *Endpoint) getIP(result *result.Result) {
 	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
 		return
@@ -314,7 +317,7 @@ func (endpoint *Endpoint) getIP(result *Result) {
 	}
 }
 
-func (endpoint *Endpoint) call(result *Result) {
+func (endpoint *Endpoint) call(result *result.Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error
@@ -325,7 +328,11 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 	startTime := time.Now()
 	if endpointType == EndpointTypeDNS {
-		endpoint.DNS.query(endpoint.URL, result)
+		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(endpoint.DNSConfig.QueryType, endpoint.DNSConfig.QueryName, endpoint.URL)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeSTARTTLS || endpointType == EndpointTypeTLS {
 		if endpointType == EndpointTypeSTARTTLS {
@@ -359,7 +366,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == EndpointTypeSSH {
 		var cli *ssh.Client
-		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSH.Username, endpoint.SSH.Password, endpoint.ClientConfig)
+		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSHConfig.Username, endpoint.SSHConfig.Password, endpoint.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return

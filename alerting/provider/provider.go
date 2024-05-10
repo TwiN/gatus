@@ -22,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 )
 
 // AlertProvider is the interface that each provider should implement
@@ -33,7 +34,7 @@ type AlertProvider interface {
 	GetDefaultAlert() *alert.Alert
 
 	// Send an alert using the provider
-	Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error
+	Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error
 }
 
 // ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline

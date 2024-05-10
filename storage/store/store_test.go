@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -32,7 +33,7 @@ var (
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
-	testSuccessfulResult = core.Result{
+	testSuccessfulResult = result.Result{
 		Timestamp:             now,
 		Success:               true,
 		Hostname:              "example.org",
@@ -42,7 +43,7 @@ var (
 		Connected:             true,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -57,7 +58,7 @@ var (
 			},
 		},
 	}
-	testUnsuccessfulResult = core.Result{
+	testUnsuccessfulResult = result.Result{
 		Timestamp:             now,
 		Success:               false,
 		Hostname:              "example.org",
@@ -67,7 +68,7 @@ var (
 		Connected:             true,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -482,7 +483,7 @@ func TestStore_Insert(t *testing.T) {
 			if len(ss.Results) != 2 {
 				t.Fatalf("Endpoint '%s' should've had 2 results, got %d", ss.Name, len(ss.Results))
 			}
-			for i, expectedResult := range []core.Result{firstResult, secondResult} {
+			for i, expectedResult := range []result.Result{firstResult, secondResult} {
 				if expectedResult.HTTPStatus != ss.Results[i].HTTPStatus {
 					t.Errorf("Result at index %d should've had a HTTPStatus of %d, got %d", i, ss.Results[i].HTTPStatus, expectedResult.HTTPStatus)
 				}

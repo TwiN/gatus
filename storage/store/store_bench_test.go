@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
@@ -123,7 +123,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 				b.RunParallel(func(pb *testing.PB) {
 					n := 0
 					for pb.Next() {
-						var result core.Result
+						var result result.Result
 						if n%10 == 0 {
 							result = testUnsuccessfulResult
 						} else {
@@ -136,7 +136,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					var result core.Result
+					var result result.Result
 					if n%10 == 0 {
 						result = testUnsuccessfulResult
 					} else {

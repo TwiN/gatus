@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -85,8 +86,8 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
 				&core.Endpoint{Name: endpoint},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&result.Result{
+					ConditionResults: []*result.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},

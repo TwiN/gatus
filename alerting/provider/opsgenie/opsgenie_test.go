@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -81,8 +82,8 @@ func TestAlertProvider_Send(t *testing.T) {
 			err := scenario.Provider.Send(
 				&core.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&result.Result{
+					ConditionResults: []*result.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -107,7 +108,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		Provider *AlertProvider
 		Alert    *alert.Alert
 		Endpoint *core.Endpoint
-		Result   *core.Result
+		Result   *result.Result
 		Resolved bool
 		want     alertCreateRequest
 	}{
@@ -116,7 +117,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
 			Endpoint: &core.Endpoint{},
-			Result:   &core.Result{},
+			Result:   &result.Result{},
 			Resolved: false,
 			want: alertCreateRequest{
 				Message:     " - ",
@@ -134,7 +135,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
 			Endpoint: &core.Endpoint{},
-			Result:   &core.Result{},
+			Result:   &result.Result{},
 			Resolved: true,
 			want: alertCreateRequest{
 				Message:     "RESOLVED:  - ",
@@ -157,8 +158,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Endpoint: &core.Endpoint{
 				Name: "my super app",
 			},
-			Result: &core.Result{
-				ConditionResults: []*core.ConditionResult{
+			Result: &result.Result{
+				ConditionResults: []*result.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   true,
@@ -197,8 +198,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Endpoint: &core.Endpoint{
 				Name: "my mega app",
 			},
-			Result: &core.Result{
-				ConditionResults: []*core.ConditionResult{
+			Result: &result.Result{
+				ConditionResults: []*result.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   true,
@@ -231,12 +232,12 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Group: "end game",
 				URL:   "https://my.go/app",
 			},
-			Result: &core.Result{
+			Result: &result.Result{
 				HTTPStatus: 400,
 				Hostname:   "my.go",
 				Errors:     []string{"error 01", "error 02"},
 				Success:    false,
-				ConditionResults: []*core.ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   false,

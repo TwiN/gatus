@@ -21,6 +21,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 )
 
 func TestHandleAlerting(t *testing.T) {
@@ -52,21 +53,21 @@ func TestHandleAlerting(t *testing.T) {
 	}
 
 	verify(t, endpoint, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 2, 0, true, "The alert should've triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 3, 0, true, "The alert should still be triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 4, 0, true, "The alert should still be triggered")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, true, "The alert should still be triggered (because endpoint.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 2, true, "The alert should still be triggered (because endpoint.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 3, false, "The alert should've been resolved")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 4, false, "The alert should no longer be triggered")
 }
 
@@ -96,9 +97,9 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 	}
 
 	verify(t, endpoint, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, &alerting.Config{}, false)
+	HandleAlerting(endpoint, &result.Result{Success: false}, &alerting.Config{}, false)
 	verify(t, endpoint, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, &alerting.Config{}, false)
+	HandleAlerting(endpoint, &result.Result{Success: false}, &alerting.Config{}, false)
 	verify(t, endpoint, 2, 0, false, "The alert shouldn't have triggered, because the provider wasn't configured properly")
 }
 
@@ -132,7 +133,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	}
 
 	// This test simulate an alert that was already triggered
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 2, 0, true, "The alert was already triggered at the beginning of this test")
 }
 
@@ -166,7 +167,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 		NumberOfFailuresInARow: 1,
 	}
 
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -198,10 +199,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 		NumberOfFailuresInARow: 0,
 	}
 
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, true, "")
 
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -234,10 +235,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 		NumberOfFailuresInARow: 0,
 	}
 
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, true, "")
 
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -403,32 +404,32 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 				},
 			}
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 1, 0, false, "")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 2, 0, false, "The alert should have failed to trigger, because the alert provider is returning an error")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 3, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 4, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 5, 0, true, "The alert should've been triggered because the alert provider is no longer returning an error")
-			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: true}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 0, 1, true, "The alert should've still been triggered")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: true}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 			// Make sure that everything's working as expected after a rough patch
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 1, 0, false, "")
-			HandleAlerting(endpoint, &core.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: false}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 2, 0, true, "The alert should have triggered")
-			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: true}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 0, 1, true, "The alert should still be triggered")
-			HandleAlerting(endpoint, &core.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(endpoint, &result.Result{Success: true}, scenario.AlertingConfig, true)
 			verify(t, endpoint, 0, 2, false, "The alert should have been resolved")
 		})
 	}
@@ -463,27 +464,27 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		},
 	}
 
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 1, 0, true, "")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: false}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 2, 0, true, "")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 1, false, "")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(endpoint, &result.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, endpoint, 0, 2, false, "")
 }
 

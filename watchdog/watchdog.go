@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 )
@@ -92,7 +93,7 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 }
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
-func UpdateEndpointStatuses(endpoint *core.Endpoint, result *core.Result) {
+func UpdateEndpointStatuses(endpoint *core.Endpoint, result *result.Result) {
 	if err := store.Get().Insert(endpoint, result); err != nil {
 		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
 	}

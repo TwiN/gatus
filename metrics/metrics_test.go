@@ -6,17 +6,19 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/dns"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
 	httpEndpoint := &core.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
-	PublishMetricsForEndpoint(httpEndpoint, &core.Result{
+	PublishMetricsForEndpoint(httpEndpoint, &result.Result{
 		HTTPStatus: 200,
 		Connected:  true,
 		Duration:   123 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 48h", Success: true},
 		},
@@ -43,11 +45,11 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	PublishMetricsForEndpoint(httpEndpoint, &core.Result{
+	PublishMetricsForEndpoint(httpEndpoint, &result.Result{
 		HTTPStatus: 200,
 		Connected:  true,
 		Duration:   125 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 47h", Success: false},
 		},
@@ -75,15 +77,15 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNS: &core.DNS{
+	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
 		QueryType: "A",
 		QueryName: "example.com.",
 	}}
-	PublishMetricsForEndpoint(dnsEndpoint, &core.Result{
+	PublishMetricsForEndpoint(dnsEndpoint, &result.Result{
 		DNSRCode:  "NOERROR",
 		Connected: true,
 		Duration:  50 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{Condition: "[DNS_RCODE] == NOERROR", Success: true},
 		},
 		Success: true,
@@ -95,18 +97,18 @@ gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
 gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
-gatus_results_code_total{code="NOERROR",group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
+gatus_results_code_total{code="NOERROR",group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="Config"} 1
 # HELP gatus_results_connected_total Total number of results in which a connection was successfully established
 # TYPE gatus_results_connected_total counter
-gatus_results_connected_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
+gatus_results_connected_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="Config"} 1
 gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
 # HELP gatus_results_duration_seconds Duration of the request in seconds
 # TYPE gatus_results_duration_seconds gauge
-gatus_results_duration_seconds{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 0.05
+gatus_results_duration_seconds{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="Config"} 0.05
 gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0.125
 # HELP gatus_results_total Number of results per endpoint
 # TYPE gatus_results_total counter
-gatus_results_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",success="true",type="DNS"} 1
+gatus_results_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",success="true",type="Config"} 1
 gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="false",type="HTTP"} 1
 gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP"} 1
 `), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds")

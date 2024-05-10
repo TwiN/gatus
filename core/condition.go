@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/jsonpath"
 	"github.com/TwiN/gatus/v5/pattern"
 )
@@ -96,7 +97,7 @@ type Condition string
 
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
-	r := &Result{}
+	r := &result.Result{}
 	c.evaluate(r, false)
 	if len(r.Errors) != 0 {
 		return errors.New(r.Errors[0])
@@ -105,54 +106,54 @@ func (c Condition) Validate() error {
 }
 
 // evaluate the Condition with the Result of the health check
-func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
+func (c Condition) evaluate(r *result.Result, dontResolveFailedConditions bool) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), r)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), r)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), r)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), r)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), r)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), r)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
-		result.AddError(fmt.Sprintf("invalid condition: %s", condition))
+		r.AddError(fmt.Sprintf("invalid condition: %s", condition))
 		return false
 	}
 	if !success {
 		//log.Printf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
-	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
+	r.ConditionResults = append(r.ConditionResults, &result.ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
 }
 
@@ -237,7 +238,7 @@ func isEqual(first, second string) bool {
 
 // sanitizeAndResolve sanitizes and resolves a list of elements and returns the list of parameters as well as a list
 // of resolved parameters
-func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
+func sanitizeAndResolve(elements []string, result *result.Result) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
 	body := strings.TrimSpace(string(result.Body))
@@ -306,7 +307,7 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
+func sanitizeAndResolveNumerical(list []string, result *result.Result) (parameters []string, resolvedNumericalParameters []int64) {
 	parameters, resolvedParameters := sanitizeAndResolve(list, result)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {

@@ -13,6 +13,9 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/core/dns"
+	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/core/ssh"
 	"github.com/TwiN/gatus/v5/core/ui"
 	"github.com/TwiN/gatus/v5/test"
 )
@@ -22,7 +25,7 @@ func TestEndpoint(t *testing.T) {
 	scenarios := []struct {
 		Name             string
 		Endpoint         Endpoint
-		ExpectedResult   *Result
+		ExpectedResult   *result.Result
 		MockRoundTripper test.MockRoundTripper
 	}{
 		{
@@ -32,11 +35,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP", "[CERTIFICATE_EXPIRATION] > 24h"},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   true,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[STATUS] == 200", Success: true},
 					{Condition: "[BODY].status == UP", Success: true},
 					{Condition: "[CERTIFICATE_EXPIRATION] > 24h", Success: true},
@@ -58,11 +61,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[STATUS] == 200", Success: true},
 					{Condition: "[BODY].status (DOWN) == UP", Success: false},
 				},
@@ -79,11 +82,11 @@ func TestEndpoint(t *testing.T) {
 				URL:        "https://twin.sh/health",
 				Conditions: []Condition{"[STATUS] == 200"},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[STATUS] (502) == 200", Success: false},
 				},
 				DomainExpiration: 0, // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -100,12 +103,12 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[STATUS] == 200"},
 				UIConfig:   &ui.Config{HideConditions: true},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:          false,
 				Connected:        true,
 				Hostname:         "twin.sh",
-				ConditionResults: []*ConditionResult{}, // Because UIConfig.HideConditions is true, the condition results should not be shown.
-				DomainExpiration: 0,                    // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
+				ConditionResults: []*result.ConditionResult{}, // Because UIConfig.HideConditions is true, the condition results should not be shown.
+				DomainExpiration: 0,                           // Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 			},
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
@@ -119,11 +122,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[CERTIFICATE_EXPIRATION] > 100h"},
 				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   false,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					// Because UIConfig.DontResolveFailedConditions is true, the values in the condition should not be resolved
 					{Condition: "[CERTIFICATE_EXPIRATION] > 100h", Success: false},
 				},
@@ -145,11 +148,11 @@ func TestEndpoint(t *testing.T) {
 				Conditions: []Condition{"[DOMAIN_EXPIRATION] > 100h"},
 				Interval:   5 * time.Minute,
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   true,
 				Connected: true,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[DOMAIN_EXPIRATION] > 100h", Success: true},
 				},
 				DomainExpiration: 999999 * time.Hour, // Note that this test only checks if it's non-zero.
@@ -167,11 +170,11 @@ func TestEndpoint(t *testing.T) {
 				UIConfig:     &ui.Config{HideHostname: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   false,
 				Connected: false,
 				Hostname:  "", // Because Endpoint.UIConfig.HideHostname is true, this should be empty.
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -190,11 +193,11 @@ func TestEndpoint(t *testing.T) {
 				UIConfig:     &ui.Config{HideURL: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
-			ExpectedResult: &Result{
+			ExpectedResult: &result.Result{
 				Success:   false,
 				Connected: false,
 				Hostname:  "twin.sh",
-				ConditionResults: []*ConditionResult{
+				ConditionResults: []*result.ConditionResult{
 					{Condition: "[CONNECTED] (false) == true", Success: false},
 				},
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
@@ -279,8 +282,8 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 func TestEndpoint_Type(t *testing.T) {
 	type args struct {
 		URL string
-		DNS *DNS
-		SSH *SSH
+		DNS *dns.Config
+		SSH *ssh.Config
 	}
 	tests := []struct {
 		args args
@@ -289,7 +292,7 @@ func TestEndpoint_Type(t *testing.T) {
 		{
 			args: args{
 				URL: "8.8.8.8",
-				DNS: &DNS{
+				DNS: &dns.Config{
 					QueryType: "A",
 					QueryName: "example.com",
 				},
@@ -353,7 +356,7 @@ func TestEndpoint_Type(t *testing.T) {
 		{
 			args: args{
 				URL: "ssh://example.com:22",
-				SSH: &SSH{
+				SSH: &ssh.Config{
 					Username: "root",
 					Password: "password",
 				},
@@ -376,8 +379,8 @@ func TestEndpoint_Type(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(tt.want), func(t *testing.T) {
 			endpoint := Endpoint{
-				URL: tt.args.URL,
-				DNS: tt.args.DNS,
+				URL:       tt.args.URL,
+				DNSConfig: tt.args.DNS,
 			}
 			if got := endpoint.Type(); got != tt.want {
 				t.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
@@ -477,7 +480,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	endpoint := &Endpoint{
 		Name: "dns-test",
 		URL:  "https://example.com",
-		DNS: &DNS{
+		DNSConfig: &dns.Config{
 			QueryType: "A",
 			QueryName: "example.com",
 		},
@@ -487,7 +490,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	if err != nil {
 		t.Error("did not expect an error, got", err)
 	}
-	if endpoint.DNS.QueryName != "example.com." {
+	if endpoint.DNSConfig.QueryName != "example.com." {
 		t.Error("Endpoint.dns.query-name should be formatted with . suffix")
 	}
 }
@@ -503,13 +506,13 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			name:        "fail when has no user",
 			username:    "",
 			password:    "password",
-			expectedErr: ErrEndpointWithoutSSHUsername,
+			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
 		},
 		{
 			name:        "fail when has no password",
 			username:    "username",
 			password:    "",
-			expectedErr: ErrEndpointWithoutSSHPassword,
+			expectedErr: ssh.ErrEndpointWithoutSSHPassword,
 		},
 		{
 			name:        "success when all fields are set",
@@ -524,7 +527,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			endpoint := &Endpoint{
 				Name: "ssh-test",
 				URL:  "https://example.com",
-				SSH: &SSH{
+				SSHConfig: &ssh.Config{
 					Username: scenario.username,
 					Password: scenario.password,
 				},
@@ -763,7 +766,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	endpoint := Endpoint{
 		Name: "example",
 		URL:  "8.8.8.8",
-		DNS: &DNS{
+		DNSConfig: &dns.Config{
 			QueryType: "A",
 			QueryName: "example.com.",
 		},
@@ -773,14 +776,14 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	if err != nil {
 		t.Fatal("did not expect an error, got", err)
 	}
-	result := endpoint.EvaluateHealth()
-	if !result.ConditionResults[0].Success {
+	r := endpoint.EvaluateHealth()
+	if !r.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' and '%s' should have been a success", conditionSuccess, conditionBody)
 	}
-	if !result.Connected {
+	if !r.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")
 	}
-	if !result.Success {
+	if !r.Success {
 		t.Error("Because all conditions passed, this should have been a success")
 	}
 }
@@ -797,7 +800,7 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 			endpoint: Endpoint{
 				Name: "ssh-success",
 				URL:  "ssh://localhost",
-				SSH: &SSH{
+				SSHConfig: &ssh.Config{
 					Username: "test",
 					Password: "test",
 				},
@@ -811,7 +814,7 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 			endpoint: Endpoint{
 				Name: "ssh-failure",
 				URL:  "ssh://localhost",
-				SSH: &SSH{
+				SSHConfig: &ssh.Config{
 					Username: "test",
 					Password: "test",
 				},
@@ -871,7 +874,7 @@ func TestEndpoint_getIP(t *testing.T) {
 		URL:        "",
 		Conditions: []Condition{"[CONNECTED] == true"},
 	}
-	result := &Result{}
+	result := &result.Result{}
 	endpoint.getIP(result)
 	if len(result.Errors) == 0 {
 		t.Error("endpoint.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")

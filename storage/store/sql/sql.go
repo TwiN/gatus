@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/util"
@@ -224,7 +225,7 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
+func (s *Store) Insert(endpoint *core.Endpoint, result *result.Result) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -435,7 +436,7 @@ func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *core.Ev
 }
 
 // insertEndpointResult inserts a result in the store
-func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *core.Result) error {
+func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *result.Result) error {
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
@@ -462,7 +463,7 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *core.
 	return s.insertConditionResults(tx, endpointResultID, result.ConditionResults)
 }
 
-func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*core.ConditionResult) error {
+func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*result.ConditionResult) error {
 	var err error
 	for _, cr := range conditionResults {
 		_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES ($1, $2, $3)",
@@ -477,7 +478,7 @@ func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, condi
 	return nil
 }
 
-func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *core.Result) error {
+func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *result.Result) error {
 	unixTimestampFlooredAtHour := result.Timestamp.Truncate(time.Hour).Unix()
 	var successfulExecutions int
 	if result.Success {
@@ -588,7 +589,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	return
 }
 
-func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*core.Result, err error) {
+func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*result.Result, err error) {
 	rows, err := tx.Query(
 		`
 			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
@@ -604,22 +605,22 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	if err != nil {
 		return nil, err
 	}
-	idResultMap := make(map[int64]*core.Result)
+	idResultMap := make(map[int64]*result.Result)
 	for rows.Next() {
-		result := &core.Result{}
+		r := &result.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
+		err = rows.Scan(&id, &r.Success, &joinedErrors, &r.Connected, &r.HTTPStatus, &r.DNSRCode, &r.CertificateExpiration, &r.DomainExpiration, &r.Hostname, &r.IP, &r.Duration, &r.Timestamp)
 		if err != nil {
 			log.Printf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
-			result.Errors = strings.Split(joinedErrors, arraySeparator)
+			r.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
 		// This is faster than using a subselect
-		results = append([]*core.Result{result}, results...)
-		idResultMap[id] = result
+		results = append([]*result.Result{r}, results...)
+		idResultMap[id] = r
 	}
 	if len(idResultMap) == 0 {
 		// If there's no result, we'll just return an empty/nil slice
@@ -643,7 +644,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	}
 	defer rows.Close() // explicitly defer the close in case an error happens during the scan
 	for rows.Next() {
-		conditionResult := &core.ConditionResult{}
+		conditionResult := &result.ConditionResult{}
 		var endpointResultID int64
 		if err = rows.Scan(&endpointResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
 			return

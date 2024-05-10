@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
@@ -13,7 +14,7 @@ func TestAddResult(t *testing.T) {
 	endpoint := &core.Endpoint{Name: "name", Group: "group"}
 	endpointStatus := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
 	for i := 0; i < (common.MaximumNumberOfResults+common.MaximumNumberOfEvents)*2; i++ {
-		AddResult(endpointStatus, &core.Result{Success: i%2 == 0, Timestamp: time.Now()})
+		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: time.Now()})
 	}
 	if len(endpointStatus.Results) != common.MaximumNumberOfResults {
 		t.Errorf("expected endpointStatus.Results to not exceed a length of %d", common.MaximumNumberOfResults)
@@ -22,7 +23,7 @@ func TestAddResult(t *testing.T) {
 		t.Errorf("expected endpointStatus.Events to not exceed a length of %d", common.MaximumNumberOfEvents)
 	}
 	// Try to add nil endpointStatus
-	AddResult(nil, &core.Result{Timestamp: time.Now()})
+	AddResult(nil, &result.Result{Timestamp: time.Now()})
 }
 
 func TestShallowCopyEndpointStatus(t *testing.T) {
@@ -30,7 +31,7 @@ func TestShallowCopyEndpointStatus(t *testing.T) {
 	endpointStatus := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
 	ts := time.Now().Add(-25 * time.Hour)
 	for i := 0; i < 25; i++ {
-		AddResult(endpointStatus, &core.Result{Success: i%2 == 0, Timestamp: ts})
+		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: ts})
 		ts = ts.Add(time.Hour)
 	}
 	if len(ShallowCopyEndpointStatus(endpointStatus, paging.NewEndpointStatusParams().WithResults(-1, -1)).Results) != 0 {

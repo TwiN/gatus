@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
@@ -28,7 +29,7 @@ var (
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
-	testSuccessfulResult = core.Result{
+	testSuccessfulResult = result.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -38,7 +39,7 @@ var (
 		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -53,7 +54,7 @@ var (
 			},
 		},
 	}
-	testUnsuccessfulResult = core.Result{
+	testUnsuccessfulResult = result.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -63,7 +64,7 @@ var (
 		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*result.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -100,7 +101,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &result.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
 
 	tx, _ := store.db.Begin()
 	oldest, _ := store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -110,7 +111,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should remain at ~5 hours old, because this entry is more recent
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &result.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -120,7 +121,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should now become at ~8 hours old, because this entry is older
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &result.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -130,7 +131,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &result.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -141,7 +142,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 
 	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
 	// one should be deleted since they both surpass uptimeRetention
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &result.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)

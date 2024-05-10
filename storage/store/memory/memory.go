@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/util"
@@ -140,7 +141,7 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(endpoint *core.Endpoint, result *core.Result) error {
+func (s *Store) Insert(endpoint *core.Endpoint, result *result.Result) error {
 	key := endpoint.Key()
 	s.Lock()
 	status, exists := s.cache.Get(key)
