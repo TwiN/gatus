@@ -105,54 +105,54 @@ func (c Condition) Validate() error {
 }
 
 // evaluate the Condition with the Result of the health check
-func (c Condition) evaluate(r *Result, dontResolveFailedConditions bool) bool {
+func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), r)
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), r)
+		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), r)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), result)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), r)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), result)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), r)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), result)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), r)
+		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), result)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
-		r.AddError(fmt.Sprintf("invalid condition: %s", condition))
+		result.AddError(fmt.Sprintf("invalid condition: %s", condition))
 		return false
 	}
 	if !success {
 		//log.Printf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
-	r.ConditionResults = append(r.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
+	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
 }
 
