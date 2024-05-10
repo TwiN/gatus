@@ -252,59 +252,59 @@ func (e *Endpoint) Close() {
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (e *Endpoint) EvaluateHealth() *Result {
-	r := &Result{Success: true, Errors: []string{}}
+	result := &Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
 	if e.DNSConfig != nil {
-		r.Hostname = strings.TrimSuffix(e.URL, ":53")
+		result.Hostname = strings.TrimSuffix(e.URL, ":53")
 	} else {
 		urlObject, err := url.Parse(e.URL)
 		if err != nil {
-			r.AddError(err.Error())
+			result.AddError(err.Error())
 		} else {
-			r.Hostname = urlObject.Hostname()
+			result.Hostname = urlObject.Hostname()
 		}
 	}
 	// Retrieve IP if necessary
 	if e.needsToRetrieveIP() {
-		e.getIP(r)
+		e.getIP(result)
 	}
 	// Retrieve domain expiration if necessary
-	if e.needsToRetrieveDomainExpiration() && len(r.Hostname) > 0 {
+	if e.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
 		var err error
-		if r.DomainExpiration, err = client.GetDomainExpiration(r.Hostname); err != nil {
-			r.AddError(err.Error())
+		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
+			result.AddError(err.Error())
 		}
 	}
 	// Call the endpoint (if there's no errors)
-	if len(r.Errors) == 0 {
-		e.call(r)
+	if len(result.Errors) == 0 {
+		e.call(result)
 	} else {
-		r.Success = false
+		result.Success = false
 	}
 	// Evaluate the conditions
 	for _, condition := range e.Conditions {
-		success := condition.evaluate(r, e.UIConfig.DontResolveFailedConditions)
+		success := condition.evaluate(result, e.UIConfig.DontResolveFailedConditions)
 		if !success {
-			r.Success = false
+			result.Success = false
 		}
 	}
-	r.Timestamp = time.Now()
+	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
 	if e.UIConfig.HideURL {
-		for errIdx, errorString := range r.Errors {
-			r.Errors[errIdx] = strings.ReplaceAll(errorString, e.URL, "<redacted>")
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, e.URL, "<redacted>")
 		}
 	}
 	if e.UIConfig.HideHostname {
-		for errIdx, errorString := range r.Errors {
-			r.Errors[errIdx] = strings.ReplaceAll(errorString, r.Hostname, "<redacted>")
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
-		r.Hostname = ""
+		result.Hostname = ""
 	}
 	if e.UIConfig.HideConditions {
-		r.ConditionResults = nil
+		result.ConditionResults = nil
 	}
-	return r
+	return result
 }
 
 func (e *Endpoint) getIP(result *Result) {
