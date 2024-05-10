@@ -70,19 +70,19 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	if debug {
 		log.Printf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
 	}
-	r := ep.EvaluateHealth()
+	result := ep.EvaluateHealth()
 	if enabledMetrics {
-		metrics.PublishMetricsForEndpoint(ep, r)
+		metrics.PublishMetricsForEndpoint(ep, result)
 	}
-	UpdateEndpointStatuses(ep, r)
-	if debug && !r.Success {
-		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, r.Success, len(r.Errors), r.Duration.Round(time.Millisecond), r.Body)
+	UpdateEndpointStatuses(ep, result)
+	if debug && !result.Success {
+		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
 	} else {
-		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, r.Success, len(r.Errors), r.Duration.Round(time.Millisecond))
+		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 	if !maintenanceConfig.IsUnderMaintenance() {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
-		HandleAlerting(ep, r, alertingConfig, debug)
+		HandleAlerting(ep, result, alertingConfig, debug)
 	} else if debug {
 		log.Println("[watchdog.execute] Not handling alerting because currently in the maintenance window")
 	}
