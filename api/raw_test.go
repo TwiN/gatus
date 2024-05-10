@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -18,7 +18,7 @@ func TestRawDataEndpoint(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -33,8 +33,8 @@ func TestRawDataEndpoint(t *testing.T) {
 	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
 	cfg.Endpoints[1].UIConfig = ui.GetDefaultConfig()
 
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
