@@ -10,7 +10,7 @@ var (
 	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
 )
 
-// Alert is a core.Endpoint's alert configuration
+// Alert is a endpoint.Endpoint's alert configuration
 type Alert struct {
 	// Type of alert (required)
 	Type Type `yaml:"type"`

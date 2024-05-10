@@ -80,8 +80,8 @@ func initializeStorage(cfg *config.Config) {
 	}
 	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
-	for _, endpoint := range cfg.Endpoints {
-		keys = append(keys, endpoint.Key())
+	for _, ep := range cfg.Endpoints {
+		keys = append(keys, ep.Key())
 	}
 	for _, externalEndpoint := range cfg.ExternalEndpoints {
 		keys = append(keys, externalEndpoint.Key())

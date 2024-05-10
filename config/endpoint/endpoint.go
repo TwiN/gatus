@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"bytes"
@@ -15,12 +15,13 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core/ui"
-	"github.com/TwiN/gatus/v5/util"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"golang.org/x/crypto/ssh"
 )
 
-type EndpointType string
+type Type string
 
 const (
 	// HostHeader is the name of the header used to specify the host
@@ -35,17 +36,17 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	EndpointTypeDNS      EndpointType = "DNS"
-	EndpointTypeTCP      EndpointType = "TCP"
-	EndpointTypeSCTP     EndpointType = "SCTP"
-	EndpointTypeUDP      EndpointType = "UDP"
-	EndpointTypeICMP     EndpointType = "ICMP"
-	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
-	EndpointTypeTLS      EndpointType = "TLS"
-	EndpointTypeHTTP     EndpointType = "HTTP"
-	EndpointTypeWS       EndpointType = "WEBSOCKET"
-	EndpointTypeSSH      EndpointType = "SSH"
-	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
+	TypeDNS      Type = "DNS"
+	TypeTCP      Type = "TCP"
+	TypeSCTP     Type = "SCTP"
+	TypeUDP      Type = "UDP"
+	TypeICMP     Type = "ICMP"
+	TypeSTARTTLS Type = "STARTTLS"
+	TypeTLS      Type = "TLS"
+	TypeHTTP     Type = "HTTP"
+	TypeWS       Type = "WEBSOCKET"
+	TypeSSH      Type = "SSH"
+	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
 var (
@@ -82,12 +83,6 @@ type Endpoint struct {
 	// URL to send the request to
 	URL string `yaml:"url"`
 
-	// DNS is the configuration of DNS monitoring
-	DNS *DNS `yaml:"dns,omitempty"`
-
-	// SSH is the configuration of SSH monitoring.
-	SSH *SSH `yaml:"ssh,omitempty"`
-
 	// Method of the request made to the url of the endpoint
 	Method string `yaml:"method,omitempty"`
 
@@ -109,6 +104,12 @@ type Endpoint struct {
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
 
+	// DNSConfig is the configuration for DNS monitoring
+	DNSConfig *dns.Config `yaml:"dns,omitempty"`
+
+	// SSH is the configuration for SSH monitoring
+	SSHConfig *sshconfig.Config `yaml:"ssh,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
@@ -123,103 +124,103 @@ type Endpoint struct {
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
-func (endpoint *Endpoint) IsEnabled() bool {
-	if endpoint.Enabled == nil {
+func (e *Endpoint) IsEnabled() bool {
+	if e.Enabled == nil {
 		return true
 	}
-	return *endpoint.Enabled
+	return *e.Enabled
 }
 
 // Type returns the endpoint type
-func (endpoint *Endpoint) Type() EndpointType {
+func (e *Endpoint) Type() Type {
 	switch {
-	case endpoint.DNS != nil:
-		return EndpointTypeDNS
-	case strings.HasPrefix(endpoint.URL, "tcp://"):
-		return EndpointTypeTCP
-	case strings.HasPrefix(endpoint.URL, "sctp://"):
-		return EndpointTypeSCTP
-	case strings.HasPrefix(endpoint.URL, "udp://"):
-		return EndpointTypeUDP
-	case strings.HasPrefix(endpoint.URL, "icmp://"):
-		return EndpointTypeICMP
-	case strings.HasPrefix(endpoint.URL, "starttls://"):
-		return EndpointTypeSTARTTLS
-	case strings.HasPrefix(endpoint.URL, "tls://"):
-		return EndpointTypeTLS
-	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
-		return EndpointTypeHTTP
-	case strings.HasPrefix(endpoint.URL, "ws://") || strings.HasPrefix(endpoint.URL, "wss://"):
-		return EndpointTypeWS
-	case strings.HasPrefix(endpoint.URL, "ssh://"):
-		return EndpointTypeSSH
+	case e.DNSConfig != nil:
+		return TypeDNS
+	case strings.HasPrefix(e.URL, "tcp://"):
+		return TypeTCP
+	case strings.HasPrefix(e.URL, "sctp://"):
+		return TypeSCTP
+	case strings.HasPrefix(e.URL, "udp://"):
+		return TypeUDP
+	case strings.HasPrefix(e.URL, "icmp://"):
+		return TypeICMP
+	case strings.HasPrefix(e.URL, "starttls://"):
+		return TypeSTARTTLS
+	case strings.HasPrefix(e.URL, "tls://"):
+		return TypeTLS
+	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
+		return TypeHTTP
+	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
+		return TypeWS
+	case strings.HasPrefix(e.URL, "ssh://"):
+		return TypeSSH
 	default:
-		return EndpointTypeUNKNOWN
+		return TypeUNKNOWN
 	}
 }
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
-func (endpoint *Endpoint) ValidateAndSetDefaults() error {
-	if err := validateEndpointNameGroupAndAlerts(endpoint.Name, endpoint.Group, endpoint.Alerts); err != nil {
+func (e *Endpoint) ValidateAndSetDefaults() error {
+	if err := validateEndpointNameGroupAndAlerts(e.Name, e.Group, e.Alerts); err != nil {
 		return err
 	}
-	if len(endpoint.URL) == 0 {
+	if len(e.URL) == 0 {
 		return ErrEndpointWithNoURL
 	}
-	if endpoint.ClientConfig == nil {
-		endpoint.ClientConfig = client.GetDefaultConfig()
+	if e.ClientConfig == nil {
+		e.ClientConfig = client.GetDefaultConfig()
 	} else {
-		if err := endpoint.ClientConfig.ValidateAndSetDefaults(); err != nil {
+		if err := e.ClientConfig.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
-	if endpoint.UIConfig == nil {
-		endpoint.UIConfig = ui.GetDefaultConfig()
+	if e.UIConfig == nil {
+		e.UIConfig = ui.GetDefaultConfig()
 	} else {
-		if err := endpoint.UIConfig.ValidateAndSetDefaults(); err != nil {
+		if err := e.UIConfig.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
-	if endpoint.Interval == 0 {
-		endpoint.Interval = 1 * time.Minute
+	if e.Interval == 0 {
+		e.Interval = 1 * time.Minute
 	}
-	if len(endpoint.Method) == 0 {
-		endpoint.Method = http.MethodGet
+	if len(e.Method) == 0 {
+		e.Method = http.MethodGet
 	}
-	if len(endpoint.Headers) == 0 {
-		endpoint.Headers = make(map[string]string)
+	if len(e.Headers) == 0 {
+		e.Headers = make(map[string]string)
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
-	if _, userAgentHeaderExists := endpoint.Headers[UserAgentHeader]; !userAgentHeaderExists {
-		endpoint.Headers[UserAgentHeader] = GatusUserAgent
+	if _, userAgentHeaderExists := e.Headers[UserAgentHeader]; !userAgentHeaderExists {
+		e.Headers[UserAgentHeader] = GatusUserAgent
 	}
 	// Automatically add "Content-Type: application/json" header if there's no Content-Type set
 	// and endpoint.GraphQL is set to true
-	if _, contentTypeHeaderExists := endpoint.Headers[ContentTypeHeader]; !contentTypeHeaderExists && endpoint.GraphQL {
-		endpoint.Headers[ContentTypeHeader] = "application/json"
+	if _, contentTypeHeaderExists := e.Headers[ContentTypeHeader]; !contentTypeHeaderExists && e.GraphQL {
+		e.Headers[ContentTypeHeader] = "application/json"
 	}
-	if len(endpoint.Conditions) == 0 {
+	if len(e.Conditions) == 0 {
 		return ErrEndpointWithNoCondition
 	}
-	for _, c := range endpoint.Conditions {
-		if endpoint.Interval < 5*time.Minute && c.hasDomainExpirationPlaceholder() {
+	for _, c := range e.Conditions {
+		if e.Interval < 5*time.Minute && c.hasDomainExpirationPlaceholder() {
 			return ErrInvalidEndpointIntervalForDomainExpirationPlaceholder
 		}
 		if err := c.Validate(); err != nil {
 			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
-	if endpoint.DNS != nil {
-		return endpoint.DNS.validateAndSetDefault()
+	if e.DNSConfig != nil {
+		return e.DNSConfig.ValidateAndSetDefault()
 	}
-	if endpoint.SSH != nil {
-		return endpoint.SSH.validate()
+	if e.SSHConfig != nil {
+		return e.SSHConfig.Validate()
 	}
-	if endpoint.Type() == EndpointTypeUNKNOWN {
+	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
 	}
 	// Make sure that the request can be created
-	_, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(endpoint.Body)))
+	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.Body)))
 	if err != nil {
 		return err
 	}
@@ -227,35 +228,35 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 }
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
-func (endpoint *Endpoint) DisplayName() string {
-	if len(endpoint.Group) > 0 {
-		return endpoint.Group + "/" + endpoint.Name
+func (e *Endpoint) DisplayName() string {
+	if len(e.Group) > 0 {
+		return e.Group + "/" + e.Name
 	}
-	return endpoint.Name
+	return e.Name
 }
 
 // Key returns the unique key for the Endpoint
-func (endpoint *Endpoint) Key() string {
-	return util.ConvertGroupAndEndpointNameToKey(endpoint.Group, endpoint.Name)
+func (e *Endpoint) Key() string {
+	return ConvertGroupAndEndpointNameToKey(e.Group, e.Name)
 }
 
 // Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
 // on configuration reload.
 // More context on https://github.com/TwiN/gatus/issues/536
-func (endpoint *Endpoint) Close() {
-	if endpoint.Type() == EndpointTypeHTTP {
-		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
+func (e *Endpoint) Close() {
+	if e.Type() == TypeHTTP {
+		client.GetHTTPClient(e.ClientConfig).CloseIdleConnections()
 	}
 }
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
-func (endpoint *Endpoint) EvaluateHealth() *Result {
+func (e *Endpoint) EvaluateHealth() *Result {
 	result := &Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
-	if endpoint.DNS != nil {
-		result.Hostname = strings.TrimSuffix(endpoint.URL, ":53")
+	if e.DNSConfig != nil {
+		result.Hostname = strings.TrimSuffix(e.URL, ":53")
 	} else {
-		urlObject, err := url.Parse(endpoint.URL)
+		urlObject, err := url.Parse(e.URL)
 		if err != nil {
 			result.AddError(err.Error())
 		} else {
@@ -263,11 +264,11 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 		}
 	}
 	// Retrieve IP if necessary
-	if endpoint.needsToRetrieveIP() {
-		endpoint.getIP(result)
+	if e.needsToRetrieveIP() {
+		e.getIP(result)
 	}
 	// Retrieve domain expiration if necessary
-	if endpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+	if e.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
 		var err error
 		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
 			result.AddError(err.Error())
@@ -275,37 +276,37 @@ func (endpoint *Endpoint) EvaluateHealth() *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
-		endpoint.call(result)
+		e.call(result)
 	} else {
 		result.Success = false
 	}
 	// Evaluate the conditions
-	for _, condition := range endpoint.Conditions {
-		success := condition.evaluate(result, endpoint.UIConfig.DontResolveFailedConditions)
+	for _, condition := range e.Conditions {
+		success := condition.evaluate(result, e.UIConfig.DontResolveFailedConditions)
 		if !success {
 			result.Success = false
 		}
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
-	if endpoint.UIConfig.HideURL {
+	if e.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, endpoint.URL, "<redacted>")
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, e.URL, "<redacted>")
 		}
 	}
-	if endpoint.UIConfig.HideHostname {
+	if e.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
 		result.Hostname = ""
 	}
-	if endpoint.UIConfig.HideConditions {
+	if e.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
 	return result
 }
 
-func (endpoint *Endpoint) getIP(result *Result) {
+func (e *Endpoint) getIP(result *Result) {
 	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
 		return
@@ -314,24 +315,28 @@ func (endpoint *Endpoint) getIP(result *Result) {
 	}
 }
 
-func (endpoint *Endpoint) call(result *Result) {
+func (e *Endpoint) call(result *Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error
 	var certificate *x509.Certificate
-	endpointType := endpoint.Type()
-	if endpointType == EndpointTypeHTTP {
-		request = endpoint.buildHTTPRequest()
+	endpointType := e.Type()
+	if endpointType == TypeHTTP {
+		request = e.buildHTTPRequest()
 	}
 	startTime := time.Now()
-	if endpointType == EndpointTypeDNS {
-		endpoint.DNS.query(endpoint.URL, result)
+	if endpointType == TypeDNS {
+		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(e.DNSConfig.QueryType, e.DNSConfig.QueryName, e.URL)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSTARTTLS || endpointType == EndpointTypeTLS {
-		if endpointType == EndpointTypeSTARTTLS {
-			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(endpoint.URL, "starttls://"), endpoint.ClientConfig)
+	} else if endpointType == TypeSTARTTLS || endpointType == TypeTLS {
+		if endpointType == TypeSTARTTLS {
+			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 		} else {
-			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(endpoint.URL, "tls://"), endpoint.ClientConfig)
+			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
 		}
 		if err != nil {
 			result.AddError(err.Error())
@@ -339,39 +344,39 @@ func (endpoint *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
-	} else if endpointType == EndpointTypeTCP {
-		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
+	} else if endpointType == TypeTCP {
+		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(e.URL, "tcp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeUDP {
-		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(endpoint.URL, "udp://"), endpoint.ClientConfig)
+	} else if endpointType == TypeUDP {
+		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(e.URL, "udp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSCTP {
-		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(endpoint.URL, "sctp://"), endpoint.ClientConfig)
+	} else if endpointType == TypeSCTP {
+		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeICMP {
-		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
-	} else if endpointType == EndpointTypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.Body, endpoint.ClientConfig)
+	} else if endpointType == TypeICMP {
+		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
+	} else if endpointType == TypeWS {
+		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.Body, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSSH {
+	} else if endpointType == TypeSSH {
 		var cli *ssh.Client
-		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSH.Username, endpoint.SSH.Password, endpoint.ClientConfig)
+		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
-		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, endpoint.Body, endpoint.ClientConfig)
+		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.Body, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
 	} else {
-		response, err = client.GetHTTPClient(endpoint.ClientConfig).Do(request)
+		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
 			result.AddError(err.Error())
@@ -385,7 +390,7 @@ func (endpoint *Endpoint) call(result *Result) {
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
 		// Only read the Body if there's a condition that uses the BodyPlaceholder
-		if endpoint.needsToReadBody() {
+		if e.needsToReadBody() {
 			result.Body, err = io.ReadAll(response.Body)
 			if err != nil {
 				result.AddError("error reading response body:" + err.Error())
@@ -394,19 +399,19 @@ func (endpoint *Endpoint) call(result *Result) {
 	}
 }
 
-func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
+func (e *Endpoint) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
-	if endpoint.GraphQL {
+	if e.GraphQL {
 		graphQlBody := map[string]string{
-			"query": endpoint.Body,
+			"query": e.Body,
 		}
 		body, _ := json.Marshal(graphQlBody)
 		bodyBuffer = bytes.NewBuffer(body)
 	} else {
-		bodyBuffer = bytes.NewBuffer([]byte(endpoint.Body))
+		bodyBuffer = bytes.NewBuffer([]byte(e.Body))
 	}
-	request, _ := http.NewRequest(endpoint.Method, endpoint.URL, bodyBuffer)
-	for k, v := range endpoint.Headers {
+	request, _ := http.NewRequest(e.Method, e.URL, bodyBuffer)
+	for k, v := range e.Headers {
 		request.Header.Set(k, v)
 		if k == HostHeader {
 			request.Host = v
@@ -416,8 +421,8 @@ func (endpoint *Endpoint) buildHTTPRequest() *http.Request {
 }
 
 // needsToReadBody checks if there's any condition that requires the response Body to be read
-func (endpoint *Endpoint) needsToReadBody() bool {
-	for _, condition := range endpoint.Conditions {
+func (e *Endpoint) needsToReadBody() bool {
+	for _, condition := range e.Conditions {
 		if condition.hasBodyPlaceholder() {
 			return true
 		}
@@ -426,8 +431,8 @@ func (endpoint *Endpoint) needsToReadBody() bool {
 }
 
 // needsToRetrieveDomainExpiration checks if there's any condition that requires a whois query to be performed
-func (endpoint *Endpoint) needsToRetrieveDomainExpiration() bool {
-	for _, condition := range endpoint.Conditions {
+func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
+	for _, condition := range e.Conditions {
 		if condition.hasDomainExpirationPlaceholder() {
 			return true
 		}
@@ -436,8 +441,8 @@ func (endpoint *Endpoint) needsToRetrieveDomainExpiration() bool {
 }
 
 // needsToRetrieveIP checks if there's any condition that requires an IP lookup
-func (endpoint *Endpoint) needsToRetrieveIP() bool {
-	for _, condition := range endpoint.Conditions {
+func (e *Endpoint) needsToRetrieveIP() bool {
+	for _, condition := range e.Conditions {
 		if condition.hasIPPlaceholder() {
 			return true
 		}

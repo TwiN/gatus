@@ -4,31 +4,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+	firstCondition  = endpoint.Condition("[STATUS] == 200")
+	secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+	thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
 	now = time.Now()
 
-	testEndpoint = core.Endpoint{
+	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
-	testSuccessfulResult = core.Result{
+	testSuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -38,7 +38,7 @@ var (
 		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -53,7 +53,7 @@ var (
 			},
 		},
 	}
-	testUnsuccessfulResult = core.Result{
+	testUnsuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -63,7 +63,7 @@ var (
 		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -100,7 +100,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
 
 	tx, _ := store.db.Begin()
 	oldest, _ := store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -110,7 +110,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should remain at ~5 hours old, because this entry is more recent
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -120,7 +120,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should now become at ~8 hours old, because this entry is older
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -130,7 +130,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -141,7 +141,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 
 	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
 	// one should be deleted since they both surpass uptimeRetention
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -313,7 +313,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	if _, err := store.insertEndpoint(tx, &testEndpoint); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.insertEndpointEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
+	if err := store.insertEndpointEvent(tx, 1, endpoint.NewEventFromResult(&testSuccessfulResult)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 	if err := store.insertEndpointResult(tx, 1, &testSuccessfulResult); err == nil {

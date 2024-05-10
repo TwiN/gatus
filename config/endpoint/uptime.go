@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 // Uptime is the struct that contains the relevant data for calculating the uptime as well as the uptime itself
 // and some other statistics

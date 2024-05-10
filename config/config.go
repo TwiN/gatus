@@ -15,14 +15,13 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/config/connectivity"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
-	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
-	"github.com/TwiN/gatus/v5/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -74,10 +73,10 @@ type Config struct {
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
 
 	// Endpoints is the list of endpoints to monitor
-	Endpoints []*core.Endpoint `yaml:"endpoints,omitempty"`
+	Endpoints []*endpoint.Endpoint `yaml:"endpoints,omitempty"`
 
 	// ExternalEndpoints is the list of all external endpoints
-	ExternalEndpoints []*core.ExternalEndpoint `yaml:"external-endpoints,omitempty"`
+	ExternalEndpoints []*endpoint.ExternalEndpoint `yaml:"external-endpoints,omitempty"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
@@ -102,20 +101,20 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
-func (config *Config) GetEndpointByKey(key string) *core.Endpoint {
+func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
-		if util.ConvertGroupAndEndpointNameToKey(ep.Group, ep.Name) == key {
+		if ep.Key() == key {
 			return ep
 		}
 	}
 	return nil
 }
 
-func (config *Config) GetExternalEndpointByKey(key string) *core.ExternalEndpoint {
+func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEndpoint {
 	for i := 0; i < len(config.ExternalEndpoints); i++ {
 		ee := config.ExternalEndpoints[i]
-		if util.ConvertGroupAndEndpointNameToKey(ee.Group, ee.Name) == key {
+		if ee.Key() == key {
 			return ee
 		}
 	}
@@ -339,12 +338,12 @@ func validateWebConfig(config *Config) error {
 }
 
 func validateEndpointsConfig(config *Config) error {
-	for _, endpoint := range config.Endpoints {
+	for _, ep := range config.Endpoints {
 		if config.Debug {
-			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
+			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", ep.Name)
 		}
-		if err := endpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
+		if err := ep.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid endpoint %s: %w", ep.DisplayName(), err)
 		}
 	}
 	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
@@ -352,12 +351,12 @@ func validateEndpointsConfig(config *Config) error {
 }
 
 func validateExternalEndpointsConfig(config *Config) error {
-	for _, externalEndpoint := range config.ExternalEndpoints {
+	for _, ee := range config.ExternalEndpoints {
 		if config.Debug {
-			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", externalEndpoint.Name)
+			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", ee.Name)
 		}
-		if err := externalEndpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid external endpoint %s: %w", externalEndpoint.DisplayName(), err)
+		if err := ee.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid external endpoint %s: %w", ee.DisplayName(), err)
 		}
 	}
 	log.Printf("[config.validateExternalEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
@@ -381,9 +380,9 @@ func validateSecurityConfig(config *Config) error {
 
 // validateAlertingConfig validates the alerting configuration
 // Note that the alerting configuration has to be validated before the endpoint configuration, because the default alert
-// returned by provider.AlertProvider.GetDefaultAlert() must be parsed before core.Endpoint.ValidateAndSetDefaults()
+// returned by provider.AlertProvider.GetDefaultAlert() must be parsed before endpoint.Endpoint.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.Endpoint, debug bool) {
+func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, debug bool) {
 	if alertingConfig == nil {
 		log.Printf("[config.validateAlertingConfig] Alerting is not configured")
 		return
@@ -417,11 +416,11 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*core.E
 			if alertProvider.IsValid() {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
-					for _, endpoint := range endpoints {
-						for alertIndex, endpointAlert := range endpoint.Alerts {
+					for _, ep := range endpoints {
+						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
 								if debug {
-									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, endpoint.Name)
+									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, ep.Name)
 								}
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}

@@ -11,7 +11,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 const (
@@ -59,13 +59,13 @@ func (provider *AlertProvider) IsValid() bool {
 // Send an alert using the provider
 //
 // Relevant: https://docs.opsgenie.com/docs/alert-api
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	err := provider.createAlert(endpoint, alert, result, resolved)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	err := provider.createAlert(ep, alert, result, resolved)
 	if err != nil {
 		return err
 	}
 	if resolved {
-		err = provider.closeAlert(endpoint, alert)
+		err = provider.closeAlert(ep, alert)
 		if err != nil {
 			return err
 		}
@@ -75,20 +75,20 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 			// The alert has been resolved and there's no error, so we can clear the alert's ResolveKey
 			alert.ResolveKey = ""
 		} else {
-			alert.ResolveKey = provider.alias(buildKey(endpoint))
+			alert.ResolveKey = provider.alias(buildKey(ep))
 		}
 	}
 	return nil
 }
 
-func (provider *AlertProvider) createAlert(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	payload := provider.buildCreateRequestBody(endpoint, alert, result, resolved)
+func (provider *AlertProvider) createAlert(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	payload := provider.buildCreateRequestBody(ep, alert, result, resolved)
 	return provider.sendRequest(restAPI, http.MethodPost, payload)
 }
 
-func (provider *AlertProvider) closeAlert(endpoint *core.Endpoint, alert *alert.Alert) error {
-	payload := provider.buildCloseRequestBody(endpoint, alert)
-	url := restAPI + "/" + provider.alias(buildKey(endpoint)) + "/close?identifierType=alias"
+func (provider *AlertProvider) closeAlert(ep *endpoint.Endpoint, alert *alert.Alert) error {
+	payload := provider.buildCloseRequestBody(ep, alert)
+	url := restAPI + "/" + provider.alias(buildKey(ep)) + "/close?identifierType=alias"
 	return provider.sendRequest(url, http.MethodPost, payload)
 }
 
@@ -115,17 +115,17 @@ func (provider *AlertProvider) sendRequest(url, method string, payload interface
 	return nil
 }
 
-func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) alertCreateRequest {
+func (provider *AlertProvider) buildCreateRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) alertCreateRequest {
 	var message, description string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription())
-		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription())
+		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("%s - %s", endpoint.Name, alert.GetDescription())
-		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("%s - %s", ep.Name, alert.GetDescription())
+		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
-	if endpoint.Group != "" {
-		message = fmt.Sprintf("[%s] %s", endpoint.Group, message)
+	if ep.Group != "" {
+		message = fmt.Sprintf("[%s] %s", ep.Group, message)
 	}
 	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
@@ -138,10 +138,10 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	description = description + "\n" + formattedConditionResults
-	key := buildKey(endpoint)
+	key := buildKey(ep)
 	details := map[string]string{
-		"endpoint:url":    endpoint.URL,
-		"endpoint:group":  endpoint.Group,
+		"endpoint:url":    ep.URL,
+		"endpoint:group":  ep.Group,
 		"result:hostname": result.Hostname,
 		"result:ip":       result.IP,
 		"result:dns_code": result.DNSRCode,
@@ -167,10 +167,10 @@ func (provider *AlertProvider) buildCreateRequestBody(endpoint *core.Endpoint, a
 	}
 }
 
-func (provider *AlertProvider) buildCloseRequestBody(endpoint *core.Endpoint, alert *alert.Alert) alertCloseRequest {
+func (provider *AlertProvider) buildCloseRequestBody(ep *endpoint.Endpoint, alert *alert.Alert) alertCloseRequest {
 	return alertCloseRequest{
-		Source: buildKey(endpoint),
-		Note:   fmt.Sprintf("RESOLVED: %s - %s", endpoint.Name, alert.GetDescription()),
+		Source: buildKey(ep),
+		Note:   fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription()),
 	}
 }
 
@@ -211,12 +211,12 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }
 
-func buildKey(endpoint *core.Endpoint) string {
-	name := toKebabCase(endpoint.Name)
-	if endpoint.Group == "" {
+func buildKey(ep *endpoint.Endpoint) string {
+	name := toKebabCase(ep.Name)
+	if ep.Group == "" {
 		return name
 	}
-	return toKebabCase(endpoint.Group) + "-" + name
+	return toKebabCase(ep.Group) + "-" + name
 }
 
 func toKebabCase(val string) string {

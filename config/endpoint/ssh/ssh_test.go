@@ -1,4 +1,4 @@
-package core
+package ssh
 
 import (
 	"errors"
@@ -6,20 +6,20 @@ import (
 )
 
 func TestSSH_validate(t *testing.T) {
-	ssh := &SSH{}
-	if err := ssh.validate(); err == nil {
+	cfg := &Config{}
+	if err := cfg.Validate(); err == nil {
 		t.Error("expected an error")
 	} else if !errors.Is(err, ErrEndpointWithoutSSHUsername) {
 		t.Errorf("expected error to be '%v', got '%v'", ErrEndpointWithoutSSHUsername, err)
 	}
-	ssh.Username = "username"
-	if err := ssh.validate(); err == nil {
+	cfg.Username = "username"
+	if err := cfg.Validate(); err == nil {
 		t.Error("expected an error")
 	} else if !errors.Is(err, ErrEndpointWithoutSSHPassword) {
 		t.Errorf("expected error to be '%v', got '%v'", ErrEndpointWithoutSSHPassword, err)
 	}
-	ssh.Password = "password"
-	if err := ssh.validate(); err != nil {
+	cfg.Password = "password"
+	if err := cfg.Validate(); err != nil {
 		t.Errorf("expected no error, got '%v'", err)
 	}
 }
