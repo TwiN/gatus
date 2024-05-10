@@ -15,15 +15,15 @@ import (
 
 // Store is the interface that each store should implement
 type Store interface {
-	// GetAllEndpointStatuses returns the JSON encoding of all monitored endpoint.EndpointStatus
+	// GetAllEndpointStatuses returns the JSON encoding of all monitored endpoint.Status
 	// with a subset of endpoint.Result defined by the page and pageSize parameters
-	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.EndpointStatus, error)
+	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
 
 	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error)
+	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetEndpointStatusByKey returns the endpoint status for a given key
-	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error)
+	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -37,7 +37,7 @@ type Store interface {
 	// Insert adds the observed result for the specified endpoint into the store
 	Insert(ep *endpoint.Endpoint, result *result.Result) error
 
-	// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
+	// DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 	//
 	// Used to delete endpoints that have been persisted but are no longer part of the configured endpoints
 	DeleteAllEndpointStatusesNotInKeys(keys []string) int

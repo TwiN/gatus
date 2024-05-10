@@ -31,13 +31,13 @@ func NewStore() (*Store, error) {
 	return store, nil
 }
 
-// GetAllEndpointStatuses returns all monitored endpoint.EndpointStatus
+// GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
-func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.EndpointStatus, error) {
+func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
 	endpointStatuses := s.cache.GetAll()
-	pagedEndpointStatuses := make([]*endpoint.EndpointStatus, 0, len(endpointStatuses))
+	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(endpointStatuses))
 	for _, v := range endpointStatuses {
-		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*endpoint.EndpointStatus), params))
+		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*endpoint.Status), params))
 	}
 	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
 		return pagedEndpointStatuses[i].Key < pagedEndpointStatuses[j].Key
@@ -46,17 +46,17 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 }
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
+func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	return s.GetEndpointStatusByKey(util.ConvertGroupAndEndpointNameToKey(groupName, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
-func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
+func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	endpointStatus := s.cache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
-	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.EndpointStatus), params), nil
+	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -65,7 +65,7 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 		return 0, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
 	successfulExecutions := uint64(0)
@@ -73,7 +73,7 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.Status).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -94,14 +94,14 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 		return 0, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
 	current := from
 	var totalExecutions, totalResponseTime uint64
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.Status).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -122,14 +122,14 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 		return nil, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return nil, common.ErrEndpointNotFound
 	}
 	hourlyAverageResponseTimes := make(map[int64]int)
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.Status).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -146,19 +146,19 @@ func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
 	s.Lock()
 	status, exists := s.cache.Get(key)
 	if !exists {
-		status = endpoint.NewEndpointStatus(ep.Group, ep.Name)
-		status.(*endpoint.EndpointStatus).Events = append(status.(*endpoint.EndpointStatus).Events, &endpoint.Event{
+		status = endpoint.NewStatus(ep.Group, ep.Name)
+		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(status.(*endpoint.EndpointStatus), r)
+	AddResult(status.(*endpoint.Status), r)
 	s.cache.Set(key, status)
 	s.Unlock()
 	return nil
 }
 
-// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
+// DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 	var keysToDelete []string
 	for _, existingKey := range s.cache.GetKeysByPattern("*", 0) {

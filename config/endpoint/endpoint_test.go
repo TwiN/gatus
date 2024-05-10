@@ -861,10 +861,10 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 
 func TestEndpoint_DisplayName(t *testing.T) {
 	if endpoint := (Endpoint{Name: "n"}); endpoint.DisplayName() != "n" {
-		t.Error("ep.DisplayName() should've been 'n', but was", endpoint.DisplayName())
+		t.Error("endpoint.DisplayName() should've been 'n', but was", endpoint.DisplayName())
 	}
 	if endpoint := (Endpoint{Group: "g", Name: "n"}); endpoint.DisplayName() != "g/n" {
-		t.Error("ep.DisplayName() should've been 'g/n', but was", endpoint.DisplayName())
+		t.Error("endpoint.DisplayName() should've been 'g/n', but was", endpoint.DisplayName())
 	}
 }
 

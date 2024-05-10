@@ -101,9 +101,9 @@ func (s *Store) createSchema() error {
 	return s.createPostgresSchema()
 }
 
-// GetAllEndpointStatuses returns all monitored endpoint.EndpointStatus
+// GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
-func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.EndpointStatus, error) {
+func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 		_ = tx.Rollback()
 		return nil, err
 	}
-	endpointStatuses := make([]*endpoint.EndpointStatus, 0, len(keys))
+	endpointStatuses := make([]*endpoint.Status, 0, len(keys))
 	for _, key := range keys {
 		endpointStatus, err := s.getEndpointStatusByKey(tx, key, params)
 		if err != nil {
@@ -128,12 +128,12 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 }
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
+func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	return s.GetEndpointStatusByKey(util.ConvertGroupAndEndpointNameToKey(groupName, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
-func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
+func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -515,12 +515,12 @@ func (s *Store) getAllEndpointKeys(tx *sql.Tx) (keys []string, err error) {
 	return
 }
 
-func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
+func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	var cacheKey string
 	if s.writeThroughCache != nil {
 		cacheKey = generateCacheKey(key, parameters)
 		if cachedEndpointStatus, exists := s.writeThroughCache.Get(cacheKey); exists {
-			if castedCachedEndpointStatus, ok := cachedEndpointStatus.(*endpoint.EndpointStatus); ok {
+			if castedCachedEndpointStatus, ok := cachedEndpointStatus.(*endpoint.Status); ok {
 				return castedCachedEndpointStatus, nil
 			}
 		}
@@ -529,7 +529,7 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	if err != nil {
 		return nil, err
 	}
-	endpointStatus := endpoint.NewEndpointStatus(group, endpointName)
+	endpointStatus := endpoint.NewStatus(group, endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
 			log.Printf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())

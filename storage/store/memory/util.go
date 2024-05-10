@@ -7,10 +7,10 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
-// ShallowCopyEndpointStatus returns a shallow copy of a EndpointStatus with only the results
+// ShallowCopyEndpointStatus returns a shallow copy of a Status with only the results
 // within the range defined by the page and pageSize parameters
-func ShallowCopyEndpointStatus(ss *endpoint.EndpointStatus, params *paging.EndpointStatusParams) *endpoint.EndpointStatus {
-	shallowCopy := &endpoint.EndpointStatus{
+func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
+	shallowCopy := &endpoint.Status{
 		Name:   ss.Name,
 		Group:  ss.Group,
 		Key:    ss.Key,
@@ -50,9 +50,9 @@ func getStartAndEndIndex(numberOfResults int, page, pageSize int) (int, int) {
 	return start, end
 }
 
-// AddResult adds a Result to EndpointStatus.Results and makes sure that there are
+// AddResult adds a Result to Status.Results and makes sure that there are
 // no more than MaximumNumberOfResults results in the Results slice
-func AddResult(ss *endpoint.EndpointStatus, result *result.Result) {
+func AddResult(ss *endpoint.Status, result *result.Result) {
 	if ss == nil {
 		return
 	}
