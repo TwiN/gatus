@@ -35,7 +35,7 @@ type Store interface {
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
 	// Insert adds the observed result for the specified endpoint into the store
-	Insert(endpoint *endpoint.Endpoint, result *result.Result) error
+	Insert(ep *endpoint.Endpoint, result *result.Result) error
 
 	// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
 	//

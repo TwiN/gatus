@@ -141,12 +141,12 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(e *endpoint.Endpoint, r *result.Result) error {
-	key := e.Key()
+func (s *Store) Insert(ep *endpoint.Endpoint, r *result.Result) error {
+	key := ep.Key()
 	s.Lock()
 	status, exists := s.cache.Get(key)
 	if !exists {
-		status = endpoint.NewEndpointStatus(e.Group, e.Name)
+		status = endpoint.NewEndpointStatus(ep.Group, ep.Name)
 		status.(*endpoint.EndpointStatus).Events = append(status.(*endpoint.EndpointStatus).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),

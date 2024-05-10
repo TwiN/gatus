@@ -53,8 +53,8 @@ func (provider *AlertProvider) IsValid() bool {
 // Send an alert using the provider
 //
 // Relevant: https://developer.pagerduty.com/docs/events-api-v2/trigger-events/
-func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
 		return err
@@ -102,19 +102,19 @@ type Payload struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	var message, eventAction, resolveKey string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		eventAction = "resolve"
 		resolveKey = alert.ResolveKey
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", endpoint.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		eventAction = "trigger"
 		resolveKey = ""
 	}
 	body, _ := json.Marshal(Body{
-		RoutingKey:  provider.getIntegrationKeyForGroup(endpoint.Group),
+		RoutingKey:  provider.getIntegrationKeyForGroup(ep.Group),
 		DedupKey:    resolveKey,
 		EventAction: eventAction,
 		Payload: Payload{

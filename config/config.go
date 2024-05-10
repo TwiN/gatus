@@ -339,12 +339,12 @@ func validateWebConfig(config *Config) error {
 }
 
 func validateEndpointsConfig(config *Config) error {
-	for _, endpoint := range config.Endpoints {
+	for _, ep := range config.Endpoints {
 		if config.Debug {
-			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", endpoint.Name)
+			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", ep.Name)
 		}
-		if err := endpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %w", endpoint.DisplayName(), err)
+		if err := ep.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid endpoint %s: %w", ep.DisplayName(), err)
 		}
 	}
 	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
@@ -352,12 +352,12 @@ func validateEndpointsConfig(config *Config) error {
 }
 
 func validateExternalEndpointsConfig(config *Config) error {
-	for _, externalEndpoint := range config.ExternalEndpoints {
+	for _, ee := range config.ExternalEndpoints {
 		if config.Debug {
-			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", externalEndpoint.Name)
+			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", ee.Name)
 		}
-		if err := externalEndpoint.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid external endpoint %s: %w", externalEndpoint.DisplayName(), err)
+		if err := ee.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid external endpoint %s: %w", ee.DisplayName(), err)
 		}
 	}
 	log.Printf("[config.validateExternalEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
@@ -417,11 +417,11 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 			if alertProvider.IsValid() {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
-					for _, endpoint := range endpoints {
-						for alertIndex, endpointAlert := range endpoint.Alerts {
+					for _, ep := range endpoints {
+						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
 								if debug {
-									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, endpoint.Name)
+									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, ep.Name)
 								}
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}

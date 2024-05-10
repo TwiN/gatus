@@ -47,8 +47,8 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", provider.Project)
 	request, err := http.NewRequest(http.MethodPost, url, buffer)
 	if err != nil {
@@ -104,9 +104,9 @@ type Icon struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	body := Body{
-		Channel: "id:" + provider.getChannelIDForGroup(endpoint.Group),
+		Channel: "id:" + provider.getChannelIDForGroup(ep.Group),
 		Content: Content{
 			ClassName: "ChatMessage.Block",
 			Sections: []Section{{
@@ -117,10 +117,10 @@ func (provider *AlertProvider) buildRequestBody(endpoint *endpoint.Endpoint, ale
 	}
 	if resolved {
 		body.Content.Style = "SUCCESS"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
 		body.Content.Style = "WARNING"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	for _, conditionResult := range result.ConditionResults {
 		icon := "warning"

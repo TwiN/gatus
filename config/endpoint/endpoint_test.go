@@ -223,20 +223,20 @@ func TestEndpoint(t *testing.T) {
 			if err != nil {
 				t.Error("did not expect an error, got", err)
 			}
-			result := scenario.Endpoint.EvaluateHealth()
-			if result.Success != scenario.ExpectedResult.Success {
-				t.Errorf("Expected success to be %v, got %v", scenario.ExpectedResult.Success, result.Success)
+			r := scenario.Endpoint.EvaluateHealth()
+			if r.Success != scenario.ExpectedResult.Success {
+				t.Errorf("Expected success to be %v, got %v", scenario.ExpectedResult.Success, r.Success)
 			}
-			if result.Connected != scenario.ExpectedResult.Connected {
-				t.Errorf("Expected connected to be %v, got %v", scenario.ExpectedResult.Connected, result.Connected)
+			if r.Connected != scenario.ExpectedResult.Connected {
+				t.Errorf("Expected connected to be %v, got %v", scenario.ExpectedResult.Connected, r.Connected)
 			}
-			if result.Hostname != scenario.ExpectedResult.Hostname {
-				t.Errorf("Expected hostname to be %v, got %v", scenario.ExpectedResult.Hostname, result.Hostname)
+			if r.Hostname != scenario.ExpectedResult.Hostname {
+				t.Errorf("Expected hostname to be %v, got %v", scenario.ExpectedResult.Hostname, r.Hostname)
 			}
-			if len(result.ConditionResults) != len(scenario.ExpectedResult.ConditionResults) {
-				t.Errorf("Expected %v condition results, got %v", len(scenario.ExpectedResult.ConditionResults), len(result.ConditionResults))
+			if len(r.ConditionResults) != len(scenario.ExpectedResult.ConditionResults) {
+				t.Errorf("Expected %v condition results, got %v", len(scenario.ExpectedResult.ConditionResults), len(r.ConditionResults))
 			} else {
-				for i, conditionResult := range result.ConditionResults {
+				for i, conditionResult := range r.ConditionResults {
 					if conditionResult.Condition != scenario.ExpectedResult.ConditionResults[i].Condition {
 						t.Errorf("Expected condition to be %v, got %v", scenario.ExpectedResult.ConditionResults[i].Condition, conditionResult.Condition)
 					}
@@ -245,22 +245,22 @@ func TestEndpoint(t *testing.T) {
 					}
 				}
 			}
-			if len(result.Errors) != len(scenario.ExpectedResult.Errors) {
-				t.Errorf("Expected %v errors, got %v", len(scenario.ExpectedResult.Errors), len(result.Errors))
+			if len(r.Errors) != len(scenario.ExpectedResult.Errors) {
+				t.Errorf("Expected %v errors, got %v", len(scenario.ExpectedResult.Errors), len(r.Errors))
 			} else {
-				for i, err := range result.Errors {
+				for i, err := range r.Errors {
 					if err != scenario.ExpectedResult.Errors[i] {
 						t.Errorf("Expected error to be %v, got %v", scenario.ExpectedResult.Errors[i], err)
 					}
 				}
 			}
-			if result.DomainExpiration != scenario.ExpectedResult.DomainExpiration {
+			if r.DomainExpiration != scenario.ExpectedResult.DomainExpiration {
 				// Note that DomainExpiration is only resolved if there's a condition with the DomainExpirationPlaceholder in it.
 				// In other words, if there's no condition with [DOMAIN_EXPIRATION] in it, the DomainExpiration field will be 0.
 				// Because this is a live call, mocking it would be too much of a pain, so we're just going to check if
 				// the actual value is non-zero when the expected result is non-zero.
-				if scenario.ExpectedResult.DomainExpiration.Hours() > 0 && !(result.DomainExpiration.Hours() > 0) {
-					t.Errorf("Expected domain expiration to be non-zero, got %v", result.DomainExpiration)
+				if scenario.ExpectedResult.DomainExpiration.Hours() > 0 && !(r.DomainExpiration.Hours() > 0) {
+					t.Errorf("Expected domain expiration to be non-zero, got %v", r.DomainExpiration)
 				}
 			}
 		})
@@ -789,7 +789,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 }
 
 func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name       string
 		endpoint   Endpoint
 		conditions []Condition
@@ -801,8 +801,8 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 				Name: "ssh-success",
 				URL:  "ssh://localhost",
 				SSHConfig: &ssh.Config{
-					Username: "test",
-					Password: "test",
+					Username: "scenario",
+					Password: "scenario",
 				},
 				Body: "{ \"command\": \"uptime\" }",
 			},
@@ -815,8 +815,8 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 				Name: "ssh-failure",
 				URL:  "ssh://localhost",
 				SSHConfig: &ssh.Config{
-					Username: "test",
-					Password: "test",
+					Username: "scenario",
+					Password: "scenario",
 				},
 				Body: "{ \"command\": \"uptime\" }",
 			},
@@ -825,13 +825,13 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.endpoint.ValidateAndSetDefaults()
-			test.endpoint.Conditions = test.conditions
-			result := test.endpoint.EvaluateHealth()
-			if result.Success != test.success {
-				t.Errorf("Expected success to be %v, but was %v", test.success, result.Success)
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			scenario.endpoint.ValidateAndSetDefaults()
+			scenario.endpoint.Conditions = scenario.conditions
+			r := scenario.endpoint.EvaluateHealth()
+			if r.Success != scenario.success {
+				t.Errorf("Expected success to be %v, but was %v", scenario.success, r.Success)
 			}
 		})
 	}
@@ -847,24 +847,24 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	if err != nil {
 		t.Fatal("did not expect an error, got", err)
 	}
-	result := endpoint.EvaluateHealth()
-	if !result.ConditionResults[0].Success {
+	r := endpoint.EvaluateHealth()
+	if !r.ConditionResults[0].Success {
 		t.Errorf("Conditions '%s' should have been a success", endpoint.Conditions[0])
 	}
-	if !result.Connected {
+	if !r.Connected {
 		t.Error("Because the connection has been established, result.Connected should've been true")
 	}
-	if !result.Success {
+	if !r.Success {
 		t.Error("Because all conditions passed, this should have been a success")
 	}
 }
 
 func TestEndpoint_DisplayName(t *testing.T) {
 	if endpoint := (Endpoint{Name: "n"}); endpoint.DisplayName() != "n" {
-		t.Error("endpoint.DisplayName() should've been 'n', but was", endpoint.DisplayName())
+		t.Error("ep.DisplayName() should've been 'n', but was", endpoint.DisplayName())
 	}
 	if endpoint := (Endpoint{Group: "g", Name: "n"}); endpoint.DisplayName() != "g/n" {
-		t.Error("endpoint.DisplayName() should've been 'g/n', but was", endpoint.DisplayName())
+		t.Error("ep.DisplayName() should've been 'g/n', but was", endpoint.DisplayName())
 	}
 }
 
@@ -874,9 +874,9 @@ func TestEndpoint_getIP(t *testing.T) {
 		URL:        "",
 		Conditions: []Condition{"[CONNECTED] == true"},
 	}
-	result := &result.Result{}
-	endpoint.getIP(result)
-	if len(result.Errors) == 0 {
+	r := &result.Result{}
+	endpoint.getIP(r)
+	if len(r.Errors) == 0 {
 		t.Error("endpoint.getIP(result) should've thrown an error because the URL is invalid, thus cannot be parsed")
 	}
 }

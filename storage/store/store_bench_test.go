@@ -53,11 +53,11 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 		for _, numberOfEndpointsToCreate := range numberOfEndpoints {
 			// Create endpoints and insert results
 			for i := 0; i < numberOfEndpointsToCreate; i++ {
-				endpoint := testEndpoint
-				endpoint.Name = "endpoint" + strconv.Itoa(i)
+				ep := testEndpoint
+				ep.Name = "endpoint" + strconv.Itoa(i)
 				// Insert 20 results for each endpoint
 				for j := 0; j < 20; j++ {
-					scenario.Store.Insert(&endpoint, &testSuccessfulResult)
+					scenario.Store.Insert(&ep, &testSuccessfulResult)
 				}
 			}
 			// Run the scenarios

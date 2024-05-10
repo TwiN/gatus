@@ -58,14 +58,14 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	sess, err := provider.createSession()
 	if err != nil {
 		return err
 	}
 	svc := ses.New(sess)
-	subject, body := provider.buildMessageSubjectAndBody(endpoint, alert, result, resolved)
-	emails := strings.Split(provider.getToForGroup(endpoint.Group), ",")
+	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
+	emails := strings.Split(provider.getToForGroup(ep.Group), ",")
 
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
@@ -111,14 +111,14 @@ func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Al
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) (string, string) {
+func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
-		subject = fmt.Sprintf("[%s] Alert resolved", endpoint.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		subject = fmt.Sprintf("[%s] Alert triggered", endpoint.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		subject = fmt.Sprintf("[%s] Alert triggered", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	var formattedConditionResults string
 	if len(result.ConditionResults) > 0 {

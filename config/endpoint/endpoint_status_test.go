@@ -5,13 +5,13 @@ import (
 )
 
 func TestNewEndpointStatus(t *testing.T) {
-	endpoint := &Endpoint{Name: "name", Group: "group"}
-	status := NewEndpointStatus(endpoint.Group, endpoint.Name)
-	if status.Name != endpoint.Name {
-		t.Errorf("expected %s, got %s", endpoint.Name, status.Name)
+	ep := &Endpoint{Name: "name", Group: "group"}
+	status := NewEndpointStatus(ep.Group, ep.Name)
+	if status.Name != ep.Name {
+		t.Errorf("expected %s, got %s", ep.Name, status.Name)
 	}
-	if status.Group != endpoint.Group {
-		t.Errorf("expected %s, got %s", endpoint.Group, status.Group)
+	if status.Group != ep.Group {
+		t.Errorf("expected %s, got %s", ep.Group, status.Group)
 	}
 	if status.Key != "group_name" {
 		t.Errorf("expected %s, got %s", "group_name", status.Key)

@@ -11,8 +11,8 @@ import (
 )
 
 func TestAddResult(t *testing.T) {
-	e := &endpoint.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := endpoint.NewEndpointStatus(e.Group, e.Name)
+	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
+	endpointStatus := endpoint.NewEndpointStatus(ep.Group, ep.Name)
 	for i := 0; i < (common.MaximumNumberOfResults+common.MaximumNumberOfEvents)*2; i++ {
 		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: time.Now()})
 	}
@@ -27,8 +27,8 @@ func TestAddResult(t *testing.T) {
 }
 
 func TestShallowCopyEndpointStatus(t *testing.T) {
-	e := &endpoint.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := endpoint.NewEndpointStatus(e.Group, e.Name)
+	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
+	endpointStatus := endpoint.NewEndpointStatus(ep.Group, ep.Name)
 	ts := time.Now().Add(-25 * time.Hour)
 	for i := 0; i < 25; i++ {
 		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: ts})
