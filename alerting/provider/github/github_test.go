@@ -7,8 +7,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/test"
 	"github.com/google/go-github/v48/github"
 )
@@ -86,7 +86,7 @@ func TestAlertProvider_Send(t *testing.T) {
 			scenario.Provider.githubClient = github.NewClient(nil)
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
 				&result.Result{
 					ConditionResults: []*result.ConditionResult{
@@ -110,7 +110,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	firstDescription := "description-1"
 	scenarios := []struct {
 		Name         string
-		Endpoint     core.Endpoint
+		Endpoint     endpoint.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
 		NoConditions bool
@@ -118,14 +118,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 3},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\n> description-1\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
 		},
 		{
 			Name:         "triggered-with-no-description",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{FailureThreshold: 10},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
@@ -133,7 +133,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-no-conditions",
 			NoConditions: true,
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 10},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row:\n> description-1",

@@ -3,8 +3,8 @@ package metrics
 import (
 	"strconv"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -51,7 +51,7 @@ func initializePrometheusMetrics() {
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
-func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *result.Result) {
+func PublishMetricsForEndpoint(endpoint *endpoint.Endpoint, result *result.Result) {
 	if !initializedMetrics {
 		initializePrometheusMetrics()
 		initializedMetrics = true

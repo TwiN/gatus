@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -15,20 +15,20 @@ import (
 )
 
 var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+	firstCondition  = endpoint.Condition("[STATUS] == 200")
+	secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+	thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
 	now = time.Now().Truncate(time.Hour)
 
-	testEndpoint = core.Endpoint{
+	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -540,8 +540,8 @@ func TestStore_Insert(t *testing.T) {
 func TestStore_DeleteAllEndpointStatusesNotInKeys(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_DeleteAllEndpointStatusesNotInKeys")
 	defer cleanUp(scenarios)
-	firstEndpoint := core.Endpoint{Name: "endpoint-1", Group: "group"}
-	secondEndpoint := core.Endpoint{Name: "endpoint-2", Group: "group"}
+	firstEndpoint := endpoint.Endpoint{Name: "endpoint-1", Group: "group"}
+	secondEndpoint := endpoint.Endpoint{Name: "endpoint-2", Group: "group"}
 	result := &testSuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

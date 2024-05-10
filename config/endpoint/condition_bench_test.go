@@ -1,9 +1,9 @@
-package core
+package endpoint
 
 import (
 	"testing"
 
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func BenchmarkCondition_evaluateWithBodyStringAny(b *testing.B) {

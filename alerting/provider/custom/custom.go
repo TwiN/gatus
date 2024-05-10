@@ -9,8 +9,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
@@ -51,7 +51,7 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(endpoint *endpoint.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
 	body, url, method := provider.Body, provider.URL, provider.Method
 	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
@@ -79,7 +79,7 @@ func (provider *AlertProvider) buildHTTPRequest(endpoint *core.Endpoint, alert *
 	return request
 }
 
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	request := provider.buildHTTPRequest(endpoint, alert, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {

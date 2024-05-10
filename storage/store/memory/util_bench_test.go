@@ -3,14 +3,14 @@ package memory
 import (
 	"testing"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 func BenchmarkShallowCopyEndpointStatus(b *testing.B) {
-	endpoint := &testEndpoint
-	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	e := &testEndpoint
+	status := endpoint.NewEndpointStatus(e.Group, e.Name)
 	for i := 0; i < common.MaximumNumberOfResults; i++ {
 		AddResult(status, &testSuccessfulResult)
 	}

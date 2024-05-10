@@ -20,8 +20,8 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func TestHandleAlerting(t *testing.T) {
@@ -38,7 +38,7 @@ func TestHandleAlerting(t *testing.T) {
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -82,7 +82,7 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 	defer os.Clearenv()
 
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "http://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -117,7 +117,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -152,7 +152,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 	}
 	enabled := true
 	disabled := false
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -184,7 +184,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -220,7 +220,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -390,7 +390,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			endpoint := &core.Endpoint{
+			endpoint := &endpoint.Endpoint{
 				URL: "https://example.com",
 				Alerts: []*alert.Alert{
 					{
@@ -450,7 +450,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	endpoint := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
@@ -488,7 +488,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, endpoint, 0, 2, false, "")
 }
 
-func verify(t *testing.T, endpoint *core.Endpoint, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
+func verify(t *testing.T, endpoint *endpoint.Endpoint, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
 	if endpoint.NumberOfFailuresInARow != expectedNumberOfFailuresInARow {
 		t.Errorf("endpoint.NumberOfFailuresInARow should've been %d, got %d", expectedNumberOfFailuresInARow, endpoint.NumberOfFailuresInARow)
 	}

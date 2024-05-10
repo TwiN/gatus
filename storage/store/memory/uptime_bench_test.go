@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func BenchmarkProcessUptimeAfterResult(b *testing.B) {
-	uptime := core.NewUptime()
+	uptime := endpoint.NewUptime()
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	// Start 12000 days ago

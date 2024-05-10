@@ -2,7 +2,7 @@ package ui
 
 import "errors"
 
-// Config is the UI configuration for core.Endpoint
+// Config is the UI configuration for endpoint.Endpoint
 type Config struct {
 	// HideConditions whether to hide the condition results on the UI
 	HideConditions bool `yaml:"hide-conditions"`

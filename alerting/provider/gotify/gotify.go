@@ -9,8 +9,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 const DefaultPriority = 5
@@ -42,7 +42,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.ServerURL+"/message?token="+provider.Token, buffer)
 	if err != nil {
@@ -68,7 +68,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)

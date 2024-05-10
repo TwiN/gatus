@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func TestProcessUptimeAfterResult(t *testing.T) {
-	endpoint := &core.Endpoint{Name: "name", Group: "group"}
-	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	e := &endpoint.Endpoint{Name: "name", Group: "group"}
+	status := endpoint.NewEndpointStatus(e.Group, e.Name)
 	uptime := status.Uptime
 
 	now := time.Now()
@@ -44,8 +44,8 @@ func TestProcessUptimeAfterResult(t *testing.T) {
 }
 
 func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
-	endpoint := &core.Endpoint{Name: "name", Group: "group"}
-	status := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	e := &endpoint.Endpoint{Name: "name", Group: "group"}
+	status := endpoint.NewEndpointStatus(e.Group, e.Name)
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	// Start 12 days ago
@@ -60,7 +60,7 @@ func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	}
 }
 
-func checkHourlyStatistics(t *testing.T, hourlyUptimeStatistics *core.HourlyUptimeStatistics, expectedTotalExecutionsResponseTime uint64, expectedTotalExecutions uint64, expectedSuccessfulExecutions uint64) {
+func checkHourlyStatistics(t *testing.T, hourlyUptimeStatistics *endpoint.HourlyUptimeStatistics, expectedTotalExecutionsResponseTime uint64, expectedTotalExecutions uint64, expectedSuccessfulExecutions uint64) {
 	if hourlyUptimeStatistics.TotalExecutionsResponseTime != expectedTotalExecutionsResponseTime {
 		t.Error("TotalExecutionsResponseTime should've been", expectedTotalExecutionsResponseTime, "got", hourlyUptimeStatistics.TotalExecutionsResponseTime)
 	}

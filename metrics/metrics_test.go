@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/dns"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
-	httpEndpoint := &core.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
+	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
 	PublishMetricsForEndpoint(httpEndpoint, &result.Result{
 		HTTPStatus: 200,
 		Connected:  true,
@@ -77,7 +77,7 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
+	dnsEndpoint := &endpoint.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
 		QueryType: "A",
 		QueryName: "example.com.",
 	}}

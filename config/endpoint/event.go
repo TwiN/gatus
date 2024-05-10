@@ -1,9 +1,9 @@
-package core
+package endpoint
 
 import (
 	"time"
 
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // Event is something that happens at a specific time

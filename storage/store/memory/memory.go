@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/util"
@@ -31,13 +31,13 @@ func NewStore() (*Store, error) {
 	return store, nil
 }
 
-// GetAllEndpointStatuses returns all monitored core.EndpointStatus
-// with a subset of core.Result defined by the page and pageSize parameters
-func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*core.EndpointStatus, error) {
+// GetAllEndpointStatuses returns all monitored endpoint.EndpointStatus
+// with a subset of endpoint.Result defined by the page and pageSize parameters
+func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.EndpointStatus, error) {
 	endpointStatuses := s.cache.GetAll()
-	pagedEndpointStatuses := make([]*core.EndpointStatus, 0, len(endpointStatuses))
+	pagedEndpointStatuses := make([]*endpoint.EndpointStatus, 0, len(endpointStatuses))
 	for _, v := range endpointStatuses {
-		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*core.EndpointStatus), params))
+		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*endpoint.EndpointStatus), params))
 	}
 	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
 		return pagedEndpointStatuses[i].Key < pagedEndpointStatuses[j].Key
@@ -46,17 +46,17 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 }
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error) {
+func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
 	return s.GetEndpointStatusByKey(util.ConvertGroupAndEndpointNameToKey(groupName, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
-func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error) {
+func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error) {
 	endpointStatus := s.cache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
-	return ShallowCopyEndpointStatus(endpointStatus.(*core.EndpointStatus), params), nil
+	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.EndpointStatus), params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -65,7 +65,7 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 		return 0, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
 	successfulExecutions := uint64(0)
@@ -73,7 +73,7 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -94,14 +94,14 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 		return 0, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
 	current := from
 	var totalExecutions, totalResponseTime uint64
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -122,14 +122,14 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 		return nil, common.ErrInvalidTimeRange
 	}
 	endpointStatus := s.cache.GetValue(key)
-	if endpointStatus == nil || endpointStatus.(*core.EndpointStatus).Uptime == nil {
+	if endpointStatus == nil || endpointStatus.(*endpoint.EndpointStatus).Uptime == nil {
 		return nil, common.ErrEndpointNotFound
 	}
 	hourlyAverageResponseTimes := make(map[int64]int)
 	current := from
 	for to.Sub(current) >= 0 {
 		hourlyUnixTimestamp := current.Truncate(time.Hour).Unix()
-		hourlyStats := endpointStatus.(*core.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
+		hourlyStats := endpointStatus.(*endpoint.EndpointStatus).Uptime.HourlyStatistics[hourlyUnixTimestamp]
 		if hourlyStats == nil || hourlyStats.TotalExecutions == 0 {
 			current = current.Add(time.Hour)
 			continue
@@ -141,18 +141,18 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 }
 
 // Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(endpoint *core.Endpoint, result *result.Result) error {
-	key := endpoint.Key()
+func (s *Store) Insert(e *endpoint.Endpoint, r *result.Result) error {
+	key := e.Key()
 	s.Lock()
 	status, exists := s.cache.Get(key)
 	if !exists {
-		status = core.NewEndpointStatus(endpoint.Group, endpoint.Name)
-		status.(*core.EndpointStatus).Events = append(status.(*core.EndpointStatus).Events, &core.Event{
-			Type:      core.EventStart,
+		status = endpoint.NewEndpointStatus(e.Group, e.Name)
+		status.(*endpoint.EndpointStatus).Events = append(status.(*endpoint.EndpointStatus).Events, &endpoint.Event{
+			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(status.(*core.EndpointStatus), result)
+	AddResult(status.(*endpoint.EndpointStatus), r)
 	s.cache.Set(key, status)
 	s.Unlock()
 	return nil

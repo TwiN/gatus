@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
@@ -50,7 +50,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	var (
 		description = "custom-description"
 		//title       = "custom-title"
-		endpoint = "custom-endpoint"
+		endpointName = "custom-endpoint"
 	)
 	scenarios := []struct {
 		Name         string
@@ -64,27 +64,27 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpoint, description),
+			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpointName, description),
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been resolved after passing successfully 5 time(s) in a row with the following description: %s\\n✓ - [CONNECTED] == true\\n✓ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpoint, description),
+			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been resolved after passing successfully 5 time(s) in a row with the following description: %s\\n✓ - [CONNECTED] == true\\n✓ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpointName, description),
 		},
 		{
 			Name:         "custom-title",
 			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken", Title: "custom-title"},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"custom-title\",\"priority\":0}", endpoint, description),
+			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"custom-title\",\"priority\":0}", endpointName, description),
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: endpoint},
+				&endpoint.Endpoint{Name: endpointName},
 				&scenario.Alert,
 				&result.Result{
 					ConditionResults: []*result.ConditionResult{

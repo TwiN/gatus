@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/config/ui"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -21,7 +21,7 @@ func TestSinglePageApplication(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",

@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func TestCondition_Validate(t *testing.T) {

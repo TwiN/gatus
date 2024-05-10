@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"bytes"
@@ -13,10 +13,10 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core/dns"
-	"github.com/TwiN/gatus/v5/core/result"
-	"github.com/TwiN/gatus/v5/core/ssh"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/ssh"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -287,7 +287,7 @@ func TestEndpoint_Type(t *testing.T) {
 	}
 	tests := []struct {
 		args args
-		want EndpointType
+		want Type
 	}{
 		{
 			args: args{
@@ -297,61 +297,61 @@ func TestEndpoint_Type(t *testing.T) {
 					QueryName: "example.com",
 				},
 			},
-			want: EndpointTypeDNS,
+			want: TypeDNS,
 		},
 		{
 			args: args{
 				URL: "tcp://127.0.0.1:6379",
 			},
-			want: EndpointTypeTCP,
+			want: TypeTCP,
 		},
 		{
 			args: args{
 				URL: "icmp://example.com",
 			},
-			want: EndpointTypeICMP,
+			want: TypeICMP,
 		},
 		{
 			args: args{
 				URL: "sctp://example.com",
 			},
-			want: EndpointTypeSCTP,
+			want: TypeSCTP,
 		},
 		{
 			args: args{
 				URL: "udp://example.com",
 			},
-			want: EndpointTypeUDP,
+			want: TypeUDP,
 		},
 		{
 			args: args{
 				URL: "starttls://smtp.gmail.com:587",
 			},
-			want: EndpointTypeSTARTTLS,
+			want: TypeSTARTTLS,
 		},
 		{
 			args: args{
 				URL: "tls://example.com:443",
 			},
-			want: EndpointTypeTLS,
+			want: TypeTLS,
 		},
 		{
 			args: args{
 				URL: "https://twin.sh/health",
 			},
-			want: EndpointTypeHTTP,
+			want: TypeHTTP,
 		},
 		{
 			args: args{
 				URL: "wss://example.com/",
 			},
-			want: EndpointTypeWS,
+			want: TypeWS,
 		},
 		{
 			args: args{
 				URL: "ws://example.com/",
 			},
-			want: EndpointTypeWS,
+			want: TypeWS,
 		},
 		{
 			args: args{
@@ -361,19 +361,19 @@ func TestEndpoint_Type(t *testing.T) {
 					Password: "password",
 				},
 			},
-			want: EndpointTypeSSH,
+			want: TypeSSH,
 		},
 		{
 			args: args{
 				URL: "invalid://example.org",
 			},
-			want: EndpointTypeUNKNOWN,
+			want: TypeUNKNOWN,
 		},
 		{
 			args: args{
 				URL: "no-scheme",
 			},
-			want: EndpointTypeUNKNOWN,
+			want: TypeUNKNOWN,
 		},
 	}
 	for _, tt := range tests {

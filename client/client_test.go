@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 )

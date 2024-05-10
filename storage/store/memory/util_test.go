@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 func TestAddResult(t *testing.T) {
-	endpoint := &core.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	e := &endpoint.Endpoint{Name: "name", Group: "group"}
+	endpointStatus := endpoint.NewEndpointStatus(e.Group, e.Name)
 	for i := 0; i < (common.MaximumNumberOfResults+common.MaximumNumberOfEvents)*2; i++ {
 		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: time.Now()})
 	}
@@ -27,8 +27,8 @@ func TestAddResult(t *testing.T) {
 }
 
 func TestShallowCopyEndpointStatus(t *testing.T) {
-	endpoint := &core.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := core.NewEndpointStatus(endpoint.Group, endpoint.Name)
+	e := &endpoint.Endpoint{Name: "name", Group: "group"}
+	endpointStatus := endpoint.NewEndpointStatus(e.Group, e.Name)
 	ts := time.Now().Add(-25 * time.Hour)
 	for i := 0; i < 25; i++ {
 		AddResult(endpointStatus, &result.Result{Success: i%2 == 0, Timestamp: ts})

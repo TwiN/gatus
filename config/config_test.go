@@ -29,8 +29,8 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/web"
-	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage"
 	"gopkg.in/yaml.v3"
 )
@@ -65,7 +65,7 @@ func TestLoadConfiguration(t *testing.T) {
 endpoints:
   - name: website`,
 			},
-			expectedError: core.ErrEndpointWithNoURL,
+			expectedError: endpoint.ErrEndpointWithNoURL,
 		},
 		{
 			name:       "config-file-with-endpoint-that-has-no-conditions",
@@ -76,7 +76,7 @@ endpoints:
   - name: website
     url: https://twin.sh/health`,
 			},
-			expectedError: core.ErrEndpointWithNoCondition,
+			expectedError: endpoint.ErrEndpointWithNoCondition,
 		},
 		{
 			name:       "config-file",
@@ -90,11 +90,11 @@ endpoints:
       - "[STATUS] == 200"`,
 			},
 			expectedConfig: &Config{
-				Endpoints: []*core.Endpoint{
+				Endpoints: []*endpoint.Endpoint{
 					{
 						Name:       "website",
 						URL:        "https://twin.sh/health",
-						Conditions: []core.Condition{"[STATUS] == 200"},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
 					},
 				},
 			},
@@ -136,21 +136,21 @@ endpoints:
       - "[BODY].status == UP"`,
 			},
 			expectedConfig: &Config{
-				Endpoints: []*core.Endpoint{
+				Endpoints: []*endpoint.Endpoint{
 					{
 						Name:       "one",
 						URL:        "https://example.com",
-						Conditions: []core.Condition{"[CONNECTED] == true", "[STATUS] == 200"},
+						Conditions: []endpoint.Condition{"[CONNECTED] == true", "[STATUS] == 200"},
 					},
 					{
 						Name:       "two",
 						URL:        "https://example.org",
-						Conditions: []core.Condition{"len([BODY]) > 0"},
+						Conditions: []endpoint.Condition{"len([BODY]) > 0"},
 					},
 					{
 						Name:       "three",
 						URL:        "https://twin.sh/health",
-						Conditions: []core.Condition{"[STATUS] == 200", "[BODY].status == UP"},
+						Conditions: []endpoint.Condition{"[STATUS] == 200", "[BODY].status == UP"},
 					},
 				},
 			},
@@ -192,17 +192,17 @@ endpoints:
 					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
 					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz"},
 				},
-				Endpoints: []*core.Endpoint{
+				Endpoints: []*endpoint.Endpoint{
 					{
 						Name:       "example",
 						URL:        "https://example.org",
 						Interval:   5 * time.Second,
-						Conditions: []core.Condition{"[STATUS] == 200"},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
 					},
 					{
 						Name:       "frontend",
 						URL:        "https://example.com",
-						Conditions: []core.Condition{"[STATUS] == 200"},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
 					},
 				},
 			},
@@ -689,8 +689,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if userAgent := config.Endpoints[0].Headers["User-Agent"]; userAgent != core.GatusUserAgent {
-		t.Errorf("User-Agent should've been %s because it's the default value, got %s", core.GatusUserAgent, userAgent)
+	if userAgent := config.Endpoints[0].Headers["User-Agent"]; userAgent != endpoint.GatusUserAgent {
+		t.Errorf("User-Agent should've been %s because it's the default value, got %s", endpoint.GatusUserAgent, userAgent)
 	}
 }
 

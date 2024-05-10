@@ -8,8 +8,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -91,7 +91,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&result.Result{
 					ConditionResults: []*result.ConditionResult{
@@ -139,7 +139,7 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
 			request := customAlertProvider.buildHTTPRequest(
-				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				scenario.Resolved,
 			)
@@ -189,7 +189,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
 			request := customAlertProvider.buildHTTPRequest(
-				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
 				scenario.Resolved,
 			)

@@ -9,9 +9,9 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/connectivity"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/config/maintenance"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 )
@@ -38,7 +38,7 @@ func Monitor(cfg *config.Config) {
 }
 
 // monitor a single endpoint in a loop
-func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
+func monitor(endpoint *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
 	// Run it immediately on start
 	execute(endpoint, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
 	// Loop for the next executions
@@ -56,7 +56,7 @@ func monitor(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 	// periodically like they are for normal endpoints.
 }
 
-func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
+func execute(endpoint *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -93,7 +93,7 @@ func execute(endpoint *core.Endpoint, alertingConfig *alerting.Config, maintenan
 }
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
-func UpdateEndpointStatuses(endpoint *core.Endpoint, result *result.Result) {
+func UpdateEndpointStatuses(endpoint *endpoint.Endpoint, result *result.Result) {
 	if err := store.Get().Insert(endpoint, result); err != nil {
 		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
 	}

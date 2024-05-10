@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"

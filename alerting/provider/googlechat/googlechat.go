@@ -9,8 +9,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Google chat
@@ -51,7 +51,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
 	if err != nil {
@@ -113,7 +113,7 @@ type OpenLink struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(e *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
 		color = "#36A64F"
@@ -144,7 +144,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 						Widgets: []Widgets{
 							{
 								KeyValue: &KeyValue{
-									TopLabel:         endpoint.DisplayName(),
+									TopLabel:         e.DisplayName(),
 									Content:          message,
 									ContentMultiline: "true",
 									BottomLabel:      description,
@@ -167,7 +167,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			},
 		})
 	}
-	if endpoint.Type() == core.EndpointTypeHTTP {
+	if e.Type() == endpoint.TypeHTTP {
 		// We only include a button targeting the URL if the endpoint is an HTTP endpoint
 		// If the URL isn't prefixed with https://, Google Chat will just display a blank message aynways.
 		// See https://github.com/TwiN/gatus/issues/362
@@ -176,7 +176,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 				{
 					TextButton: TextButton{
 						Text:    "URL",
-						OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
+						OnClick: OnClick{OpenLink: OpenLink{URL: e.URL}},
 					},
 				},
 			},

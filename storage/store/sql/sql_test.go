@@ -4,27 +4,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+	firstCondition  = endpoint.Condition("[STATUS] == 200")
+	secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+	thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
 	now = time.Now()
 
-	testEndpoint = core.Endpoint{
+	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -314,7 +314,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	if _, err := store.insertEndpoint(tx, &testEndpoint); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.insertEndpointEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
+	if err := store.insertEndpointEvent(tx, 1, endpoint.NewEventFromResult(&testSuccessfulResult)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 	if err := store.insertEndpointResult(tx, 1, &testSuccessfulResult); err == nil {

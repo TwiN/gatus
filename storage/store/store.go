@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
@@ -15,15 +15,15 @@ import (
 
 // Store is the interface that each store should implement
 type Store interface {
-	// GetAllEndpointStatuses returns the JSON encoding of all monitored core.EndpointStatus
-	// with a subset of core.Result defined by the page and pageSize parameters
-	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*core.EndpointStatus, error)
+	// GetAllEndpointStatuses returns the JSON encoding of all monitored endpoint.EndpointStatus
+	// with a subset of endpoint.Result defined by the page and pageSize parameters
+	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.EndpointStatus, error)
 
 	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
+	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error)
 
 	// GetEndpointStatusByKey returns the endpoint status for a given key
-	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
+	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.EndpointStatus, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -35,7 +35,7 @@ type Store interface {
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
 	// Insert adds the observed result for the specified endpoint into the store
-	Insert(endpoint *core.Endpoint, result *result.Result) error
+	Insert(endpoint *endpoint.Endpoint, result *result.Result) error
 
 	// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
 	//

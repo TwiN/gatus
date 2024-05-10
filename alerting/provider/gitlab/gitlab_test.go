@@ -7,8 +7,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -85,7 +85,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
 				&result.Result{
 					ConditionResults: []*result.ConditionResult{
@@ -109,21 +109,21 @@ func TestAlertProvider_buildAlertBody(t *testing.T) {
 	firstDescription := "description-1"
 	scenarios := []struct {
 		Name         string
-		Endpoint     core.Endpoint
+		Endpoint     endpoint.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
 		ExpectedBody string
 	}{
 		{
 			Name:         "triggered",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 3},
 			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
 		},
 		{
 			Name:         "no-description",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{FailureThreshold: 10},
 			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 10 time(s) in a row\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",

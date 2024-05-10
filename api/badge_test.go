@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -20,7 +20,7 @@ func TestBadge(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -219,30 +219,30 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	defer cache.Clear()
 
 	var (
-		firstCondition  = core.Condition("[STATUS] == 200")
-		secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-		thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+		firstCondition  = endpoint.Condition("[STATUS] == 200")
+		secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+		thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 	)
 
-	firstTestEndpoint := core.Endpoint{
+	firstTestEndpoint := endpoint.Endpoint{
 		Name:                    "a",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 		UIConfig:                ui.GetDefaultConfig(),
 	}
-	secondTestEndpoint := core.Endpoint{
+	secondTestEndpoint := endpoint.Endpoint{
 		Name:                    "b",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -256,7 +256,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	}
 	cfg := &config.Config{
 		Metrics:   true,
-		Endpoints: []*core.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
+		Endpoints: []*endpoint.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
 	}
 
 	testSuccessfulResult := result.Result{

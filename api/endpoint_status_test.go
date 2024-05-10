@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -17,14 +17,14 @@ import (
 var (
 	timestamp = time.Now()
 
-	testEndpoint = core.Endpoint{
+	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{core.Condition("[STATUS] == 200"), core.Condition("[RESPONSE_TIME] < 500"), core.Condition("[CERTIFICATE_EXPIRATION] < 72h")},
+		Conditions:              []endpoint.Condition{endpoint.Condition("[STATUS] == 200"), endpoint.Condition("[RESPONSE_TIME] < 500"), endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -86,7 +86,7 @@ func TestEndpointStatus(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",

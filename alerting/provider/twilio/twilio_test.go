@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {
@@ -52,7 +52,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&result.Result{
 					ConditionResults: []*result.ConditionResult{

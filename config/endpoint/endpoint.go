@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"bytes"
@@ -15,15 +15,15 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core/dns"
-	"github.com/TwiN/gatus/v5/core/result"
-	sshconfig "github.com/TwiN/gatus/v5/core/ssh"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
+	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/util"
 	"golang.org/x/crypto/ssh"
 )
 
-type EndpointType string
+type Type string
 
 const (
 	// HostHeader is the name of the header used to specify the host
@@ -38,17 +38,17 @@ const (
 	// GatusUserAgent is the default user agent that Gatus uses to send requests.
 	GatusUserAgent = "Gatus/1.0"
 
-	EndpointTypeDNS      EndpointType = "Config"
-	EndpointTypeTCP      EndpointType = "TCP"
-	EndpointTypeSCTP     EndpointType = "SCTP"
-	EndpointTypeUDP      EndpointType = "UDP"
-	EndpointTypeICMP     EndpointType = "ICMP"
-	EndpointTypeSTARTTLS EndpointType = "STARTTLS"
-	EndpointTypeTLS      EndpointType = "TLS"
-	EndpointTypeHTTP     EndpointType = "HTTP"
-	EndpointTypeWS       EndpointType = "WEBSOCKET"
-	EndpointTypeSSH      EndpointType = "SSH"
-	EndpointTypeUNKNOWN  EndpointType = "UNKNOWN"
+	TypeDNS      Type = "Config"
+	TypeTCP      Type = "TCP"
+	TypeSCTP     Type = "SCTP"
+	TypeUDP      Type = "UDP"
+	TypeICMP     Type = "ICMP"
+	TypeSTARTTLS Type = "STARTTLS"
+	TypeTLS      Type = "TLS"
+	TypeHTTP     Type = "HTTP"
+	TypeWS       Type = "WEBSOCKET"
+	TypeSSH      Type = "SSH"
+	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
 var (
@@ -134,30 +134,30 @@ func (endpoint *Endpoint) IsEnabled() bool {
 }
 
 // Type returns the endpoint type
-func (endpoint *Endpoint) Type() EndpointType {
+func (endpoint *Endpoint) Type() Type {
 	switch {
 	case endpoint.DNSConfig != nil:
-		return EndpointTypeDNS
+		return TypeDNS
 	case strings.HasPrefix(endpoint.URL, "tcp://"):
-		return EndpointTypeTCP
+		return TypeTCP
 	case strings.HasPrefix(endpoint.URL, "sctp://"):
-		return EndpointTypeSCTP
+		return TypeSCTP
 	case strings.HasPrefix(endpoint.URL, "udp://"):
-		return EndpointTypeUDP
+		return TypeUDP
 	case strings.HasPrefix(endpoint.URL, "icmp://"):
-		return EndpointTypeICMP
+		return TypeICMP
 	case strings.HasPrefix(endpoint.URL, "starttls://"):
-		return EndpointTypeSTARTTLS
+		return TypeSTARTTLS
 	case strings.HasPrefix(endpoint.URL, "tls://"):
-		return EndpointTypeTLS
+		return TypeTLS
 	case strings.HasPrefix(endpoint.URL, "http://") || strings.HasPrefix(endpoint.URL, "https://"):
-		return EndpointTypeHTTP
+		return TypeHTTP
 	case strings.HasPrefix(endpoint.URL, "ws://") || strings.HasPrefix(endpoint.URL, "wss://"):
-		return EndpointTypeWS
+		return TypeWS
 	case strings.HasPrefix(endpoint.URL, "ssh://"):
-		return EndpointTypeSSH
+		return TypeSSH
 	default:
-		return EndpointTypeUNKNOWN
+		return TypeUNKNOWN
 	}
 }
 
@@ -218,7 +218,7 @@ func (endpoint *Endpoint) ValidateAndSetDefaults() error {
 	if endpoint.SSHConfig != nil {
 		return endpoint.SSHConfig.Validate()
 	}
-	if endpoint.Type() == EndpointTypeUNKNOWN {
+	if endpoint.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
 	}
 	// Make sure that the request can be created
@@ -246,7 +246,7 @@ func (endpoint *Endpoint) Key() string {
 // on configuration reload.
 // More context on https://github.com/TwiN/gatus/issues/536
 func (endpoint *Endpoint) Close() {
-	if endpoint.Type() == EndpointTypeHTTP {
+	if endpoint.Type() == TypeHTTP {
 		client.GetHTTPClient(endpoint.ClientConfig).CloseIdleConnections()
 	}
 }
@@ -323,19 +323,19 @@ func (endpoint *Endpoint) call(result *result.Result) {
 	var err error
 	var certificate *x509.Certificate
 	endpointType := endpoint.Type()
-	if endpointType == EndpointTypeHTTP {
+	if endpointType == TypeHTTP {
 		request = endpoint.buildHTTPRequest()
 	}
 	startTime := time.Now()
-	if endpointType == EndpointTypeDNS {
+	if endpointType == TypeDNS {
 		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(endpoint.DNSConfig.QueryType, endpoint.DNSConfig.QueryName, endpoint.URL)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSTARTTLS || endpointType == EndpointTypeTLS {
-		if endpointType == EndpointTypeSTARTTLS {
+	} else if endpointType == TypeSTARTTLS || endpointType == TypeTLS {
+		if endpointType == TypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(endpoint.URL, "starttls://"), endpoint.ClientConfig)
 		} else {
 			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(endpoint.URL, "tls://"), endpoint.ClientConfig)
@@ -346,25 +346,25 @@ func (endpoint *Endpoint) call(result *result.Result) {
 		}
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
-	} else if endpointType == EndpointTypeTCP {
+	} else if endpointType == TypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(endpoint.URL, "tcp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeUDP {
+	} else if endpointType == TypeUDP {
 		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(endpoint.URL, "udp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSCTP {
+	} else if endpointType == TypeSCTP {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(endpoint.URL, "sctp://"), endpoint.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeICMP {
+	} else if endpointType == TypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(endpoint.URL, "icmp://"), endpoint.ClientConfig)
-	} else if endpointType == EndpointTypeWS {
+	} else if endpointType == TypeWS {
 		result.Connected, result.Body, err = client.QueryWebSocket(endpoint.URL, endpoint.Body, endpoint.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == EndpointTypeSSH {
+	} else if endpointType == TypeSSH {
 		var cli *ssh.Client
 		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(endpoint.URL, "ssh://"), endpoint.SSHConfig.Username, endpoint.SSHConfig.Password, endpoint.ClientConfig)
 		if err != nil {

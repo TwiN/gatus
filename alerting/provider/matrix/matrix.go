@@ -12,8 +12,8 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Matrix
@@ -62,7 +62,7 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
+func (provider *AlertProvider) Send(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) error {
 	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
 	config := provider.getConfigForGroup(endpoint.Group)
 	if config.ServerURL == "" {
@@ -104,7 +104,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) []byte {
 	body, _ := json.Marshal(Body{
 		MsgType:       "m.text",
 		Format:        "org.matrix.custom.html",
@@ -115,7 +115,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 }
 
 // buildPlaintextMessageBody builds the message body in plaintext to include in request
-func buildPlaintextMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) string {
+func buildPlaintextMessageBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) string {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
@@ -140,7 +140,7 @@ func buildPlaintextMessageBody(endpoint *core.Endpoint, alert *alert.Alert, resu
 }
 
 // buildHTMLMessageBody builds the message body in HTML to include in request
-func buildHTMLMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) string {
+func buildHTMLMessageBody(endpoint *endpoint.Endpoint, alert *alert.Alert, result *result.Result, resolved bool) string {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for <code>%s</code> has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)

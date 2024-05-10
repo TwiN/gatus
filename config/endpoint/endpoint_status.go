@@ -1,7 +1,7 @@
-package core
+package endpoint
 
 import (
-	"github.com/TwiN/gatus/v5/core/result"
+	"github.com/TwiN/gatus/v5/config/endpoint/result"
 	"github.com/TwiN/gatus/v5/util"
 )
 
