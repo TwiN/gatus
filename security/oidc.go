@@ -21,6 +21,7 @@ type OIDCConfig struct {
 	ClientSecret    string   `yaml:"client-secret"`
 	Scopes          []string `yaml:"scopes"`           // e.g. ["openid"]
 	AllowedSubjects []string `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	ClaimToCheck    string   `yaml:"claim-to-check"`   // e.g. email. If empty, subject is used
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -117,14 +118,35 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	for _, subject := range c.AllowedSubjects {
-		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
-			c.setSessionCookie(w, idToken)
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
+
+	var claimToCheck = c.ClaimToCheck
+	if len(claimToCheck) > 0 {
+		var claimsMap map[string]interface{}
+		if err := idToken.Claims(&claimsMap); err == nil {
+			claimValue, ok := claimsMap[claimToCheck]
+			if ok {
+				for _, subject := range c.AllowedSubjects {
+					if claimValue == subject {
+						c.setSessionCookie(w, idToken)
+						http.Redirect(w, r, "/", http.StatusFound)
+						return
+					}
+				}
+				log.Printf("[security.callbackHandler] Value %s of claim %s doesn't match any element of the list of allowed subjects", claimValue, claimToCheck)
+			} else {
+				log.Printf("[security.callbackHandler] Claim doesn't contain the field %s", claimToCheck)
+			}
 		}
+	} else {
+		for _, subject := range c.AllowedSubjects {
+			if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
+				c.setSessionCookie(w, idToken)
+				http.Redirect(w, r, "/", http.StatusFound)
+				return
+			}
+		}
+		log.Printf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
 	}
-	log.Printf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 

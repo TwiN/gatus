@@ -1518,6 +1518,7 @@ security:
 | `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| `security.oidc.claim-to-check`   | Name of the field to use to match against `allowed-subjects`   | `""`            |
 
 ```yaml
 security:
@@ -1529,6 +1530,8 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You can specify a different claim field to match against allowed-subjects. If not specified "subject" is used.
+    #claim-to-check: "preferred_username"
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
