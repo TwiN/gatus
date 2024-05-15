@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -234,12 +235,12 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 			// Endpoint doesn't exist in the database, insert it
 			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
 				_ = tx.Rollback()
-				log.Printf("[sql.Insert] Failed to create endpoint with group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			log.Printf("[sql.Insert] Failed to retrieve id of endpoint with group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
 			return err
 		}
 	}
@@ -255,7 +256,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	numberOfEvents, err := s.getNumberOfEventsByEndpointID(tx, endpointID)
 	if err != nil {
 		// Silently fail
-		log.Printf("[sql.Insert] Failed to retrieve total number of events for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve total number of events for endpoint with key=%s: %s", ep.Key(), err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -265,18 +266,18 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 		})
 		if err != nil {
 			// Silently fail
-			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", endpoint.EventStart, ep.Group, ep.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", endpoint.EventStart, ep.Key(), err.Error())
 		}
 		event := endpoint.NewEventFromResult(result)
 		if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 			// Silently fail
-			log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, ep.Group, ep.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
 		}
 	} else {
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
-			log.Printf("[sql.Insert] Failed to retrieve outcome of previous result for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+			log.Printf("[sql.Insert] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
@@ -286,7 +287,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
-					log.Printf("[sql.Insert] Failed to insert event=%s for group=%s; endpoint=%s: %s", event.Type, ep.Group, ep.Name, err.Error())
+					log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
 				}
 			}
 		}
@@ -295,40 +296,40 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
 		if numberOfEvents > eventsCleanUpThreshold {
 			if err = s.deleteOldEndpointEvents(tx, endpointID); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old events for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old events for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
 	// Second, we need to insert the result.
 	if err = s.insertEndpointResult(tx, endpointID, result); err != nil {
-		log.Printf("[sql.Insert] Failed to insert result for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to insert result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByEndpointID(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql.Insert] Failed to retrieve total number of results for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve total number of results for endpoint with key=%s: %s", ep.Key(), err.Error())
 	} else {
 		if numberOfResults > resultsCleanUpThreshold {
 			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old results for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
 	if err = s.updateEndpointUptime(tx, endpointID, result); err != nil {
-		log.Printf("[sql.Insert] Failed to update uptime for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to update uptime for endpoint with key=%s: %s", ep.Key(), err.Error())
 	}
 	// Clean up old uptime entries
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestEndpointUptimeEntry(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+		log.Printf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for endpoint with key=%s: %s", ep.Key(), err.Error())
 	} else {
 		if ageOfOldestUptimeEntry > uptimeCleanUpThreshold {
 			if err = s.deleteOldUptimeEntries(tx, endpointID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old uptime entries for group=%s; endpoint=%s: %s", ep.Group, ep.Name, err.Error())
+				log.Printf("[sql.Insert] Failed to delete old uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
@@ -374,7 +375,114 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 	}
 	if s.writeThroughCache != nil {
 		// It's easier to just wipe out the entire cache than to try to find all keys that are not in the keys list
+		// This only happens on start and during tests, so it's fine for us to just clear the cache without worrying
+		// about performance
 		_ = s.writeThroughCache.DeleteKeysByPattern("*")
+	}
+	// Return number of rows deleted
+	rowsAffects, _ := result.RowsAffected()
+	return int(rowsAffects)
+}
+
+// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
+func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
+	//log.Printf("[sql.GetTriggeredEndpointAlert] Getting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), alert.Checksum()) // TODO: Remove this
+	err = s.db.QueryRow(
+		"SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2",
+		ep.Key(),
+		alert.Checksum(),
+	).Scan(&resolveKey, &numberOfSuccessesInARow)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, "", 0, nil
+		}
+		return false, "", 0, err
+	}
+	return true, resolveKey, numberOfSuccessesInARow, nil
+}
+
+// UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
+// Used for persistence of triggered alerts across application restarts
+func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
+	//log.Printf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), triggeredAlert.Checksum())
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	endpointID, err := s.getEndpointID(tx, ep)
+	if err != nil {
+		if errors.Is(err, common.ErrEndpointNotFound) {
+			// Endpoint doesn't exist in the database, insert it
+			// This shouldn't happen, but we'll handle it anyway
+			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
+				_ = tx.Rollback()
+				log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
+				return err
+			}
+		} else {
+			_ = tx.Rollback()
+			log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
+			return err
+		}
+	}
+	_, err = tx.Exec(
+		`
+			INSERT INTO endpoint_alerts_triggered (endpoint_id, configuration_checksum, resolve_key, number_of_successes_in_a_row) 
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT(endpoint_id, configuration_checksum) DO UPDATE SET
+				resolve_key = $3,
+				number_of_successes_in_a_row = $4
+		`,
+		endpointID,
+		triggeredAlert.Checksum(),
+		triggeredAlert.ResolveKey,
+		ep.NumberOfSuccessesInARow, // We only persist NumberOfSuccessesInARow, because all alerts in this table are already triggered
+	)
+	if err != nil {
+		_ = tx.Rollback()
+		log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to persist triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return nil
+}
+
+// DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
+func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
+	//log.Printf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), triggeredAlert.Checksum())
+	_, err := s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)", triggeredAlert.Checksum(), ep.Key())
+	return err
+}
+
+// DeleteAllTriggeredAlertsNotInChecksumsByEndpoint removes all triggered alerts owned by an endpoint whose alert
+// configurations are not provided in the checksums list.
+// This prevents triggered alerts that have been removed or modified from lingering in the database.
+func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int {
+	//log.Printf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Deleting triggered alerts for endpoint with key=%s that do not belong to any of checksums=%v", ep.Key(), checksums)
+	var err error
+	var result sql.Result
+	if len(checksums) == 0 {
+		// No checksums? Then it means there are no (enabled) alerts configured for that endpoint, so we can get rid of all
+		// persisted triggered alerts for that endpoint
+		result, err = s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)", ep.Key())
+	} else {
+		args := make([]interface{}, 0, len(checksums)+1)
+		args = append(args, ep.Key())
+		query := `DELETE FROM endpoint_alerts_triggered 
+			WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)
+			  AND configuration_checksum NOT IN (`
+		for i := range checksums {
+			query += fmt.Sprintf("$%d,", i+2)
+			args = append(args, checksums[i])
+		}
+		query = query[:len(query)-1] + ")" // Remove the last comma and add the closing parenthesis
+		result, err = s.db.Exec(query, args...)
+	}
+	if err != nil {
+		log.Printf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Failed to delete rows for endpoint with key=%s that do not belong to any of checksums=%v: %s", ep.Key(), checksums, err.Error())
+		return 0
 	}
 	// Return number of rows deleted
 	rowsAffects, _ := result.RowsAffected()

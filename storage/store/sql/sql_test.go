@@ -1,9 +1,11 @@
 package sql
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -81,10 +83,10 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", "TestNewStore.db", false); err != ErrDatabaseDriverNotSpecified {
+	if _, err := NewStore("", "TestNewStore.db", false); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", "", false); err != ErrPathNotSpecified {
+	if _, err := NewStore("sqlite", "", false); !errors.Is(err, ErrPathNotSpecified) {
 		t.Error("expected error due to blank path parameter")
 	}
 	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", false); err != nil {
@@ -562,5 +564,113 @@ func TestCacheKey(t *testing.T) {
 				t.Errorf("expected ResultsPageSize %d, got %d", scenario.params.ResultsPageSize, extractedParams.ResultsPageSize)
 			}
 		})
+	}
+}
+
+func TestTriggeredEndpointAlertsPersistence(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestTriggeredEndpointAlertsPersistence.db", false)
+	defer store.Close()
+	yes, desc := false, "description"
+	ep := testEndpoint
+	ep.NumberOfSuccessesInARow = 0
+	alrt := &alert.Alert{
+		Type:             alert.TypePagerDuty,
+		Enabled:          &yes,
+		FailureThreshold: 4,
+		SuccessThreshold: 2,
+		Description:      &desc,
+		SendOnResolved:   &yes,
+		Triggered:        true,
+		ResolveKey:       "1234567",
+	}
+	// Alert just triggered, so NumberOfSuccessesInARow is 0
+	if err := store.UpsertTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, resolveKey, numberOfSuccessesInARow, err := store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !exists {
+		t.Error("expected triggered alert to exist")
+	}
+	if resolveKey != alrt.ResolveKey {
+		t.Errorf("expected resolveKey %s, got %s", alrt.ResolveKey, resolveKey)
+	}
+	if numberOfSuccessesInARow != ep.NumberOfSuccessesInARow {
+		t.Errorf("expected persisted NumberOfSuccessesInARow to be %d, got %d", ep.NumberOfSuccessesInARow, numberOfSuccessesInARow)
+	}
+	// Endpoint just had a successful evaluation, so NumberOfSuccessesInARow is now 1
+	ep.NumberOfSuccessesInARow++
+	if err := store.UpsertTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, resolveKey, numberOfSuccessesInARow, err = store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if !exists {
+		t.Error("expected triggered alert to exist")
+	}
+	if resolveKey != alrt.ResolveKey {
+		t.Errorf("expected resolveKey %s, got %s", alrt.ResolveKey, resolveKey)
+	}
+	if numberOfSuccessesInARow != ep.NumberOfSuccessesInARow {
+		t.Errorf("expected persisted NumberOfSuccessesInARow to be %d, got %d", ep.NumberOfSuccessesInARow, numberOfSuccessesInARow)
+	}
+	// Simulate the endpoint having another successful evaluation, which means the alert is now resolved,
+	// and we should delete the triggered alert from the store
+	ep.NumberOfSuccessesInARow++
+	if err := store.DeleteTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, _, _, err = store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if exists {
+		t.Error("expected triggered alert to no longer exist as it has been deleted")
+	}
+}
+
+func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint.db", false)
+	defer store.Close()
+	yes, desc := false, "description"
+	ep := testEndpoint
+	ep.NumberOfSuccessesInARow = 0
+	alert1 := alert.Alert{
+		Type:             alert.TypePagerDuty,
+		Enabled:          &yes,
+		FailureThreshold: 4,
+		SuccessThreshold: 2,
+		Description:      &desc,
+		SendOnResolved:   &yes,
+		Triggered:        true,
+		ResolveKey:       "1234567",
+	}
+	alert2 := alert1
+	alert2.Type, alert2.ResolveKey = alert.TypeSlack, ""
+	if err := store.UpsertTriggeredEndpointAlert(&ep, &alert1); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if err := store.UpsertTriggeredEndpointAlert(&ep, &alert2); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert1); !exists {
+		t.Error("expected alert1 to have been deleted")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert2); !exists {
+		t.Error("expected alert2 to exist")
+	}
+	// Now we simulate the alert configuration being updated, and the alert being resolved
+	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep, []string{alert2.Checksum()}); deleted != 1 {
+		t.Errorf("expected 1 triggered alert to be deleted, got %d", deleted)
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert1); exists {
+		t.Error("expected alert1 to have been deleted")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert2); !exists {
+		t.Error("expected alert2 to exist")
 	}
 }
