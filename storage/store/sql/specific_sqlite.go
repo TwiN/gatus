@@ -73,7 +73,7 @@ func (s *Store) createSQLiteSchema() error {
 		CREATE TABLE IF NOT EXISTS endpoint_alerts_triggered (
 			endpoint_alert_trigger_id     INTEGER PRIMARY KEY,
 			endpoint_id                   INTEGER NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
-		    configuration_checksum        TEXT    NOT NULL UNIQUE,
+		    configuration_checksum        TEXT    NOT NULL,
 		    resolve_key		              TEXT    NOT NULL,
 			number_of_successes_in_a_row  INTEGER NOT NULL,
 			UNIQUE(endpoint_id, configuration_checksum)

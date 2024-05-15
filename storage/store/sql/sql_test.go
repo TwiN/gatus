@@ -83,13 +83,13 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", "TestNewStore.db", false); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
+	if _, err := NewStore("", t.TempDir()+"/TestNewStore.db", false); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
 		t.Error("expected error due to blank driver parameter")
 	}
 	if _, err := NewStore("sqlite", "", false); !errors.Is(err, ErrPathNotSpecified) {
 		t.Error("expected error due to blank path parameter")
 	}
-	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", false); err != nil {
+	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", true); err != nil {
 		t.Error("shouldn't have returned any error, got", err.Error())
 	} else {
 		_ = store.db.Close()
@@ -168,6 +168,40 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 		}
 	}
 	store.Clear()
+}
+
+func TestStore_InsertWithCaching(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertWithCaching.db", true)
+	defer store.Close()
+	// Add 2 results
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	// Verify that they exist
+	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
+	if len(endpointStatuses[0].Results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(endpointStatuses[0].Results))
+	}
+	// Add 2 more results
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	// Verify that they exist
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
+	if len(endpointStatuses[0].Results) != 4 {
+		t.Fatalf("expected 4 results, got %d", len(endpointStatuses[0].Results))
+	}
+	// Clear the store, which should also clear the cache
+	store.Clear()
+	// Verify that they no longer exist
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 0 {
+		t.Fatalf("expected 0 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
 }
 
 func TestStore_Persistence(t *testing.T) {
@@ -370,10 +404,10 @@ func TestStore_NoRows(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
-	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); !errors.Is(err, errNoRowsReturned) {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
-	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); !errors.Is(err, errNoRowsReturned) {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
 }
@@ -637,8 +671,10 @@ func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint.db", false)
 	defer store.Close()
 	yes, desc := false, "description"
-	ep := testEndpoint
-	ep.NumberOfSuccessesInARow = 0
+	ep1 := testEndpoint
+	ep1.Name = "ep1"
+	ep2 := testEndpoint
+	ep2.Name = "ep2"
 	alert1 := alert.Alert{
 		Type:             alert.TypePagerDuty,
 		Enabled:          &yes,
@@ -651,26 +687,44 @@ func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
 	}
 	alert2 := alert1
 	alert2.Type, alert2.ResolveKey = alert.TypeSlack, ""
-	if err := store.UpsertTriggeredEndpointAlert(&ep, &alert1); err != nil {
+	alert3 := alert2
+	if err := store.UpsertTriggeredEndpointAlert(&ep1, &alert1); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
-	if err := store.UpsertTriggeredEndpointAlert(&ep, &alert2); err != nil {
+	if err := store.UpsertTriggeredEndpointAlert(&ep1, &alert2); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
-	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert1); !exists {
+	if err := store.UpsertTriggeredEndpointAlert(&ep2, &alert3); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert1); !exists {
 		t.Error("expected alert1 to have been deleted")
 	}
-	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert2); !exists {
-		t.Error("expected alert2 to exist")
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert2); !exists {
+		t.Error("expected alert2 to exist for ep1")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
 	}
 	// Now we simulate the alert configuration being updated, and the alert being resolved
-	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep, []string{alert2.Checksum()}); deleted != 1 {
+	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep1, []string{alert2.Checksum()}); deleted != 1 {
 		t.Errorf("expected 1 triggered alert to be deleted, got %d", deleted)
 	}
-	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert1); exists {
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert1); exists {
 		t.Error("expected alert1 to have been deleted")
 	}
-	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep, &alert2); !exists {
-		t.Error("expected alert2 to exist")
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert2); !exists {
+		t.Error("expected alert2 to exist for ep1")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
+	}
+	// Now let's just assume all alerts for ep1 were removed
+	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep1, []string{}); deleted != 1 {
+		t.Errorf("expected 1 triggered alert to be deleted, got %d", deleted)
+	}
+	// Make sure the alert for ep2 still exists
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
 	}
 }

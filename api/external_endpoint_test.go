@@ -65,6 +65,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			ExpectedCode:                   404,
 		},
 		{
+			Name:                           "bad-success-value",
+			Path:                           "/api/v1/endpoints/g_n/external?success=invalid",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   400,
+		},
+		{
 			Name:                           "good-token-success-true",
 			Path:                           "/api/v1/endpoints/g_n/external?success=true",
 			AuthorizationHeaderBearerToken: "Bearer token",

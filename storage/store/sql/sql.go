@@ -28,9 +28,9 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a clean up
-	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a clean up
-	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a clean up
+	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a cleanup
+	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
+	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
 
 	uptimeRetention = 7 * 24 * time.Hour
 
@@ -386,7 +386,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 
 // GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
-	//log.Printf("[sql.GetTriggeredEndpointAlert] Getting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), alert.Checksum()) // TODO: Remove this
+	//log.Printf("[sql.GetTriggeredEndpointAlert] Getting triggered alert with checksum=%s for endpoint with key=%s", alert.Checksum(), ep.Key())
 	err = s.db.QueryRow(
 		"SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2",
 		ep.Key(),
@@ -404,7 +404,7 @@ func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Al
 // UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
 // Used for persistence of triggered alerts across application restarts
 func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//log.Printf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), triggeredAlert.Checksum())
+	//log.Printf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -451,7 +451,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 
 // DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
 func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//log.Printf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert for endpoint with key=%s and alert with checksum=%s", ep.Key(), triggeredAlert.Checksum())
+	//log.Printf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
 	_, err := s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)", triggeredAlert.Checksum(), ep.Key())
 	return err
 }
