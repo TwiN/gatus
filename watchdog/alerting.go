@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/storage/store"
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure
@@ -50,9 +51,12 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 				log.Printf("[watchdog.handleAlertsToTrigger] Failed to send an alert for endpoint=%s: %s", ep.Name, err.Error())
 			} else {
 				endpointAlert.Triggered = true
+				if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
+					log.Printf("[watchdog.handleAlertsToTrigger] Failed to persist triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				}
 			}
 		} else {
-			log.Printf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type)
+			log.Printf("[watchdog.handleAlertsToTrigger] Not sending alert of type=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
 	}
 }
@@ -60,21 +64,31 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config, debug bool) {
 	ep.NumberOfSuccessesInARow++
 	for _, endpointAlert := range ep.Alerts {
-		if !endpointAlert.IsEnabled() || !endpointAlert.Triggered || endpointAlert.SuccessThreshold > ep.NumberOfSuccessesInARow {
+		isStillBelowSuccessThreshold := endpointAlert.SuccessThreshold > ep.NumberOfSuccessesInARow
+		if isStillBelowSuccessThreshold && endpointAlert.IsEnabled() {
+			// Persist NumberOfSuccessesInARow
+			if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
+				log.Printf("[watchdog.handleAlertsToResolve] Failed to update triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+			}
+		}
+		if !endpointAlert.IsEnabled() || !endpointAlert.Triggered || isStillBelowSuccessThreshold {
 			continue
 		}
 		// Even if the alert provider returns an error, we still set the alert's Triggered variable to false.
 		// Further explanation can be found on Alert's Triggered field.
 		endpointAlert.Triggered = false
+		if err := store.Get().DeleteTriggeredEndpointAlert(ep, endpointAlert); err != nil {
+			log.Printf("[watchdog.handleAlertsToResolve] Failed to delete persisted triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+		}
 		if !endpointAlert.IsSendingOnResolved() {
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
-			log.Printf("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Name, endpointAlert.GetDescription())
+			log.Printf("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
 			err := alertProvider.Send(ep, endpointAlert, result, true)
 			if err != nil {
-				log.Printf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint=%s: %s", ep.Name, err.Error())
+				log.Printf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		} else {
 			log.Printf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type)

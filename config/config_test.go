@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -36,6 +37,7 @@ import (
 )
 
 func TestLoadConfiguration(t *testing.T) {
+	yes := true
 	dir := t.TempDir()
 	scenarios := []struct {
 		name           string
@@ -165,6 +167,8 @@ metrics: true
 alerting:
   slack:
     webhook-url: https://hooks.slack.com/services/xxx/yyy/zzz
+    default-alert:
+      enabled: true
 
 endpoints:
   - name: example
@@ -179,6 +183,12 @@ alerting:
   discord:
     webhook-url: https://discord.com/api/webhooks/xxx/yyy
 
+external-endpoints:
+  - name: ext-ep-test
+    token: "potato"
+    alerts:
+      - type: slack
+
 endpoints:
   - name: frontend
     url: https://example.com
@@ -190,7 +200,20 @@ endpoints:
 				Metrics: true,
 				Alerting: &alerting.Config{
 					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
-					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz"},
+					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz", DefaultAlert: &alert.Alert{Enabled: &yes}},
+				},
+				ExternalEndpoints: []*endpoint.ExternalEndpoint{
+					{
+						Name:  "ext-ep-test",
+						Token: "potato",
+						Alerts: []*alert.Alert{
+							{
+								Type:             alert.TypeSlack,
+								FailureThreshold: 3,
+								SuccessThreshold: 2,
+							},
+						},
+					},
 				},
 				Endpoints: []*endpoint.Endpoint{
 					{
@@ -325,10 +348,6 @@ external-endpoints:
   - name: ext-ep-test
     group: core
     token: "potato"
-    alerts:
-      - type: discord
-        description: "healthcheck failed"
-        send-on-resolved: true
 
 endpoints:
   - name: website
@@ -382,18 +401,7 @@ endpoints:
 	if config.ExternalEndpoints[0].Token != "potato" {
 		t.Errorf("Token should have been %s", "potato")
 	}
-	if len(config.ExternalEndpoints[0].Alerts) != 1 {
-		t.Error("Should have returned one alert")
-	}
-	if config.ExternalEndpoints[0].Alerts[0].Type != alert.TypeDiscord {
-		t.Errorf("Type should have been %s", alert.TypeDiscord)
-	}
-	if config.ExternalEndpoints[0].Alerts[0].FailureThreshold != 3 {
-		t.Errorf("FailureThreshold should have been %d, got %d", 3, config.ExternalEndpoints[0].Alerts[0].FailureThreshold)
-	}
-	if config.ExternalEndpoints[0].Alerts[0].SuccessThreshold != 2 {
-		t.Errorf("SuccessThreshold should have been %d, got %d", 2, config.ExternalEndpoints[0].Alerts[0].SuccessThreshold)
-	}
+
 	if len(config.Endpoints) != 3 {
 		t.Error("Should have returned two endpoints")
 	}
@@ -439,7 +447,6 @@ endpoints:
 	if len(config.Endpoints[1].Conditions) != 2 {
 		t.Errorf("There should have been %d conditions", 2)
 	}
-
 	if config.Endpoints[2].URL != "https://example.com/" {
 		t.Errorf("URL should have been %s", "https://example.com/")
 	}
@@ -977,6 +984,22 @@ alerting:
       enabled: true
       failure-threshold: 5
       success-threshold: 3
+  email:
+    from: "from@example.com"
+    username: "from@example.com"
+    password: "hunter2"
+    host: "mail.example.com"
+    port: 587
+    to: "recipient1@example.com,recipient2@example.com"
+    client:
+      insecure: false
+    default-alert:
+      enabled: true
+  gotify:
+    server-url: "https://gotify.example"
+    token: "**************"
+    default-alert:
+      enabled: true
 
 endpoints:
  - name: website
@@ -993,6 +1016,8 @@ endpoints:
      - type: teams
      - type: pushover
      - type: jetbrainsspace
+     - type: email
+     - type: gotify
    conditions:
      - "[STATUS] == 200"
 `))
@@ -1107,6 +1132,7 @@ endpoints:
 	if config.Alerting.JetBrainsSpace == nil || !config.Alerting.JetBrainsSpace.IsValid() {
 		t.Fatal("JetBrainsSpace alerting config should've been valid")
 	}
+
 	if config.Alerting.JetBrainsSpace.GetDefaultAlert() == nil {
 		t.Fatal("JetBrainsSpace.GetDefaultAlert() shouldn't have returned nil")
 	}
@@ -1120,6 +1146,50 @@ endpoints:
 		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "baz", config.Alerting.JetBrainsSpace.Token)
 	}
 
+	if config.Alerting.Email == nil || !config.Alerting.Email.IsValid() {
+		t.Fatal("Email alerting config should've been valid")
+	}
+	if config.Alerting.Email.GetDefaultAlert() == nil {
+		t.Fatal("Email.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.Email.From != "from@example.com" {
+		t.Errorf("Email from should've been %s, but was %s", "from@example.com", config.Alerting.Email.From)
+	}
+	if config.Alerting.Email.Username != "from@example.com" {
+		t.Errorf("Email username should've been %s, but was %s", "from@example.com", config.Alerting.Email.Username)
+	}
+	if config.Alerting.Email.Password != "hunter2" {
+		t.Errorf("Email password should've been %s, but was %s", "hunter2", config.Alerting.Email.Password)
+	}
+	if config.Alerting.Email.Host != "mail.example.com" {
+		t.Errorf("Email host should've been %s, but was %s", "mail.example.com", config.Alerting.Email.Host)
+	}
+	if config.Alerting.Email.Port != 587 {
+		t.Errorf("Email port should've been %d, but was %d", 587, config.Alerting.Email.Port)
+	}
+	if config.Alerting.Email.To != "recipient1@example.com,recipient2@example.com" {
+		t.Errorf("Email to should've been %s, but was %s", "recipient1@example.com,recipient2@example.com", config.Alerting.Email.To)
+	}
+	if config.Alerting.Email.ClientConfig == nil {
+		t.Fatal("Email client config should've been set")
+	}
+	if config.Alerting.Email.ClientConfig.Insecure {
+		t.Error("Email client config should've been secure")
+	}
+
+	if config.Alerting.Gotify == nil || !config.Alerting.Gotify.IsValid() {
+		t.Fatal("Gotify alerting config should've been valid")
+	}
+	if config.Alerting.Gotify.GetDefaultAlert() == nil {
+		t.Fatal("Gotify.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.Gotify.ServerURL != "https://gotify.example" {
+		t.Errorf("Gotify server URL should've been %s, but was %s", "https://gotify.example", config.Alerting.Gotify.ServerURL)
+	}
+	if config.Alerting.Gotify.Token != "**************" {
+		t.Errorf("Gotify token should've been %s, but was %s", "**************", config.Alerting.Gotify.Token)
+	}
+
 	// Endpoints
 	if len(config.Endpoints) != 1 {
 		t.Error("There should've been 1 endpoint")
@@ -1130,8 +1200,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 10 {
-		t.Fatal("There should've been 10 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 12 {
+		t.Fatalf("There should've been 12 alerts configured, got %d", len(config.Endpoints[0].Alerts))
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1255,10 +1325,36 @@ endpoints:
 		t.Error("The alert should've been enabled")
 	}
 	if config.Endpoints[0].Alerts[9].FailureThreshold != 5 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].FailureThreshold)
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 5, config.Endpoints[0].Alerts[9].FailureThreshold)
 	}
 	if config.Endpoints[0].Alerts[9].SuccessThreshold != 3 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[9].SuccessThreshold)
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[10].Type != alert.TypeEmail {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeEmail, config.Endpoints[0].Alerts[10].Type)
+	}
+	if !config.Endpoints[0].Alerts[10].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[10].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[10].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[10].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[10].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[11].Type != alert.TypeGotify {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeGotify, config.Endpoints[0].Alerts[11].Type)
+	}
+	if !config.Endpoints[0].Alerts[11].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[11].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[11].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[11].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[11].SuccessThreshold)
 	}
 }
 
@@ -1532,6 +1628,99 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithDuplicateEndpointName(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		shouldError bool
+		config      string
+	}{
+		{
+			name:        "same-name-no-group",
+			shouldError: true,
+			config: `
+endpoints:
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "same-name-different-group",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+  - name: ep1
+    group: g1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "same-name-same-group",
+			shouldError: true,
+			config: `
+endpoints:
+  - name: ep1
+    group: g1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+  - name: ep1
+    group: g1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "same-name-different-endpoint-type",
+			shouldError: true,
+			config: `
+external-endpoints:
+  - name: ep1
+    token: "12345678"
+
+endpoints:
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "same-name-different-group-different-endpoint-type",
+			shouldError: false,
+			config: `
+external-endpoints:
+  - name: ep1
+    group: gr1
+    token: "12345678"
+
+endpoints:
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if scenario.shouldError && err == nil {
+				t.Error("should've returned an error")
+			} else if !scenario.shouldError && err != nil {
+				t.Error("shouldn't have returned an error")
+			}
+		})
+	}
+}
+
 func TestParseAndValidateConfigBytesWithInvalidStorageConfig(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 storage:
@@ -1645,7 +1834,7 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if err != ErrNoEndpointInConfig {
+	if !errors.Is(err, ErrNoEndpointInConfig) {
 		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
 	}
 }
@@ -1657,6 +1846,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Email:          &email.AlertProvider{},
 		GitHub:         &github.AlertProvider{},
 		GoogleChat:     &googlechat.AlertProvider{},
+		Gotify:         &gotify.AlertProvider{},
 		JetBrainsSpace: &jetbrainsspace.AlertProvider{},
 		Matrix:         &matrix.AlertProvider{},
 		Mattermost:     &mattermost.AlertProvider{},
@@ -1679,6 +1869,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitHub, expected: alertingConfig.GitHub},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
+		{alertType: alert.TypeGotify, expected: alertingConfig.Gotify},
 		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
