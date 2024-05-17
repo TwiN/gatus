@@ -65,7 +65,7 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 	ep.NumberOfSuccessesInARow++
 	for _, endpointAlert := range ep.Alerts {
 		isStillBelowSuccessThreshold := endpointAlert.SuccessThreshold > ep.NumberOfSuccessesInARow
-		if isStillBelowSuccessThreshold && endpointAlert.IsEnabled() {
+		if isStillBelowSuccessThreshold && endpointAlert.IsEnabled() && endpointAlert.Triggered {
 			// Persist NumberOfSuccessesInARow
 			if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
 				log.Printf("[watchdog.handleAlertsToResolve] Failed to update triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
