@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"time"
@@ -29,7 +29,7 @@ type Result struct {
 	// Errors encountered during the evaluation of the Endpoint's health
 	Errors []string `json:"errors,omitempty"`
 
-	// ConditionResults results of the Endpoint's conditions
+	// ConditionResults are the results of each of the Endpoint's Condition
 	ConditionResults []*ConditionResult `json:"conditionResults,omitempty"`
 
 	// Success whether the result signifies a success or not

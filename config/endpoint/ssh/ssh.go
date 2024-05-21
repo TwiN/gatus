@@ -1,4 +1,4 @@
-package core
+package ssh
 
 import (
 	"errors"
@@ -12,17 +12,17 @@ var (
 	ErrEndpointWithoutSSHPassword = errors.New("you must specify a password for each SSH endpoint")
 )
 
-type SSH struct {
+type Config struct {
 	Username string `yaml:"username,omitempty"`
 	Password string `yaml:"password,omitempty"`
 }
 
-// validate validates the endpoint
-func (s *SSH) validate() error {
-	if len(s.Username) == 0 {
+// Validate the SSH configuration
+func (cfg *Config) Validate() error {
+	if len(cfg.Username) == 0 {
 		return ErrEndpointWithoutSSHUsername
 	}
-	if len(s.Password) == 0 {
+	if len(cfg.Password) == 0 {
 		return ErrEndpointWithoutSSHPassword
 	}
 	return nil

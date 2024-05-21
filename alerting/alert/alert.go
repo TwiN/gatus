@@ -1,7 +1,10 @@
 package alert
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
 )
 
@@ -10,7 +13,7 @@ var (
 	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
 )
 
-// Alert is a core.Endpoint's alert configuration
+// Alert is a endpoint.Endpoint's alert configuration
 type Alert struct {
 	// Type of alert (required)
 	Type Type `yaml:"type"`
@@ -26,6 +29,9 @@ type Alert struct {
 	// FailureThreshold is the number of failures in a row needed before triggering the alert
 	FailureThreshold int `yaml:"failure-threshold"`
 
+	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
+	SuccessThreshold int `yaml:"success-threshold"`
+
 	// Description of the alert. Will be included in the alert sent.
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
@@ -37,9 +43,6 @@ type Alert struct {
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
 	SendOnResolved *bool `yaml:"send-on-resolved"`
-
-	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
-	SuccessThreshold int `yaml:"success-threshold"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
@@ -93,4 +96,18 @@ func (alert *Alert) IsSendingOnResolved() bool {
 		return false
 	}
 	return *alert.SendOnResolved
+}
+
+// Checksum returns a checksum of the alert
+// Used to determine which persisted triggered alert should be deleted on application start
+func (alert *Alert) Checksum() string {
+	hash := sha256.New()
+	hash.Write([]byte(string(alert.Type) + "_" +
+		strconv.FormatBool(alert.IsEnabled()) + "_" +
+		strconv.FormatBool(alert.IsSendingOnResolved()) + "_" +
+		strconv.Itoa(alert.SuccessThreshold) + "_" +
+		strconv.Itoa(alert.FailureThreshold) + "_" +
+		alert.GetDescription()),
+	)
+	return hex.EncodeToString(hash.Sum(nil))
 }

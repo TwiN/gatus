@@ -9,8 +9,8 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
-	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
@@ -22,7 +22,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		Alerting: &alerting.Config{
 			Discord: &discord.AlertProvider{},
 		},
-		ExternalEndpoints: []*core.ExternalEndpoint{
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{
 			{
 				Name:  "n",
 				Group: "g",
@@ -63,6 +63,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			Path:                           "/api/v1/endpoints/bad_key/external?success=true",
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   404,
+		},
+		{
+			Name:                           "bad-success-value",
+			Path:                           "/api/v1/endpoints/g_n/external?success=invalid",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   400,
 		},
 		{
 			Name:                           "good-token-success-true",

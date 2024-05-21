@@ -5,18 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
-	httpEndpoint := &core.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
-	PublishMetricsForEndpoint(httpEndpoint, &core.Result{
+	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
+	PublishMetricsForEndpoint(httpEndpoint, &endpoint.Result{
 		HTTPStatus: 200,
 		Connected:  true,
 		Duration:   123 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 48h", Success: true},
 		},
@@ -43,11 +44,11 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	PublishMetricsForEndpoint(httpEndpoint, &core.Result{
+	PublishMetricsForEndpoint(httpEndpoint, &endpoint.Result{
 		HTTPStatus: 200,
 		Connected:  true,
 		Duration:   125 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 47h", Success: false},
 		},
@@ -75,15 +76,15 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	dnsEndpoint := &core.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNS: &core.DNS{
+	dnsEndpoint := &endpoint.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
 		QueryType: "A",
 		QueryName: "example.com.",
 	}}
-	PublishMetricsForEndpoint(dnsEndpoint, &core.Result{
+	PublishMetricsForEndpoint(dnsEndpoint, &endpoint.Result{
 		DNSRCode:  "NOERROR",
 		Connected: true,
 		Duration:  50 * time.Millisecond,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{Condition: "[DNS_RCODE] == NOERROR", Success: true},
 		},
 		Success: true,

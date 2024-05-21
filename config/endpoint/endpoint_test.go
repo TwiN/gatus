@@ -1,4 +1,4 @@
-package core
+package endpoint
 
 import (
 	"bytes"
@@ -13,7 +13,9 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/ssh"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -279,105 +281,105 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 func TestEndpoint_Type(t *testing.T) {
 	type args struct {
 		URL string
-		DNS *DNS
-		SSH *SSH
+		DNS *dns.Config
+		SSH *ssh.Config
 	}
 	tests := []struct {
 		args args
-		want EndpointType
+		want Type
 	}{
 		{
 			args: args{
 				URL: "8.8.8.8",
-				DNS: &DNS{
+				DNS: &dns.Config{
 					QueryType: "A",
 					QueryName: "example.com",
 				},
 			},
-			want: EndpointTypeDNS,
+			want: TypeDNS,
 		},
 		{
 			args: args{
 				URL: "tcp://127.0.0.1:6379",
 			},
-			want: EndpointTypeTCP,
+			want: TypeTCP,
 		},
 		{
 			args: args{
 				URL: "icmp://example.com",
 			},
-			want: EndpointTypeICMP,
+			want: TypeICMP,
 		},
 		{
 			args: args{
 				URL: "sctp://example.com",
 			},
-			want: EndpointTypeSCTP,
+			want: TypeSCTP,
 		},
 		{
 			args: args{
 				URL: "udp://example.com",
 			},
-			want: EndpointTypeUDP,
+			want: TypeUDP,
 		},
 		{
 			args: args{
 				URL: "starttls://smtp.gmail.com:587",
 			},
-			want: EndpointTypeSTARTTLS,
+			want: TypeSTARTTLS,
 		},
 		{
 			args: args{
 				URL: "tls://example.com:443",
 			},
-			want: EndpointTypeTLS,
+			want: TypeTLS,
 		},
 		{
 			args: args{
 				URL: "https://twin.sh/health",
 			},
-			want: EndpointTypeHTTP,
+			want: TypeHTTP,
 		},
 		{
 			args: args{
 				URL: "wss://example.com/",
 			},
-			want: EndpointTypeWS,
+			want: TypeWS,
 		},
 		{
 			args: args{
 				URL: "ws://example.com/",
 			},
-			want: EndpointTypeWS,
+			want: TypeWS,
 		},
 		{
 			args: args{
 				URL: "ssh://example.com:22",
-				SSH: &SSH{
+				SSH: &ssh.Config{
 					Username: "root",
 					Password: "password",
 				},
 			},
-			want: EndpointTypeSSH,
+			want: TypeSSH,
 		},
 		{
 			args: args{
 				URL: "invalid://example.org",
 			},
-			want: EndpointTypeUNKNOWN,
+			want: TypeUNKNOWN,
 		},
 		{
 			args: args{
 				URL: "no-scheme",
 			},
-			want: EndpointTypeUNKNOWN,
+			want: TypeUNKNOWN,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.want), func(t *testing.T) {
 			endpoint := Endpoint{
-				URL: tt.args.URL,
-				DNS: tt.args.DNS,
+				URL:       tt.args.URL,
+				DNSConfig: tt.args.DNS,
 			}
 			if got := endpoint.Type(); got != tt.want {
 				t.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
@@ -477,7 +479,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	endpoint := &Endpoint{
 		Name: "dns-test",
 		URL:  "https://example.com",
-		DNS: &DNS{
+		DNSConfig: &dns.Config{
 			QueryType: "A",
 			QueryName: "example.com",
 		},
@@ -487,7 +489,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithDNS(t *testing.T) {
 	if err != nil {
 		t.Error("did not expect an error, got", err)
 	}
-	if endpoint.DNS.QueryName != "example.com." {
+	if endpoint.DNSConfig.QueryName != "example.com." {
 		t.Error("Endpoint.dns.query-name should be formatted with . suffix")
 	}
 }
@@ -503,13 +505,13 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			name:        "fail when has no user",
 			username:    "",
 			password:    "password",
-			expectedErr: ErrEndpointWithoutSSHUsername,
+			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
 		},
 		{
 			name:        "fail when has no password",
 			username:    "username",
 			password:    "",
-			expectedErr: ErrEndpointWithoutSSHPassword,
+			expectedErr: ssh.ErrEndpointWithoutSSHPassword,
 		},
 		{
 			name:        "success when all fields are set",
@@ -524,7 +526,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			endpoint := &Endpoint{
 				Name: "ssh-test",
 				URL:  "https://example.com",
-				SSH: &SSH{
+				SSHConfig: &ssh.Config{
 					Username: scenario.username,
 					Password: scenario.password,
 				},
@@ -763,7 +765,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	endpoint := Endpoint{
 		Name: "example",
 		URL:  "8.8.8.8",
-		DNS: &DNS{
+		DNSConfig: &dns.Config{
 			QueryType: "A",
 			QueryName: "example.com.",
 		},
@@ -786,7 +788,7 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 }
 
 func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name       string
 		endpoint   Endpoint
 		conditions []Condition
@@ -797,9 +799,9 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 			endpoint: Endpoint{
 				Name: "ssh-success",
 				URL:  "ssh://localhost",
-				SSH: &SSH{
-					Username: "test",
-					Password: "test",
+				SSHConfig: &ssh.Config{
+					Username: "scenario",
+					Password: "scenario",
 				},
 				Body: "{ \"command\": \"uptime\" }",
 			},
@@ -811,9 +813,9 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 			endpoint: Endpoint{
 				Name: "ssh-failure",
 				URL:  "ssh://localhost",
-				SSH: &SSH{
-					Username: "test",
-					Password: "test",
+				SSHConfig: &ssh.Config{
+					Username: "scenario",
+					Password: "scenario",
 				},
 				Body: "{ \"command\": \"uptime\" }",
 			},
@@ -822,13 +824,13 @@ func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.endpoint.ValidateAndSetDefaults()
-			test.endpoint.Conditions = test.conditions
-			result := test.endpoint.EvaluateHealth()
-			if result.Success != test.success {
-				t.Errorf("Expected success to be %v, but was %v", test.success, result.Success)
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			scenario.endpoint.ValidateAndSetDefaults()
+			scenario.endpoint.Conditions = scenario.conditions
+			result := scenario.endpoint.EvaluateHealth()
+			if result.Success != scenario.success {
+				t.Errorf("Expected success to be %v, but was %v", scenario.success, result.Success)
 			}
 		})
 	}

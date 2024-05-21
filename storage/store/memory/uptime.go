@@ -3,7 +3,7 @@ package memory
 import (
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 const (
@@ -13,14 +13,14 @@ const (
 
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
-func processUptimeAfterResult(uptime *core.Uptime, result *core.Result) {
+func processUptimeAfterResult(uptime *endpoint.Uptime, result *endpoint.Result) {
 	if uptime.HourlyStatistics == nil {
-		uptime.HourlyStatistics = make(map[int64]*core.HourlyUptimeStatistics)
+		uptime.HourlyStatistics = make(map[int64]*endpoint.HourlyUptimeStatistics)
 	}
 	unixTimestampFlooredAtHour := result.Timestamp.Truncate(time.Hour).Unix()
 	hourlyStats, _ := uptime.HourlyStatistics[unixTimestampFlooredAtHour]
 	if hourlyStats == nil {
-		hourlyStats = &core.HourlyUptimeStatistics{}
+		hourlyStats = &endpoint.HourlyUptimeStatistics{}
 		uptime.HourlyStatistics[unixTimestampFlooredAtHour] = hourlyStats
 	}
 	if result.Success {

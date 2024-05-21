@@ -1,7 +1,6 @@
 [![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
 ![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
-[![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ka9RySaQ9K)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
@@ -1134,14 +1133,15 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Teams alerts
-| Parameter                                | Description                                                                                | Default       |
-|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`          |
-| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""` |
-| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
+| Parameter                                | Description                                                                                | Default             |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
+| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
+| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
+| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
+| `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
+| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
 
 ```yaml
 alerting:

@@ -1,6 +1,8 @@
-package core
+package endpoint
 
-import "testing"
+import (
+	"testing"
+)
 
 func BenchmarkCondition_evaluateWithBodyStringAny(b *testing.B) {
 	condition := Condition("[BODY].name == any(john.doe, jane.doe)")

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -41,7 +41,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			return c.Status(401).SendString("invalid token")
 		}
 		// Persist the result in the storage
-		result := &core.Result{
+		result := &endpoint.Result{
 			Timestamp: time.Now(),
 			Success:   c.QueryBool("success"),
 			Errors:    []string{},

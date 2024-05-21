@@ -1,10 +1,9 @@
-package core
+package endpoint
 
 import (
 	"errors"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/util"
 )
 
 var (
@@ -46,11 +45,6 @@ func (externalEndpoint *ExternalEndpoint) ValidateAndSetDefaults() error {
 	if len(externalEndpoint.Token) == 0 {
 		return ErrExternalEndpointWithNoToken
 	}
-	for _, externalEndpointAlert := range externalEndpoint.Alerts {
-		if err := externalEndpointAlert.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -72,7 +66,7 @@ func (externalEndpoint *ExternalEndpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (externalEndpoint *ExternalEndpoint) Key() string {
-	return util.ConvertGroupAndEndpointNameToKey(externalEndpoint.Group, externalEndpoint.Name)
+	return ConvertGroupAndEndpointNameToKey(externalEndpoint.Group, externalEndpoint.Name)
 }
 
 // ToEndpoint converts the ExternalEndpoint to an Endpoint
