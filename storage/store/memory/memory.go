@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -172,6 +173,37 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		}
 	}
 	return s.cache.DeleteAll(keysToDelete)
+}
+
+// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
+//
+// Always returns that the alert does not exist for the in-memory store since it does not support persistence across restarts
+func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
+	return false, "", 0, nil
+}
+
+// UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
+// Used for persistence of triggered alerts across application restarts
+//
+// Does nothing for the in-memory store since it does not support persistence across restarts
+func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
+	return nil
+}
+
+// DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
+//
+// Does nothing for the in-memory store since it does not support persistence across restarts
+func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
+	return nil
+}
+
+// DeleteAllTriggeredAlertsNotInChecksumsByEndpoint removes all triggered alerts owned by an endpoint whose alert
+// configurations are not provided in the checksums list.
+// This prevents triggered alerts that have been removed or modified from lingering in the database.
+//
+// Does nothing for the in-memory store since it does not support persistence across restarts
+func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int {
+	return 0
 }
 
 // Clear deletes everything from the store

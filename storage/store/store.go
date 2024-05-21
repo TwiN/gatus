@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -40,6 +41,21 @@ type Store interface {
 	//
 	// Used to delete endpoints that have been persisted but are no longer part of the configured endpoints
 	DeleteAllEndpointStatusesNotInKeys(keys []string) int
+
+	// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
+	GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error)
+
+	// UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
+	// Used for persistence of triggered alerts across application restarts
+	UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error
+
+	// DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
+	DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error
+
+	// DeleteAllTriggeredAlertsNotInChecksumsByEndpoint removes all triggered alerts owned by an endpoint whose alert
+	// configurations are not provided in the checksums list.
+	// This prevents triggered alerts that have been removed or modified from lingering in the database.
+	DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int
 
 	// Clear deletes everything from the store
 	Clear()

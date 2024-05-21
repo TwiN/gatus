@@ -45,11 +45,6 @@ func (externalEndpoint *ExternalEndpoint) ValidateAndSetDefaults() error {
 	if len(externalEndpoint.Token) == 0 {
 		return ErrExternalEndpointWithNoToken
 	}
-	for _, externalEndpointAlert := range externalEndpoint.Alerts {
-		if err := externalEndpointAlert.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
