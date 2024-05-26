@@ -26,6 +26,7 @@ type AlertProvider struct {
 	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
 	Token    string `yaml:"token,omitempty"`    // Defaults to ""
 	Email    string `yaml:"email,omitempty"`    // Defaults to ""
+	Click    string `yaml:"click,omitempty"`    // Defaults to ""
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -76,6 +77,7 @@ type Body struct {
 	Tags     []string `json:"tags"`
 	Priority int      `json:"priority"`
 	Email    string   `json:"email,omitempty"`
+	Click    string   `json:"click,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -108,6 +110,7 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		Tags:     []string{tag},
 		Priority: provider.Priority,
 		Email:    provider.Email,
+		Click:    provider.Click,
 	})
 	return body
 }
