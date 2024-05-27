@@ -1,7 +1,11 @@
+// please do verify before pull request
+
+
 package security
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -18,7 +22,7 @@ const (
 	cookieNameSession = "gatus_session"
 )
 
-// Config is the security configuration for Gatus
+
 type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
 	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
@@ -26,85 +30,192 @@ type Config struct {
 	gate *g8.Gate
 }
 
-// IsValid returns whether the security configuration is valid or not
+
 func (c *Config) IsValid() bool {
 	return (c.Basic != nil && c.Basic.isValid()) || (c.OIDC != nil && c.OIDC.isValid())
 }
+// adding description for better understanding ::
+//  ENGLISH IS NOT MY MOTHER TOUNGUE SO READ THE DESCRIPTION TWICE AND UNDERSTAND THE CODE
+// THANK YOU
+
+
 
 // RegisterHandlers registers all handlers required based on the security configuration
 func (c *Config) RegisterHandlers(router fiber.Router) error {
 	if c.OIDC != nil {
 		if err := c.OIDC.initialize(); err != nil {
 			return err
-		}
-		router.All("/oidc/login", c.OIDC.loginHandler)
-		router.All("/authorization-code/callback", adaptor.HTTPHandlerFunc(c.OIDC.callbackHandler))
 	}
+		router.Use(adaptor.HTTPHandler(c.OIDC.handleCallback))
+		router.Use(adaptor.HTTPHandler(c.OIDC.handleLogout))
+	}
+
+	if c.Basic != nil {
+		router.Use(basicauth.New(c.Basic.username, c.Basic.password))
+	}
+
 	return nil
 }
 
-// ApplySecurityMiddleware applies an authentication middleware to the router passed.
-// The router passed should be a sub-router in charge of handlers that require authentication.
-func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
+
+func (c *Config) ApplySecurityMiddleware(router fiber.Router) {
 	if c.OIDC != nil {
-		// We're going to use g8 for session handling
-		clientProvider := g8.NewClientProvider(func(token string) *g8.Client {
-			if _, exists := sessions.Get(token); exists {
-				return g8.NewClient(token)
-			}
-			return nil
-		})
-		customTokenExtractorFunc := func(request *http.Request) string {
-			sessionCookie, err := request.Cookie(cookieNameSession)
-			if err != nil {
-				return ""
-			}
-			return sessionCookie.Value
-		}
-		// TODO: g8: Add a way to update cookie after? would need the writer
-		authorizationService := g8.NewAuthorizationService().WithClientProvider(clientProvider)
-		c.gate = g8.New().WithAuthorizationService(authorizationService).WithCustomTokenExtractor(customTokenExtractorFunc)
-		router.Use(adaptor.HTTPMiddleware(c.gate.Protect))
+		router.Use(c.OIDC.middleware)
 	} else if c.Basic != nil {
-		var decodedBcryptHash []byte
-		if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
-			var err error
-			decodedBcryptHash, err = base64.URLEncoding.DecodeString(c.Basic.PasswordBcryptHashBase64Encoded)
-			if err != nil {
-				return err
-			}
-		}
-		router.Use(basicauth.New(basicauth.Config{
-			Authorizer: func(username, password string) bool {
-				if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
-					if username != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(password)) != nil {
-						return false
-					}
-				}
-				return true
-			},
-			Unauthorized: func(ctx *fiber.Ctx) error {
-				ctx.Set("WWW-Authenticate", "Basic")
-				return ctx.Status(401).SendString("Unauthorized")
-			},
-		}))
+		router.Use(basicauth.New(c.Basic.username, c.Basic.password))
 	}
+}
+
+// IsAuthenticated returns whether the user is authenticated or not   
+func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
+	if c.OIDC != nil {
+		return c.OIDC.isAuthenticated(ctx)
+	}
+
+	return true
+}
+
+// BasicConfig is the configuration for Basic authentication ..
+type BasicConfig struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+    
+func (c *BasicConfig) isValid() bool {
+	return c.Username != "" && c.Password != ""
+}
+
+// OIDCConfig is the configuration for OIDC authentication 
+type OIDCConfig struct {
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	IssuerURL    string `yaml:"issuer_url"`
+	RedirectURL  string `yaml:"redirect_url"`
+	Scopes       string `yaml:"scopes"`
+}
+
+// isValid returns whether the OIDC authentication configuration is valid or not valid
+func (c *OIDCConfig) isValid() bool {
+	return c.ClientID != "" && c.ClientSecret != "" && c.IssuerURL != "" && c.RedirectURL != "" && c.Scopes != ""
+}
+
+// initialize the OIDC authentication configuration
+func (c *OIDCConfig) initialize() error {
+	if c.gate == nil {
+		c.gate = g8.New()
+	}
+
+	if err := c.gate.SetClientID(c.ClientID); err != nil {
+		return err
+	}
+
+	if err := c.gate.SetClientSecret(c.ClientSecret); err != nil {
+		return err
+	}
+
+	if err := c.gate.SetIssuerURL(c.IssuerURL); err != nil {
+		return err
+	}
+
+	if err := c.gate.SetRedirectURL(c.RedirectURL); err != nil {
+		return err
+	}
+
+	if err := c.gate.SetScopes(c.Scopes); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-// IsAuthenticated checks whether the user is authenticated
-// If the Config does not warrant authentication, it will always return true.
-func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
-	if c.gate != nil {
-		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
-		request, err := adaptor.ConvertRequest(ctx, false)
-		if err != nil {
-			log.Printf("[security.IsAuthenticated] Unexpected error converting request: %v", err)
-			return false
-		}
-		token := c.gate.ExtractTokenFromRequest(request)
-		_, hasSession := sessions.Get(token)
-		return hasSession
+// handleCallback handles the OIDC authentication callback
+func (c *OIDCConfig) handleCallback(c *g8.Context) error {
+	if c.IsAuthenticated() {
+		return c.Redirect(c.Query("redirect_url"))
 	}
-	return false
+
+	if err := c.Authenticate(); err != nil {
+		return err
+	}
+
+	if err := c.SaveSession(); err != nil {
+		return err
+	}
+
+	return c.Redirect(c.Query("redirect_url"))
+}
+
+// handleLogout handles the OIDC authentication logout
+func (c *OIDCConfig) handleLogout(c *g8.Context) error {
+	if err := c.InvalidateSession(); err != nil {
+		return err
+	}
+
+	return c.Redirect(c.Query("redirect_url"))
+}
+
+// middleware is the OIDC authentication middleware
+func (c *OIDCConfig) middleware(ctx *fiber.Ctx) error {
+	if c.gate == nil {
+		return fmt.Errorf("OIDC gate not initialized")
+	}
+
+	session, err := c.gate.GetSession(ctx)
+	if err != nil {
+return err
+	}
+
+	if !session.IsAuthenticated() {
+		return c.gate.Authenticate(ctx)
+	}
+
+	return ctx.Next()
+}
+
+// isAuthenticated returns whether the user is authenticated or not
+func (c *OIDCConfig) isAuthenticated(ctx *fiber.Ctx) bool {
+	if c.gate == nil {
+		return true
+	}
+
+	session, err := c.gate.GetSession(ctx)
+	if err != nil {
+		log.Println("Error getting session:", err)
+		return false
+	}
+
+	return session.IsAuthenticated()
+}
+
+// HashPassword hashes the password using bcrypt
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+// CheckPasswordHash checks whether the password matches the hash
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+// GenerateRandomString generates a random string of the specified length
+func GenerateRandomString(length int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(result)
+}
+
+// Base64Encode encodes the string using base64
+func Base64Encode(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+// Base64Decode decodes the base64-encoded string
+func Base64Decode(s string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(s)
 }
