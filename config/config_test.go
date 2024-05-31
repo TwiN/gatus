@@ -931,7 +931,7 @@ alerting:
     default-alert:
       enabled: true
       failure-threshold: 10
-      success-threshold: 1
+      success-threshold: 15
   pagerduty:
     integration-key: "00000000000000000000000000000000"
     default-alert:
@@ -1001,25 +1001,32 @@ alerting:
     default-alert:
       enabled: true
 
+external-endpoints:
+  - name: ext-ep-test
+    group: core
+    token: potato
+    alerts:
+      - type: discord
+
 endpoints:
- - name: website
-   url: https://twin.sh/health
-   alerts:
-     - type: slack
-     - type: pagerduty
-     - type: mattermost
-     - type: messagebird
-     - type: discord
-       success-threshold: 2 # test endpoint alert override
-     - type: telegram
-     - type: twilio
-     - type: teams
-     - type: pushover
-     - type: jetbrainsspace
-     - type: email
-     - type: gotify
-   conditions:
-     - "[STATUS] == 200"
+  - name: website
+    url: https://twin.sh/health
+    alerts:
+      - type: slack
+      - type: pagerduty
+      - type: mattermost
+      - type: messagebird
+      - type: discord
+        success-threshold: 8 # test endpoint alert override
+      - type: telegram
+      - type: twilio
+      - type: teams
+      - type: pushover
+      - type: jetbrainsspace
+      - type: email
+      - type: gotify
+    conditions:
+      - "[STATUS] == 200"
 `))
 	if err != nil {
 		t.Error("expected no error, got", err.Error())
@@ -1095,6 +1102,12 @@ endpoints:
 	}
 	if config.Alerting.Discord.GetDefaultAlert() == nil {
 		t.Fatal("Discord.GetDefaultAlert() shouldn't have returned nil")
+	}
+	if config.Alerting.Discord.GetDefaultAlert().FailureThreshold != 10 {
+		t.Errorf("Discord default alert failure threshold should've been %d, but was %d", 10, config.Alerting.Discord.GetDefaultAlert().FailureThreshold)
+	}
+	if config.Alerting.Discord.GetDefaultAlert().SuccessThreshold != 15 {
+		t.Errorf("Discord default alert success threshold should've been %d, but was %d", 15, config.Alerting.Discord.GetDefaultAlert().SuccessThreshold)
 	}
 	if config.Alerting.Discord.WebhookURL != "http://example.org" {
 		t.Errorf("Discord webhook should've been %s, but was %s", "http://example.org", config.Alerting.Discord.WebhookURL)
@@ -1190,6 +1203,23 @@ endpoints:
 		t.Errorf("Gotify token should've been %s, but was %s", "**************", config.Alerting.Gotify.Token)
 	}
 
+	// External endpoints
+	if len(config.ExternalEndpoints) != 1 {
+		t.Error("There should've been 1 external endpoint")
+	}
+	if config.ExternalEndpoints[0].Alerts[0].Type != alert.TypeDiscord {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeDiscord, config.ExternalEndpoints[0].Alerts[0].Type)
+	}
+	if !config.ExternalEndpoints[0].Alerts[0].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.ExternalEndpoints[0].Alerts[0].FailureThreshold != 10 {
+		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.ExternalEndpoints[0].Alerts[0].FailureThreshold)
+	}
+	if config.ExternalEndpoints[0].Alerts[0].SuccessThreshold != 15 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 15, config.ExternalEndpoints[0].Alerts[0].SuccessThreshold)
+	}
+
 	// Endpoints
 	if len(config.Endpoints) != 1 {
 		t.Error("There should've been 1 endpoint")
@@ -1262,8 +1292,8 @@ endpoints:
 	if config.Endpoints[0].Alerts[4].FailureThreshold != 10 {
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[4].FailureThreshold)
 	}
-	if config.Endpoints[0].Alerts[4].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[4].SuccessThreshold)
+	if config.Endpoints[0].Alerts[4].SuccessThreshold != 8 {
+		t.Errorf("The default success threshold of the alert should've been %d because it was explicitly overriden, but it was %d", 8, config.Endpoints[0].Alerts[4].SuccessThreshold)
 	}
 
 	if config.Endpoints[0].Alerts[5].Type != alert.TypeTelegram {
