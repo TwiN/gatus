@@ -27,6 +27,7 @@ type AlertProvider struct {
 	Token    string `yaml:"token,omitempty"`    // Defaults to ""
 	Email    string `yaml:"email,omitempty"`    // Defaults to ""
 	Click    string `yaml:"click,omitempty"`    // Defaults to ""
+	Firebase *bool  `yaml:"firebase,omitempty"` // Defaults to nil
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -57,6 +58,9 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	request.Header.Set("Content-Type", "application/json")
 	if len(provider.Token) > 0 {
 		request.Header.Set("Authorization", "Bearer "+provider.Token)
+	}
+	if provider.Firebase != nil && !*provider.Firebase {
+		request.Header.Set("Firebase", "no")
 	}
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {

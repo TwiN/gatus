@@ -943,16 +943,17 @@ endpoints:
 
 
 #### Configuring Ntfy alerts
-| Parameter                     | Description                                                                                | Default           |
-|:------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
-| `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
-| `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
-| `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
-| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics          | `""`              |
-| `alerting.ntfy.email`         | E-mail address for additional e-mail notifications                                         | `""`              |
-| `alerting.ntfy.click`         | Website opened when notification is clicked                                                | `""`              |
-| `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
-| `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+| Parameter                     | Description                                                                                                                   | Default           |
+|:------------------------------|:------------------------------------------------------------------------------------------------------------------------------|:------------------|
+| `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                                                       | `{}`              |
+| `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                                                         | Required `""`     |
+| `alerting.ntfy.url`           | The URL of the target server                                                                                                  | `https://ntfy.sh` |
+| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                             | `""`              |
+| `alerting.ntfy.email`         | E-mail address for additional e-mail notifications                                                                            | `""`              |
+| `alerting.ntfy.click`         | Website opened when notification is clicked                                                                                   | `""`              |
+| `alerting.ntfy.priority`      | The priority of the alert                                                                                                     | `3`               |
+| `alerting.ntfy.firebase`      | Whether messages should be delivered via firebase. [ntfy.sh defaults to true](https://docs.ntfy.sh/publish/#disable-firebase) | `""`              |
+| `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                    | N/A               |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
