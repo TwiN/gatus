@@ -953,6 +953,7 @@ endpoints:
 | `alerting.ntfy.click`         | Website opened when notification is clicked                                                                                   | `""`              |
 | `alerting.ntfy.priority`      | The priority of the alert                                                                                                     | `3`               |
 | `alerting.ntfy.firebase`      | Whether messages should be delivered via firebase. [ntfy.sh defaults to true](https://docs.ntfy.sh/publish/#disable-firebase) | `""`              |
+| `alerting.ntfy.cache`         | Whether message should be cached server side. [ntfy.sh defaults to true](https://docs.ntfy.sh/publish/#message-caching)       | `""`              |
 | `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                    | N/A               |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
