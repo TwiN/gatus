@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  nginx:
+    image: nginx:stable
+    volumes:
+      - ./certs/server:/etc/nginx/certs
+      - ./nginx:/etc/nginx/conf.d
+    ports:
+      - "8443:443"
+    networks:
+      - mtls
+
+  gatus:
+    image: twinproduction/gatus:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/config
+      - ./certs/client:/certs
+    environment:
+      - GATUS_CONFIG_PATH=/config
+    networks:
+      - mtls
+
+networks:
+  mtls:
