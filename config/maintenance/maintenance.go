@@ -105,7 +105,10 @@ func (c Config) IsUnderMaintenance() bool {
 	if !c.IsEnabled() {
 		return false
 	}
-	now := time.Now().In(c.TimezoneLocation)
+	now := time.Now()
+	if c.TimezoneLocation != nil {
+		now = now.In(c.TimezoneLocation)
+	}
 	var dayWhereMaintenancePeriodWouldStart time.Time
 	if now.Hour() >= int(c.durationToStartFromMidnight.Hours()) {
 		dayWhereMaintenancePeriodWouldStart = now.Truncate(24 * time.Hour)
