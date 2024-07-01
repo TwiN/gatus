@@ -26,7 +26,7 @@ require (
 	google.golang.org/api v0.183.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.30.0
+	modernc.org/sqlite v1.30.1
 )
 
 require (
