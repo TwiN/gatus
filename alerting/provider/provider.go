@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -20,10 +21,10 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-// AlertProvider is the interface that each providers should implement
+// AlertProvider is the interface that each provider should implement
 type AlertProvider interface {
 	// IsValid returns whether the provider's configuration is valid
 	IsValid() bool
@@ -32,7 +33,7 @@ type AlertProvider interface {
 	GetDefaultAlert() *alert.Alert
 
 	// Send an alert using the provider
-	Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error
+	Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error
 }
 
 // ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
@@ -66,6 +67,7 @@ var (
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
+	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)

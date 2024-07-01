@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Mattermost
@@ -50,9 +50,9 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(endpoint, alert, result, resolved)))
-	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	buffer := bytes.NewBuffer([]byte(provider.buildRequestBody(ep, alert, result, resolved)))
+	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(ep.Group), buffer)
 	if err != nil {
 		return err
 	}
@@ -92,29 +92,32 @@ type Field struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, color, results string
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	var message, color string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 		color = "#36A64F"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = ":white_check_mark:"
-		} else {
-			prefix = ":x:"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = ":white_check_mark:"
+			} else {
+				prefix = ":x:"
+			}
+			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		Text:     "",
 		Username: "gatus",
 		IconURL:  "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
@@ -125,17 +128,18 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 				Text:     message + description,
 				Short:    false,
 				Color:    color,
-				Fields: []Field{
-					{
-						Title: "Condition results",
-						Value: results,
-						Short: false,
-					},
-				},
 			},
 		},
-	})
-	return body
+	}
+	if len(formattedConditionResults) > 0 {
+		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
+			Title: "Condition results",
+			Value: formattedConditionResults,
+			Short: false,
+		})
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
@@ -151,6 +155,6 @@ func (provider *AlertProvider) getWebhookURLForGroup(group string) string {
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

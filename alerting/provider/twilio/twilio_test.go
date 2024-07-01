@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {
@@ -51,10 +51,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -69,10 +69,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
-	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")
 	}
-	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
 	}
 }

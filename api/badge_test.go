@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
-	"github.com/TwiN/gatus/v5/core/ui"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -19,7 +19,7 @@ func TestBadge(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -34,8 +34,8 @@ func TestBadge(t *testing.T) {
 	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
 	cfg.Endpoints[1].UIConfig = ui.GetDefaultConfig()
 
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Connected: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
@@ -108,6 +108,21 @@ func TestBadge(t *testing.T) {
 		{
 			Name:         "badge-health-for-invalid-key",
 			Path:         "/api/v1/endpoints/invalid_key/health/badge.svg",
+			ExpectedCode: http.StatusNotFound,
+		},
+		{
+			Name:         "badge-shields-health-up",
+			Path:         "/api/v1/endpoints/core_frontend/health/badge.shields",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-shields-health-down",
+			Path:         "/api/v1/endpoints/core_backend/health/badge.shields",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "badge-shields-health-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/health/badge.shields",
 			ExpectedCode: http.StatusNotFound,
 		},
 		{
@@ -203,30 +218,30 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	defer cache.Clear()
 
 	var (
-		firstCondition  = core.Condition("[STATUS] == 200")
-		secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-		thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+		firstCondition  = endpoint.Condition("[STATUS] == 200")
+		secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+		thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 	)
 
-	firstTestEndpoint := core.Endpoint{
+	firstTestEndpoint := endpoint.Endpoint{
 		Name:                    "a",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 		UIConfig:                ui.GetDefaultConfig(),
 	}
-	secondTestEndpoint := core.Endpoint{
+	secondTestEndpoint := endpoint.Endpoint{
 		Name:                    "b",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
@@ -240,10 +255,10 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 	}
 	cfg := &config.Config{
 		Metrics:   true,
-		Endpoints: []*core.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
+		Endpoints: []*endpoint.Endpoint{&firstTestEndpoint, &secondTestEndpoint},
 	}
 
-	testSuccessfulResult := core.Result{
+	testSuccessfulResult := endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -253,7 +268,7 @@ func TestGetBadgeColorFromResponseTime(t *testing.T) {
 		Timestamp:             time.Now(),
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,

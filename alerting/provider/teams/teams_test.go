@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -116,10 +116,10 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -143,6 +143,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Name         string
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		Resolved     bool
 		ExpectedBody string
 	}{
@@ -160,18 +161,28 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     true,
 			ExpectedBody: "{\"@type\":\"MessageCard\",\"@context\":\"http://schema.org/extensions\",\"themeColor\":\"#36A64F\",\"title\":\"\\u0026#x1F6A8; Gatus\",\"text\":\"An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row: description-2\",\"sections\":[{\"activityTitle\":\"Condition results\",\"text\":\"\\u0026#x2705; - `[CONNECTED] == true`\\u003cbr/\\u003e\\u0026#x2705; - `[STATUS] == 200`\\u003cbr/\\u003e\"}]}",
 		},
+		{
+			Name:         "resolved-with-no-conditions",
+			NoConditions: true,
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"@type\":\"MessageCard\",\"@context\":\"http://schema.org/extensions\",\"themeColor\":\"#36A64F\",\"title\":\"\\u0026#x1F6A8; Gatus\",\"text\":\"An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row: description-2\"}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*endpoint.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*endpoint.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+				}
+			}
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
-						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
-					},
-				},
+				&endpoint.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {
@@ -186,10 +197,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
-	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")
 	}
-	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
 	}
 }

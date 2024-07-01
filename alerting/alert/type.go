@@ -29,6 +29,9 @@ const (
 	// TypeGotify is the Type for the gotify alerting provider
 	TypeGotify Type = "gotify"
 
+	// TypeJetBrainsSpace is the Type for the jetbrains alerting provider
+	TypeJetBrainsSpace Type = "jetbrainsspace"
+
 	// TypeMatrix is the Type for the matrix alerting provider
 	TypeMatrix Type = "matrix"
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Teams
@@ -21,6 +21,9 @@ type AlertProvider struct {
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
+
+	// Title is the title of the message that will be sent
+	Title string `yaml:"title,omitempty"`
 }
 
 // Override is a case under which the default integration is overridden
@@ -44,9 +47,9 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(ep.Group), buffer)
 	if err != nil {
 		return err
 	}
@@ -69,7 +72,7 @@ type Body struct {
 	ThemeColor string    `json:"themeColor"`
 	Title      string    `json:"title"`
 	Text       string    `json:"text"`
-	Sections   []Section `json:"sections"`
+	Sections   []Section `json:"sections,omitempty"`
 }
 
 type Section struct {
@@ -78,16 +81,16 @@ type Section struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 		color = "#36A64F"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 		color = "#DD0000"
 	}
-	var results string
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -95,26 +98,30 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "&#x274C;"
 		}
-		results += fmt.Sprintf("%s - `%s`<br/>", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s - `%s`<br/>", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ": " + alertDescription
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		Type:       "MessageCard",
 		Context:    "http://schema.org/extensions",
 		ThemeColor: color,
-		Title:      "&#x1F6A8; Gatus",
+		Title:      provider.Title,
 		Text:       message + description,
-		Sections: []Section{
-			{
-				ActivityTitle: "Condition results",
-				Text:          results,
-			},
-		},
-	})
-	return body
+	}
+	if len(body.Title) == 0 {
+		body.Title = "&#x1F6A8; Gatus"
+	}
+	if len(formattedConditionResults) > 0 {
+		body.Sections = append(body.Sections, Section{
+			ActivityTitle: "Condition results",
+			Text:          formattedConditionResults,
+		})
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
@@ -130,6 +137,6 @@ func (provider *AlertProvider) getWebhookURLForGroup(group string) string {
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

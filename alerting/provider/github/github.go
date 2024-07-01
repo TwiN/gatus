@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
 )
@@ -70,12 +70,12 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	title := "alert(gatus): " + endpoint.DisplayName()
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	title := "alert(gatus): " + ep.DisplayName()
 	if !resolved {
 		_, _, err := provider.githubClient.Issues.Create(context.Background(), provider.repositoryOwner, provider.repositoryName, &github.IssueRequest{
 			Title: github.String(title),
-			Body:  github.String(provider.buildIssueBody(endpoint, alert, result)),
+			Body:  github.String(provider.buildIssueBody(ep, alert, result)),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create issue: %w", err)
@@ -104,26 +104,29 @@ func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert,
 }
 
 // buildIssueBody builds the body of the issue
-func (provider *AlertProvider) buildIssueBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result) string {
-	var results string
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = ":white_check_mark:"
-		} else {
-			prefix = ":x:"
+func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result) string {
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n\n## Condition results\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = ":white_check_mark:"
+			} else {
+				prefix = ":x:"
+			}
+			formattedConditionResults += fmt.Sprintf("- %s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("- %s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
-	message := fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
-	return message + description + "\n\n## Condition results\n" + results
+	message := fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+	return message + description + formattedConditionResults
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

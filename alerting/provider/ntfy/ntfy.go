@@ -11,7 +11,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 const (
@@ -46,8 +46,8 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.URL, buffer)
 	if err != nil {
 		return err
@@ -77,8 +77,8 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results, tag string
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	var message, formattedConditionResults, tag string
 	if resolved {
 		tag = "white_check_mark"
 		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
@@ -93,15 +93,15 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "🔴"
 		}
-		results += fmt.Sprintf("\n%s %s", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("\n%s %s", prefix, conditionResult.Condition)
 	}
 	if len(alert.GetDescription()) > 0 {
 		message += " with the following description: " + alert.GetDescription()
 	}
-	message += results
+	message += formattedConditionResults
 	body, _ := json.Marshal(Body{
 		Topic:    provider.Topic,
-		Title:    "Gatus: " + endpoint.DisplayName(),
+		Title:    "Gatus: " + ep.DisplayName(),
 		Message:  message,
 		Tags:     []string{tag},
 		Priority: provider.Priority,
@@ -110,6 +110,6 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

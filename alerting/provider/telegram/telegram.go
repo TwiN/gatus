@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 const defaultAPIURL = "https://api.telegram.org"
@@ -36,8 +36,8 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	apiURL := provider.APIURL
 	if apiURL == "" {
 		apiURL = defaultAPIURL
@@ -66,37 +66,41 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results string
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", ep.DisplayName(), alert.FailureThreshold)
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✅"
-		} else {
-			prefix = "❌"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n*Condition results*\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var text string
 	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n\n*Condition results*\n%s", message, alert.GetDescription(), results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n%s", message, alert.GetDescription(), formattedConditionResults)
 	} else {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Condition results*\n%s", message, results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}
-	body, _ := json.Marshal(Body{
+	bodyAsJSON, _ := json.Marshal(Body{
 		ChatID:    provider.ID,
 		Text:      text,
 		ParseMode: "MARKDOWN",
 	})
-	return body
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

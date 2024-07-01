@@ -9,7 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Google chat
@@ -50,9 +50,9 @@ func (provider *AlertProvider) IsValid() bool {
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(ep.Group), buffer)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ type OpenLink struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
 		color = "#36A64F"
@@ -121,7 +121,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		color = "#DD0000"
 		message = fmt.Sprintf("<font color='%s'>An alert has been triggered due to having failed %d time(s) in a row</font>", color, alert.FailureThreshold)
 	}
-	var results string
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -129,7 +129,7 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = "❌"
 		}
-		results += fmt.Sprintf("%s   %s<br>", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s   %s<br>", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
@@ -143,19 +143,11 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 						Widgets: []Widgets{
 							{
 								KeyValue: &KeyValue{
-									TopLabel:         endpoint.DisplayName(),
+									TopLabel:         ep.DisplayName(),
 									Content:          message,
 									ContentMultiline: "true",
 									BottomLabel:      description,
 									Icon:             "BOOKMARK",
-								},
-							},
-							{
-								KeyValue: &KeyValue{
-									TopLabel:         "Condition results",
-									Content:          results,
-									ContentMultiline: "true",
-									Icon:             "DESCRIPTION",
 								},
 							},
 						},
@@ -164,7 +156,17 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 			},
 		},
 	}
-	if endpoint.Type() == core.EndpointTypeHTTP {
+	if len(formattedConditionResults) > 0 {
+		payload.Cards[0].Sections[0].Widgets = append(payload.Cards[0].Sections[0].Widgets, Widgets{
+			KeyValue: &KeyValue{
+				TopLabel:         "Condition results",
+				Content:          formattedConditionResults,
+				ContentMultiline: "true",
+				Icon:             "DESCRIPTION",
+			},
+		})
+	}
+	if ep.Type() == endpoint.TypeHTTP {
 		// We only include a button targeting the URL if the endpoint is an HTTP endpoint
 		// If the URL isn't prefixed with https://, Google Chat will just display a blank message aynways.
 		// See https://github.com/TwiN/gatus/issues/362
@@ -173,14 +175,14 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 				{
 					TextButton: TextButton{
 						Text:    "URL",
-						OnClick: OnClick{OpenLink: OpenLink{URL: endpoint.URL}},
+						OnClick: OnClick{OpenLink: OpenLink{URL: ep.URL}},
 					},
 				},
 			},
 		})
 	}
-	body, _ := json.Marshal(payload)
-	return body
+	bodyAsJSON, _ := json.Marshal(payload)
+	return bodyAsJSON
 }
 
 // getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
@@ -196,6 +198,6 @@ func (provider *AlertProvider) getWebhookURLForGroup(group string) string {
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
-func (provider AlertProvider) GetDefaultAlert() *alert.Alert {
+func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }

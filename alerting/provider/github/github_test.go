@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 	"github.com/google/go-github/v48/github"
 )
@@ -85,10 +85,10 @@ func TestAlertProvider_Send(t *testing.T) {
 			scenario.Provider.githubClient = github.NewClient(nil)
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -109,37 +109,48 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	firstDescription := "description-1"
 	scenarios := []struct {
 		Name         string
-		Endpoint     core.Endpoint
+		Endpoint     endpoint.Endpoint
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		ExpectedBody string
 	}{
 		{
 			Name:         "triggered",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 3},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\n> description-1\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
 		},
 		{
-			Name:         "no-description",
-			Endpoint:     core.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Name:         "triggered-with-no-description",
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{FailureThreshold: 10},
 			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row\n\n## Condition results\n- :white_check_mark: - `[CONNECTED] == true`\n- :x: - `[STATUS] == 200`",
 		},
+		{
+			Name:         "triggered-with-no-conditions",
+			NoConditions: true,
+			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 10},
+			ExpectedBody: "An alert for **endpoint-name** has been triggered due to having failed 10 time(s) in a row:\n> description-1",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*endpoint.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*endpoint.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: true},
+					{Condition: "[STATUS] == 200", Success: false},
+				}
+			}
 			body := scenario.Provider.buildIssueBody(
 				&scenario.Endpoint,
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: true},
-						{Condition: "[STATUS] == 200", Success: false},
-					},
-				},
+				&endpoint.Result{ConditionResults: conditionResults},
 			)
 			if strings.TrimSpace(body) != strings.TrimSpace(scenario.ExpectedBody) {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
@@ -149,10 +160,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
-	if (AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")
 	}
-	if (AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
 	}
 }

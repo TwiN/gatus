@@ -1,34 +1,36 @@
 package sql
 
 import (
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
 var (
-	firstCondition  = core.Condition("[STATUS] == 200")
-	secondCondition = core.Condition("[RESPONSE_TIME] < 500")
-	thirdCondition  = core.Condition("[CERTIFICATE_EXPIRATION] < 72h")
+	firstCondition  = endpoint.Condition("[STATUS] == 200")
+	secondCondition = endpoint.Condition("[RESPONSE_TIME] < 500")
+	thirdCondition  = endpoint.Condition("[CERTIFICATE_EXPIRATION] < 72h")
 
 	now = time.Now()
 
-	testEndpoint = core.Endpoint{
+	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
 		Group:                   "group",
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
 		Interval:                30 * time.Second,
-		Conditions:              []core.Condition{firstCondition, secondCondition, thirdCondition},
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
 		Alerts:                  nil,
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
-	testSuccessfulResult = core.Result{
+	testSuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -38,7 +40,7 @@ var (
 		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -53,7 +55,7 @@ var (
 			},
 		},
 	}
-	testUnsuccessfulResult = core.Result{
+	testUnsuccessfulResult = endpoint.Result{
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -63,7 +65,7 @@ var (
 		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
-		ConditionResults: []*core.ConditionResult{
+		ConditionResults: []*endpoint.ConditionResult{
 			{
 				Condition: "[STATUS] == 200",
 				Success:   true,
@@ -81,13 +83,13 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", "TestNewStore.db", false); err != ErrDatabaseDriverNotSpecified {
+	if _, err := NewStore("", t.TempDir()+"/TestNewStore.db", false); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", "", false); err != ErrPathNotSpecified {
+	if _, err := NewStore("sqlite", "", false); !errors.Is(err, ErrPathNotSpecified) {
 		t.Error("expected error due to blank path parameter")
 	}
-	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", false); err != nil {
+	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", true); err != nil {
 		t.Error("shouldn't have returned any error, got", err.Error())
 	} else {
 		_ = store.db.Close()
@@ -100,7 +102,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-5 * time.Hour), Success: true})
 
 	tx, _ := store.db.Begin()
 	oldest, _ := store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -110,7 +112,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should remain at ~5 hours old, because this entry is more recent
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-3 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -120,7 +122,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// The oldest cache entry should now become at ~8 hours old, because this entry is older
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-8 * time.Hour), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -130,7 +132,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -141,7 +143,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 
 	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
 	// one should be deleted since they both surpass uptimeRetention
-	store.Insert(&testEndpoint, &core.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -166,6 +168,40 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 		}
 	}
 	store.Clear()
+}
+
+func TestStore_InsertWithCaching(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertWithCaching.db", true)
+	defer store.Close()
+	// Add 2 results
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	store.Insert(&testEndpoint, &testSuccessfulResult)
+	// Verify that they exist
+	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
+	if len(endpointStatuses[0].Results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(endpointStatuses[0].Results))
+	}
+	// Add 2 more results
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	store.Insert(&testEndpoint, &testUnsuccessfulResult)
+	// Verify that they exist
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
+		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
+	if len(endpointStatuses[0].Results) != 4 {
+		t.Fatalf("expected 4 results, got %d", len(endpointStatuses[0].Results))
+	}
+	// Clear the store, which should also clear the cache
+	store.Clear()
+	// Verify that they no longer exist
+	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 0 {
+		t.Fatalf("expected 0 EndpointStatus, got %d", numberOfEndpointStatuses)
+	}
 }
 
 func TestStore_Persistence(t *testing.T) {
@@ -313,7 +349,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	if _, err := store.insertEndpoint(tx, &testEndpoint); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if err := store.insertEndpointEvent(tx, 1, core.NewEventFromResult(&testSuccessfulResult)); err == nil {
+	if err := store.insertEndpointEvent(tx, 1, endpoint.NewEventFromResult(&testSuccessfulResult)); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 	if err := store.insertEndpointResult(tx, 1, &testSuccessfulResult); err == nil {
@@ -368,10 +404,10 @@ func TestStore_NoRows(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
-	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); !errors.Is(err, errNoRowsReturned) {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
-	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); err != errNoRowsReturned {
+	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); !errors.Is(err, errNoRowsReturned) {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
 }
@@ -562,5 +598,133 @@ func TestCacheKey(t *testing.T) {
 				t.Errorf("expected ResultsPageSize %d, got %d", scenario.params.ResultsPageSize, extractedParams.ResultsPageSize)
 			}
 		})
+	}
+}
+
+func TestTriggeredEndpointAlertsPersistence(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestTriggeredEndpointAlertsPersistence.db", false)
+	defer store.Close()
+	yes, desc := false, "description"
+	ep := testEndpoint
+	ep.NumberOfSuccessesInARow = 0
+	alrt := &alert.Alert{
+		Type:             alert.TypePagerDuty,
+		Enabled:          &yes,
+		FailureThreshold: 4,
+		SuccessThreshold: 2,
+		Description:      &desc,
+		SendOnResolved:   &yes,
+		Triggered:        true,
+		ResolveKey:       "1234567",
+	}
+	// Alert just triggered, so NumberOfSuccessesInARow is 0
+	if err := store.UpsertTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, resolveKey, numberOfSuccessesInARow, err := store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !exists {
+		t.Error("expected triggered alert to exist")
+	}
+	if resolveKey != alrt.ResolveKey {
+		t.Errorf("expected resolveKey %s, got %s", alrt.ResolveKey, resolveKey)
+	}
+	if numberOfSuccessesInARow != ep.NumberOfSuccessesInARow {
+		t.Errorf("expected persisted NumberOfSuccessesInARow to be %d, got %d", ep.NumberOfSuccessesInARow, numberOfSuccessesInARow)
+	}
+	// Endpoint just had a successful evaluation, so NumberOfSuccessesInARow is now 1
+	ep.NumberOfSuccessesInARow++
+	if err := store.UpsertTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, resolveKey, numberOfSuccessesInARow, err = store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if !exists {
+		t.Error("expected triggered alert to exist")
+	}
+	if resolveKey != alrt.ResolveKey {
+		t.Errorf("expected resolveKey %s, got %s", alrt.ResolveKey, resolveKey)
+	}
+	if numberOfSuccessesInARow != ep.NumberOfSuccessesInARow {
+		t.Errorf("expected persisted NumberOfSuccessesInARow to be %d, got %d", ep.NumberOfSuccessesInARow, numberOfSuccessesInARow)
+	}
+	// Simulate the endpoint having another successful evaluation, which means the alert is now resolved,
+	// and we should delete the triggered alert from the store
+	ep.NumberOfSuccessesInARow++
+	if err := store.DeleteTriggeredEndpointAlert(&ep, alrt); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	exists, _, _, err = store.GetTriggeredEndpointAlert(&ep, alrt)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if exists {
+		t.Error("expected triggered alert to no longer exist as it has been deleted")
+	}
+}
+
+func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint.db", false)
+	defer store.Close()
+	yes, desc := false, "description"
+	ep1 := testEndpoint
+	ep1.Name = "ep1"
+	ep2 := testEndpoint
+	ep2.Name = "ep2"
+	alert1 := alert.Alert{
+		Type:             alert.TypePagerDuty,
+		Enabled:          &yes,
+		FailureThreshold: 4,
+		SuccessThreshold: 2,
+		Description:      &desc,
+		SendOnResolved:   &yes,
+		Triggered:        true,
+		ResolveKey:       "1234567",
+	}
+	alert2 := alert1
+	alert2.Type, alert2.ResolveKey = alert.TypeSlack, ""
+	alert3 := alert2
+	if err := store.UpsertTriggeredEndpointAlert(&ep1, &alert1); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if err := store.UpsertTriggeredEndpointAlert(&ep1, &alert2); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if err := store.UpsertTriggeredEndpointAlert(&ep2, &alert3); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert1); !exists {
+		t.Error("expected alert1 to have been deleted")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert2); !exists {
+		t.Error("expected alert2 to exist for ep1")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
+	}
+	// Now we simulate the alert configuration being updated, and the alert being resolved
+	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep1, []string{alert2.Checksum()}); deleted != 1 {
+		t.Errorf("expected 1 triggered alert to be deleted, got %d", deleted)
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert1); exists {
+		t.Error("expected alert1 to have been deleted")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep1, &alert2); !exists {
+		t.Error("expected alert2 to exist for ep1")
+	}
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
+	}
+	// Now let's just assume all alerts for ep1 were removed
+	if deleted := store.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(&ep1, []string{}); deleted != 1 {
+		t.Errorf("expected 1 triggered alert to be deleted, got %d", deleted)
+	}
+	// Make sure the alert for ep2 still exists
+	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
+		t.Error("expected alert3 to exist for ep2")
 	}
 }

@@ -5,7 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
@@ -14,15 +15,15 @@ import (
 
 // Store is the interface that each store should implement
 type Store interface {
-	// GetAllEndpointStatuses returns the JSON encoding of all monitored core.EndpointStatus
-	// with a subset of core.Result defined by the page and pageSize parameters
-	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*core.EndpointStatus, error)
+	// GetAllEndpointStatuses returns the JSON encoding of all monitored endpoint.Status
+	// with a subset of endpoint.Result defined by the page and pageSize parameters
+	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
 
 	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
+	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetEndpointStatusByKey returns the endpoint status for a given key
-	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*core.EndpointStatus, error)
+	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -34,12 +35,27 @@ type Store interface {
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
 	// Insert adds the observed result for the specified endpoint into the store
-	Insert(endpoint *core.Endpoint, result *core.Result) error
+	Insert(ep *endpoint.Endpoint, result *endpoint.Result) error
 
-	// DeleteAllEndpointStatusesNotInKeys removes all EndpointStatus that are not within the keys provided
+	// DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 	//
 	// Used to delete endpoints that have been persisted but are no longer part of the configured endpoints
 	DeleteAllEndpointStatusesNotInKeys(keys []string) int
+
+	// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
+	GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error)
+
+	// UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
+	// Used for persistence of triggered alerts across application restarts
+	UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error
+
+	// DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
+	DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error
+
+	// DeleteAllTriggeredAlertsNotInChecksumsByEndpoint removes all triggered alerts owned by an endpoint whose alert
+	// configurations are not provided in the checksums list.
+	// This prevents triggered alerts that have been removed or modified from lingering in the database.
+	DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int
 
 	// Clear deletes everything from the store
 	Clear()
@@ -75,7 +91,7 @@ var (
 func Get() Store {
 	if !initialized {
 		// This only happens in tests
-		log.Println("[store][Get] Provider requested before it was initialized, automatically initializing")
+		log.Println("[store.Get] Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
 			panic("failed to automatically initialize store: " + err.Error())
@@ -94,11 +110,11 @@ func Initialize(cfg *storage.Config) error {
 	}
 	if cfg == nil {
 		// This only happens in tests
-		log.Println("[store][Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
+		log.Println("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
 		cfg = &storage.Config{}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store][Initialize] Creating storage provider of type=%s", cfg.Type)
+		log.Printf("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
@@ -120,13 +136,13 @@ func autoSave(ctx context.Context, store Store, interval time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[store][autoSave] Stopping active job")
+			log.Printf("[store.autoSave] Stopping active job")
 			return
 		case <-time.After(interval):
-			log.Printf("[store][autoSave] Saving")
+			log.Printf("[store.autoSave] Saving")
 			err := store.Save()
 			if err != nil {
-				log.Println("[store][autoSave] Save failed:", err.Error())
+				log.Println("[store.autoSave] Save failed:", err.Error())
 			}
 		}
 	}

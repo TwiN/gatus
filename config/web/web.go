@@ -13,16 +13,30 @@ const (
 
 	// DefaultPort is the default port the application will listen on
 	DefaultPort = 8080
+
+	// DefaultReadBufferSize is the default value for ReadBufferSize
+	DefaultReadBufferSize = 8192
+
+	// MinimumReadBufferSize is the minimum value for ReadBufferSize, and also the default value set
+	// for fiber.Config.ReadBufferSize
+	MinimumReadBufferSize = 4096
 )
 
-// Config is the structure which supports the configuration of the endpoint
-// which provides access to the web frontend
+// Config is the structure which supports the configuration of the server listening to requests
 type Config struct {
 	// Address to listen on (defaults to 0.0.0.0 specified by DefaultAddress)
 	Address string `yaml:"address"`
 
 	// Port to listen on (default to 8080 specified by DefaultPort)
 	Port int `yaml:"port"`
+
+	// ReadBufferSize sets fiber.Config.ReadBufferSize, which is the buffer size for reading requests coming from a
+	// single connection and also acts as a limit for the maximum header size.
+	//
+	// If you're getting occasional "Request Header Fields Too Large", you may want to try increasing this value.
+	//
+	// Defaults to DefaultReadBufferSize
+	ReadBufferSize int `yaml:"read-buffer-size,omitempty"`
 
 	// TLS configuration (optional)
 	TLS *TLSConfig `yaml:"tls,omitempty"`
@@ -38,7 +52,11 @@ type TLSConfig struct {
 
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
-	return &Config{Address: DefaultAddress, Port: DefaultPort}
+	return &Config{
+		Address:        DefaultAddress,
+		Port:           DefaultPort,
+		ReadBufferSize: DefaultReadBufferSize,
+	}
 }
 
 // ValidateAndSetDefaults validates the web configuration and sets the default values if necessary.
@@ -52,6 +70,12 @@ func (web *Config) ValidateAndSetDefaults() error {
 		web.Port = DefaultPort
 	} else if web.Port < 0 || web.Port > math.MaxUint16 {
 		return fmt.Errorf("invalid port: value should be between %d and %d", 0, math.MaxUint16)
+	}
+	// Validate ReadBufferSize
+	if web.ReadBufferSize == 0 {
+		web.ReadBufferSize = DefaultReadBufferSize // Not set? Use the default value.
+	} else if web.ReadBufferSize < MinimumReadBufferSize {
+		web.ReadBufferSize = MinimumReadBufferSize // Below the minimum? Use the minimum value.
 	}
 	// Try to load the TLS certificates
 	if web.TLS != nil {

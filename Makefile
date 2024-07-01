@@ -1,17 +1,18 @@
 BINARY=gatus
 
-# Because there's a folder called "test", we need to make the target "test" phony
-.PHONY: test
-
+.PHONY: install
 install:
-	go build -mod vendor -o $(BINARY) .
+	go build -v -o $(BINARY) .
 
+.PHONY: run
 run:
 	GATUS_CONFIG_PATH=./config.yaml ./$(BINARY)
 
+.PHONY: clean
 clean:
 	rm $(BINARY)
 
+.PHONY: test
 test:
 	go test ./... -cover
 
