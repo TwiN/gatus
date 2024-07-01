@@ -91,7 +91,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timezone != "" {
 		c.TimezoneLocation, err = time.LoadLocation(c.Timezone)
 		if err != nil {
-			return errInvalidTimezone
+			return fmt.Errorf("%w: %w", errInvalidTimezone, err)
 		}
 	} else {
 		c.Timezone = "UTC"
