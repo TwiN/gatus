@@ -70,6 +70,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
+	Channel     string       `json:"channel"`
 	Text        string       `json:"text"`
 	Username    string       `json:"username"`
 	IconURL     string       `json:"icon_url"`
@@ -118,6 +119,7 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		description = ":\n> " + alertDescription
 	}
 	body := Body{
+		Channel:  "",
 		Text:     "",
 		Username: "gatus",
 		IconURL:  "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
