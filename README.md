@@ -877,7 +877,7 @@ endpoints:
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
 | `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
-| `alerting.mattermost.channel`                 | Mattermost channel name                                                                     | `""`          |
+| `alerting.mattermost.channel`                 | Mattermost channel name override (optional)                                                                    | `""`          |
 | `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
