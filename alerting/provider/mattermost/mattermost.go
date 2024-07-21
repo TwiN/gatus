@@ -70,7 +70,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
-	Channel     string       `json:"channel,omitempty"`
+	Channel     string       `json:"channel,omitempty"` // Optional channel override
 	Text        string       `json:"text"`
 	Username    string       `json:"username"`
 	IconURL     string       `json:"icon_url"`
