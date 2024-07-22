@@ -21,14 +21,14 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	Topic    string `yaml:"topic"`
-	URL      string `yaml:"url,omitempty"`      // Defaults to DefaultURL
-	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
-	Token    string `yaml:"token,omitempty"`    // Defaults to ""
-	Email    string `yaml:"email,omitempty"`    // Defaults to ""
-	Click    string `yaml:"click,omitempty"`    // Defaults to ""
-	Firebase *bool  `yaml:"firebase,omitempty"` // Defaults to nil
-	Cache    *bool  `yaml:"cache,omitempty"`    // Defaults to nil
+	Topic           string `yaml:"topic"`
+	URL             string `yaml:"url,omitempty"`              // Defaults to DefaultURL
+	Priority        int    `yaml:"priority,omitempty"`         // Defaults to DefaultPriority
+	Token           string `yaml:"token,omitempty"`            // Defaults to ""
+	Email           string `yaml:"email,omitempty"`            // Defaults to ""
+	Click           string `yaml:"click,omitempty"`            // Defaults to ""
+	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
+	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -60,10 +60,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if len(provider.Token) > 0 {
 		request.Header.Set("Authorization", "Bearer "+provider.Token)
 	}
-	if provider.Firebase != nil && !*provider.Firebase {
+	if provider.DisableFirebase {
 		request.Header.Set("Firebase", "no")
 	}
-	if provider.Cache != nil && !*provider.Cache {
+	if provider.DisableCache {
 		request.Header.Set("Cache", "no")
 	}
 	response, err := client.GetHTTPClient(nil).Do(request)

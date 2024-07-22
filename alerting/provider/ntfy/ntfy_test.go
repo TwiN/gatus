@@ -132,8 +132,6 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 
 func TestAlertProvider_Send(t *testing.T) {
 	description := "description-1"
-	firebase := false
-	cache := false
 	scenarios := []struct {
 		Name            string
 		Provider        AlertProvider
@@ -154,7 +152,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "no firebase",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Firebase: &firebase},
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
@@ -165,7 +163,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "no cache",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Cache: &cache},
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableCache: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
@@ -176,7 +174,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "neither firebase & cache",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Firebase: &firebase, Cache: &cache},
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true, DisableCache: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
