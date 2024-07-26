@@ -25,6 +25,16 @@ type AlertProvider struct {
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Overrid that may be prioritized over the default configuration
+	Overrides []*Override `yaml:"overrides,omitempty"`
+}
+
+// Override is a configuration that may be prioritized over the default configuration
+type Override struct {
+	group string `yaml:"group"`
+	token string `yaml:"token"`
+	id    string `yaml:"id"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -32,6 +42,18 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
 	}
+
+	registerGroups := make(map[string]bool)
+	for _, override := range provider.Overrides {
+		if len(override.group) == 0 {
+			return false
+		}
+		if _, ok := registerGroups[override.group]; ok {
+			return false
+		}
+		registerGroups[override.group] = true
+	}
+
 	return len(provider.Token) > 0 && len(provider.ID) > 0
 }
 
@@ -42,7 +64,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if apiURL == "" {
 		apiURL = defaultAPIURL
 	}
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", apiURL, provider.Token), buffer)
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", apiURL, provider.getTokenForGroup(ep.Group)), buffer)
 	if err != nil {
 		return err
 	}
@@ -57,6 +79,15 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	return err
+}
+
+func (provider *AlertProvider) getTokenForGroup(group string) string {
+	for _, override := range provider.Overrides {
+		if override.group == group && len(override.token) > 0 {
+			return override.token
+		}
+	}
+	return provider.Token
 }
 
 type Body struct {
@@ -93,11 +124,20 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}
 	bodyAsJSON, _ := json.Marshal(Body{
-		ChatID:    provider.ID,
+		ChatID:    provider.getIDForGroup(ep.Group),
 		Text:      text,
 		ParseMode: "MARKDOWN",
 	})
 	return bodyAsJSON
+}
+
+func (provider *AlertProvider) getIDForGroup(group string) string {
+	for _, override := range provider.Overrides {
+		if override.group == group && len(override.id) > 0 {
+			return override.id
+		}
+	}
+	return provider.ID
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
