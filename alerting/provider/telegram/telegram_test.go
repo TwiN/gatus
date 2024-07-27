@@ -39,7 +39,7 @@ func TestAlertProvider_IsValidWithOverrides(t *testing.T) {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
-	t.Run("invalid-provider-override-dublicate-group", func(t *testing.T) {
+	t.Run("invalid-provider-override-duplicate-group", func(t *testing.T) {
 		invalidProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group1", token: "token", id: "id"}, {group: "group1", id: "id2"}}}
 		if invalidProvider.IsValid() {
 			t.Error("provider shouldn't have been valid")
