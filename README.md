@@ -279,7 +279,7 @@ This allows you to monitor anything you want, even when what you want to check l
 
 For instance:
 - You can create your own agent that lives in a private network and pushes the status of your services to a publicly-exposed Gatus instance
-- You can monitor services that are not supported by Gatus 
+- You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
 | Parameter                      | Description                                                                                                            | Default       |
@@ -1185,14 +1185,18 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Telegram alerts
-| Parameter                         | Description                                                                                | Default                    |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
-| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`                       |
-| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`              |
-| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.api-url`       | Telegram API URL                                                                           | `https://api.telegram.org` |
-| `alerting.telegram.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
-| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| Parameter                             | Description                                                                                | Default                    |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
+| `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
+| `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
+| `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
+| `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
+| `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
+| `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
+| `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
+| `alerting.telegram.overrides[].token` | Telegram Bot Token for override default value                                              | `""`                       |
+| `alerting.telegram.overrides[].id`    | Telegram User ID for override default value                                                | `""`                       |
 
 ```yaml
 alerting:
