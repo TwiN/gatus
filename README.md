@@ -1459,15 +1459,15 @@ To do that, you'll have to use the maintenance configuration:
 | `maintenance.enabled`  | Whether the maintenance period is enabled                                                                                              | `true`        |
 | `maintenance.start`    | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)                                                           | Required `""` |
 | `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
+| `maintenance.timezone` | Timezone of the maintenance window format (e.g. `Europe/Amsterdam`).<br />See [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for more info |  `UTC` |
 | `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
-
-> 📝 The maintenance configuration uses UTC
 
 Here's an example:
 ```yaml
 maintenance:
   start: 23:00
   duration: 1h
+  timezone: "Europe/Amsterdam"
   every: [Monday, Thursday]
 ```
 Note that you can also specify each day on separate lines:
@@ -1475,6 +1475,7 @@ Note that you can also specify each day on separate lines:
 maintenance:
   start: 23:00
   duration: 1h
+  timezone: "Europe/Amsterdam"
   every:
     - Monday
     - Thursday

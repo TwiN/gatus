@@ -188,7 +188,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
 		}
 	} else {
-		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", configPath)
+		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", usedConfigPath)
 		if data, err := os.ReadFile(usedConfigPath); err != nil {
 			return nil, err
 		} else {
