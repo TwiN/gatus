@@ -71,7 +71,7 @@ func TestAlertProvider_getTokenAndIDForGroup(t *testing.T) {
 			t.Error("id should have been 'overrideID'")
 		}
 	})
-	t.Run("get-default-token-with-override", func(t *testing.T) {
+	t.Run("get-default-token-with-overridden-id", func(t *testing.T) {
 		provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group", id: "overrideID"}}}
 		token := provider.getTokenForGroup("group")
 		if token != provider.Token {
