@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strings"
 
@@ -50,29 +51,32 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
+// ReplacePlaceholder replaces occurrences of the placeholder in body, url and all headers with content
+func (provider *AlertProvider) ReplacePlaceholder(placeholder string, content string, body *string, url *string, headers map[string]string) {
+	*body = strings.ReplaceAll(*body, placeholder, content)
+	*url = strings.ReplaceAll(*url, placeholder, content)
+	for k, v := range headers {
+		headers[k] = strings.ReplaceAll(v, placeholder, content)
+	}
+}
+
 func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
-	body, url, method := provider.Body, provider.URL, provider.Method
-	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
-	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
-	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
-	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
-	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
+	body, url, method, headers := provider.Body, provider.URL, provider.Method, maps.Clone(provider.Headers)
+	provider.ReplacePlaceholder("[ALERT_DESCRIPTION]", alert.GetDescription(), &body, &url, headers)
+	provider.ReplacePlaceholder("[ENDPOINT_NAME]", ep.Name, &body, &url, headers)
+	provider.ReplacePlaceholder("[ENDPOINT_GROUP]", ep.Group, &body, &url, headers)
+	provider.ReplacePlaceholder("[ENDPOINT_URL]", ep.URL, &body, &url, headers)
 	if resolved {
-		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
-		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
+		provider.ReplacePlaceholder("[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true), &body, &url, headers)
 	} else {
-		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
-		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
+		provider.ReplacePlaceholder("[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false), &body, &url, headers)
 	}
 	if len(method) == 0 {
 		method = http.MethodGet
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
 	request, _ := http.NewRequest(method, url, bodyBuffer)
-	for k, v := range provider.Headers {
+	for k, v := range headers {
 		request.Header.Set(k, v)
 	}
 	return request
