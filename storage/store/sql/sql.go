@@ -28,11 +28,12 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a cleanup
-	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
-	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
+	uptimeCleanUpThreshold     = 32 * 24 * time.Hour                // Maximum uptime age before triggering a cleanup
+	eventsCleanUpThreshold     = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
+	resultsCleanUpThreshold    = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
+	uptimeHourlyMergeThreshold = 25 * time.Hour                     // Minimum time before hourly uptime entries can be merged into daily uptime entries
 
-	uptimeRetention = 7 * 24 * time.Hour
+	uptimeRetention = 30 * 24 * time.Hour
 
 	cacheTTL = 10 * time.Minute
 )
@@ -946,6 +947,86 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time.Time) error {
 	_, err := tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, maxAge.Unix())
 	return err
+}
+
+// mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries merges all hourly uptime entries older than
+// uptimeHourlyMergeThreshold from now into daily uptime entries by summing all hourly entries of the same day into a
+// single entry.
+//
+// This effectively limits the number of uptime entries to (25+(n-2)) where 25 is for the first 25 entries with hourly
+// entries (defined by uptimeHourlyMergeThreshold) and n is the number of days for all entries older than 25 hours.
+// Supporting 30d of entries would then result in at most 25+30-2=76 entries instead of 24*30=720 entries.
+func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx *sql.Tx, endpointID int64) error {
+	// Calculate timestamp of the first full day of uptime entries that would not impact the uptime calculation for the first 24h
+	// The logic is that once at least 24 hours passed, we:
+	// - No longer need to worry about keeping hourly entries
+	// - Don't have to worry about new hourly entries being inserted, as the day has already passed
+	threshold := time.Now().Add(-uptimeHourlyMergeThreshold)
+	threshold = time.Date(threshold.Year(), threshold.Month(), threshold.Day(), 0, 0, 0, 0, threshold.Location())
+	// Get all uptime entries older than uptimeHourlyMergeThreshold
+	rows, err := tx.Query(
+		`
+			SELECT hour_unix_timestamp, total_executions, successful_executions, total_response_time
+			FROM endpoint_uptimes
+			WHERE endpoint_id = $1
+				AND hour_unix_timestamp < $2
+		`,
+		endpointID,
+		threshold.Unix(),
+	)
+	if err != nil {
+		return err
+	}
+	type Entry struct {
+		totalExecutions      int
+		successfulExecutions int
+		totalResponseTime    int
+	}
+	dailyEntries := make(map[int64]*Entry)
+	for rows.Next() {
+		var unixTimestamp int64
+		entry := Entry{}
+		if err = rows.Scan(&unixTimestamp, &entry.totalExecutions, &entry.successfulExecutions, &entry.totalResponseTime); err != nil {
+			return err
+		}
+		timestamp := time.Unix(unixTimestamp, 0)
+		unixTimestampFlooredAtDay := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 0, 0, 0, 0, timestamp.Location()).Unix()
+		if dailyEntry := dailyEntries[unixTimestampFlooredAtDay]; dailyEntry == nil {
+			dailyEntries[unixTimestampFlooredAtDay] = &entry
+		} else {
+			dailyEntries[unixTimestampFlooredAtDay].totalExecutions += entry.totalExecutions
+			dailyEntries[unixTimestampFlooredAtDay].successfulExecutions += entry.successfulExecutions
+			dailyEntries[unixTimestampFlooredAtDay].totalResponseTime += entry.totalResponseTime
+		}
+	}
+	// Delete older hourly uptime entries
+	_, err = tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, threshold.Unix())
+	if err != nil {
+		return err
+	}
+	// Insert new daily uptime entries
+	for unixTimestamp, entry := range dailyEntries {
+		_, err = tx.Exec(
+			`
+					INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
+					VALUES ($1, $2, $3, $4, $5)
+					ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
+						total_executions = $3,
+						successful_executions = $4,
+						total_response_time = $5
+				`,
+			endpointID,
+			unixTimestamp,
+			entry.totalExecutions,
+			entry.successfulExecutions,
+			entry.totalResponseTime,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	// FIXME: Find a way to ignore entries that were already merged?
+	return nil
 }
 
 func generateCacheKey(endpointKey string, p *paging.EndpointStatusParams) string {

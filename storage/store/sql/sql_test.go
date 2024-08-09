@@ -153,6 +153,57 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 }
 
+func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly.db", false)
+	defer store.Close()
+	now := time.Now().Truncate(time.Hour)
+	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+
+	scenarios := []struct {
+		numberOfHours                    int
+		expectedUptimeEntriesSmallerThan int
+	}{
+		{140, 48},
+		{150, 48},
+		{164, 48},
+		{165, 48},
+		{200, 48},
+	}
+	for _, scenario := range scenarios {
+		var numberOfUptimeEntriesForEndpoint int
+		for i := scenario.numberOfHours; i > 0; i-- {
+			//fmt.Printf("i: %d (%s)\n", i, now.Add(-time.Duration(i)*time.Hour))
+			// Create an uptime entry
+			err := store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-time.Duration(i) * time.Hour), Success: true})
+			if err != nil {
+				t.Log(err)
+			}
+			tx, _ := store.db.Begin()
+			// Merge all uptime entries, if applicable
+			err = store.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, 1)
+			if err != nil {
+				t.Log(err)
+			}
+			// check number of uptime entries for endpoint
+			//if err = tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", 1).Scan(&numberOfUptimeEntriesForEndpoint); err != nil {
+			//	t.Fatal(err)
+			//}
+			//t.Log("number of uptime entries for endpoint:", numberOfUptimeEntriesForEndpoint)
+			_ = tx.Commit()
+		}
+		// check number of uptime entries for endpoint
+		tx, _ := store.db.Begin()
+		if err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", 1).Scan(&numberOfUptimeEntriesForEndpoint); err != nil {
+			t.Fatal(err)
+		}
+		_ = tx.Commit()
+		if numberOfUptimeEntriesForEndpoint <= scenario.expectedUptimeEntriesSmallerThan {
+			t.Errorf("expected %d (uptime entries) to be smaller than %d", scenario.expectedUptimeEntriesSmallerThan, numberOfUptimeEntriesForEndpoint)
+		}
+		store.Clear()
+	}
+}
+
 func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
 	defer store.Close()

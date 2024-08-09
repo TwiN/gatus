@@ -34,8 +34,10 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "30d":
+		from = time.Now().Truncate(time.Hour).Add(-30 * 7 * time.Hour)
 	case "7d":
-		from = time.Now().Truncate(time.Hour).Add(-24 * 7 * time.Hour)
+		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:

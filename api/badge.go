@@ -42,6 +42,8 @@ func UptimeBadge(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "30d":
+		from = time.Now().Add(-30 * 24 * time.Hour)
 	case "7d":
 		from = time.Now().Add(-7 * 24 * time.Hour)
 	case "24h":
@@ -75,6 +77,8 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 		duration := c.Params("duration")
 		var from time.Time
 		switch duration {
+		case "30d":
+			from = time.Now().Add(-30 * 24 * time.Hour)
 		case "7d":
 			from = time.Now().Add(-7 * 24 * time.Hour)
 		case "24h":
@@ -161,6 +165,8 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
 	switch duration {
+	case "30d":
+		labelWidth = 70
 	case "7d":
 		labelWidth = 65
 	case "24h":
@@ -227,6 +233,8 @@ func getBadgeColorFromUptime(uptime float64) string {
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
 	var labelWidth, valueWidth int
 	switch duration {
+	case "30d":
+		labelWidth = 110
 	case "7d":
 		labelWidth = 105
 	case "24h":
