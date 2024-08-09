@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	numberOfHoursInTenDays = 10 * 24
-	sevenDays              = 7 * 24 * time.Hour
+	uptimeCleanUpThreshold = 32 * 24
+	uptimeRetention        = 30 * 24 * time.Hour
 )
 
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
@@ -30,10 +30,10 @@ func processUptimeAfterResult(uptime *endpoint.Uptime, result *endpoint.Result) 
 	hourlyStats.TotalExecutionsResponseTime += uint64(result.Duration.Milliseconds())
 	// Clean up only when we're starting to have too many useless keys
 	// Note that this is only triggered when there are more entries than there should be after
-	// 10 days, despite the fact that we are deleting everything that's older than 7 days.
-	// This is to prevent re-iterating on every `processUptimeAfterResult` as soon as the uptime has been logged for 7 days.
-	if len(uptime.HourlyStatistics) > numberOfHoursInTenDays {
-		sevenDaysAgo := time.Now().Add(-(sevenDays + time.Hour)).Unix()
+	// 32 days, despite the fact that we are deleting everything that's older than 30 days.
+	// This is to prevent re-iterating on every `processUptimeAfterResult` as soon as the uptime has been logged for 30 days.
+	if len(uptime.HourlyStatistics) > uptimeCleanUpThreshold {
+		sevenDaysAgo := time.Now().Add(-(uptimeRetention + time.Hour)).Unix()
 		for hourlyUnixTimestamp := range uptime.HourlyStatistics {
 			if sevenDaysAgo > hourlyUnixTimestamp {
 				delete(uptime.HourlyStatistics, hourlyUnixTimestamp)

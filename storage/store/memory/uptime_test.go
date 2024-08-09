@@ -51,8 +51,8 @@ func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	timestamp := now.Add(-12 * 24 * time.Hour)
 	for timestamp.Unix() <= now.Unix() {
 		AddResult(status, &endpoint.Result{Timestamp: timestamp, Success: true})
-		if len(status.Uptime.HourlyStatistics) > numberOfHoursInTenDays {
-			t.Errorf("At no point in time should there be more than %d entries in status.SuccessfulExecutionsPerHour, but there are %d", numberOfHoursInTenDays, len(status.Uptime.HourlyStatistics))
+		if len(status.Uptime.HourlyStatistics) > uptimeCleanUpThreshold {
+			t.Errorf("At no point in time should there be more than %d entries in status.SuccessfulExecutionsPerHour, but there are %d", uptimeCleanUpThreshold, len(status.Uptime.HourlyStatistics))
 		}
 		// Simulate endpoint with an interval of 3 minutes
 		timestamp = timestamp.Add(3 * time.Minute)
