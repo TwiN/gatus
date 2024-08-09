@@ -163,11 +163,18 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 		numberOfHours                    int
 		expectedUptimeEntriesSmallerThan int
 	}{
-		{140, 48},
-		{150, 48},
-		{164, 48},
-		{165, 48},
-		{200, 48},
+		{1, 1},
+		{2, 2},
+		{10, 10},
+		{20, 20},
+		{30, 30},
+		{40, 40},
+		{50, 50},
+		{60, 60},
+		{70, 70},
+		{150, 80},
+		{200, 80},
+		{300, 80},
 	}
 	for _, scenario := range scenarios {
 		var numberOfUptimeEntriesForEndpoint int
@@ -197,8 +204,8 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 			t.Fatal(err)
 		}
 		_ = tx.Commit()
-		if scenario.expectedUptimeEntriesSmallerThan > numberOfUptimeEntriesForEndpoint {
-			t.Errorf("expected %d (uptime entries) to be smaller than %d", scenario.expectedUptimeEntriesSmallerThan, numberOfUptimeEntriesForEndpoint)
+		if scenario.expectedUptimeEntriesSmallerThan < numberOfUptimeEntriesForEndpoint {
+			t.Errorf("expected %d (uptime entries) to be smaller than %d", numberOfUptimeEntriesForEndpoint, scenario.expectedUptimeEntriesSmallerThan)
 		}
 		store.Clear()
 	}
