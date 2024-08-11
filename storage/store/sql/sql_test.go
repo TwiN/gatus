@@ -269,6 +269,9 @@ func TestStore_Persistence(t *testing.T) {
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*7), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 7d should've been 0.5, got %f", uptime)
 	}
+	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*30), time.Now()); uptime != 0.5 {
+		t.Errorf("the uptime over the past 30d should've been 0.5, got %f", uptime)
+	}
 	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
 	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
