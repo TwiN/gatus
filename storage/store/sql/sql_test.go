@@ -132,18 +132,18 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 	}
 
 	// Since this is one hour before reaching the clean up threshold, the oldest entry should now be this one
-	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold - time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeAgeCleanUpThreshold - time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
 	_ = tx.Commit()
-	if oldest.Truncate(time.Hour) != uptimeCleanUpThreshold-time.Hour {
-		t.Errorf("oldest endpoint uptime entry should've been ~%s hours old, was %s", uptimeCleanUpThreshold-time.Hour, oldest)
+	if oldest.Truncate(time.Hour) != uptimeAgeCleanUpThreshold-time.Hour {
+		t.Errorf("oldest endpoint uptime entry should've been ~%s hours old, was %s", uptimeAgeCleanUpThreshold-time.Hour, oldest)
 	}
 
-	// Since this entry is after the uptimeCleanUpThreshold, both this entry as well as the previous
+	// Since this entry is after the uptimeAgeCleanUpThreshold, both this entry as well as the previous
 	// one should be deleted since they both surpass uptimeRetention
-	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeCleanUpThreshold + time.Hour)), Success: true})
+	store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-(uptimeAgeCleanUpThreshold + time.Hour)), Success: true})
 
 	tx, _ = store.db.Begin()
 	oldest, _ = store.getAgeOfOldestEndpointUptimeEntry(tx, 1)
@@ -161,7 +161,7 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 
 	scenarios := []struct {
 		numberOfHours                    int
-		expectedUptimeEntriesSmallerThan int
+		expectedUptimeEntriesSmallerThan int64
 	}{
 		{1, 1},
 		{2, 2},
@@ -172,12 +172,16 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 		{50, 50},
 		{60, 60},
 		{70, 70},
-		{150, 80},
-		{200, 80},
-		{300, 80},
+		{80, 80},
+		{100, 90},
+		{110, 90},
+		{135, 90},
+		{150, 90},
+		{175, 90},
+		{200, 90},
+		{300, 90},
 	}
 	for _, scenario := range scenarios {
-		var numberOfUptimeEntriesForEndpoint int
 		for i := scenario.numberOfHours; i > 0; i-- {
 			//fmt.Printf("i: %d (%s)\n", i, now.Add(-time.Duration(i)*time.Hour))
 			// Create an uptime entry
@@ -185,23 +189,12 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 			if err != nil {
 				t.Log(err)
 			}
-			tx, _ := store.db.Begin()
-			// Merge all uptime entries, if applicable
-			err = store.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, 1)
-			if err != nil {
-				t.Log(err)
-			}
-			// check number of uptime entries for endpoint
-			//if err = tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", 1).Scan(&numberOfUptimeEntriesForEndpoint); err != nil {
-			//	t.Fatal(err)
-			//}
-			//t.Log("number of uptime entries for endpoint:", numberOfUptimeEntriesForEndpoint)
-			_ = tx.Commit()
 		}
 		// check number of uptime entries for endpoint
 		tx, _ := store.db.Begin()
-		if err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", 1).Scan(&numberOfUptimeEntriesForEndpoint); err != nil {
-			t.Fatal(err)
+		numberOfUptimeEntriesForEndpoint, err := store.getNumberOfUptimeEntriesByEndpointID(tx, 1)
+		if err != nil {
+			t.Log(err)
 		}
 		_ = tx.Commit()
 		if scenario.expectedUptimeEntriesSmallerThan < numberOfUptimeEntriesForEndpoint {
