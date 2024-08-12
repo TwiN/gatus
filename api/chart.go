@@ -32,16 +32,18 @@ var (
 
 func ResponseTimeChart(c *fiber.Ctx) error {
 	duration := c.Params("duration")
+	chartTimestampFormatter := chart.TimeValueFormatterWithFormat(timeFormat)
 	var from time.Time
 	switch duration {
 	case "30d":
 		from = time.Now().Truncate(time.Hour).Add(-30 * 24 * time.Hour)
+		chartTimestampFormatter = chart.TimeDateValueFormatter
 	case "7d":
 		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		return c.Status(400).SendString("Durations supported: 7d, 24h")
+		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
 	}
 	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
 	if err != nil {
@@ -90,7 +92,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 		Width:      1280,
 		Height:     300,
 		XAxis: chart.XAxis{
-			ValueFormatter: chart.TimeValueFormatterWithFormat(timeFormat),
+			ValueFormatter: chartTimestampFormatter,
 			GridMajorStyle: gridStyle,
 			GridMinorStyle: gridStyle,
 			Style:          axisStyle,
