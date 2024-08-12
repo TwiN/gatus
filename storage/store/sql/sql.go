@@ -28,13 +28,13 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeAgeCleanUpThreshold         = 32 * 24 * time.Hour                // Maximum uptime age before triggering a cleanup
-	eventsCleanUpThreshold            = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
-	resultsCleanUpThreshold           = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
-	uptimeEntriesCleanUpThreshold     = 60                                 // Maximum number of uptime entries before triggering a cleanup
-	uptimeHourlyEntriesMergeThreshold = 48                                 // Minimum number of hourly uptime entries before hourly entries can be merged into daily uptime entries
+	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
+	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
 
-	uptimeRetention = 30 * 24 * time.Hour
+	uptimeTotalEntriesMergeThreshold = 100                 // Maximum number of uptime entries before triggering a merge
+	uptimeAgeCleanUpThreshold        = 32 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
+	uptimeRetention                  = 30 * 24 * time.Hour // Minimum duration that must be kept to operate as intended
+	uptimeHourlyBuffer               = 48 * time.Hour      // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
 
 	cacheTTL = 10 * time.Minute
 )
@@ -329,14 +329,17 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	if err != nil {
 		log.Printf("[sql.Insert] Failed to retrieve total number of uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
 	} else {
-		// If we reached the clean up threshold, merge older hourly uptime entries into daily uptime entries
-		if numberOfUptimeEntries >= uptimeEntriesCleanUpThreshold {
+		// Merge older hourly uptime entries into daily uptime entries if we have more than uptimeTotalEntriesMergeThreshold
+		if numberOfUptimeEntries >= uptimeTotalEntriesMergeThreshold {
+			log.Printf("[sql.Insert] Merging hourly uptime entries for endpoint with key=%s; This is a lot of work, it shouldn't happen too often", ep.Key())
 			if err = s.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, endpointID); err != nil {
 				log.Printf("[sql.Insert] Failed to merge hourly uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
 	// Clean up outdated uptime entries
+	// In most cases, this would be handled by mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries,
+	// but if Gatus was temporarily shut down, we might have some old entries that need to be cleaned up
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestEndpointUptimeEntry(tx, endpointID)
 	if err != nil {
 		log.Printf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for endpoint with key=%s: %s", ep.Key(), err.Error())
@@ -973,7 +976,7 @@ func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time
 // single entry.
 //
 // This effectively limits the number of uptime entries to (48+(n-2)) where 48 is for the first 48 entries with hourly
-// entries (defined by uptimeHourlyEntriesMergeThreshold) and n is the number of days for all entries older than 48 hours.
+// entries (defined by uptimeHourlyBuffer) and n is the number of days for all entries older than 48 hours.
 // Supporting 30d of entries would then result in far less than 24*30=720 entries.
 func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx *sql.Tx, endpointID int64) error {
 	// Calculate timestamp of the first full day of uptime entries that would not impact the uptime calculation for 24h badges
@@ -982,8 +985,10 @@ func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEn
 	// - Don't have to worry about new hourly entries being inserted, as the day has already passed
 	// which implies that no matter at what hour of the day we are, any timestamp + 48h floored to the current day
 	// will never impact the 24h uptime badge calculation
-	threshold := time.Now().Add(-(uptimeHourlyEntriesMergeThreshold * time.Hour))
-	threshold = time.Date(threshold.Year(), threshold.Month(), threshold.Day(), 0, 0, 0, 0, threshold.Location())
+	now := time.Now()
+	minThreshold := now.Add(-uptimeHourlyBuffer)
+	minThreshold = time.Date(minThreshold.Year(), minThreshold.Month(), minThreshold.Day(), 0, 0, 0, 0, minThreshold.Location())
+	maxThreshold := now.Add(-uptimeRetention)
 	// Get all uptime entries older than uptimeHourlyMergeThreshold
 	rows, err := tx.Query(
 		`
@@ -991,9 +996,11 @@ func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEn
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
 				AND hour_unix_timestamp < $2
+			    AND hour_unix_timestamp >= $3
 		`,
 		endpointID,
-		threshold.Unix(),
+		minThreshold.Unix(),
+		maxThreshold.Unix(),
 	)
 	if err != nil {
 		return err
@@ -1021,7 +1028,7 @@ func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEn
 		}
 	}
 	// Delete older hourly uptime entries
-	_, err = tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, threshold.Unix())
+	_, err = tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, minThreshold.Unix())
 	if err != nil {
 		return err
 	}

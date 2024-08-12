@@ -2,6 +2,7 @@ package sql
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -160,52 +161,121 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
 	scenarios := []struct {
-		numberOfHours                    int
-		expectedUptimeEntriesSmallerThan int64
+		numberOfHours            int
+		expectedMaxUptimeEntries int64
 	}{
-		{1, 1},
-		{2, 2},
-		{10, 10},
-		{20, 20},
-		{30, 30},
-		{40, 40},
-		{50, 50},
-		{60, 60},
-		{70, 70},
-		{80, 80},
-		{100, 90},
-		{110, 90},
-		{135, 90},
-		{150, 90},
-		{175, 90},
-		{200, 90},
-		{300, 90},
+		{numberOfHours: 1, expectedMaxUptimeEntries: 1},
+		{numberOfHours: 10, expectedMaxUptimeEntries: 10},
+		{numberOfHours: 50, expectedMaxUptimeEntries: 50},
+		{numberOfHours: 75, expectedMaxUptimeEntries: 75},
+		{numberOfHours: 99, expectedMaxUptimeEntries: 99},
+		{numberOfHours: 150, expectedMaxUptimeEntries: 100},
+		{numberOfHours: 300, expectedMaxUptimeEntries: 100},
+		{numberOfHours: 768, expectedMaxUptimeEntries: 100}, // 32 days (in hours), which means anything beyond that won't be persisted anyway
+		{numberOfHours: 1000, expectedMaxUptimeEntries: 100},
 	}
+	// Note that is not technically an accurate real world representation, because uptime entries are always added in
+	// the present, while this test is inserting results from the past to simulate long term uptime entries.
+	// Since we want to test the behavior and not the test itself, this is a "best effort" approach.
 	for _, scenario := range scenarios {
-		for i := scenario.numberOfHours; i > 0; i-- {
-			//fmt.Printf("i: %d (%s)\n", i, now.Add(-time.Duration(i)*time.Hour))
-			// Create an uptime entry
-			err := store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-time.Duration(i) * time.Hour), Success: true})
+		t.Run(fmt.Sprintf("num-hours-%d-expected-max-entries-%d", scenario.numberOfHours, scenario.expectedMaxUptimeEntries), func(t *testing.T) {
+			for i := scenario.numberOfHours; i > 0; i-- {
+				//fmt.Printf("i: %d (%s)\n", i, now.Add(-time.Duration(i)*time.Hour))
+				// Create an uptime entry
+				err := store.Insert(&testEndpoint, &endpoint.Result{Timestamp: now.Add(-time.Duration(i) * time.Hour), Success: true})
+				if err != nil {
+					t.Log(err)
+				}
+				//// DEBUGGING: check number of uptime entries for endpoint
+				//tx, _ := store.db.Begin()
+				//numberOfUptimeEntriesForEndpoint, err := store.getNumberOfUptimeEntriesByEndpointID(tx, 1)
+				//if err != nil {
+				//	t.Log(err)
+				//}
+				//_ = tx.Commit()
+				//t.Logf("i=%d; numberOfHours=%d; There are currently %d uptime entries for endpointID=%d", i, scenario.numberOfHours, numberOfUptimeEntriesForEndpoint, 1)
+			}
+			// check number of uptime entries for endpoint
+			tx, _ := store.db.Begin()
+			numberOfUptimeEntriesForEndpoint, err := store.getNumberOfUptimeEntriesByEndpointID(tx, 1)
 			if err != nil {
 				t.Log(err)
 			}
-		}
-		// check number of uptime entries for endpoint
-		tx, _ := store.db.Begin()
-		numberOfUptimeEntriesForEndpoint, err := store.getNumberOfUptimeEntriesByEndpointID(tx, 1)
+			_ = tx.Commit()
+			//t.Logf("numberOfHours=%d; There are currently %d uptime entries for endpointID=%d", scenario.numberOfHours, numberOfUptimeEntriesForEndpoint, 1)
+			if scenario.expectedMaxUptimeEntries < numberOfUptimeEntriesForEndpoint {
+				t.Errorf("expected %d (uptime entries) to be smaller than %d", numberOfUptimeEntriesForEndpoint, scenario.expectedMaxUptimeEntries)
+			}
+			store.Clear()
+		})
+	}
+}
+
+func TestStore_getEndpointUptime(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
+	defer store.Clear()
+	defer store.Close()
+	// Add 768 hourly entries (32 days)
+	// Daily entries should be merged from hourly entries automatically
+	for i := 768; i > 0; i-- {
+		err := store.Insert(&testEndpoint, &endpoint.Result{Timestamp: time.Now().Add(-time.Duration(i) * time.Hour), Duration: time.Second, Success: true})
 		if err != nil {
 			t.Log(err)
 		}
-		_ = tx.Commit()
-		if scenario.expectedUptimeEntriesSmallerThan < numberOfUptimeEntriesForEndpoint {
-			t.Errorf("expected %d (uptime entries) to be smaller than %d", numberOfUptimeEntriesForEndpoint, scenario.expectedUptimeEntriesSmallerThan)
-		}
-		store.Clear()
+	}
+	// Check the number of uptime entries
+	tx, _ := store.db.Begin()
+	numberOfUptimeEntriesForEndpoint, err := store.getNumberOfUptimeEntriesByEndpointID(tx, 1)
+	if err != nil {
+		t.Log(err)
+	}
+	if numberOfUptimeEntriesForEndpoint < 20 || numberOfUptimeEntriesForEndpoint > 200 {
+		t.Errorf("expected number of uptime entries to be between 20 and 200, got %d", numberOfUptimeEntriesForEndpoint)
+	}
+	// Retrieve uptime for the past 30d
+	uptime, avgResponseTime, err := store.getEndpointUptime(tx, 1, time.Now().Add(-(30 * 24 * time.Hour)), time.Now())
+	if err != nil {
+		t.Log(err)
+	}
+	_ = tx.Commit()
+	if avgResponseTime != time.Second {
+		t.Errorf("expected average response time to be %s, got %s", time.Second, avgResponseTime)
+	}
+	if uptime != 1 {
+		t.Errorf("expected uptime to be 1, got %f", uptime)
+	}
+	// Add a new unsuccessful result, which should impact the uptime
+	err = store.Insert(&testEndpoint, &endpoint.Result{Timestamp: time.Now(), Duration: time.Second, Success: false})
+	if err != nil {
+		t.Log(err)
+	}
+	// Retrieve uptime for the past 30d
+	tx, _ = store.db.Begin()
+	uptime, _, err = store.getEndpointUptime(tx, 1, time.Now().Add(-(30 * 24 * time.Hour)), time.Now())
+	if err != nil {
+		t.Log(err)
+	}
+	_ = tx.Commit()
+	if uptime == 1 {
+		t.Errorf("expected uptime to be less than 1, got %f", uptime)
+	}
+	// Retrieve uptime for the past 30d, but excluding the last 24h
+	// This is not a real use case as there is no way for users to exclude the last 24h, but this is a great way
+	// to ensure that hourly merging works as intended
+	tx, _ = store.db.Begin()
+	uptimeExcludingLast24h, _, err := store.getEndpointUptime(tx, 1, time.Now().Add(-(30 * 24 * time.Hour)), time.Now().Add(-24*time.Hour))
+	if err != nil {
+		t.Log(err)
+	}
+	_ = tx.Commit()
+	if uptimeExcludingLast24h == uptime {
+		t.Error("expected uptimeExcludingLast24h to to be different from uptime, got")
 	}
 }
 
 func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
+	defer store.Clear()
 	defer store.Close()
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testEndpoint, &testSuccessfulResult)
@@ -218,7 +288,6 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 			t.Errorf("number of events shouldn't have exceeded %d, reached %d", eventsCleanUpThreshold, len(ss.Events))
 		}
 	}
-	store.Clear()
 }
 
 func TestStore_InsertWithCaching(t *testing.T) {
