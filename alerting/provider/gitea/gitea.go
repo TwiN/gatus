@@ -14,7 +14,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Discord
 type AlertProvider struct {
-	RepositoryURL string `yaml:"repository-url"` // The URL of the GitHub repository to create issues in
+	RepositoryURL string `yaml:"repository-url"` // The URL of the Gitea repository to create issues in
 	Token         string `yaml:"token"`          // Token requires at least RW on issues and RO on metadata
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
