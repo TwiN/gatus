@@ -6,6 +6,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
@@ -66,6 +67,7 @@ var (
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
+	_ AlertProvider = (*gitea.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
 	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
