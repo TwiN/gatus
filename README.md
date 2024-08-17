@@ -733,7 +733,7 @@ endpoints:
         description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
 ```
 
-![GitHub alert](.github/assets/gitea-alerts.png)
+![Gitea alert](.github/assets/gitea-alerts.png)
 
 
 #### Configuring GitLab alerts
