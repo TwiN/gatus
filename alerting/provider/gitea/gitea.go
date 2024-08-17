@@ -23,6 +23,9 @@ type AlertProvider struct {
 	// SkipVerify disables SSL certificate verification
 	SkipVerify bool `yaml:"skip-verify,omitempty"`
 
+	// Assignees is a list of users to assign the issue to
+	Assignees []string `yaml:"assignees,omitempty"`
+
 	username        string
 	repositoryOwner string
 	repositoryName  string
@@ -85,8 +88,9 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			provider.repositoryOwner,
 			provider.repositoryName,
 			gitea.CreateIssueOption{
-				Title: title,
-				Body:  provider.buildIssueBody(ep, alert, result),
+				Title:     title,
+				Body:      provider.buildIssueBody(ep, alert, result),
+				Assignees: provider.Assignees,
 			},
 		)
 		if err != nil {
