@@ -703,7 +703,7 @@ endpoints:
 | Parameter                        | Description                                                                                                | Default       |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                  | `{}`          |
-| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gittea.com/TwiN/example`)                                             | Required `""` |
+| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                             | Required `""` |
 | `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
 | `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
 
