@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
@@ -20,8 +21,8 @@ type AlertProvider struct {
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
-	// SkipVerify disables SSL certificate verification
-	SkipVerify bool `yaml:"skip-verify,omitempty"`
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 
 	// Assignees is a list of users to assign the issue to
 	Assignees []string `yaml:"assignees,omitempty"`
@@ -54,7 +55,7 @@ func (provider *AlertProvider) IsValid() bool {
 		gitea.SetToken(provider.Token),
 	}
 
-	if provider.SkipVerify {
+	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
 		// add new http client for skip verify
 		httpClient := &http.Client{
 			Transport: &http.Transport{
