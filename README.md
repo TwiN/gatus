@@ -109,7 +109,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
-  - [Proxy client configuration](#proxy-client-configuration-1)
   - [How to fix 431 Request Header Fields Too Large error](#how-to-fix-431-request-header-fields-too-large-error)
   - [Badges](#badges)
     - [Uptime](#uptime)
