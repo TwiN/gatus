@@ -661,43 +661,6 @@ endpoints:
 
 > ⚠ Some mail servers are painfully slow.
 
-#### Configuring GitHub alerts
-
-| Parameter                        | Description                                                                                                | Default       |
-|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
-| `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
-| `alerting.github.repository-url` | GitHub repository URL (e.g. `https://github.com/TwiN/example`)                                             | Required `""` |
-| `alerting.github.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
-| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
-
-The GitHub alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
-name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
-closed when the alert is resolved.
-
-```yaml
-alerting:
-  github:
-    repository-url: "https://github.com/TwiN/test"
-    token: "github_pat_12345..."
-
-endpoints:
-  - name: example
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 75"
-    alerts:
-      - type: github
-        failure-threshold: 2
-        success-threshold: 3
-        send-on-resolved: true
-        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
-```
-
-![GitHub alert](.github/assets/github-alerts.png)
-
 #### Configuring Gitea alerts
 
 | Parameter                        | Description                                                                                                | Default       |
@@ -735,6 +698,42 @@ endpoints:
 
 ![Gitea alert](.github/assets/gitea-alerts.png)
 
+#### Configuring GitHub alerts
+
+| Parameter                        | Description                                                                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
+| `alerting.github.repository-url` | GitHub repository URL (e.g. `https://github.com/TwiN/example`)                                             | Required `""` |
+| `alerting.github.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
+| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+
+The GitHub alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
+name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
+closed when the alert is resolved.
+
+```yaml
+alerting:
+  github:
+    repository-url: "https://github.com/TwiN/test"
+    token: "github_pat_12345..."
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: github
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
+```
+
+![GitHub alert](.github/assets/github-alerts.png)
 
 #### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                         | Default       |
