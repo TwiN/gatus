@@ -35,6 +35,10 @@ type AlertProvider struct {
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
+	if provider.ClientConfig == nil {
+		provider.ClientConfig = client.GetDefaultConfig()
+	}
+
 	if len(provider.Token) == 0 || len(provider.RepositoryURL) == 0 {
 		return false
 	}
