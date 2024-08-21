@@ -23,6 +23,9 @@ const (
 	// TypeGitLab is the Type for the gitlab alerting provider
 	TypeGitLab Type = "gitlab"
 
+	// TypeGitea is the Type for the gitea alerting provider
+	TypeGitea Type = "gitea"
+
 	// TypeGoogleChat is the Type for the googlechat alerting provider
 	TypeGoogleChat Type = "googlechat"
 

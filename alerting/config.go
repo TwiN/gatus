@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
@@ -48,6 +49,9 @@ type Config struct {
 
 	// GitLab is the configuration for the gitlab alerting provider
 	GitLab *gitlab.AlertProvider `yaml:"gitlab,omitempty"`
+
+	// Gitea is the configuration for the gitea alerting provider
+	Gitea *gitea.AlertProvider `yaml:"gitea,omitempty"`
 
 	// GoogleChat is the configuration for the googlechat alerting provider
 	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`

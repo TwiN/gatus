@@ -7,7 +7,6 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
 
-
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
@@ -54,6 +53,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
+    - [Configuring Gitea alerts](#configuring-gitea-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
@@ -109,6 +109,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
+  - [How to fix 431 Request Header Fields Too Large error](#how-to-fix-431-request-header-fields-too-large-error)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -660,8 +661,45 @@ endpoints:
 
 > ⚠ Some mail servers are painfully slow.
 
+#### Configuring Gitea alerts
+
+| Parameter                        | Description                                                                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                  | `{}`          |
+| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                             | Required `""` |
+| `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
+| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+
+The Gitea alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
+name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
+closed when the alert is resolved.
+
+```yaml
+alerting:
+  gitea:
+    repository-url: "https://gitea.com/TwiN/test"
+    token: "349d63f16......"
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: gitea
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
+```
+
+![Gitea alert](.github/assets/gitea-alerts.png)
 
 #### Configuring GitHub alerts
+
 | Parameter                        | Description                                                                                                | Default       |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
@@ -696,7 +734,6 @@ endpoints:
 ```
 
 ![GitHub alert](.github/assets/github-alerts.png)
-
 
 #### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                         | Default       |
