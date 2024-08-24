@@ -1371,7 +1371,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [ENDPOINT_ERRORS]"
       }
 endpoints:
   - name: website
