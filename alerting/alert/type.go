@@ -67,4 +67,7 @@ const (
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
+
+	// TypeZulip is the Type for the Zulip alerting provider
+	TypeZulip Type = "zulip"
 )
