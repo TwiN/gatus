@@ -34,7 +34,7 @@ func UptimeRaw(c *fiber.Ctx) error {
 		return c.Status(500).SendString(err.Error())
 	}
 
-	c.Set("Content-Type", "text/html")
+	c.Set("Content-Type", "text/plain")
 	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Set("Expires", "0")
 	return c.Status(200).Send([]byte(fmt.Sprintf("%f", uptime)))
