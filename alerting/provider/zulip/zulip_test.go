@@ -248,9 +248,11 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		Domain:    "domain",
 		ChannelId: "channel-id",
 	}
+	alertDesc := "Description"
 	basicAlert := alert.Alert{
 		SuccessThreshold: 2,
 		FailureThreshold: 3,
+		Description:      &alertDesc,
 	}
 	testCases := []struct {
 		name          string
@@ -269,10 +271,12 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 			resolved:      true,
 			hasConditions: false,
 			expectedBody: url.Values{
-				"content": {"An alert for **endpoint-name** has been resolved after passing successfully 2 time(s) in a row"},
-				"to":      {"channel-id"},
-				"topic":   {"Gatus"},
-				"type":    {"channel"},
+				"content": {`An alert for **endpoint-name** has been resolved after passing successfully 2 time(s) in a row
+> Description
+`},
+				"to":    {"channel-id"},
+				"topic": {"Gatus"},
+				"type":  {"channel"},
 			},
 		},
 		{
@@ -285,6 +289,8 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 			hasConditions: true,
 			expectedBody: url.Values{
 				"content": {`An alert for **endpoint-name** has been resolved after passing successfully 2 time(s) in a row
+> Description
+
 :check: - ` + "`[CONNECTED] == true`" + `
 :check: - ` + "`[STATUS] == 200`" + `
 :check: - ` + "`[BODY] != \"\"`"},
@@ -302,10 +308,12 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 			resolved:      false,
 			hasConditions: false,
 			expectedBody: url.Values{
-				"content": {"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row"},
-				"to":      {"channel-id"},
-				"topic":   {"Gatus"},
-				"type":    {"channel"},
+				"content": {`An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row
+> Description
+`},
+				"to":    {"channel-id"},
+				"topic": {"Gatus"},
+				"type":  {"channel"},
 			},
 		},
 		{
@@ -318,6 +326,8 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 			hasConditions: true,
 			expectedBody: url.Values{
 				"content": {`An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row
+> Description
+
 :cross_mark: - ` + "`[CONNECTED] == true`" + `
 :cross_mark: - ` + "`[STATUS] == 200`" + `
 :cross_mark: - ` + "`[BODY] != \"\"`"},

@@ -75,6 +75,10 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		message += "\n> " + alertDescription + "\n"
+	}
+
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
