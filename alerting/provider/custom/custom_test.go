@@ -112,8 +112,8 @@ func TestAlertProvider_Send(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[ENDPOINT_ERRORS]",
-		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[ENDPOINT_ERRORS]",
+		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]",
+		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED]",
 	}
 	alertDescription := "alert-description"
 	scenarios := []struct {
@@ -125,27 +125,69 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 		{
 			AlertProvider: customAlertProvider,
 			Resolved:      true,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com&error=",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED,",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED",
 		},
 		{
 			AlertProvider: customAlertProvider,
 			Resolved:      false,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=error",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
-			result := &endpoint.Result{Errors: []string{}}
-			if !scenario.Resolved {
-				result.Errors = append(result.Errors, "error")
-			}
 			request := customAlertProvider.buildHTTPRequest(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{Errors: []string{}},
 				scenario.Resolved,
-				result,
+			)
+			if request.URL.String() != scenario.ExpectedURL {
+				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
+			}
+			body, _ := io.ReadAll(request.Body)
+			if string(body) != scenario.ExpectedBody {
+				t.Error("expected body to be", scenario.ExpectedBody, "got", string(body))
+			}
+		})
+	}
+}
+
+func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
+	customAlertWithErrorsProvider := &AlertProvider{
+		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[RESULT_ERRORS]",
+		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_ERRORS]",
+	}
+	alertDescription := "alert-description"
+	scenarios := []struct {
+		AlertProvider *AlertProvider
+		Resolved      bool
+		ExpectedURL   string
+		ExpectedBody  string
+		Errors        []string
+	}{
+		{
+			AlertProvider: customAlertWithErrorsProvider,
+			Resolved:      true,
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com&error=",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED,",
+		},
+		{
+			AlertProvider: customAlertWithErrorsProvider,
+			Resolved:      false,
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=error1,error2",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error1,error2",
+			Errors:        []string{"error1", "error2"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
+			request := customAlertWithErrorsProvider.buildHTTPRequest(
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
+				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{Errors: scenario.Errors},
+				scenario.Resolved,
 			)
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
@@ -160,8 +202,8 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&error=[ENDPOINT_ERRORS]",
-		Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED],[ENDPOINT_ERRORS]",
+		URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+		Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		Headers: nil,
 		Placeholders: map[string]map[string]string{
 			"ALERT_TRIGGERED_OR_RESOLVED": {
@@ -180,27 +222,23 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 		{
 			AlertProvider: customAlertProvider,
 			Resolved:      true,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=fixed&description=alert-description&error=",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,fixed,",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=fixed&description=alert-description",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,fixed",
 		},
 		{
 			AlertProvider: customAlertProvider,
 			Resolved:      false,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=boom&description=alert-description&error=error",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,boom,error",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=boom&description=alert-description",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,boom",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
-			result := &endpoint.Result{Errors: []string{}}
-			if !scenario.Resolved {
-				result.Errors = append(result.Errors, "error")
-			}
 			request := customAlertProvider.buildHTTPRequest(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{Errors: []string{}},
 				scenario.Resolved,
-				result,
 			)
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())

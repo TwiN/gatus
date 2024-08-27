@@ -77,7 +77,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			ExpectedCode:                   200,
 		},
 		{
-			Name:                           "good-token-success-true",
+			Name:                           "good-token-success-true-with-ignored-error-because-success-true",
 			Path:                           "/api/v1/endpoints/g_n/external?success=true&error=failed",
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   200,
