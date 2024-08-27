@@ -3,12 +3,13 @@ package zulip
 import (
 	"bytes"
 	"fmt"
-	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/config/endpoint"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 type Config struct {

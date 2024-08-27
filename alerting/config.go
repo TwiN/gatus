@@ -1,7 +1,6 @@
 package alerting
 
 import (
-	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"log"
 	"reflect"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 )
 
 // Config is the configuration for alerting providers
