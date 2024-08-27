@@ -237,7 +237,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 			request := customAlertProvider.buildHTTPRequest(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
-				&endpoint.Result{Errors: []string{}},
+				&endpoint.Result{},
 				scenario.Resolved,
 			)
 			if request.URL.String() != scenario.ExpectedURL {
