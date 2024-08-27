@@ -67,7 +67,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
-    - [Configuring Teams alerts](#configuring-teams-alerts)
+    - [Configuring Teams alerts *(Deprecated)*](#configuring-teams-alerts-deprecated)
+    - [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
@@ -564,7 +565,8 @@ endpoints:
 | `alerting.pagerduty`      | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                   | `{}`    |
 | `alerting.pushover`       | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                      | `{}`    |
 | `alerting.slack`          | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                               | `{}`    |
-| `alerting.teams`          | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                               | `{}`    |
+| `alerting.teams`          | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).     | `{}`    |
+| `alerting.teamsworkflow`  | Configuration for alerts of type `teamsworkflow`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).     | `{}`    |
 | `alerting.telegram`       | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                      | `{}`    |
 | `alerting.twilio`         | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                 | `{}`    |
 
@@ -1169,7 +1171,12 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
-#### Configuring Teams alerts
+#### Configuring Teams alerts *(Deprecated)*
+
+> [!CAUTION]
+> **Deprecated:** Office 365 Connectors within Microsoft Teams are being retired ([Source: Microsoft DevBlog](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/)).
+> Existing connectors will continue to work until December 2025. The new [Teams Workflow Alerts](#configuring-teams-workflow-alerts) should be used with Microsoft Workflows instead of this legacy configuration.
+
 | Parameter                                | Description                                                                                | Default             |
 |:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
 | `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
@@ -1219,6 +1226,61 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Teams notifications](.github/assets/teams-alerts.png)
+
+#### Configuring Teams Workflow alerts
+
+> [!NOTE]
+> This alert is compatible with Workflows for Microsoft Teams. To setup the workflow and get the webhook URL, follow the [Microsoft Documentation](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498).
+
+| Parameter                                        | Description                                                                                | Default            |
+|:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
+| `alerting.teamsworkflow`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
+| `alerting.teamsworkflow.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teamsworkflow.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
+| `alerting.teamsworkflow.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
+| `alerting.teamsworkflow.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
+| `alerting.teamsworkflow.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
+| `alerting.teamsworkflow.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
+
+```yaml
+alerting:
+  teamsworkflow:
+    webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    # You can also add group-specific to keys, which will
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        webhook-url: "https://********.webhook.office.com/webhookb3/************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: teamsworkflow
+        description: "healthcheck failed"
+        send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+    alerts:
+      - type: teamsworkflow
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![Teams Workflow notifications](.github/assets/teamsworkflow-alerts.png)
 
 
 #### Configuring Telegram alerts
