@@ -19,8 +19,8 @@ type Config struct {
 	BotAPIKey string `yaml:"bot-api-key"`
 	// Domain is the domain of the Zulip server
 	Domain string `yaml:"domain"`
-	// ChannelId is the ID of the channel to send the message to
-	ChannelId string `yaml:"channel-id"`
+	// ChannelID is the ID of the channel to send the message to
+	ChannelID string `yaml:"channel-id"`
 }
 
 // AlertProvider is the configuration necessary for sending an alert using Zulip
@@ -39,7 +39,7 @@ type Override struct {
 }
 
 func (provider *AlertProvider) validateConfig(conf *Config) bool {
-	return len(conf.BotEmail) > 0 && len(conf.BotAPIKey) > 0 && len(conf.Domain) > 0 && len(conf.ChannelId) > 0
+	return len(conf.BotEmail) > 0 && len(conf.BotAPIKey) > 0 && len(conf.Domain) > 0 && len(conf.ChannelID) > 0
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -61,10 +61,10 @@ func (provider *AlertProvider) IsValid() bool {
 func (provider *AlertProvider) getChannelIdForGroup(group string) string {
 	for _, override := range provider.Overrides {
 		if override.Group == group {
-			return override.ChannelId
+			return override.ChannelID
 		}
 	}
-	return provider.ChannelId
+	return provider.ChannelID
 }
 
 // buildRequestBody builds the request body for the provider

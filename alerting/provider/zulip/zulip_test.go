@@ -39,7 +39,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 				Config: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
-					ChannelId: "something",
+					ChannelID: "something",
 				},
 			},
 			expected: false,
@@ -50,7 +50,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 				Config: Config{
 					BotEmail:  "something",
 					Domain:    "something",
-					ChannelId: "something",
+					ChannelID: "something",
 				},
 			},
 			expected: false,
@@ -61,7 +61,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 				Config: Config{
 					BotAPIKey: "something",
 					Domain:    "something",
-					ChannelId: "something",
+					ChannelID: "something",
 				},
 			},
 			expected: false,
@@ -73,7 +73,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					Domain:    "something",
-					ChannelId: "something",
+					ChannelID: "something",
 				},
 			},
 			expected: true,
@@ -93,7 +93,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		BotEmail:  "something",
 		BotAPIKey: "something",
 		Domain:    "something",
-		ChannelId: "something",
+		ChannelID: "something",
 	}
 
 	testCase := []struct {
@@ -153,7 +153,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 						Config: Config{
 							BotEmail:  "something",
 							BotAPIKey: "something",
-							ChannelId: "something",
+							ChannelID: "something",
 						},
 					},
 				},
@@ -170,7 +170,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 						Config: Config{
 							BotEmail:  "something",
 							Domain:    "something",
-							ChannelId: "something",
+							ChannelID: "something",
 						},
 					},
 				},
@@ -187,7 +187,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 						Config: Config{
 							BotAPIKey: "something",
 							Domain:    "something",
-							ChannelId: "something",
+							ChannelID: "something",
 						},
 					},
 				},
@@ -220,16 +220,16 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 func TestAlertProvider_GetChannelIdForGroup(t *testing.T) {
 	provider := AlertProvider{
 		Config: Config{
-			ChannelId: "default",
+			ChannelID: "default",
 		},
 		Overrides: []Override{
 			{
 				Group:  "group1",
-				Config: Config{ChannelId: "group1"},
+				Config: Config{ChannelID: "group1"},
 			},
 			{
 				Group:  "group2",
-				Config: Config{ChannelId: "group2"},
+				Config: Config{ChannelID: "group2"},
 			},
 		},
 	}
@@ -246,7 +246,7 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		BotEmail:  "bot-email",
 		BotAPIKey: "bot-api-key",
 		Domain:    "domain",
-		ChannelId: "channel-id",
+		ChannelID: "channel-id",
 	}
 	alertDesc := "Description"
 	basicAlert := alert.Alert{
@@ -395,7 +395,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		BotEmail:  "bot-email",
 		BotAPIKey: "bot-api-key",
 		Domain:    "custom-domain",
-		ChannelId: "channel-id",
+		ChannelID: "channel-id",
 	}
 	basicAlert := alert.Alert{
 		SuccessThreshold: 2,
