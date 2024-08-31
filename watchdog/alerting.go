@@ -34,12 +34,16 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		// Determine if an initial alert should be sent
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent
-		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 &&
-			(ep.LastReminderSent.IsZero() || time.Since(ep.LastReminderSent) >= endpointAlert.RepeatInterval)
+		var lastReminder time.Duration
+		if !ep.LastReminderSent.IsZero() {
+			lastReminder = time.Since(ep.LastReminderSent)
+		}
+		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 && lastReminder >= endpointAlert.RepeatInterval
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			if debug {
-				log.Printf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' is not due for triggering or reminding, skipping", ep.Name, endpointAlert.GetDescription())
+				log.Printf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' is not due for triggering or reminding (interval: %s last: %s), skipping",
+					ep.Name, endpointAlert.GetDescription(), endpointAlert.RepeatInterval, lastReminder)
 			}
 			continue
 		}
