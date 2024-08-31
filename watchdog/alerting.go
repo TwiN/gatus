@@ -35,16 +35,16 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent
 		var lastReminder time.Duration
-		if !ep.LastReminderSent.IsZero() {
-			lastReminder = time.Since(ep.LastReminderSent)
+		if lr, ok := ep.LastReminderSent[endpointAlert.Type]; ok && !lr.IsZero() {
+			lastReminder = time.Since(lr)
 		}
 		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 &&
 			(lastReminder == 0 || lastReminder >= endpointAlert.RepeatInterval)
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			if debug {
-				log.Printf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' is not due for triggering or reminding (interval: %s last: %s), skipping",
-					ep.Name, endpointAlert.GetDescription(), endpointAlert.RepeatInterval, lastReminder)
+				log.Printf("[watchdog.handleAlertsToTrigger] Alert %s for endpoint=%s with description='%s' is not due for triggering (interval: %s last: %s), skipping",
+					endpointAlert.Type, ep.Name, endpointAlert.GetDescription(), endpointAlert.RepeatInterval, lastReminder)
 			}
 			continue
 		}
@@ -70,7 +70,7 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 				if sendInitialAlert {
 					endpointAlert.Triggered = true
 				}
-				ep.LastReminderSent = time.Now()
+				ep.LastReminderSent[endpointAlert.Type] = time.Now()
 				if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
 					log.Printf("[watchdog.handleAlertsToTrigger] Failed to persist triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 				}
@@ -113,7 +113,7 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		} else {
 			log.Printf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type)
 		}
+		ep.LastReminderSent[endpointAlert.Type] = time.Now()
 	}
 	ep.NumberOfFailuresInARow = 0
-	ep.LastReminderSent = time.Now()
 }

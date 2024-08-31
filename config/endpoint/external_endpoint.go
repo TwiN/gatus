@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 )
@@ -75,6 +76,8 @@ func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 		Enabled:                 externalEndpoint.Enabled,
 		Name:                    externalEndpoint.Name,
 		Group:                   externalEndpoint.Group,
+		Headers:                 make(map[string]string),
+		LastReminderSent:        make(map[alert.Type]time.Time),
 		Alerts:                  externalEndpoint.Alerts,
 		NumberOfFailuresInARow:  externalEndpoint.NumberOfFailuresInARow,
 		NumberOfSuccessesInARow: externalEndpoint.NumberOfSuccessesInARow,
