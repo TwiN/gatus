@@ -34,7 +34,8 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		// Determine if an initial alert should be sent
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent
-		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 && time.Since(ep.LastReminderSent) >= endpointAlert.RepeatInterval
+		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 &&
+			(ep.LastReminderSent.IsZero() || time.Since(ep.LastReminderSent) >= endpointAlert.RepeatInterval)
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			if debug {
@@ -109,4 +110,5 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		}
 	}
 	ep.NumberOfFailuresInARow = 0
+	ep.LastReminderSent = time.Now()
 }
