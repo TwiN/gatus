@@ -57,6 +57,9 @@ func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
 	if endpointAlert.SuccessThreshold == 0 {
 		endpointAlert.SuccessThreshold = providerDefaultAlert.SuccessThreshold
 	}
+	if endpointAlert.RepeatInterval > 0 {
+		endpointAlert.RepeatInterval = providerDefaultAlert.RepeatInterval
+	}
 }
 
 var (
