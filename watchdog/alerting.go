@@ -38,8 +38,8 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		if lr, ok := ep.LastReminderSent[endpointAlert.Type]; ok && !lr.IsZero() {
 			lastReminder = time.Since(lr)
 		}
-		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval > 0 &&
-			(lastReminder == 0 || lastReminder >= endpointAlert.RepeatInterval)
+		sendReminder := endpointAlert.Triggered && endpointAlert.RepeatInterval != nil &&
+			*endpointAlert.RepeatInterval > 0 && (lastReminder == 0 || lastReminder >= *endpointAlert.RepeatInterval)
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			if debug {

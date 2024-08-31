@@ -39,7 +39,8 @@ func TestHandleAlerting(t *testing.T) {
 	}
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -83,7 +84,8 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "http://example.com",
+		URL:              "http://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -118,7 +120,8 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	}
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -153,7 +156,8 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 	enabled := true
 	disabled := false
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -185,7 +189,8 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	}
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypePagerDuty,
@@ -221,7 +226,8 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 	}
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypePushover,
@@ -391,7 +397,8 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			ep := &endpoint.Endpoint{
-				URL: "https://example.com",
+				URL:              "https://example.com",
+				LastReminderSent: make(map[alert.Type]time.Time),
 				Alerts: []*alert.Alert{
 					{
 						Type:             scenario.AlertType,
@@ -451,7 +458,8 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	}
 	enabled := true
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -502,8 +510,10 @@ func TestHandleAlertingWithRepeatInterval(t *testing.T) {
 		},
 	}
 	enabled := true
+	repeatInterval := 1 * time.Second
 	ep := &endpoint.Endpoint{
-		URL: "https://example.com",
+		URL:              "https://example.com",
+		LastReminderSent: make(map[alert.Type]time.Time),
 		Alerts: []*alert.Alert{
 			{
 				Type:             alert.TypeCustom,
@@ -512,7 +522,7 @@ func TestHandleAlertingWithRepeatInterval(t *testing.T) {
 				SuccessThreshold: 3,
 				SendOnResolved:   &enabled,
 				Triggered:        false,
-				RepeatInterval:   1 * time.Second,
+				RepeatInterval:   &repeatInterval,
 			},
 		},
 	}

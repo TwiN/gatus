@@ -50,7 +50,7 @@ type Alert struct {
 	ResolveKey string `yaml:"-"`
 
 	// RepeatInterval is the interval between reminders
-	RepeatInterval time.Duration `yaml:"repeat-interval,omitempty"`
+	RepeatInterval *time.Duration `yaml:"repeat-interval"`
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value
 	// should be set back to false. It is used to prevent the same alert from going out twice.
