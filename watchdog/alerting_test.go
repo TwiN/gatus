@@ -3,6 +3,7 @@ package watchdog
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -485,6 +486,47 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, ep, 0, 1, false, "")
 	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
 	verify(t, ep, 0, 2, false, "")
+}
+
+func TestHandleAlertingWithRepeatInterval(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Clearenv()
+
+	cfg := &config.Config{
+		Debug: true,
+		Alerting: &alerting.Config{
+			Custom: &custom.AlertProvider{
+				URL:    "https://twin.sh/health",
+				Method: "GET",
+			},
+		},
+	}
+	enabled := true
+	ep := &endpoint.Endpoint{
+		URL: "https://example.com",
+		Alerts: []*alert.Alert{
+			{
+				Type:             alert.TypeCustom,
+				Enabled:          &enabled,
+				FailureThreshold: 2,
+				SuccessThreshold: 3,
+				SendOnResolved:   &enabled,
+				Triggered:        false,
+				RepeatInterval:   1 * time.Second,
+			},
+		},
+	}
+
+	verify(t, ep, 0, 0, false, "The alert shouldn't start triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	verify(t, ep, 1, 0, false, "The alert shouldn't have triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	verify(t, ep, 2, 0, true, "The alert should've triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	verify(t, ep, 3, 0, true, "The alert should still be triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	verify(t, ep, 4, 0, true, "The alert should still be triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
 }
 
 func verify(t *testing.T, ep *endpoint.Endpoint, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
