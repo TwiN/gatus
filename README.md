@@ -1232,8 +1232,8 @@ Here's an example of what the notifications look like:
 > [!NOTE]
 > This alert is compatible with Workflows for Microsoft Teams. To setup the workflow and get the webhook URL, follow the [Microsoft Documentation](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498).
 
-| Parameter                                        | Description                                                                                | Default            |
-|:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
+| Parameter                                          | Description                                                                                | Default            |
+|:---------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
 | `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
 | `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
 | `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
