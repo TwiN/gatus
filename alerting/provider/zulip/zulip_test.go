@@ -2,13 +2,14 @@ package zulip
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"testing"
+
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
-	"net/http"
-	"net/url"
-	"testing"
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
