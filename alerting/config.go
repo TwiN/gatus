@@ -28,6 +28,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 )
 
 // Config is the configuration for alerting providers
@@ -94,6 +95,9 @@ type Config struct {
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`
+
+	// Zulip is the configuration for the zulip alerting provider
+	Zulip *zulip.AlertProvider `yaml:"zulip,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
