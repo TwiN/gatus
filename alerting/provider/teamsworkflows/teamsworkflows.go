@@ -1,4 +1,4 @@
-package teamsworkflow
+package teamsworkflows
 
 import (
 	"bytes"

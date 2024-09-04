@@ -566,7 +566,7 @@ endpoints:
 | `alerting.pushover`       | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                      | `{}`    |
 | `alerting.slack`          | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                               | `{}`    |
 | `alerting.teams`          | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).     | `{}`    |
-| `alerting.teamsworkflow`  | Configuration for alerts of type `teamsworkflow`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).     | `{}`    |
+| `alerting.teams-workflows`  | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).     | `{}`    |
 | `alerting.telegram`       | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                      | `{}`    |
 | `alerting.twilio`         | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                 | `{}`    |
 
@@ -1234,17 +1234,17 @@ Here's an example of what the notifications look like:
 
 | Parameter                                        | Description                                                                                | Default            |
 |:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
-| `alerting.teamsworkflow`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
-| `alerting.teamsworkflow.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
-| `alerting.teamsworkflow.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
-| `alerting.teamsworkflow.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
-| `alerting.teamsworkflow.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
-| `alerting.teamsworkflow.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
-| `alerting.teamsworkflow.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
+| `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
+| `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
+| `alerting.teams-workflows.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
+| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
+| `alerting.teams-workflows.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
+| `alerting.teams-workflows.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
 
 ```yaml
 alerting:
-  teamsworkflow:
+  teams-workflows:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
@@ -1261,7 +1261,7 @@ endpoints:
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
     alerts:
-      - type: teamsworkflow
+      - type: teams-workflows
         description: "healthcheck failed"
         send-on-resolved: true
 
@@ -1273,14 +1273,14 @@ endpoints:
       - "[STATUS] == 200"
       - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
-      - type: teamsworkflow
+      - type: teams-workflows
         description: "healthcheck failed"
         send-on-resolved: true
 ```
 
 Here's an example of what the notifications look like:
 
-![Teams Workflow notifications](.github/assets/teamsworkflow-alerts.png)
+![Teams Workflow notifications](.github/assets/teams-workflows-alerts.png)
 
 
 #### Configuring Telegram alerts
