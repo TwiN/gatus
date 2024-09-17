@@ -22,7 +22,7 @@ require (
 	github.com/valyala/fasthttp v1.54.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	golang.org/x/crypto v0.27.0
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.29.0
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/api v0.183.0
 	gopkg.in/mail.v2 v2.3.1
