@@ -40,16 +40,13 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			log.Printf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
 			return c.Status(401).SendString("invalid token")
 		}
-
-		isSuccess := c.QueryBool("success")
 		// Persist the result in the storage
 		result := &endpoint.Result{
 			Timestamp: time.Now(),
-			Success:   isSuccess,
+			Success:   c.QueryBool("success"),
 			Errors:    []string{},
 		}
-
-		if !isSuccess && c.Query("error") != "" {
+		if !result.Success && c.Query("error") != "" {
 			result.Errors = append(result.Errors, c.Query("error"))
 		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
