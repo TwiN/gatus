@@ -7,7 +7,6 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
 
-
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
 the response time, the certificate expiration, the body and many others. The icing on top is that each of these health
@@ -54,6 +53,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
+    - [Configuring Gitea alerts](#configuring-gitea-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
@@ -72,6 +72,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+    - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
@@ -109,6 +110,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
+  - [How to fix 431 Request Header Fields Too Large error](#how-to-fix-431-request-header-fields-too-large-error)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -279,7 +281,7 @@ This allows you to monitor anything you want, even when what you want to check l
 
 For instance:
 - You can create your own agent that lives in a private network and pushes the status of your services to a publicly-exposed Gatus instance
-- You can monitor services that are not supported by Gatus 
+- You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
 | Parameter                      | Description                                                                                                            | Default       |
@@ -660,8 +662,45 @@ endpoints:
 
 > ⚠ Some mail servers are painfully slow.
 
+#### Configuring Gitea alerts
+
+| Parameter                        | Description                                                                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                  | `{}`          |
+| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                             | Required `""` |
+| `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
+| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+
+The Gitea alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
+name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
+closed when the alert is resolved.
+
+```yaml
+alerting:
+  gitea:
+    repository-url: "https://gitea.com/TwiN/test"
+    token: "349d63f16......"
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: gitea
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
+```
+
+![Gitea alert](.github/assets/gitea-alerts.png)
 
 #### Configuring GitHub alerts
+
 | Parameter                        | Description                                                                                                | Default       |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
@@ -696,7 +735,6 @@ endpoints:
 ```
 
 ![GitHub alert](.github/assets/github-alerts.png)
-
 
 #### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                         | Default       |
@@ -1186,14 +1224,18 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Telegram alerts
-| Parameter                         | Description                                                                                | Default                    |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
-| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`                       |
-| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`              |
-| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.api-url`       | Telegram API URL                                                                           | `https://api.telegram.org` |
-| `alerting.telegram.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
-| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| Parameter                             | Description                                                                                | Default                    |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
+| `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
+| `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
+| `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
+| `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
+| `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
+| `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
+| `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
+| `alerting.telegram.overrides[].token` | Telegram Bot Token for override default value                                              | `""`                       |
+| `alerting.telegram.overrides[].id`    | Telegram User ID for override default value                                                | `""`                       |
 
 ```yaml
 alerting:
@@ -1448,6 +1490,42 @@ endpoints:
     alerts:
       - type: slack
       - type: pagerduty
+```
+
+#### Configuring Zulip alerts
+| Parameter                                | Description                                                                         | Default                             |
+|:-----------------------------------------|:------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.zulip`                         | Configuration for alerts of type `discord`                                          | `{}`                                |
+| `alerting.zulip.bot-email`               | Bot Email                                                                           | Required `""`                       |
+| `alerting.zulip.bot-api-key`             | Bot API key                                                                         | Required `""`                       |
+| `alerting.zulip.domain`                  | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""`                       |
+| `alerting.zulip.channel-id`              | The channel ID where Gatus will send the alerts                                     | Required `""`                       |
+| `alerting.zulip.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration | `""`                                |
+| `alerting.zulip.overrides[].bot-email`   | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].bot-api-key` | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].domain`      | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].channel-id`  | .                                                                                   | `""`                                |
+
+```yaml
+alerting:
+  zulip:
+    bot-email: gatus-bot@some.zulip.org
+    bot-api-key: "********************************"
+    domain: some.zulip.org
+    channel-id: 123456
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: zulip
+        description: "healthcheck failed"
+        send-on-resolved: true
 ```
 
 
@@ -2124,7 +2202,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h` 
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
@@ -2189,7 +2267,7 @@ The endpoint to generate a badge is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 

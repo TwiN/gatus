@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // Required for IANA timezone support
 )
 
 var (
@@ -52,7 +53,7 @@ func GetDefaultConfig() *Config {
 }
 
 // IsEnabled returns whether maintenance is enabled or not
-func (c Config) IsEnabled() bool {
+func (c *Config) IsEnabled() bool {
 	if c.Enabled == nil {
 		return true
 	}
@@ -101,7 +102,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 }
 
 // IsUnderMaintenance checks whether the endpoints that Gatus monitors are within the configured maintenance window
-func (c Config) IsUnderMaintenance() bool {
+func (c *Config) IsUnderMaintenance() bool {
 	if !c.IsEnabled() {
 		return false
 	}
@@ -127,7 +128,7 @@ func (c Config) IsUnderMaintenance() bool {
 	return now.After(startOfMaintenancePeriod) && now.Before(endOfMaintenancePeriod)
 }
 
-func (c Config) hasDay(day string) bool {
+func (c *Config) hasDay(day string) bool {
 	for _, d := range c.Every {
 		if d == day {
 			return true

@@ -50,6 +50,11 @@ func TestResponseTimeChart(t *testing.T) {
 			ExpectedCode: http.StatusOK,
 		},
 		{
+			Name:         "chart-response-time-30d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/30d/chart.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
 			Name:         "chart-response-time-with-invalid-duration",
 			Path:         "/api/v1/endpoints/core_backend/response-times/3d/chart.svg",
 			ExpectedCode: http.StatusBadRequest,
