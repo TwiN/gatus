@@ -72,6 +72,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+    - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
@@ -915,6 +916,7 @@ endpoints:
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
 | `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.channel`                 | Mattermost channel name override (optional)                                                 | `""`          |
 | `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
@@ -1490,6 +1492,42 @@ endpoints:
     alerts:
       - type: slack
       - type: pagerduty
+```
+
+#### Configuring Zulip alerts
+| Parameter                                | Description                                                                         | Default                             |
+|:-----------------------------------------|:------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.zulip`                         | Configuration for alerts of type `discord`                                          | `{}`                                |
+| `alerting.zulip.bot-email`               | Bot Email                                                                           | Required `""`                       |
+| `alerting.zulip.bot-api-key`             | Bot API key                                                                         | Required `""`                       |
+| `alerting.zulip.domain`                  | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""`                       |
+| `alerting.zulip.channel-id`              | The channel ID where Gatus will send the alerts                                     | Required `""`                       |
+| `alerting.zulip.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration | `""`                                |
+| `alerting.zulip.overrides[].bot-email`   | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].bot-api-key` | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].domain`      | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].channel-id`  | .                                                                                   | `""`                                |
+
+```yaml
+alerting:
+  zulip:
+    bot-email: gatus-bot@some.zulip.org
+    bot-api-key: "********************************"
+    domain: some.zulip.org
+    channel-id: 123456
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: zulip
+        description: "healthcheck failed"
+        send-on-resolved: true
 ```
 
 
