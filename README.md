@@ -1358,7 +1358,7 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
-- `[RESULT_ERRORS]` (resolved from the endpoint's health check output in `endpoint.Result.Errors[]`)
+- `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
