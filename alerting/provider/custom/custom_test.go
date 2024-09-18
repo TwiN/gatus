@@ -140,6 +140,53 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 			request := customAlertProvider.buildHTTPRequest(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{Errors: []string{}},
+				scenario.Resolved,
+			)
+			if request.URL.String() != scenario.ExpectedURL {
+				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
+			}
+			body, _ := io.ReadAll(request.Body)
+			if string(body) != scenario.ExpectedBody {
+				t.Error("expected body to be", scenario.ExpectedBody, "got", string(body))
+			}
+		})
+	}
+}
+
+func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
+	customAlertWithErrorsProvider := &AlertProvider{
+		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[RESULT_ERRORS]",
+		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_ERRORS]",
+	}
+	alertDescription := "alert-description"
+	scenarios := []struct {
+		AlertProvider *AlertProvider
+		Resolved      bool
+		ExpectedURL   string
+		ExpectedBody  string
+		Errors        []string
+	}{
+		{
+			AlertProvider: customAlertWithErrorsProvider,
+			Resolved:      true,
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com&error=",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED,",
+		},
+		{
+			AlertProvider: customAlertWithErrorsProvider,
+			Resolved:      false,
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=error1,error2",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error1,error2",
+			Errors:        []string{"error1", "error2"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
+			request := customAlertWithErrorsProvider.buildHTTPRequest(
+				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
+				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{Errors: scenario.Errors},
 				scenario.Resolved,
 			)
 			if request.URL.String() != scenario.ExpectedURL {
@@ -190,6 +237,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 			request := customAlertProvider.buildHTTPRequest(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
+				&endpoint.Result{},
 				scenario.Resolved,
 			)
 			if request.URL.String() != scenario.ExpectedURL {
