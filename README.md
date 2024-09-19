@@ -1182,11 +1182,14 @@ Here's an example of what the notifications look like:
 | `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
 | `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
 | `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
+| `alerting.email.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
 
 ```yaml
 alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    client:
+      insecure: false
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
