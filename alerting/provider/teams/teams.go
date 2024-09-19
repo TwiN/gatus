@@ -19,6 +19,7 @@ type AlertProvider struct {
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
