@@ -19,7 +19,7 @@ require (
 	github.com/miekg/dns v1.1.62
 	github.com/prometheus-community/pro-bing v0.4.0
 	github.com/prometheus/client_golang v1.20.4
-	github.com/valyala/fasthttp v1.54.0
+	github.com/valyala/fasthttp v1.55.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.27.0
 	golang.org/x/net v0.29.0
