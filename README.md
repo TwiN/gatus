@@ -215,6 +215,7 @@ If you want to test it locally, see [Docker](#docker).
 | Parameter                    | Description                                                                                                                          | Default                    |
 |:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
 | `debug`                      | Whether to enable debug logs.                                                                                                        | `false`                    |
+| `log-level`                  | Log level: DEBUG, INFO, WARN, ERROR.                                                                                                 | `INFO`                     |
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
 | `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
 | `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |

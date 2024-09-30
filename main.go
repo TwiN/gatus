@@ -12,6 +12,8 @@ import (
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
+
+	"github.com/TwiN/logr"
 )
 
 func main() {
@@ -23,6 +25,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	configureLogging(cfg)
 	initializeStorage(cfg)
 	start(cfg)
 	// Wait for termination signal
@@ -54,6 +58,19 @@ func stop(cfg *config.Config) {
 func save() {
 	if err := store.Get().Save(); err != nil {
 		log.Println("Failed to save storage provider:", err.Error())
+	}
+}
+
+func configureLogging(cfg *config.Config) {
+
+	if config.LogLevels.ContainsName(cfg.LogLevel) {
+		log.Printf("[main.configureLogging] Log Level is %s", cfg.LogLevel)
+		key, ok := config.LogLevels.GetKey(cfg.LogLevel)
+		if ok {
+			logr.SetThreshold(key)
+		}
+	} else {
+		log.Printf("[main.configureLogging] Unrecognised log level '%s', defaulting to INFO. Allowed values are [DEBUG, INFO, WARN, ERROR]", cfg.LogLevel)
 	}
 }
 

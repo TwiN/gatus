@@ -22,7 +22,9 @@ import (
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
+	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
+	"hermannm.dev/enumnames"
 )
 
 const (
@@ -47,12 +49,22 @@ var (
 
 	// errEarlyReturn is returned to break out of a loop from a callback early
 	errEarlyReturn = errors.New("early escape")
+
+	LogLevels = enumnames.NewMap(map[logr.Level]string{
+		logr.LevelDebug: "DEBUG",
+		logr.LevelInfo:  "INFO",
+		logr.LevelWarn:  "WARN",
+		logr.LevelError: "ERROR",
+	})
 )
 
 // Config is the main configuration structure
 type Config struct {
 	// Debug Whether to enable debug logs
 	Debug bool `yaml:"debug,omitempty"`
+
+	// Log level: DEBUG, INFO, WARN, ERROR.  Default: INFO
+	LogLevel string `yaml:"log-level,omitempty"`
 
 	// Metrics Whether to expose metrics at /metrics
 	Metrics bool `yaml:"metrics,omitempty"`
@@ -204,6 +216,11 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
+
+	if config.LogLevel == "" {
+		config.LogLevel = "INFO"
+	}
+
 	return config, err
 }
 
