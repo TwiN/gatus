@@ -10,7 +10,7 @@ require (
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.2.2
 	github.com/TwiN/health v1.6.0
-	github.com/TwiN/logr v0.0.2
+	github.com/TwiN/logr v0.2.1
 	github.com/TwiN/whois v1.1.9
 	github.com/aws/aws-sdk-go v1.54.10
 	github.com/coreos/go-oidc/v3 v3.10.0
@@ -31,7 +31,6 @@ require (
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.33.1
-	hermannm.dev/enumnames v0.2.1
 )
 
 require (

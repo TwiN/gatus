@@ -62,16 +62,8 @@ func save() {
 }
 
 func configureLogging(cfg *config.Config) {
-
-	if config.LogLevels.ContainsName(cfg.LogLevel) {
-		log.Printf("[main.configureLogging] Log Level is %s", cfg.LogLevel)
-		key, ok := config.LogLevels.GetKey(cfg.LogLevel)
-		if ok {
-			logr.SetThreshold(key)
-		}
-	} else {
-		log.Printf("[main.configureLogging] Unrecognised log level '%s', defaulting to INFO. Allowed values are [DEBUG, INFO, WARN, ERROR]", cfg.LogLevel)
-	}
+	logr.SetThreshold(cfg.LogLevel)
+	logr.Infof("[main.configureLogging] Log Level is %s", logr.GetThreshold())
 }
 
 func loadConfiguration() (*config.Config, error) {
