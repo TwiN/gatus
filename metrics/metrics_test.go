@@ -27,19 +27,19 @@ func TestPublishMetricsForEndpoint(t *testing.T) {
 	err := testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
-gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 176400
+gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 176400
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
-gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
+gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 1
 # HELP gatus_results_connected_total Total number of results in which a connection was successfully established
 # TYPE gatus_results_connected_total counter
-gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
+gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 1
 # HELP gatus_results_duration_seconds Duration of the request in seconds
 # TYPE gatus_results_duration_seconds gauge
-gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0.123
+gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 0.123
 # HELP gatus_results_total Number of results per endpoint
 # TYPE gatus_results_total counter
-gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP"} 1
+gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP",url="https://example.org"} 1
 `), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
@@ -58,20 +58,20 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
-gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 169200
+gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 169200
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
-gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
+gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 2
 # HELP gatus_results_connected_total Total number of results in which a connection was successfully established
 # TYPE gatus_results_connected_total counter
-gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
+gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 2
 # HELP gatus_results_duration_seconds Duration of the request in seconds
 # TYPE gatus_results_duration_seconds gauge
-gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0.125
+gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 0.125
 # HELP gatus_results_total Number of results per endpoint
 # TYPE gatus_results_total counter
-gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="false",type="HTTP"} 1
-gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP"} 1
+gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="false",type="HTTP",url="https://example.org"} 1
+gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP",url="https://example.org"} 1
 `), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
@@ -92,24 +92,24 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
-gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 169200
+gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 169200
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
-gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
-gatus_results_code_total{code="NOERROR",group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
+gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 2
+gatus_results_code_total{code="NOERROR",group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS",url="example.com."} 1
 # HELP gatus_results_connected_total Total number of results in which a connection was successfully established
 # TYPE gatus_results_connected_total counter
-gatus_results_connected_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
-gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
+gatus_results_connected_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS",url="example.com."} 1
+gatus_results_connected_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 2
 # HELP gatus_results_duration_seconds Duration of the request in seconds
 # TYPE gatus_results_duration_seconds gauge
-gatus_results_duration_seconds{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 0.05
-gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0.125
+gatus_results_duration_seconds{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS",url="8.8.8.8"} 0.05
+gatus_results_duration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP",url="https://example.org"} 0.125
 # HELP gatus_results_total Number of results per endpoint
 # TYPE gatus_results_total counter
-gatus_results_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",success="true",type="DNS"} 1
-gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="false",type="HTTP"} 1
-gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP"} 1
+gatus_results_total{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",success="true",type="DNS",url="8.8.8.8"} 1
+gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="false",type="HTTP",url="https://example.org"} 1
+gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",success="true",type="HTTP",url="https://example.org"} 1
 `), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
