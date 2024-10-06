@@ -13,6 +13,8 @@ import (
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
+
+	"github.com/TwiN/logr"
 )
 
 var (
@@ -31,15 +33,15 @@ func Monitor(cfg *config.Config) {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(777 * time.Millisecond)
-			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, cfg.Debug, ctx)
+			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
 		}
 	}
 }
 
 // monitor a single endpoint in a loop
-func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool, ctx context.Context) {
+func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
 	// Run it immediately on start
-	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
+	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 	// Loop for the next executions
 	for {
 		select {
@@ -47,7 +49,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 			log.Printf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s", ep.Group, ep.Name)
 			return
 		case <-time.After(ep.Interval):
-			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, debug)
+			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 		}
 	}
 	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
@@ -55,7 +57,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	// periodically like they are for normal endpoints.
 }
 
-func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock, enabledMetrics, debug bool) {
+func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -64,37 +66,36 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	}
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
-		log.Println("[watchdog.execute] No connectivity; skipping execution")
+		logr.Infof("[watchdog.execute] No connectivity; skipping execution")
 		return
 	}
-	if debug {
-		log.Printf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
-	}
+
+	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
+
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
 		metrics.PublishMetricsForEndpoint(ep, result)
 	}
 	UpdateEndpointStatuses(ep, result)
-	if debug && !result.Success {
-		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
+	if logr.GetThreshold() == logr.LevelDebug && !result.Success {
+		logr.Debugf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
 	} else {
-		log.Printf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 	if !maintenanceConfig.IsUnderMaintenance() {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
-		HandleAlerting(ep, result, alertingConfig, debug)
-	} else if debug {
-		log.Println("[watchdog.execute] Not handling alerting because currently in the maintenance window")
+		HandleAlerting(ep, result, alertingConfig, logr.GetThreshold() == logr.LevelDebug)
+	} else {
+		logr.Debugf("[watchdog.execute] Not handling alerting because currently in the maintenance window")
 	}
-	if debug {
-		log.Printf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", ep.Interval, ep.Group, ep.Name)
-	}
+
+	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", ep.Interval, ep.Group, ep.Name)
 }
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if err := store.Get().Insert(ep, result); err != nil {
-		log.Println("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
+		logr.Errorf("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
 	}
 }
 
