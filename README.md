@@ -308,12 +308,13 @@ external-endpoints:
 
 To push the status of an external endpoint, the request would have to look like this:
 ```
-POST /api/v1/endpoints/{key}/external?success={success}
+POST /api/v1/endpoints/{key}/external?success={success}&error={error}
 ```
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
+- `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
@@ -917,6 +918,7 @@ endpoints:
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
 | `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.channel`                 | Mattermost channel name override (optional)                                                 | `""`          |
 | `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
@@ -983,14 +985,18 @@ endpoints:
 
 
 #### Configuring Ntfy alerts
-| Parameter                     | Description                                                                                | Default           |
-|:------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
-| `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
-| `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
-| `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
-| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics          | `""`              |
-| `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
-| `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+| Parameter                        | Description                                                                                                                                  | Default           |
+|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------|
+| `alerting.ntfy`                  | Configuration for alerts of type `ntfy`                                                                                                      | `{}`              |
+| `alerting.ntfy.topic`            | Topic at which the alert will be sent                                                                                                        | Required `""`     |
+| `alerting.ntfy.url`              | The URL of the target server                                                                                                                 | `https://ntfy.sh` |
+| `alerting.ntfy.token`            | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                                            | `""`              |
+| `alerting.ntfy.email`            | E-mail address for additional e-mail notifications                                                                                           | `""`              |
+| `alerting.ntfy.click`            | Website opened when notification is clicked                                                                                                  | `""`              |
+| `alerting.ntfy.priority`         | The priority of the alert                                                                                                                    | `3`               |
+| `alerting.ntfy.disable-firebase` | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
+| `alerting.ntfy.disable-cache`    | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
+| `alerting.ntfy.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
@@ -1187,11 +1193,14 @@ Here's an example of what the notifications look like:
 | `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
 | `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
 | `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
+| `alerting.teams.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
 
 ```yaml
 alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    client:
+      insecure: false
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
@@ -1418,6 +1427,7 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
+- `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
@@ -1432,7 +1442,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
       }
 endpoints:
   - name: website

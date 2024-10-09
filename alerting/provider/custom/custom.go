@@ -50,7 +50,7 @@ func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) stri
 	return status
 }
 
-func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *alert.Alert, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
 	body, url, method := provider.Body, provider.URL, provider.Method
 	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
@@ -60,6 +60,8 @@ func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *al
 	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
 	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
+	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
+	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
 	if resolved {
 		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
 		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
@@ -79,7 +81,7 @@ func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *al
 }
 
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	request := provider.buildHTTPRequest(ep, alert, resolved)
+	request := provider.buildHTTPRequest(ep, alert, result, resolved)
 	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
 	if err != nil {
 		return err

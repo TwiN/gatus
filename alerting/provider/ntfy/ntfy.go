@@ -21,10 +21,14 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	Topic    string `yaml:"topic"`
-	URL      string `yaml:"url,omitempty"`      // Defaults to DefaultURL
-	Priority int    `yaml:"priority,omitempty"` // Defaults to DefaultPriority
-	Token    string `yaml:"token,omitempty"`    // Defaults to ""
+	Topic           string `yaml:"topic"`
+	URL             string `yaml:"url,omitempty"`              // Defaults to DefaultURL
+	Priority        int    `yaml:"priority,omitempty"`         // Defaults to DefaultPriority
+	Token           string `yaml:"token,omitempty"`            // Defaults to ""
+	Email           string `yaml:"email,omitempty"`            // Defaults to ""
+	Click           string `yaml:"click,omitempty"`            // Defaults to ""
+	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
+	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -56,6 +60,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if len(provider.Token) > 0 {
 		request.Header.Set("Authorization", "Bearer "+provider.Token)
 	}
+	if provider.DisableFirebase {
+		request.Header.Set("Firebase", "no")
+	}
+	if provider.DisableCache {
+		request.Header.Set("Cache", "no")
+	}
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -74,6 +84,8 @@ type Body struct {
 	Message  string   `json:"message"`
 	Tags     []string `json:"tags"`
 	Priority int      `json:"priority"`
+	Email    string   `json:"email,omitempty"`
+	Click    string   `json:"click,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -105,6 +117,8 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		Message:  message,
 		Tags:     []string{tag},
 		Priority: provider.Priority,
+		Email:    provider.Email,
+		Click:    provider.Click,
 	})
 	return body
 }

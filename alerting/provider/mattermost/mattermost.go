@@ -16,6 +16,9 @@ import (
 type AlertProvider struct {
 	WebhookURL string `yaml:"webhook-url"`
 
+	// Channel is the optional setting to override the default webhook's channel
+	Channel string `yaml:"channel,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
@@ -70,6 +73,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
+	Channel     string       `json:"channel,omitempty"` // Optional channel override
 	Text        string       `json:"text"`
 	Username    string       `json:"username"`
 	IconURL     string       `json:"icon_url"`
@@ -118,6 +122,7 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		description = ":\n> " + alertDescription
 	}
 	body := Body{
+		Channel:  provider.Channel,
 		Text:     "",
 		Username: "gatus",
 		IconURL:  "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
