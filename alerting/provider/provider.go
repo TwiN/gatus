@@ -20,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
@@ -80,6 +81,7 @@ var (
 	_ AlertProvider = (*pushover.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
+	_ AlertProvider = (*teamsworkflows.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*zulip.AlertProvider)(nil)
