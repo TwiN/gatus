@@ -152,14 +152,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x1f6a8 Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x274C;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x274C;\",\"value\":\"[STATUS] == 200\"}]}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x274C;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x274C;\",\"value\":\"[STATUS] == 200\"}]}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x1f6a8 Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x2705;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x2705;\",\"value\":\"[STATUS] == 200\"}]}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x2705;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x2705;\",\"value\":\"[STATUS] == 200\"}]}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
 		},
 		{
 			Name:         "resolved-with-no-conditions",
@@ -167,7 +167,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x1f6a8 Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false}]},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
 		},
 	}
 	for _, scenario := range scenarios {
