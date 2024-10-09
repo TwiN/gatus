@@ -14,6 +14,8 @@ func UptimeRaw(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "30d":
+		from = time.Now().Add(-30 * 24 * time.Hour)
 	case "7d":
 		from = time.Now().Add(-7 * 24 * time.Hour)
 	case "24h":
@@ -21,7 +23,7 @@ func UptimeRaw(c *fiber.Ctx) error {
 	case "1h":
 		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
-		return c.Status(400).SendString("Durations supported: 7d, 24h, 1h")
+		return c.Status(400).SendString("Durations supported: 30d,7d, 24h, 1h")
 	}
 	key := c.Params("key")
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
