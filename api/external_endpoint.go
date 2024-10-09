@@ -46,6 +46,9 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			Success:   c.QueryBool("success"),
 			Errors:    []string{},
 		}
+		if !result.Success && c.Query("error") != "" {
+			result.Errors = append(result.Errors, c.Query("error"))
+		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().Insert(convertedEndpoint, result); err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {

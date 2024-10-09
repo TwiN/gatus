@@ -91,6 +91,15 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedError: errInvalidMaintenanceDuration,
 		},
 		{
+			name: "invalid-timezone",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: time.Hour,
+				Timezone: "invalid-timezone",
+			},
+			expectedError: errInvalidTimezone,
+		},
+		{
 			name: "every-day-at-2300",
 			cfg: &Config{
 				Start:    "23:00",
@@ -123,6 +132,33 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 				Start:    "08:00",
 				Duration: 8 * time.Hour,
 				Every:    []string{"Friday", "Sunday"},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "timezone-amsterdam",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: time.Hour,
+				Timezone: "Europe/Amsterdam",
+			},
+			expectedError: nil,
+		},
+		{
+			name: "timezone-cet",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: time.Hour,
+				Timezone: "CET",
+			},
+			expectedError: nil,
+		},
+		{
+			name: "timezone-etc-plus-5",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: time.Hour,
+				Timezone: "Etc/GMT+5",
 			},
 			expectedError: nil,
 		},
@@ -220,7 +256,25 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "under-maintenance-starting-4h-ago-for-3h",
+			name: "under-maintenance-amsterdam-timezone-starting-now-for-2h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 2 * time.Hour,
+				Timezone: "Europe/Amsterdam",
+			},
+			expected: true,
+		},
+		{
+			name: "under-maintenance-utc-timezone-starting-now-for-2h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 2 * time.Hour,
+				Timezone: "UTC",
+			},
+			expected: true,
+		},
+		{
+			name: "not-under-maintenance-starting-4h-ago-for-3h",
 			cfg: &Config{
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
 				Duration: 3 * time.Hour,
@@ -228,7 +282,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "under-maintenance-starting-5h-ago-for-1h",
+			name: "not-under-maintenance-starting-5h-ago-for-1h",
 			cfg: &Config{
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-5)),
 				Duration: time.Hour,
@@ -250,6 +304,16 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 24 * time.Hour,
 				Every:    []string{now.Add(48 * time.Hour).Weekday().String()},
+			},
+			expected: false,
+		},
+		{
+			name: "not-under-maintenance-los-angeles-timezone-starting-now-for-2h-today",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 2 * time.Hour,
+				Timezone: "America/Los_Angeles",
+				Every:    []string{now.Weekday().String()},
 			},
 			expected: false,
 		},

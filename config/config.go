@@ -188,7 +188,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
 		}
 	} else {
-		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", configPath)
+		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", usedConfigPath)
 		if data, err := os.ReadFile(usedConfigPath); err != nil {
 			return nil, err
 		} else {
@@ -245,14 +245,11 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
 		err = ErrNoEndpointInConfig
 	} else {
-		validateAlertingConfig(config.Alerting, config.Endpoints, config.Debug)
+		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints, config.Debug)
 		if err := validateSecurityConfig(config); err != nil {
 			return nil, err
 		}
 		if err := validateEndpointsConfig(config); err != nil {
-			return nil, err
-		}
-		if err := validateExternalEndpointsConfig(config); err != nil {
 			return nil, err
 		}
 		if err := validateWebConfig(config); err != nil {
@@ -338,28 +335,37 @@ func validateWebConfig(config *Config) error {
 }
 
 func validateEndpointsConfig(config *Config) error {
+	duplicateValidationMap := make(map[string]bool)
+	// Validate endpoints
 	for _, ep := range config.Endpoints {
 		if config.Debug {
 			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", ep.Name)
 		}
+		if endpointKey := ep.Key(); duplicateValidationMap[endpointKey] {
+			return fmt.Errorf("invalid endpoint %s: name and group combination must be unique", ep.Key())
+		} else {
+			duplicateValidationMap[endpointKey] = true
+		}
 		if err := ep.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid endpoint %s: %w", ep.DisplayName(), err)
+			return fmt.Errorf("invalid endpoint %s: %w", ep.Key(), err)
 		}
 	}
 	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
-	return nil
-}
-
-func validateExternalEndpointsConfig(config *Config) error {
+	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
 		if config.Debug {
-			log.Printf("[config.validateExternalEndpointsConfig] Validating external endpoint '%s'", ee.Name)
+			log.Printf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Name)
+		}
+		if endpointKey := ee.Key(); duplicateValidationMap[endpointKey] {
+			return fmt.Errorf("invalid external endpoint %s: name and group combination must be unique", ee.Key())
+		} else {
+			duplicateValidationMap[endpointKey] = true
 		}
 		if err := ee.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid external endpoint %s: %w", ee.DisplayName(), err)
+			return fmt.Errorf("invalid external endpoint %s: %w", ee.Key(), err)
 		}
 	}
-	log.Printf("[config.validateExternalEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
+	log.Printf("[config.validateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }
 
@@ -382,7 +388,7 @@ func validateSecurityConfig(config *Config) error {
 // Note that the alerting configuration has to be validated before the endpoint configuration, because the default alert
 // returned by provider.AlertProvider.GetDefaultAlert() must be parsed before endpoint.Endpoint.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, debug bool) {
+func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint, debug bool) {
 	if alertingConfig == nil {
 		log.Printf("[config.validateAlertingConfig] Alerting is not configured")
 		return
@@ -391,12 +397,13 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeAWSSES,
 		alert.TypeCustom,
 		alert.TypeDiscord,
+		alert.TypeEmail,
 		alert.TypeGitHub,
 		alert.TypeGitLab,
+		alert.TypeGitea,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
 		alert.TypeJetBrainsSpace,
-		alert.TypeEmail,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
@@ -408,6 +415,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeTeams,
 		alert.TypeTelegram,
 		alert.TypeTwilio,
+		alert.TypeZulip,
 	}
 	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {
@@ -420,7 +428,17 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
 								if debug {
-									log.Printf("[config.validateAlertingConfig] Parsing alert %d with provider's default alert for provider=%s in endpoint=%s", alertIndex, alertType, ep.Name)
+									log.Printf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
+								}
+								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
+							}
+						}
+					}
+					for _, ee := range externalEndpoints {
+						for alertIndex, endpointAlert := range ee.Alerts {
+							if alertType == endpointAlert.Type {
+								if debug {
+									log.Printf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
 								}
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}

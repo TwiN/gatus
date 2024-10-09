@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 
 	"github.com/TwiN/gatus/v5/client"
@@ -62,14 +61,8 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 		if err != nil {
 			return nil, err
 		}
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			_ = response.Body.Close()
-			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
 		var endpointStatuses []*endpoint.Status
-		if err = json.Unmarshal(body, &endpointStatuses); err != nil {
+		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
 			_ = response.Body.Close()
 			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
