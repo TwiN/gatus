@@ -1734,11 +1734,12 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repository as follows:
 
 ```console
-helm repo add minicloudlabs https://minicloudlabs.github.io/helm-charts
+helm repo add twin https://twin.github.io/helm-charts
+helm repo update
+helm install gatus twin/gatus
 ```
 
-To get more details, please check [chart's configuration](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#configuration)
-and [helm file example](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#helmfileyaml-example)
+To get more details, please check [chart's configuration](https://github.com/TwiN/helm-charts/blob/master/charts/gatus/README.md).
 
 
 ### Terraform
