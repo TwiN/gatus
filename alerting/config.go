@@ -26,6 +26,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
@@ -89,6 +90,9 @@ type Config struct {
 
 	// Teams is the configuration for the teams alerting provider
 	Teams *teams.AlertProvider `yaml:"teams,omitempty"`
+
+	// TeamsWorkflows is the configuration for the teams alerting provider using the new Workflow App Webhook Connector
+	TeamsWorkflows *teamsworkflows.AlertProvider `yaml:"teams-workflows,omitempty"`
 
 	// Telegram is the configuration for the telegram alerting provider
 	Telegram *telegram.AlertProvider `yaml:"telegram,omitempty"`
