@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	restAPIURL      = "https://api.pushover.net/1/messages.json"
-	defaultPriority = 0
+	restAPIURL                = "https://api.pushover.net/1/messages.json"
+	defaultPriority           = 0
+	defaultPriorityOnResolved = defaultPriority
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Pushover
@@ -34,6 +35,10 @@ type AlertProvider struct {
 	// default: 0
 	Priority int `yaml:"priority,omitempty"`
 
+	// Priority of all messages, ranging from -2 (very low) to 2 (Emergency)
+	// default: Priority
+	PriorityOnResolved int `yaml:"priority-on-resolved,omitempty"`
+
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
 	Sound string `yaml:"sound,omitempty"`
@@ -47,7 +52,10 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = defaultPriority
 	}
-	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2
+	if provider.PriorityOnResolved == 0 {
+		provider.PriorityOnResolved = defaultPriorityOnResolved
+	}
+	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2 && provider.PriorityOnResolved >= -2 && provider.PriorityOnResolved <= 2
 }
 
 // Send an alert using the provider
@@ -93,15 +101,21 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		User:     provider.UserKey,
 		Title:    provider.Title,
 		Message:  message,
-		Priority: provider.priority(),
+		Priority: provider.priority(resolved),
 		Sound:    provider.Sound,
 	})
 	return body
 }
 
-func (provider *AlertProvider) priority() int {
-	if provider.Priority == 0 {
+func (provider *AlertProvider) priority(resolved bool) int {
+	if resolved && provider.PriorityOnResolved == 0 {
+		return defaultPriorityOnResolved
+	}
+	if !resolved && provider.Priority == 0 {
 		return defaultPriority
+	}
+	if resolved {
+		return provider.PriorityOnResolved
 	}
 	return provider.Priority
 }
