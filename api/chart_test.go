@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -17,7 +17,7 @@ func TestResponseTimeChart(t *testing.T) {
 	defer cache.Clear()
 	cfg := &config.Config{
 		Metrics: true,
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -28,8 +28,8 @@ func TestResponseTimeChart(t *testing.T) {
 			},
 		},
 	}
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &core.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &core.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
@@ -47,6 +47,11 @@ func TestResponseTimeChart(t *testing.T) {
 		{
 			Name:         "chart-response-time-7d",
 			Path:         "/api/v1/endpoints/core_frontend/response-times/7d/chart.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "chart-response-time-30d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/30d/chart.svg",
 			ExpectedCode: http.StatusOK,
 		},
 		{

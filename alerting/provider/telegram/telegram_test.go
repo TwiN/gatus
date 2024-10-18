@@ -7,11 +7,11 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
 		invalidProvider := AlertProvider{Token: "", ID: ""}
 		if invalidProvider.IsValid() {
@@ -28,6 +28,69 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		}
 		if validProvider.ClientConfig == nil {
 			t.Error("provider client config should have been set after IsValid() was executed")
+		}
+	})
+}
+
+func TestAlertProvider_IsValidWithOverrides(t *testing.T) {
+	t.Run("invalid-provider-override-nonexist-group", func(t *testing.T) {
+		invalidProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{token: "token", id: "id"}}}
+		if invalidProvider.IsValid() {
+			t.Error("provider shouldn't have been valid")
+		}
+	})
+	t.Run("invalid-provider-override-duplicate-group", func(t *testing.T) {
+		invalidProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group1", token: "token", id: "id"}, {group: "group1", id: "id2"}}}
+		if invalidProvider.IsValid() {
+			t.Error("provider shouldn't have been valid")
+		}
+	})
+	t.Run("valid-provider", func(t *testing.T) {
+		validProvider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group", token: "token", id: "id"}}}
+		if validProvider.ClientConfig != nil {
+			t.Error("provider client config should have been nil prior to IsValid() being executed")
+		}
+		if !validProvider.IsValid() {
+			t.Error("provider should've been valid")
+		}
+		if validProvider.ClientConfig == nil {
+			t.Error("provider client config should have been set after IsValid() was executed")
+		}
+	})
+}
+
+func TestAlertProvider_getTokenAndIDForGroup(t *testing.T) {
+	t.Run("get-token-with-override", func(t *testing.T) {
+		provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group", token: "overrideToken", id: "overrideID"}}}
+		token := provider.getTokenForGroup("group")
+		if token != "overrideToken" {
+			t.Error("token should have been 'overrideToken'")
+		}
+		id := provider.getIDForGroup("group")
+		if id != "overrideID" {
+			t.Error("id should have been 'overrideID'")
+		}
+	})
+	t.Run("get-default-token-with-overridden-id", func(t *testing.T) {
+		provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group", id: "overrideID"}}}
+		token := provider.getTokenForGroup("group")
+		if token != provider.Token {
+			t.Error("token should have been the default token")
+		}
+		id := provider.getIDForGroup("group")
+		if id != "overrideID" {
+			t.Error("id should have been 'overrideID'")
+		}
+	})
+	t.Run("get-default-token-with-overridden-token", func(t *testing.T) {
+		provider := AlertProvider{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678", Overrides: []*Override{{group: "group", token: "overrideToken"}}}
+		token := provider.getTokenForGroup("group")
+		if token != "overrideToken" {
+			t.Error("token should have been 'overrideToken'")
+		}
+		id := provider.getIDForGroup("group")
+		if id != provider.ID {
+			t.Error("id should have been the default id")
 		}
 	})
 }
@@ -89,10 +152,10 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -145,17 +208,17 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			var conditionResults []*core.ConditionResult
+			var conditionResults []*endpoint.ConditionResult
 			if !scenario.NoConditions {
-				conditionResults = []*core.ConditionResult{
+				conditionResults = []*endpoint.ConditionResult{
 					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 				}
 			}
 			body := scenario.Provider.buildRequestBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{ConditionResults: conditionResults},
+				&endpoint.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {

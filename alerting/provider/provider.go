@@ -6,6 +6,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
@@ -19,9 +20,11 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
 // AlertProvider is the interface that each provider should implement
@@ -33,7 +36,7 @@ type AlertProvider interface {
 	GetDefaultAlert() *alert.Alert
 
 	// Send an alert using the provider
-	Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error
+	Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error
 }
 
 // ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
@@ -66,6 +69,7 @@ var (
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
+	_ AlertProvider = (*gitea.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
 	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
@@ -77,6 +81,8 @@ var (
 	_ AlertProvider = (*pushover.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
+	_ AlertProvider = (*teamsworkflows.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
+	_ AlertProvider = (*zulip.AlertProvider)(nil)
 )

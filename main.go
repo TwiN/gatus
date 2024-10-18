@@ -80,15 +80,69 @@ func initializeStorage(cfg *config.Config) {
 	}
 	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
-	for _, endpoint := range cfg.Endpoints {
-		keys = append(keys, endpoint.Key())
+	for _, ep := range cfg.Endpoints {
+		keys = append(keys, ep.Key())
 	}
-	for _, externalEndpoint := range cfg.ExternalEndpoints {
-		keys = append(keys, externalEndpoint.Key())
+	for _, ee := range cfg.ExternalEndpoints {
+		keys = append(keys, ee.Key())
 	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
 		log.Printf("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+	}
+	// Clean up the triggered alerts from the storage provider and load valid triggered endpoint alerts
+	numberOfPersistedTriggeredAlertsLoaded := 0
+	for _, ep := range cfg.Endpoints {
+		var checksums []string
+		for _, alert := range ep.Alerts {
+			if alert.IsEnabled() {
+				checksums = append(checksums, alert.Checksum())
+			}
+		}
+		numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep, checksums)
+		if cfg.Debug && numberOfTriggeredAlertsDeleted > 0 {
+			log.Printf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
+		}
+		for _, alert := range ep.Alerts {
+			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+			if err != nil {
+				log.Printf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				continue
+			}
+			if exists {
+				alert.Triggered, alert.ResolveKey = true, resolveKey
+				ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+				numberOfPersistedTriggeredAlertsLoaded++
+			}
+		}
+	}
+	for _, ee := range cfg.ExternalEndpoints {
+		var checksums []string
+		for _, alert := range ee.Alerts {
+			if alert.IsEnabled() {
+				checksums = append(checksums, alert.Checksum())
+			}
+		}
+		convertedEndpoint := ee.ToEndpoint()
+		numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(convertedEndpoint, checksums)
+		if cfg.Debug && numberOfTriggeredAlertsDeleted > 0 {
+			log.Printf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ee.Key())
+		}
+		for _, alert := range ee.Alerts {
+			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
+			if err != nil {
+				log.Printf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ee.Key(), err.Error())
+				continue
+			}
+			if exists {
+				alert.Triggered, alert.ResolveKey = true, resolveKey
+				ee.NumberOfSuccessesInARow, ee.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+				numberOfPersistedTriggeredAlertsLoaded++
+			}
+		}
+	}
+	if numberOfPersistedTriggeredAlertsLoaded > 0 {
+		log.Printf("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
 	}
 }
 

@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/remote"
-	"github.com/TwiN/gatus/v5/core"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
@@ -51,25 +50,19 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	}
 }
 
-func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*core.EndpointStatus, error) {
+func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
 	if remoteConfig == nil || len(remoteConfig.Instances) == 0 {
 		return nil, nil
 	}
-	var endpointStatusesFromAllRemotes []*core.EndpointStatus
+	var endpointStatusesFromAllRemotes []*endpoint.Status
 	httpClient := client.GetHTTPClient(remoteConfig.ClientConfig)
 	for _, instance := range remoteConfig.Instances {
 		response, err := httpClient.Get(instance.URL)
 		if err != nil {
 			return nil, err
 		}
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			_ = response.Body.Close()
-			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
-		var endpointStatuses []*core.EndpointStatus
-		if err = json.Unmarshal(body, &endpointStatuses); err != nil {
+		var endpointStatuses []*endpoint.Status
+		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
 			_ = response.Body.Close()
 			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
@@ -83,7 +76,7 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*cor
 	return endpointStatusesFromAllRemotes, nil
 }
 
-// EndpointStatus retrieves a single core.EndpointStatus by group and endpoint name
+// EndpointStatus retrieves a single endpoint.Status by group and endpoint name
 func EndpointStatus(c *fiber.Ctx) error {
 	page, pageSize := extractPageAndPageSizeFromRequest(c)
 	endpointStatus, err := store.Get().GetEndpointStatusByKey(c.Params("key"), paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))

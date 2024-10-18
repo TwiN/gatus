@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/web"
-	"github.com/TwiN/gatus/v5/core"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -19,7 +19,7 @@ func TestHandle(t *testing.T) {
 			Address: "0.0.0.0",
 			Port:    rand.Intn(65534),
 		},
-		Endpoints: []*core.Endpoint{
+		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
 				Group: "core",
@@ -64,7 +64,7 @@ func TestHandleTLS(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			cfg := &config.Config{
 				Web: &web.Config{Address: "0.0.0.0", Port: rand.Intn(65534), TLS: scenario.tls},
-				Endpoints: []*core.Endpoint{
+				Endpoints: []*endpoint.Endpoint{
 					{Name: "frontend", Group: "core"},
 					{Name: "backend", Group: "core"},
 				},

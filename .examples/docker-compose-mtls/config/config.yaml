@@ -1,0 +1,13 @@
+endpoints:
+  - name: example
+    url: https://nginx
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+    client:
+      # mtls
+      insecure: true
+      tls:
+        certificate-file: /certs/client.crt
+        private-key-file: /certs/client.key
+        renegotiation: once

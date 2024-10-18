@@ -1,13 +1,11 @@
 [![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
 ![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
-[![Join Discord server](https://img.shields.io/discord/442432928614449155.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ka9RySaQ9K)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
-
 
 Gatus is a developer-oriented health dashboard that gives you the ability to monitor your services using HTTP, ICMP, TCP, and even DNS
 queries as well as evaluate the result of said queries by using a list of conditions on values like the status code,
@@ -55,6 +53,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Alerting](#alerting)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
+    - [Configuring Gitea alerts](#configuring-gitea-alerts)
     - [Configuring GitHub alerts](#configuring-github-alerts)
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
@@ -68,11 +67,13 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
-    - [Configuring Teams alerts](#configuring-teams-alerts)
+    - [Configuring Teams alerts *(Deprecated)*](#configuring-teams-alerts-deprecated)
+    - [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+    - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
@@ -110,6 +111,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
+  - [How to fix 431 Request Header Fields Too Large error](#how-to-fix-431-request-header-fields-too-large-error)
   - [Badges](#badges)
     - [Uptime](#uptime)
     - [Health](#health)
@@ -281,7 +283,7 @@ This allows you to monitor anything you want, even when what you want to check l
 
 For instance:
 - You can create your own agent that lives in a private network and pushes the status of your services to a publicly-exposed Gatus instance
-- You can monitor services that are not supported by Gatus 
+- You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
 | Parameter                      | Description                                                                                                            | Default       |
@@ -307,12 +309,13 @@ external-endpoints:
 
 To push the status of an external endpoint, the request would have to look like this:
 ```
-POST /api/v1/endpoints/{key}/external?success={success}
+POST /api/v1/endpoints/{key}/external?success={success}&error={error}
 ```
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
+- `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
@@ -565,7 +568,8 @@ endpoints:
 | `alerting.pagerduty`      | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                   | `{}`    |
 | `alerting.pushover`       | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                      | `{}`    |
 | `alerting.slack`          | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                               | `{}`    |
-| `alerting.teams`          | Configuration for alerts of type `teams`. <br />See [Configuring Teams alerts](#configuring-teams-alerts).                               | `{}`    |
+| `alerting.teams`          | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).     | `{}`    |
+| `alerting.teams-workflows`  | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).     | `{}`    |
 | `alerting.telegram`       | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                      | `{}`    |
 | `alerting.twilio`         | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                 | `{}`    |
 
@@ -662,8 +666,45 @@ endpoints:
 
 > ⚠ Some mail servers are painfully slow.
 
+#### Configuring Gitea alerts
+
+| Parameter                        | Description                                                                                                | Default       |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                  | `{}`          |
+| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                             | Required `""` |
+| `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
+| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+
+The Gitea alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
+name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
+closed when the alert is resolved.
+
+```yaml
+alerting:
+  gitea:
+    repository-url: "https://gitea.com/TwiN/test"
+    token: "349d63f16......"
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: gitea
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "Everything's burning AAAAAHHHHHHHHHHHHHHH"
+```
+
+![Gitea alert](.github/assets/gitea-alerts.png)
 
 #### Configuring GitHub alerts
+
 | Parameter                        | Description                                                                                                | Default       |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
 | `alerting.github`                | Configuration for alerts of type `github`                                                                  | `{}`          |
@@ -698,7 +739,6 @@ endpoints:
 ```
 
 ![GitHub alert](.github/assets/github-alerts.png)
-
 
 #### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                         | Default       |
@@ -879,6 +919,7 @@ endpoints:
 |:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
 | `alerting.mattermost`                         | Configuration for alerts of type `mattermost`                                               | `{}`          |
 | `alerting.mattermost.webhook-url`             | Mattermost Webhook URL                                                                      | Required `""` |
+| `alerting.mattermost.channel`                 | Mattermost channel name override (optional)                                                 | `""`          |
 | `alerting.mattermost.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
@@ -945,14 +986,18 @@ endpoints:
 
 
 #### Configuring Ntfy alerts
-| Parameter                     | Description                                                                                | Default           |
-|:------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
-| `alerting.ntfy`               | Configuration for alerts of type `ntfy`                                                    | `{}`              |
-| `alerting.ntfy.topic`         | Topic at which the alert will be sent                                                      | Required `""`     |
-| `alerting.ntfy.url`           | The URL of the target server                                                               | `https://ntfy.sh` |
-| `alerting.ntfy.token`         | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics          | `""`              |
-| `alerting.ntfy.priority`      | The priority of the alert                                                                  | `3`               |
-| `alerting.ntfy.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+| Parameter                        | Description                                                                                                                                  | Default           |
+|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------|
+| `alerting.ntfy`                  | Configuration for alerts of type `ntfy`                                                                                                      | `{}`              |
+| `alerting.ntfy.topic`            | Topic at which the alert will be sent                                                                                                        | Required `""`     |
+| `alerting.ntfy.url`              | The URL of the target server                                                                                                                 | `https://ntfy.sh` |
+| `alerting.ntfy.token`            | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                                            | `""`              |
+| `alerting.ntfy.email`            | E-mail address for additional e-mail notifications                                                                                           | `""`              |
+| `alerting.ntfy.click`            | Website opened when notification is clicked                                                                                                  | `""`              |
+| `alerting.ntfy.priority`         | The priority of the alert                                                                                                                    | `3`               |
+| `alerting.ntfy.disable-firebase` | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
+| `alerting.ntfy.disable-cache`    | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
+| `alerting.ntfy.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
@@ -1134,20 +1179,29 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
-#### Configuring Teams alerts
-| Parameter                                | Description                                                                                | Default       |
-|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`          |
-| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""` |
-| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`          |
+#### Configuring Teams alerts *(Deprecated)*
+
+> [!CAUTION]
+> **Deprecated:** Office 365 Connectors within Microsoft Teams are being retired ([Source: Microsoft DevBlog](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/)).
+> Existing connectors will continue to work until December 2025. The new [Teams Workflow Alerts](#configuring-teams-workflow-alerts) should be used with Microsoft Workflows instead of this legacy configuration.
+
+| Parameter                                | Description                                                                                | Default             |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
+| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
+| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
+| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
+| `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
+| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
+| `alerting.teams.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
 
 ```yaml
 alerting:
   teams:
     webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    client:
+      insecure: false
     # You can also add group-specific to keys, which will
     # override the to key above for the specified groups
     overrides:
@@ -1184,16 +1238,75 @@ Here's an example of what the notifications look like:
 
 ![Teams notifications](.github/assets/teams-alerts.png)
 
+#### Configuring Teams Workflow alerts
+
+> [!NOTE]
+> This alert is compatible with Workflows for Microsoft Teams. To setup the workflow and get the webhook URL, follow the [Microsoft Documentation](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498).
+
+| Parameter                                          | Description                                                                                | Default            |
+|:---------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
+| `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
+| `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
+| `alerting.teams-workflows.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
+| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
+| `alerting.teams-workflows.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
+| `alerting.teams-workflows.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
+
+```yaml
+alerting:
+  teams-workflows:
+    webhook-url: "https://********.webhook.office.com/webhookb2/************"
+    # You can also add group-specific to keys, which will
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        webhook-url: "https://********.webhook.office.com/webhookb3/************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: teams-workflows
+        description: "healthcheck failed"
+        send-on-resolved: true
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+    alerts:
+      - type: teams-workflows
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
+Here's an example of what the notifications look like:
+
+![Teams Workflow notifications](.github/assets/teams-workflows-alerts.png)
+
 
 #### Configuring Telegram alerts
-| Parameter                         | Description                                                                                | Default                    |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
-| `alerting.telegram`               | Configuration for alerts of type `telegram`                                                | `{}`                       |
-| `alerting.telegram.token`         | Telegram Bot Token                                                                         | Required `""`              |
-| `alerting.telegram.id`            | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.api-url`       | Telegram API URL                                                                           | `https://api.telegram.org` |
-| `alerting.telegram.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
-| `alerting.telegram.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| Parameter                             | Description                                                                                | Default                    |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
+| `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
+| `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
+| `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
+| `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
+| `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
+| `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
+| `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
+| `alerting.telegram.overrides[].token` | Telegram Bot Token for override default value                                              | `""`                       |
+| `alerting.telegram.overrides[].id`    | Telegram User ID for override default value                                                | `""`                       |
 
 ```yaml
 alerting:
@@ -1315,6 +1428,7 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
+- `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
@@ -1329,7 +1443,7 @@ alerting:
     method: "POST"
     body: |
       {
-        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION]"
+        "text": "[ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
       }
 endpoints:
   - name: website
@@ -1450,6 +1564,42 @@ endpoints:
       - type: pagerduty
 ```
 
+#### Configuring Zulip alerts
+| Parameter                                | Description                                                                         | Default                             |
+|:-----------------------------------------|:------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.zulip`                         | Configuration for alerts of type `discord`                                          | `{}`                                |
+| `alerting.zulip.bot-email`               | Bot Email                                                                           | Required `""`                       |
+| `alerting.zulip.bot-api-key`             | Bot API key                                                                         | Required `""`                       |
+| `alerting.zulip.domain`                  | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""`                       |
+| `alerting.zulip.channel-id`              | The channel ID where Gatus will send the alerts                                     | Required `""`                       |
+| `alerting.zulip.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration | `""`                                |
+| `alerting.zulip.overrides[].bot-email`   | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].bot-api-key` | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].domain`      | .                                                                                   | `""`                                |
+| `alerting.zulip.overrides[].channel-id`  | .                                                                                   | `""`                                |
+
+```yaml
+alerting:
+  zulip:
+    bot-email: gatus-bot@some.zulip.org
+    bot-api-key: "********************************"
+    domain: some.zulip.org
+    channel-id: 123456
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: zulip
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
+
 
 ### Maintenance
 If you have maintenance windows, you may not want to be annoyed by alerts.
@@ -1460,15 +1610,15 @@ To do that, you'll have to use the maintenance configuration:
 | `maintenance.enabled`  | Whether the maintenance period is enabled                                                                                              | `true`        |
 | `maintenance.start`    | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)                                                           | Required `""` |
 | `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
+| `maintenance.timezone` | Timezone of the maintenance window format (e.g. `Europe/Amsterdam`).<br />See [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for more info |  `UTC` |
 | `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
-
-> 📝 The maintenance configuration uses UTC
 
 Here's an example:
 ```yaml
 maintenance:
   start: 23:00
   duration: 1h
+  timezone: "Europe/Amsterdam"
   every: [Monday, Thursday]
 ```
 Note that you can also specify each day on separate lines:
@@ -1476,6 +1626,7 @@ Note that you can also specify each day on separate lines:
 maintenance:
   start: 23:00
   duration: 1h
+  timezone: "Europe/Amsterdam"
   every:
     - Monday
     - Thursday
@@ -1646,11 +1797,12 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repository as follows:
 
 ```console
-helm repo add minicloudlabs https://minicloudlabs.github.io/helm-charts
+helm repo add twin https://twin.github.io/helm-charts
+helm repo update
+helm install gatus twin/gatus
 ```
 
-To get more details, please check [chart's configuration](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#configuration)
-and [helm file example](https://github.com/minicloudlabs/helm-charts/tree/main/charts/gatus#helmfileyaml-example)
+To get more details, please check [chart's configuration](https://github.com/TwiN/helm-charts/blob/master/charts/gatus/README.md).
 
 
 ### Terraform
@@ -2123,7 +2275,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h` 
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
@@ -2188,7 +2340,7 @@ The endpoint to generate a badge is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -79,10 +79,10 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -106,8 +106,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		Name     string
 		Provider *AlertProvider
 		Alert    *alert.Alert
-		Endpoint *core.Endpoint
-		Result   *core.Result
+		Endpoint *endpoint.Endpoint
+		Result   *endpoint.Result
 		Resolved bool
 		want     alertCreateRequest
 	}{
@@ -115,8 +115,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Name:     "missing all params (unresolved)",
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
-			Endpoint: &core.Endpoint{},
-			Result:   &core.Result{},
+			Endpoint: &endpoint.Endpoint{},
+			Result:   &endpoint.Result{},
 			Resolved: false,
 			want: alertCreateRequest{
 				Message:     " - ",
@@ -133,8 +133,8 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 			Name:     "missing all params (resolved)",
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
-			Endpoint: &core.Endpoint{},
-			Result:   &core.Result{},
+			Endpoint: &endpoint.Endpoint{},
+			Result:   &endpoint.Result{},
 			Resolved: true,
 			want: alertCreateRequest{
 				Message:     "RESOLVED:  - ",
@@ -154,11 +154,11 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Description:      &description,
 				FailureThreshold: 3,
 			},
-			Endpoint: &core.Endpoint{
+			Endpoint: &endpoint.Endpoint{
 				Name: "my super app",
 			},
-			Result: &core.Result{
-				ConditionResults: []*core.ConditionResult{
+			Result: &endpoint.Result{
+				ConditionResults: []*endpoint.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   true,
@@ -194,11 +194,11 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Description:      &description,
 				SuccessThreshold: 4,
 			},
-			Endpoint: &core.Endpoint{
+			Endpoint: &endpoint.Endpoint{
 				Name: "my mega app",
 			},
-			Result: &core.Result{
-				ConditionResults: []*core.ConditionResult{
+			Result: &endpoint.Result{
+				ConditionResults: []*endpoint.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   true,
@@ -226,17 +226,17 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				Description:      &description,
 				FailureThreshold: 6,
 			},
-			Endpoint: &core.Endpoint{
+			Endpoint: &endpoint.Endpoint{
 				Name:  "my app",
 				Group: "end game",
 				URL:   "https://my.go/app",
 			},
-			Result: &core.Result{
+			Result: &endpoint.Result{
 				HTTPStatus: 400,
 				Hostname:   "my.go",
 				Errors:     []string{"error 01", "error 02"},
 				Success:    false,
-				ConditionResults: []*core.ConditionResult{
+				ConditionResults: []*endpoint.ConditionResult{
 					{
 						Condition: "[STATUS] == 200",
 						Success:   false,
@@ -279,14 +279,14 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 		Name     string
 		Provider *AlertProvider
 		Alert    *alert.Alert
-		Endpoint *core.Endpoint
+		Endpoint *endpoint.Endpoint
 		want     alertCloseRequest
 	}{
 		{
 			Name:     "Missing all values",
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
-			Endpoint: &core.Endpoint{},
+			Endpoint: &endpoint.Endpoint{},
 			want: alertCloseRequest{
 				Source: "",
 				Note:   "RESOLVED:  - ",
@@ -298,7 +298,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 			Alert: &alert.Alert{
 				Description: &description,
 			},
-			Endpoint: &core.Endpoint{
+			Endpoint: &endpoint.Endpoint{
 				Name: "endpoint name",
 			},
 			want: alertCloseRequest{

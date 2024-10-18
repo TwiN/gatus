@@ -11,7 +11,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/google/uuid"
 )
 
@@ -51,11 +51,11 @@ func (provider *AlertProvider) IsValid() bool {
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	if len(alert.ResolveKey) == 0 {
 		alert.ResolveKey = uuid.NewString()
 	}
-	buffer := bytes.NewBuffer(provider.buildAlertBody(endpoint, alert, result, resolved))
+	buffer := bytes.NewBuffer(provider.buildAlertBody(ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, provider.WebhookURL, buffer)
 	if err != nil {
 		return err
@@ -94,21 +94,21 @@ func (provider *AlertProvider) monitoringTool() string {
 	return "gatus"
 }
 
-func (provider *AlertProvider) service(endpoint *core.Endpoint) string {
+func (provider *AlertProvider) service(ep *endpoint.Endpoint) string {
 	if len(provider.Service) > 0 {
 		return provider.Service
 	}
-	return endpoint.DisplayName()
+	return ep.DisplayName()
 }
 
 // buildAlertBody builds the body of the alert
-func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildAlertBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	body := AlertBody{
-		Title:                 fmt.Sprintf("alert(%s): %s", provider.monitoringTool(), provider.service(endpoint)),
+		Title:                 fmt.Sprintf("alert(%s): %s", provider.monitoringTool(), provider.service(ep)),
 		StartTime:             result.Timestamp.Format(time.RFC3339),
-		Service:               provider.service(endpoint),
+		Service:               provider.service(ep),
 		MonitoringTool:        provider.monitoringTool(),
-		Hosts:                 endpoint.URL,
+		Hosts:                 ep.URL,
 		GitlabEnvironmentName: provider.EnvironmentName,
 		Severity:              provider.Severity,
 		Fingerprint:           alert.ResolveKey,
@@ -135,9 +135,9 @@ func (provider *AlertProvider) buildAlertBody(endpoint *core.Endpoint, alert *al
 	}
 	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	body.Description = message + description + formattedConditionResults
 	bodyAsJSON, _ := json.Marshal(body)

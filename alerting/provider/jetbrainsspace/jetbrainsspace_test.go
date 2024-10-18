@@ -7,7 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -120,10 +120,10 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -146,7 +146,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
-		Endpoint     core.Endpoint
+		Endpoint     endpoint.Endpoint
 		Alert        alert.Alert
 		Resolved     bool
 		ExpectedBody string
@@ -154,7 +154,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name"},
+			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
@@ -162,7 +162,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
@@ -170,7 +170,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name"},
+			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
@@ -178,7 +178,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     core.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: `{"channel":"id:","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
@@ -189,8 +189,8 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
 				&scenario.Endpoint,
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
