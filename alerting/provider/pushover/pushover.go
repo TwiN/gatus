@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	restAPIURL                = "https://api.pushover.net/1/messages.json"
-	defaultPriority           = 0
-	defaultPriorityOnResolved = defaultPriority
+	restAPIURL      = "https://api.pushover.net/1/messages.json"
+	defaultPriority = 0
 )
 
 // AlertProvider is the configuration necessary for sending an alert using Pushover
@@ -37,7 +36,7 @@ type AlertProvider struct {
 
 	// Priority of all messages, ranging from -2 (very low) to 2 (Emergency)
 	// default: Priority
-	PriorityOnResolved int `yaml:"priority-on-resolved,omitempty"`
+	ResolvedPriority int `yaml:"resolved-priority,omitempty"`
 
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
@@ -52,10 +51,10 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = defaultPriority
 	}
-	if provider.PriorityOnResolved == 0 {
-		provider.PriorityOnResolved = defaultPriorityOnResolved
+	if provider.ResolvedPriority == 0 {
+		provider.ResolvedPriority = defaultPriority
 	}
-	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2 && provider.PriorityOnResolved >= -2 && provider.PriorityOnResolved <= 2
+	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2 && provider.ResolvedPriority >= -2 && provider.ResolvedPriority <= 2
 }
 
 // Send an alert using the provider
@@ -108,14 +107,14 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 }
 
 func (provider *AlertProvider) priority(resolved bool) int {
-	if resolved && provider.PriorityOnResolved == 0 {
-		return defaultPriorityOnResolved
+	if resolved && provider.ResolvedPriority == 0 {
+		return defaultPriority
 	}
 	if !resolved && provider.Priority == 0 {
 		return defaultPriority
 	}
 	if resolved {
-		return provider.PriorityOnResolved
+		return provider.ResolvedPriority
 	}
 	return provider.Priority
 }
