@@ -34,7 +34,7 @@ type AlertProvider struct {
 	// default: 0
 	Priority int `yaml:"priority,omitempty"`
 
-	// Priority of all messages, ranging from -2 (very low) to 2 (Emergency)
+	// Priority of resolved messages, ranging from -2 (very low) to 2 (Emergency)
 	// default: Priority
 	ResolvedPriority int `yaml:"resolved-priority,omitempty"`
 
