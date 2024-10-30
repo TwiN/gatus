@@ -55,7 +55,7 @@ type Config struct {
 	// Debug Whether to enable debug logs
 	Debug bool `yaml:"debug,omitempty"`
 
-	// Log level: DEBUG, INFO, WARN, ERROR.  Default: INFO
+	// LogLevel is one of DEBUG, INFO, WARN and ERROR. Defaults to INFO
 	LogLevel logr.Level `yaml:"log-level,omitempty"`
 
 	// Metrics Whether to expose metrics at /metrics

@@ -12,7 +12,6 @@ import (
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
-
 	"github.com/TwiN/logr"
 )
 
@@ -25,7 +24,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	configureLogging(cfg)
 	initializeStorage(cfg)
 	start(cfg)

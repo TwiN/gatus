@@ -2,8 +2,6 @@ module github.com/TwiN/gatus/v5
 
 go 1.22.4
 
-toolchain go1.23.0
-
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/TwiN/deepmerge v0.2.1

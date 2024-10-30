@@ -69,7 +69,6 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 		logr.Infof("[watchdog.execute] No connectivity; skipping execution")
 		return
 	}
-
 	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
 
 	result := ep.EvaluateHealth()
@@ -88,7 +87,6 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	} else {
 		logr.Debugf("[watchdog.execute] Not handling alerting because currently in the maintenance window")
 	}
-
 	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", ep.Interval, ep.Group, ep.Name)
 }
 
