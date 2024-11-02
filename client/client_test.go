@@ -397,6 +397,16 @@ func TestQueryDNS(t *testing.T) {
 			expectedBody:    "*.iana-servers.net.",
 		},
 		{
+			name: "test Config with type PTR",
+			inputDNS: dns.Config{
+				QueryType: "PTR",
+				QueryName: "8.8.8.8.in-addr.arpa.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dns.google.",
+		},
+		{
 			name: "test Config with fake type and retrieve error",
 			inputDNS: dns.Config{
 				QueryType: "B",

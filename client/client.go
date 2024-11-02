@@ -332,6 +332,10 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			if ns, ok := rr.(*dns.NS); ok {
 				body = []byte(ns.Ns)
 			}
+		case dns.TypePTR:
+			if ptr, ok := rr.(*dns.PTR); ok {
+				body = []byte(ptr.Ptr)
+			}
 		default:
 			body = []byte("query type is not supported yet")
 		}
