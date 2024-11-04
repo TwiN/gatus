@@ -501,7 +501,7 @@ endpoints:
 
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
 
-This example shows you how you cna use the `client.tls` configuration to perform an mTLS query to a backend API:
+This example shows you how you can use the `client.tls` configuration to perform an mTLS query to a backend API:
 
 ```yaml
 endpoints:

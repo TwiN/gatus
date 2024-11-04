@@ -417,6 +417,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypePushover,
 		alert.TypeSlack,
 		alert.TypeTeams,
+		alert.TypeTeamsWorkflows,
 		alert.TypeTelegram,
 		alert.TypeTwilio,
 		alert.TypeZulip,
