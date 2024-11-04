@@ -13,7 +13,6 @@ import (
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
-
 	"github.com/TwiN/logr"
 )
 
@@ -70,7 +69,6 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 		return
 	}
 	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
-
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
 		metrics.PublishMetricsForEndpoint(ep, result)

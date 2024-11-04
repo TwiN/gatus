@@ -1,4 +1,3 @@
-log-level: INFO
 endpoints:
   - name: front-end
     group: core
