@@ -62,6 +62,9 @@ const (
 	// TypeTeams is the Type for the teams alerting provider
 	TypeTeams Type = "teams"
 
+	// TypeTeamsWorkflows is the Type for the teams-workflows alerting provider
+	TypeTeamsWorkflows Type = "teams-workflows"
+
 	// TypeTelegram is the Type for the telegram alerting provider
 	TypeTelegram Type = "telegram"
 
