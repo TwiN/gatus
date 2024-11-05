@@ -35,7 +35,7 @@ type AlertProvider struct {
 	Priority int `yaml:"priority,omitempty"`
 
 	// Priority of resolved messages, ranging from -2 (very low) to 2 (Emergency)
-	// default: Priority
+	// default: 0
 	ResolvedPriority int `yaml:"resolved-priority,omitempty"`
 
 	// Sound of the messages (see: https://pushover.net/api#sounds)
