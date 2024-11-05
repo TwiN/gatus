@@ -12,7 +12,7 @@ require (
 	github.com/TwiN/whois v1.1.9
 	github.com/aws/aws-sdk-go v1.54.10
 	github.com/coreos/go-oidc/v3 v3.11.0
-	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ishidawataru/sctp v0.0.0-20230406120618-7ff4192f6ff2
