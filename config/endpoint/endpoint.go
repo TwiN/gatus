@@ -121,6 +121,9 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	LastReminderSent map[alert.Type]time.Time `yaml:"-"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -189,6 +192,9 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if len(e.Headers) == 0 {
 		e.Headers = make(map[string]string)
+	}
+	if len(e.LastReminderSent) == 0 {
+		e.LastReminderSent = make(map[alert.Type]time.Time)
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
 	if _, userAgentHeaderExists := e.Headers[UserAgentHeader]; !userAgentHeaderExists {
