@@ -1108,15 +1108,16 @@ endpoints:
 
 
 #### Configuring Pushover alerts
-| Parameter                              | Description                                                                                     | Default                      |
-|:---------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
-| `alerting.pushover`                    | Configuration for alerts of type `pushover`                                                     | `{}`                         |
-| `alerting.pushover.application-token`  | Pushover application token                                                                      | `""`                         |
-| `alerting.pushover.user-key`           | User or group key                                                                               | `""`                         |
-| `alerting.pushover.title`              | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
-| `alerting.pushover.priority`           | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
-| `alerting.pushover.sound`              | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
-| `alerting.pushover.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
+| Parameter                             | Description                                                                                     | Default                      |
+|:--------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
+| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                     | `{}`                         |
+| `alerting.pushover.application-token` | Pushover application token                                                                      | `""`                         |
+| `alerting.pushover.user-key`          | User or group key                                                                               | `""`                         |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
+| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
+| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)      | `0`                          |
+| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
+| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
 
 ```yaml
 alerting:
@@ -2275,7 +2276,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h` 
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
