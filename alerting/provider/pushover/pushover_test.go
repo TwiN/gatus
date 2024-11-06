@@ -33,7 +33,6 @@ func TestPushoverAlertProvider_IsInvalid(t *testing.T) {
 		ApplicationToken: "aTokenWithLengthOfMoreThan30characters",
 		UserKey:          "aTokenWithLengthOfMoreThan30characters",
 		Priority:         5,
-		ResolvedPriotity: 5,
 	}
 	if invalidProvider.IsValid() {
 		t.Error("provider should've been invalid")
@@ -106,7 +105,6 @@ func TestAlertProvider_Send(t *testing.T) {
 					},
 				},
 				scenario.Resolved,
-				scenario.ResolvedPriority,
 			)
 			if scenario.ExpectedError && err == nil {
 				t.Error("expected error, got none")
@@ -141,7 +139,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2}",
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":0}",
 		},
 		{
 			Name:         "resolved-priority",
@@ -155,7 +153,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, Sound: "falling"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2,\"sound\":\"falling\"}",
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":0,\"sound\":\"falling\"}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -170,7 +168,6 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					},
 				},
 				scenario.Resolved,
-				scenario.ResolvedPriority,
 			)
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
