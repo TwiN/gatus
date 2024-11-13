@@ -1191,8 +1191,8 @@ Here's an example of what the notifications look like:
 | `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
 | `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
 | `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
 | `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
 | `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
 | `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
 | `alerting.teams.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
@@ -1248,9 +1248,9 @@ Here's an example of what the notifications look like:
 |:---------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
 | `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
 | `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
 | `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
 | `alerting.teams-workflows.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
-| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
 | `alerting.teams-workflows.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
 | `alerting.teams-workflows.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
 
