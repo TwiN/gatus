@@ -202,7 +202,7 @@ If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files ins
 subdirectories are merged like so:
 - All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
 - All slices/arrays are appended (i.e. you can define `endpoints` in multiple files and each endpoint will be added to the final list of endpoints)
-- Parameters with a primitive value (e.g. `debug`, `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
+- Parameters with a primitive value (e.g. `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
@@ -215,8 +215,6 @@ If you want to test it locally, see [Docker](#docker).
 ## Configuration
 | Parameter                    | Description                                                                                                                          | Default                    |
 |:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `debug`                      | Whether to enable debug logs.                                                                                                        | `false`                    |
-| `log-level`                  | Log level: DEBUG, INFO, WARN, ERROR.                                                                                                 | `INFO`                     |
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
 | `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
 | `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
@@ -242,6 +240,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
+If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`. 
+Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
+The default value for `GATUS_LOG_LEVEL` is `INFO`.
 
 ### Endpoints
 Endpoints are URLs, applications, or services that you want to monitor. Each endpoint has a list of conditions that are

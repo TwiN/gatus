@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,10 +52,8 @@ var (
 // Config is the main configuration structure
 type Config struct {
 	// Debug Whether to enable debug logs
+	// Deprecated: Use the GATUS_LOG_LEVEL environment variable instead
 	Debug bool `yaml:"debug,omitempty"`
-
-	// LogLevel is one of DEBUG, INFO, WARN and ERROR. Defaults to INFO
-	LogLevel logr.Level `yaml:"log-level,omitempty"`
 
 	// Metrics Whether to expose metrics at /metrics
 	Metrics bool `yaml:"metrics,omitempty"`
@@ -176,13 +173,11 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	if fileInfo.IsDir() {
 		err := walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
-				log.Printf("[config.LoadConfiguration] Error walking path=%s: %s", path, err)
-				return err
+				return fmt.Errorf("error walking path %s: %w", path, err)
 			}
-			log.Printf("[config.LoadConfiguration] Reading configuration from %s", path)
+			logr.Infof("[config.LoadConfiguration] Reading configuration from %s", path)
 			data, err := os.ReadFile(path)
 			if err != nil {
-				log.Printf("[config.LoadConfiguration] Error reading configuration from %s: %s", path, err)
 				return fmt.Errorf("error reading configuration from file %s: %w", path, err)
 			}
 			configBytes, err = deepmerge.YAML(configBytes, data)
@@ -192,9 +187,9 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
 		}
 	} else {
-		log.Printf("[config.LoadConfiguration] Reading configuration from configFile=%s", usedConfigPath)
+		logr.Infof("[config.LoadConfiguration] Reading configuration from configFile=%s", usedConfigPath)
 		if data, err := os.ReadFile(usedConfigPath); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error reading configuration from directory %s: %w", usedConfigPath, err)
 		} else {
 			configBytes = data
 		}
@@ -204,11 +199,11 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	config, err := parseAndValidateConfigBytes(configBytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
-	return config, err
+	return config, nil
 }
 
 // walkConfigDir is a wrapper for filepath.WalkDir that strips directories and non-config files
@@ -249,7 +244,13 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
 		err = ErrNoEndpointInConfig
 	} else {
-		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints, config.Debug)
+		// XXX: Remove this in v6.0.0
+		if config.Debug {
+			logr.Warn("WARNING: The 'debug' configuration has been deprecated and will be removed in v6.0.0")
+			logr.Warn("WARNING: Please use the GATUS_LOG_LEVEL environment variable instead")
+		}
+		// XXX: End of v6.0.0 removals
+		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
 		if err := validateSecurityConfig(config); err != nil {
 			return nil, err
 		}
@@ -342,9 +343,7 @@ func validateEndpointsConfig(config *Config) error {
 	duplicateValidationMap := make(map[string]bool)
 	// Validate endpoints
 	for _, ep := range config.Endpoints {
-		if config.Debug {
-			log.Printf("[config.validateEndpointsConfig] Validating endpoint '%s'", ep.Name)
-		}
+		logr.Debugf("[config.validateEndpointsConfig] Validating endpoint with key %s", ep.Key())
 		if endpointKey := ep.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid endpoint %s: name and group combination must be unique", ep.Key())
 		} else {
@@ -354,12 +353,10 @@ func validateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid endpoint %s: %w", ep.Key(), err)
 		}
 	}
-	log.Printf("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+	logr.Infof("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
-		if config.Debug {
-			log.Printf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Name)
-		}
+		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Name)
 		if endpointKey := ee.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid external endpoint %s: name and group combination must be unique", ee.Key())
 		} else {
@@ -369,16 +366,14 @@ func validateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid external endpoint %s: %w", ee.Key(), err)
 		}
 	}
-	log.Printf("[config.validateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
+	logr.Infof("[config.validateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }
 
 func validateSecurityConfig(config *Config) error {
 	if config.Security != nil {
 		if config.Security.IsValid() {
-			if config.Debug {
-				log.Printf("[config.validateSecurityConfig] Basic security configuration has been validated")
-			}
+			logr.Debug("[config.validateSecurityConfig] Basic security configuration has been validated")
 		} else {
 			// If there was an attempt to configure security, then it must mean that some confidential or private
 			// data are exposed. As a result, we'll force a panic because it's better to be safe than sorry.
@@ -392,9 +387,9 @@ func validateSecurityConfig(config *Config) error {
 // Note that the alerting configuration has to be validated before the endpoint configuration, because the default alert
 // returned by provider.AlertProvider.GetDefaultAlert() must be parsed before endpoint.Endpoint.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint, debug bool) {
+func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint) {
 	if alertingConfig == nil {
-		log.Printf("[config.validateAlertingConfig] Alerting is not configured")
+		logr.Info("[config.validateAlertingConfig] Alerting is not configured")
 		return
 	}
 	alertTypes := []alert.Type{
@@ -432,9 +427,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 					for _, ep := range endpoints {
 						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
-								if debug {
-									log.Printf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
-								}
+								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}
 						}
@@ -442,9 +435,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 					for _, ee := range externalEndpoints {
 						for alertIndex, endpointAlert := range ee.Alerts {
 							if alertType == endpointAlert.Type {
-								if debug {
-									log.Printf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
-								}
+								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
 								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 							}
 						}
@@ -452,7 +443,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 				}
 				validProviders = append(validProviders, alertType)
 			} else {
-				log.Printf("[config.validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
+				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
 				invalidProviders = append(invalidProviders, alertType)
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
@@ -460,5 +451,5 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 			invalidProviders = append(invalidProviders, alertType)
 		}
 	}
-	log.Printf("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+	logr.Infof("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }
