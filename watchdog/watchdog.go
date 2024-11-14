@@ -2,7 +2,6 @@ package watchdog
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
@@ -45,7 +44,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s", ep.Group, ep.Name)
+			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-time.After(ep.Interval):
 			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
@@ -68,30 +67,30 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 		logr.Infof("[watchdog.execute] No connectivity; skipping execution")
 		return
 	}
-	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s", ep.Group, ep.Name)
+	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
 		metrics.PublishMetricsForEndpoint(ep, result)
 	}
 	UpdateEndpointStatuses(ep, result)
 	if logr.GetThreshold() == logr.LevelDebug && !result.Success {
-		logr.Debugf("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
+		logr.Debugf("[watchdog.execute] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
 	} else {
-		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 	if !maintenanceConfig.IsUnderMaintenance() {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
-		HandleAlerting(ep, result, alertingConfig, logr.GetThreshold() == logr.LevelDebug)
+		HandleAlerting(ep, result, alertingConfig)
 	} else {
-		logr.Debugf("[watchdog.execute] Not handling alerting because currently in the maintenance window")
+		logr.Debug("[watchdog.execute] Not handling alerting because currently in the maintenance window")
 	}
-	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s again", ep.Interval, ep.Group, ep.Name)
+	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
 }
 
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if err := store.Get().Insert(ep, result); err != nil {
-		logr.Errorf("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage:", err.Error())
+		logr.Errorf("[watchdog.UpdateEndpointStatuses] Failed to insert result in storage: %s", err.Error())
 	}
 }
 

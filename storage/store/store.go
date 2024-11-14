@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -11,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
+	"github.com/TwiN/logr"
 )
 
 // Store is the interface that each store should implement
@@ -91,7 +91,7 @@ var (
 func Get() Store {
 	if !initialized {
 		// This only happens in tests
-		log.Println("[store.Get] Provider requested before it was initialized, automatically initializing")
+		logr.Info("[store.Get] Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
 			panic("failed to automatically initialize store: " + err.Error())
@@ -110,11 +110,11 @@ func Initialize(cfg *storage.Config) error {
 	}
 	if cfg == nil {
 		// This only happens in tests
-		log.Println("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
+		logr.Warn("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
 		cfg = &storage.Config{}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
+		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
@@ -136,13 +136,12 @@ func autoSave(ctx context.Context, store Store, interval time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[store.autoSave] Stopping active job")
+			logr.Info("[store.autoSave] Stopping active job")
 			return
 		case <-time.After(interval):
-			log.Printf("[store.autoSave] Saving")
-			err := store.Save()
-			if err != nil {
-				log.Println("[store.autoSave] Save failed:", err.Error())
+			logr.Info("[store.autoSave] Saving")
+			if err := store.Save(); err != nil {
+				logr.Errorf("[store.autoSave] Save failed: %s", err.Error())
 			}
 		}
 	}

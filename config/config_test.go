@@ -27,6 +27,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/client"
@@ -177,7 +178,6 @@ endpoints:
     conditions:
       - "[STATUS] == 200"`,
 				"b.yaml": `
-debug: true
 
 alerting:
   discord:
@@ -196,7 +196,6 @@ endpoints:
       - "[STATUS] == 200"`,
 			},
 			expectedConfig: &Config{
-				Debug:   true,
 				Metrics: true,
 				Alerting: &alerting.Config{
 					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
@@ -719,7 +718,6 @@ badconfig:
 
 func TestParseAndValidateConfigBytesWithAlerting(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
-debug: true
 alerting:
   slack:
     webhook-url: "http://example.com"
@@ -919,8 +917,6 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
-debug: true
-
 alerting:
   slack:
     webhook-url: "http://example.com"
@@ -1493,6 +1489,7 @@ endpoints:
 		t.Fatal("PagerDuty alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
+
 func TestParseAndValidateConfigBytesWithInvalidPushoverAlertingConfig(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 alerting:
@@ -1801,7 +1798,7 @@ endpoints:
 func TestParseAndValidateConfigBytesWithValidSecurityConfig(t *testing.T) {
 	const expectedUsername = "admin"
 	const expectedPasswordHash = "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
-	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`debug: true
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
 security:
   basic:
     username: "%s"
@@ -1889,6 +1886,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Telegram:       &telegram.AlertProvider{},
 		Twilio:         &twilio.AlertProvider{},
 		Teams:          &teams.AlertProvider{},
+		TeamsWorkflows: &teamsworkflows.AlertProvider{},
 	}
 	scenarios := []struct {
 		alertType alert.Type
@@ -1912,6 +1910,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
 		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
+		{alertType: alert.TypeTeamsWorkflows, expected: alertingConfig.TeamsWorkflows},
 	}
 	for _, scenario := range scenarios {
 		t.Run(string(scenario.alertType), func(t *testing.T) {

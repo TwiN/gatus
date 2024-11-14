@@ -1,7 +1,6 @@
 package alerting
 
 import (
-	"log"
 	"reflect"
 	"strings"
 
@@ -30,6 +29,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
+	"github.com/TwiN/logr"
 )
 
 // Config is the configuration for alerting providers
@@ -118,7 +118,7 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 			return fieldValue.Interface().(provider.AlertProvider)
 		}
 	}
-	log.Printf("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
+	logr.Infof("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
 }
 
