@@ -22,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
+	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
 )
 
@@ -53,6 +54,9 @@ var (
 type Config struct {
 	// Debug Whether to enable debug logs
 	Debug bool `yaml:"debug,omitempty"`
+
+	// LogLevel is one of DEBUG, INFO, WARN and ERROR. Defaults to INFO
+	LogLevel logr.Level `yaml:"log-level,omitempty"`
 
 	// Metrics Whether to expose metrics at /metrics
 	Metrics bool `yaml:"metrics,omitempty"`
