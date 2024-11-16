@@ -2188,7 +2188,7 @@ If, for any reason, you need Gatus to wait for a given amount of time before mon
 
 ### Keeping your configuration small
 While not specific to Gatus, you can leverage YAML anchors to create a default configuration.
-If you have a large configuration file, this should help you keep things clean.
+If you have a large configuration file, this should help you keep things clean. You can use as many as you want, as long as each has a unique name.
 
 <details>
   <summary>Example</summary>
@@ -2203,6 +2203,9 @@ default-endpoint: &defaults
   conditions:
     - "[STATUS] == 200"
 
+default-second-endpoint: &default-second-endpoint
+    interval: 10m
+
 endpoints:
   - name: anchor-example-1
     <<: *defaults               # This will merge the configuration under &defaults with this endpoint
@@ -2214,7 +2217,7 @@ endpoints:
     url: "https://example.com"
 
   - name: anchor-example-3
-    <<: *defaults
+    <<: *default-second-endpoint
     url: "https://twin.sh/health"
     conditions:                # This will override the conditions defined in &defaults
       - "[STATUS] == 200"
