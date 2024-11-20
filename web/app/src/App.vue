@@ -50,7 +50,6 @@
 <script>
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue';
-import {SERVER_URL} from "@/main";
 import Loading from "@/components/Loading";
 
 export default {
@@ -62,7 +61,7 @@ export default {
   },
   methods: {
     fetchConfig() {
-      fetch(`${SERVER_URL}/api/v1/config`, {credentials: 'include'})
+      fetch('api/v1/config', {credentials: 'include'})
       .then(response => {
         this.retrievedConfig = true;
         if (response.status === 200) {
@@ -96,7 +95,6 @@ export default {
       retrievedConfig: false,
       config: { oidc: false, authenticated: true },
       tooltip: {},
-      SERVER_URL
     }
   },
   created() {

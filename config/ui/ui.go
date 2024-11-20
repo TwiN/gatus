@@ -14,6 +14,7 @@ const (
 	defaultHeader      = "Health Status"
 	defaultLogo        = ""
 	defaultLink        = ""
+	defaultBase        = "/"
 )
 
 var (
@@ -27,6 +28,7 @@ type Config struct {
 	Header      string   `yaml:"header,omitempty"`      // Header is the text at the top of the page
 	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
 	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
+	Base        string   `yaml:"base,omitempty"`        // TODO:
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
 }
 
@@ -52,6 +54,7 @@ func GetDefaultConfig() *Config {
 		Header:      defaultHeader,
 		Logo:        defaultLogo,
 		Link:        defaultLink,
+		Base:        defaultBase,
 	}
 }
 
