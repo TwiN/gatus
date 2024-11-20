@@ -126,7 +126,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
+      fetch(`api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
       .then(response => {
         if (response.status === 200) {
           response.json().then(data => {
@@ -180,16 +180,16 @@ export default {
       });
     },
     generateHealthBadgeImageURL() {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
     },
     generateUptimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
     },
     generateResponseTimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
     },
     generateResponseTimeChartImageURL(duration) {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/chart.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/chart.svg`;
     },
     changePage(page) {
       this.currentPage = page;
