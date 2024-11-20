@@ -20,6 +20,7 @@ const (
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
+	defaultBase                 = "/"
 )
 
 var (
@@ -44,6 +45,7 @@ type Config struct {
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Base                    string   `yaml:"base,omitempty"`        // href attribute for HTML base tag
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -86,6 +88,7 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		Base:                   defaultBase,
 	}
 }
 
@@ -115,6 +118,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.CustomCSS) == 0 {
 		cfg.CustomCSS = defaultCustomCSS
 	}
+    if len(cfg.Base) == 0 {
+        cfg.Base = defaultBase
+    }
 	if cfg.DarkMode == nil {
 		cfg.DarkMode = &defaultDarkMode
 	}

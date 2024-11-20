@@ -33,6 +33,8 @@ docker-run:
 
 docker-build-and-run: docker-build docker-run
 
+docker-run-proxied: frontend-build docker-build
+	docker compose -f ./compose-behind-proxy.yml up
 
 #############
 # Front end #

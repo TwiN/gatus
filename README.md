@@ -267,6 +267,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.dashboard-subheading`    | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
 | `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
+| `ui.base`                    | `href` attribute of the HTML `<base>` tag. Use this if you want to host Gatus on a subpath (e.g. `/status/`). Has to end with '/'.       | `/`                        |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
 | `ui.buttons`                 | List of buttons to display below the header.                                                                                             | `[]`                       |
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                           | Required `""`              |

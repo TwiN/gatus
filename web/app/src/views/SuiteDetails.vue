@@ -191,7 +191,7 @@ const fetchData = async () => {
   }
 
   try {
-    const response = await fetch(`${SERVER_URL}/api/v1/suites/${route.params.key}/statuses`, {
+    const response = await fetch(`${SERVER_URL}api/v1/suites/${route.params.key}/statuses`, {
       credentials: 'include'
     })
 

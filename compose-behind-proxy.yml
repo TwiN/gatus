@@ -1,0 +1,46 @@
+networks:
+  caddy_network:
+    name: gatus_proxy_network
+
+services:
+  caddy:
+    networks:
+      - caddy_network
+    image: caddy:latest
+    container_name: gatus_proxy
+    ports:
+      - 8080:8080
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+  gatus:
+    networks:
+      - caddy_network
+    image: twinproduction/gatus:latest
+    container_name: gatus_behind_proxy
+
+    volumes:
+      - ./config.yml:/config/02_config.yaml
+    environment:
+      - GATUS_CONFIG_PATH=/config
+    configs:
+      - source: gatus_config_ext
+        target: /config/01_config.yaml
+
+configs:
+  gatus_config_ext:
+    content: |
+      ui:
+        base: /gatus/
+  caddyfile:
+    content: |
+      {
+        auto_https off
+        http_port 8080
+      }
+      
+      http://localhost:8080 {
+        handle_path /gatus* {
+            reverse_proxy http://gatus_behind_proxy:8080
+        }
+      }
