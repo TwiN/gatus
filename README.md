@@ -2224,7 +2224,6 @@ endpoints:
 
 
 ### Proxy client configuration
-
 You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
 
 ```yaml
@@ -2237,19 +2236,6 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-### Proxy client configuration
-
-You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
-
-```yaml
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    client:
-      proxy-url: http://proxy.example.com:8080
-    conditions:
-      - "[STATUS] == 200"
-```
 
 ### How to fix 431 Request Header Fields Too Large error
 Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,
