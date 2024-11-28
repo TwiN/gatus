@@ -34,6 +34,10 @@ type AlertProvider struct {
 	// default: 0
 	Priority int `yaml:"priority,omitempty"`
 
+	// Priority of resolved messages, ranging from -2 (very low) to 2 (Emergency)
+	// default: 0
+	ResolvedPriority int `yaml:"resolved-priority,omitempty"`
+
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
 	Sound string `yaml:"sound,omitempty"`
@@ -47,7 +51,10 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.Priority == 0 {
 		provider.Priority = defaultPriority
 	}
-	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2
+	if provider.ResolvedPriority == 0 {
+		provider.ResolvedPriority = defaultPriority
+	}
+	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2 && provider.ResolvedPriority >= -2 && provider.ResolvedPriority <= 2
 }
 
 // Send an alert using the provider
@@ -93,15 +100,21 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		User:     provider.UserKey,
 		Title:    provider.Title,
 		Message:  message,
-		Priority: provider.priority(),
+		Priority: provider.priority(resolved),
 		Sound:    provider.Sound,
 	})
 	return body
 }
 
-func (provider *AlertProvider) priority() int {
-	if provider.Priority == 0 {
+func (provider *AlertProvider) priority(resolved bool) int {
+	if resolved && provider.ResolvedPriority == 0 {
 		return defaultPriority
+	}
+	if !resolved && provider.Priority == 0 {
+		return defaultPriority
+	}
+	if resolved {
+		return provider.ResolvedPriority
 	}
 	return provider.Priority
 }

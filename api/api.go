@@ -2,7 +2,6 @@ package api
 
 import (
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/web"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
+	"github.com/TwiN/logr"
 	fiber "github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -28,7 +28,7 @@ type API struct {
 func New(cfg *config.Config) *API {
 	api := &API{}
 	if cfg.Web == nil {
-		log.Println("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
+		logr.Warnf("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
 		cfg.Web = web.GetDefaultConfig()
 	}
 	api.router = api.createRouter(cfg)
@@ -42,7 +42,7 @@ func (a *API) Router() *fiber.App {
 func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			log.Printf("[api.ErrorHandler] %s", err.Error())
+			logr.Errorf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
 		ReadBufferSize: cfg.Web.ReadBufferSize,

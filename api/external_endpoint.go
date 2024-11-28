@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"log"
 	"strings"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -33,11 +33,11 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		key := c.Params("key")
 		externalEndpoint := cfg.GetExternalEndpointByKey(key)
 		if externalEndpoint == nil {
-			log.Printf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
+			logr.Errorf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
 		if externalEndpoint.Token != token {
-			log.Printf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
+			logr.Errorf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
 			return c.Status(401).SendString("invalid token")
 		}
 		// Persist the result in the storage
@@ -54,13 +54,13 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
 			}
-			log.Printf("[api.CreateExternalEndpointResult] Failed to insert result in storage: %s", err.Error())
+			logr.Errorf("[api.CreateExternalEndpointResult] Failed to insert result in storage: %s", err.Error())
 			return c.Status(500).SendString(err.Error())
 		}
-		log.Printf("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
+		logr.Infof("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
 		// Check if an alert should be triggered or resolved
 		if !cfg.Maintenance.IsUnderMaintenance() {
-			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting, cfg.Debug)
+			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
 		}

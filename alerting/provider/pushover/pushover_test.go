@@ -21,6 +21,7 @@ func TestPushoverAlertProvider_IsValid(t *testing.T) {
 		UserKey:          "aTokenWithLengthOf30characters",
 		Title:            "Gatus Notification",
 		Priority:         1,
+		ResolvedPriority: 1,
 	}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
@@ -119,11 +120,12 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	firstDescription := "description-1"
 	secondDescription := "description-2"
 	scenarios := []struct {
-		Name         string
-		Provider     AlertProvider
-		Alert        alert.Alert
-		Resolved     bool
-		ExpectedBody string
+		Name             string
+		Provider         AlertProvider
+		Alert            alert.Alert
+		Resolved         bool
+		ResolvedPriority bool
+		ExpectedBody     string
 	}{
 		{
 			Name:         "triggered",
@@ -134,14 +136,21 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2},
+			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2}",
 		},
 		{
+			Name:         "resolved-priority",
+			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 0},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":0}",
+		},
+		{
 			Name:         "with-sound",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, Sound: "falling"},
+			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, Sound: "falling"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2,\"sound\":\"falling\"}",

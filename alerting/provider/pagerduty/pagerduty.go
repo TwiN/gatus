@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/logr"
 )
 
 const (
@@ -74,11 +74,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			alert.ResolveKey = ""
 		} else {
 			// We need to retrieve the resolve key from the response
-			body, err := io.ReadAll(response.Body)
 			var payload pagerDutyResponsePayload
-			if err = json.Unmarshal(body, &payload); err != nil {
+			if err = json.NewDecoder(response.Body).Decode(&payload); err != nil {
 				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
-				log.Printf("[pagerduty.Send] Ran into error unmarshaling pagerduty response: %s", err.Error())
+				logr.Errorf("[pagerduty.Send] Ran into error decoding pagerduty response: %s", err.Error())
 			} else {
 				alert.ResolveKey = payload.DedupKey
 			}

@@ -202,7 +202,7 @@ If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files ins
 subdirectories are merged like so:
 - All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
 - All slices/arrays are appended (i.e. you can define `endpoints` in multiple files and each endpoint will be added to the final list of endpoints)
-- Parameters with a primitive value (e.g. `debug`, `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
+- Parameters with a primitive value (e.g. `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
@@ -215,7 +215,6 @@ If you want to test it locally, see [Docker](#docker).
 ## Configuration
 | Parameter                    | Description                                                                                                                          | Default                    |
 |:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `debug`                      | Whether to enable debug logs.                                                                                                        | `false`                    |
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
 | `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
 | `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
@@ -241,6 +240,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
+If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`. 
+Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
+The default value for `GATUS_LOG_LEVEL` is `INFO`.
 
 ### Endpoints
 Endpoints are URLs, applications, or services that you want to monitor. Each endpoint has a list of conditions that are
@@ -1107,15 +1109,16 @@ endpoints:
 
 
 #### Configuring Pushover alerts
-| Parameter                              | Description                                                                                     | Default                      |
-|:---------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
-| `alerting.pushover`                    | Configuration for alerts of type `pushover`                                                     | `{}`                         |
-| `alerting.pushover.application-token`  | Pushover application token                                                                      | `""`                         |
-| `alerting.pushover.user-key`           | User or group key                                                                               | `""`                         |
-| `alerting.pushover.title`              | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
-| `alerting.pushover.priority`           | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
-| `alerting.pushover.sound`              | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
-| `alerting.pushover.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
+| Parameter                             | Description                                                                                     | Default                      |
+|:--------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
+| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                     | `{}`                         |
+| `alerting.pushover.application-token` | Pushover application token                                                                      | `""`                         |
+| `alerting.pushover.user-key`          | User or group key                                                                               | `""`                         |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
+| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
+| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)      | `0`                          |
+| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
+| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
 
 ```yaml
 alerting:
@@ -1189,8 +1192,8 @@ Here's an example of what the notifications look like:
 | `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
 | `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
 | `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
 | `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
 | `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
 | `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
 | `alerting.teams.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
@@ -1246,9 +1249,9 @@ Here's an example of what the notifications look like:
 |:---------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
 | `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
 | `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
 | `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
 | `alerting.teams-workflows.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
-| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
 | `alerting.teams-workflows.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
 | `alerting.teams-workflows.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
 
@@ -2221,7 +2224,6 @@ endpoints:
 
 
 ### Proxy client configuration
-
 You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
 
 ```yaml
@@ -2234,19 +2236,6 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-### Proxy client configuration
-
-You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
-
-```yaml
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    client:
-      proxy-url: http://proxy.example.com:8080
-    conditions:
-      - "[STATUS] == 200"
-```
 
 ### How to fix 431 Request Header Fields Too Large error
 Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,
@@ -2274,7 +2263,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h` 
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
