@@ -57,6 +57,31 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example"},
 			expected: true,
 		},
+		{
+			name:     "invalid-override-token",
+			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g", Token: "xx_faketoken"}}},
+			expected: false,
+		},
+		{
+			name:     "invalid-override-priority",
+			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g", Priority: 8}}},
+			expected: false,
+		},
+		{
+			name:     "no-override-group-name",
+			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{}}},
+			expected: false,
+		},
+		{
+			name:     "duplicate-override-group-names",
+			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g"}, Override{Group: "g"}}},
+			expected: false,
+		},
+		{
+			name:     "valid-override",
+			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g1", Priority: 4, Click: "https://example.com"}, Override{Group: "g2", Topic: "Example", Token: "tk_faketoken"}}},
+			expected: true,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
@@ -75,6 +100,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Provider     AlertProvider
 		Alert        alert.Alert
 		Resolved     bool
+		Override     *Override
 		ExpectedBody string
 	}{
 		{
@@ -82,6 +108,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Override:     nil,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1}`,
 		},
 		{
@@ -89,6 +116,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 2},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
+			Override:     nil,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\n🟢 [CONNECTED] == true\n🟢 [STATUS] == 200","tags":["white_check_mark"],"priority":2}`,
 		},
 		{
@@ -96,6 +124,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Override:     nil,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
 		},
 		{
@@ -103,7 +132,16 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 2, Email: "test@example.com", Click: "example.com"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
+			Override:     nil,
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\n🟢 [CONNECTED] == true\n🟢 [STATUS] == 200","tags":["white_check_mark"],"priority":2,"email":"test@example.com","click":"example.com"}`,
+		},
+		{
+			Name:         "override",
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 5, Email: "test@example.com", Click: "example.com"},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			Override:     &Override{Group: "g", Topic: "override-topic", Priority: 4, Email: "override@test.com", Click: "test.com"},
+			ExpectedBody: `{"topic":"override-topic","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":4,"email":"override@test.com","click":"test.com"}`,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -118,6 +156,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					},
 				},
 				scenario.Resolved,
+				scenario.Override,
 			)
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
@@ -137,6 +176,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		Provider        AlertProvider
 		Alert           alert.Alert
 		Resolved        bool
+		Group           string
 		ExpectedBody    string
 		ExpectedHeaders map[string]string
 	}{
@@ -145,9 +185,22 @@ func TestAlertProvider_Send(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Group:        "",
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
 			ExpectedHeaders: map[string]string{
 				"Content-Type": "application/json",
+			},
+		},
+		{
+			Name:         "token",
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken"},
+			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			Group:        "",
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
+			ExpectedHeaders: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer tk_mytoken",
 			},
 		},
 		{
@@ -155,6 +208,7 @@ func TestAlertProvider_Send(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Group:        "",
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
 			ExpectedHeaders: map[string]string{
 				"Content-Type": "application/json",
@@ -166,6 +220,7 @@ func TestAlertProvider_Send(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableCache: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Group:        "",
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
 			ExpectedHeaders: map[string]string{
 				"Content-Type": "application/json",
@@ -177,11 +232,24 @@ func TestAlertProvider_Send(t *testing.T) {
 			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true, DisableCache: true},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
+			Group:        "",
 			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
 			ExpectedHeaders: map[string]string{
 				"Content-Type": "application/json",
 				"Firebase":     "no",
 				"Cache":        "no",
+			},
+		},
+		{
+			Name:         "overrides",
+			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken", Overrides: []Override{Override{Group: "other-group", URL: "https://example.com", Token: "tk_othertoken"}, Override{Group: "test-group", Token: "tk_test_token"}}},
+			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			Group:        "test-group",
+			ExpectedBody: `{"topic":"example","title":"Gatus: test-group/endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"email":"test@example.com","click":"example.com"}`,
+			ExpectedHeaders: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer tk_test_token",
 			},
 		},
 	}
@@ -207,7 +275,7 @@ func TestAlertProvider_Send(t *testing.T) {
 
 			scenario.Provider.URL = server.URL
 			err := scenario.Provider.Send(
-				&endpoint.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name", Group: scenario.Group},
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
