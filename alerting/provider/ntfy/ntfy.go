@@ -61,7 +61,6 @@ func (provider *AlertProvider) IsValid() bool {
 	if len(provider.Token) > 0 {
 		isTokenValid = strings.HasPrefix(provider.Token, TokenPrefix)
 	}
-
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
