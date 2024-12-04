@@ -68,9 +68,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 // AdaptiveCardBody represents the structure of an Adaptive Card
 type AdaptiveCardBody struct {
-	Type    string     `json:"type"`
-	Version string     `json:"version"`
-	Body    []CardBody `json:"body"`
+	Type    string      `json:"type"`
+	Version string      `json:"version"`
+	Body    []CardBody  `json:"body"`
+	MSTeams MSTeamsBody `json:"msteams"`
 }
 
 // CardBody represents the body of the Adaptive Card
@@ -84,6 +85,12 @@ type CardBody struct {
 	Items     []CardBody   `json:"items,omitempty"`
 	Facts     []Fact       `json:"facts,omitempty"`
 	FactSet   *FactSetBody `json:"factSet,omitempty"`
+	Style     string       `json:"style,omitempty"`
+}
+
+// MSTeamsBody represents the msteams options
+type MSTeamsBody struct {
+	Width string `json:"width"`
 }
 
 // FactSetBody represents the FactSet in the Adaptive Card
@@ -101,10 +108,13 @@ type Fact struct {
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
+	var themeColor string
 	if resolved {
 		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row.", ep.DisplayName(), alert.SuccessThreshold)
+		themeColor = "Good" // green
 	} else {
 		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row.", ep.DisplayName(), alert.FailureThreshold)
+		themeColor = "Attention" // red
 	}
 
 	// Configure default title if it's not provided
@@ -133,20 +143,35 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		Version: "1.4", // Version 1.5 and 1.6 doesn't seem to be supported by Teams as of 27/08/2024
 		Body: []CardBody{
 			{
-				Type:   "TextBlock",
-				Text:   title,
-				Size:   "Medium",
-				Weight: "Bolder",
+				Type:  "Container",
+				Style: themeColor,
+				Items: []CardBody{
+					{
+						Type:  "Container",
+						Style: "Default",
+						Items: []CardBody{
+							{
+								Type:   "TextBlock",
+								Text:   title,
+								Size:   "Medium",
+								Weight: "Bolder",
+							},
+							{
+								Type: "TextBlock",
+								Text: message,
+								Wrap: true,
+							},
+							{
+								Type:  "FactSet",
+								Facts: facts,
+							},
+						},
+					},
+				},
 			},
-			{
-				Type: "TextBlock",
-				Text: message,
-				Wrap: true,
-			},
-			{
-				Type:  "FactSet",
-				Facts: facts,
-			},
+		},
+		MSTeams: MSTeamsBody{
+			Width: "Full",
 		},
 	}
 
