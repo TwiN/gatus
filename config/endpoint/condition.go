@@ -150,7 +150,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bo
 		return false
 	}
 	if !success {
-		//log.Printf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
+		//logr.Debugf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success

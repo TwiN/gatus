@@ -202,7 +202,7 @@ If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files ins
 subdirectories are merged like so:
 - All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
 - All slices/arrays are appended (i.e. you can define `endpoints` in multiple files and each endpoint will be added to the final list of endpoints)
-- Parameters with a primitive value (e.g. `debug`, `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
+- Parameters with a primitive value (e.g. `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
@@ -215,7 +215,6 @@ If you want to test it locally, see [Docker](#docker).
 ## Configuration
 | Parameter                    | Description                                                                                                                          | Default                    |
 |:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `debug`                      | Whether to enable debug logs.                                                                                                        | `false`                    |
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
 | `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
 | `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
@@ -241,6 +240,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
+If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
+Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
+The default value for `GATUS_LOG_LEVEL` is `INFO`.
 
 ### Endpoints
 Endpoints are URLs, applications, or services that you want to monitor. Each endpoint has a list of conditions that are
@@ -985,18 +987,26 @@ endpoints:
 
 
 #### Configuring Ntfy alerts
-| Parameter                        | Description                                                                                                                                  | Default           |
-|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------|
-| `alerting.ntfy`                  | Configuration for alerts of type `ntfy`                                                                                                      | `{}`              |
-| `alerting.ntfy.topic`            | Topic at which the alert will be sent                                                                                                        | Required `""`     |
-| `alerting.ntfy.url`              | The URL of the target server                                                                                                                 | `https://ntfy.sh` |
-| `alerting.ntfy.token`            | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                                            | `""`              |
-| `alerting.ntfy.email`            | E-mail address for additional e-mail notifications                                                                                           | `""`              |
-| `alerting.ntfy.click`            | Website opened when notification is clicked                                                                                                  | `""`              |
-| `alerting.ntfy.priority`         | The priority of the alert                                                                                                                    | `3`               |
-| `alerting.ntfy.disable-firebase` | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
-| `alerting.ntfy.disable-cache`    | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
-| `alerting.ntfy.default-alert`    | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
+| Parameter                            | Description                                                                                                                                  | Default           |
+|:-------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------|
+| `alerting.ntfy`                      | Configuration for alerts of type `ntfy`                                                                                                      | `{}`              |
+| `alerting.ntfy.topic`                | Topic at which the alert will be sent                                                                                                        | Required `""`     |
+| `alerting.ntfy.url`                  | The URL of the target server                                                                                                                 | `https://ntfy.sh` |
+| `alerting.ntfy.token`                | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                                            | `""`              |
+| `alerting.ntfy.email`                | E-mail address for additional e-mail notifications                                                                                           | `""`              |
+| `alerting.ntfy.click`                | Website opened when notification is clicked                                                                                                  | `""`              |
+| `alerting.ntfy.priority`             | The priority of the alert                                                                                                                    | `3`               |
+| `alerting.ntfy.disable-firebase`     | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
+| `alerting.ntfy.disable-cache`        | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
+| `alerting.ntfy.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
+| `alerting.ntfy.overrides`            | List of overrides that may be prioritized over the default configuration                                                                     | `[]`              |
+| `alerting.ntfy.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration                                                          | `""`              |
+| `alerting.ntfy.overrides[].topic`    | Topic at which the alert will be sent                                                                                                        | `""`              |
+| `alerting.ntfy.overrides[].url`      | The URL of the target server                                                                                                                 | `""`              |
+| `alerting.ntfy.overrides[].priority` | The priority of the alert                                                                                                                    | `0`               |
+| `alerting.ntfy.overrides[].token`    | Access token for restricted topics                                                                                                           | `""`              |
+| `alerting.ntfy.overrides[].email`    | E-mail address for additional e-mail notifications                                                                                           | `""`              |
+| `alerting.ntfy.overrides[].click`    | Website opened when notification is clicked                                                                                                  | `""`              |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
@@ -1011,6 +1021,13 @@ alerting:
     default-alert:
       failure-threshold: 3
       send-on-resolved: true
+    # You can also add group-specific to keys, which will
+    # override the to key above for the specified groups
+    overrides:
+      - group: "other"
+        topic: "gatus-other-test-topic"
+        priority: 4
+        click: "https://example.com"
 
 endpoints:
   - name: website
@@ -1022,6 +1039,16 @@ endpoints:
       - "[RESPONSE_TIME] < 300"
     alerts:
       - type: ntfy
+  - name: other example
+    group: other
+    interval: 30m
+    url: "https://example.com"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+    alerts:
+      - type: ntfy
+        description: example
 ```
 
 
@@ -2222,7 +2249,6 @@ endpoints:
 
 
 ### Proxy client configuration
-
 You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
 
 ```yaml
@@ -2235,19 +2261,6 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-### Proxy client configuration
-
-You can configure a proxy for the client to use by setting the `proxy-url` parameter in the client configuration.
-
-```yaml
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    client:
-      proxy-url: http://proxy.example.com:8080
-    conditions:
-      - "[STATUS] == 200"
-```
 
 ### How to fix 431 Request Header Fields Too Large error
 Depending on where your environment is deployed and what kind of middleware or reverse proxy sits in front of Gatus,

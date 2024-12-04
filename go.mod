@@ -1,6 +1,6 @@
 module github.com/TwiN/gatus/v5
 
-go 1.22.2
+go 1.23.3
 
 require (
 	code.gitea.io/sdk/gitea v0.19.0
@@ -8,6 +8,7 @@ require (
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.2.2
 	github.com/TwiN/health v1.6.0
+	github.com/TwiN/logr v0.3.1
 	github.com/TwiN/whois v1.1.9
 	github.com/aws/aws-sdk-go v1.54.10
 	github.com/coreos/go-oidc/v3 v3.11.0
