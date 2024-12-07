@@ -1322,24 +1322,27 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring Telegram alerts
-| Parameter                             | Description                                                                                | Default                    |
-|:--------------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
-| `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
-| `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
-| `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
-| `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
-| `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
-| `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
-| `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
-| `alerting.telegram.overrides[].token` | Telegram Bot Token for override default value                                              | `""`                       |
-| `alerting.telegram.overrides[].id`    | Telegram User ID for override default value                                                | `""`                       |
+| Parameter                                | Description                                                                                | Default                    |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:---------------------------|
+| `alerting.telegram`                      | Configuration for alerts of type `telegram`                                                | `{}`                       |
+| `alerting.telegram.token`                | Telegram Bot Token                                                                         | Required `""`              |
+| `alerting.telegram.id`                   | Telegram User ID or Group ID                                                               | Required `""`              |
+| `alerting.telegram.topic-id`             | Telegram Topic ID in Group                                                                 | `""`                       |
+| `alerting.telegram.api-url`              | Telegram API URL                                                                           | `https://api.telegram.org` |
+| `alerting.telegram.client`               | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
+| `alerting.telegram.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
+| `alerting.telegram.overrides`            | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
+| `alerting.telegram.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
+| `alerting.telegram.overrides[].token`    | Telegram Bot Token for override default value                                              | `""`                       |
+| `alerting.telegram.overrides[].id`       | Telegram User ID for override default value                                                | `""`                       |
+| `alerting.telegram.overrides[].topic-id` | Telegram Topic ID in Group for override default value                                      | `""`                       |
 
 ```yaml
 alerting:
   telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
+    topic-id: "7"
 
 endpoints:
   - name: website
