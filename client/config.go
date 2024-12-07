@@ -126,7 +126,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.HasIAPConfig() && !c.IAPConfig.isValid() {
 		return ErrInvalidClientIAPConfig
 	}
-	if c.HasTlsConfig() {
+	if c.HasTLSConfig() {
 		if err := c.TLS.isValid(); err != nil {
 			return err
 		}
@@ -176,8 +176,8 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
-// HasTlsConfig returns true if the client has client certificate parameters
-func (c *Config) HasTlsConfig() bool {
+// HasTLSConfig returns true if the client has client certificate parameters
+func (c *Config) HasTLSConfig() bool {
 	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
 }
 
@@ -203,12 +203,12 @@ func (t *TLSConfig) isValid() error {
 	return ErrInvalidClientTLSConfig
 }
 
-// GetHTTPClient return an HTTP client matching the Config's parameters.
+// getHTTPClient return an HTTP client matching the Config's parameters.
 func (c *Config) getHTTPClient() *http.Client {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.Insecure,
 	}
-	if c.HasTlsConfig() && c.TLS.isValid() == nil {
+	if c.HasTLSConfig() && c.TLS.isValid() == nil {
 		tlsConfig = configureTLS(tlsConfig, *c.TLS)
 	}
 	if c.httpClient == nil {

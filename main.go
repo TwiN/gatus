@@ -77,7 +77,6 @@ func configureLogging() {
 		logr.SetThreshold(logLevel)
 		logr.Infof("[main.configureLogging] Log Level is set to %s", logr.GetThreshold())
 	}
-
 }
 
 func loadConfiguration() (*config.Config, error) {
