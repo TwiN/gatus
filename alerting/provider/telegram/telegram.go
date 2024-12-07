@@ -16,9 +16,10 @@ const defaultAPIURL = "https://api.telegram.org"
 
 // AlertProvider is the configuration necessary for sending an alert using Telegram
 type AlertProvider struct {
-	Token  string `yaml:"token"`
-	ID     string `yaml:"id"`
-	APIURL string `yaml:"api-url"`
+	Token   string `yaml:"token"`
+	ID      string `yaml:"id"`
+	TopicId string `yaml:"topic-id,omitempty"`
+	APIURL  string `yaml:"api-url"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -32,9 +33,10 @@ type AlertProvider struct {
 
 // Override is a configuration that may be prioritized over the default configuration
 type Override struct {
-	group string `yaml:"group"`
-	token string `yaml:"token"`
-	id    string `yaml:"id"`
+	group   string `yaml:"group"`
+	token   string `yaml:"token"`
+	id      string `yaml:"id"`
+	topicId string `yaml:"topic-id,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -94,6 +96,7 @@ type Body struct {
 	ChatID    string `json:"chat_id"`
 	Text      string `json:"text"`
 	ParseMode string `json:"parse_mode"`
+	TopicId   string `json:"message_thread_id,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -127,6 +130,7 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		ChatID:    provider.getIDForGroup(ep.Group),
 		Text:      text,
 		ParseMode: "MARKDOWN",
+		TopicId:   provider.getTopicIdForGroup(ep.Group),
 	})
 	return bodyAsJSON
 }
@@ -138,6 +142,15 @@ func (provider *AlertProvider) getIDForGroup(group string) string {
 		}
 	}
 	return provider.ID
+}
+
+func (provider *AlertProvider) getTopicIdForGroup(group string) string {
+	for _, override := range provider.Overrides {
+		if override.group == group && len(override.topicId) > 0 {
+			return override.topicId
+		}
+	}
+	return provider.TopicId
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
