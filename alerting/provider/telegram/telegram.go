@@ -32,29 +32,29 @@ type AlertProvider struct {
 
 // Override is a configuration that may be prioritized over the default configuration
 type Override struct {
-	group string `yaml:"group"`
-	token string `yaml:"token"`
-	id    string `yaml:"id"`
+	Group string `yaml:"group"`
+	Token string `yaml:"token"`
+	ID    string `yaml:"id"`
 }
 
 // IsValid returns whether the provider's configuration is valid
 func (provider *AlertProvider) IsValid() bool {
-	if provider.ClientConfig == nil {
-		provider.ClientConfig = client.GetDefaultConfig()
-	}
+    if provider.ClientConfig == nil {
+        provider.ClientConfig = client.GetDefaultConfig()
+    }
 
-	registerGroups := make(map[string]bool)
-	for _, override := range provider.Overrides {
-		if len(override.group) == 0 {
-			return false
-		}
-		if _, ok := registerGroups[override.group]; ok {
-			return false
-		}
-		registerGroups[override.group] = true
-	}
+    registerGroups := make(map[string]bool)
+    for _, override := range provider.Overrides {
+        if len(override.Group) == 0 {
+            return false
+        }
+        if _, ok := registerGroups[override.Group]; ok {
+            return false
+        }
+        registerGroups[override.Group] = true
+    }
 
-	return len(provider.Token) > 0 && len(provider.ID) > 0
+    return len(provider.Token) > 0 && len(provider.ID) > 0
 }
 
 // Send an alert using the provider
@@ -83,8 +83,8 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 func (provider *AlertProvider) getTokenForGroup(group string) string {
 	for _, override := range provider.Overrides {
-		if override.group == group && len(override.token) > 0 {
-			return override.token
+		if override.Group == group && len(override.Token) > 0 {
+			return override.Token
 		}
 	}
 	return provider.Token
@@ -133,8 +133,8 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 
 func (provider *AlertProvider) getIDForGroup(group string) string {
 	for _, override := range provider.Overrides {
-		if override.group == group && len(override.id) > 0 {
-			return override.id
+		if override.Group == group && len(override.ID) > 0 {
+			return override.ID
 		}
 	}
 	return provider.ID
