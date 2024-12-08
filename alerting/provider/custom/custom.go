@@ -15,6 +15,13 @@ import (
 // AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
 // Technically, all alert providers should be reachable using the custom alert provider
 type AlertProvider struct {
+	Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+type Config struct {
 	URL          string                       `yaml:"url"`
 	Method       string                       `yaml:"method,omitempty"`
 	Body         string                       `yaml:"body,omitempty"`
@@ -23,9 +30,6 @@ type AlertProvider struct {
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid

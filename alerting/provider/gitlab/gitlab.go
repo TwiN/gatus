@@ -17,23 +17,19 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using GitLab
 type AlertProvider struct {
-	WebhookURL       string `yaml:"webhook-url"`       // The webhook url provided by GitLab
-	AuthorizationKey string `yaml:"authorization-key"` // The authorization key provided by GitLab
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
 
-	// Severity can be one of: critical, high, medium, low, info, unknown. Defaults to critical
-	Severity string `yaml:"severity,omitempty"`
-
-	// MonitoringTool overrides the name sent to gitlab. Defaults to gatus
-	MonitoringTool string `yaml:"monitoring-tool,omitempty"`
-
-	// EnvironmentName is the name of the associated GitLab environment. Required to display alerts on a dashboard.
-	EnvironmentName string `yaml:"environment-name,omitempty"`
-
-	// Service affected. Defaults to endpoint display name
-	Service string `yaml:"service,omitempty"`
+type Config struct {
+	WebhookURL       string `yaml:"webhook-url"`                // The webhook url provided by GitLab
+	AuthorizationKey string `yaml:"authorization-key"`          // The authorization key provided by GitLab
+	Severity         string `yaml:"severity,omitempty"`         // Severity can be one of: critical, high, medium, low, info, unknown. Defaults to critical
+	MonitoringTool   string `yaml:"monitoring-tool,omitempty"`  // MonitoringTool overrides the name sent to gitlab. Defaults to gatus
+	EnvironmentName  string `yaml:"environment-name,omitempty"` // EnvironmentName is the name of the associated GitLab environment. Required to display alerts on a dashboard.
+	Service          string `yaml:"service,omitempty"`          // Service affected. Defaults to the endpoint's display name
 }
 
 // IsValid returns whether the provider's configuration is valid

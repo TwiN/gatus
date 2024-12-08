@@ -14,10 +14,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Google chat
 type AlertProvider struct {
-	WebhookURL string `yaml:"webhook-url"`
-
-	// ClientConfig is the configuration of the client used to communicate with the provider's target
-	ClientConfig *client.Config `yaml:"client,omitempty"`
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -26,10 +23,15 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	WebhookURL   string         `yaml:"webhook-url"`
+	ClientConfig *client.Config `yaml:"client,omitempty"` // Configuration of the client used to communicate with the provider's target
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group      string `yaml:"group"`
-	WebhookURL string `yaml:"webhook-url"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

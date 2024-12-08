@@ -14,9 +14,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using JetBrains Space
 type AlertProvider struct {
-	Project   string `yaml:"project"`    // JetBrains Space Project name
-	ChannelID string `yaml:"channel-id"` // JetBrains Space Chat Channel ID
-	Token     string `yaml:"token"`      // JetBrains Space Bearer Token
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -25,10 +23,16 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	Project   string `yaml:"project"`    // Project name
+	ChannelID string `yaml:"channel-id"` // Chat Channel ID
+	Token     string `yaml:"token"`      // Bearer Token
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group     string `yaml:"group"`
-	ChannelID string `yaml:"channel-id"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

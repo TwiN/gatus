@@ -19,7 +19,7 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using PagerDuty
 type AlertProvider struct {
-	IntegrationKey string `yaml:"integration-key"`
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -28,10 +28,14 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	IntegrationKey string `yaml:"integration-key"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group          string `yaml:"group"`
-	IntegrationKey string `yaml:"integration-key"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

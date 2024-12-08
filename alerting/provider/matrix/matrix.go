@@ -15,9 +15,11 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
+const defaultServerURL = "https://matrix-client.matrix.org"
+
 // AlertProvider is the configuration necessary for sending an alert using Matrix
 type AlertProvider struct {
-	ProviderConfig `yaml:",inline"`
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -26,16 +28,7 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
-// Override is a case under which the default integration is overridden
-type Override struct {
-	Group string `yaml:"group"`
-
-	ProviderConfig `yaml:",inline"`
-}
-
-const defaultServerURL = "https://matrix-client.matrix.org"
-
-type ProviderConfig struct {
+type Config struct {
 	// ServerURL is the custom homeserver to use (optional)
 	ServerURL string `yaml:"server-url"`
 
@@ -44,6 +37,12 @@ type ProviderConfig struct {
 
 	// InternalRoomID is the room that the bot user has permissions to send messages to
 	InternalRoomID string `yaml:"internal-room-id"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -168,15 +167,15 @@ func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *end
 }
 
 // getConfigForGroup returns the appropriate configuration for a given group
-func (provider *AlertProvider) getConfigForGroup(group string) ProviderConfig {
+func (provider *AlertProvider) getConfigForGroup(group string) Config {
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if group == override.Group {
-				return override.ProviderConfig
+				return override.Config
 			}
 		}
 	}
-	return provider.ProviderConfig
+	return provider.Config
 }
 
 func randStringBytes(n int) string {

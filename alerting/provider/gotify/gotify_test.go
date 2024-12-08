@@ -17,22 +17,22 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}{
 		{
 			name:     "valid",
-			provider: AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
+			provider: AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: "faketoken"}},
 			expected: true,
 		},
 		{
 			name:     "invalid-server-url",
-			provider: AlertProvider{ServerURL: "", Token: "faketoken"},
+			provider: AlertProvider{Config: Config{ServerURL: "", Token: "faketoken"}},
 			expected: false,
 		},
 		{
 			name:     "invalid-app-token",
-			provider: AlertProvider{ServerURL: "https://gotify.example.com", Token: ""},
+			provider: AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: ""}},
 			expected: false,
 		},
 		{
 			name:     "no-priority-should-use-default-value",
-			provider: AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
+			provider: AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: "faketoken"}},
 			expected: true,
 		},
 	}
@@ -60,21 +60,21 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
+			Provider:     AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: "faketoken"}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpointName, description),
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken"},
+			Provider:     AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: "faketoken"}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been resolved after passing successfully 5 time(s) in a row with the following description: %s\\n✓ - [CONNECTED] == true\\n✓ - [STATUS] == 200\",\"title\":\"Gatus: custom-endpoint\",\"priority\":0}", endpointName, description),
 		},
 		{
 			Name:         "custom-title",
-			Provider:     AlertProvider{ServerURL: "https://gotify.example.com", Token: "faketoken", Title: "custom-title"},
+			Provider:     AlertProvider{Config: Config{ServerURL: "https://gotify.example.com", Token: "faketoken", Title: "custom-title"}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: fmt.Sprintf("{\"message\":\"An alert for `%s` has been triggered due to having failed 3 time(s) in a row with the following description: %s\\n✕ - [CONNECTED] == true\\n✕ - [STATUS] == 200\",\"title\":\"custom-title\",\"priority\":0}", endpointName, description),

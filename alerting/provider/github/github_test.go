@@ -20,27 +20,27 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}{
 		{
 			Name:     "invalid",
-			Provider: AlertProvider{RepositoryURL: "", Token: ""},
+			Provider: AlertProvider{Config: Config{RepositoryURL: "", Token: ""}},
 			Expected: false,
 		},
 		{
 			Name:     "invalid-token",
-			Provider: AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			Provider: AlertProvider{Config: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
 			Expected: false,
 		},
 		{
 			Name:     "missing-repository-name",
-			Provider: AlertProvider{RepositoryURL: "https://github.com/TwiN", Token: "12345"},
+			Provider: AlertProvider{Config: Config{RepositoryURL: "https://github.com/TwiN", Token: "12345"}},
 			Expected: false,
 		},
 		{
 			Name:     "enterprise-client",
-			Provider: AlertProvider{RepositoryURL: "https://github.example.com/TwiN/test", Token: "12345"},
+			Provider: AlertProvider{Config: Config{RepositoryURL: "https://github.example.com/TwiN/test", Token: "12345"}},
 			Expected: false,
 		},
 		{
 			Name:     "invalid-url",
-			Provider: AlertProvider{RepositoryURL: "github.com/TwiN/test", Token: "12345"},
+			Provider: AlertProvider{Config: Config{RepositoryURL: "github.com/TwiN/test", Token: "12345"}},
 			Expected: false,
 		},
 	}
@@ -67,14 +67,14 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:          "triggered-error",
-			Provider:      AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			Provider:      AlertProvider{Config: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      false,
 			ExpectedError: true,
 		},
 		{
 			Name:          "resolved-error",
-			Provider:      AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			Provider:      AlertProvider{Config: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: true,

@@ -22,14 +22,7 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	Topic           string `yaml:"topic"`
-	URL             string `yaml:"url,omitempty"`              // Defaults to DefaultURL
-	Priority        int    `yaml:"priority,omitempty"`         // Defaults to DefaultPriority
-	Token           string `yaml:"token,omitempty"`            // Defaults to ""
-	Email           string `yaml:"email,omitempty"`            // Defaults to ""
-	Click           string `yaml:"click,omitempty"`            // Defaults to ""
-	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
-	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -38,15 +31,21 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	Topic           string `yaml:"topic"`
+	URL             string `yaml:"url,omitempty"`              // Defaults to DefaultURL
+	Priority        int    `yaml:"priority,omitempty"`         // Defaults to DefaultPriority
+	Token           string `yaml:"token,omitempty"`            // Defaults to ""
+	Email           string `yaml:"email,omitempty"`            // Defaults to ""
+	Click           string `yaml:"click,omitempty"`            // Defaults to ""
+	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
+	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group    string `yaml:"group"`
-	Topic    string `yaml:"topic"`
-	URL      string `yaml:"url"`
-	Priority int    `yaml:"priority"`
-	Token    string `yaml:"token"`
-	Email    string `yaml:"email"`
-	Click    string `yaml:"click"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

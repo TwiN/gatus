@@ -12,30 +12,28 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-type Config struct {
-	// BotEmail is the email of the bot user
-	BotEmail string `yaml:"bot-email"`
-	// BotAPIKey is the API key of the bot user
-	BotAPIKey string `yaml:"bot-api-key"`
-	// Domain is the domain of the Zulip server
-	Domain string `yaml:"domain"`
-	// ChannelID is the ID of the channel to send the message to
-	ChannelID string `yaml:"channel-id"`
-}
-
 // AlertProvider is the configuration necessary for sending an alert using Zulip
 type AlertProvider struct {
 	Config `yaml:",inline"`
+
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	BotEmail  string `yaml:"bot-email"`   // Email of the bot user
+	BotAPIKey string `yaml:"bot-api-key"` // API key of the bot user
+	Domain    string `yaml:"domain"`      // Domain of the Zulip server
+	ChannelID string `yaml:"channel-id"`  // ID of the channel to send the message to
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Config
-	Group string `yaml:"group"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 func (provider *AlertProvider) validateConfig(conf *Config) bool {

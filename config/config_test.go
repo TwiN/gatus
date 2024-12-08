@@ -198,8 +198,8 @@ endpoints:
 			expectedConfig: &Config{
 				Metrics: true,
 				Alerting: &alerting.Config{
-					Discord: &discord.AlertProvider{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"},
-					Slack:   &slack.AlertProvider{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz", DefaultAlert: &alert.Alert{Enabled: &yes}},
+					Discord: &discord.AlertProvider{Config: discord.Config{WebhookURL: "https://discord.com/api/webhooks/xxx/yyy"}},
+					Slack:   &slack.AlertProvider{Config: slack.Config{WebhookURL: "https://hooks.slack.com/services/xxx/yyy/zzz"}, DefaultAlert: &alert.Alert{Enabled: &yes}},
 				},
 				ExternalEndpoints: []*endpoint.ExternalEndpoint{
 					{

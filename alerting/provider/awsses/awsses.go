@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/logr"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -19,12 +20,7 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using AWS Simple Email Service
 type AlertProvider struct {
-	AccessKeyID     string `yaml:"access-key-id"`
-	SecretAccessKey string `yaml:"secret-access-key"`
-	Region          string `yaml:"region"`
-
-	From string `yaml:"from"`
-	To   string `yaml:"to"`
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -33,10 +29,19 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	AccessKeyID     string `yaml:"access-key-id"`
+	SecretAccessKey string `yaml:"secret-access-key"`
+	Region          string `yaml:"region"`
+
+	From string `yaml:"from"`
+	To   string `yaml:"to"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group string `yaml:"group"`
-	To    string `yaml:"to"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid
@@ -84,24 +89,22 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		},
 		Source: aws.String(provider.From),
 	}
-	_, err = svc.SendEmail(input)
-
-	if err != nil {
+	if _, err = svc.SendEmail(input); err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case ses.ErrCodeMessageRejected:
-				fmt.Println(ses.ErrCodeMessageRejected, aerr.Error())
+				logr.Error(ses.ErrCodeMessageRejected + ": " + aerr.Error())
 			case ses.ErrCodeMailFromDomainNotVerifiedException:
-				fmt.Println(ses.ErrCodeMailFromDomainNotVerifiedException, aerr.Error())
+				logr.Error(ses.ErrCodeMailFromDomainNotVerifiedException + ": " + aerr.Error())
 			case ses.ErrCodeConfigurationSetDoesNotExistException:
-				fmt.Println(ses.ErrCodeConfigurationSetDoesNotExistException, aerr.Error())
+				logr.Error(ses.ErrCodeConfigurationSetDoesNotExistException + ": " + aerr.Error())
 			default:
-				fmt.Println(aerr.Error())
+				logr.Error(aerr.Error())
 			}
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and
 			// Message from an error.
-			fmt.Println(err.Error())
+			logr.Error(err.Error())
 		}
 
 		return err

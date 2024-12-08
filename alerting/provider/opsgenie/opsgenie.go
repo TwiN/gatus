@@ -19,6 +19,13 @@ const (
 )
 
 type AlertProvider struct {
+	Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+type Config struct {
 	// APIKey to use for
 	APIKey string `yaml:"api-key"`
 
@@ -46,9 +53,6 @@ type AlertProvider struct {
 	//
 	// default: []
 	Tags []string `yaml:"tags"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid

@@ -12,11 +12,11 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{APIKey: ""}
+	invalidProvider := AlertProvider{Config: Config{APIKey: ""}}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{APIKey: "00000000-0000-0000-0000-000000000000"}
+	validProvider := AlertProvider{Config: Config{APIKey: "00000000-0000-0000-0000-000000000000"}}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -184,11 +184,13 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		{
 			Name: "with custom options (resolved)",
 			Provider: &AlertProvider{
-				Priority:     "P5",
-				EntityPrefix: "oompa-",
-				AliasPrefix:  "loompa-",
-				Source:       "gatus-hc",
-				Tags:         []string{"do-ba-dee-doo"},
+				Config: Config{
+					Priority:     "P5",
+					EntityPrefix: "oompa-",
+					AliasPrefix:  "loompa-",
+					Source:       "gatus-hc",
+					Tags:         []string{"do-ba-dee-doo"},
+				},
 			},
 			Alert: &alert.Alert{
 				Description:      &description,
@@ -220,7 +222,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		{
 			Name: "with default options and details (unresolved)",
 			Provider: &AlertProvider{
-				Tags: []string{"foo"},
+				Config: Config{Tags: []string{"foo"}},
 			},
 			Alert: &alert.Alert{
 				Description:      &description,

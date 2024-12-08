@@ -30,8 +30,10 @@ func TestHandleAlerting(t *testing.T) {
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				Config: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -108,8 +110,10 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				Config: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -141,8 +145,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				Config: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -174,7 +180,9 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			PagerDuty: &pagerduty.AlertProvider{
-				IntegrationKey: "00000000000000000000000000000000",
+				Config: pagerduty.Config{
+					IntegrationKey: "00000000000000000000000000000000",
+				},
 			},
 		},
 	}
@@ -208,8 +216,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			Pushover: &pushover.AlertProvider{
-				ApplicationToken: "000000000000000000000000000000",
-				UserKey:          "000000000000000000000000000000",
+				Config: pushover.Config{
+					ApplicationToken: "000000000000000000000000000000",
+					UserKey:          "000000000000000000000000000000",
+				},
 			},
 		},
 	}
@@ -250,8 +260,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeCustom,
 			AlertingConfig: &alerting.Config{
 				Custom: &custom.AlertProvider{
-					URL:    "https://twin.sh/health",
-					Method: "GET",
+					Config: custom.Config{
+						URL:    "https://twin.sh/health",
+						Method: "GET",
+					},
 				},
 			},
 		},
@@ -260,7 +272,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeDiscord,
 			AlertingConfig: &alerting.Config{
 				Discord: &discord.AlertProvider{
-					WebhookURL: "https://example.com",
+					Config: discord.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -269,11 +283,13 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeEmail,
 			AlertingConfig: &alerting.Config{
 				Email: &email.AlertProvider{
-					From:     "from@example.com",
-					Password: "hunter2",
-					Host:     "mail.example.com",
-					Port:     587,
-					To:       "to@example.com",
+					Config: email.Config{
+						From:     "from@example.com",
+						Password: "hunter2",
+						Host:     "mail.example.com",
+						Port:     587,
+						To:       "to@example.com",
+					},
 				},
 			},
 		},
@@ -282,9 +298,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeJetBrainsSpace,
 			AlertingConfig: &alerting.Config{
 				JetBrainsSpace: &jetbrainsspace.AlertProvider{
-					Project:   "foo",
-					ChannelID: "bar",
-					Token:     "baz",
+					Config: jetbrainsspace.Config{
+						Project:   "foo",
+						ChannelID: "bar",
+						Token:     "baz",
+					},
 				},
 			},
 		},
@@ -293,7 +311,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMattermost,
 			AlertingConfig: &alerting.Config{
 				Mattermost: &mattermost.AlertProvider{
-					WebhookURL: "https://example.com",
+					Config: mattermost.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -302,9 +322,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMessagebird,
 			AlertingConfig: &alerting.Config{
 				Messagebird: &messagebird.AlertProvider{
-					AccessKey:  "1",
-					Originator: "2",
-					Recipients: "3",
+					Config: messagebird.Config{
+						AccessKey:  "1",
+						Originator: "2",
+						Recipients: "3",
+					},
 				},
 			},
 		},
@@ -313,7 +335,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypePagerDuty,
 			AlertingConfig: &alerting.Config{
 				PagerDuty: &pagerduty.AlertProvider{
-					IntegrationKey: "00000000000000000000000000000000",
+					Config: pagerduty.Config{
+						IntegrationKey: "00000000000000000000000000000000",
+					},
 				},
 			},
 		},
@@ -322,8 +346,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypePushover,
 			AlertingConfig: &alerting.Config{
 				Pushover: &pushover.AlertProvider{
-					ApplicationToken: "000000000000000000000000000000",
-					UserKey:          "000000000000000000000000000000",
+					Config: pushover.Config{
+						ApplicationToken: "000000000000000000000000000000",
+						UserKey:          "000000000000000000000000000000",
+					},
 				},
 			},
 		},
@@ -332,7 +358,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeSlack,
 			AlertingConfig: &alerting.Config{
 				Slack: &slack.AlertProvider{
-					WebhookURL: "https://example.com",
+					Config: slack.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -341,7 +369,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTeams,
 			AlertingConfig: &alerting.Config{
 				Teams: &teams.AlertProvider{
-					WebhookURL: "https://example.com",
+					Config: teams.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -350,8 +380,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTelegram,
 			AlertingConfig: &alerting.Config{
 				Telegram: &telegram.AlertProvider{
-					Token: "1",
-					ID:    "2",
+					Config: telegram.Config{
+						Token: "1",
+						ID:    "2",
+					},
 				},
 			},
 		},
@@ -360,10 +392,12 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTwilio,
 			AlertingConfig: &alerting.Config{
 				Twilio: &twilio.AlertProvider{
-					SID:   "1",
-					Token: "2",
-					From:  "3",
-					To:    "4",
+					Config: twilio.Config{
+						SID:   "1",
+						Token: "2",
+						From:  "3",
+						To:    "4",
+					},
 				},
 			},
 		},
@@ -372,7 +406,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMatrix,
 			AlertingConfig: &alerting.Config{
 				Matrix: &matrix.AlertProvider{
-					ProviderConfig: matrix.ProviderConfig{
+					Config: matrix.Config{
 						ServerURL:      "https://example.com",
 						AccessToken:    "1",
 						InternalRoomID: "!a:example.com",
@@ -437,8 +471,10 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	cfg := &config.Config{
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				Config: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}

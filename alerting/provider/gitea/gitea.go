@@ -15,17 +15,19 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Discord
 type AlertProvider struct {
-	RepositoryURL string `yaml:"repository-url"` // The URL of the Gitea repository to create issues in
-	Token         string `yaml:"token"`          // Token requires at least RW on issues and RO on metadata
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
+}
 
-	// Assignees is a list of users to assign the issue to
-	Assignees []string `yaml:"assignees,omitempty"`
+type Config struct {
+	RepositoryURL string   `yaml:"repository-url"`      // The URL of the Gitea repository to create issues in
+	Token         string   `yaml:"token"`               // Token requires at least RW on issues and RO on metadata
+	Assignees     []string `yaml:"assignees,omitempty"` // Assignees is a list of users to assign the issue to
 
 	username        string
 	repositoryOwner string
@@ -38,7 +40,6 @@ func (provider *AlertProvider) IsValid() bool {
 	if provider.ClientConfig == nil {
 		provider.ClientConfig = client.GetDefaultConfig()
 	}
-
 	if len(provider.Token) == 0 || len(provider.RepositoryURL) == 0 {
 		return false
 	}
@@ -54,11 +55,9 @@ func (provider *AlertProvider) IsValid() bool {
 	}
 	provider.repositoryOwner = pathParts[1]
 	provider.repositoryName = pathParts[2]
-
 	opts := []gitea.ClientOption{
 		gitea.SetToken(provider.Token),
 	}
-
 	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
 		// add new http client for skip verify
 		httpClient := &http.Client{
@@ -68,19 +67,15 @@ func (provider *AlertProvider) IsValid() bool {
 		}
 		opts = append(opts, gitea.SetHTTPClient(httpClient))
 	}
-
 	provider.giteaClient, err = gitea.NewClient(baseURL, opts...)
 	if err != nil {
 		return false
 	}
-
 	user, _, err := provider.giteaClient.GetMyUserInfo()
 	if err != nil {
 		return false
 	}
-
 	provider.username = user.UserName
-
 	return true
 }
 
