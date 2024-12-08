@@ -92,7 +92,6 @@
 <script>
 import Settings from '@/components/Settings.vue'
 import Endpoint from '@/components/Endpoint.vue';
-import {SERVER_URL} from "@/main.js";
 import {helper} from "@/mixins/helper.js";
 import Pagination from "@/components/Pagination";
 import { ArrowDownCircleIcon, ArrowUpCircleIcon, PlayCircleIcon } from '@heroicons/vue/20/solid'
@@ -112,7 +111,7 @@ export default {
   methods: {
     fetchData() {
       //console.log("[Details][fetchData] Fetching data");
-      fetch(`${this.serverUrl}/api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
+      fetch(`api/v1/endpoints/${this.$route.params.key}/statuses?page=${this.currentPage}`, {credentials: 'include'})
       .then(response => {
         if (response.status === 200) {
           response.json().then(data => {
@@ -166,16 +165,16 @@ export default {
       });
     },
     generateHealthBadgeImageURL() {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/health/badge.svg`;
     },
     generateUptimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/uptimes/${duration}/badge.svg`;
     },
     generateResponseTimeBadgeImageURL(duration) {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
     },
     generateResponseTimeChartImageURL() {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
+      return `api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
     },
     changePage(page) {
       this.currentPage = page;
@@ -193,8 +192,6 @@ export default {
       endpointStatus: {},
       events: [],
       hourlyAverageResponseTime: {},
-      // Since this page isn't at the root, we need to modify the server URL a bit
-      serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
       showAverageResponseTime: true,
       showResponseTimeChartAndBadges: false,
