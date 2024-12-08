@@ -27,8 +27,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		Config: Config{Project: "foobar"},
 		Overrides: []Override{
 			{
-				ChannelID: "http://example.com",
-				Group:     "",
+				Config: Config{ChannelID: "http://example.com"},
+				Group:  "",
 			},
 		},
 	}
@@ -39,8 +39,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		Config: Config{Project: "foobar"},
 		Overrides: []Override{
 			{
-				ChannelID: "",
-				Group:     "group",
+				Config: Config{ChannelID: ""},
+				Group:  "group",
 			},
 		},
 	}
@@ -55,8 +55,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		},
 		Overrides: []Override{
 			{
-				ChannelID: "foobar",
-				Group:     "group",
+				Config: Config{ChannelID: "foobar"},
+				Group:  "group",
 			},
 		},
 	}
@@ -254,8 +254,8 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 				},
 				Overrides: []Override{
 					{
-						Group:     "group",
-						ChannelID: "foobar",
+						Group:  "group",
+						Config: Config{ChannelID: "foobar"},
 					},
 				},
 			},
@@ -270,8 +270,8 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 				},
 				Overrides: []Override{
 					{
-						Group:     "group",
-						ChannelID: "foobar",
+						Group:  "group",
+						Config: Config{ChannelID: "foobar"},
 					},
 				},
 			},
