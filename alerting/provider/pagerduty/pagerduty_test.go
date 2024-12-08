@@ -12,11 +12,11 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{IntegrationKey: ""}
+	invalidProvider := AlertProvider{Config: Config{IntegrationKey: ""}}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{IntegrationKey: "00000000000000000000000000000000"}
+	validProvider := AlertProvider{Config: Config{IntegrationKey: "00000000000000000000000000000000"}}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -26,8 +26,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				IntegrationKey: "00000000000000000000000000000000",
-				Group:          "",
+				Config: Config{IntegrationKey: "00000000000000000000000000000000"},
+				Group:  "",
 			},
 		},
 	}
@@ -37,8 +37,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideIntegrationKey := AlertProvider{
 		Overrides: []Override{
 			{
-				IntegrationKey: "",
-				Group:          "group",
+				Config: Config{IntegrationKey: ""},
+				Group:  "group",
 			},
 		},
 	}
@@ -48,8 +48,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithValidOverride := AlertProvider{
 		Overrides: []Override{
 			{
-				IntegrationKey: "00000000000000000000000000000000",
-				Group:          "group",
+				Config: Config{IntegrationKey: "00000000000000000000000000000000"},
+				Group:  "group",
 			},
 		},
 	}
@@ -146,14 +146,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
+			Provider:     AlertProvider{Config: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:        alert.Alert{Description: &description},
 			Resolved:     false,
 			ExpectedBody: "{\"routing_key\":\"00000000000000000000000000000000\",\"dedup_key\":\"\",\"event_action\":\"trigger\",\"payload\":{\"summary\":\"TRIGGERED: endpoint-name - test\",\"source\":\"Gatus\",\"severity\":\"critical\"}}",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{IntegrationKey: "00000000000000000000000000000000"},
+			Provider:     AlertProvider{Config: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:        alert.Alert{Description: &description, ResolveKey: "key"},
 			Resolved:     true,
 			ExpectedBody: "{\"routing_key\":\"00000000000000000000000000000000\",\"dedup_key\":\"key\",\"event_action\":\"resolve\",\"payload\":{\"summary\":\"RESOLVED: endpoint-name - test\",\"source\":\"Gatus\",\"severity\":\"critical\"}}",
@@ -183,8 +183,8 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				IntegrationKey: "00000000000000000000000000000001",
-				Overrides:      nil,
+				Config:    Config{IntegrationKey: "00000000000000000000000000000001"},
+				Overrides: nil,
 			},
 			InputGroup:     "",
 			ExpectedOutput: "00000000000000000000000000000001",
@@ -192,8 +192,8 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				IntegrationKey: "00000000000000000000000000000001",
-				Overrides:      nil,
+				Config:    Config{IntegrationKey: "00000000000000000000000000000001"},
+				Overrides: nil,
 			},
 			InputGroup:     "group",
 			ExpectedOutput: "00000000000000000000000000000001",
@@ -201,11 +201,11 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				IntegrationKey: "00000000000000000000000000000001",
+				Config: Config{IntegrationKey: "00000000000000000000000000000001"},
 				Overrides: []Override{
 					{
-						Group:          "group",
-						IntegrationKey: "00000000000000000000000000000002",
+						Group:  "group",
+						Config: Config{IntegrationKey: "00000000000000000000000000000002"},
 					},
 				},
 			},
@@ -215,11 +215,11 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				IntegrationKey: "00000000000000000000000000000001",
+				Config: Config{IntegrationKey: "00000000000000000000000000000001"},
 				Overrides: []Override{
 					{
-						Group:          "group",
-						IntegrationKey: "00000000000000000000000000000002",
+						Group:  "group",
+						Config: Config{IntegrationKey: "00000000000000000000000000000002"},
 					},
 				},
 			},

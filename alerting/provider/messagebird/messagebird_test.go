@@ -17,9 +17,11 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
-		AccessKey:  "1",
-		Originator: "1",
-		Recipients: "1",
+		Config: Config{
+			AccessKey:  "1",
+			Originator: "1",
+			Recipients: "1",
+		},
 	}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
@@ -115,14 +117,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{AccessKey: "1", Originator: "2", Recipients: "3"},
+			Provider:     AlertProvider{Config: Config{AccessKey: "1", Originator: "2", Recipients: "3"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"originator\":\"2\",\"recipients\":\"3\",\"body\":\"TRIGGERED: endpoint-name - description-1\"}",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{AccessKey: "4", Originator: "5", Recipients: "6"},
+			Provider:     AlertProvider{Config: Config{AccessKey: "4", Originator: "5", Recipients: "6"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"originator\":\"5\",\"recipients\":\"6\",\"body\":\"RESOLVED: endpoint-name - description-2\"}",
@@ -145,7 +147,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
 			out := make(map[string]interface{})
-			if err := json.Unmarshal([]byte(body), &out); err != nil {
+			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})

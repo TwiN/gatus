@@ -19,67 +19,67 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}{
 		{
 			name:     "valid",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1},
+			provider: AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1}},
 			expected: true,
 		},
 		{
 			name:     "no-url-should-use-default-value",
-			provider: AlertProvider{Topic: "example", Priority: 1},
+			provider: AlertProvider{Config: Config{Topic: "example", Priority: 1}},
 			expected: true,
 		},
 		{
 			name:     "valid-with-token",
-			provider: AlertProvider{Topic: "example", Priority: 1, Token: "tk_faketoken"},
+			provider: AlertProvider{Config: Config{Topic: "example", Priority: 1, Token: "tk_faketoken"}},
 			expected: true,
 		},
 		{
 			name:     "invalid-token",
-			provider: AlertProvider{Topic: "example", Priority: 1, Token: "xx_faketoken"},
+			provider: AlertProvider{Config: Config{Topic: "example", Priority: 1, Token: "xx_faketoken"}},
 			expected: false,
 		},
 		{
 			name:     "invalid-topic",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "", Priority: 1},
+			provider: AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "", Priority: 1}},
 			expected: false,
 		},
 		{
 			name:     "invalid-priority-too-high",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 6},
+			provider: AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 6}},
 			expected: false,
 		},
 		{
 			name:     "invalid-priority-too-low",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: -1},
+			provider: AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: -1}},
 			expected: false,
 		},
 		{
 			name:     "no-priority-should-use-default-value",
-			provider: AlertProvider{URL: "https://ntfy.sh", Topic: "example"},
+			provider: AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example"}},
 			expected: true,
 		},
 		{
 			name:     "invalid-override-token",
-			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g", Token: "xx_faketoken"}}},
+			provider: AlertProvider{Config: Config{Topic: "example"}, Overrides: []Override{Override{Group: "g", Config: Config{Token: "xx_faketoken"}}}},
 			expected: false,
 		},
 		{
 			name:     "invalid-override-priority",
-			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g", Priority: 8}}},
+			provider: AlertProvider{Config: Config{Topic: "example"}, Overrides: []Override{Override{Group: "g", Config: Config{Priority: 8}}}},
 			expected: false,
 		},
 		{
 			name:     "no-override-group-name",
-			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{}}},
+			provider: AlertProvider{Config: Config{Topic: "example"}, Overrides: []Override{Override{}}},
 			expected: false,
 		},
 		{
 			name:     "duplicate-override-group-names",
-			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g"}, Override{Group: "g"}}},
+			provider: AlertProvider{Config: Config{Topic: "example"}, Overrides: []Override{Override{Group: "g"}, Override{Group: "g"}}},
 			expected: false,
 		},
 		{
 			name:     "valid-override",
-			provider: AlertProvider{Topic: "example", Overrides: []Override{Override{Group: "g1", Priority: 4, Click: "https://example.com"}, Override{Group: "g2", Topic: "Example", Token: "tk_faketoken"}}},
+			provider: AlertProvider{Config: Config{Topic: "example"}, Overrides: []Override{Override{Group: "g1", Config: Config{Priority: 4, Click: "https://example.com"}}, Override{Group: "g2", Config: Config{Topic: "Example", Token: "tk_faketoken"}}}},
 			expected: true,
 		},
 	}
@@ -105,7 +105,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Override:     nil,
@@ -113,7 +113,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 2},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 2}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			Override:     nil,
@@ -121,7 +121,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "triggered-email",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Override:     nil,
@@ -129,7 +129,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved-email",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 2, Email: "test@example.com", Click: "example.com"},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 2, Email: "test@example.com", Click: "example.com"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			Override:     nil,
@@ -137,10 +137,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "override",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 5, Email: "test@example.com", Click: "example.com"},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 5, Email: "test@example.com", Click: "example.com"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			Override:     &Override{Group: "g", Topic: "override-topic", Priority: 4, Email: "override@test.com", Click: "test.com"},
+			Override:     &Override{Group: "g", Config: Config{Topic: "override-topic", Priority: 4, Email: "override@test.com", Click: "test.com"}},
 			ExpectedBody: `{"topic":"override-topic","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":4,"email":"override@test.com","click":"test.com"}`,
 		},
 	}
@@ -182,7 +182,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com"}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "",
@@ -193,7 +193,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "token",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken"},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken"}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "",
@@ -205,7 +205,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "no firebase",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "",
@@ -217,7 +217,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "no cache",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableCache: true},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableCache: true}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "",
@@ -229,7 +229,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "neither firebase & cache",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true, DisableCache: true},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", DisableFirebase: true, DisableCache: true}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "",
@@ -242,7 +242,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:         "overrides",
-			Provider:     AlertProvider{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken", Overrides: []Override{Override{Group: "other-group", URL: "https://example.com", Token: "tk_othertoken"}, Override{Group: "test-group", Token: "tk_test_token"}}},
+			Provider:     AlertProvider{Config: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Email: "test@example.com", Click: "example.com", Token: "tk_mytoken"}, Overrides: []Override{Override{Group: "other-group", Config: Config{URL: "https://example.com", Token: "tk_othertoken"}}, Override{Group: "test-group", Config: Config{Token: "tk_test_token"}}}},
 			Alert:        alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			Group:        "test-group",
@@ -288,8 +288,6 @@ func TestAlertProvider_Send(t *testing.T) {
 			if err != nil {
 				t.Error("Encountered an error on Send: ", err)
 			}
-
 		})
 	}
-
 }

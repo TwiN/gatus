@@ -14,17 +14,23 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using Slack
 type AlertProvider struct {
-	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
+	Config `yaml:",inline"`
+
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group      string `yaml:"group"`
-	WebhookURL string `yaml:"webhook-url"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

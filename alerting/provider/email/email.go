@@ -14,12 +14,7 @@ import (
 
 // AlertProvider is the configuration necessary for sending an alert using SMTP
 type AlertProvider struct {
-	From     string `yaml:"from"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	To       string `yaml:"to"`
+	Config `yaml:",inline"`
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -31,10 +26,19 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+type Config struct {
+	From     string `yaml:"from"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	To       string `yaml:"to"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
-	Group string `yaml:"group"`
-	To    string `yaml:"to"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // IsValid returns whether the provider's configuration is valid

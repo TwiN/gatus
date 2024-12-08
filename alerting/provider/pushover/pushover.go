@@ -19,6 +19,13 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Pushover
 type AlertProvider struct {
+	Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+type Config struct {
 	// Key used to authenticate the application sending
 	// See "Your Applications" on the dashboard, or add a new one: https://pushover.net/apps/build
 	ApplicationToken string `yaml:"application-token"`
@@ -41,9 +48,6 @@ type AlertProvider struct {
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
 	Sound string `yaml:"sound,omitempty"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
 // IsValid returns whether the provider's configuration is valid
