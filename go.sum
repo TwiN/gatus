@@ -8,8 +8,8 @@ cloud.google.com/go/compute/metadata v0.5.2/go.mod h1:C66sj2AluDcIqakBq/M8lw8/yb
 code.gitea.io/sdk/gitea v0.19.0 h1:8I6s1s4RHgzxiPHhOQdgim1RWIRcr0LVMbHBjBFXq4Y=
 code.gitea.io/sdk/gitea v0.19.0/go.mod h1:IG9xZJoltDNeDSW0qiF2Vqx5orMWa7OhVWrjvrd5NpI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/TwiN/deepmerge v0.2.1 h1:GowJr9O4THTVW4awX63x1BVg1hgr4q+35XKKCYbwsSs=
-github.com/TwiN/deepmerge v0.2.1/go.mod h1:LVBmCEBQvibYSF8Gyl/NqhHXH7yIiT7Ozqf9dHxGPW0=
+github.com/TwiN/deepmerge v0.2.2 h1:FUG9QMIYg/j2aQyPPhA3XTFJwXSNHI/swaR4Lbyxwg4=
+github.com/TwiN/deepmerge v0.2.2/go.mod h1:4OHvjV3pPNJCJZBHswYAwk6rxiD8h8YZ+9cPo7nu4oI=
 github.com/TwiN/g8/v2 v2.0.0 h1:+hwIbRLMhDd2iwHzkZUPp2FkX7yTx8ddYOnS91HkDqQ=
 github.com/TwiN/g8/v2 v2.0.0/go.mod h1:4sVAF27q8T8ISggRa/Fb0drw7wpB22B6eWd+/+SGMqE=
 github.com/TwiN/gocache/v2 v2.2.2 h1:4HToPfDV8FSbaYO5kkbhLpEllUYse5rAf+hVU/mSsuI=
