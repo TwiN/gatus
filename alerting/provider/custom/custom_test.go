@@ -14,13 +14,13 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
-		invalidProvider := AlertProvider{URL: ""}
+		invalidProvider := AlertProvider{Config: Config{URL: ""}}
 		if invalidProvider.IsValid() {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
 	t.Run("valid-provider", func(t *testing.T) {
-		validProvider := AlertProvider{URL: "https://example.com"}
+		validProvider := AlertProvider{Config: Config{URL: "https://example.com"}}
 		if validProvider.ClientConfig != nil {
 			t.Error("provider client config should have been nil prior to IsValid() being executed")
 		}
@@ -112,8 +112,10 @@ func TestAlertProvider_Send(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]",
-		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED]",
+		Config: Config{
+			URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]",
+			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED]",
+		},
 	}
 	alertDescription := "alert-description"
 	scenarios := []struct {
@@ -156,8 +158,10 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 
 func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 	customAlertWithErrorsProvider := &AlertProvider{
-		URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[RESULT_ERRORS]",
-		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_ERRORS]",
+		Config: Config{
+			URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[RESULT_ERRORS]",
+			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_ERRORS]",
+		},
 	}
 	alertDescription := "alert-description"
 	scenarios := []struct {
@@ -202,13 +206,15 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 
 func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
-		Headers: nil,
-		Placeholders: map[string]map[string]string{
-			"ALERT_TRIGGERED_OR_RESOLVED": {
-				"RESOLVED":  "fixed",
-				"TRIGGERED": "boom",
+		Config: Config{
+			URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+			Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+			Headers: nil,
+			Placeholders: map[string]map[string]string{
+				"ALERT_TRIGGERED_OR_RESOLVED": {
+					"RESOLVED":  "fixed",
+					"TRIGGERED": "boom",
+				},
 			},
 		},
 	}
@@ -253,8 +259,10 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 
 func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 	customAlertProvider := &AlertProvider{
-		URL:  "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-		Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		Config: Config{
+			URL:  "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
+			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
+		},
 	}
 	if customAlertProvider.GetAlertStatePlaceholderValue(true) != "RESOLVED" {
 		t.Error("expected RESOLVED, got", customAlertProvider.GetAlertStatePlaceholderValue(true))

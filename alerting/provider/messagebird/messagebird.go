@@ -18,12 +18,16 @@ const (
 
 // AlertProvider is the configuration necessary for sending an alert using Messagebird
 type AlertProvider struct {
-	AccessKey  string `yaml:"access-key"`
-	Originator string `yaml:"originator"`
-	Recipients string `yaml:"recipients"`
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+type Config struct {
+	AccessKey  string `yaml:"access-key"`
+	Originator string `yaml:"originator"`
+	Recipients string `yaml:"recipients"`
 }
 
 // IsValid returns whether the provider's configuration is valid

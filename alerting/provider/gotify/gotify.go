@@ -16,20 +16,17 @@ const DefaultPriority = 5
 
 // AlertProvider is the configuration necessary for sending an alert using Gotify
 type AlertProvider struct {
-	// ServerURL is the URL of the Gotify server
-	ServerURL string `yaml:"server-url"`
-
-	// Token is the token to use when sending a message to the Gotify server
-	Token string `yaml:"token"`
-
-	// Priority is the priority of the message
-	Priority int `yaml:"priority,omitempty"` // Defaults to DefaultPriority
+	Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
 
-	// Title is the title of the message that will be sent
-	Title string `yaml:"title,omitempty"`
+type Config struct {
+	ServerURL string `yaml:"server-url"`         // ServerURL is the URL of the Gotify server
+	Token     string `yaml:"token"`              // Token is the token to use when sending a message to the Gotify server
+	Priority  int    `yaml:"priority,omitempty"` // Priority is the priority of the message. Defaults to DefaultPriority.
+	Title     string `yaml:"title,omitempty"`    // Title of the message that will be sent
 }
 
 // IsValid returns whether the provider's configuration is valid

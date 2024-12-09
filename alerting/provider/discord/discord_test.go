@@ -12,11 +12,11 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{WebhookURL: ""}
+	invalidProvider := AlertProvider{Config: Config{WebhookURL: ""}}
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{WebhookURL: "http://example.com"}
+	validProvider := AlertProvider{Config: Config{WebhookURL: "http://example.com"}}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -26,8 +26,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				WebhookURL: "http://example.com",
-				Group:      "",
+				Config: Config{WebhookURL: "http://example.com"},
+				Group:  "",
 			},
 		},
 	}
@@ -37,8 +37,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
-				WebhookURL: "",
-				Group:      "group",
+				Config: Config{WebhookURL: ""},
+				Group:  "group",
 			},
 		},
 	}
@@ -46,11 +46,13 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		WebhookURL: "http://example.com",
+		Config: Config{
+			WebhookURL: "http://example.com",
+		},
 		Overrides: []Override{
 			{
-				WebhookURL: "http://example.com",
-				Group:      "group",
+				Config: Config{WebhookURL: "http://example.com"},
+				Group:  "group",
 			},
 		},
 	}
@@ -114,7 +116,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-with-modified-title",
-			Provider: AlertProvider{Title: title},
+			Provider: AlertProvider{Config: Config{Title: title}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -175,7 +177,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "triggered-with-modified-title",
-			Provider:     AlertProvider{Title: title},
+			Provider:     AlertProvider{Config: Config{Title: title}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n:x: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
@@ -183,7 +185,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-no-conditions",
 			NoConditions: true,
-			Provider:     AlertProvider{Title: title},
+			Provider:     AlertProvider{Config: Config{Title: title}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332}]}",
@@ -237,8 +239,8 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
-				Overrides:  nil,
+				Config:    Config{WebhookURL: "http://example.com"},
+				Overrides: nil,
 			},
 			InputGroup:     "",
 			ExpectedOutput: "http://example.com",
@@ -246,8 +248,8 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
-				Overrides:  nil,
+				Config:    Config{WebhookURL: "http://example.com"},
+				Overrides: nil,
 			},
 			InputGroup:     "group",
 			ExpectedOutput: "http://example.com",
@@ -255,11 +257,11 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
+				Config: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
-						Group:      "group",
-						WebhookURL: "http://example01.com",
+						Group:  "group",
+						Config: Config{WebhookURL: "http://example01.com"},
 					},
 				},
 			},
@@ -269,11 +271,11 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				WebhookURL: "http://example.com",
+				Config: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
-						Group:      "group",
-						WebhookURL: "http://example01.com",
+						Group:  "group",
+						Config: Config{WebhookURL: "http://example01.com"},
 					},
 				},
 			},

@@ -12,14 +12,14 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	if invalidProvider.IsValid() {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{From: "from@example.com", Password: "password", Host: "smtp.gmail.com", Port: 587, To: "to@example.com"}
+	validProvider := AlertProvider{Config: Config{From: "from@example.com", Password: "password", Host: "smtp.gmail.com", Port: 587, To: "to@example.com"}}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
 }
 
 func TestAlertProvider_IsValidWithNoCredentials(t *testing.T) {
-	validProvider := AlertProvider{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}
+	validProvider := AlertProvider{Config: Config{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}}
 	if !validProvider.IsValid() {
 		t.Error("provider should've been valid")
 	}
@@ -29,8 +29,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				To:    "to@example.com",
-				Group: "",
+				Config: Config{To: "to@example.com"},
+				Group:  "",
 			},
 		},
 	}
@@ -40,8 +40,8 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
-				To:    "",
-				Group: "group",
+				Config: Config{To: ""},
+				Group:  "group",
 			},
 		},
 	}
@@ -49,15 +49,17 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		From:     "from@example.com",
-		Password: "password",
-		Host:     "smtp.gmail.com",
-		Port:     587,
-		To:       "to@example.com",
+		Config: Config{
+			From:     "from@example.com",
+			Password: "password",
+			Host:     "smtp.gmail.com",
+			Port:     587,
+			To:       "to@example.com",
+		},
 		Overrides: []Override{
 			{
-				To:    "to@example.com",
-				Group: "group",
+				Config: Config{To: "to@example.com"},
+				Group:  "group",
 			},
 		},
 	}
@@ -136,7 +138,7 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				To:        "to@example.com",
+				Config:    Config{To: "to@example.com"},
 				Overrides: nil,
 			},
 			InputGroup:     "",
@@ -145,7 +147,7 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				To:        "to@example.com",
+				Config:    Config{To: "to@example.com"},
 				Overrides: nil,
 			},
 			InputGroup:     "group",
@@ -154,11 +156,11 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				To: "to@example.com",
+				Config: Config{To: "to@example.com"},
 				Overrides: []Override{
 					{
-						Group: "group",
-						To:    "to01@example.com",
+						Group:  "group",
+						Config: Config{To: "to01@example.com"},
 					},
 				},
 			},
@@ -168,11 +170,11 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				To: "to@example.com",
+				Config: Config{To: "to@example.com"},
 				Overrides: []Override{
 					{
-						Group: "group",
-						To:    "to01@example.com",
+						Group:  "group",
+						Config: Config{To: "to01@example.com"},
 					},
 				},
 			},
