@@ -11,10 +11,13 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
@@ -30,6 +33,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/web"
@@ -1868,34 +1872,41 @@ func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
-		Custom:         &custom.AlertProvider{},
-		Discord:        &discord.AlertProvider{},
-		Email:          &email.AlertProvider{},
-		GitHub:         &github.AlertProvider{},
-		GoogleChat:     &googlechat.AlertProvider{},
-		Gotify:         &gotify.AlertProvider{},
-		JetBrainsSpace: &jetbrainsspace.AlertProvider{},
-		Matrix:         &matrix.AlertProvider{},
-		Mattermost:     &mattermost.AlertProvider{},
-		Messagebird:    &messagebird.AlertProvider{},
-		Ntfy:           &ntfy.AlertProvider{},
-		Opsgenie:       &opsgenie.AlertProvider{},
-		PagerDuty:      &pagerduty.AlertProvider{},
-		Pushover:       &pushover.AlertProvider{},
-		Slack:          &slack.AlertProvider{},
-		Telegram:       &telegram.AlertProvider{},
-		Twilio:         &twilio.AlertProvider{},
-		Teams:          &teams.AlertProvider{},
-		TeamsWorkflows: &teamsworkflows.AlertProvider{},
+		AWSSimpleEmailService: &awsses.AlertProvider{},
+		Custom:                &custom.AlertProvider{},
+		Discord:               &discord.AlertProvider{},
+		Email:                 &email.AlertProvider{},
+		Gitea:                 &gitea.AlertProvider{},
+		GitHub:                &github.AlertProvider{},
+		GitLab:                &gitlab.AlertProvider{},
+		GoogleChat:            &googlechat.AlertProvider{},
+		Gotify:                &gotify.AlertProvider{},
+		JetBrainsSpace:        &jetbrainsspace.AlertProvider{},
+		Matrix:                &matrix.AlertProvider{},
+		Mattermost:            &mattermost.AlertProvider{},
+		Messagebird:           &messagebird.AlertProvider{},
+		Ntfy:                  &ntfy.AlertProvider{},
+		Opsgenie:              &opsgenie.AlertProvider{},
+		PagerDuty:             &pagerduty.AlertProvider{},
+		Pushover:              &pushover.AlertProvider{},
+		Slack:                 &slack.AlertProvider{},
+		Telegram:              &telegram.AlertProvider{},
+		Teams:                 &teams.AlertProvider{},
+		TeamsWorkflows:        &teamsworkflows.AlertProvider{},
+		Twilio:                &twilio.AlertProvider{},
+		Zulip:                 &zulip.AlertProvider{},
 	}
 	scenarios := []struct {
 		alertType alert.Type
 		expected  provider.AlertProvider
 	}{
+		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
+		{alertType: alert.TypeGitea, expected: alertingConfig.Gitea},
 		{alertType: alert.TypeGitHub, expected: alertingConfig.GitHub},
+		{alertType: alert.TypeGitLab, expected: alertingConfig.GitLab},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
 		{alertType: alert.TypeGotify, expected: alertingConfig.Gotify},
 		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
@@ -1908,9 +1919,10 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
-		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
 		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
 		{alertType: alert.TypeTeamsWorkflows, expected: alertingConfig.TeamsWorkflows},
+		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
+		{alertType: alert.TypeZulip, expected: alertingConfig.Zulip},
 	}
 	for _, scenario := range scenarios {
 		t.Run(string(scenario.alertType), func(t *testing.T) {
