@@ -1918,7 +1918,7 @@ To modify the timeout, see [Client configuration](#client-configuration).
 
 
 ### Monitoring a TCP endpoint
-By prefixing `endpoints[].url` with `tcp:\\`, you can monitor TCP endpoints at a very basic level:
+By prefixing `endpoints[].url` with `tcp://`, you can monitor TCP endpoints at a very basic level:
 
 ```yaml
 endpoints:
@@ -1940,7 +1940,7 @@ This works for applications such as databases (Postgres, MySQL, etc.) and caches
 
 
 ### Monitoring a UDP endpoint
-By prefixing `endpoints[].url` with `udp:\\`, you can monitor UDP endpoints at a very basic level:
+By prefixing `endpoints[].url` with `udp://`, you can monitor UDP endpoints at a very basic level:
 
 ```yaml
 endpoints:
@@ -1957,7 +1957,7 @@ This works for UDP based application.
 
 
 ### Monitoring a SCTP endpoint
-By prefixing `endpoints[].url` with `sctp:\\`, you can monitor Stream Control Transmission Protocol (SCTP) endpoints at a very basic level:
+By prefixing `endpoints[].url` with `sctp://`, you can monitor Stream Control Transmission Protocol (SCTP) endpoints at a very basic level:
 
 ```yaml
 endpoints:
@@ -1991,7 +1991,7 @@ shows whether the connection was successfully established.
 
 
 ### Monitoring an endpoint using ICMP
-By prefixing `endpoints[].url` with `icmp:\\`, you can monitor endpoints at a very basic level using ICMP, or more
+By prefixing `endpoints[].url` with `icmp://`, you can monitor endpoints at a very basic level using ICMP, or more
 commonly known as "ping" or "echo":
 
 ```yaml
@@ -2030,7 +2030,7 @@ There are two placeholders that can be used in the conditions for endpoints of t
 
 
 ### Monitoring an endpoint using SSH
-You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh:\\`:
+You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh://`:
 ```yaml
 endpoints:
   - name: ssh-example
