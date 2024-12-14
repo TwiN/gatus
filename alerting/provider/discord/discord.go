@@ -25,7 +25,7 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.WebhookURL) > 0 {
+	if len(cfg.WebhookURL) == 0 {
 		return ErrWebhookURLNotSet
 	}
 	return nil
