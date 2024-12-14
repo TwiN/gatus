@@ -13,7 +13,7 @@ import (
 
 func TestPushoverAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -25,7 +25,7 @@ func TestPushoverAlertProvider_IsValid(t *testing.T) {
 			ResolvedPriority: 1,
 		},
 	}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -38,7 +38,7 @@ func TestPushoverAlertProvider_IsInvalid(t *testing.T) {
 			Priority:         5,
 		},
 	}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider should've been invalid")
 	}
 }

@@ -421,7 +421,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 	for _, alertType := range alertTypes {
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(alertType)
 		if alertProvider != nil {
-			if alertProvider.IsValid() {
+			if err := alertProvider.Validate(); err == nil {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
 					for _, ep := range endpoints {
@@ -443,7 +443,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 				}
 				validProviders = append(validProviders, alertType)
 			} else {
-				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
+				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s due to error=%s", alertType, err.Error())
 				invalidProviders = append(invalidProviders, alertType)
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}

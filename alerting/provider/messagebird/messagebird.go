@@ -3,6 +3,7 @@ package messagebird
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,19 +11,16 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-const (
-	restAPIURL = "https://rest.messagebird.com/messages"
+const restAPIURL = "https://rest.messagebird.com/messages"
+
+var (
+	ErrorAccessKeyNotSet  = errors.New("access-key not set")
+	ErrorOriginatorNotSet = errors.New("originator not set")
+	ErrorRecipientsNotSet = errors.New("recipients not set")
 )
-
-// AlertProvider is the configuration necessary for sending an alert using Messagebird
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-}
 
 type Config struct {
 	AccessKey  string `yaml:"access-key"`
@@ -30,21 +28,58 @@ type Config struct {
 	Recipients string `yaml:"recipients"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	return len(provider.AccessKey) > 0 && len(provider.Originator) > 0 && len(provider.Recipients) > 0
+func (cfg *Config) Validate() error {
+	if len(cfg.AccessKey) == 0 {
+		return ErrorAccessKeyNotSet
+	}
+	if len(cfg.Originator) == 0 {
+		return ErrorOriginatorNotSet
+	}
+	if len(cfg.Recipients) == 0 {
+		return ErrorRecipientsNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.AccessKey) > 0 {
+		cfg.AccessKey = override.AccessKey
+	}
+	if len(override.Originator) > 0 {
+		cfg.Originator = override.Originator
+	}
+	if len(override.Recipients) > 0 {
+		cfg.Recipients = override.Recipients
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Messagebird
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 // Reference doc for messagebird: https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	cfg, err := provider.GetConfig(alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("AccessKey %s", provider.AccessKey))
+	request.Header.Set("Authorization", fmt.Sprintf("AccessKey %s", cfg.AccessKey))
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -64,7 +99,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
@@ -72,8 +107,8 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 	}
 	body, _ := json.Marshal(Body{
-		Originator: provider.Originator,
-		Recipients: provider.Recipients,
+		Originator: cfg.Originator,
+		Recipients: cfg.Recipients,
 		Body:       message,
 	})
 	return body
@@ -82,4 +117,22 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

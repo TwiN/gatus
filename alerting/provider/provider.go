@@ -29,14 +29,19 @@ import (
 
 // AlertProvider is the interface that each provider should implement
 type AlertProvider interface {
-	// IsValid returns whether the provider's configuration is valid
-	IsValid() bool
-
-	// GetDefaultAlert returns the provider's default alert configuration
-	GetDefaultAlert() *alert.Alert
+	// Validate the provider's configuration
+	Validate() error
 
 	// Send an alert using the provider
 	Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error
+
+	// GetDefaultAlert returns the provider's default alert configuration
+	GetDefaultAlert() *alert.Alert
+}
+
+type Config[T any] interface {
+	Validate() error
+	Merge(override *T)
 }
 
 // ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
@@ -62,7 +67,7 @@ func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
 }
 
 var (
-	// Validate interface implementation on compile
+	// Validate provider interface implementation on compile
 	_ AlertProvider = (*awsses.AlertProvider)(nil)
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
@@ -85,4 +90,28 @@ var (
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*zulip.AlertProvider)(nil)
+
+	// Validate config interface implementation on compile
+	_ Config[awsses.Config]         = (*awsses.Config)(nil)
+	_ Config[custom.Config]         = (*custom.Config)(nil)
+	_ Config[discord.Config]        = (*discord.Config)(nil)
+	_ Config[email.Config]          = (*email.Config)(nil)
+	_ Config[gitea.Config]          = (*gitea.Config)(nil)
+	_ Config[github.Config]         = (*github.Config)(nil)
+	_ Config[gitlab.Config]         = (*gitlab.Config)(nil)
+	_ Config[googlechat.Config]     = (*googlechat.Config)(nil)
+	_ Config[jetbrainsspace.Config] = (*jetbrainsspace.Config)(nil)
+	_ Config[matrix.Config]         = (*matrix.Config)(nil)
+	_ Config[mattermost.Config]     = (*mattermost.Config)(nil)
+	_ Config[messagebird.Config]    = (*messagebird.Config)(nil)
+	_ Config[ntfy.Config]           = (*ntfy.Config)(nil)
+	_ Config[opsgenie.Config]       = (*opsgenie.Config)(nil)
+	_ Config[pagerduty.Config]      = (*pagerduty.Config)(nil)
+	_ Config[pushover.Config]       = (*pushover.Config)(nil)
+	_ Config[slack.Config]          = (*slack.Config)(nil)
+	_ Config[teams.Config]          = (*teams.Config)(nil)
+	_ Config[teamsworkflows.Config] = (*teamsworkflows.Config)(nil)
+	_ Config[telegram.Config]       = (*telegram.Config)(nil)
+	_ Config[twilio.Config]         = (*twilio.Config)(nil)
+	_ Config[zulip.Config]          = (*zulip.Config)(nil)
 )

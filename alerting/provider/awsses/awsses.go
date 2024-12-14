@@ -1,6 +1,7 @@
 package awsses
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,22 +13,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"gopkg.in/yaml.v3"
 )
 
 const (
 	CharSet = "UTF-8"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using AWS Simple Email Service
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides,omitempty"`
-}
+var (
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+	ErrMissingFromOrToFields  = errors.New("from and to fields are required")
+	ErrInvalidAWSAuthConfig   = errors.New("either both or neither of access-key-id and secret-access-key must be specified")
+)
 
 type Config struct {
 	AccessKeyID     string `yaml:"access-key-id"`
@@ -38,38 +35,80 @@ type Config struct {
 	To   string `yaml:"to"`
 }
 
+func (cfg *Config) Validate() error {
+	if len(cfg.From) == 0 || len(cfg.To) == 0 {
+		return ErrMissingFromOrToFields
+	}
+	if !((len(cfg.AccessKeyID) == 0 && len(cfg.SecretAccessKey) == 0) || (len(cfg.AccessKeyID) > 0 && len(cfg.SecretAccessKey) > 0)) {
+		// if both AccessKeyID and SecretAccessKey are specified, we'll use these to authenticate,
+		// otherwise if neither are specified, then we'll fall back on IAM authentication.
+		return ErrInvalidAWSAuthConfig
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.AccessKeyID) > 0 {
+		cfg.AccessKeyID = override.AccessKeyID
+	}
+	if len(override.SecretAccessKey) > 0 {
+		cfg.SecretAccessKey = override.SecretAccessKey
+	}
+	if len(override.Region) > 0 {
+		cfg.Region = override.Region
+	}
+	if len(override.From) > 0 {
+		cfg.From = override.From
+	}
+	if len(override.To) > 0 {
+		cfg.To = override.To
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using AWS Simple Email Service
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.To) == 0 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	// if both AccessKeyID and SecretAccessKey are specified, we'll use these to authenticate,
-	// otherwise if neither are specified, then we'll fall back on IAM authentication.
-	return len(provider.From) > 0 && len(provider.To) > 0 &&
-		((len(provider.AccessKeyID) == 0 && len(provider.SecretAccessKey) == 0) || (len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0))
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	sess, err := provider.createSession()
+	cfg, err := provider.GetConfig(ep.Group, alert)
 	if err != nil {
 		return err
 	}
-	svc := ses.New(sess)
+	awsSession, err := provider.createSession(cfg)
+	if err != nil {
+		return err
+	}
+	svc := ses.New(awsSession)
 	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
-	emails := strings.Split(provider.getToForGroup(ep.Group), ",")
+	emails := strings.Split(cfg.To, ",")
 
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
@@ -87,7 +126,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 				Data:    aws.String(subject),
 			},
 		},
-		Source: aws.String(provider.From),
+		Source: aws.String(cfg.From),
 	}
 	if _, err = svc.SendEmail(input); err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -110,6 +149,16 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	return nil
+}
+
+func (provider *AlertProvider) createSession(cfg *Config) (*session.Session, error) {
+	awsConfig := &aws.Config{
+		Region: aws.String(cfg.Region),
+	}
+	if len(cfg.AccessKeyID) > 0 && len(cfg.SecretAccessKey) > 0 {
+		awsConfig.Credentials = credentials.NewStaticCredentials(cfg.AccessKeyID, cfg.SecretAccessKey, "")
+	}
+	return session.NewSession(awsConfig)
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
@@ -142,29 +191,34 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 	return subject, message + description + formattedConditionResults
 }
 
-// getToForGroup returns the appropriate email integration to for a given group
-func (provider *AlertProvider) getToForGroup(group string) string {
-	if provider.Overrides != nil {
-		for _, override := range provider.Overrides {
-			if group == override.Group {
-				return override.To
-			}
-		}
-	}
-	return provider.To
-}
-
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }
 
-func (provider *AlertProvider) createSession() (*session.Session, error) {
-	config := &aws.Config{
-		Region: aws.String(provider.Region),
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
 	}
-	if len(provider.AccessKeyID) > 0 && len(provider.SecretAccessKey) > 0 {
-		config.Credentials = credentials.NewStaticCredentials(provider.AccessKeyID, provider.SecretAccessKey, "")
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
 	}
-	return session.NewSession(config)
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

@@ -15,7 +15,7 @@ import (
 func TestAlertProvider_IsValid(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
 		invalidProvider := AlertProvider{Config: Config{URL: ""}}
-		if invalidProvider.IsValid() {
+		if invalidProvider.Validate() {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
@@ -24,7 +24,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		if validProvider.ClientConfig != nil {
 			t.Error("provider client config should have been nil prior to IsValid() being executed")
 		}
-		if !validProvider.IsValid() {
+		if !validProvider.Validate() {
 			t.Error("provider should've been valid")
 		}
 		if validProvider.ClientConfig == nil {

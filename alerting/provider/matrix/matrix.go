@@ -3,6 +3,7 @@ package matrix
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -13,20 +14,16 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultServerURL = "https://matrix-client.matrix.org"
 
-// AlertProvider is the configuration necessary for sending an alert using Matrix
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides,omitempty"`
-}
+var (
+	ErrAccessTokenNotSet      = errors.New("access-token not set")
+	ErrInternalRoomID         = errors.New("internal-room-id not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
 
 type Config struct {
 	// ServerURL is the custom homeserver to use (optional)
@@ -39,42 +36,78 @@ type Config struct {
 	InternalRoomID string `yaml:"internal-room-id"`
 }
 
+func (cfg *Config) Validate() error {
+	if len(cfg.ServerURL) == 0 {
+		cfg.ServerURL = defaultServerURL
+	}
+	if len(cfg.AccessToken) == 0 {
+		return ErrAccessTokenNotSet
+	}
+	if len(cfg.InternalRoomID) == 0 {
+		return ErrInternalRoomID
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.ServerURL) > 0 {
+		cfg.ServerURL = override.ServerURL
+	}
+	if len(override.AccessToken) > 0 {
+		cfg.AccessToken = override.AccessToken
+	}
+	if len(override.InternalRoomID) > 0 {
+		cfg.InternalRoomID = override.InternalRoomID
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Matrix
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.AccessToken) == 0 || len(override.InternalRoomID) == 0 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	return len(provider.AccessToken) > 0 && len(provider.InternalRoomID) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
-	config := provider.getConfigForGroup(ep.Group)
-	if config.ServerURL == "" {
-		config.ServerURL = defaultServerURL
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
 	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	// The Matrix endpoint requires a unique transaction ID for each event sent
 	txnId := randStringBytes(24)
 	request, err := http.NewRequest(
 		http.MethodPut,
 		fmt.Sprintf("%s/_matrix/client/v3/rooms/%s/send/m.room.message/%s?access_token=%s",
-			config.ServerURL,
-			url.PathEscape(config.InternalRoomID),
+			cfg.ServerURL,
+			url.PathEscape(cfg.InternalRoomID),
 			txnId,
-			url.QueryEscape(config.AccessToken),
+			url.QueryEscape(cfg.AccessToken),
 		),
 		buffer,
 	)
@@ -166,18 +199,6 @@ func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *end
 	return fmt.Sprintf("<h3>%s</h3>%s%s", message, description, formattedConditionResults)
 }
 
-// getConfigForGroup returns the appropriate configuration for a given group
-func (provider *AlertProvider) getConfigForGroup(group string) Config {
-	if provider.Overrides != nil {
-		for _, override := range provider.Overrides {
-			if group == override.Group {
-				return override.Config
-			}
-		}
-	}
-	return provider.Config
-}
-
 func randStringBytes(n int) string {
 	// All the compatible characters to use in a transaction ID
 	const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -192,4 +213,31 @@ func randStringBytes(n int) string {
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

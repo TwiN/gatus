@@ -18,7 +18,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 			InternalRoomID: "",
 		},
 	}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -27,7 +27,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 			InternalRoomID: "!a:example.com",
 		},
 	}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 	validProviderWithHomeserver := AlertProvider{
@@ -37,7 +37,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 			InternalRoomID: "!a:example.com",
 		},
 	}
-	if !validProviderWithHomeserver.IsValid() {
+	if !validProviderWithHomeserver.Validate() {
 		t.Error("provider with homeserver should've been valid")
 	}
 }
@@ -54,7 +54,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.IsValid() {
+	if providerWithInvalidOverrideGroup.Validate() {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -68,7 +68,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.IsValid() {
+	if providerWithInvalidOverrideTo.Validate() {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
@@ -87,7 +87,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.IsValid() {
+	if !providerWithValidOverride.Validate() {
 		t.Error("provider should've been valid")
 	}
 }

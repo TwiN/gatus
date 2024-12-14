@@ -3,6 +3,7 @@ package telegram
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,69 +11,100 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-const defaultAPIURL = "https://api.telegram.org"
+const defaultApiUrl = "https://api.telegram.org"
 
-// AlertProvider is the configuration necessary for sending an alert using Telegram
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of Overrid that may be prioritized over the default configuration
-	Overrides []*Override `yaml:"overrides,omitempty"`
-}
+var (
+	ErrTokenNotSet            = errors.New("token not set")
+	ErrIDNotSet               = errors.New("id not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
 
 type Config struct {
 	Token  string `yaml:"token"`
 	ID     string `yaml:"id"`
-	APIURL string `yaml:"api-url"`
+	ApiUrl string `yaml:"api-url"`
 
-	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
+}
+
+func (cfg *Config) Validate() error {
+	if cfg.ClientConfig == nil {
+		cfg.ClientConfig = client.GetDefaultConfig()
+	}
+	if len(cfg.ApiUrl) == 0 {
+		cfg.ApiUrl = defaultApiUrl
+	}
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
+	}
+	if len(cfg.ID) == 0 {
+		return ErrIDNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if cfg.ClientConfig == nil {
+		cfg.ClientConfig = client.GetDefaultConfig()
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if len(override.ID) > 0 {
+		cfg.ID = override.ID
+	}
+	if len(override.ApiUrl) > 0 {
+		cfg.ApiUrl = override.ApiUrl
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Telegram
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of overrides that may be prioritized over the default configuration
+	Overrides []*Override `yaml:"overrides,omitempty"`
 }
 
 // Override is a configuration that may be prioritized over the default configuration
 type Override struct {
-	group  string `yaml:"group"`
+	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.ClientConfig == nil {
-		provider.ClientConfig = client.GetDefaultConfig()
-	}
-
-	registerGroups := make(map[string]bool)
-	for _, override := range provider.Overrides {
-		if len(override.group) == 0 {
-			return false
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	registeredGroups := make(map[string]bool)
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
+				return ErrDuplicateGroupOverride
+			}
+			registeredGroups[override.Group] = true
 		}
-		if _, ok := registerGroups[override.group]; ok {
-			return false
-		}
-		registerGroups[override.group] = true
 	}
-
-	return len(provider.Token) > 0 && len(provider.ID) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
-	apiURL := provider.APIURL
-	if apiURL == "" {
-		apiURL = defaultAPIURL
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
 	}
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", apiURL, provider.getTokenForGroup(ep.Group)), buffer)
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", cfg.ApiUrl, cfg.Token), buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
+	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
@@ -84,15 +116,6 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return err
 }
 
-func (provider *AlertProvider) getTokenForGroup(group string) string {
-	for _, override := range provider.Overrides {
-		if override.group == group && len(override.Token) > 0 {
-			return override.Token
-		}
-	}
-	return provider.Token
-}
-
 type Body struct {
 	ChatID    string `json:"chat_id"`
 	Text      string `json:"text"`
@@ -100,7 +123,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", ep.DisplayName(), alert.SuccessThreshold)
@@ -127,23 +150,41 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}
 	bodyAsJSON, _ := json.Marshal(Body{
-		ChatID:    provider.getIDForGroup(ep.Group),
+		ChatID:    cfg.ID,
 		Text:      text,
 		ParseMode: "MARKDOWN",
 	})
 	return bodyAsJSON
 }
 
-func (provider *AlertProvider) getIDForGroup(group string) string {
-	for _, override := range provider.Overrides {
-		if override.group == group && len(override.ID) > 0 {
-			return override.ID
-		}
-	}
-	return provider.ID
-}
-
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

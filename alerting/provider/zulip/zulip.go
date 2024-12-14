@@ -2,6 +2,7 @@ package zulip
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,18 +11,16 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Zulip
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides,omitempty"`
-}
+var (
+	ErrBotEmailNotSet         = errors.New("bot-email not set")
+	ErrBotAPIKeyNotSet        = errors.New("bot-api-key not set")
+	ErrDomainNotSet           = errors.New("domain not set")
+	ErrChannelIDNotSet        = errors.New("channel-id not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
 
 type Config struct {
 	BotEmail  string `yaml:"bot-email"`   // Email of the bot user
@@ -30,86 +29,81 @@ type Config struct {
 	ChannelID string `yaml:"channel-id"`  // ID of the channel to send the message to
 }
 
+func (cfg *Config) Validate() error {
+	if len(cfg.BotEmail) == 0 {
+		return ErrBotEmailNotSet
+	}
+	if len(cfg.BotAPIKey) == 0 {
+		return ErrBotAPIKeyNotSet
+	}
+	if len(cfg.Domain) == 0 {
+		return ErrDomainNotSet
+	}
+	if len(cfg.ChannelID) == 0 {
+		return ErrChannelIDNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.BotEmail) > 0 {
+		cfg.BotEmail = override.BotEmail
+	}
+	if len(override.BotAPIKey) > 0 {
+		cfg.BotAPIKey = override.BotAPIKey
+	}
+	if len(override.Domain) > 0 {
+		cfg.Domain = override.Domain
+	}
+	if len(override.ChannelID) > 0 {
+		cfg.ChannelID = override.ChannelID
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Zulip
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-func (provider *AlertProvider) validateConfig(conf *Config) bool {
-	return len(conf.BotEmail) > 0 && len(conf.BotAPIKey) > 0 && len(conf.Domain) > 0 && len(conf.ChannelID) > 0
-}
-
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			isAlreadyRegistered := registeredGroups[override.Group]
-			if isAlreadyRegistered || override.Group == "" || !provider.validateConfig(&override.Config) {
-				return false
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	return provider.validateConfig(&provider.Config)
-}
-
-// getChannelIdForGroup returns the channel ID for the provided group
-func (provider *AlertProvider) getChannelIdForGroup(group string) string {
-	for _, override := range provider.Overrides {
-		if override.Group == group {
-			return override.ChannelID
-		}
-	}
-	return provider.ChannelID
-}
-
-// buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
-	var message string
-	if resolved {
-		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-	} else {
-		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
-	}
-
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		message += "\n> " + alertDescription + "\n"
-	}
-
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = ":check:"
-		} else {
-			prefix = ":cross_mark:"
-		}
-		message += fmt.Sprintf("\n%s - `%s`", prefix, conditionResult.Condition)
-	}
-
-	postData := map[string]string{
-		"type":    "channel",
-		"to":      provider.getChannelIdForGroup(ep.Group),
-		"topic":   "Gatus",
-		"content": message,
-	}
-	bodyParams := url.Values{}
-	for field, value := range postData {
-		bodyParams.Add(field, value)
-	}
-	return bodyParams.Encode()
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBufferString(provider.buildRequestBody(ep, alert, result, resolved))
-	zulipEndpoint := fmt.Sprintf("https://%s/api/v1/messages", provider.Domain)
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBufferString(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	zulipEndpoint := fmt.Sprintf("https://%s/api/v1/messages", cfg.Domain)
 	request, err := http.NewRequest(http.MethodPost, zulipEndpoint, buffer)
 	if err != nil {
 		return err
 	}
-	request.SetBasicAuth(provider.BotEmail, provider.BotAPIKey)
+	request.SetBasicAuth(cfg.BotEmail, cfg.BotAPIKey)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("User-Agent", "Gatus")
 	response, err := client.GetHTTPClient(nil).Do(request)
@@ -124,7 +118,62 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return nil
 }
 
+// buildRequestBody builds the request body for the provider
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
+	var message string
+	if resolved {
+		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+	} else {
+		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+	}
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		message += "\n> " + alertDescription + "\n"
+	}
+	for _, conditionResult := range result.ConditionResults {
+		var prefix string
+		if conditionResult.Success {
+			prefix = ":check:"
+		} else {
+			prefix = ":cross_mark:"
+		}
+		message += fmt.Sprintf("\n%s - `%s`", prefix, conditionResult.Condition)
+	}
+	return url.Values{
+		"type":    {"channel"},
+		"to":      {cfg.ChannelID},
+		"topic":   {"Gatus"},
+		"content": {message},
+	}.Encode()
+}
+
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

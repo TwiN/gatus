@@ -2,6 +2,7 @@ package custom
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,16 +11,12 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
-// Technically, all alert providers should be reachable using the custom alert provider
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-}
+var (
+	ErrURLNotSet = errors.New("url not set")
+)
 
 type Config struct {
 	URL          string                       `yaml:"url"`
@@ -32,61 +29,64 @@ type Config struct {
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.ClientConfig == nil {
-		provider.ClientConfig = client.GetDefaultConfig()
+func (cfg *Config) Validate() error {
+	if cfg.ClientConfig == nil {
+		cfg.ClientConfig = client.GetDefaultConfig()
 	}
-	return len(provider.URL) > 0 && provider.ClientConfig != nil
+	if len(cfg.URL) == 0 {
+		return ErrURLNotSet
+	}
+	return nil
 }
 
-// GetAlertStatePlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
-func (provider *AlertProvider) GetAlertStatePlaceholderValue(resolved bool) string {
-	status := "TRIGGERED"
-	if resolved {
-		status = "RESOLVED"
+func (cfg *Config) Merge(override *Config) {
+	if len(override.URL) > 0 {
+		cfg.URL = override.URL
 	}
-	if _, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"]; ok {
-		if val, ok := provider.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"][status]; ok {
-			return val
-		}
+	if len(override.Method) > 0 {
+		cfg.Method = override.Method
 	}
-	return status
+	if len(override.Body) > 0 {
+		cfg.Body = override.Body
+	}
+	if len(override.Headers) > 0 {
+		cfg.Headers = override.Headers
+	}
+	if len(override.Placeholders) > 0 {
+		cfg.Placeholders = override.Placeholders
+	}
 }
 
-func (provider *AlertProvider) buildHTTPRequest(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
-	body, url, method := provider.Body, provider.URL, provider.Method
-	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
-	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
-	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
-	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
-	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
-	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
-	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
-	if resolved {
-		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
-		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(true))
-	} else {
-		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
-		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(false))
-	}
-	if len(method) == 0 {
-		method = http.MethodGet
-	}
-	bodyBuffer := bytes.NewBuffer([]byte(body))
-	request, _ := http.NewRequest(method, url, bodyBuffer)
-	for k, v := range provider.Headers {
-		request.Header.Set(k, v)
-	}
-	return request
+// AlertProvider is the configuration necessary for sending an alert using a custom HTTP request
+// Technically, all alert providers should be reachable using the custom alert provider
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	request := provider.buildHTTPRequest(ep, alert, result, resolved)
-	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	request := provider.buildHTTPRequest(cfg, ep, alert, result, resolved)
+	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,78 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return err
 }
 
+func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
+	body, url, method := cfg.Body, cfg.URL, cfg.Method
+	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
+	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
+	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
+	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
+	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
+	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
+	if resolved {
+		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
+		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
+	} else {
+		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, false))
+		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, false))
+	}
+	if len(method) == 0 {
+		method = http.MethodGet
+	}
+	bodyBuffer := bytes.NewBuffer([]byte(body))
+	request, _ := http.NewRequest(method, url, bodyBuffer)
+	for k, v := range cfg.Headers {
+		request.Header.Set(k, v)
+	}
+	return request
+}
+
+// GetAlertStatePlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
+func (provider *AlertProvider) GetAlertStatePlaceholderValue(cfg *Config, resolved bool) string {
+	status := "TRIGGERED"
+	if resolved {
+		status = "RESOLVED"
+	}
+	if _, ok := cfg.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"]; ok {
+		if val, ok := cfg.Placeholders["ALERT_TRIGGERED_OR_RESOLVED"][status]; ok {
+			return val
+		}
+	}
+	return status
+}
+
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

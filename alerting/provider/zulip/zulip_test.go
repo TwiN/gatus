@@ -82,7 +82,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 	for _, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.alertProvider.IsValid() != tc.expected {
+			if tc.alertProvider.Validate() != tc.expected {
 				t.Errorf("IsValid assertion failed (expected %v, got %v)", tc.expected, !tc.expected)
 			}
 		})
@@ -211,7 +211,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	}
 	for _, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.alertProvider.IsValid() != tc.expected {
+			if tc.alertProvider.Validate() != tc.expected {
 				t.Errorf("IsValid assertion failed (expected %v, got %v)", tc.expected, !tc.expected)
 			}
 		})

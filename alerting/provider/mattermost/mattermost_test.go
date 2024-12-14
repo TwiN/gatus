@@ -13,11 +13,11 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{Config: Config{WebhookURL: ""}}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{Config: Config{WebhookURL: "http://example.com"}}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -32,7 +32,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 		},
 	}
 
-	if providerWithInvalidOverrideGroup.IsValid() {
+	if providerWithInvalidOverrideGroup.Validate() {
 		t.Error("provider Group shouldn't have been valid")
 	}
 
@@ -44,7 +44,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideWebHookUrl.IsValid() {
+	if providerWithInvalidOverrideWebHookUrl.Validate() {
 		t.Error("provider WebHookURL shouldn't have been valid")
 	}
 
@@ -57,7 +57,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.IsValid() {
+	if !providerWithValidOverride.Validate() {
 		t.Error("provider should've been valid")
 	}
 }

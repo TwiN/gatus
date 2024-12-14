@@ -13,7 +13,7 @@ import (
 
 func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -23,7 +23,7 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 			Recipients: "1",
 		},
 	}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }

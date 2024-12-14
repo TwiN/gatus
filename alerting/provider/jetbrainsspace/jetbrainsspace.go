@@ -3,6 +3,7 @@ package jetbrainsspace
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,11 +11,50 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
+
+var (
+	ErrProjectNotSet          = errors.New("project not set")
+	ErrChannelIDNotSet        = errors.New("channel-id not set")
+	ErrTokenNotSet            = errors.New("token not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
+
+type Config struct {
+	Project   string `yaml:"project"`    // Project name
+	ChannelID string `yaml:"channel-id"` // Chat Channel ID
+	Token     string `yaml:"token"`      // Bearer Token
+}
+
+func (cfg *Config) Validate() error {
+	if len(cfg.Project) == 0 {
+		return ErrProjectNotSet
+	}
+	if len(cfg.ChannelID) == 0 {
+		return ErrChannelIDNotSet
+	}
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.Project) > 0 {
+		cfg.Project = override.Project
+	}
+	if len(override.ChannelID) > 0 {
+		cfg.ChannelID = override.ChannelID
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+}
 
 // AlertProvider is the configuration necessary for sending an alert using JetBrains Space
 type AlertProvider struct {
-	Config `yaml:",inline"`
+	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -23,42 +63,40 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
-type Config struct {
-	Project   string `yaml:"project"`    // Project name
-	ChannelID string `yaml:"channel-id"` // Chat Channel ID
-	Token     string `yaml:"token"`      // Bearer Token
-}
-
 // Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.ChannelID) == 0 {
-				return false
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	return len(provider.Project) > 0 && len(provider.ChannelID) > 0 && len(provider.Token) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
-	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", provider.Project)
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", cfg.Project)
 	request, err := http.NewRequest(http.MethodPost, url, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+provider.Token)
+	request.Header.Set("Authorization", "Bearer "+cfg.Token)
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -107,9 +145,9 @@ type Icon struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	body := Body{
-		Channel: "id:" + provider.getChannelIDForGroup(ep.Group),
+		Channel: "id:" + cfg.ChannelID,
 		Content: Content{
 			ClassName: "ChatMessage.Block",
 			Sections: []Section{{
@@ -148,19 +186,34 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 	return bodyAsJSON
 }
 
-// getChannelIDForGroup returns the appropriate channel ID to for a given group override
-func (provider *AlertProvider) getChannelIDForGroup(group string) string {
-	if provider.Overrides != nil {
-		for _, override := range provider.Overrides {
-			if group == override.Group {
-				return override.ChannelID
-			}
-		}
-	}
-	return provider.ChannelID
-}
-
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

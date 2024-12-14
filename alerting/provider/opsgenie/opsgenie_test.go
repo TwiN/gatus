@@ -13,11 +13,11 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{Config: Config{APIKey: ""}}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{Config: Config{APIKey: "00000000-0000-0000-0000-000000000000"}}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }

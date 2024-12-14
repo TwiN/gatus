@@ -6,22 +6,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using GitLab
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-}
+var (
+	ErrWebhookURLNotSet       = fmt.Errorf("webhook-url not set")
+	ErrAuthorizationKeyNotSet = fmt.Errorf("authorization-key not set")
+)
 
 type Config struct {
 	WebhookURL       string `yaml:"webhook-url"`                // The webhook url provided by GitLab
@@ -32,32 +29,73 @@ type Config struct {
 	Service          string `yaml:"service,omitempty"`          // Service affected. Defaults to the endpoint's display name
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if len(provider.AuthorizationKey) == 0 || len(provider.WebhookURL) == 0 {
-		return false
+func (cfg *Config) Validate() error {
+	if len(cfg.WebhookURL) == 0 {
+		return ErrWebhookURLNotSet
 	}
-	// Validate format of the repository URL
-	_, err := url.Parse(provider.WebhookURL)
-	if err != nil {
-		return false
+	if len(cfg.AuthorizationKey) == 0 {
+		return ErrAuthorizationKeyNotSet
 	}
-	return true
+	if len(cfg.Severity) == 0 {
+		cfg.Severity = "critical"
+	}
+	if len(cfg.MonitoringTool) == 0 {
+		cfg.MonitoringTool = "gatus"
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.WebhookURL) > 0 {
+		cfg.WebhookURL = override.WebhookURL
+	}
+	if len(override.AuthorizationKey) > 0 {
+		cfg.AuthorizationKey = override.AuthorizationKey
+	}
+	if len(override.Severity) > 0 {
+		cfg.Severity = override.Severity
+	}
+	if len(override.MonitoringTool) > 0 {
+		cfg.MonitoringTool = override.MonitoringTool
+	}
+	if len(override.EnvironmentName) > 0 {
+		cfg.EnvironmentName = override.EnvironmentName
+	}
+	if len(override.Service) > 0 {
+		cfg.Service = override.Service
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using GitLab
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(alert)
+	if err != nil {
+		return err
+	}
 	if len(alert.ResolveKey) == 0 {
 		alert.ResolveKey = uuid.NewString()
 	}
-	buffer := bytes.NewBuffer(provider.buildAlertBody(ep, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.WebhookURL, buffer)
+	buffer := bytes.NewBuffer(provider.buildAlertBody(cfg, ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", provider.AuthorizationKey))
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthorizationKey))
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -83,30 +121,20 @@ type AlertBody struct {
 	GitlabEnvironmentName string `json:"gitlab_environment_name,omitempty"` // The name of the associated GitLab environment. Required to display alerts on a dashboard.
 }
 
-func (provider *AlertProvider) monitoringTool() string {
-	if len(provider.MonitoringTool) > 0 {
-		return provider.MonitoringTool
-	}
-	return "gatus"
-}
-
-func (provider *AlertProvider) service(ep *endpoint.Endpoint) string {
-	if len(provider.Service) > 0 {
-		return provider.Service
-	}
-	return ep.DisplayName()
-}
-
 // buildAlertBody builds the body of the alert
-func (provider *AlertProvider) buildAlertBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildAlertBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	service := cfg.Service
+	if len(service) == 0 {
+		service = ep.DisplayName()
+	}
 	body := AlertBody{
-		Title:                 fmt.Sprintf("alert(%s): %s", provider.monitoringTool(), provider.service(ep)),
+		Title:                 fmt.Sprintf("alert(%s): %s", cfg.MonitoringTool, service),
 		StartTime:             result.Timestamp.Format(time.RFC3339),
-		Service:               provider.service(ep),
-		MonitoringTool:        provider.monitoringTool(),
+		Service:               service,
+		MonitoringTool:        cfg.MonitoringTool,
 		Hosts:                 ep.URL,
-		GitlabEnvironmentName: provider.EnvironmentName,
-		Severity:              provider.Severity,
+		GitlabEnvironmentName: cfg.EnvironmentName,
+		Severity:              cfg.Severity,
 		Fingerprint:           alert.ResolveKey,
 	}
 	if resolved {
@@ -143,4 +171,22 @@ func (provider *AlertProvider) buildAlertBody(ep *endpoint.Endpoint, alert *aler
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

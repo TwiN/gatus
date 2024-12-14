@@ -272,7 +272,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeDiscord,
 			AlertingConfig: &alerting.Config{
 				Discord: &discord.AlertProvider{
-					Config: discord.Config{
+					DefaultConfig: discord.Config{
 						WebhookURL: "https://example.com",
 					},
 				},

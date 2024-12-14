@@ -9,7 +9,7 @@ import (
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -20,7 +20,7 @@ func TestTwilioAlertProvider_IsValid(t *testing.T) {
 			To:    "1",
 		},
 	}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }

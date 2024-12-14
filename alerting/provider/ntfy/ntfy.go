@@ -3,6 +3,7 @@ package ntfy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -20,16 +22,12 @@ const (
 	TokenPrefix     = "tk_"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Slack
-type AlertProvider struct {
-	Config `yaml:",inline"`
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides,omitempty"`
-}
+var (
+	ErrInvalidToken           = errors.New("invalid token")
+	ErrTopicNotSet            = errors.New("topic not set")
+	ErrInvalidPriority        = errors.New("priority must between 1 and 5 inclusively")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
 
 type Config struct {
 	Topic           string `yaml:"topic"`
@@ -42,63 +40,113 @@ type Config struct {
 	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
 }
 
+func (cfg *Config) Validate() error {
+	if len(cfg.URL) == 0 {
+		cfg.URL = DefaultURL
+	}
+	if cfg.Priority == 0 {
+		cfg.Priority = DefaultPriority
+	}
+	if len(cfg.Token) > 0 && !strings.HasPrefix(cfg.Token, TokenPrefix) {
+		return ErrInvalidToken
+	}
+	if len(cfg.Topic) == 0 {
+		return ErrTopicNotSet
+	}
+	if cfg.Priority < 1 || cfg.Priority > 5 {
+		return ErrInvalidPriority
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.Topic) > 0 {
+		cfg.Topic = override.Topic
+	}
+	if len(override.URL) > 0 {
+		cfg.URL = override.URL
+	}
+	if override.Priority > 0 {
+		cfg.Priority = override.Priority
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if len(override.Email) > 0 {
+		cfg.Email = override.Email
+	}
+	if len(override.Click) > 0 {
+		cfg.Click = override.Click
+	}
+	if override.DisableFirebase {
+		cfg.DisableFirebase = true
+	}
+	if override.DisableCache {
+		cfg.DisableCache = true
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Slack
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
 // Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if len(provider.URL) == 0 {
-		provider.URL = DefaultURL
-	}
-	if provider.Priority == 0 {
-		provider.Priority = DefaultPriority
-	}
-	isTokenValid := true
-	if len(provider.Token) > 0 {
-		isTokenValid = strings.HasPrefix(provider.Token, TokenPrefix)
-	}
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if len(override.Group) == 0 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			if _, ok := registeredGroups[override.Group]; ok {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			if len(override.Token) > 0 && !strings.HasPrefix(override.Token, TokenPrefix) {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			if override.Priority < 0 || override.Priority >= 6 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
 
-	return len(provider.URL) > 0 && len(provider.Topic) > 0 && provider.Priority > 0 && provider.Priority < 6 && isTokenValid
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	override := provider.getGroupOverride(ep.Group)
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved, override))
-	url := provider.getURL(override)
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	url := cfg.URL
 	request, err := http.NewRequest(http.MethodPost, url, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	if token := provider.getToken(override); len(token) > 0 {
+	if token := cfg.Token; len(token) > 0 {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
-	if provider.DisableFirebase {
+	if cfg.DisableFirebase {
 		request.Header.Set("Firebase", "no")
 	}
-	if provider.DisableCache {
+	if cfg.DisableCache {
 		request.Header.Set("Cache", "no")
 	}
 	response, err := client.GetHTTPClient(nil).Do(request)
@@ -124,7 +172,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool, override *Override) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, formattedConditionResults, tag string
 	if resolved {
 		tag = "white_check_mark"
@@ -147,13 +195,13 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 	}
 	message += formattedConditionResults
 	body, _ := json.Marshal(Body{
-		Topic:    provider.getTopic(override),
+		Topic:    cfg.Topic,
 		Title:    "Gatus: " + ep.DisplayName(),
 		Message:  message,
 		Tags:     []string{tag},
-		Priority: provider.getPriority(override),
-		Email:    provider.getEmail(override),
-		Click:    provider.getClick(override),
+		Priority: cfg.Priority,
+		Email:    cfg.Email,
+		Click:    cfg.Click,
 	})
 	return body
 }
@@ -163,55 +211,29 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
 }
 
-func (provider *AlertProvider) getGroupOverride(group string) *Override {
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if group == override.Group {
-				return &override
+				cfg.Merge(&override.Config)
+				break
 			}
 		}
 	}
-	return nil
-}
-
-func (provider *AlertProvider) getTopic(override *Override) string {
-	if override != nil && len(override.Topic) > 0 {
-		return override.Topic
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
 	}
-	return provider.Topic
-}
-
-func (provider *AlertProvider) getURL(override *Override) string {
-	if override != nil && len(override.URL) > 0 {
-		return override.URL
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
-	return provider.URL
-}
-
-func (provider *AlertProvider) getPriority(override *Override) int {
-	if override != nil && override.Priority > 0 {
-		return override.Priority
-	}
-	return provider.Priority
-}
-
-func (provider *AlertProvider) getToken(override *Override) string {
-	if override != nil && len(override.Token) > 0 {
-		return override.Token
-	}
-	return provider.Token
-}
-
-func (provider *AlertProvider) getEmail(override *Override) string {
-	if override != nil && len(override.Email) > 0 {
-		return override.Email
-	}
-	return provider.Email
-}
-
-func (provider *AlertProvider) getClick(override *Override) string {
-	if override != nil && len(override.Click) > 0 {
-		return override.Click
-	}
-	return provider.Click
+	return &cfg, nil
 }

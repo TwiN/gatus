@@ -3,6 +3,7 @@ package gotify
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,37 +11,72 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
 const DefaultPriority = 5
 
+var (
+	ErrServerURLNotSet = errors.New("server URL not set")
+	ErrTokenNotSet     = errors.New("token not set")
+)
+
+type Config struct {
+	ServerURL string `yaml:"server-url"`         // URL of the Gotify server
+	Token     string `yaml:"token"`              // Token to use when sending a message to the Gotify server
+	Priority  int    `yaml:"priority,omitempty"` // Priority of the message. Defaults to DefaultPriority.
+	Title     string `yaml:"title,omitempty"`    // Title of the message that will be sent
+}
+
+func (cfg *Config) Validate() error {
+	if cfg.Priority == 0 {
+		cfg.Priority = DefaultPriority
+	}
+	if len(cfg.ServerURL) == 0 {
+		return ErrServerURLNotSet
+	}
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.ServerURL) > 0 {
+		cfg.ServerURL = override.ServerURL
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if override.Priority != 0 {
+		cfg.Priority = override.Priority
+	}
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
+	}
+}
+
 // AlertProvider is the configuration necessary for sending an alert using Gotify
 type AlertProvider struct {
-	Config `yaml:",inline"`
+	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
-type Config struct {
-	ServerURL string `yaml:"server-url"`         // ServerURL is the URL of the Gotify server
-	Token     string `yaml:"token"`              // Token is the token to use when sending a message to the Gotify server
-	Priority  int    `yaml:"priority,omitempty"` // Priority is the priority of the message. Defaults to DefaultPriority.
-	Title     string `yaml:"title,omitempty"`    // Title of the message that will be sent
-}
-
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.Priority == 0 {
-		provider.Priority = DefaultPriority
-	}
-	return len(provider.ServerURL) > 0 && len(provider.Token) > 0
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.ServerURL+"/message?token="+provider.Token, buffer)
+	cfg, err := provider.GetConfig(alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, cfg.ServerURL+"/message?token="+cfg.Token, buffer)
 	if err != nil {
 		return err
 	}
@@ -64,7 +100,7 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
@@ -86,13 +122,13 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 	}
 	message += formattedConditionResults
 	title := "Gatus: " + ep.DisplayName()
-	if provider.Title != "" {
-		title = provider.Title
+	if cfg.Title != "" {
+		title = cfg.Title
 	}
 	bodyAsJSON, _ := json.Marshal(Body{
 		Message:  message,
 		Title:    title,
-		Priority: provider.Priority,
+		Priority: cfg.Priority,
 	})
 	return bodyAsJSON
 }
@@ -100,4 +136,22 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.Override) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

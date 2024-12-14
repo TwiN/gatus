@@ -36,13 +36,18 @@ type Alert struct {
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.
-	Description *string `yaml:"description"`
+	Description *string `yaml:"description,omitempty"`
 
 	// SendOnResolved defines whether to send a second notification when the issue has been resolved
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
-	SendOnResolved *bool `yaml:"send-on-resolved"`
+	SendOnResolved *bool `yaml:"send-on-resolved,omitempty"`
+
+	// Override is an optional field that can be used to override the provider's configuration
+	// It is freeform so that it can be used for any provider-specific configuration.
+	// Deepmerged with https://github.com/TwiN/deepmerge
+	Override []byte `yaml:"override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents

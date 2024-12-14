@@ -9,19 +9,19 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	invalidProviderWithOneKey := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}}
-	if invalidProviderWithOneKey.IsValid() {
+	if invalidProviderWithOneKey.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com"}}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 	validProviderWithKeys := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}}
-	if !validProviderWithKeys.IsValid() {
+	if !validProviderWithKeys.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -35,7 +35,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.IsValid() {
+	if providerWithInvalidOverrideGroup.Validate() {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -46,7 +46,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.IsValid() {
+	if providerWithInvalidOverrideTo.Validate() {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
@@ -61,7 +61,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.IsValid() {
+	if !providerWithValidOverride.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -126,12 +126,13 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getToForGroup(t *testing.T) {
-	tests := []struct {
+func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
+	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
@@ -142,7 +143,8 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup:     "",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{To: "to@example.com"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
@@ -153,7 +155,8 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{To: "to@example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
@@ -164,12 +167,13 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{To: "to01@example.com"},
+						Config: Config{To: "groupto@example.com"},
 					},
 				},
 			},
 			InputGroup:     "",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{To: "to@example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
@@ -180,18 +184,56 @@ func TestAlertProvider_getToForGroup(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{To: "to01@example.com"},
+						Config: Config{To: "groupto@example.com"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "to01@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{To: "groupto@example.com"},
+		},
+		{
+			Name: "provider-with-override-specify-group-but-alert-override-should-override-group-override",
+			Provider: AlertProvider{
+				Config: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{To: "groupto@example.com", SecretAccessKey: "sekrit"},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{
+				Override: []byte(`to: alertto@example.com
+access-key-id: 123`),
+			},
+			ExpectedOutput: Config{To: "alertto@example.com", From: "from@example.com", AccessKeyID: "123", SecretAccessKey: "sekrit"},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			if got := tt.Provider.getToForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getToForGroup() = %v, want %v", got, tt.ExpectedOutput)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfigWithOverrides(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.From != scenario.ExpectedOutput.From {
+				t.Errorf("expected From to be %s, got %s", scenario.ExpectedOutput.From, got.From)
+			}
+			if got.To != scenario.ExpectedOutput.To {
+				t.Errorf("expected To to be %s, got %s", scenario.ExpectedOutput.To, got.To)
+			}
+			if got.AccessKeyID != scenario.ExpectedOutput.AccessKeyID {
+				t.Errorf("expected AccessKeyID to be %s, got %s", scenario.ExpectedOutput.AccessKeyID, got.AccessKeyID)
+			}
+			if got.SecretAccessKey != scenario.ExpectedOutput.SecretAccessKey {
+				t.Errorf("expected SecretAccessKey to be %s, got %s", scenario.ExpectedOutput.SecretAccessKey, got.SecretAccessKey)
+			}
+			if got.Region != scenario.ExpectedOutput.Region {
+				t.Errorf("expected Region to be %s, got %s", scenario.ExpectedOutput.Region, got.Region)
 			}
 		})
 	}

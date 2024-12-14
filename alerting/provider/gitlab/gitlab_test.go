@@ -40,8 +40,8 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if scenario.Provider.IsValid() != scenario.Expected {
-				t.Errorf("expected %t, got %t", scenario.Expected, scenario.Provider.IsValid())
+			if scenario.Provider.Validate() != scenario.Expected {
+				t.Errorf("expected %t, got %t", scenario.Expected, scenario.Provider.Validate())
 			}
 		})
 	}

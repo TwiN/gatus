@@ -9,18 +9,18 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if invalidProvider.Validate() {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{Config: Config{From: "from@example.com", Password: "password", Host: "smtp.gmail.com", Port: 587, To: "to@example.com"}}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
 
 func TestAlertProvider_IsValidWithNoCredentials(t *testing.T) {
 	validProvider := AlertProvider{Config: Config{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}}
-	if !validProvider.IsValid() {
+	if !validProvider.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
@@ -34,7 +34,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.IsValid() {
+	if providerWithInvalidOverrideGroup.Validate() {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -45,7 +45,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.IsValid() {
+	if providerWithInvalidOverrideTo.Validate() {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
@@ -63,7 +63,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.IsValid() {
+	if !providerWithValidOverride.Validate() {
 		t.Error("provider should've been valid")
 	}
 }
