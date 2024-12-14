@@ -12,12 +12,12 @@ import (
 )
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{Config: Config{WebhookURL: ""}}
-	if invalidProvider.Validate() {
+	invalidProvider := AlertProvider{DefaultConfig: Config{WebhookURL: ""}}
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{Config: Config{WebhookURL: "https://example.com"}}
-	if !validProvider.Validate() {
+	validProvider := AlertProvider{DefaultConfig: Config{WebhookURL: "https://example.com"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -31,7 +31,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.Validate() {
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -42,7 +42,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.Validate() {
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
@@ -54,7 +54,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.Validate() {
+	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -255,7 +255,7 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{WebhookURL: "http://example.com"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
 						Group:  "group",
@@ -269,7 +269,7 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				Config: Config{WebhookURL: "http://example.com"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
 						Group:  "group",

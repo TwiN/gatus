@@ -6,6 +6,9 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/TwiN/logr"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -46,8 +49,7 @@ type Alert struct {
 
 	// Override is an optional field that can be used to override the provider's configuration
 	// It is freeform so that it can be used for any provider-specific configuration.
-	// Deepmerged with https://github.com/TwiN/deepmerge
-	Override []byte `yaml:"override,omitempty"`
+	Override map[string]any `yaml:"override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
@@ -115,4 +117,12 @@ func (alert *Alert) Checksum() string {
 		alert.GetDescription()),
 	)
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (alert *Alert) OverrideAsBytes() []byte {
+	yamlBytes, err := yaml.Marshal(alert.Override)
+	if err != nil {
+		logr.Warnf("[alert.OverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
+	}
+	return yamlBytes
 }

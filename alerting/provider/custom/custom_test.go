@@ -14,20 +14,20 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
-		invalidProvider := AlertProvider{Config: Config{URL: ""}}
-		if invalidProvider.Validate() {
+		invalidProvider := AlertProvider{DefaultConfig: Config{URL: ""}}
+		if err := invalidProvider.Validate(); err == nil {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
 	t.Run("valid-provider", func(t *testing.T) {
-		validProvider := AlertProvider{Config: Config{URL: "https://example.com"}}
-		if validProvider.ClientConfig != nil {
+		validProvider := AlertProvider{DefaultConfig: Config{URL: "https://example.com"}}
+		if validProvider.DefaultConfig.ClientConfig != nil {
 			t.Error("provider client config should have been nil prior to IsValid() being executed")
 		}
-		if !validProvider.Validate() {
+		if err := validProvider.Validate(); err != nil {
 			t.Error("provider should've been valid")
 		}
-		if validProvider.ClientConfig == nil {
+		if validProvider.DefaultConfig.ClientConfig == nil {
 			t.Error("provider client config should have been set after IsValid() was executed")
 		}
 	})
@@ -47,7 +47,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:     "triggered",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{URL: "https://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -57,7 +57,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{URL: "https://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -67,7 +67,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{URL: "https://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -77,7 +77,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{URL: "https://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -111,8 +111,8 @@ func TestAlertProvider_Send(t *testing.T) {
 }
 
 func TestAlertProvider_buildHTTPRequest(t *testing.T) {
-	customAlertProvider := &AlertProvider{
-		Config: Config{
+	alertProvider := &AlertProvider{
+		DefaultConfig: Config{
 			URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]",
 			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED]",
 		},
@@ -125,13 +125,13 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 		ExpectedBody  string
 	}{
 		{
-			AlertProvider: customAlertProvider,
+			AlertProvider: alertProvider,
 			Resolved:      true,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED",
 		},
 		{
-			AlertProvider: customAlertProvider,
+			AlertProvider: alertProvider,
 			Resolved:      false,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED",
@@ -139,7 +139,8 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := customAlertProvider.buildHTTPRequest(
+			request := alertProvider.buildHTTPRequest(
+				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: []string{}},
@@ -157,8 +158,8 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 }
 
 func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
-	customAlertWithErrorsProvider := &AlertProvider{
-		Config: Config{
+	alertProvider := &AlertProvider{
+		DefaultConfig: Config{
 			URL:  "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]&url=[ENDPOINT_URL]&error=[RESULT_ERRORS]",
 			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ENDPOINT_URL],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_ERRORS]",
 		},
@@ -172,13 +173,13 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 		Errors        []string
 	}{
 		{
-			AlertProvider: customAlertWithErrorsProvider,
+			AlertProvider: alertProvider,
 			Resolved:      true,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com&error=",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED,",
 		},
 		{
-			AlertProvider: customAlertWithErrorsProvider,
+			AlertProvider: alertProvider,
 			Resolved:      false,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=error1,error2",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error1,error2",
@@ -187,7 +188,8 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
-			request := customAlertWithErrorsProvider.buildHTTPRequest(
+			request := alertProvider.buildHTTPRequest(
+				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: scenario.Errors},
@@ -205,8 +207,8 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 }
 
 func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
-	customAlertProvider := &AlertProvider{
-		Config: Config{
+	alertProvider := &AlertProvider{
+		DefaultConfig: Config{
 			URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
 			Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 			Headers: nil,
@@ -226,13 +228,13 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 		ExpectedBody  string
 	}{
 		{
-			AlertProvider: customAlertProvider,
+			AlertProvider: alertProvider,
 			Resolved:      true,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=fixed&description=alert-description",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,fixed",
 		},
 		{
-			AlertProvider: customAlertProvider,
+			AlertProvider: alertProvider,
 			Resolved:      false,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=boom&description=alert-description",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,boom",
@@ -240,7 +242,8 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := customAlertProvider.buildHTTPRequest(
+			request := alertProvider.buildHTTPRequest(
+				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{},
@@ -258,17 +261,17 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 }
 
 func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
-	customAlertProvider := &AlertProvider{
-		Config: Config{
+	alertProvider := &AlertProvider{
+		DefaultConfig: Config{
 			URL:  "https://example.com/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
 			Body: "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED]",
 		},
 	}
-	if customAlertProvider.GetAlertStatePlaceholderValue(true) != "RESOLVED" {
-		t.Error("expected RESOLVED, got", customAlertProvider.GetAlertStatePlaceholderValue(true))
+	if alertProvider.GetAlertStatePlaceholderValue(&alertProvider.DefaultConfig, true) != "RESOLVED" {
+		t.Error("expected RESOLVED, got", alertProvider.GetAlertStatePlaceholderValue(&alertProvider.DefaultConfig, true))
 	}
-	if customAlertProvider.GetAlertStatePlaceholderValue(false) != "TRIGGERED" {
-		t.Error("expected TRIGGERED, got", customAlertProvider.GetAlertStatePlaceholderValue(false))
+	if alertProvider.GetAlertStatePlaceholderValue(&alertProvider.DefaultConfig, false) != "TRIGGERED" {
+		t.Error("expected TRIGGERED, got", alertProvider.GetAlertStatePlaceholderValue(&alertProvider.DefaultConfig, false))
 	}
 }
 

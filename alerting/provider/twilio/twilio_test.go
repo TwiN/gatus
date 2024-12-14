@@ -9,7 +9,7 @@ import (
 
 func TestTwilioAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.Validate() {
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -20,7 +20,7 @@ func TestTwilioAlertProvider_IsValid(t *testing.T) {
 			To:    "1",
 		},
 	}
-	if !validProvider.Validate() {
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -37,14 +37,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{Config: Config{SID: "1", Token: "2", From: "3", To: "4"}},
+			Provider:     AlertProvider{DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "Body=TRIGGERED%3A+endpoint-name+-+description-1&From=3&To=4",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{Config: Config{SID: "1", Token: "2", From: "3", To: "4"}},
+			Provider:     AlertProvider{DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "Body=RESOLVED%3A+endpoint-name+-+description-2&From=3&To=4",

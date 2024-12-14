@@ -9,19 +9,19 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.Validate() {
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	invalidProviderWithOneKey := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}}
-	if invalidProviderWithOneKey.Validate() {
+	invalidProviderWithOneKey := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}}
+	if err := invalidProviderWithOneKey.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com"}}
-	if !validProvider.Validate() {
+	validProvider := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithKeys := AlertProvider{Config: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}}
-	if !validProviderWithKeys.Validate() {
+	validProviderWithKeys := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}}
+	if err := validProviderWithKeys.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -35,7 +35,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.Validate() {
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -46,11 +46,11 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.Validate() {
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			From: "from@example.com",
 			To:   "to@example.com",
 		},
@@ -61,7 +61,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.Validate() {
+	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -137,86 +137,92 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
-					To: "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
 				},
 				Overrides: nil,
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{To: "to@example.com"},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
-					To: "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
 				},
 				Overrides: nil,
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{To: "to@example.com"},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
-					To: "to@example.com",
-				},
-				Overrides: []Override{
-					{
-						Group:  "group",
-						Config: Config{To: "groupto@example.com"},
-					},
-				},
-			},
-			InputGroup:     "",
-			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{To: "to@example.com"},
-		},
-		{
-			Name: "provider-with-override-specify-group-should-override",
-			Provider: AlertProvider{
-				Config: Config{
-					To: "to@example.com",
-				},
-				Overrides: []Override{
-					{
-						Group:  "group",
-						Config: Config{To: "groupto@example.com"},
-					},
-				},
-			},
-			InputGroup:     "group",
-			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{To: "groupto@example.com"},
-		},
-		{
-			Name: "provider-with-override-specify-group-but-alert-override-should-override-group-override",
-			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					From: "from@example.com",
 					To:   "to@example.com",
 				},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{To: "groupto@example.com", SecretAccessKey: "sekrit"},
+						Config: Config{To: "groupto@example.com"},
+					},
+				},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{To: "groupto@example.com", SecretAccessKey: "wow", AccessKeyID: "noway"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "groupto@example.com", SecretAccessKey: "wow", AccessKeyID: "noway"},
+		},
+		{
+			Name: "provider-with-override-specify-group-but-alert-override-should-override-group-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{From: "from@example.com", To: "groupto@example.com", SecretAccessKey: "sekrit"},
 					},
 				},
 			},
 			InputGroup: "group",
 			InputAlert: alert.Alert{
-				Override: []byte(`to: alertto@example.com
-access-key-id: 123`),
+				Override: map[string]any{
+					"to":            "alertto@example.com",
+					"access-key-id": 123,
+				},
 			},
 			ExpectedOutput: Config{To: "alertto@example.com", From: "from@example.com", AccessKeyID: "123", SecretAccessKey: "sekrit"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfigWithOverrides(scenario.InputGroup, &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}

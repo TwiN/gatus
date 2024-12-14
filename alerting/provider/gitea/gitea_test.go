@@ -14,40 +14,44 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	scenarios := []struct {
-		Name     string
-		Provider AlertProvider
-		Expected bool
+		Name          string
+		Provider      AlertProvider
+		ExpectedError bool
 	}{
 		{
-			Name:     "invalid",
-			Provider: AlertProvider{Config: Config{RepositoryURL: "", Token: ""}},
-			Expected: false,
+			Name:          "invalid",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "", Token: ""}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "invalid-token",
-			Provider: AlertProvider{Config: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
-			Expected: false,
+			Name:          "invalid-token",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "missing-repository-name",
-			Provider: AlertProvider{Config: Config{RepositoryURL: "https://gitea.com/TwiN", Token: "12345"}},
-			Expected: false,
+			Name:          "missing-repository-name",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN", Token: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "enterprise-client",
-			Provider: AlertProvider{Config: Config{RepositoryURL: "https://gitea.example.com/TwiN/test", Token: "12345"}},
-			Expected: false,
+			Name:          "enterprise-client",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://gitea.example.com/TwiN/test", Token: "12345"}},
+			ExpectedError: false,
 		},
 		{
-			Name:     "invalid-url",
-			Provider: AlertProvider{Config: Config{RepositoryURL: "gitea.com/TwiN/test", Token: "12345"}},
-			Expected: false,
+			Name:          "invalid-url",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "gitea.com/TwiN/test", Token: "12345"}},
+			ExpectedError: true,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if scenario.Provider.Validate() != scenario.Expected {
-				t.Errorf("expected %t, got %t", scenario.Expected, scenario.Provider.Validate())
+			err := scenario.Provider.Validate()
+			if scenario.ExpectedError && err == nil {
+				t.Error("expected error, got none")
+			}
+			if !scenario.ExpectedError && err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+				t.Error("expected no error, got", err.Error())
 			}
 		})
 	}
@@ -67,14 +71,14 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:          "triggered-error",
-			Provider:      AlertProvider{Config: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      false,
 			ExpectedError: true,
 		},
 		{
 			Name:          "resolved-error",
-			Provider:      AlertProvider{Config: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: true,
@@ -82,9 +86,13 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Provider.giteaClient, _ = gitea.NewClient("https://gitea.com")
+			cfg, err := scenario.Provider.GetConfig(&scenario.Alert)
+			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+				t.Error("expected no error, got", err.Error())
+			}
+			cfg.giteaClient, _ = gitea.NewClient("https://gitea.com")
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
-			err := scenario.Provider.Send(
+			err = scenario.Provider.Send(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
 				&endpoint.Result{

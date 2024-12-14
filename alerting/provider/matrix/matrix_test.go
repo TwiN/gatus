@@ -13,31 +13,31 @@ import (
 
 func TestAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			AccessToken:    "",
 			InternalRoomID: "",
 		},
 	}
-	if invalidProvider.Validate() {
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
 		},
 	}
-	if !validProvider.Validate() {
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 	validProviderWithHomeserver := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			ServerURL:      "https://example.com",
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
 		},
 	}
-	if !validProviderWithHomeserver.Validate() {
+	if err := validProviderWithHomeserver.Validate(); err != nil {
 		t.Error("provider with homeserver should've been valid")
 	}
 }
@@ -54,7 +54,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.Validate() {
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -68,11 +68,11 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.Validate() {
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			AccessToken:    "1",
 			InternalRoomID: "!a:example.com",
 		},
@@ -87,7 +87,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.Validate() {
+	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -105,8 +105,18 @@ func TestAlertProvider_Send(t *testing.T) {
 		ExpectedError    bool
 	}{
 		{
-			Name:     "triggered",
+			Name:     "triggered-with-bad-config",
 			Provider: AlertProvider{},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: true,
+		},
+		{
+			Name:     "triggered",
+			Provider: AlertProvider{DefaultConfig: Config{AccessToken: "1", InternalRoomID: "!a:example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -116,7 +126,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{AccessToken: "1", InternalRoomID: "!a:example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -126,7 +136,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{AccessToken: "1", InternalRoomID: "!a:example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -136,7 +146,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{AccessToken: "1", InternalRoomID: "!a:example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -227,7 +237,7 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getConfigForGroup(t *testing.T) {
+func TestAlertProvider_GetConfig(t *testing.T) {
 	tests := []struct {
 		Name           string
 		Provider       AlertProvider
@@ -237,7 +247,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -254,7 +264,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -271,7 +281,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -297,7 +307,7 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ServerURL:      "https://example.com",
 					AccessToken:    "1",
 					InternalRoomID: "!a:example.com",
@@ -323,8 +333,18 @@ func TestAlertProvider_getConfigForGroup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			if got := tt.Provider.getConfigForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getConfigForGroup() = %v, want %v", got, tt.ExpectedOutput)
+			outputConfig, err := tt.Provider.GetConfig(tt.InputGroup, &alert.Alert{})
+			if err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+			if outputConfig.ServerURL != tt.ExpectedOutput.ServerURL {
+				t.Errorf("expected ServerURL to be %s, got %s", tt.ExpectedOutput.ServerURL, outputConfig.ServerURL)
+			}
+			if outputConfig.AccessToken != tt.ExpectedOutput.AccessToken {
+				t.Errorf("expected AccessToken to be %s, got %s", tt.ExpectedOutput.AccessToken, outputConfig.AccessToken)
+			}
+			if outputConfig.InternalRoomID != tt.ExpectedOutput.InternalRoomID {
+				t.Errorf("expected InternalRoomID to be %s, got %s", tt.ExpectedOutput.InternalRoomID, outputConfig.InternalRoomID)
 			}
 		})
 	}

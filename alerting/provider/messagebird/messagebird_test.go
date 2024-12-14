@@ -13,7 +13,7 @@ import (
 
 func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.Validate() {
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
@@ -23,7 +23,7 @@ func TestMessagebirdAlertProvider_IsValid(t *testing.T) {
 			Recipients: "1",
 		},
 	}
-	if !validProvider.Validate() {
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -117,14 +117,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{Config: Config{AccessKey: "1", Originator: "2", Recipients: "3"}},
+			Provider:     AlertProvider{DefaultConfig: Config{AccessKey: "1", Originator: "2", Recipients: "3"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"originator\":\"2\",\"recipients\":\"3\",\"body\":\"TRIGGERED: endpoint-name - description-1\"}",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{Config: Config{AccessKey: "4", Originator: "5", Recipients: "6"}},
+			Provider:     AlertProvider{DefaultConfig: Config{AccessKey: "4", Originator: "5", Recipients: "6"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"originator\":\"5\",\"recipients\":\"6\",\"body\":\"RESOLVED: endpoint-name - description-2\"}",

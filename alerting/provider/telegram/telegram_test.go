@@ -13,17 +13,17 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
-		invalidProvider := AlertProvider{Config: Config{Token: "", ID: ""}}
-		if invalidProvider.Validate() {
+		invalidProvider := AlertProvider{DefaultConfig: Config{Token: "", ID: ""}}
+		if err := invalidProvider.Validate(); err == nil {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
 	t.Run("valid-provider", func(t *testing.T) {
-		validProvider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}}
+		validProvider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}}
 		if validProvider.ClientConfig != nil {
 			t.Error("provider client config should have been nil prior to IsValid() being executed")
 		}
-		if !validProvider.Validate() {
+		if err := validProvider.Validate(); err != nil {
 			t.Error("provider should've been valid")
 		}
 		if validProvider.ClientConfig == nil {
@@ -34,23 +34,23 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 
 func TestAlertProvider_IsValidWithOverrides(t *testing.T) {
 	t.Run("invalid-provider-override-nonexist-group", func(t *testing.T) {
-		invalidProvider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Config: Config{Token: "token", ID: "id"}}}}
-		if invalidProvider.Validate() {
+		invalidProvider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Config: Config{Token: "token", ID: "id"}}}}
+		if err := invalidProvider.Validate(); err == nil {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
 	t.Run("invalid-provider-override-duplicate-group", func(t *testing.T) {
-		invalidProvider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group1", Config: Config{Token: "token", ID: "id"}}, {Group: "group1", Config: Config{ID: "id2"}}}}
-		if invalidProvider.Validate() {
+		invalidProvider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group1", Config: Config{Token: "token", ID: "id"}}, {Group: "group1", Config: Config{ID: "id2"}}}}
+		if err := invalidProvider.Validate(); err == nil {
 			t.Error("provider shouldn't have been valid")
 		}
 	})
 	t.Run("valid-provider", func(t *testing.T) {
-		validProvider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "token", ID: "id"}}}}
+		validProvider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "token", ID: "id"}}}}
 		if validProvider.ClientConfig != nil {
 			t.Error("provider client config should have been nil prior to IsValid() being executed")
 		}
-		if !validProvider.Validate() {
+		if err := validProvider.Validate(); err != nil {
 			t.Error("provider should've been valid")
 		}
 		if validProvider.ClientConfig == nil {
@@ -61,7 +61,7 @@ func TestAlertProvider_IsValidWithOverrides(t *testing.T) {
 
 func TestAlertProvider_getTokenAndIDForGroup(t *testing.T) {
 	t.Run("get-token-with-override", func(t *testing.T) {
-		provider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "overrideToken", ID: "overrideID"}}}}
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "overrideToken", ID: "overrideID"}}}}
 		token := provider.getTokenForGroup("group")
 		if token != "overrideToken" {
 			t.Error("token should have been 'overrideToken'")
@@ -72,7 +72,7 @@ func TestAlertProvider_getTokenAndIDForGroup(t *testing.T) {
 		}
 	})
 	t.Run("get-default-token-with-overridden-id", func(t *testing.T) {
-		provider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{ID: "overrideID"}}}}
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{ID: "overrideID"}}}}
 		token := provider.getTokenForGroup("group")
 		if token != provider.Token {
 			t.Error("token should have been the default token")
@@ -83,7 +83,7 @@ func TestAlertProvider_getTokenAndIDForGroup(t *testing.T) {
 		}
 	})
 	t.Run("get-default-token-with-overridden-token", func(t *testing.T) {
-		provider := AlertProvider{Config: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "overrideToken"}}}}
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "overrideToken"}}}}
 		token := provider.getTokenForGroup("group")
 		if token != "overrideToken" {
 			t.Error("token should have been 'overrideToken'")
@@ -185,14 +185,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{Config: Config{ID: "123"}},
+			Provider:     AlertProvider{DefaultConfig: Config{ID: "123"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been triggered:\\n—\\n    _healthcheck failed 3 time(s) in a row_\\n—   \\n*Description* \\n_description-1_  \\n\\n*Condition results*\\n❌ - `[CONNECTED] == true`\\n❌ - `[STATUS] == 200`\\n\",\"parse_mode\":\"MARKDOWN\"}",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{Config: Config{ID: "123"}},
+			Provider:     AlertProvider{DefaultConfig: Config{ID: "123"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 5 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\\n*Condition results*\\n✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\\n\",\"parse_mode\":\"MARKDOWN\"}",
@@ -200,7 +200,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-no-conditions",
 			NoConditions: true,
-			Provider:     AlertProvider{Config: Config{ID: "123"}},
+			Provider:     AlertProvider{DefaultConfig: Config{ID: "123"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"chat_id\":\"123\",\"text\":\"⛑ *Gatus* \\nAn alert for *endpoint-name* has been resolved:\\n—\\n    _healthcheck passing successfully 5 time(s) in a row_\\n—   \\n*Description* \\n_description-2_  \\n\",\"parse_mode\":\"MARKDOWN\"}",

@@ -179,14 +179,12 @@ func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
 	// Handle alert overrides
 	if len(alert.Override) != 0 {
 		overrideConfig := Config{}
-		if err := yaml.Unmarshal(alert.Override, &overrideConfig); err != nil {
+		if err := yaml.Unmarshal(alert.OverrideAsBytes(), &overrideConfig); err != nil {
 			return nil, err
 		}
 		cfg.Merge(&overrideConfig)
 	}
-	// Validate the configuration
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
+	// Validate the configuration (we're returning the cfg here even if there's an error mostly for testing purposes)
+	err := cfg.Validate()
+	return &cfg, err
 }

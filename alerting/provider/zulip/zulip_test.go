@@ -26,7 +26,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		{
 			name: "Empty channel id",
 			alertProvider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					Domain:    "something",
@@ -37,7 +37,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		{
 			name: "Empty domain",
 			alertProvider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					ChannelID: "something",
@@ -48,7 +48,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		{
 			name: "Empty bot api key",
 			alertProvider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					Domain:    "something",
 					ChannelID: "something",
@@ -59,7 +59,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		{
 			name: "Empty bot email",
 			alertProvider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					BotAPIKey: "something",
 					Domain:    "something",
 					ChannelID: "something",
@@ -70,7 +70,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 		{
 			name: "Valid provider",
 			alertProvider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					Domain:    "something",

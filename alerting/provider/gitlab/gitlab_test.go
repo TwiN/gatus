@@ -19,22 +19,22 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}{
 		{
 			Name:     "invalid",
-			Provider: AlertProvider{Config: Config{WebhookURL: "", AuthorizationKey: ""}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: ""}},
 			Expected: false,
 		},
 		{
 			Name:     "missing-webhook-url",
-			Provider: AlertProvider{Config: Config{WebhookURL: "", AuthorizationKey: "12345"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: "12345"}},
 			Expected: false,
 		},
 		{
 			Name:     "missing-authorization-key",
-			Provider: AlertProvider{Config: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: ""}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: ""}},
 			Expected: false,
 		},
 		{
 			Name:     "invalid-url",
-			Provider: AlertProvider{Config: Config{WebhookURL: " http://foo.com", AuthorizationKey: "12345"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: " http://foo.com", AuthorizationKey: "12345"}},
 			Expected: false,
 		},
 	}
@@ -61,7 +61,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:          "triggered-error",
-			Provider:      AlertProvider{Config: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
 			Alert:         alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      false,
 			ExpectedError: false,
@@ -71,7 +71,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:          "resolved-error",
-			Provider:      AlertProvider{Config: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
 			Alert:         alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: false,

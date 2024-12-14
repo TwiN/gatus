@@ -12,12 +12,12 @@ import (
 )
 
 func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{Config: Config{APIKey: ""}}
-	if invalidProvider.Validate() {
+	invalidProvider := AlertProvider{DefaultConfig: Config{APIKey: ""}}
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{Config: Config{APIKey: "00000000-0000-0000-0000-000000000000"}}
-	if !validProvider.Validate() {
+	validProvider := AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }

@@ -12,12 +12,12 @@ import (
 )
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{Config: Config{Project: ""}}
-	if invalidProvider.Validate() {
+	invalidProvider := AlertProvider{DefaultConfig: Config{Project: ""}}
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{Config: Config{Project: "foo", ChannelID: "bar", Token: "baz"}}
-	if !validProvider.Validate() {
+	validProvider := AlertProvider{DefaultConfig: Config{Project: "foo", ChannelID: "bar", Token: "baz"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -32,7 +32,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.Validate() {
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
@@ -44,7 +44,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.Validate() {
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
@@ -60,7 +60,7 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if !providerWithValidOverride.Validate() {
+	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -229,7 +229,7 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ChannelID: "bar",
 				},
 			},
@@ -239,7 +239,7 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ChannelID: "bar",
 				},
 			},
@@ -249,7 +249,7 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ChannelID: "bar",
 				},
 				Overrides: []Override{
@@ -265,7 +265,7 @@ func TestAlertProvider_getChannelIDForGroup(t *testing.T) {
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				Config: Config{
+				DefaultConfig: Config{
 					ChannelID: "bar",
 				},
 				Overrides: []Override{
