@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -16,7 +17,7 @@ import (
 )
 
 var (
-	ErrWebhookURLNotSet       = fmt.Errorf("webhook-url not set")
+	ErrInvalidWebhookURL      = fmt.Errorf("invalid webhook-url")
 	ErrAuthorizationKeyNotSet = fmt.Errorf("authorization-key not set")
 )
 
@@ -31,7 +32,9 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	if len(cfg.WebhookURL) == 0 {
-		return ErrWebhookURLNotSet
+		return ErrInvalidWebhookURL
+	} else if _, err := url.Parse(cfg.WebhookURL); err != nil {
+		return ErrInvalidWebhookURL
 	}
 	if len(cfg.AuthorizationKey) == 0 {
 		return ErrAuthorizationKeyNotSet
@@ -41,6 +44,7 @@ func (cfg *Config) Validate() error {
 	}
 	if len(cfg.MonitoringTool) == 0 {
 		cfg.MonitoringTool = "gatus"
+		fmt.Println("monitoring tool is", cfg.MonitoringTool)
 	}
 	return nil
 }

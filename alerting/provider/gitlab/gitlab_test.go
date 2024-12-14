@@ -13,35 +13,39 @@ import (
 
 func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	scenarios := []struct {
-		Name     string
-		Provider AlertProvider
-		Expected bool
+		Name          string
+		Provider      AlertProvider
+		ExpectedError bool
 	}{
 		{
-			Name:     "invalid",
-			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: ""}},
-			Expected: false,
+			Name:          "invalid",
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: ""}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "missing-webhook-url",
-			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: "12345"}},
-			Expected: false,
+			Name:          "missing-webhook-url",
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: "", AuthorizationKey: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "missing-authorization-key",
-			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: ""}},
-			Expected: false,
+			Name:          "missing-authorization-key",
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/whatever/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: ""}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "invalid-url",
-			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: " http://foo.com", AuthorizationKey: "12345"}},
-			Expected: false,
+			Name:          "invalid-url",
+			Provider:      AlertProvider{DefaultConfig: Config{WebhookURL: " http://foo.com", AuthorizationKey: "12345"}},
+			ExpectedError: true,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if scenario.Provider.Validate() != scenario.Expected {
-				t.Errorf("expected %t, got %t", scenario.Expected, scenario.Provider.Validate())
+			err := scenario.Provider.Validate()
+			if scenario.ExpectedError && err == nil {
+				t.Error("expected error, got none")
+			}
+			if !scenario.ExpectedError && err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+				t.Error("expected no error, got", err.Error())
 			}
 		})
 	}
@@ -116,21 +120,26 @@ func TestAlertProvider_buildAlertBody(t *testing.T) {
 		{
 			Name:         "triggered",
 			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
 			Alert:        alert.Alert{Description: &firstDescription, FailureThreshold: 3},
-			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
+			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\",\"severity\":\"critical\"}",
 		},
 		{
 			Name:         "no-description",
 			Endpoint:     endpoint.Endpoint{Name: "endpoint-name", URL: "https://example.org"},
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "https://gitlab.com/hlidotbe/text/alerts/notify/gatus/xxxxxxxxxxxxxxxx.json", AuthorizationKey: "12345"}},
 			Alert:        alert.Alert{FailureThreshold: 10},
-			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 10 time(s) in a row\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\"}",
+			ExpectedBody: "{\"title\":\"alert(gatus): endpoint-name\",\"description\":\"An alert for *endpoint-name* has been triggered due to having failed 10 time(s) in a row\\n\\n## Condition results\\n- :white_check_mark: - `[CONNECTED] == true`\\n- :x: - `[STATUS] == 200`\\n\",\"start_time\":\"0001-01-01T00:00:00Z\",\"service\":\"endpoint-name\",\"monitoring_tool\":\"gatus\",\"hosts\":\"https://example.org\",\"severity\":\"critical\"}",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			cfg, err := scenario.Provider.GetConfig(&scenario.Alert)
+			if err != nil {
+				t.Error("expected no error, got", err.Error())
+			}
 			body := scenario.Provider.buildAlertBody(
+				cfg,
 				&scenario.Endpoint,
 				&scenario.Alert,
 				&endpoint.Result{
