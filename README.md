@@ -1683,7 +1683,7 @@ security:
     password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 ```
 
-> ⚠ Make sure to carefully select to cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
+> ⚠ Make sure to carefully select the cost of the bcrypt hash. The higher the cost, the longer it takes to compute the hash,
 > and basic auth verifies the password against the hash on every request. As of 2023-01-06, I suggest a cost of 9.
 
 
