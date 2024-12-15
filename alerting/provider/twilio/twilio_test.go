@@ -13,7 +13,7 @@ func TestTwilioAlertProvider_IsValid(t *testing.T) {
 		t.Error("provider shouldn't have been valid")
 	}
 	validProvider := AlertProvider{
-		Config: Config{
+		DefaultConfig: Config{
 			SID:   "1",
 			Token: "1",
 			From:  "1",
@@ -53,6 +53,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
+				&scenario.Provider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&endpoint.Result{

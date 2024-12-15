@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-github/v48/github"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	scenarios := []struct {
 		Name          string
 		Provider      AlertProvider

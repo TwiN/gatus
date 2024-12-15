@@ -36,9 +36,6 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.ClientConfig == nil {
-		cfg.ClientConfig = client.GetDefaultConfig()
-	}
 	if len(cfg.RepositoryURL) == 0 {
 		return ErrRepositoryURLNotSet
 	}
@@ -82,7 +79,18 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
-
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
+	if len(override.RepositoryURL) > 0 {
+		cfg.RepositoryURL = override.RepositoryURL
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if len(override.Assignees) > 0 {
+		cfg.Assignees = override.Assignees
+	}
 }
 
 // AlertProvider is the configuration necessary for sending an alert using Discord

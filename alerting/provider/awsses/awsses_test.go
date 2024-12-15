@@ -7,7 +7,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
@@ -26,7 +26,7 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{

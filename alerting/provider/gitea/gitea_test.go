@@ -12,7 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	scenarios := []struct {
 		Name          string
 		Provider      AlertProvider

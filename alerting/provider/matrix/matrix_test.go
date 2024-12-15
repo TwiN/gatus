@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{
 		DefaultConfig: Config{
 			AccessToken:    "",
@@ -42,7 +42,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{

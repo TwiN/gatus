@@ -30,9 +30,6 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.ClientConfig == nil {
-		cfg.ClientConfig = client.GetDefaultConfig()
-	}
 	if len(cfg.URL) == 0 {
 		return ErrURLNotSet
 	}
@@ -40,6 +37,9 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
 	if len(override.URL) > 0 {
 		cfg.URL = override.URL
 	}

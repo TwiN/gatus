@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{DefaultConfig: Config{IntegrationKey: ""}}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
@@ -22,11 +22,12 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
+		DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
 		Overrides: []Override{
 			{
-				Config: Config{IntegrationKey: "00000000000000000000000000000000"},
+				Config: Config{IntegrationKey: "00000000000000000000000000000002"},
 				Group:  "",
 			},
 		},
@@ -34,27 +35,17 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
-	providerWithInvalidOverrideIntegrationKey := AlertProvider{
-		Overrides: []Override{
-			{
-				Config: Config{IntegrationKey: ""},
-				Group:  "group",
-			},
-		},
-	}
-	if providerWithInvalidOverrideIntegrationKey.Validate() {
-		t.Error("provider integration key shouldn't have been valid")
-	}
 	providerWithValidOverride := AlertProvider{
+		DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
 		Overrides: []Override{
 			{
-				Config: Config{IntegrationKey: "00000000000000000000000000000000"},
+				Config: Config{IntegrationKey: "00000000000000000000000000000002"},
 				Group:  "group",
 			},
 		},
 	}
 	if err := providerWithValidOverride.Validate(); err != nil {
-		t.Error("provider should've been valid")
+		t.Error("provider should've been valid, got error:", err.Error())
 	}
 }
 
@@ -72,7 +63,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:     "triggered",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -82,7 +73,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -92,7 +83,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -102,7 +93,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000000"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -161,7 +152,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			body := scenario.Provider.buildRequestBody(&endpoint.Endpoint{Name: "endpoint-name"}, &scenario.Alert, &endpoint.Result{}, scenario.Resolved)
+			body := scenario.Provider.buildRequestBody(&scenario.Provider.DefaultConfig, &endpoint.Endpoint{Name: "endpoint-name"}, &scenario.Alert, &endpoint.Result{}, scenario.Resolved)
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
 			}
@@ -173,30 +164,42 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
+		t.Error("expected default alert to be not nil")
+	}
+	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
+		t.Error("expected default alert to be nil")
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config:    Config{IntegrationKey: "00000000000000000000000000000001"},
-				Overrides: nil,
+				DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
+				Overrides:     nil,
 			},
 			InputGroup:     "",
-			ExpectedOutput: "00000000000000000000000000000001",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				Config:    Config{IntegrationKey: "00000000000000000000000000000001"},
-				Overrides: nil,
+				DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
+				Overrides:     nil,
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "00000000000000000000000000000001",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
@@ -210,7 +213,8 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 				},
 			},
 			InputGroup:     "",
-			ExpectedOutput: "00000000000000000000000000000001",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
@@ -224,23 +228,34 @@ func TestAlertProvider_getIntegrationKeyForGroup(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "00000000000000000000000000000002",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000002"},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{IntegrationKey: "00000000000000000000000000000002"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"integration-key": "00000000000000000000000000000003"}},
+			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000003"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if output := scenario.Provider.getIntegrationKeyForGroup(scenario.InputGroup); output != scenario.ExpectedOutput {
-				t.Errorf("expected %s, got %s", scenario.ExpectedOutput, output)
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.IntegrationKey != scenario.ExpectedOutput.IntegrationKey {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.IntegrationKey, got.IntegrationKey)
 			}
 		})
-	}
-}
-
-func TestAlertProvider_GetDefaultAlert(t *testing.T) {
-	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
-		t.Error("expected default alert to be not nil")
-	}
-	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
-		t.Error("expected default alert to be nil")
 	}
 }

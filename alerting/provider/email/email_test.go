@@ -7,7 +7,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
@@ -18,14 +18,14 @@ func TestAlertDefaultProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithNoCredentials(t *testing.T) {
+func TestAlertProvider_ValidateWithNoCredentials(t *testing.T) {
 	validProvider := AlertProvider{DefaultConfig: Config{From: "from@example.com", Host: "smtp-relay.gmail.com", Port: 587, To: "to@example.com"}}
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{

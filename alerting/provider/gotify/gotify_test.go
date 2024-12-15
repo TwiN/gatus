@@ -9,7 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	scenarios := []struct {
 		name     string
 		provider AlertProvider
@@ -38,8 +38,8 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			if scenario.provider.Validate() != scenario.expected {
-				t.Errorf("expected %t, got %t", scenario.expected, scenario.provider.Validate())
+			if err := scenario.provider.Validate(); (err == nil) != scenario.expected {
+				t.Errorf("expected: %t, got: %t", scenario.expected, err == nil)
 			}
 		})
 	}
@@ -83,6 +83,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
+				&scenario.Provider.DefaultConfig,
 				&endpoint.Endpoint{Name: endpointName},
 				&scenario.Alert,
 				&endpoint.Result{

@@ -12,7 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	t.Run("invalid-provider", func(t *testing.T) {
 		invalidProvider := AlertProvider{DefaultConfig: Config{URL: ""}}
 		if err := invalidProvider.Validate(); err == nil {
@@ -21,14 +21,8 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	})
 	t.Run("valid-provider", func(t *testing.T) {
 		validProvider := AlertProvider{DefaultConfig: Config{URL: "https://example.com"}}
-		if validProvider.DefaultConfig.ClientConfig != nil {
-			t.Error("provider client config should have been nil prior to IsValid() being executed")
-		}
 		if err := validProvider.Validate(); err != nil {
 			t.Error("provider should've been valid")
-		}
-		if validProvider.DefaultConfig.ClientConfig == nil {
-			t.Error("provider client config should have been set after IsValid() was executed")
 		}
 	})
 }
@@ -281,5 +275,117 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com", Body: "default-body"},
+				Overrides:     nil,
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{URL: "http://example.com", Body: "default-body"},
+		},
+		{
+			Name: "provider-no-override-specify-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com"},
+				Overrides:     nil,
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{URL: "http://example.com"},
+		},
+		{
+			Name: "provider-with-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{URL: "http://group-example.com", Headers: map[string]string{"Cache": "true"}},
+					},
+				},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{URL: "http://example.com", Headers: map[string]string{"Cache": "true"}},
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com", Body: "default-body"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{URL: "http://group-example.com", Body: "group-body"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{URL: "http://group-example.com", Body: "group-body"},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{URL: "http://group-example.com"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"url": "http://alert-example.com", "body": "alert-body"}},
+			ExpectedOutput: Config{URL: "http://alert-example.com", Body: "alert-body"},
+		},
+		{
+			Name: "provider-with-partial-overrides",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "http://example.com"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{Method: "POST"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"body": "alert-body"}},
+			ExpectedOutput: Config{URL: "http://example.com", Body: "alert-body", Method: "POST"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.URL != scenario.ExpectedOutput.URL {
+				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.URL, got.URL)
+			}
+			if got.Body != scenario.ExpectedOutput.Body {
+				t.Errorf("expected body to be %s, got %s", scenario.ExpectedOutput.Body, got.Body)
+			}
+			if got.Headers != nil {
+				for key, value := range scenario.ExpectedOutput.Headers {
+					if got.Headers[key] != value {
+						t.Errorf("expected header %s to be %s, got %s", key, value, got.Headers[key])
+					}
+				}
+			}
+		})
 	}
 }

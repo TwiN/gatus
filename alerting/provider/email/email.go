@@ -28,6 +28,9 @@ type Config struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	To       string `yaml:"to"`
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -44,6 +47,9 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
 	if len(override.From) > 0 {
 		cfg.From = override.From
 	}
@@ -67,9 +73,6 @@ func (cfg *Config) Merge(override *Config) {
 // AlertProvider is the configuration necessary for sending an alert using SMTP
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
-
-	// ClientConfig is the configuration of the client used to communicate with the provider's target
-	ClientConfig *client.Config `yaml:"client,omitempty"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
@@ -95,7 +98,6 @@ func (provider *AlertProvider) Validate() error {
 			registeredGroups[override.Group] = true
 		}
 	}
-
 	return provider.DefaultConfig.Validate()
 }
 
@@ -131,7 +133,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		// Create an authenticated dialer
 		d = gomail.NewDialer(cfg.Host, cfg.Port, username, cfg.Password)
 	}
-	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
+	if cfg.ClientConfig != nil && cfg.ClientConfig.Insecure {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	return d.DialAndSend(m)

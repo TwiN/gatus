@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{DefaultConfig: Config{WebhookURL: ""}}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
@@ -22,7 +22,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
@@ -31,11 +31,9 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-
 	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
-
 	providerWithInvalidOverrideWebHookUrl := AlertProvider{
 		Overrides: []Override{
 			{
@@ -44,12 +42,11 @@ func TestAlertProvider_IsValidWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if providerWithInvalidOverrideWebHookUrl.Validate() {
+	if err := providerWithInvalidOverrideWebHookUrl.Validate(); err == nil {
 		t.Error("provider WebHookURL shouldn't have been valid")
 	}
-
 	providerWithValidOverride := AlertProvider{
-		Config: Config{WebhookURL: "http://example.com"},
+		DefaultConfig: Config{WebhookURL: "http://example.com"},
 		Overrides: []Override{
 			{
 				Config: Config{WebhookURL: "http://example.com"},
@@ -76,7 +73,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:     "triggered",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -86,7 +83,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -96,7 +93,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -106,7 +103,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -167,6 +164,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
+				&scenario.Provider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&endpoint.Result{
@@ -197,30 +195,33 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
-	tests := []struct {
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				Config:    Config{WebhookURL: "http://example.com"},
-				Overrides: nil,
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
+				Overrides:     nil,
 			},
 			InputGroup:     "",
-			ExpectedOutput: "http://example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				Config:    Config{WebhookURL: "http://example.com"},
-				Overrides: nil,
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
+				Overrides:     nil,
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "http://example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
@@ -234,7 +235,8 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 				},
 			},
 			InputGroup:     "",
-			ExpectedOutput: "http://example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
@@ -243,18 +245,38 @@ func TestAlertProvider_getWebhookURLForGroup(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{WebhookURL: "http://example01.com"},
+						Config: Config{WebhookURL: "http://group-example.com"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "http://example01.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://group-example.com"},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{WebhookURL: "http://group-example.com"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"webhook-url": "http://alert-example.com"}},
+			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			if got := tt.Provider.getWebhookURLForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getToForGroup() = %v, want %v", got, tt.ExpectedOutput)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.WebhookURL != scenario.ExpectedOutput.WebhookURL {
+				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
 			}
 		})
 	}

@@ -31,9 +31,6 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.ClientConfig == nil {
-		cfg.ClientConfig = client.GetDefaultConfig()
-	}
 	if len(cfg.ApiUrl) == 0 {
 		cfg.ApiUrl = defaultApiUrl
 	}
@@ -47,8 +44,8 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if cfg.ClientConfig == nil {
-		cfg.ClientConfig = client.GetDefaultConfig()
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
 	}
 	if len(override.Token) > 0 {
 		cfg.Token = override.Token

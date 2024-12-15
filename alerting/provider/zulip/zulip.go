@@ -172,8 +172,6 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 		cfg.Merge(&overrideConfig)
 	}
 	// Validate the configuration
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
+	err := cfg.Validate()
+	return &cfg, err
 }

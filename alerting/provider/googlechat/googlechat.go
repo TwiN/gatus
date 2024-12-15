@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrWebhookURLNotSet       = errors.New("webhook URL not set")
+	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
@@ -25,9 +25,6 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.ClientConfig == nil {
-		cfg.ClientConfig = client.GetDefaultConfig()
-	}
 	if len(cfg.WebhookURL) == 0 {
 		return ErrWebhookURLNotSet
 	}
@@ -35,6 +32,9 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
 	}

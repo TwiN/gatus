@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{DefaultConfig: Config{WebhookURL: ""}}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
@@ -22,7 +22,7 @@ func TestAlertProvider_IsValid(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
@@ -275,7 +275,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{WebhookURL: "http://example01.com"},
+						Config: Config{WebhookURL: "http://group-example.com"},
 					},
 				},
 			},
@@ -290,13 +290,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{WebhookURL: "http://example01.com"},
+						Config: Config{WebhookURL: "http://group-example.com"},
 					},
 				},
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{WebhookURL: "http://example01.com"},
+			ExpectedOutput: Config{WebhookURL: "http://group-example.com"},
 		},
 		{
 			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
