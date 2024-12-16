@@ -110,7 +110,7 @@ func (provider *AlertProvider) Validate() error {
 //
 // Relevant: https://docs.opsgenie.com/docs/alert-api
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(alert)
+	cfg, err := provider.GetConfig(ep.Group, alert)
 	if err != nil {
 		return err
 	}
@@ -234,10 +234,10 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle alert overrides
-	if len(alert.Override) != 0 {
+	if len(alert.ProviderOverride) != 0 {
 		overrideConfig := Config{}
 		if err := yaml.Unmarshal(alert.OverrideAsBytes(), &overrideConfig); err != nil {
 			return nil, err
@@ -249,6 +249,12 @@ func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }
 
 func buildKey(ep *endpoint.Endpoint) string {

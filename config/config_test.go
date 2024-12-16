@@ -1410,7 +1410,7 @@ endpoints:
      - type: slack
        enabled: false
        failure-threshold: 30
-       override:
+       provider-override:
          webhook-url: https://example.com
    conditions:
      - "[STATUS] == 200"
@@ -1556,7 +1556,7 @@ endpoints:
 	if err = config.Alerting.Custom.Validate(); err != nil {
 		t.Fatal("Custom alerting config should've been valid")
 	}
-	cfg, _ := config.Alerting.Custom.GetConfig("", &alert.Alert{Override: map[string]any{"client": map[string]any{"insecure": true}}})
+	cfg, _ := config.Alerting.Custom.GetConfig("", &alert.Alert{ProviderOverride: map[string]any{"client": map[string]any{"insecure": true}}})
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true) != "RESOLVED" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'RESOLVED', got", config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true))
 	}

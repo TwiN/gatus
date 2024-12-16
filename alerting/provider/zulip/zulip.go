@@ -164,7 +164,7 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 		}
 	}
 	// Handle alert overrides
-	if len(alert.Override) != 0 {
+	if len(alert.ProviderOverride) != 0 {
 		overrideConfig := Config{}
 		if err := yaml.Unmarshal(alert.OverrideAsBytes(), &overrideConfig); err != nil {
 			return nil, err
@@ -174,4 +174,10 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 	// Validate the configuration
 	err := cfg.Validate()
 	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

@@ -180,13 +180,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4"},
 			},
-			InputAlert:     alert.Alert{Override: map[string]any{"sid": "5", "token": "6", "from": "7", "to": "8"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"sid": "5", "token": "6", "from": "7", "to": "8"}},
 			ExpectedOutput: Config{SID: "5", Token: "6", From: "7", To: "8"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
 			if err != nil {
 				t.Error("expected no error, got:", err.Error())
 			}

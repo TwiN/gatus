@@ -290,7 +290,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"channel-id": "alert-channel"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "alert-channel"}},
 			ExpectedOutput: Config{ChannelID: "alert-channel", Project: "project", Token: "token"},
 		},
 	}

@@ -348,7 +348,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"url": "http://alert-example.com", "body": "alert-body"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "http://alert-example.com", "body": "alert-body"}},
 			ExpectedOutput: Config{URL: "http://alert-example.com", Body: "alert-body"},
 		},
 		{
@@ -363,7 +363,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"body": "alert-body"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"body": "alert-body"}},
 			ExpectedOutput: Config{URL: "http://example.com", Body: "alert-body", Method: "POST"},
 		},
 	}

@@ -47,9 +47,9 @@ type Alert struct {
 	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
 	SendOnResolved *bool `yaml:"send-on-resolved,omitempty"`
 
-	// Override is an optional field that can be used to override the provider's configuration
+	// ProviderOverride is an optional field that can be used to override the provider's configuration
 	// It is freeform so that it can be used for any provider-specific configuration.
-	Override map[string]any `yaml:"override,omitempty"`
+	ProviderOverride map[string]any `yaml:"provider-override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
@@ -120,7 +120,7 @@ func (alert *Alert) Checksum() string {
 }
 
 func (alert *Alert) OverrideAsBytes() []byte {
-	yamlBytes, err := yaml.Marshal(alert.Override)
+	yamlBytes, err := yaml.Marshal(alert.ProviderOverride)
 	if err != nil {
 		logr.Warnf("[alert.OverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
 	}

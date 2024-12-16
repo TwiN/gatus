@@ -127,7 +127,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			Name:     "triggered-with-webhook-override",
 			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
-			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3, Override: map[string]any{"webhook-url": "http://example01.com"}},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3, ProviderOverride: map[string]any{"webhook-url": "http://example01.com"}},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
 				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
@@ -310,7 +310,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"webhook-url": "http://alert-example.com"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
 			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},
 	}

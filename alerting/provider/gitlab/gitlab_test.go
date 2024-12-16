@@ -134,7 +134,7 @@ func TestAlertProvider_buildAlertBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig(&scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
 			if err != nil {
 				t.Error("expected no error, got", err.Error())
 			}
@@ -170,7 +170,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -179,7 +178,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
 			},
-			InputGroup:     "",
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345", Severity: DefaultSeverity, MonitoringTool: DefaultMonitoringTool},
 		},
@@ -188,14 +186,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
 			},
-			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "authorization-key": "54321", "severity": "info", "monitoring-tool": "not-gatus", "environment-name": "prod", "service": "example"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "authorization-key": "54321", "severity": "info", "monitoring-tool": "not-gatus", "environment-name": "prod", "service": "example"}},
 			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "54321", Severity: "info", MonitoringTool: "not-gatus", EnvironmentName: "prod", Service: "example"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
 			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
 				t.Fatalf("unexpected error: %s", err)
 			}

@@ -37,6 +37,9 @@ type AlertProvider interface {
 
 	// GetDefaultAlert returns the provider's default alert configuration
 	GetDefaultAlert() *alert.Alert
+
+	// ValidateOverrides validates the alert's provider override and, if present, the group override
+	ValidateOverrides(group string, alert *alert.Alert) error
 }
 
 type Config[T any] interface {
@@ -44,8 +47,8 @@ type Config[T any] interface {
 	Merge(override *T)
 }
 
-// ParseWithDefaultAlert parses an Endpoint alert by using the provider's default alert as a baseline
-func ParseWithDefaultAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
+// MergeProviderDefaultAlertIntoEndpointAlert parses an Endpoint alert by using the provider's default alert as a baseline
+func MergeProviderDefaultAlertIntoEndpointAlert(providerDefaultAlert, endpointAlert *alert.Alert) {
 	if providerDefaultAlert == nil || endpointAlert == nil {
 		return
 	}

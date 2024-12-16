@@ -220,7 +220,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"application-token": "TokenWithLengthOf30Characters2", "user-key": "TokenWithLengthOf30Characters3"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"application-token": "TokenWithLengthOf30Characters2", "user-key": "TokenWithLengthOf30Characters3"}},
 			ExpectedOutput: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters3"},
 		},
 	}

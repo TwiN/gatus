@@ -243,7 +243,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"integration-key": "00000000000000000000000000000003"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"integration-key": "00000000000000000000000000000003"}},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000003"},
 		},
 	}

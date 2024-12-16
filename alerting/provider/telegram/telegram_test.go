@@ -233,7 +233,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	})
 	t.Run("get-default-token-with-overridden-token-and-alert-token-override", func(t *testing.T) {
 		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{Override: map[string]any{"token": "alertToken"}})
+		cfg, err := provider.GetConfig("group", &alert.Alert{ProviderOverride: map[string]any{"token": "alertToken"}})
 		if err != nil {
 			t.Error("expected no error, got", err)
 		}

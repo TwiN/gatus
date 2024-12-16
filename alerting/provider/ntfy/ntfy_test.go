@@ -144,7 +144,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "alert-override",
 			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 5, Email: "test@example.com", Click: "example.com"}, Overrides: []Override{{Group: "g", Config: Config{Topic: "group-topic", Priority: 4, Email: "override@test.com", Click: "test.com"}}}},
-			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3, Override: map[string]any{"topic": "alert-topic"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3, ProviderOverride: map[string]any{"topic": "alert-topic"}},
 			Resolved:     false,
 			ExpectedBody: `{"topic":"alert-topic","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":4,"email":"override@test.com","click":"test.com"}`,
 		},
@@ -371,7 +371,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"url": "http://alert-example.com", "topic": "alert-topic", "priority": 3}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "http://alert-example.com", "topic": "alert-topic", "priority": 3}},
 			ExpectedOutput: Config{URL: "http://alert-example.com", Topic: "alert-topic", Priority: 3},
 		},
 		{
@@ -386,7 +386,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"priority": 3}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"priority": 3}},
 			ExpectedOutput: Config{URL: "https://ntfy.sh", Topic: "group-topic", Priority: 3},
 		},
 	}

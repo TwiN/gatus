@@ -323,7 +323,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -332,7 +331,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
 			},
-			InputGroup:     "",
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
 		},
@@ -341,14 +339,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
 			},
-			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"api-key": "00000000-0000-0000-0000-000000000001"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"api-key": "00000000-0000-0000-0000-000000000001"}},
 			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}

@@ -212,7 +212,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 			},
 			InputGroup: "group",
 			InputAlert: alert.Alert{
-				Override: map[string]any{
+				ProviderOverride: map[string]any{
 					"to":            "alertto@example.com",
 					"access-key-id": 123,
 				},

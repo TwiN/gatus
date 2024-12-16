@@ -265,7 +265,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"webhook-url": "http://alert-example.com"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
 			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},
 	}

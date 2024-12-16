@@ -86,7 +86,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig(&scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
 			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
 				t.Error("expected no error, got", err.Error())
 			}
@@ -180,7 +180,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -189,7 +188,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"},
 			},
-			InputGroup:     "",
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"},
 		},
@@ -198,14 +196,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"},
 			},
-			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://gitea.com/TwiN/alert-test", "token": "54321", "assignees": []string{"TwiN"}}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"repository-url": "https://gitea.com/TwiN/alert-test", "token": "54321", "assignees": []string{"TwiN"}}},
 			ExpectedOutput: Config{RepositoryURL: "https://gitea.com/TwiN/alert-test", Token: "54321", Assignees: []string{"TwiN"}},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
 			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
 				t.Fatalf("unexpected error: %s", err)
 			}

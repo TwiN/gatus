@@ -198,7 +198,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"to": "alert-to@example.com"}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"to": "alert-to@example.com"}},
 			ExpectedOutput: Config{From: "from@example.com", To: "alert-to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 		},
 	}

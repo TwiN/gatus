@@ -441,7 +441,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup: "group",
-			InputAlert: alert.Alert{Override: map[string]any{
+			InputAlert: alert.Alert{ProviderOverride: map[string]any{
 				"bot-email":   "alert-bot-email",
 				"bot-api-key": "alert-bot-api-key",
 				"domain":      "alert-domain",

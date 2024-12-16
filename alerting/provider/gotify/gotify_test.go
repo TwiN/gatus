@@ -116,7 +116,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -125,7 +124,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{ServerURL: "https://gotify.example.com", Token: "12345"},
 			},
-			InputGroup:     "",
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{ServerURL: "https://gotify.example.com", Token: "12345", Priority: DefaultPriority},
 		},
@@ -134,14 +132,13 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			Provider: AlertProvider{
 				DefaultConfig: Config{ServerURL: "https://gotify.example.com", Token: "12345"},
 			},
-			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"server-url": "https://gotify.group-example.com", "token": "54321", "title": "alert-title", "priority": 3}},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"server-url": "https://gotify.group-example.com", "token": "54321", "title": "alert-title", "priority": 3}},
 			ExpectedOutput: Config{ServerURL: "https://gotify.group-example.com", Token: "54321", Title: "alert-title", Priority: 3},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
 			if err != nil {
 				t.Error("expected no error, got:", err.Error())
 			}
