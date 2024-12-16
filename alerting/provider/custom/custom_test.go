@@ -386,6 +386,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					}
 				}
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

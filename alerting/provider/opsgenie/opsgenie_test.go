@@ -352,6 +352,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.APIKey != scenario.ExpectedOutput.APIKey {
 				t.Errorf("expected APIKey to be %s, got %s", scenario.ExpectedOutput.APIKey, got.APIKey)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

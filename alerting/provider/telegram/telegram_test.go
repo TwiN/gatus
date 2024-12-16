@@ -233,7 +233,8 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	})
 	t.Run("get-default-token-with-overridden-token-and-alert-token-override", func(t *testing.T) {
 		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{ProviderOverride: map[string]any{"token": "alertToken"}})
+		alert := &alert.Alert{ProviderOverride: map[string]any{"token": "alertToken"}}
+		cfg, err := provider.GetConfig("group", alert)
 		if err != nil {
 			t.Error("expected no error, got", err)
 		}
@@ -242,6 +243,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		}
 		if cfg.ID != provider.DefaultConfig.ID {
 			t.Error("id should have been the default id")
+		}
+		// Test ValidateOverrides as well, since it really just calls GetConfig
+		if err = provider.ValidateOverrides("group", alert); err != nil {
+			t.Errorf("unexpected error: %s", err)
 		}
 	})
 }

@@ -223,6 +223,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.Password != scenario.ExpectedOutput.Password {
 				t.Errorf("expected password to be %s, got %s", scenario.ExpectedOutput.Password, got.Password)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

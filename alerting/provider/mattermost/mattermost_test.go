@@ -278,6 +278,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.WebhookURL != scenario.ExpectedOutput.WebhookURL {
 				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

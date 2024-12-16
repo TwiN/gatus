@@ -473,6 +473,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.ChannelID != scenario.ExpectedOutput.ChannelID {
 				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.ChannelID, got.ChannelID)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

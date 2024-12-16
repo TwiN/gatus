@@ -405,6 +405,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.Priority != scenario.ExpectedOutput.Priority {
 				t.Errorf("expected priority %d, got %d", scenario.ExpectedOutput.Priority, got.Priority)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

@@ -241,6 +241,10 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 			if got.Region != scenario.ExpectedOutput.Region {
 				t.Errorf("expected Region to be %s, got %s", scenario.ExpectedOutput.Region, got.Region)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

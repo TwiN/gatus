@@ -214,6 +214,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.Service != scenario.ExpectedOutput.Service {
 				t.Errorf("expected Service %s, got %s", scenario.ExpectedOutput.Service, got.Service)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

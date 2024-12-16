@@ -238,10 +238,11 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 }
 
 func TestAlertProvider_GetConfig(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
+		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
 		{
@@ -255,6 +256,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup: "",
+			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
@@ -272,6 +274,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				Overrides: nil,
 			},
 			InputGroup: "group",
+			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
@@ -290,14 +293,15 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					{
 						Group: "group",
 						Config: Config{
-							ServerURL:      "https://example01.com",
+							ServerURL:      "https://group-example.com",
 							AccessToken:    "12",
-							InternalRoomID: "!a:example01.com",
+							InternalRoomID: "!a:group-example.com",
 						},
 					},
 				},
 			},
 			InputGroup: "",
+			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
 				AccessToken:    "1",
@@ -316,7 +320,34 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					{
 						Group: "group",
 						Config: Config{
-							ServerURL:      "https://example01.com",
+							ServerURL:      "https://group-example.com",
+							AccessToken:    "12",
+							InternalRoomID: "!a:group-example.com",
+						},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{},
+			ExpectedOutput: Config{
+				ServerURL:      "https://group-example.com",
+				AccessToken:    "12",
+				InternalRoomID: "!a:group-example.com",
+			},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					ServerURL:      "https://example.com",
+					AccessToken:    "1",
+					InternalRoomID: "!a:example.com",
+				},
+				Overrides: []Override{
+					{
+						Group: "group",
+						Config: Config{
+							ServerURL:      "https://group-example.com",
 							AccessToken:    "12",
 							InternalRoomID: "!a:example01.com",
 						},
@@ -324,27 +355,32 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup: "group",
+			InputAlert: alert.Alert{ProviderOverride: map[string]any{"server-url": "https://alert-example.com", "access-token": "123", "internal-room-id": "!a:alert-example.com"}},
 			ExpectedOutput: Config{
-				ServerURL:      "https://example01.com",
-				AccessToken:    "12",
-				InternalRoomID: "!a:example01.com",
+				ServerURL:      "https://alert-example.com",
+				AccessToken:    "123",
+				InternalRoomID: "!a:alert-example.com",
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			outputConfig, err := tt.Provider.GetConfig(tt.InputGroup, &alert.Alert{})
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			outputConfig, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
 			if err != nil {
 				t.Errorf("expected no error, got %v", err)
 			}
-			if outputConfig.ServerURL != tt.ExpectedOutput.ServerURL {
-				t.Errorf("expected ServerURL to be %s, got %s", tt.ExpectedOutput.ServerURL, outputConfig.ServerURL)
+			if outputConfig.ServerURL != scenario.ExpectedOutput.ServerURL {
+				t.Errorf("expected ServerURL to be %s, got %s", scenario.ExpectedOutput.ServerURL, outputConfig.ServerURL)
 			}
-			if outputConfig.AccessToken != tt.ExpectedOutput.AccessToken {
-				t.Errorf("expected AccessToken to be %s, got %s", tt.ExpectedOutput.AccessToken, outputConfig.AccessToken)
+			if outputConfig.AccessToken != scenario.ExpectedOutput.AccessToken {
+				t.Errorf("expected AccessToken to be %s, got %s", scenario.ExpectedOutput.AccessToken, outputConfig.AccessToken)
 			}
-			if outputConfig.InternalRoomID != tt.ExpectedOutput.InternalRoomID {
-				t.Errorf("expected InternalRoomID to be %s, got %s", tt.ExpectedOutput.InternalRoomID, outputConfig.InternalRoomID)
+			if outputConfig.InternalRoomID != scenario.ExpectedOutput.InternalRoomID {
+				t.Errorf("expected InternalRoomID to be %s, got %s", scenario.ExpectedOutput.InternalRoomID, outputConfig.InternalRoomID)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
 			}
 		})
 	}

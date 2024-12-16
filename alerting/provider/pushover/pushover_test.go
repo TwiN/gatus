@@ -236,6 +236,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.UserKey != scenario.ExpectedOutput.UserKey {
 				t.Errorf("expected user key to be %s, got %s", scenario.ExpectedOutput.UserKey, got.UserKey)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

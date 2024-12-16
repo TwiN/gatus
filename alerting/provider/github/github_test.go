@@ -212,6 +212,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if got.Token != scenario.ExpectedOutput.Token {
 				t.Errorf("expected token %s, got %s", scenario.ExpectedOutput.Token, got.Token)
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }

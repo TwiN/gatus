@@ -220,6 +220,10 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					t.Errorf("expected assignee %s, got %s", scenario.ExpectedOutput.Assignees[i], assignee)
 				}
 			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "user does not exist") {
+				t.Errorf("unexpected error: %s", err)
+			}
 		})
 	}
 }
