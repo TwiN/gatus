@@ -165,3 +165,46 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 		t.Error("expected default alert to be nil")
 	}
 }
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
+		},
+		{
+			Name: "provider-with-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "authorization-key": "54321"}},
+			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "54321"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.WebhookURL != scenario.ExpectedOutput.WebhookURL {
+				t.Errorf("expected repository URL %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
+			}
+			if got.AuthorizationKey != scenario.ExpectedOutput.AuthorizationKey {
+				t.Errorf("expected AuthorizationKey %s, got %s", scenario.ExpectedOutput.AuthorizationKey, got.AuthorizationKey)
+			}
+		})
+	}
+}
