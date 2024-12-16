@@ -119,10 +119,10 @@ func (alert *Alert) Checksum() string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func (alert *Alert) OverrideAsBytes() []byte {
+func (alert *Alert) ProviderOverrideAsBytes() []byte {
 	yamlBytes, err := yaml.Marshal(alert.ProviderOverride)
 	if err != nil {
-		logr.Warnf("[alert.OverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
+		logr.Warnf("[alert.ProviderOverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
 	}
 	return yamlBytes
 }

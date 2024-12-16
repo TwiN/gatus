@@ -211,7 +211,7 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 	// Handle alert overrides
 	if len(alert.ProviderOverride) != 0 {
 		overrideConfig := Config{}
-		if err := yaml.Unmarshal(alert.OverrideAsBytes(), &overrideConfig); err != nil {
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
 			return nil, err
 		}
 		cfg.Merge(&overrideConfig)
