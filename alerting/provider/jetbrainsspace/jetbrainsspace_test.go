@@ -290,8 +290,8 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "alert-channel"}},
-			ExpectedOutput: Config{ChannelID: "alert-channel", Project: "project", Token: "token"},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "alert-channel", "project": "alert-project", "token": "alert-token"}},
+			ExpectedOutput: Config{ChannelID: "alert-channel", Project: "alert-project", Token: "alert-token"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -302,6 +302,12 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.ChannelID != scenario.ExpectedOutput.ChannelID {
 				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.ChannelID, got.ChannelID)
+			}
+			if got.Project != scenario.ExpectedOutput.Project {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Project, got.Project)
+			}
+			if got.Token != scenario.ExpectedOutput.Token {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Token, got.Token)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
