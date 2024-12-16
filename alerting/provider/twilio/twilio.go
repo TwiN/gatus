@@ -75,7 +75,7 @@ func (provider *AlertProvider) Validate() error {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(ep.Group, alert)
+	cfg, err := provider.GetConfig(alert)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle alert overrides
 	if len(alert.Override) != 0 {

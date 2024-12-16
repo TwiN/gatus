@@ -163,3 +163,46 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 		t.Error("expected default alert to be nil")
 	}
 }
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{AccessKey: "1", Originator: "2", Recipients: "3"},
+			},
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{AccessKey: "1", Originator: "2", Recipients: "3"},
+		},
+		{
+			Name: "provider-with-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{AccessKey: "1", Originator: "2", Recipients: "3"},
+			},
+			InputAlert:     alert.Alert{Override: map[string]any{"access-key": "4", "originator": "5", "recipients": "6"}},
+			ExpectedOutput: Config{AccessKey: "4", Originator: "5", Recipients: "6"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			if err != nil {
+				t.Error("expected no error, got:", err.Error())
+			}
+			if got.AccessKey != scenario.ExpectedOutput.AccessKey {
+				t.Errorf("expected access key to be %s, got %s", scenario.ExpectedOutput.AccessKey, got.AccessKey)
+			}
+			if got.Originator != scenario.ExpectedOutput.Originator {
+				t.Errorf("expected originator to be %s, got %s", scenario.ExpectedOutput.Originator, got.Originator)
+			}
+			if got.Recipients != scenario.ExpectedOutput.Recipients {
+				t.Errorf("expected recipients to be %s, got %s", scenario.ExpectedOutput.Recipients, got.Recipients)
+			}
+		})
+	}
+}

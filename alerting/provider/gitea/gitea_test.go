@@ -199,8 +199,8 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{RepositoryURL: "https://gitea.com/TwiN/test", Token: "12345"},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://gitea.com/TwiN/alert-test", "token": "54321"}},
-			ExpectedOutput: Config{RepositoryURL: "https://gitea.com/TwiN/alert-test", Token: "54321"},
+			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://gitea.com/TwiN/alert-test", "token": "54321", "assignees": []string{"TwiN"}}},
+			ExpectedOutput: Config{RepositoryURL: "https://gitea.com/TwiN/alert-test", Token: "54321", Assignees: []string{"TwiN"}},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -214,6 +214,14 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.Token != scenario.ExpectedOutput.Token {
 				t.Errorf("expected token %s, got %s", scenario.ExpectedOutput.Token, got.Token)
+			}
+			if len(got.Assignees) != len(scenario.ExpectedOutput.Assignees) {
+				t.Errorf("expected %d assignees, got %d", len(scenario.ExpectedOutput.Assignees), len(got.Assignees))
+			}
+			for i, assignee := range got.Assignees {
+				if assignee != scenario.ExpectedOutput.Assignees[i] {
+					t.Errorf("expected assignee %s, got %s", scenario.ExpectedOutput.Assignees[i], assignee)
+				}
 			}
 		})
 	}

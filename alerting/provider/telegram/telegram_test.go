@@ -44,61 +44,6 @@ func TestAlertProvider_Validate(t *testing.T) {
 	})
 }
 
-func TestAlertProvider_GetConfig(t *testing.T) {
-	t.Run("get-token-with-override", func(t *testing.T) {
-		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken", ID: "overrideID"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{})
-		if err != nil {
-			t.Error("expected no error, got", err)
-		}
-		if cfg.Token != "groupToken" {
-			t.Error("token should have been 'groupToken'")
-		}
-		if cfg.ID != "overrideID" {
-			t.Error("id should have been 'overrideID'")
-		}
-	})
-	t.Run("get-default-token-with-overridden-id", func(t *testing.T) {
-		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{ID: "overrideID"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{})
-		if err != nil {
-			t.Error("expected no error, got", err)
-		}
-		if cfg.Token != provider.DefaultConfig.Token {
-			t.Error("token should have been the default token")
-		}
-		if cfg.ID != "overrideID" {
-			t.Error("id should have been 'overrideID'")
-		}
-	})
-	t.Run("get-default-token-with-overridden-token", func(t *testing.T) {
-		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{})
-		if err != nil {
-			t.Error("expected no error, got", err)
-		}
-		if cfg.Token != "groupToken" {
-			t.Error("token should have been 'groupToken'")
-		}
-		if cfg.ID != provider.DefaultConfig.ID {
-			t.Error("id should have been the default id")
-		}
-	})
-	t.Run("get-default-token-with-overridden-token-and-alert-token-override", func(t *testing.T) {
-		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
-		cfg, err := provider.GetConfig("group", &alert.Alert{Override: map[string]any{"token": "alertToken"}})
-		if err != nil {
-			t.Error("expected no error, got", err)
-		}
-		if cfg.Token != "alertToken" {
-			t.Error("token should have been 'alertToken'")
-		}
-		if cfg.ID != provider.DefaultConfig.ID {
-			t.Error("id should have been the default id")
-		}
-	})
-}
-
 func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	firstDescription := "description-1"
@@ -244,4 +189,59 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
 	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	t.Run("get-token-with-override", func(t *testing.T) {
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken", ID: "overrideID"}}}}
+		cfg, err := provider.GetConfig("group", &alert.Alert{})
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
+		if cfg.Token != "groupToken" {
+			t.Error("token should have been 'groupToken'")
+		}
+		if cfg.ID != "overrideID" {
+			t.Error("id should have been 'overrideID'")
+		}
+	})
+	t.Run("get-default-token-with-overridden-id", func(t *testing.T) {
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{ID: "overrideID"}}}}
+		cfg, err := provider.GetConfig("group", &alert.Alert{})
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
+		if cfg.Token != provider.DefaultConfig.Token {
+			t.Error("token should have been the default token")
+		}
+		if cfg.ID != "overrideID" {
+			t.Error("id should have been 'overrideID'")
+		}
+	})
+	t.Run("get-default-token-with-overridden-token", func(t *testing.T) {
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
+		cfg, err := provider.GetConfig("group", &alert.Alert{})
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
+		if cfg.Token != "groupToken" {
+			t.Error("token should have been 'groupToken'")
+		}
+		if cfg.ID != provider.DefaultConfig.ID {
+			t.Error("id should have been the default id")
+		}
+	})
+	t.Run("get-default-token-with-overridden-token-and-alert-token-override", func(t *testing.T) {
+		provider := AlertProvider{DefaultConfig: Config{Token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", ID: "12345678"}, Overrides: []*Override{{Group: "group", Config: Config{Token: "groupToken"}}}}
+		cfg, err := provider.GetConfig("group", &alert.Alert{Override: map[string]any{"token": "alertToken"}})
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
+		if cfg.Token != "alertToken" {
+			t.Error("token should have been 'alertToken'")
+		}
+		if cfg.ID != provider.DefaultConfig.ID {
+			t.Error("id should have been the default id")
+		}
+	})
 }

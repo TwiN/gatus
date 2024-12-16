@@ -115,7 +115,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	}
 	title := "alert(gatus): " + ep.DisplayName()
 	if !resolved {
-		_, _, err := cfg.giteaClient.CreateIssue(
+		_, _, err = cfg.giteaClient.CreateIssue(
 			cfg.repositoryOwner,
 			cfg.repositoryName,
 			gitea.CreateIssueOption{

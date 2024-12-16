@@ -181,7 +181,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
+			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345", Severity: DefaultSeverity, MonitoringTool: DefaultMonitoringTool},
 		},
 		{
 			Name: "provider-with-alert-override",
@@ -189,8 +189,8 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "12345"},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "authorization-key": "54321"}},
-			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "54321"},
+			InputAlert:     alert.Alert{Override: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "authorization-key": "54321", "severity": "info", "monitoring-tool": "not-gatus", "environment-name": "prod", "service": "example"}},
+			ExpectedOutput: Config{WebhookURL: "https://github.com/TwiN/test", AuthorizationKey: "54321", Severity: "info", MonitoringTool: "not-gatus", EnvironmentName: "prod", Service: "example"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -204,6 +204,18 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.AuthorizationKey != scenario.ExpectedOutput.AuthorizationKey {
 				t.Errorf("expected AuthorizationKey %s, got %s", scenario.ExpectedOutput.AuthorizationKey, got.AuthorizationKey)
+			}
+			if got.Severity != scenario.ExpectedOutput.Severity {
+				t.Errorf("expected Severity %s, got %s", scenario.ExpectedOutput.Severity, got.Severity)
+			}
+			if got.MonitoringTool != scenario.ExpectedOutput.MonitoringTool {
+				t.Errorf("expected MonitoringTool %s, got %s", scenario.ExpectedOutput.MonitoringTool, got.MonitoringTool)
+			}
+			if got.EnvironmentName != scenario.ExpectedOutput.EnvironmentName {
+				t.Errorf("expected EnvironmentName %s, got %s", scenario.ExpectedOutput.EnvironmentName, got.EnvironmentName)
+			}
+			if got.Service != scenario.ExpectedOutput.Service {
+				t.Errorf("expected Service %s, got %s", scenario.ExpectedOutput.Service, got.Service)
 			}
 		})
 	}

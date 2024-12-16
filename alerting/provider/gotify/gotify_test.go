@@ -104,3 +104,59 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestAlertProvider_GetDefaultAlert(t *testing.T) {
+	provider := AlertProvider{DefaultAlert: &alert.Alert{}}
+	if provider.GetDefaultAlert() != provider.DefaultAlert {
+		t.Error("expected default alert to be returned")
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ServerURL: "https://gotify.example.com", Token: "12345"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{ServerURL: "https://gotify.example.com", Token: "12345", Priority: DefaultPriority},
+		},
+		{
+			Name: "provider-with-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ServerURL: "https://gotify.example.com", Token: "12345"},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{Override: map[string]any{"server-url": "https://gotify.group-example.com", "token": "54321", "title": "alert-title", "priority": 3}},
+			ExpectedOutput: Config{ServerURL: "https://gotify.group-example.com", Token: "54321", Title: "alert-title", Priority: 3},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(&scenario.InputAlert)
+			if err != nil {
+				t.Error("expected no error, got:", err.Error())
+			}
+			if got.ServerURL != scenario.ExpectedOutput.ServerURL {
+				t.Errorf("expected server URL to be %s, got %s", scenario.ExpectedOutput.ServerURL, got.ServerURL)
+			}
+			if got.Token != scenario.ExpectedOutput.Token {
+				t.Errorf("expected token to be %s, got %s", scenario.ExpectedOutput.Token, got.Token)
+			}
+			if got.Title != scenario.ExpectedOutput.Title {
+				t.Errorf("expected title to be %s, got %s", scenario.ExpectedOutput.Title, got.Title)
+			}
+			if got.Priority != scenario.ExpectedOutput.Priority {
+				t.Errorf("expected priority to be %d, got %d", scenario.ExpectedOutput.Priority, got.Priority)
+			}
+		})
+	}
+}

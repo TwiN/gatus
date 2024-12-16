@@ -16,6 +16,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	DefaultSeverity       = "critical"
+	DefaultMonitoringTool = "gatus"
+)
+
 var (
 	ErrInvalidWebhookURL      = fmt.Errorf("invalid webhook-url")
 	ErrAuthorizationKeyNotSet = fmt.Errorf("authorization-key not set")
@@ -40,11 +45,10 @@ func (cfg *Config) Validate() error {
 		return ErrAuthorizationKeyNotSet
 	}
 	if len(cfg.Severity) == 0 {
-		cfg.Severity = "critical"
+		cfg.Severity = DefaultSeverity
 	}
 	if len(cfg.MonitoringTool) == 0 {
-		cfg.MonitoringTool = "gatus"
-		fmt.Println("monitoring tool is", cfg.MonitoringTool)
+		cfg.MonitoringTool = DefaultMonitoringTool
 	}
 	return nil
 }
