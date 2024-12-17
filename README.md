@@ -72,8 +72,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
-    - [Configuring custom alerts](#configuring-custom-alerts)
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
+    - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
@@ -548,31 +548,47 @@ endpoints:
         send-on-resolved: true
 ```
 
+You can also override global provider configuration by using `alerts[].provider-override`, like so:
+```yaml
+endpoints:
+  - name: example
+    url: "https://example.org"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: slack
+        provider-override:
+          webhook-url: "https://hooks.slack.com/services/**********/**********/**********"
+```
+
 > 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
 > ignored.
 
-| Parameter                 | Description                                                                                                                              | Default |
-|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:--------|
-| `alerting.custom`         | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).                | `{}`    |
-| `alerting.discord`        | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                         | `{}`    |
-| `alerting.email`          | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                               | `{}`    |
-| `alerting.github`         | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                            | `{}`    |
-| `alerting.gitlab`         | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                            | `{}`    |
-| `alerting.googlechat`     | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).              | `{}`    |
-| `alerting.gotify`         | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                            | `{}`    |
-| `alerting.jetbrainsspace` | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts).  | `{}`    |
-| `alerting.matrix`         | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                            | `{}`    |
-| `alerting.mattermost`     | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).                | `{}`    |
-| `alerting.messagebird`    | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts).             | `{}`    |
-| `alerting.ntfy`           | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                  | `{}`    |
-| `alerting.opsgenie`       | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                      | `{}`    |
-| `alerting.pagerduty`      | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                   | `{}`    |
-| `alerting.pushover`       | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                      | `{}`    |
-| `alerting.slack`          | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                               | `{}`    |
-| `alerting.teams`          | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).     | `{}`    |
-| `alerting.teams-workflows`  | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).     | `{}`    |
-| `alerting.telegram`       | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                      | `{}`    |
-| `alerting.twilio`         | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                 | `{}`    |
+| Parameter                  | Description                                                                                                                             | Default |
+|:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
+| `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
+| `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
+| `alerting.discord`         | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                        | `{}`    |
+| `alerting.email`           | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                              | `{}`    |
+| `alerting.gitea`           | Configuration for alerts of type `gitea`. <br />See [Configuring Gitea alerts](#configuring-gitea-alerts).                              | `{}`    |
+| `alerting.github`          | Configuration for alerts of type `github`. <br />See [Configuring GitHub alerts](#configuring-github-alerts).                           | `{}`    |
+| `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
+| `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
+| `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
+| `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
+| `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
+| `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
+| `alerting.messagebird`     | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts).            | `{}`    |
+| `alerting.ntfy`            | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                 | `{}`    |
+| `alerting.opsgenie`        | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                     | `{}`    |
+| `alerting.pagerduty`       | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                  | `{}`    |
+| `alerting.pushover`        | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                     | `{}`    |
+| `alerting.slack`           | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                              | `{}`    |
+| `alerting.teams`           | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).    | `{}`    |
+| `alerting.teams-workflows` | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).  | `{}`    |
+| `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
+| `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
+| `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
 
 
 #### Configuring Discord alerts
@@ -784,15 +800,14 @@ endpoints:
 
 
 #### Configuring Google Chat alerts
-| Parameter                                     | Description                                                                                 | Default       |
-|:----------------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
-| `alerting.googlechat`                         | Configuration for alerts of type `googlechat`                                               | `{}`          |
-| `alerting.googlechat.webhook-url`             | Google Chat Webhook URL                                                                     | Required `""` |
-| `alerting.googlechat.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
-| `alerting.googlechat.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
-| `alerting.googlechat.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
-| `alerting.googlechat.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
-| `alerting.googlechat.overrides[].webhook-url` | Google Chat Webhook URL                                                                     | `""`          |
+| Parameter                               | Description                                                                                 | Default       |
+|:----------------------------------------|:--------------------------------------------------------------------------------------------|:--------------|
+| `alerting.googlechat`                   | Configuration for alerts of type `googlechat`                                               | `{}`          |
+| `alerting.googlechat.webhook-url`       | Google Chat Webhook URL                                                                     | Required `""` |
+| `alerting.googlechat.client`            | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.googlechat.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
+| `alerting.googlechat.overrides`         | List of overrides that may be prioritized over the default configuration                    | `[]`          |
+| `alerting.googlechat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
 
 ```yaml
 alerting:
@@ -925,7 +940,6 @@ endpoints:
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
 | `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
-| `alerting.mattermist.overrides[].webhook-url` | Mattermost Webhook URL                                                                      | `""`          |
 
 ```yaml
 alerting:
@@ -1332,8 +1346,6 @@ Here's an example of what the notifications look like:
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
 | `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
 | `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
-| `alerting.telegram.overrides[].token` | Telegram Bot Token for override default value                                              | `""`                       |
-| `alerting.telegram.overrides[].id`    | Telegram User ID for override default value                                                | `""`                       |
 
 ```yaml
 alerting:
@@ -1430,6 +1442,39 @@ endpoints:
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
+
+#### Configuring Zulip alerts
+| Parameter                          | Description                                                                         | Default       |
+|:-----------------------------------|:------------------------------------------------------------------------------------|:--------------|
+| `alerting.zulip`                   | Configuration for alerts of type `discord`                                          | `{}`          |
+| `alerting.zulip.bot-email`         | Bot Email                                                                           | Required `""` |
+| `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
+| `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
+| `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
+| `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
+| `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
+
+```yaml
+alerting:
+  zulip:
+    bot-email: gatus-bot@some.zulip.org
+    bot-api-key: "********************************"
+    domain: some.zulip.org
+    channel-id: 123456
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: zulip
+        description: "healthcheck failed"
+        send-on-resolved: true
+```
 
 
 #### Configuring custom alerts
@@ -1589,42 +1634,6 @@ endpoints:
     alerts:
       - type: slack
       - type: pagerduty
-```
-
-#### Configuring Zulip alerts
-| Parameter                                | Description                                                                         | Default                             |
-|:-----------------------------------------|:------------------------------------------------------------------------------------|:------------------------------------|
-| `alerting.zulip`                         | Configuration for alerts of type `discord`                                          | `{}`                                |
-| `alerting.zulip.bot-email`               | Bot Email                                                                           | Required `""`                       |
-| `alerting.zulip.bot-api-key`             | Bot API key                                                                         | Required `""`                       |
-| `alerting.zulip.domain`                  | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""`                       |
-| `alerting.zulip.channel-id`              | The channel ID where Gatus will send the alerts                                     | Required `""`                       |
-| `alerting.zulip.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration | `""`                                |
-| `alerting.zulip.overrides[].bot-email`   | .                                                                                   | `""`                                |
-| `alerting.zulip.overrides[].bot-api-key` | .                                                                                   | `""`                                |
-| `alerting.zulip.overrides[].domain`      | .                                                                                   | `""`                                |
-| `alerting.zulip.overrides[].channel-id`  | .                                                                                   | `""`                                |
-
-```yaml
-alerting:
-  zulip:
-    bot-email: gatus-bot@some.zulip.org
-    bot-api-key: "********************************"
-    domain: some.zulip.org
-    channel-id: 123456
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: zulip
-        description: "healthcheck failed"
-        send-on-resolved: true
 ```
 
 

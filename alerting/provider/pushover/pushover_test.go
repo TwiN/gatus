@@ -12,31 +12,38 @@ import (
 )
 
 func TestPushoverAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
-		t.Error("provider shouldn't have been valid")
-	}
-	validProvider := AlertProvider{
-		ApplicationToken: "aTokenWithLengthOf30characters",
-		UserKey:          "aTokenWithLengthOf30characters",
-		Title:            "Gatus Notification",
-		Priority:         1,
-		ResolvedPriority: 1,
-	}
-	if !validProvider.IsValid() {
-		t.Error("provider should've been valid")
-	}
-}
-
-func TestPushoverAlertProvider_IsInvalid(t *testing.T) {
-	invalidProvider := AlertProvider{
-		ApplicationToken: "aTokenWithLengthOfMoreThan30characters",
-		UserKey:          "aTokenWithLengthOfMoreThan30characters",
-		Priority:         5,
-	}
-	if invalidProvider.IsValid() {
-		t.Error("provider should've been invalid")
-	}
+	t.Run("empty-invalid-provider", func(t *testing.T) {
+		invalidProvider := AlertProvider{}
+		if err := invalidProvider.Validate(); err == nil {
+			t.Error("provider shouldn't have been valid")
+		}
+	})
+	t.Run("valid-provider", func(t *testing.T) {
+		validProvider := AlertProvider{
+			DefaultConfig: Config{
+				ApplicationToken: "aTokenWithLengthOf30characters",
+				UserKey:          "aTokenWithLengthOf30characters",
+				Title:            "Gatus Notification",
+				Priority:         1,
+				ResolvedPriority: 1,
+			},
+		}
+		if err := validProvider.Validate(); err != nil {
+			t.Error("provider should've been valid")
+		}
+	})
+	t.Run("invalid-provider", func(t *testing.T) {
+		invalidProvider := AlertProvider{
+			DefaultConfig: Config{
+				ApplicationToken: "aTokenWithLengthOfMoreThan30characters",
+				UserKey:          "aTokenWithLengthOfMoreThan30characters",
+				Priority:         5,
+			},
+		}
+		if err := invalidProvider.Validate(); err == nil {
+			t.Error("provider should've been invalid")
+		}
+	})
 }
 
 func TestAlertProvider_Send(t *testing.T) {
@@ -53,7 +60,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:     "triggered",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -63,7 +70,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -73,7 +80,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -83,7 +90,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{},
+			Provider: AlertProvider{DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -129,28 +136,28 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters1", UserKey: "TokenWithLengthOf30Characters4"},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters1", UserKey: "TokenWithLengthOf30Characters4"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters1\",\"user\":\"TokenWithLengthOf30Characters4\",\"message\":\"TRIGGERED: endpoint-name - description-1\",\"priority\":0}",
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2}",
 		},
 		{
 			Name:         "resolved-priority",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 0},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 0}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":0}",
 		},
 		{
 			Name:         "with-sound",
-			Provider:     AlertProvider{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, Sound: "falling"},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, Sound: "falling"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"RESOLVED: endpoint-name - description-2\",\"priority\":2,\"sound\":\"falling\"}",
@@ -159,6 +166,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			body := scenario.Provider.buildRequestBody(
+				&scenario.Provider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&endpoint.Result{
@@ -186,5 +194,52 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"},
+		},
+		{
+			Name: "provider-with-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ApplicationToken: "aTokenWithLengthOf30characters", UserKey: "aTokenWithLengthOf30characters"},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"application-token": "TokenWithLengthOf30Characters2", "user-key": "TokenWithLengthOf30Characters3"}},
+			ExpectedOutput: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters3"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.ApplicationToken != scenario.ExpectedOutput.ApplicationToken {
+				t.Errorf("expected application token to be %s, got %s", scenario.ExpectedOutput.ApplicationToken, got.ApplicationToken)
+			}
+			if got.UserKey != scenario.ExpectedOutput.UserKey {
+				t.Errorf("expected user key to be %s, got %s", scenario.ExpectedOutput.UserKey, got.UserKey)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
+		})
 	}
 }

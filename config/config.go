@@ -22,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/logr"
+	"github.com/gofiber/fiber/v2/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -421,14 +422,20 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 	for _, alertType := range alertTypes {
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(alertType)
 		if alertProvider != nil {
-			if alertProvider.IsValid() {
+			if err := alertProvider.Validate(); err == nil {
 				// Parse alerts with the provider's default alert
 				if alertProvider.GetDefaultAlert() != nil {
 					for _, ep := range endpoints {
 						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
 								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
-								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
+								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
+								// Validate the endpoint alert's overrides, if applicable
+								if len(endpointAlert.ProviderOverride) > 0 {
+									if err = alertProvider.ValidateOverrides(ep.Group, endpointAlert); err != nil {
+										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
+									}
+								}
 							}
 						}
 					}
@@ -436,14 +443,20 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 						for alertIndex, endpointAlert := range ee.Alerts {
 							if alertType == endpointAlert.Type {
 								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
-								provider.ParseWithDefaultAlert(alertProvider.GetDefaultAlert(), endpointAlert)
+								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
+								// Validate the endpoint alert's overrides, if applicable
+								if len(endpointAlert.ProviderOverride) > 0 {
+									if err = alertProvider.ValidateOverrides(ee.Group, endpointAlert); err != nil {
+										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
+									}
+								}
 							}
 						}
 					}
 				}
 				validProviders = append(validProviders, alertType)
 			} else {
-				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s because configuration is invalid", alertType)
+				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s due to error=%s", alertType, err.Error())
 				invalidProviders = append(invalidProviders, alertType)
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}

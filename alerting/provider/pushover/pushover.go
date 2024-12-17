@@ -3,6 +3,7 @@ package pushover
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -17,8 +19,13 @@ const (
 	defaultPriority = 0
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Pushover
-type AlertProvider struct {
+var (
+	ErrInvalidApplicationToken = errors.New("application-token must be 30 characters long")
+	ErrInvalidUserKey          = errors.New("user-key must be 30 characters long")
+	ErrInvalidPriority         = errors.New("priority and resolved-priority must be between -2 and 2")
+)
+
+type Config struct {
 	// Key used to authenticate the application sending
 	// See "Your Applications" on the dashboard, or add a new one: https://pushover.net/apps/build
 	ApplicationToken string `yaml:"application-token"`
@@ -41,26 +48,69 @@ type AlertProvider struct {
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
 	Sound string `yaml:"sound,omitempty"`
+}
+
+func (cfg *Config) Validate() error {
+	if cfg.Priority == 0 {
+		cfg.Priority = defaultPriority
+	}
+	if cfg.ResolvedPriority == 0 {
+		cfg.ResolvedPriority = defaultPriority
+	}
+	if len(cfg.ApplicationToken) != 30 {
+		return ErrInvalidApplicationToken
+	}
+	if len(cfg.UserKey) != 30 {
+		return ErrInvalidUserKey
+	}
+	if cfg.Priority < -2 || cfg.Priority > 2 || cfg.ResolvedPriority < -2 || cfg.ResolvedPriority > 2 {
+		return ErrInvalidPriority
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.ApplicationToken) > 0 {
+		cfg.ApplicationToken = override.ApplicationToken
+	}
+	if len(override.UserKey) > 0 {
+		cfg.UserKey = override.UserKey
+	}
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
+	}
+	if override.Priority != 0 {
+		cfg.Priority = override.Priority
+	}
+	if override.ResolvedPriority != 0 {
+		cfg.ResolvedPriority = override.ResolvedPriority
+	}
+	if len(override.Sound) > 0 {
+		cfg.Sound = override.Sound
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Pushover
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.Priority == 0 {
-		provider.Priority = defaultPriority
-	}
-	if provider.ResolvedPriority == 0 {
-		provider.ResolvedPriority = defaultPriority
-	}
-	return len(provider.ApplicationToken) == 30 && len(provider.UserKey) == 30 && provider.Priority >= -2 && provider.Priority <= 2 && provider.ResolvedPriority >= -2 && provider.ResolvedPriority <= 2
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
 // Reference doc for pushover: https://pushover.net/api
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, restAPIURL, buffer)
 	if err != nil {
 		return err
@@ -88,38 +138,51 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
 	} else {
 		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 	}
+	priority := cfg.Priority
+	if resolved {
+		priority = cfg.ResolvedPriority
+	}
 	body, _ := json.Marshal(Body{
-		Token:    provider.ApplicationToken,
-		User:     provider.UserKey,
-		Title:    provider.Title,
+		Token:    cfg.ApplicationToken,
+		User:     cfg.UserKey,
+		Title:    cfg.Title,
 		Message:  message,
-		Priority: provider.priority(resolved),
-		Sound:    provider.Sound,
+		Priority: priority,
+		Sound:    cfg.Sound,
 	})
 	return body
-}
-
-func (provider *AlertProvider) priority(resolved bool) int {
-	if resolved && provider.ResolvedPriority == 0 {
-		return defaultPriority
-	}
-	if !resolved && provider.Priority == 0 {
-		return defaultPriority
-	}
-	if resolved {
-		return provider.ResolvedPriority
-	}
-	return provider.Priority
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

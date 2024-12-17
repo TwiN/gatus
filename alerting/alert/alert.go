@@ -6,6 +6,9 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/TwiN/logr"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -36,13 +39,17 @@ type Alert struct {
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.
-	Description *string `yaml:"description"`
+	Description *string `yaml:"description,omitempty"`
 
 	// SendOnResolved defines whether to send a second notification when the issue has been resolved
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
-	SendOnResolved *bool `yaml:"send-on-resolved"`
+	SendOnResolved *bool `yaml:"send-on-resolved,omitempty"`
+
+	// ProviderOverride is an optional field that can be used to override the provider's configuration
+	// It is freeform so that it can be used for any provider-specific configuration.
+	ProviderOverride map[string]any `yaml:"provider-override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
@@ -110,4 +117,12 @@ func (alert *Alert) Checksum() string {
 		alert.GetDescription()),
 	)
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (alert *Alert) ProviderOverrideAsBytes() []byte {
+	yamlBytes, err := yaml.Marshal(alert.ProviderOverride)
+	if err != nil {
+		logr.Warnf("[alert.ProviderOverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
+	}
+	return yamlBytes
 }
