@@ -51,6 +51,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
+    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Gitea alerts](#configuring-gitea-alerts)
@@ -71,7 +72,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
-    - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
@@ -534,6 +534,7 @@ Alerts are configured at the endpoint level like so:
 | `alerts[].success-threshold` | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
 | `alerts[].send-on-resolved`  | Whether to send a notification once a triggered alert is marked as resolved.   | `false`       |
 | `alerts[].description`       | Description of the alert. Will be included in the alert sent.                  | `""`          |
+| `alerts[].provider-override` | Alerting provider configuration override for the given alert type              | `{}`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml
@@ -591,16 +592,52 @@ endpoints:
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
 
 
+#### Configuring AWS SES alerts
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
+| `alerting.aws-ses.access-key-id`     | AWS Access Key ID                                                                          | Optional `""` |
+| `alerting.aws-ses.secret-access-key` | AWS Secret Access Key                                                                      | Optional `""` |
+| `alerting.aws-ses.region`            | AWS Region                                                                                 | Required `""` |
+| `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
+| `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
+| `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  aws-ses:
+    access-key-id: "..."
+    secret-access-key: "..."
+    region: "us-east-1"
+    from: "status@example.com"
+    to: "user@example.com"
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: aws-ses
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring Discord alerts
-| Parameter                                  | Description                                                                                | Default                             |
-|:-------------------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
-| `alerting.discord`                         | Configuration for alerts of type `discord`                                                 | `{}`                                |
-| `alerting.discord.webhook-url`             | Discord Webhook URL                                                                        | Required `""`                       |
-| `alerting.discord.title`                   | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
-| `alerting.discord.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
-| `alerting.discord.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
-| `alerting.discord.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
-| `alerting.discord.overrides[].webhook-url` | Discord Webhook URL                                                                        | `""`                                |
+| Parameter                            | Description                                                                                | Default                             |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.discord`                   | Configuration for alerts of type `discord`                                                 | `{}`                                |
+| `alerting.discord.webhook-url`       | Discord Webhook URL                                                                        | Required `""`                       |
+| `alerting.discord.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.discord.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
+| `alerting.discord.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
+| `alerting.discord.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
+| `alerting.discord.overrides[].*`     | See `alerting.discord.*` parameters                                                        | `{}`                                |
 
 ```yaml
 alerting:
@@ -636,7 +673,7 @@ endpoints:
 | `alerting.email.client.insecure`   | Whether to skip TLS verification                                                              | `false`       |
 | `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                      | `[]`          |
 | `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration           | `""`          |
-| `alerting.email.overrides[].to`    | Email(s) to send the alerts to                                                                | `""`          |
+| `alerting.email.overrides[].*`     | See `alerting.email.*` parameters                                                             | `{}`          |
 
 ```yaml
 alerting:
@@ -685,12 +722,12 @@ endpoints:
 
 #### Configuring Gitea alerts
 
-| Parameter                        | Description                                                                                                | Default       |
-|:---------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
-| `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                  | `{}`          |
-| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                             | Required `""` |
+| Parameter                       | Description                                                                                                | Default       |
+|:--------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                   | `{}`          |
+| `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                               | Required `""` |
 | `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
-| `alerting.github.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+| `alerting.github.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
 
 The Gitea alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
 name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
@@ -808,6 +845,7 @@ endpoints:
 | `alerting.googlechat.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.googlechat.overrides`         | List of overrides that may be prioritized over the default configuration                    | `[]`          |
 | `alerting.googlechat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.googlechat.overrides[].*`     | See `alerting.googlechat.*` parameters                                                      | `{}`          |
 
 ```yaml
 alerting:
@@ -865,15 +903,16 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring JetBrains Space alerts
-| Parameter                                          | Description                                                                                 | Default                |
-|:---------------------------------------------------|:--------------------------------------------------------------------------------------------|:-----------------------|
-| `alerting.jetbrainsspace`                          | Configuration for alerts of type `jetbrainsspace`                                           | `{}`                   |
-| `alerting.jetbrainsspace.project`                  | JetBrains Space project name                                                                | Required `""`          |
-| `alerting.jetbrainsspace.channel-id`               | JetBrains Space Chat Channel ID                                                             | Required `""`          |
-| `alerting.jetbrainsspace.token`                    | Token that is used for authentication.                                                      | Required `""`          |
-| `alerting.jetbrainsspace.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)  | N/A                    |
-| `alerting.jetbrainsspace.overrides`                | List of overrides that may be prioritized over the default configuration                    | `[]`                   |
-| `alerting.jetbrainsspace.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration         | `""`                   |
+| Parameter                                   | Description                                                                                | Default       |
+|:--------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.jetbrainsspace`                   | Configuration for alerts of type `jetbrainsspace`                                          | `{}`          |
+| `alerting.jetbrainsspace.project`           | JetBrains Space project name                                                               | Required `""` |
+| `alerting.jetbrainsspace.channel-id`        | JetBrains Space Chat Channel ID                                                            | Required `""` |
+| `alerting.jetbrainsspace.token`             | Token that is used for authentication.                                                     | Required `""` |
+| `alerting.jetbrainsspace.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.jetbrainsspace.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.jetbrainsspace.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.jetbrainsspace.overrides[].*`     | See `alerting.jetbrainsspace.*` parameters                                                 | `{}`          |
 
 ```yaml
 alerting:
@@ -940,6 +979,7 @@ endpoints:
 | `alerting.mattermost.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A           |
 | `alerting.mattermost.overrides`               | List of overrides that may be prioritized over the default configuration                    | `[]`          |
 | `alerting.mattermost.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration         | `""`          |
+| `alerting.mattermost.overrides[].*`           | See `alerting.mattermost.*` parameters                                                      | `{}`          |
 
 ```yaml
 alerting:
@@ -1015,12 +1055,7 @@ endpoints:
 | `alerting.ntfy.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
 | `alerting.ntfy.overrides`            | List of overrides that may be prioritized over the default configuration                                                                     | `[]`              |
 | `alerting.ntfy.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration                                                          | `""`              |
-| `alerting.ntfy.overrides[].topic`    | Topic at which the alert will be sent                                                                                                        | `""`              |
-| `alerting.ntfy.overrides[].url`      | The URL of the target server                                                                                                                 | `""`              |
-| `alerting.ntfy.overrides[].priority` | The priority of the alert                                                                                                                    | `0`               |
-| `alerting.ntfy.overrides[].token`    | Access token for restricted topics                                                                                                           | `""`              |
-| `alerting.ntfy.overrides[].email`    | E-mail address for additional e-mail notifications                                                                                           | `""`              |
-| `alerting.ntfy.overrides[].click`    | Website opened when notification is clicked                                                                                                  | `""`              |
+| `alerting.ntfy.overrides[].*`        | See `alerting.ntfy.*` parameters                                                                                                             | `{}`              |
 
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
@@ -1088,14 +1123,14 @@ alerting:
 
 
 #### Configuring PagerDuty alerts
-| Parameter                                        | Description                                                                                | Default |
-|:-------------------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
-| `alerting.pagerduty`                             | Configuration for alerts of type `pagerduty`                                               | `{}`    |
-| `alerting.pagerduty.integration-key`             | PagerDuty Events API v2 integration key                                                    | `""`    |
-| `alerting.pagerduty.overrides`                   | List of overrides that may be prioritized over the default configuration                   | `[]`    |
-| `alerting.pagerduty.overrides[].group`           | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
-| `alerting.pagerduty.overrides[].integration-key` | PagerDuty Events API v2 integration key                                                    | `""`    |
-| `alerting.pagerduty.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| Parameter                              | Description                                                                                | Default |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.pagerduty`                   | Configuration for alerts of type `pagerduty`                                               | `{}`    |
+| `alerting.pagerduty.integration-key`   | PagerDuty Events API v2 integration key                                                    | `""`    |
+| `alerting.pagerduty.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.pagerduty.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.pagerduty.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.pagerduty.overrides[].*`     | See `alerting.pagerduty.*` parameters                                                      | `{}`    |
 
 It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
 of type `pagerduty`, because unlike other alerts, the operation resulting from setting said
@@ -1183,14 +1218,14 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                                 | Description                                                                                | Default       |
-|:------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`                          | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`              | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert`            | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.slack.overrides`                | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.slack.overrides[].group`        | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.slack.overrides[].webhook-url`  | Slack Webhook URL                                                                          | `""`          |
+| Parameter                          | Description                                                                                | Default       |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`          |
+| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""` |
+| `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.slack.overrides[].*`     | See `alerting.slack.*` parameters                                                          | `{}`          |
 
 ```yaml
 alerting:
@@ -1226,16 +1261,16 @@ Here's an example of what the notifications look like:
 > **Deprecated:** Office 365 Connectors within Microsoft Teams are being retired ([Source: Microsoft DevBlog](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/)).
 > Existing connectors will continue to work until December 2025. The new [Teams Workflow Alerts](#configuring-teams-workflow-alerts) should be used with Microsoft Workflows instead of this legacy configuration.
 
-| Parameter                                | Description                                                                                | Default             |
-|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
-| `alerting.teams`                         | Configuration for alerts of type `teams`                                                   | `{}`                |
-| `alerting.teams.webhook-url`             | Teams Webhook URL                                                                          | Required `""`       |
-| `alerting.teams.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
-| `alerting.teams.title`                   | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
-| `alerting.teams.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`                |
-| `alerting.teams.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
-| `alerting.teams.overrides[].webhook-url` | Teams Webhook URL                                                                          | `""`                |
-| `alerting.teams.client.insecure`         | Whether to skip TLS verification                                                           | `false`             |
+| Parameter                          | Description                                                                                | Default             |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------------|
+| `alerting.teams`                   | Configuration for alerts of type `teams`                                                   | `{}`                |
+| `alerting.teams.webhook-url`       | Teams Webhook URL                                                                          | Required `""`       |
+| `alerting.teams.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
+| `alerting.teams.title`             | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.client.insecure`   | Whether to skip TLS verification                                                           | `false`             |
+| `alerting.teams.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                |
+| `alerting.teams.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
+| `alerting.teams.overrides[].*`     | See `alerting.teams.*` parameters                                                          | `{}`                |
 
 ```yaml
 alerting:
@@ -1284,15 +1319,15 @@ Here's an example of what the notifications look like:
 > [!NOTE]
 > This alert is compatible with Workflows for Microsoft Teams. To setup the workflow and get the webhook URL, follow the [Microsoft Documentation](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498).
 
-| Parameter                                          | Description                                                                                | Default            |
-|:---------------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
-| `alerting.teams-workflows`                         | Configuration for alerts of type `teams`                                                   | `{}`               |
-| `alerting.teams-workflows.webhook-url`             | Teams Webhook URL                                                                          | Required `""`      |
-| `alerting.teams-workflows.title`                   | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
-| `alerting.teams-workflows.default-alert`           | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
-| `alerting.teams-workflows.overrides`               | List of overrides that may be prioritized over the default configuration                   | `[]`               |
-| `alerting.teams-workflows.overrides[].group`       | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
-| `alerting.teams-workflows.overrides[].webhook-url` | Teams WorkFlow Webhook URL                                                                 | `""`               |
+| Parameter                                    | Description                                                                                | Default            |
+|:---------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
+| `alerting.teams-workflows`                   | Configuration for alerts of type `teams`                                                   | `{}`               |
+| `alerting.teams-workflows.webhook-url`       | Teams Webhook URL                                                                          | Required `""`      |
+| `alerting.teams-workflows.title`             | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
+| `alerting.teams-workflows.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
+| `alerting.teams-workflows.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`               |
+| `alerting.teams-workflows.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
+| `alerting.teams-workflows.overrides[].*`     | See `alerting.teams-workflows.*` parameters                                                | `{}`               |
 
 ```yaml
 alerting:
@@ -1346,6 +1381,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
 | `alerting.telegram.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                       |
 | `alerting.telegram.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                       |
+| `alerting.telegram.overrides[].*`     | See `alerting.telegram.*` parameters                                                       | `{}`                       |
 
 ```yaml
 alerting:
@@ -1404,41 +1440,6 @@ endpoints:
 ```
 
 
-#### Configuring AWS SES alerts
-| Parameter                            | Description                                                                                | Default       |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.aws-ses`                   | Settings for alerts of type `aws-ses`                                                      | `{}`          |
-| `alerting.aws-ses.access-key-id`     | AWS Access Key ID                                                                          | Optional `""` |
-| `alerting.aws-ses.secret-access-key` | AWS Secret Access Key                                                                      | Optional `""` |
-| `alerting.aws-ses.region`            | AWS Region                                                                                 | Required `""` |
-| `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
-| `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
-| `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-
-```yaml
-alerting:
-  aws-ses:
-    access-key-id: "..."
-    secret-access-key: "..."
-    region: "us-east-1"
-    from: "status@example.com"
-    to: "user@example.com"
-
-endpoints:
-  - name: website
-    interval: 30s
-    url: "https://twin.sh/health"
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: aws-ses
-        failure-threshold: 5
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
-
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
@@ -1453,6 +1454,7 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
 | `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
 | `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
+| `alerting.zulip.overrides[].*`     | See `alerting.zulip.*` parameters                                                   | `{}`          |
 
 ```yaml
 alerting:
@@ -1641,13 +1643,13 @@ endpoints:
 If you have maintenance windows, you may not want to be annoyed by alerts.
 To do that, you'll have to use the maintenance configuration:
 
-| Parameter              | Description                                                                                                                            | Default       |
-|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------|:--------------|
-| `maintenance.enabled`  | Whether the maintenance period is enabled                                                                                              | `true`        |
-| `maintenance.start`    | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)                                                           | Required `""` |
-| `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                  | Required `""` |
-| `maintenance.timezone` | Timezone of the maintenance window format (e.g. `Europe/Amsterdam`).<br />See [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for more info |  `UTC` |
-| `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day | `[]`          |
+| Parameter              | Description                                                                                                                                                                                | Default       |
+|:-----------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| `maintenance.enabled`  | Whether the maintenance period is enabled                                                                                                                                                  | `true`        |
+| `maintenance.start`    | Time at which the maintenance window starts in `hh:mm` format (e.g. `23:00`)                                                                                                               | Required `""` |
+| `maintenance.duration` | Duration of the maintenance window (e.g. `1h`, `30m`)                                                                                                                                      | Required `""` |
+| `maintenance.timezone` | Timezone of the maintenance window format (e.g. `Europe/Amsterdam`).<br />See [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for more info | `UTC`         |
+| `maintenance.every`    | Days on which the maintenance period applies (e.g. `[Monday, Thursday]`).<br />If left empty, the maintenance window applies every day                                                     | `[]`          |
 
 Here's an example:
 ```yaml
@@ -1928,7 +1930,6 @@ To modify the timeout, see [Client configuration](#client-configuration).
 
 ### Monitoring a TCP endpoint
 By prefixing `endpoints[].url` with `tcp://`, you can monitor TCP endpoints at a very basic level:
-
 ```yaml
 endpoints:
   - name: redis
@@ -1950,7 +1951,6 @@ This works for applications such as databases (Postgres, MySQL, etc.) and caches
 
 ### Monitoring a UDP endpoint
 By prefixing `endpoints[].url` with `udp://`, you can monitor UDP endpoints at a very basic level:
-
 ```yaml
 endpoints:
   - name: example
@@ -1967,7 +1967,6 @@ This works for UDP based application.
 
 ### Monitoring a SCTP endpoint
 By prefixing `endpoints[].url` with `sctp://`, you can monitor Stream Control Transmission Protocol (SCTP) endpoints at a very basic level:
-
 ```yaml
 endpoints:
   - name: example
@@ -1984,7 +1983,6 @@ This works for SCTP based application.
 
 ### Monitoring a WebSocket endpoint
 By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints at a very basic level:
-
 ```yaml
 endpoints:
   - name: example
@@ -2002,7 +2000,6 @@ shows whether the connection was successfully established.
 ### Monitoring an endpoint using ICMP
 By prefixing `endpoints[].url` with `icmp://`, you can monitor endpoints at a very basic level using ICMP, or more
 commonly known as "ping" or "echo":
-
 ```yaml
 endpoints:
   - name: ping-example
@@ -2371,7 +2368,7 @@ To change the response time badges' threshold, a corresponding configuration can
 The values in the array correspond to the levels [Awesome, Great, Good, Passable, Bad]
 All five values must be given in milliseconds (ms).
 
-```
+```yaml
 endpoints:
 - name: nas
   group: internal
