@@ -35,7 +35,7 @@
         </div>
       </div>
       <div>
-        <a :href="`${SERVER_URL}/oidc/login`" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-green-800 rounded-md shadow-lg text-sm text-white bg-green-700 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
+        <a href="oidc/login" class="max-w-lg mx-auto w-full flex justify-center py-3 px-4 border border-green-800 rounded-md shadow-lg text-sm text-white bg-green-700 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
           Login with OIDC
         </a>
       </div>
@@ -50,7 +50,6 @@
 <script>
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue';
-import {SERVER_URL} from "@/main";
 import Loading from "@/components/Loading";
 
 export default {
@@ -62,7 +61,7 @@ export default {
   },
   methods: {
     fetchConfig() {
-      fetch(`${SERVER_URL}/api/v1/config`, {credentials: 'include'})
+      fetch('api/v1/config', {credentials: 'include'})
       .then(response => {
         this.retrievedConfig = true;
         if (response.status === 200) {
@@ -96,7 +95,6 @@ export default {
       retrievedConfig: false,
       config: { oidc: false, authenticated: true },
       tooltip: {},
-      SERVER_URL
     }
   },
   created() {
