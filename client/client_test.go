@@ -200,6 +200,24 @@ func TestCanPerformTLS(t *testing.T) {
 			wantConnected: true,
 			wantErr:       false,
 		},
+		{
+			name: "bad cert with insecure true",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: true,
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+		{
+			name: "bad cert with insecure false",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: false,
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
