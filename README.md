@@ -119,6 +119,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Response time](#response-time)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
+    - [Raw Data](#raw-data)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 
