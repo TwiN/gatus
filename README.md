@@ -2414,7 +2414,7 @@ The path to get raw uptime data for an endpoint is:
 /api/v1/endpoints/{key}/uptimes/{duration}
 ```
 Where:
-- `{duration}` is `7d`, `24h` or `1h`
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
