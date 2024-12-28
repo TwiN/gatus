@@ -200,6 +200,24 @@ func TestCanPerformTLS(t *testing.T) {
 			wantConnected: true,
 			wantErr:       false,
 		},
+		{
+			name: "bad cert with insecure true",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: true,
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+		{
+			name: "bad cert with insecure false",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: false,
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -395,6 +413,16 @@ func TestQueryDNS(t *testing.T) {
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
 			expectedBody:    "*.iana-servers.net.",
+		},
+		{
+			name: "test Config with type PTR",
+			inputDNS: dns.Config{
+				QueryType: "PTR",
+				QueryName: "8.8.8.8.in-addr.arpa.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dns.google.",
 		},
 		{
 			name: "test Config with fake type and retrieve error",

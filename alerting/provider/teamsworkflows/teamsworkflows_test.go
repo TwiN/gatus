@@ -1,4 +1,4 @@
-package mattermost
+package teamsworkflows
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ func TestAlertProvider_Validate(t *testing.T) {
 	}
 	validProvider := AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}}
 	if err := validProvider.Validate(); err != nil {
-		t.Error("provider should've been valid")
+		t.Error("provider should've been valid, got", err.Error())
 	}
 }
 
@@ -34,7 +34,7 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
-	providerWithInvalidOverrideWebHookUrl := AlertProvider{
+	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
 				Config: Config{WebhookURL: ""},
@@ -42,8 +42,8 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 			},
 		},
 	}
-	if err := providerWithInvalidOverrideWebHookUrl.Validate(); err == nil {
-		t.Error("provider WebHookURL shouldn't have been valid")
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
+		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
 		DefaultConfig: Config{WebhookURL: "http://example.com"},
@@ -143,6 +143,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Name         string
 		Provider     AlertProvider
 		Alert        alert.Alert
+		NoConditions bool
 		Resolved     bool
 		ExpectedBody string
 	}{
@@ -151,28 +152,38 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
-			ExpectedBody: "{\"text\":\"\",\"username\":\"gatus\",\"icon_url\":\"https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"fallback\":\"Gatus - An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row\",\"text\":\"An alert for *endpoint-name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x274C;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x274C;\",\"value\":\"[STATUS] == 200\"}]}],\"style\":\"Default\"}],\"style\":\"Attention\"}],\"msteams\":{\"width\":\"Full\"}},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"text\":\"\",\"username\":\"gatus\",\"icon_url\":\"https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"fallback\":\"Gatus - An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row\",\"text\":\"An alert for *endpoint-name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false,\"facts\":[{\"title\":\"\\u0026#x2705;\",\"value\":\"[CONNECTED] == true\"},{\"title\":\"\\u0026#x2705;\",\"value\":\"[STATUS] == 200\"}]}],\"style\":\"Default\"}],\"style\":\"Good\"}],\"msteams\":{\"width\":\"Full\"}},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
+		},
+		{
+			Name:         "resolved-with-no-conditions",
+			NoConditions: true,
+			Provider:     AlertProvider{},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"attachments\":[{\"content\":{\"type\":\"AdaptiveCard\",\"version\":\"1.4\",\"body\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"Container\",\"wrap\":false,\"items\":[{\"type\":\"TextBlock\",\"text\":\"\\u0026#x26D1; Gatus\",\"wrap\":false,\"size\":\"Medium\",\"weight\":\"Bolder\"},{\"type\":\"TextBlock\",\"text\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row.\",\"wrap\":true},{\"type\":\"FactSet\",\"wrap\":false}],\"style\":\"Default\"}],\"style\":\"Good\"}],\"msteams\":{\"width\":\"Full\"}},\"contentType\":\"application/vnd.microsoft.card.adaptive\"}],\"type\":\"message\"}",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			var conditionResults []*endpoint.ConditionResult
+			if !scenario.NoConditions {
+				conditionResults = []*endpoint.ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
+					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
+				}
+			}
 			body := scenario.Provider.buildRequestBody(
 				&scenario.Provider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&endpoint.Result{
-					ConditionResults: []*endpoint.ConditionResult{
-						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
-						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
-					},
-				},
+				&endpoint.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
 			if string(body) != scenario.ExpectedBody {

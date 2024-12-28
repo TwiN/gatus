@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,13 +11,21 @@ import (
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/logr"
+)
+
+const (
+	GatusConfigPathEnvVar = "GATUS_CONFIG_PATH"
+	GatusConfigFileEnvVar = "GATUS_CONFIG_FILE" // Deprecated in favor of GatusConfigPathEnvVar
+	GatusLogLevelEnvVar   = "GATUS_LOG_LEVEL"
 )
 
 func main() {
 	if delayInSeconds, _ := strconv.Atoi(os.Getenv("GATUS_DELAY_START_SECONDS")); delayInSeconds > 0 {
-		log.Printf("Delaying start by %d seconds", delayInSeconds)
+		logr.Infof("Delaying start by %d seconds", delayInSeconds)
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)
 	}
+	configureLogging()
 	cfg, err := loadConfiguration()
 	if err != nil {
 		panic(err)
@@ -31,13 +38,13 @@ func main() {
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-signalChannel
-		log.Println("Received termination signal, attempting to gracefully shut down")
+		logr.Info("Received termination signal, attempting to gracefully shut down")
 		stop(cfg)
 		save()
 		done <- true
 	}()
 	<-done
-	log.Println("Shutting down")
+	logr.Info("Shutting down")
 }
 
 func start(cfg *config.Config) {
@@ -53,16 +60,31 @@ func stop(cfg *config.Config) {
 
 func save() {
 	if err := store.Get().Save(); err != nil {
-		log.Println("Failed to save storage provider:", err.Error())
+		logr.Errorf("Failed to save storage provider: %s", err.Error())
+	}
+}
+
+func configureLogging() {
+	logLevelAsString := os.Getenv(GatusLogLevelEnvVar)
+	if logLevel, err := logr.LevelFromString(logLevelAsString); err != nil {
+		logr.SetThreshold(logr.LevelInfo)
+		if len(logLevelAsString) == 0 {
+			logr.Infof("[main.configureLogging] Defaulting log level to %s", logr.LevelInfo)
+		} else {
+			logr.Warnf("[main.configureLogging] Invalid log level '%s', defaulting to %s", logLevelAsString, logr.LevelInfo)
+		}
+	} else {
+		logr.SetThreshold(logLevel)
+		logr.Infof("[main.configureLogging] Log Level is set to %s", logr.GetThreshold())
 	}
 }
 
 func loadConfiguration() (*config.Config, error) {
-	configPath := os.Getenv("GATUS_CONFIG_PATH")
+	configPath := os.Getenv(GatusConfigPathEnvVar)
 	// Backwards compatibility
 	if len(configPath) == 0 {
-		if configPath = os.Getenv("GATUS_CONFIG_FILE"); len(configPath) > 0 {
-			log.Println("WARNING: GATUS_CONFIG_FILE is deprecated. Please use GATUS_CONFIG_PATH instead.")
+		if configPath = os.Getenv(GatusConfigFileEnvVar); len(configPath) > 0 {
+			logr.Warnf("WARNING: %s is deprecated. Please use %s instead.", GatusConfigFileEnvVar, GatusConfigPathEnvVar)
 		}
 	}
 	return config.LoadConfiguration(configPath)
@@ -88,7 +110,7 @@ func initializeStorage(cfg *config.Config) {
 	}
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
-		log.Printf("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
+		logr.Infof("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
 	// Clean up the triggered alerts from the storage provider and load valid triggered endpoint alerts
 	numberOfPersistedTriggeredAlertsLoaded := 0
@@ -100,13 +122,13 @@ func initializeStorage(cfg *config.Config) {
 			}
 		}
 		numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep, checksums)
-		if cfg.Debug && numberOfTriggeredAlertsDeleted > 0 {
-			log.Printf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
+		if numberOfTriggeredAlertsDeleted > 0 {
+			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
 		}
 		for _, alert := range ep.Alerts {
 			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
 			if err != nil {
-				log.Printf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 				continue
 			}
 			if exists {
@@ -125,13 +147,13 @@ func initializeStorage(cfg *config.Config) {
 		}
 		convertedEndpoint := ee.ToEndpoint()
 		numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(convertedEndpoint, checksums)
-		if cfg.Debug && numberOfTriggeredAlertsDeleted > 0 {
-			log.Printf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ee.Key())
+		if numberOfTriggeredAlertsDeleted > 0 {
+			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ee.Key())
 		}
 		for _, alert := range ee.Alerts {
 			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
 			if err != nil {
-				log.Printf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ee.Key(), err.Error())
+				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ee.Key(), err.Error())
 				continue
 			}
 			if exists {
@@ -142,7 +164,7 @@ func initializeStorage(cfg *config.Config) {
 		}
 	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
-		log.Printf("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
+		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
 	}
 }
 
@@ -150,15 +172,15 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 		time.Sleep(30 * time.Second)
 		if cfg.HasLoadedConfigurationBeenModified() {
-			log.Println("[main.listenToConfigurationFileChanges] Configuration file has been modified")
+			logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")
 			stop(cfg)
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
 			updatedConfig, err := loadConfiguration()
 			if err != nil {
 				if cfg.SkipInvalidConfigUpdate {
-					log.Println("[main.listenToConfigurationFileChanges] Failed to load new configuration:", err.Error())
-					log.Println("[main.listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
+					logr.Errorf("[main.listenToConfigurationFileChanges] Failed to load new configuration: %s", err.Error())
+					logr.Error("[main.listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
 					// Update the last file modification time to avoid trying to process the same invalid configuration again
 					cfg.UpdateLastFileModTime()
 					continue

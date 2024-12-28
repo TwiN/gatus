@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,15 +12,18 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Discord
-type AlertProvider struct {
+var (
+	ErrRepositoryURLNotSet  = errors.New("repository-url not set")
+	ErrInvalidRepositoryURL = errors.New("invalid repository-url")
+	ErrTokenNotSet          = errors.New("token not set")
+)
+
+type Config struct {
 	RepositoryURL string `yaml:"repository-url"` // The URL of the GitHub repository to create issues in
 	Token         string `yaml:"token"`          // Token requires at least RW on issues and RO on metadata
-
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
 	username        string
 	repositoryOwner string
@@ -27,53 +31,85 @@ type AlertProvider struct {
 	githubClient    *github.Client
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if len(provider.Token) == 0 || len(provider.RepositoryURL) == 0 {
-		return false
+func (cfg *Config) Validate() error {
+	if len(cfg.RepositoryURL) == 0 {
+		return ErrRepositoryURLNotSet
+	}
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
 	}
 	// Validate format of the repository URL
-	repositoryURL, err := url.Parse(provider.RepositoryURL)
+	repositoryURL, err := url.Parse(cfg.RepositoryURL)
 	if err != nil {
-		return false
+		return err
 	}
 	baseURL := repositoryURL.Scheme + "://" + repositoryURL.Host
 	pathParts := strings.Split(repositoryURL.Path, "/")
 	if len(pathParts) != 3 {
-		return false
+		return ErrInvalidRepositoryURL
 	}
-	provider.repositoryOwner = pathParts[1]
-	provider.repositoryName = pathParts[2]
+	if cfg.repositoryOwner == pathParts[1] && cfg.repositoryName == pathParts[2] && cfg.githubClient != nil {
+		// Already validated, let's skip the rest of the validation to avoid unnecessary API calls
+		return nil
+	}
+	cfg.repositoryOwner = pathParts[1]
+	cfg.repositoryName = pathParts[2]
 	// Create oauth2 HTTP client with GitHub token
 	httpClientWithStaticTokenSource := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: provider.Token,
+		AccessToken: cfg.Token,
 	}))
 	// Create GitHub client
 	if baseURL == "https://github.com" {
-		provider.githubClient = github.NewClient(httpClientWithStaticTokenSource)
+		cfg.githubClient = github.NewClient(httpClientWithStaticTokenSource)
 	} else {
-		provider.githubClient, err = github.NewEnterpriseClient(baseURL, baseURL, httpClientWithStaticTokenSource)
+		cfg.githubClient, err = github.NewEnterpriseClient(baseURL, baseURL, httpClientWithStaticTokenSource)
 		if err != nil {
-			return false
+			return fmt.Errorf("failed to create enterprise GitHub client: %w", err)
 		}
 	}
 	// Retrieve the username once to validate that the token is valid
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	user, _, err := provider.githubClient.Users.Get(ctx, "")
+	user, _, err := cfg.githubClient.Users.Get(ctx, "")
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to retrieve GitHub user: %w", err)
 	}
-	provider.username = *user.Login
-	return true
+	cfg.username = *user.Login
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.RepositoryURL) > 0 {
+		cfg.RepositoryURL = override.RepositoryURL
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Discord
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
 	title := "alert(gatus): " + ep.DisplayName()
 	if !resolved {
-		_, _, err := provider.githubClient.Issues.Create(context.Background(), provider.repositoryOwner, provider.repositoryName, &github.IssueRequest{
+		_, _, err := cfg.githubClient.Issues.Create(context.Background(), cfg.repositoryOwner, cfg.repositoryName, &github.IssueRequest{
 			Title: github.String(title),
 			Body:  github.String(provider.buildIssueBody(ep, alert, result)),
 		})
@@ -81,9 +117,9 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			return fmt.Errorf("failed to create issue: %w", err)
 		}
 	} else {
-		issues, _, err := provider.githubClient.Issues.ListByRepo(context.Background(), provider.repositoryOwner, provider.repositoryName, &github.IssueListByRepoOptions{
+		issues, _, err := cfg.githubClient.Issues.ListByRepo(context.Background(), cfg.repositoryOwner, cfg.repositoryName, &github.IssueListByRepoOptions{
 			State:       "open",
-			Creator:     provider.username,
+			Creator:     cfg.username,
 			ListOptions: github.ListOptions{PerPage: 100},
 		})
 		if err != nil {
@@ -91,7 +127,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		}
 		for _, issue := range issues {
 			if *issue.Title == title {
-				_, _, err = provider.githubClient.Issues.Edit(context.Background(), provider.repositoryOwner, provider.repositoryName, *issue.Number, &github.IssueRequest{
+				_, _, err = cfg.githubClient.Issues.Edit(context.Background(), cfg.repositoryOwner, cfg.repositoryName, *issue.Number, &github.IssueRequest{
 					State: github.String("closed"),
 				})
 				if err != nil {
@@ -129,4 +165,26 @@ func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *aler
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration (we're returning the cfg here even if there's an error mostly for testing purposes)
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

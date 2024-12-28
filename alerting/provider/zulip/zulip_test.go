@@ -1,6 +1,7 @@
 package zulip
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,237 +13,84 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
-	testCase := []struct {
-		name          string
-		alertProvider AlertProvider
-		expected      bool
+func TestAlertProvider_Validate(t *testing.T) {
+	scenarios := []struct {
+		Name          string
+		AlertProvider AlertProvider
+		ExpectedError error
 	}{
 		{
-			name:          "Empty provider",
-			alertProvider: AlertProvider{},
-			expected:      false,
+			Name:          "Empty provider",
+			AlertProvider: AlertProvider{},
+			ExpectedError: ErrBotEmailNotSet,
 		},
 		{
-			name: "Empty channel id",
-			alertProvider: AlertProvider{
-				Config: Config{
+			Name: "Empty channel id",
+			AlertProvider: AlertProvider{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					Domain:    "something",
 				},
 			},
-			expected: false,
+			ExpectedError: ErrChannelIDNotSet,
 		},
 		{
-			name: "Empty domain",
-			alertProvider: AlertProvider{
-				Config: Config{
+			Name: "Empty domain",
+			AlertProvider: AlertProvider{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					ChannelID: "something",
 				},
 			},
-			expected: false,
+			ExpectedError: ErrDomainNotSet,
 		},
 		{
-			name: "Empty bot api key",
-			alertProvider: AlertProvider{
-				Config: Config{
+			Name: "Empty bot api key",
+			AlertProvider: AlertProvider{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					Domain:    "something",
 					ChannelID: "something",
 				},
 			},
-			expected: false,
+			ExpectedError: ErrBotAPIKeyNotSet,
 		},
 		{
-			name: "Empty bot email",
-			alertProvider: AlertProvider{
-				Config: Config{
+			Name: "Empty bot email",
+			AlertProvider: AlertProvider{
+				DefaultConfig: Config{
 					BotAPIKey: "something",
 					Domain:    "something",
 					ChannelID: "something",
 				},
 			},
-			expected: false,
+			ExpectedError: ErrBotEmailNotSet,
 		},
 		{
-			name: "Valid provider",
-			alertProvider: AlertProvider{
-				Config: Config{
+			Name: "Valid provider",
+			AlertProvider: AlertProvider{
+				DefaultConfig: Config{
 					BotEmail:  "something",
 					BotAPIKey: "something",
 					Domain:    "something",
 					ChannelID: "something",
 				},
 			},
-			expected: true,
+			ExpectedError: nil,
 		},
 	}
-	for _, tc := range testCase {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.alertProvider.IsValid() != tc.expected {
-				t.Errorf("IsValid assertion failed (expected %v, got %v)", tc.expected, !tc.expected)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			if err := scenario.AlertProvider.Validate(); !errors.Is(err, scenario.ExpectedError) {
+				t.Errorf("ExpectedError error %v, got %v", scenario.ExpectedError, err)
 			}
 		})
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
-	validConfig := Config{
-		BotEmail:  "something",
-		BotAPIKey: "something",
-		Domain:    "something",
-		ChannelID: "something",
-	}
-
-	testCase := []struct {
-		name          string
-		alertProvider AlertProvider
-		expected      bool
-	}{
-		{
-			name: "Empty group",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Config: validConfig,
-						Group:  "",
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Empty override config",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group: "something",
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Empty channel id",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group: "something",
-						Config: Config{
-							BotEmail:  "something",
-							BotAPIKey: "something",
-							Domain:    "something",
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Empty domain",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group: "something",
-						Config: Config{
-							BotEmail:  "something",
-							BotAPIKey: "something",
-							ChannelID: "something",
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Empty bot api key",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group: "something",
-						Config: Config{
-							BotEmail:  "something",
-							Domain:    "something",
-							ChannelID: "something",
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Empty bot email",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group: "something",
-						Config: Config{
-							BotAPIKey: "something",
-							Domain:    "something",
-							ChannelID: "something",
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Valid provider",
-			alertProvider: AlertProvider{
-				Config: validConfig,
-				Overrides: []Override{
-					{
-						Group:  "something",
-						Config: validConfig,
-					},
-				},
-			},
-			expected: true,
-		},
-	}
-	for _, tc := range testCase {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.alertProvider.IsValid() != tc.expected {
-				t.Errorf("IsValid assertion failed (expected %v, got %v)", tc.expected, !tc.expected)
-			}
-		})
-	}
-}
-
-func TestAlertProvider_GetChannelIdForGroup(t *testing.T) {
-	provider := AlertProvider{
-		Config: Config{
-			ChannelID: "default",
-		},
-		Overrides: []Override{
-			{
-				Group:  "group1",
-				Config: Config{ChannelID: "group1"},
-			},
-			{
-				Group:  "group2",
-				Config: Config{ChannelID: "group2"},
-			},
-		},
-	}
-	if provider.getChannelIdForGroup("") != "default" {
-		t.Error("Expected default channel ID")
-	}
-	if provider.getChannelIdForGroup("group2") != "group2" {
-		t.Error("Expected group2 channel ID")
-	}
-}
-
-func TestAlertProvider_BuildRequestBody(t *testing.T) {
+func TestAlertProvider_buildRequestBody(t *testing.T) {
 	basicConfig := Config{
 		BotEmail:  "bot-email",
 		BotAPIKey: "bot-api-key",
@@ -266,13 +114,13 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		{
 			name: "Resolved alert with no conditions",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:         basicAlert,
 			resolved:      true,
 			hasConditions: false,
 			expectedBody: url.Values{
-				"content": {`An alert for **endpoint-name** has been resolved after passing successfully 2 time(s) in a row
+				"content": {`An alert for **endpoint-Name** has been resolved after passing successfully 2 time(s) in a row
 > Description
 `},
 				"to":    {"channel-id"},
@@ -283,13 +131,13 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		{
 			name: "Resolved alert with conditions",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:         basicAlert,
 			resolved:      true,
 			hasConditions: true,
 			expectedBody: url.Values{
-				"content": {`An alert for **endpoint-name** has been resolved after passing successfully 2 time(s) in a row
+				"content": {`An alert for **endpoint-Name** has been resolved after passing successfully 2 time(s) in a row
 > Description
 
 :check: - ` + "`[CONNECTED] == true`" + `
@@ -303,13 +151,13 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		{
 			name: "Failed alert with no conditions",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:         basicAlert,
 			resolved:      false,
 			hasConditions: false,
 			expectedBody: url.Values{
-				"content": {`An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row
+				"content": {`An alert for **endpoint-Name** has been triggered due to having failed 3 time(s) in a row
 > Description
 `},
 				"to":    {"channel-id"},
@@ -320,13 +168,13 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 		{
 			name: "Failed alert with conditions",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:         basicAlert,
 			resolved:      false,
 			hasConditions: true,
 			expectedBody: url.Values{
-				"content": {`An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row
+				"content": {`An alert for **endpoint-Name** has been triggered due to having failed 3 time(s) in a row
 > Description
 
 :cross_mark: - ` + "`[CONNECTED] == true`" + `
@@ -349,7 +197,8 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 				}
 			}
 			body := tc.provider.buildRequestBody(
-				&endpoint.Endpoint{Name: "endpoint-name"},
+				&tc.provider.DefaultConfig,
+				&endpoint.Endpoint{Name: "endpoint-Name"},
 				&tc.alert,
 				&endpoint.Result{
 					ConditionResults: conditionResults,
@@ -369,10 +218,10 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
-		t.Error("expected default alert to be not nil")
+		t.Error("ExpectedError default alert to be not nil")
 	}
 	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
-		t.Error("expected default alert to be nil")
+		t.Error("ExpectedError default alert to be nil")
 	}
 }
 
@@ -380,16 +229,16 @@ func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	validateRequest := func(req *http.Request) {
 		if req.URL.String() != "https://custom-domain/api/v1/messages" {
-			t.Errorf("expected url https://custom-domain.zulipchat.com/api/v1/messages, got %s", req.URL.String())
+			t.Errorf("ExpectedError url https://custom-domain.zulipchat.com/api/v1/messages, got %s", req.URL.String())
 		}
 		if req.Method != http.MethodPost {
-			t.Errorf("expected POST request, got %s", req.Method)
+			t.Errorf("ExpectedError POST request, got %s", req.Method)
 		}
 		if req.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-			t.Errorf("expected Content-Type header to be application/x-www-form-urlencoded, got %s", req.Header.Get("Content-Type"))
+			t.Errorf("ExpectedError Content-Type header to be application/x-www-form-urlencoded, got %s", req.Header.Get("Content-Type"))
 		}
 		if req.Header.Get("User-Agent") != "Gatus" {
-			t.Errorf("expected User-Agent header to be Gatus, got %s", req.Header.Get("User-Agent"))
+			t.Errorf("ExpectedError User-Agent header to be Gatus, got %s", req.Header.Get("User-Agent"))
 		}
 	}
 	basicConfig := Config{
@@ -413,7 +262,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			name: "resolved",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:    basicAlert,
 			resolved: true,
@@ -426,7 +275,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			name: "resolved error",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:    basicAlert,
 			resolved: true,
@@ -439,7 +288,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			name: "triggered",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:    basicAlert,
 			resolved: false,
@@ -452,7 +301,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			name: "triggered error",
 			provider: AlertProvider{
-				Config: basicConfig,
+				DefaultConfig: basicConfig,
 			},
 			alert:    basicAlert,
 			resolved: false,
@@ -467,7 +316,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: tc.mockRoundTripper})
 			err := tc.provider.Send(
-				&endpoint.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-Name"},
 				&tc.alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
@@ -478,10 +327,155 @@ func TestAlertProvider_Send(t *testing.T) {
 				tc.resolved,
 			)
 			if tc.expectedError && err == nil {
-				t.Error("expected error, got none")
+				t.Error("ExpectedError error, got none")
 			}
 			if !tc.expectedError && err != nil {
-				t.Errorf("expected no error, got: %v", err)
+				t.Errorf("ExpectedError no error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-overrides",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "default-bot-email",
+					BotAPIKey: "default-bot-api-key",
+					Domain:    "default-domain",
+					ChannelID: "default-channel-id",
+				},
+				Overrides: nil,
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{},
+			ExpectedOutput: Config{
+				BotEmail:  "default-bot-email",
+				BotAPIKey: "default-bot-api-key",
+				Domain:    "default-domain",
+				ChannelID: "default-channel-id",
+			},
+		},
+		{
+			Name: "provider-with-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "default-bot-email",
+					BotAPIKey: "default-bot-api-key",
+					Domain:    "default-domain",
+					ChannelID: "default-channel-id",
+				},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{ChannelID: "group-channel-id"},
+					},
+				},
+			},
+			InputGroup: "",
+			InputAlert: alert.Alert{},
+			ExpectedOutput: Config{
+				BotEmail:  "default-bot-email",
+				BotAPIKey: "default-bot-api-key",
+				Domain:    "default-domain",
+				ChannelID: "default-channel-id",
+			},
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "default-bot-email",
+					BotAPIKey: "default-bot-api-key",
+					Domain:    "default-domain",
+					ChannelID: "default-channel-id",
+				},
+				Overrides: []Override{
+					{
+						Group: "group",
+						Config: Config{
+							BotEmail:  "group-bot-email",
+							BotAPIKey: "group-bot-api-key",
+							Domain:    "group-domain",
+							ChannelID: "group-channel-id",
+						},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{},
+			ExpectedOutput: Config{
+				BotEmail:  "group-bot-email",
+				BotAPIKey: "group-bot-api-key",
+				Domain:    "group-domain",
+				ChannelID: "group-channel-id",
+			},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "default-bot-email",
+					BotAPIKey: "default-bot-api-key",
+					Domain:    "default-domain",
+					ChannelID: "default-channel-id",
+				},
+				Overrides: []Override{
+					{
+						Group: "group",
+						Config: Config{
+							BotEmail:  "group-bot-email",
+							BotAPIKey: "group-bot-api-key",
+							Domain:    "group-domain",
+							ChannelID: "group-channel-id",
+						},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{ProviderOverride: map[string]any{
+				"bot-email":   "alert-bot-email",
+				"bot-api-key": "alert-bot-api-key",
+				"domain":      "alert-domain",
+				"channel-id":  "alert-channel-id",
+			}},
+			ExpectedOutput: Config{
+				BotEmail:  "alert-bot-email",
+				BotAPIKey: "alert-bot-api-key",
+				Domain:    "alert-domain",
+				ChannelID: "alert-channel-id",
+			},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.BotEmail != scenario.ExpectedOutput.BotEmail {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.BotEmail, got.BotEmail)
+			}
+			if got.BotAPIKey != scenario.ExpectedOutput.BotAPIKey {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.BotAPIKey, got.BotAPIKey)
+			}
+			if got.Domain != scenario.ExpectedOutput.Domain {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Domain, got.Domain)
+			}
+			if got.ChannelID != scenario.ExpectedOutput.ChannelID {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.ChannelID, got.ChannelID)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
 			}
 		})
 	}

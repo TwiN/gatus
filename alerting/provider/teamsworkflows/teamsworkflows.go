@@ -1,4 +1,4 @@
-package discord
+package teamsworkflows
 
 import (
 	"bytes"
@@ -40,7 +40,7 @@ func (cfg *Config) Merge(override *Config) {
 	}
 }
 
-// AlertProvider is the configuration necessary for sending an alert using Discord
+// AlertProvider is the configuration necessary for sending an alert using Teams
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
 
@@ -51,6 +51,7 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
+// Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
@@ -61,7 +62,7 @@ func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.WebhookURL) == 0 {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
@@ -94,71 +95,126 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return err
 }
 
-type Body struct {
-	Content string  `json:"content"`
-	Embeds  []Embed `json:"embeds"`
+// AdaptiveCardBody represents the structure of an Adaptive Card
+type AdaptiveCardBody struct {
+	Type    string      `json:"type"`
+	Version string      `json:"version"`
+	Body    []CardBody  `json:"body"`
+	MSTeams MSTeamsBody `json:"msteams"`
 }
 
-type Embed struct {
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Color       int     `json:"color"`
-	Fields      []Field `json:"fields,omitempty"`
+// CardBody represents the body of the Adaptive Card
+type CardBody struct {
+	Type      string       `json:"type"`
+	Text      string       `json:"text,omitempty"`
+	Wrap      bool         `json:"wrap"`
+	Separator bool         `json:"separator,omitempty"`
+	Size      string       `json:"size,omitempty"`
+	Weight    string       `json:"weight,omitempty"`
+	Items     []CardBody   `json:"items,omitempty"`
+	Facts     []Fact       `json:"facts,omitempty"`
+	FactSet   *FactSetBody `json:"factSet,omitempty"`
+	Style     string       `json:"style,omitempty"`
 }
 
-type Field struct {
-	Name   string `json:"name"`
-	Value  string `json:"value"`
-	Inline bool   `json:"inline"`
+// MSTeamsBody represents the msteams options
+type MSTeamsBody struct {
+	Width string `json:"width"`
+}
+
+// FactSetBody represents the FactSet in the Adaptive Card
+type FactSetBody struct {
+	Type  string `json:"type"`
+	Facts []Fact `json:"facts"`
+}
+
+// Fact represents an individual fact in the FactSet
+type Fact struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
 }
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
-	var colorCode int
+	var themeColor string
 	if resolved {
-		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-		colorCode = 3066993
+		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row.", ep.DisplayName(), alert.SuccessThreshold)
+		themeColor = "Good" // green
 	} else {
-		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
-		colorCode = 15158332
+		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row.", ep.DisplayName(), alert.FailureThreshold)
+		themeColor = "Attention" // red
 	}
-	var formattedConditionResults string
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = ":white_check_mark:"
-		} else {
-			prefix = ":x:"
-		}
-		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
-	}
-	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = ":\n> " + alertDescription
-	}
-	title := ":helmet_with_white_cross: Gatus"
+
+	// Configure default title if it's not provided
+	title := "&#x26D1; Gatus"
 	if cfg.Title != "" {
 		title = cfg.Title
 	}
-	body := Body{
-		Content: "",
-		Embeds: []Embed{
-			{
-				Title:       title,
-				Description: message + description,
-				Color:       colorCode,
-			},
-		},
-	}
-	if len(formattedConditionResults) > 0 {
-		body.Embeds[0].Fields = append(body.Embeds[0].Fields, Field{
-			Name:   "Condition results",
-			Value:  formattedConditionResults,
-			Inline: false,
+
+	// Build the facts from the condition results
+	var facts []Fact
+	for _, conditionResult := range result.ConditionResults {
+		var key string
+		if conditionResult.Success {
+			key = "&#x2705;"
+		} else {
+			key = "&#x274C;"
+		}
+		facts = append(facts, Fact{
+			Title: key,
+			Value: conditionResult.Condition,
 		})
 	}
-	bodyAsJSON, _ := json.Marshal(body)
+
+	cardContent := AdaptiveCardBody{
+		Type:    "AdaptiveCard",
+		Version: "1.4", // Version 1.5 and 1.6 doesn't seem to be supported by Teams as of 27/08/2024
+		Body: []CardBody{
+			{
+				Type:  "Container",
+				Style: themeColor,
+				Items: []CardBody{
+					{
+						Type:  "Container",
+						Style: "Default",
+						Items: []CardBody{
+							{
+								Type:   "TextBlock",
+								Text:   title,
+								Size:   "Medium",
+								Weight: "Bolder",
+							},
+							{
+								Type: "TextBlock",
+								Text: message,
+								Wrap: true,
+							},
+							{
+								Type:  "FactSet",
+								Facts: facts,
+							},
+						},
+					},
+				},
+			},
+		},
+		MSTeams: MSTeamsBody{
+			Width: "Full",
+		},
+	}
+
+	attachment := map[string]interface{}{
+		"contentType": "application/vnd.microsoft.card.adaptive",
+		"content":     cardContent,
+	}
+
+	payload := map[string]interface{}{
+		"type":        "message",
+		"attachments": []interface{}{attachment},
+	}
+
+	bodyAsJSON, _ := json.Marshal(payload)
 	return bodyAsJSON
 }
 
