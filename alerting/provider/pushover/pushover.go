@@ -33,8 +33,8 @@ type Config struct {
 	// Key of the user or group the messages should be sent to
 	UserKey string `yaml:"user-key"`
 
-	// The title of your message, likely the application name
-	// default: the name of your application in Pushover
+	// The title of your message
+	// default: "Gatus: <endpoint>""
 	Title string `yaml:"title,omitempty"`
 
 	// Priority of all messages, ranging from -2 (very low) to 2 (Emergency)
@@ -134,27 +134,44 @@ type Body struct {
 	Title    string `json:"title,omitempty"`
 	Message  string `json:"message"`
 	Priority int    `json:"priority"`
+	Html     int    `json:"html"`
 	Sound    string `json:"sound,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	var message string
-	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
-	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
-	}
+	var message, formattedConditionResults string
 	priority := cfg.Priority
 	if resolved {
 		priority = cfg.ResolvedPriority
+		message = fmt.Sprintf("An alert for <b>%s</b> has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+	} else {
+		message = fmt.Sprintf("An alert for <b>%s</b> has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+	}
+	for _, conditionResult := range result.ConditionResults {
+		var prefix string
+		if conditionResult.Success {
+			prefix = "✅"
+		} else {
+			prefix = "❌"
+		}
+		formattedConditionResults += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
+	}
+	if len(alert.GetDescription()) > 0 {
+		message += " with the following description: " + alert.GetDescription()
+	}
+	message += formattedConditionResults
+	title := "Gatus: " + ep.DisplayName()
+	if cfg.Title != "" {
+		title = cfg.Title
 	}
 	body, _ := json.Marshal(Body{
 		Token:    cfg.ApplicationToken,
 		User:     cfg.UserKey,
-		Title:    cfg.Title,
+		Title:    title,
 		Message:  message,
 		Priority: priority,
+		Html:     1,
 		Sound:    cfg.Sound,
 	})
 	return body
