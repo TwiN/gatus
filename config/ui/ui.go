@@ -14,6 +14,7 @@ const (
 	defaultHeader      = "Health Status"
 	defaultLogo        = ""
 	defaultLink        = ""
+	defaultCustomCSS   = ""
 )
 
 var (
@@ -28,6 +29,7 @@ type Config struct {
 	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
 	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
+	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
 }
 
 // Button is the configuration for a button on the UI
@@ -52,6 +54,7 @@ func GetDefaultConfig() *Config {
 		Header:      defaultHeader,
 		Logo:        defaultLogo,
 		Link:        defaultLink,
+		CustomCSS:   defaultCustomCSS,
 	}
 }
 
@@ -66,8 +69,14 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.Header) == 0 {
 		cfg.Header = defaultHeader
 	}
-	if len(cfg.Header) == 0 {
-		cfg.Header = defaultLink
+	if len(cfg.Logo) == 0 {
+		cfg.Logo = defaultLogo
+	}
+	if len(cfg.Link) == 0 {
+		cfg.Link = defaultLink
+	}
+	if len(cfg.CustomCSS) == 0 {
+		cfg.CustomCSS = defaultCustomCSS
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
@@ -80,9 +89,5 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		return err
 	}
 	var buffer bytes.Buffer
-	err = t.Execute(&buffer, cfg)
-	if err != nil {
-		return err
-	}
-	return nil
+	return t.Execute(&buffer, cfg)
 }

@@ -12,42 +12,46 @@ import (
 	"github.com/google/go-github/v48/github"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	scenarios := []struct {
-		Name     string
-		Provider AlertProvider
-		Expected bool
+		Name          string
+		Provider      AlertProvider
+		ExpectedError bool
 	}{
 		{
-			Name:     "invalid",
-			Provider: AlertProvider{RepositoryURL: "", Token: ""},
-			Expected: false,
+			Name:          "invalid",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "", Token: ""}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "invalid-token",
-			Provider: AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
-			Expected: false,
+			Name:          "invalid-token",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "missing-repository-name",
-			Provider: AlertProvider{RepositoryURL: "https://github.com/TwiN", Token: "12345"},
-			Expected: false,
+			Name:          "missing-repository-name",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN", Token: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "enterprise-client",
-			Provider: AlertProvider{RepositoryURL: "https://github.example.com/TwiN/test", Token: "12345"},
-			Expected: false,
+			Name:          "enterprise-client",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://github.example.com/TwiN/test", Token: "12345"}},
+			ExpectedError: true,
 		},
 		{
-			Name:     "invalid-url",
-			Provider: AlertProvider{RepositoryURL: "github.com/TwiN/test", Token: "12345"},
-			Expected: false,
+			Name:          "invalid-url",
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "github.com/TwiN/test", Token: "12345"}},
+			ExpectedError: true,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			if scenario.Provider.IsValid() != scenario.Expected {
-				t.Errorf("expected %t, got %t", scenario.Expected, scenario.Provider.IsValid())
+			err := scenario.Provider.Validate()
+			if scenario.ExpectedError && err == nil {
+				t.Error("expected error, got none")
+			}
+			if !scenario.ExpectedError && err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+				t.Error("expected no error, got", err.Error())
 			}
 		})
 	}
@@ -67,14 +71,14 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:          "triggered-error",
-			Provider:      AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      false,
 			ExpectedError: true,
 		},
 		{
 			Name:          "resolved-error",
-			Provider:      AlertProvider{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			Provider:      AlertProvider{DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"}},
 			Alert:         alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: true,
@@ -82,9 +86,13 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Provider.githubClient = github.NewClient(nil)
+			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
+			if err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") && !strings.Contains(err.Error(), "no such host") {
+				t.Error("expected no error, got", err.Error())
+			}
+			cfg.githubClient = github.NewClient(nil)
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
-			err := scenario.Provider.Send(
+			err = scenario.Provider.Send(
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&scenario.Alert,
 				&endpoint.Result{
@@ -165,5 +173,49 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 	if (&AlertProvider{DefaultAlert: nil}).GetDefaultAlert() != nil {
 		t.Error("expected default alert to be nil")
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			},
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+		},
+		{
+			Name: "provider-with-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{RepositoryURL: "https://github.com/TwiN/test", Token: "12345"},
+			},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"repository-url": "https://github.com/TwiN/alert-test", "token": "54321"}},
+			ExpectedOutput: Config{RepositoryURL: "https://github.com/TwiN/alert-test", Token: "54321"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			if err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") && !strings.Contains(err.Error(), "no such host") {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.RepositoryURL != scenario.ExpectedOutput.RepositoryURL {
+				t.Errorf("expected repository URL %s, got %s", scenario.ExpectedOutput.RepositoryURL, got.RepositoryURL)
+			}
+			if got.Token != scenario.ExpectedOutput.Token {
+				t.Errorf("expected token %s, got %s", scenario.ExpectedOutput.Token, got.Token)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") {
+				t.Errorf("unexpected error: %s", err)
+			}
+		})
 	}
 }

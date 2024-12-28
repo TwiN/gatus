@@ -2,6 +2,7 @@ package gitea
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,55 +12,56 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Discord
-type AlertProvider struct {
-	RepositoryURL string `yaml:"repository-url"` // The URL of the Gitea repository to create issues in
-	Token         string `yaml:"token"`          // Token requires at least RW on issues and RO on metadata
+var (
+	ErrRepositoryURLNotSet  = errors.New("repository-url not set")
+	ErrInvalidRepositoryURL = errors.New("invalid repository-url")
+	ErrTokenNotSet          = errors.New("token not set")
+)
 
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// ClientConfig is the configuration of the client used to communicate with the provider's target
-	ClientConfig *client.Config `yaml:"client,omitempty"`
-
-	// Assignees is a list of users to assign the issue to
-	Assignees []string `yaml:"assignees,omitempty"`
+type Config struct {
+	RepositoryURL string   `yaml:"repository-url"`      // The URL of the Gitea repository to create issues in
+	Token         string   `yaml:"token"`               // Token requires at least RW on issues and RO on metadata
+	Assignees     []string `yaml:"assignees,omitempty"` // Assignees is a list of users to assign the issue to
 
 	username        string
 	repositoryOwner string
 	repositoryName  string
 	giteaClient     *gitea.Client
+
+	// ClientConfig is the configuration of the client used to communicate with the provider's target
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.ClientConfig == nil {
-		provider.ClientConfig = client.GetDefaultConfig()
+func (cfg *Config) Validate() error {
+	if len(cfg.RepositoryURL) == 0 {
+		return ErrRepositoryURLNotSet
 	}
-
-	if len(provider.Token) == 0 || len(provider.RepositoryURL) == 0 {
-		return false
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
 	}
 	// Validate format of the repository URL
-	repositoryURL, err := url.Parse(provider.RepositoryURL)
+	repositoryURL, err := url.Parse(cfg.RepositoryURL)
 	if err != nil {
-		return false
+		return err
 	}
 	baseURL := repositoryURL.Scheme + "://" + repositoryURL.Host
 	pathParts := strings.Split(repositoryURL.Path, "/")
 	if len(pathParts) != 3 {
-		return false
+		return ErrInvalidRepositoryURL
 	}
-	provider.repositoryOwner = pathParts[1]
-	provider.repositoryName = pathParts[2]
-
+	if cfg.repositoryOwner == pathParts[1] && cfg.repositoryName == pathParts[2] && cfg.giteaClient != nil {
+		// Already validated, let's skip the rest of the validation to avoid unnecessary API calls
+		return nil
+	}
+	cfg.repositoryOwner = pathParts[1]
+	cfg.repositoryName = pathParts[2]
 	opts := []gitea.ClientOption{
-		gitea.SetToken(provider.Token),
+		gitea.SetToken(cfg.Token),
 	}
-
-	if provider.ClientConfig != nil && provider.ClientConfig.Insecure {
+	if cfg.ClientConfig != nil && cfg.ClientConfig.Insecure {
 		// add new http client for skip verify
 		httpClient := &http.Client{
 			Transport: &http.Transport{
@@ -68,34 +70,62 @@ func (provider *AlertProvider) IsValid() bool {
 		}
 		opts = append(opts, gitea.SetHTTPClient(httpClient))
 	}
-
-	provider.giteaClient, err = gitea.NewClient(baseURL, opts...)
+	cfg.giteaClient, err = gitea.NewClient(baseURL, opts...)
 	if err != nil {
-		return false
+		return err
 	}
-
-	user, _, err := provider.giteaClient.GetMyUserInfo()
+	user, _, err := cfg.giteaClient.GetMyUserInfo()
 	if err != nil {
-		return false
+		return err
 	}
+	cfg.username = user.UserName
+	return nil
+}
 
-	provider.username = user.UserName
+func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
+	if len(override.RepositoryURL) > 0 {
+		cfg.RepositoryURL = override.RepositoryURL
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if len(override.Assignees) > 0 {
+		cfg.Assignees = override.Assignees
+	}
+}
 
-	return true
+// AlertProvider is the configuration necessary for sending an alert using Discord
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	return provider.DefaultConfig.Validate()
 }
 
 // Send creates an issue in the designed RepositoryURL if the resolved parameter passed is false,
 // or closes the relevant issue(s) if the resolved parameter passed is true.
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
 	title := "alert(gatus): " + ep.DisplayName()
 	if !resolved {
-		_, _, err := provider.giteaClient.CreateIssue(
-			provider.repositoryOwner,
-			provider.repositoryName,
+		_, _, err = cfg.giteaClient.CreateIssue(
+			cfg.repositoryOwner,
+			cfg.repositoryName,
 			gitea.CreateIssueOption{
 				Title:     title,
 				Body:      provider.buildIssueBody(ep, alert, result),
-				Assignees: provider.Assignees,
+				Assignees: cfg.Assignees,
 			},
 		)
 		if err != nil {
@@ -103,13 +133,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		}
 		return nil
 	}
-
-	issues, _, err := provider.giteaClient.ListRepoIssues(
-		provider.repositoryOwner,
-		provider.repositoryName,
+	issues, _, err := cfg.giteaClient.ListRepoIssues(
+		cfg.repositoryOwner,
+		cfg.repositoryName,
 		gitea.ListIssueOption{
 			State:     gitea.StateOpen,
-			CreatedBy: provider.username,
+			CreatedBy: cfg.username,
 			ListOptions: gitea.ListOptions{
 				Page: 100,
 			},
@@ -118,13 +147,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return fmt.Errorf("failed to list issues: %w", err)
 	}
-
 	for _, issue := range issues {
 		if issue.Title == title {
 			stateClosed := gitea.StateClosed
-			_, _, err = provider.giteaClient.EditIssue(
-				provider.repositoryOwner,
-				provider.repositoryName,
+			_, _, err = cfg.giteaClient.EditIssue(
+				cfg.repositoryOwner,
+				cfg.repositoryName,
 				issue.ID,
 				gitea.EditIssueOption{
 					State: &stateClosed,
@@ -164,4 +192,26 @@ func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *aler
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration (we're returning the cfg here even if there's an error mostly for testing purposes)
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

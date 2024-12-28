@@ -1,5 +1,4 @@
 metrics: true
-debug: false
 ui:
   header: Example Company
   link: https://example.org

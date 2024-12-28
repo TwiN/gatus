@@ -11,13 +11,13 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
-func TestAlertProvider_IsValid(t *testing.T) {
-	invalidProvider := AlertProvider{APIKey: ""}
-	if invalidProvider.IsValid() {
+func TestAlertProvider_Validate(t *testing.T) {
+	invalidProvider := AlertProvider{DefaultConfig: Config{APIKey: ""}}
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{APIKey: "00000000-0000-0000-0000-000000000000"}
-	if !validProvider.IsValid() {
+	validProvider := AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -35,7 +35,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:          "triggered",
-			Provider:      AlertProvider{},
+			Provider:      AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:         alert.Alert{Description: &description, SuccessThreshold: 1, FailureThreshold: 1},
 			Resolved:      false,
 			ExpectedError: false,
@@ -45,7 +45,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:          "triggered-error",
-			Provider:      AlertProvider{},
+			Provider:      AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      false,
 			ExpectedError: true,
@@ -55,7 +55,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:          "resolved",
-			Provider:      AlertProvider{},
+			Provider:      AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: false,
@@ -65,7 +65,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:          "resolved-error",
-			Provider:      AlertProvider{},
+			Provider:      AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:         alert.Alert{Description: &description, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:      true,
 			ExpectedError: true,
@@ -74,7 +74,6 @@ func TestAlertProvider_Send(t *testing.T) {
 			}),
 		},
 	}
-
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
@@ -113,7 +112,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 	}{
 		{
 			Name:     "missing all params (unresolved)",
-			Provider: &AlertProvider{},
+			Provider: &AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:    &alert.Alert{},
 			Endpoint: &endpoint.Endpoint{},
 			Result:   &endpoint.Result{},
@@ -131,7 +130,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		},
 		{
 			Name:     "missing all params (resolved)",
-			Provider: &AlertProvider{},
+			Provider: &AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert:    &alert.Alert{},
 			Endpoint: &endpoint.Endpoint{},
 			Result:   &endpoint.Result{},
@@ -149,7 +148,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		},
 		{
 			Name:     "with default options (unresolved)",
-			Provider: &AlertProvider{},
+			Provider: &AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"}},
 			Alert: &alert.Alert{
 				Description:      &description,
 				FailureThreshold: 3,
@@ -184,11 +183,13 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		{
 			Name: "with custom options (resolved)",
 			Provider: &AlertProvider{
-				Priority:     "P5",
-				EntityPrefix: "oompa-",
-				AliasPrefix:  "loompa-",
-				Source:       "gatus-hc",
-				Tags:         []string{"do-ba-dee-doo"},
+				DefaultConfig: Config{
+					Priority:     "P5",
+					EntityPrefix: "oompa-",
+					AliasPrefix:  "loompa-",
+					Source:       "gatus-hc",
+					Tags:         []string{"do-ba-dee-doo"},
+				},
 			},
 			Alert: &alert.Alert{
 				Description:      &description,
@@ -220,7 +221,7 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 		{
 			Name: "with default options and details (unresolved)",
 			Provider: &AlertProvider{
-				Tags: []string{"foo"},
+				DefaultConfig: Config{Tags: []string{"foo"}, APIKey: "00000000-0000-0000-0000-000000000000"},
 			},
 			Alert: &alert.Alert{
 				Description:      &description,
@@ -265,8 +266,9 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		actual := scenario
 		t.Run(actual.Name, func(t *testing.T) {
-			if got := actual.Provider.buildCreateRequestBody(actual.Endpoint, actual.Alert, actual.Result, actual.Resolved); !reflect.DeepEqual(got, actual.want) {
-				t.Errorf("buildCreateRequestBody() = %v, want %v", got, actual.want)
+			_ = scenario.Provider.Validate()
+			if got := actual.Provider.buildCreateRequestBody(&scenario.Provider.DefaultConfig, actual.Endpoint, actual.Alert, actual.Result, actual.Resolved); !reflect.DeepEqual(got, actual.want) {
+				t.Errorf("got:\n%v\nwant:\n%v", got, actual.want)
 			}
 		})
 	}
@@ -307,12 +309,52 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 			},
 		},
 	}
-
 	for _, scenario := range scenarios {
 		actual := scenario
 		t.Run(actual.Name, func(t *testing.T) {
 			if got := actual.Provider.buildCloseRequestBody(actual.Endpoint, actual.Alert); !reflect.DeepEqual(got, actual.want) {
 				t.Errorf("buildCloseRequestBody() = %v, want %v", got, actual.want)
+			}
+		})
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+			},
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+		},
+		{
+			Name: "provider-with-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+			},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"api-key": "00000000-0000-0000-0000-000000000001"}},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.APIKey != scenario.ExpectedOutput.APIKey {
+				t.Errorf("expected APIKey to be %s, got %s", scenario.ExpectedOutput.APIKey, got.APIKey)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
 			}
 		})
 	}

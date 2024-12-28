@@ -26,6 +26,17 @@ func TestNew(t *testing.T) {
 			ExpectedCode: fiber.StatusOK,
 		},
 		{
+			Name:         "custom.css",
+			Path:         "/css/custom.css",
+			ExpectedCode: fiber.StatusOK,
+		},
+		{
+			Name:         "custom.css-gzipped",
+			Path:         "/css/custom.css",
+			ExpectedCode: fiber.StatusOK,
+			Gzip:         true,
+		},
+		{
 			Name:         "metrics",
 			Path:         "/metrics",
 			ExpectedCode: fiber.StatusOK,

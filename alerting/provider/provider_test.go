@@ -126,7 +126,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			ParseWithDefaultAlert(scenario.DefaultAlert, scenario.EndpointAlert)
+			MergeProviderDefaultAlertIntoEndpointAlert(scenario.DefaultAlert, scenario.EndpointAlert)
 			if scenario.ExpectedOutputAlert == nil {
 				if scenario.EndpointAlert != nil {
 					t.Fail()

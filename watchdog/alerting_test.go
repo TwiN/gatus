@@ -28,11 +28,12 @@ func TestHandleAlerting(t *testing.T) {
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -52,28 +53,28 @@ func TestHandleAlerting(t *testing.T) {
 	}
 
 	verify(t, ep, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 2, 0, true, "The alert should've triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 3, 0, true, "The alert should still be triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 4, 0, true, "The alert should still be triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, true, "The alert should still be triggered (because endpoint.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 2, true, "The alert should still be triggered (because endpoint.Alerts[0].SuccessThreshold is 3)")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 3, false, "The alert should've been resolved")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 4, false, "The alert should no longer be triggered")
 }
 
 func TestHandleAlertingWhenAlertingConfigIsNil(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
-	HandleAlerting(nil, nil, nil, true)
+	HandleAlerting(nil, nil, nil)
 }
 
 func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
@@ -96,9 +97,9 @@ func TestHandleAlertingWithBadAlertProvider(t *testing.T) {
 	}
 
 	verify(t, ep, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, &alerting.Config{}, false)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, &alerting.Config{})
 	verify(t, ep, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, &alerting.Config{}, false)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, &alerting.Config{})
 	verify(t, ep, 2, 0, false, "The alert shouldn't have triggered, because the provider wasn't configured properly")
 }
 
@@ -107,11 +108,12 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -132,7 +134,7 @@ func TestHandleAlertingWhenTriggeredAlertIsAlmostResolvedButendpointStartFailing
 	}
 
 	// This test simulate an alert that was already triggered
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 2, 0, true, "The alert was already triggered at the beginning of this test")
 }
 
@@ -141,11 +143,12 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -166,7 +169,7 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedButSendOnResolvedIsFalse(t *t
 		NumberOfFailuresInARow: 1,
 	}
 
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -175,10 +178,11 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			PagerDuty: &pagerduty.AlertProvider{
-				IntegrationKey: "00000000000000000000000000000000",
+				DefaultConfig: pagerduty.Config{
+					IntegrationKey: "00000000000000000000000000000000",
+				},
 			},
 		},
 	}
@@ -198,10 +202,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPagerDuty(t *testing.T) {
 		NumberOfFailuresInARow: 0,
 	}
 
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
 
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -210,11 +214,12 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Pushover: &pushover.AlertProvider{
-				ApplicationToken: "000000000000000000000000000000",
-				UserKey:          "000000000000000000000000000000",
+				DefaultConfig: pushover.Config{
+					ApplicationToken: "000000000000000000000000000000",
+					UserKey:          "000000000000000000000000000000",
+				},
 			},
 		},
 	}
@@ -234,10 +239,10 @@ func TestHandleAlertingWhenTriggeredAlertIsResolvedPushover(t *testing.T) {
 		NumberOfFailuresInARow: 0,
 	}
 
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
 
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "The alert should've been resolved")
 }
 
@@ -255,8 +260,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeCustom,
 			AlertingConfig: &alerting.Config{
 				Custom: &custom.AlertProvider{
-					URL:    "https://twin.sh/health",
-					Method: "GET",
+					DefaultConfig: custom.Config{
+						URL:    "https://twin.sh/health",
+						Method: "GET",
+					},
 				},
 			},
 		},
@@ -265,7 +272,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeDiscord,
 			AlertingConfig: &alerting.Config{
 				Discord: &discord.AlertProvider{
-					WebhookURL: "https://example.com",
+					DefaultConfig: discord.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -274,11 +283,13 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeEmail,
 			AlertingConfig: &alerting.Config{
 				Email: &email.AlertProvider{
-					From:     "from@example.com",
-					Password: "hunter2",
-					Host:     "mail.example.com",
-					Port:     587,
-					To:       "to@example.com",
+					DefaultConfig: email.Config{
+						From:     "from@example.com",
+						Password: "hunter2",
+						Host:     "mail.example.com",
+						Port:     587,
+						To:       "to@example.com",
+					},
 				},
 			},
 		},
@@ -287,9 +298,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeJetBrainsSpace,
 			AlertingConfig: &alerting.Config{
 				JetBrainsSpace: &jetbrainsspace.AlertProvider{
-					Project:   "foo",
-					ChannelID: "bar",
-					Token:     "baz",
+					DefaultConfig: jetbrainsspace.Config{
+						Project:   "foo",
+						ChannelID: "bar",
+						Token:     "baz",
+					},
 				},
 			},
 		},
@@ -298,7 +311,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMattermost,
 			AlertingConfig: &alerting.Config{
 				Mattermost: &mattermost.AlertProvider{
-					WebhookURL: "https://example.com",
+					DefaultConfig: mattermost.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -307,9 +322,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMessagebird,
 			AlertingConfig: &alerting.Config{
 				Messagebird: &messagebird.AlertProvider{
-					AccessKey:  "1",
-					Originator: "2",
-					Recipients: "3",
+					DefaultConfig: messagebird.Config{
+						AccessKey:  "1",
+						Originator: "2",
+						Recipients: "3",
+					},
 				},
 			},
 		},
@@ -318,7 +335,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypePagerDuty,
 			AlertingConfig: &alerting.Config{
 				PagerDuty: &pagerduty.AlertProvider{
-					IntegrationKey: "00000000000000000000000000000000",
+					DefaultConfig: pagerduty.Config{
+						IntegrationKey: "00000000000000000000000000000000",
+					},
 				},
 			},
 		},
@@ -327,8 +346,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypePushover,
 			AlertingConfig: &alerting.Config{
 				Pushover: &pushover.AlertProvider{
-					ApplicationToken: "000000000000000000000000000000",
-					UserKey:          "000000000000000000000000000000",
+					DefaultConfig: pushover.Config{
+						ApplicationToken: "000000000000000000000000000000",
+						UserKey:          "000000000000000000000000000000",
+					},
 				},
 			},
 		},
@@ -337,7 +358,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeSlack,
 			AlertingConfig: &alerting.Config{
 				Slack: &slack.AlertProvider{
-					WebhookURL: "https://example.com",
+					DefaultConfig: slack.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -346,7 +369,9 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTeams,
 			AlertingConfig: &alerting.Config{
 				Teams: &teams.AlertProvider{
-					WebhookURL: "https://example.com",
+					DefaultConfig: teams.Config{
+						WebhookURL: "https://example.com",
+					},
 				},
 			},
 		},
@@ -355,8 +380,10 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTelegram,
 			AlertingConfig: &alerting.Config{
 				Telegram: &telegram.AlertProvider{
-					Token: "1",
-					ID:    "2",
+					DefaultConfig: telegram.Config{
+						Token: "1",
+						ID:    "2",
+					},
 				},
 			},
 		},
@@ -365,10 +392,12 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeTwilio,
 			AlertingConfig: &alerting.Config{
 				Twilio: &twilio.AlertProvider{
-					SID:   "1",
-					Token: "2",
-					From:  "3",
-					To:    "4",
+					DefaultConfig: twilio.Config{
+						SID:   "1",
+						Token: "2",
+						From:  "3",
+						To:    "4",
+					},
 				},
 			},
 		},
@@ -377,7 +406,7 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			AlertType: alert.TypeMatrix,
 			AlertingConfig: &alerting.Config{
 				Matrix: &matrix.AlertProvider{
-					ProviderConfig: matrix.ProviderConfig{
+					DefaultConfig: matrix.Config{
 						ServerURL:      "https://example.com",
 						AccessToken:    "1",
 						InternalRoomID: "!a:example.com",
@@ -403,32 +432,32 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 				},
 			}
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 1, 0, false, "")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 2, 0, false, "The alert should have failed to trigger, because the alert provider is returning an error")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 3, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 4, 0, false, "The alert should still not be triggered, because the alert provider is still returning an error")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 5, 0, true, "The alert should've been triggered because the alert provider is no longer returning an error")
-			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
 			verify(t, ep, 0, 1, true, "The alert should've still been triggered")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
 			verify(t, ep, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 			// Make sure that everything's working as expected after a rough patch
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 1, 0, false, "")
-			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
 			verify(t, ep, 2, 0, true, "The alert should have triggered")
-			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
 			verify(t, ep, 0, 1, true, "The alert should still be triggered")
-			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig, true)
+			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
 			verify(t, ep, 0, 2, false, "The alert should have been resolved")
 		})
 	}
@@ -440,11 +469,12 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
@@ -463,27 +493,27 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 		},
 	}
 
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
-	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 2, 0, true, "")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 1, false, "")
-	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 	verify(t, ep, 0, 2, false, "")
 }
 
