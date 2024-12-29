@@ -21,11 +21,11 @@ _Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
   <summary><b>Quick start</b></summary>
 
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 You can also use GitHub Container Registry if you prefer:
 ```console
-docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
 For more details, see [Usage](#usage)
 </details>
