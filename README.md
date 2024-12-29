@@ -119,6 +119,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Response time](#response-time)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
+    - [Raw Data](#raw-data)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 
@@ -238,6 +239,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
+| `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
@@ -275,7 +277,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                 | `false`                    |
 | `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                              | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
-| `endpoints[].ui.badge.reponse-time`             | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
 
 ### External Endpoints
@@ -1188,7 +1190,7 @@ endpoints:
 | `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                     | `{}`                         |
 | `alerting.pushover.application-token` | Pushover application token                                                                      | `""`                         |
 | `alerting.pushover.user-key`          | User or group key                                                                               | `""`                         |
-| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | Name of your App in Pushover |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | `"Gatus: <endpoint>"` |
 | `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
 | `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)      | `0`                          |
 | `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
@@ -2403,6 +2405,23 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
+#### Raw Data
+Gatus exposes the raw data for one of your monitored endpoints.
+This allows you to track and aggregate data in your own applications for monitored endpoints. For instance if you want to track uptime for a period longer than 7 days.
+
+##### Uptime
+The path to get raw uptime data for an endpoint is:
+```
+/api/v1/endpoints/{key}/uptimes/{duration}
+```
+Where:
+- `{duration}` is `30d` (alpha), `7d`, `24h` or `1h`
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/uptimes/24h
+```
 
 ### Installing as binary
 You can download Gatus as a binary using the following command:

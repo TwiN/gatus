@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
@@ -30,6 +31,10 @@ func New(cfg *config.Config) *API {
 	if cfg.Web == nil {
 		logr.Warnf("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
 		cfg.Web = web.GetDefaultConfig()
+	}
+	if cfg.UI == nil {
+		logr.Warnf("[api.New] nil ui config passed as parameter. This should only happen in tests. Using default ui configuration")
+		cfg.UI = ui.GetDefaultConfig()
 	}
 	api.router = api.createRouter(cfg)
 	return api
@@ -73,6 +78,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security}.GetConfig)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", HealthBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.shields", HealthBadgeShields)
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration", UptimeRaw)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration/badge.svg", UptimeBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/badge.svg", ResponseTimeBadge(cfg))
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/chart.svg", ResponseTimeChart)
@@ -87,6 +93,8 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		statusCode, body := healthHandler.GetResponseStatusCodeAndBody()
 		return c.Status(statusCode).Send(body)
 	})
+	// Custom CSS
+	app.Get("/css/custom.css", CustomCSSHandler{customCSS: cfg.UI.CustomCSS}.GetCustomCSS)
 	// Everything else falls back on static content
 	app.Use(redirect.New(redirect.Config{
 		Rules: map[string]string{
