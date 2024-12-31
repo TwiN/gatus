@@ -12,6 +12,7 @@ require (
 	github.com/TwiN/whois v1.1.9
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.6.0
@@ -50,6 +51,7 @@ require (
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect

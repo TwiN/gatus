@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"github.com/TwiN/gatus/v5/config/endpoint/mqtt"
 	"io"
 	"net/http"
 	"strings"
@@ -280,9 +281,10 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 
 func TestEndpoint_Type(t *testing.T) {
 	type args struct {
-		URL string
-		DNS *dns.Config
-		SSH *ssh.Config
+		URL  string
+		DNS  *dns.Config
+		SSH  *ssh.Config
+		MQTT *mqtt.Config
 	}
 	tests := []struct {
 		args args
@@ -297,6 +299,15 @@ func TestEndpoint_Type(t *testing.T) {
 				},
 			},
 			want: TypeDNS,
+		},
+		{
+			args: args{
+				URL: "wss://example.com/mqtt",
+				MQTT: &mqtt.Config{
+					Topic: "my_topic",
+				},
+			},
+			want: TypeMQTT,
 		},
 		{
 			args: args{
@@ -527,6 +538,57 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSHConfig: &ssh.Config{
+					Username: scenario.username,
+					Password: scenario.password,
+				},
+				Conditions: []Condition{Condition("[STATUS] == 0")},
+			}
+			err := endpoint.ValidateAndSetDefaults()
+			if !errors.Is(err, scenario.expectedErr) {
+				t.Errorf("expected error %v, got %v", scenario.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestEndpoint_ValidateAndSetDefaultsWithMQTT(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		topic       string
+		username    string
+		password    string
+		expectedErr error
+	}{
+		{
+			name:        "fail when has no topic",
+			topic:       "",
+			username:    "",
+			password:    "",
+			expectedErr: mqtt.ErrEndpointWithoutMQTTTopic,
+		},
+		{
+			name:        "success when only topic is set",
+			topic:       "my_topic",
+			username:    "",
+			password:    "",
+			expectedErr: nil,
+		},
+		{
+			name:        "success when all fields are set",
+			topic:       "my_topic",
+			username:    "username",
+			password:    "password",
+			expectedErr: nil,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			endpoint := &Endpoint{
+				Name: "mqtt-test",
+				URL:  "https://example.com",
+				MQTTConfig: &mqtt.Config{
+					Topic:    scenario.topic,
 					Username: scenario.username,
 					Password: scenario.password,
 				},
@@ -784,6 +846,42 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestIntegrationEvaluateHealthForMQTT(t *testing.T) {
+	scenarios := []struct {
+		name       string
+		endpoint   Endpoint
+		conditions []Condition
+		success    bool
+	}{
+		{
+			name: "mqtt-failure",
+			endpoint: Endpoint{
+				Name: "mqtt-failure",
+				URL:  "wss://example.com/mqtt",
+				MQTTConfig: &mqtt.Config{
+					Topic:    "my_topic",
+					Username: "gatus",
+					Password: "",
+				},
+				Body: "This is a test",
+			},
+			conditions: []Condition{Condition("[CONNECTED] == true")},
+			success:    false,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			scenario.endpoint.ValidateAndSetDefaults()
+			scenario.endpoint.Conditions = scenario.conditions
+			result := scenario.endpoint.EvaluateHealth()
+			if result.Success != scenario.success {
+				t.Errorf("Expected success to be %v, but was %v", scenario.success, result.Success)
+			}
+		})
 	}
 }
 

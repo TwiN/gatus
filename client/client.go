@@ -15,6 +15,7 @@ import (
 
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/whois"
+	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
@@ -330,6 +331,46 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		}
 	}
 	return connected, dnsRcode, body, nil
+}
+
+func QueryMQTT(address, topic, username, password, body string, config *Config) (bool, []byte, error) {
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(address)
+	opts.SetClientID(fmt.Sprintf("gatus-client-%d", time.Now().UnixMilli()))
+	if len(username) > 0 {
+		opts.SetUsername(username)
+	}
+	if len(password) > 0 {
+		opts.SetPassword(password)
+	}
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, nil, fmt.Errorf("error connecting to mqtt: %w", token.Error())
+	}
+	defer client.Disconnect(1)
+
+	done := make(chan struct{})
+	defer close(done)
+
+	if token := client.Subscribe(topic, 0, func(client mqtt.Client, message mqtt.Message) {
+		message.Ack()
+		if string(message.Payload()) == body {
+			done <- struct{}{}
+		}
+	}); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, nil, fmt.Errorf("error subscribing to mqtt topic: %w", token.Error())
+	}
+
+	if token := client.Publish(topic, 0, false, body); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, nil, fmt.Errorf("error publishing to mqtt topic: %w", token.Error())
+	}
+
+	select {
+	case <-done:
+		return true, []byte(body), nil
+	case <-time.After(config.Timeout):
+		return false, nil, fmt.Errorf("timout while waiting for mqtt message: %w")
+	}
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes

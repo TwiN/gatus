@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/endpoint/mqtt"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"golang.org/x/crypto/ssh"
@@ -46,6 +47,7 @@ const (
 	TypeHTTP     Type = "HTTP"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
+	TypeMQTT     Type = "MQTT"
 	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
@@ -110,6 +112,9 @@ type Endpoint struct {
 	// SSH is the configuration for SSH monitoring
 	SSHConfig *sshconfig.Config `yaml:"ssh,omitempty"`
 
+	// MQTT is the configuration for MQTT monitoring
+	MQTTConfig *mqtt.Config `yaml:"mqtt,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
@@ -136,6 +141,8 @@ func (e *Endpoint) Type() Type {
 	switch {
 	case e.DNSConfig != nil:
 		return TypeDNS
+	case e.MQTTConfig != nil:
+		return TypeMQTT
 	case strings.HasPrefix(e.URL, "tcp://"):
 		return TypeTCP
 	case strings.HasPrefix(e.URL, "sctp://"):
@@ -215,6 +222,9 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.SSHConfig != nil {
 		return e.SSHConfig.Validate()
+	}
+	if e.MQTTConfig != nil {
+		return e.MQTTConfig.Validate()
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
@@ -370,6 +380,13 @@ func (e *Endpoint) call(result *Result) {
 			return
 		}
 		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.Body, e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeMQTT {
+		result.Connected, result.Body, err = client.QueryMQTT(e.URL, e.MQTTConfig.Topic, e.MQTTConfig.Username, e.MQTTConfig.Password, e.Body, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
