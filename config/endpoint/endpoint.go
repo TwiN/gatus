@@ -386,7 +386,7 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeMQTT {
-		result.Connected, result.Body, err = client.QueryMQTT(e.URL, e.MQTTConfig.Topic, e.MQTTConfig.Username, e.MQTTConfig.Password, e.Body, e.ClientConfig)
+		result.Connected, err = client.QueryMQTT(e.URL, e.MQTTConfig.Topic, e.MQTTConfig.Username, e.MQTTConfig.Password, e.Body, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return

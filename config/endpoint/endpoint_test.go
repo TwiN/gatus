@@ -866,7 +866,7 @@ func TestIntegrationEvaluateHealthForMQTT(t *testing.T) {
 					Username: "gatus",
 					Password: "",
 				},
-				Body: "This is a test",
+				Body: "This is a test - {{ utcEpoch }}",
 			},
 			conditions: []Condition{Condition("[CONNECTED] == true")},
 			success:    false,

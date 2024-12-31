@@ -99,6 +99,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring a WebSocket endpoint](#monitoring-a-websocket-endpoint)
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
+  - [Monitoring an endpoint using MQTT](#monitoring-an-endpoint-using-mqtt)
   - [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
@@ -2035,6 +2036,28 @@ There are two placeholders that can be used in the conditions for endpoints of t
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
+
+
+### Monitoring an endpoint using MQTT
+Defining an `mqtt` configuration in an endpoint will automatically mark said endpoint as an endpoint of type MQTT:
+```yaml
+endpoints:
+  - name: example-mqtt-query
+    url: "wss://example.com/mqtt"
+    mqtt:
+      topic: "my_topic"
+      username: "username" # Optional
+      password: "password" # Optional
+    body: "gatus check - {{ utcEpoch }}"
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+The body can be plain text or a text/template.  If it is a text/template, the following functions are available:
+- `utcEpoch` returns the seconds since the unix epoch
+
+The following placeholders are supported for endpoints of type MQTT:
+- `[CONNECTED]` resolves to `true` if the MQTT message was published and the same message was consumed, `false` otherwise
 
 
 ### Monitoring an endpoint using SSH
