@@ -2048,13 +2048,13 @@ endpoints:
       topic: "my_topic"
       username: "username" # Optional
       password: "password" # Optional
-    body: "gatus check - {{ utcEpoch }}"
+    body: "gatus check - {{ uuidv4 }}"
     conditions:
       - "[CONNECTED] == true"
 ```
 
 The body can be plain text or a text/template.  If it is a text/template, the following functions are available:
-- `utcEpoch` returns the seconds since the unix epoch
+- `uuidv4` returns a UUID v4 universally unique ID
 
 The following placeholders are supported for endpoints of type MQTT:
 - `[CONNECTED]` resolves to `true` if the MQTT message was published and the same message was consumed, `false` otherwise

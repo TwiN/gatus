@@ -18,6 +18,7 @@ import (
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/whois"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
@@ -37,8 +38,8 @@ var (
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
 
 	mqttTemplateEngine = template.New("base").Funcs(template.FuncMap{
-		"utcEpoch": func() int64 {
-			return time.Now().Unix()
+		"uuidv4": func() string {
+			return uuid.New().String()
 		},
 	})
 )
