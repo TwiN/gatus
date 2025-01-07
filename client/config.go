@@ -22,11 +22,11 @@ const (
 )
 
 var (
-	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
-	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
-	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
-	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
-	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidDNSResolver              = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
+	ErrInvalidDNSResolverPort          = errors.New("invalid DNS resolver port")
+	ErrInvalidClientOAuth2Config       = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
+	ErrInvalidClientIAPConfig          = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
+	ErrInvalidClientCertificatesConfig = errors.New("invalid TLS client certificates configuration: both certificate-file and private-key-file must be specified")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -107,6 +107,9 @@ type TLSConfig struct {
 	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
 
 	RenegotiationSupport string `yaml:"renegotiation,omitempty"`
+
+	// Override default SNI behaviour
+	ServerNameIndication string `yaml:"server-name-indication,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the client configuration and sets the default values if necessary
@@ -176,9 +179,9 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
-// HasTLSConfig returns true if the client has client certificate parameters
+// HasTLSConfig returns true if the client has a TLS config
 func (c *Config) HasTLSConfig() bool {
-	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
+	return c.TLS != nil
 }
 
 // isValid() returns true if the IAP configuration is valid
@@ -191,16 +194,23 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
-// isValid() returns nil if the client tls certificates are valid, otherwise returns an error
+// HasClientCertificates returns true if the client has client certificate parameters in the TLS config
+func (c *TLSConfig) HasClientCertificates() bool {
+	return len(c.CertificateFile) > 0 && len(c.PrivateKeyFile) > 0
+}
+
+// isValid() returns nil if the client tls configuration is valid (including certificate validation if provided), otherwise returns an error
 func (t *TLSConfig) isValid() error {
-	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
+	if (len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) <= 0) || (len(t.PrivateKeyFile) > 0 && len(t.CertificateFile) <= 0) {
+		return ErrInvalidClientCertificatesConfig
+	}
+	if t.HasClientCertificates() {
 		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
 		if err != nil {
 			return err
 		}
-		return nil
 	}
-	return ErrInvalidClientTLSConfig
+	return nil
 }
 
 // getHTTPClient return an HTTP client matching the Config's parameters.
@@ -209,7 +219,7 @@ func (c *Config) getHTTPClient() *http.Client {
 		InsecureSkipVerify: c.Insecure,
 	}
 	if c.HasTLSConfig() && c.TLS.isValid() == nil {
-		tlsConfig = configureTLS(tlsConfig, *c.TLS)
+		tlsConfig = ConfigureTLS(tlsConfig, *c.TLS)
 	}
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{
@@ -322,14 +332,16 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	return client
 }
 
-// configureTLS returns a TLS Config that will enable mTLS
-func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
-	clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
-	if err != nil {
-		logr.Errorf("[client.configureTLS] Failed to load certificate: %s", err.Error())
-		return nil
+// configureTLS returns a TLS Config that can enable mTLS, set renegotiation and SNI
+func ConfigureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
+	if c.HasClientCertificates() {
+		clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
+		if err != nil {
+			logr.Errorf("[client.ConfigureTLS] Failed to load certificate: %s", err.Error())
+			return nil
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
 	}
-	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
 	tlsConfig.Renegotiation = tls.RenegotiateNever
 	renegotiationSupport := map[string]tls.RenegotiationSupport{
 		"once":   tls.RenegotiateOnceAsClient,
@@ -338,6 +350,9 @@ func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
 	}
 	if val, ok := renegotiationSupport[c.RenegotiationSupport]; ok {
 		tlsConfig.Renegotiation = val
+	}
+	if len(c.ServerNameIndication) > 0 {
+		tlsConfig.ServerName = c.ServerNameIndication
 	}
 	return tlsConfig
 }

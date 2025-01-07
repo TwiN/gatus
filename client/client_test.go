@@ -169,6 +169,7 @@ func TestCanPerformTLS(t *testing.T) {
 	type args struct {
 		address  string
 		insecure bool
+		sni      string
 	}
 	tests := []struct {
 		name          string
@@ -218,11 +219,31 @@ func TestCanPerformTLS(t *testing.T) {
 			wantConnected: false,
 			wantErr:       true,
 		},
+		{
+			name: "valid tls with different sni",
+			args: args{
+				insecure: false,
+				address:  "example.com:443",
+				sni:      "example.net",
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+		{
+			name: "valid tls with wrong sni",
+			args: args{
+				insecure: false,
+				address:  "example.com:443",
+				sni:      "wrong.sni",
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second, TLS: &TLSConfig{ServerNameIndication: tt.args.sni}})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -347,7 +368,7 @@ func TestTlsRenegotiation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			tls := &tls.Config{}
-			tlsConfig := configureTLS(tls, test.cfg)
+			tlsConfig := ConfigureTLS(tls, test.cfg)
 			if tlsConfig.Renegotiation != test.expectedConfig {
 				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
 			}

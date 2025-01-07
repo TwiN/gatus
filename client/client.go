@@ -149,9 +149,13 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
 func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
-	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.Insecure,
-	})
+	}
+	if config.HasTLSConfig() && config.TLS.isValid() == nil {
+		tlsConfig = ConfigureTLS(tlsConfig, *config.TLS)
+	}
+	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, tlsConfig)
 	if err != nil {
 		return
 	}
