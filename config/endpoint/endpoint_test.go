@@ -527,8 +527,9 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSHConfig: &ssh.Config{
-					Username: scenario.username,
-					Password: scenario.password,
+					Username:     scenario.username,
+					Password:     scenario.password,
+					Authenticate: true,
 				},
 				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}

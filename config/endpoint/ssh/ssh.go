@@ -13,12 +13,16 @@ var (
 )
 
 type Config struct {
-	Username string `yaml:"username,omitempty"`
-	Password string `yaml:"password,omitempty"`
+	Username     string `yaml:"username,omitempty"`
+	Password     string `yaml:"password,omitempty"`
+	Authenticate bool   `yaml:"authenticate,omitempty"`
 }
 
 // Validate the SSH configuration
 func (cfg *Config) Validate() error {
+	if cfg.Authenticate == false {
+		return nil
+	}
 	if len(cfg.Username) == 0 {
 		return ErrEndpointWithoutSSHUsername
 	}

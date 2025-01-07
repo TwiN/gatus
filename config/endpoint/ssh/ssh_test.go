@@ -6,7 +6,7 @@ import (
 )
 
 func TestSSH_validate(t *testing.T) {
-	cfg := &Config{}
+	cfg := &Config{Authenticate: true}
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected an error")
 	} else if !errors.Is(err, ErrEndpointWithoutSSHUsername) {

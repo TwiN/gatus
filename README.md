@@ -2046,6 +2046,7 @@ endpoints:
     ssh:
       username: "username"
       password: "password"
+      authenticate: true
     body: |
       {
         "command": "uptime"
@@ -2055,6 +2056,8 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
 ```
+
+you can also use no authentication to monitor the endpoint by setting the `authenticate` field to `false`, but will it only check for connection status.
 
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
