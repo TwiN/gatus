@@ -23,9 +23,10 @@ var (
 )
 
 type Config struct {
-	Token  string `yaml:"token"`
-	ID     string `yaml:"id"`
-	ApiUrl string `yaml:"api-url"`
+	Token   string `yaml:"token"`
+	ID      string `yaml:"id"`
+	TopicId string `yaml:"topic-id,omitempty"`
+	ApiUrl  string `yaml:"api-url"`
 
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
@@ -52,6 +53,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.ID) > 0 {
 		cfg.ID = override.ID
+	}
+	if len(override.TopicId) > 0 {
+		cfg.TopicId = override.TopicId
 	}
 	if len(override.ApiUrl) > 0 {
 		cfg.ApiUrl = override.ApiUrl
@@ -117,6 +121,7 @@ type Body struct {
 	ChatID    string `json:"chat_id"`
 	Text      string `json:"text"`
 	ParseMode string `json:"parse_mode"`
+	TopicId   string `json:"message_thread_id,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -150,6 +155,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		ChatID:    cfg.ID,
 		Text:      text,
 		ParseMode: "MARKDOWN",
+		TopicId:   cfg.TopicId,
 	})
 	return bodyAsJSON
 }
