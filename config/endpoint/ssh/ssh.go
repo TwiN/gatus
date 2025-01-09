@@ -20,9 +20,10 @@ type Config struct {
 
 // Validate the SSH configuration
 func (cfg *Config) Validate() error {
-	if cfg.Authenticate == false {
+	if len(cfg.Username) == 0 && len(cfg.Password) == 0 {
 		return nil
 	}
+
 	if len(cfg.Username) == 0 {
 		return ErrEndpointWithoutSSHUsername
 	}

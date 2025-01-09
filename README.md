@@ -2046,7 +2046,6 @@ endpoints:
     ssh:
       username: "username"
       password: "password"
-      authenticate: true
     body: |
       {
         "command": "uptime"
@@ -2057,7 +2056,22 @@ endpoints:
       - "[STATUS] == 0"
 ```
 
-you can also use no authentication to monitor the endpoint by setting the `authenticate` field to `false`, but will it only check for connection status.
+you can also use no authentication to monitor the endpoint by not specifying the username
+and password fields.
+
+```yaml
+endpoints:
+  - name: ssh-example
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: ""
+      password: ""
+
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+```
 
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise

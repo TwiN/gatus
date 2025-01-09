@@ -363,7 +363,7 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSSH {
-		if !e.SSHConfig.Authenticate {
+		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
 			result.Connected, result.HTTPStatus, err =
 				client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 
