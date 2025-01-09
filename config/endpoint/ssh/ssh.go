@@ -13,9 +13,8 @@ var (
 )
 
 type Config struct {
-	Username     string `yaml:"username,omitempty"`
-	Password     string `yaml:"password,omitempty"`
-	Authenticate bool   `yaml:"authenticate,omitempty"`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
 }
 
 // Validate the SSH configuration
