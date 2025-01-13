@@ -1,5 +1,7 @@
 package endpoint
 
+import "github.com/TwiN/gatus/v5/config/endpoint/ui"
+
 // Status contains the evaluation Results of an Endpoint
 type Status struct {
 	// Name of the endpoint
@@ -23,16 +25,19 @@ type Status struct {
 	//
 	// To retrieve the uptime between two time, use store.GetUptimeByKey.
 	Uptime *Uptime `json:"-"`
+
+	UiConfig *ui.Config `json:"uiConfig,omitempty"`
 }
 
 // NewStatus creates a new Status
-func NewStatus(group, name string) *Status {
+func NewStatus(group, name string, uiConfig ui.Config) *Status {
 	return &Status{
-		Name:    name,
-		Group:   group,
-		Key:     ConvertGroupAndEndpointNameToKey(group, name),
-		Results: make([]*Result, 0),
-		Events:  make([]*Event, 0),
-		Uptime:  NewUptime(),
+		Name:     name,
+		Group:    group,
+		Key:      ConvertGroupAndEndpointNameToKey(group, name),
+		Results:  make([]*Result, 0),
+		Events:   make([]*Event, 0),
+		Uptime:   NewUptime(),
+		UiConfig: &uiConfig,
 	}
 }

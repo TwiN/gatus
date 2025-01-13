@@ -18,6 +18,14 @@ type Config struct {
 
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
+
+	Menu []MenuItem `yaml:"menu"`
+}
+
+type MenuItem struct {
+	Name  string `yaml:"name"`
+	Type  string `yaml:"type"`
+	Value string `yaml:"value"`
 }
 
 type Badge struct {
@@ -61,5 +69,6 @@ func GetDefaultConfig() *Config {
 				Thresholds: []int{50, 200, 300, 500, 750},
 			},
 		},
+		Menu: []MenuItem{},
 	}
 }
