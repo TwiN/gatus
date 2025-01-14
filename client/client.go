@@ -97,16 +97,18 @@ func CanCreateUDPConnection(address string, config *Config) bool {
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
 func CanCreateSCTPConnection(address string, config *Config) bool {
-	ch := make(chan bool)
+	ch := make(chan bool, 1)
 	go (func(res chan bool) {
 		addr, err := sctp.ResolveSCTPAddr("sctp", address)
 		if err != nil {
 			res <- false
+			return
 		}
 
 		conn, err := sctp.DialSCTP("sctp", nil, addr)
 		if err != nil {
 			res <- false
+			return
 		}
 		_ = conn.Close()
 		res <- true
