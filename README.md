@@ -1,6 +1,6 @@
 [![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
-![test](https://github.com/TwiN/gatus/workflows/test/badge.svg?branch=master)
+![test](https://github.com/TwiN/gatus/actions/workflows/test.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
 [![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
@@ -21,11 +21,11 @@ _Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
   <summary><b>Quick start</b></summary>
 
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 You can also use GitHub Container Registry if you prefer:
 ```console
-docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
 For more details, see [Usage](#usage)
 </details>
