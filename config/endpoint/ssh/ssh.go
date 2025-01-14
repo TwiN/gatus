@@ -22,7 +22,6 @@ func (cfg *Config) Validate() error {
 	if len(cfg.Username) == 0 && len(cfg.Password) == 0 {
 		return nil
 	}
-
 	if len(cfg.Username) == 0 {
 		return ErrEndpointWithoutSSHUsername
 	}

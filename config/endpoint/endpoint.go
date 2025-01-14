@@ -366,7 +366,6 @@ func (e *Endpoint) call(result *Result) {
 		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
 			result.Connected, result.HTTPStatus, err =
 				client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
-
 			if err != nil {
 				result.AddError(err.Error())
 				return
@@ -375,7 +374,6 @@ func (e *Endpoint) call(result *Result) {
 			result.Duration = time.Since(startTime)
 			return
 		}
-
 		var cli *ssh.Client
 		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.ClientConfig)
 		if err != nil {

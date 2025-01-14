@@ -10,7 +10,6 @@ func TestSSH_validate(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Error("didn't expect an error")
 	}
-
 	cfg.Username = "username"
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected an error")
