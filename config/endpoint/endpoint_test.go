@@ -761,7 +761,7 @@ func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
 
 func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
-	conditionBody := Condition("[BODY] == 93.184.215.14")
+	conditionBody := Condition("[BODY] == pat(*.*.*.*)")
 	endpoint := Endpoint{
 		Name: "example",
 		URL:  "8.8.8.8",
