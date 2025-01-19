@@ -2058,6 +2058,23 @@ endpoints:
       - "[STATUS] == 0"
 ```
 
+you can also use no authentication to monitor the endpoint by not specifying the username
+and password fields.
+
+```yaml
+endpoints:
+  - name: ssh-example
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: ""
+      password: ""
+
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+```
+
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
 - `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
