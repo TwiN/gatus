@@ -19,6 +19,7 @@ type Config struct {
 
 // Validate the SSH configuration
 func (cfg *Config) Validate() error {
+	// If there's no username and password, this endpoint can still check the SSH banner, so the endpoint is still valid
 	if len(cfg.Username) == 0 && len(cfg.Password) == 0 {
 		return nil
 	}
