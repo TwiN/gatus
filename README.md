@@ -1746,7 +1746,7 @@ endpoint on the same port your application is configured to run on (`web.port`).
 
 | Metric name                                  | Type    | Description                                                                | Labels                          | Relevant endpoint types |
 |:---------------------------------------------|:--------|:---------------------------------------------------------------------------|:--------------------------------|:------------------------|
-| gatus_results_total                          | counter | Number of results per endpoint per status                                  | key, group, name, type, success | All                     |
+| gatus_results_total                          | counter | Number of results per endpoint per success state                           | key, group, name, type, success | All                     |
 | gatus_results_code_total                     | counter | Total number of results by code                                            | key, group, name, type, code    | DNS, HTTP               |
 | gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
