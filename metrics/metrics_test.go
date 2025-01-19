@@ -40,10 +40,10 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
 gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 176400
-# HELP gatus_endpoint_success Displays whether or not the endpoint was a success
-# TYPE gatus_endpoint_success gauge
-gatus_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
-`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_endpoint_success")
+# HELP gatus_results_endpoint_success Displays whether or not the endpoint was a success
+# TYPE gatus_results_endpoint_success gauge
+gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
+`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_results_endpoint_success")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
@@ -75,10 +75,10 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
 gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 169200
-# HELP gatus_endpoint_success Displays whether or not the endpoint was a success
-# TYPE gatus_endpoint_success gauge
-gatus_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0
-`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_endpoint_success")
+# HELP gatus_results_endpoint_success Displays whether or not the endpoint was a success
+# TYPE gatus_results_endpoint_success gauge
+gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0
+`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_results_endpoint_success")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
@@ -116,11 +116,11 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
 gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 169200
-# HELP gatus_endpoint_success Displays whether or not the endpoint was a success
-# TYPE gatus_endpoint_success gauge
-gatus_endpoint_success{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
-gatus_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0
-`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_endpoint_success")
+# HELP gatus_results_endpoint_success Displays whether or not the endpoint was a success
+# TYPE gatus_results_endpoint_success gauge
+gatus_results_endpoint_success{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
+gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0
+`), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_results_endpoint_success")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}

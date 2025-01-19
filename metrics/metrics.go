@@ -49,7 +49,7 @@ func initializePrometheusMetrics() {
 	}, []string{"key", "group", "name", "type"})
 	resultEndpointSuccess = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "endpoint_success",
+		Name:      "results_endpoint_success",
 		Help:      "Displays whether or not the endpoint was a success",
 	}, []string{"key", "group", "name", "type"})
 }
