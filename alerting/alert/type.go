@@ -73,4 +73,7 @@ const (
 
 	// TypeZulip is the Type for the Zulip alerting provider
 	TypeZulip Type = "zulip"
+
+	// TypeZulip is the Type for the incident.io alerting provider
+	TypeIncidentio Type = "incidentio"
 )

@@ -15,6 +15,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -102,6 +103,9 @@ type Config struct {
 
 	// Zulip is the configuration for the zulip alerting provider
 	Zulip *zulip.AlertProvider `yaml:"zulip,omitempty"`
+
+	// IncidentIo is the configuration for the incident.io alerting provider
+	IncidentIo *incidentio.AlertProvider `yaml:"incidentio,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
