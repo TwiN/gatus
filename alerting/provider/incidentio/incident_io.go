@@ -23,14 +23,12 @@ const (
 
 var (
 	ErrAlertSourceConfigNotSet = errors.New("alert source config not set.")
-	ErrTitleNotSet             = errors.New("title not set.")
 	ErrDuplicateGroupOverride  = errors.New("duplicate group override")
 	ErrAuthTokenNotSet         = errors.New("authentication token not set.")
 )
 
 type Config struct {
 	AlertSourceConfigID string `yaml:"alert-source-config-id,omitempty"`
-	Title               string `yaml:"title,omitempty"`
 	AuthToken           string `yaml:"auth-token,omitempty"`
 
 	//Status sent to incident.io, either "firing" or "resolved"
@@ -44,9 +42,6 @@ func (cfg *Config) Validate() error {
 	if len(cfg.AlertSourceConfigID) == 0 {
 		return ErrAlertSourceConfigNotSet
 	}
-	if len(cfg.Title) == 0 {
-		return ErrTitleNotSet
-	}
 	if len(cfg.AuthToken) == 0 {
 		return ErrAuthTokenNotSet
 	}
@@ -56,9 +51,6 @@ func (cfg *Config) Validate() error {
 func (cfg *Config) Merge(override *Config) {
 	if len(override.AlertSourceConfigID) > 0 {
 		cfg.AlertSourceConfigID = override.AlertSourceConfigID
-	}
-	if len(override.Title) > 0 {
-		cfg.Title = override.Title
 	}
 	if len(override.AuthToken) > 0 {
 		cfg.AuthToken = override.AuthToken
