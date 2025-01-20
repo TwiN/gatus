@@ -116,8 +116,8 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
-	incidentioResponse := Resopnse{}
-	json.NewDecoder(response.Body).Decode(incidentioResponse)
+	incidentioResponse := Response{}
+	json.NewDecoder(response.Body).Decode(&incidentioResponse)
 	cfg.DeduplicationKey = incidentioResponse.DeduplicationKey
 	return err
 }
@@ -130,7 +130,7 @@ type Body struct {
 	Description         string `json:"description"`
 }
 
-type Resopnse struct {
+type Response struct {
 	DeduplicationKey string `json:"deduplication_key"`
 }
 
