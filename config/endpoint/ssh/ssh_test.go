@@ -7,10 +7,8 @@ import (
 
 func TestSSH_validate(t *testing.T) {
 	cfg := &Config{}
-	if err := cfg.Validate(); err == nil {
-		t.Error("expected an error")
-	} else if !errors.Is(err, ErrEndpointWithoutSSHUsername) {
-		t.Errorf("expected error to be '%v', got '%v'", ErrEndpointWithoutSSHUsername, err)
+	if err := cfg.Validate(); err != nil {
+		t.Error("didn't expect an error")
 	}
 	cfg.Username = "username"
 	if err := cfg.Validate(); err == nil {

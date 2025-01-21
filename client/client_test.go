@@ -474,3 +474,38 @@ func TestQueryDNS(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+func TestCheckSSHBanner(t *testing.T) {
+	cfg := &Config{Timeout: 3}
+
+	t.Run("no-auth-ssh", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
+
+		if err != nil {
+			t.Errorf("Expected: error != nil, got: %v ", err)
+		}
+
+		if connected == false {
+			t.Errorf("Expected: connected == true, got: %v", connected)
+		}
+		if status != 0 {
+			t.Errorf("Expected: 0, got: %v", status)
+		}
+	})
+
+	t.Run("invalid-address", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
+
+		if err == nil {
+			t.Errorf("Expected: error, got: %v ", err)
+		}
+
+		if connected != false {
+			t.Errorf("Expected: connected == false, got: %v", connected)
+		}
+		if status != 1 {
+			t.Errorf("Expected: 1, got: %v", status)
+		}
+	})
+
+}

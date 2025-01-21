@@ -121,6 +121,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
     - [Raw Data](#raw-data)
+      - [Uptime](#uptime-1)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 
@@ -1783,11 +1784,12 @@ endpoint on the same port your application is configured to run on (`web.port`).
 
 | Metric name                                  | Type    | Description                                                                | Labels                          | Relevant endpoint types |
 |:---------------------------------------------|:--------|:---------------------------------------------------------------------------|:--------------------------------|:------------------------|
-| gatus_results_total                          | counter | Number of results per endpoint                                             | key, group, name, type, success | All                     |
+| gatus_results_total                          | counter | Number of results per endpoint per success state                           | key, group, name, type, success | All                     |
 | gatus_results_code_total                     | counter | Total number of results by code                                            | key, group, name, type, code    | DNS, HTTP               |
 | gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
+| gatus_results_endpoint_success               | gauge   | Displays whether or not the endpoint was a success (0 failure, 1 success)  | key, group, name, type          | All                     |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
 
@@ -2088,6 +2090,23 @@ endpoints:
       {
         "command": "uptime"
       }
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+```
+
+you can also use no authentication to monitor the endpoint by not specifying the username
+and password fields.
+
+```yaml
+endpoints:
+  - name: ssh-example
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: ""
+      password: ""
+
     interval: 1m
     conditions:
       - "[CONNECTED] == true"
