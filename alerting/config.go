@@ -62,6 +62,9 @@ type Config struct {
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
 
+	// IncidentIo is the configuration for the incident.io alerting provider
+	IncidentIo *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
+
 	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
 	JetBrainsSpace *jetbrainsspace.AlertProvider `yaml:"jetbrainsspace,omitempty"`
 
@@ -103,9 +106,6 @@ type Config struct {
 
 	// Zulip is the configuration for the zulip alerting provider
 	Zulip *zulip.AlertProvider `yaml:"zulip,omitempty"`
-
-	// IncidentIo is the configuration for the incident.io alerting provider
-	IncidentIo *incidentio.AlertProvider `yaml:"incidentio,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
