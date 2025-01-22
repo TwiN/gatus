@@ -124,7 +124,9 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			panic(err)
 		}
 	}
+	protectedAPIRouter.Get("/v1/endpoints", GetAllEndpoints(cfg))
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+	protectedAPIRouter.Post("/v1/endpoints/:key/ondemand", OnDemandTrigger(cfg))
 	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
 	return app
 }

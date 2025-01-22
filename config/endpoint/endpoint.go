@@ -123,6 +123,12 @@ type Endpoint struct {
 	NumberOfSuccessesInARow int `yaml:"-"`
 }
 
+// EndpointWithKey is the Endpoint struct with the computed key field
+type EndpointWithKey struct {
+	Endpoint
+	Key string
+}
+
 // IsEnabled returns whether the endpoint is enabled or not
 func (e *Endpoint) IsEnabled() bool {
 	if e.Enabled == nil {

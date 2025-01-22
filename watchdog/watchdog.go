@@ -87,6 +87,12 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
 }
 
+// Performs an one time execution of the endpoint
+func OnDemandExecute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
+	logr.Debugf("[watchdog.OnDemandExecute] Executing group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+}
+
 // UpdateEndpointStatuses updates the slice of endpoint statuses
 func UpdateEndpointStatuses(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if err := store.Get().Insert(ep, result); err != nil {
