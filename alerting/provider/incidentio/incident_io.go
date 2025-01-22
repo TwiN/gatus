@@ -24,7 +24,7 @@ const (
 var (
 	ErrAlertSourceConfigNotSet = errors.New("alert source config not set.")
 	ErrDuplicateGroupOverride  = errors.New("duplicate group override")
-	ErrAuthTokenNotSet         = errors.New("authentication token not set.")
+	ErrAuthTokenNotSet         = errors.New("auth-token not set.")
 )
 
 type Config struct {
