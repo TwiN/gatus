@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	ErrAlertSourceConfigNotSet = errors.New("alert source config not set.")
+	ErrAlertSourceConfigNotSet = errors.New("alert-source-config-id not set.")
 	ErrDuplicateGroupOverride  = errors.New("duplicate group override")
 	ErrAuthTokenNotSet         = errors.New("auth-token not set.")
 )
