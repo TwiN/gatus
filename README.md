@@ -920,8 +920,8 @@ Here's an example of what the notifications look like:
 ```yaml
 alerting:
   incident-io:
-     alert-source-config-id: "*****************"
-        auth-token: "********************************************"
+    alert-source-config-id: "*****************"
+    auth-token: "********************************************"
 
 endpoints:
   - name: website
