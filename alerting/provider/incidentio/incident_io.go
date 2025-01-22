@@ -17,7 +17,6 @@ import (
 
 const (
 	restAPIUrl     = "https://api.incident.io/v2/alert_events/http"
-	resolvedStatus = "resolved"
 )
 
 var (
