@@ -145,7 +145,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	s.Lock()
 	status, exists := s.cache.Get(key)
 	if !exists {
-		status = endpoint.NewStatus(ep.Group, ep.Name)
+		status = endpoint.NewStatus(ep.Group, ep.Name, *ep.UIConfig)
 		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),

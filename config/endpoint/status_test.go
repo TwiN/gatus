@@ -6,7 +6,7 @@ import (
 
 func TestNewEndpointStatus(t *testing.T) {
 	ep := &Endpoint{Name: "name", Group: "group"}
-	status := NewStatus(ep.Group, ep.Name)
+	status := NewStatus(ep.Group, ep.Name, *ep.UIConfig)
 	if status.Name != ep.Name {
 		t.Errorf("expected %s, got %s", ep.Name, status.Name)
 	}
