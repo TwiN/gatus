@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -16,18 +17,18 @@ import (
 )
 
 const (
-	restAPIUrl     = "https://api.incident.io/v2/alert_events/http"
+	restAPIUrl = "https://api.incident.io/v2/alert_events/http/"
 )
 
 var (
-	ErrAlertSourceConfigNotSet = errors.New("alert-source-config-id not set.")
-	ErrDuplicateGroupOverride  = errors.New("duplicate group override")
-	ErrAuthTokenNotSet         = errors.New("auth-token not set.")
+	ErrURLNotSet              = errors.New("url not set.")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+	ErrAuthTokenNotSet        = errors.New("auth-token not set.")
 )
 
 type Config struct {
-	AlertSourceConfigID string `yaml:"alert-source-config-id,omitempty"`
-	AuthToken           string `yaml:"auth-token,omitempty"`
+	URL       string `yaml:"url,omitempty"`
+	AuthToken string `yaml:"auth-token,omitempty"`
 
 	//Status sent to incident.io, either "firing" or "resolved"
 	Status string
@@ -37,8 +38,8 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.AlertSourceConfigID) == 0 {
-		return ErrAlertSourceConfigNotSet
+	if len(cfg.URL) == 0 {
+		return ErrURLNotSet
 	}
 	if len(cfg.AuthToken) == 0 {
 		return ErrAuthTokenNotSet
@@ -47,8 +48,8 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.AlertSourceConfigID) > 0 {
-		cfg.AlertSourceConfigID = override.AlertSourceConfigID
+	if len(override.URL) > 0 {
+		cfg.URL = override.URL
 	}
 	if len(override.AuthToken) > 0 {
 		cfg.AuthToken = override.AuthToken
@@ -90,8 +91,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	url := fmt.Sprintf("%s/%s", restAPIUrl, cfg.AlertSourceConfigID)
-	req, err := http.NewRequest(http.MethodPost, url, buffer)
+	req, err := http.NewRequest(http.MethodPost, cfg.URL, buffer)
 	if err != nil {
 		return err
 	}
@@ -149,9 +149,10 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
 	var body []byte
+	alertSourceID := strings.Split(cfg.URL, restAPIUrl)[1]
 	if len(cfg.DeduplicationKey) > 0 {
 		body, _ = json.Marshal(Body{
-			AlertSourceConfigID: cfg.AlertSourceConfigID,
+			AlertSourceConfigID: alertSourceID,
 			Title:               "Gatus: " + ep.DisplayName(),
 			Status:              cfg.Status,
 			DeduplicationKey:    cfg.DeduplicationKey,
@@ -159,7 +160,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		})
 	} else {
 		body, _ = json.Marshal(Body{
-			AlertSourceConfigID: cfg.AlertSourceConfigID,
+			AlertSourceConfigID: alertSourceID,
 			Title:               "Gatus: " + ep.DisplayName(),
 			Status:              cfg.Status,
 			Description:         message,
