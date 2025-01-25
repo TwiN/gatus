@@ -23,8 +23,8 @@ func TestAlertProvider_Validate(t *testing.T) {
 			name: "valid",
 			provider: AlertProvider{
 				DefaultConfig: Config{
-					AlertSourceConfigID: "some-id",
-					AuthToken:           "some-token",
+					URL:       "some-id",
+					AuthToken: "some-token",
 				},
 			},
 			expected: true,
@@ -33,7 +33,7 @@ func TestAlertProvider_Validate(t *testing.T) {
 			name: "invalid-missing-auth-token",
 			provider: AlertProvider{
 				DefaultConfig: Config{
-					AlertSourceConfigID: "some-id",
+					URL: "some-id",
 				},
 			},
 			expected: false,
@@ -51,10 +51,10 @@ func TestAlertProvider_Validate(t *testing.T) {
 			name: "valid-override",
 			provider: AlertProvider{
 				DefaultConfig: Config{
-					AuthToken:           "some-token",
-					AlertSourceConfigID: "some-id",
+					AuthToken: "some-token",
+					URL:       "some-id",
 				},
-				Overrides: []Override{{Group: "core", Config: Config{AlertSourceConfigID: "another-id"}}},
+				Overrides: []Override{{Group: "core", Config: Config{URL: "another-id"}}},
 			},
 			expected: true,
 		},
@@ -76,6 +76,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	firstDescription := "description-1"
 	secondDescription := "description-2"
+	restAPIUrl := "https://api.incident.io/v2/alert_events/http/"
 	scenarios := []struct {
 		Name             string
 		Provider         AlertProvider
@@ -87,8 +88,8 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			Name: "triggered",
 			Provider: AlertProvider{DefaultConfig: Config{
-				AlertSourceConfigID: "some-id",
-				AuthToken:           "some-token",
+				URL:       restAPIUrl + "some-id",
+				AuthToken: "some-token",
 			}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
@@ -105,8 +106,8 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			Name: "triggered-error",
 			Provider: AlertProvider{DefaultConfig: Config{
-				AlertSourceConfigID: "some-id",
-				AuthToken:           "some-token",
+				URL:       restAPIUrl + "some-id",
+				AuthToken: "some-token",
 			}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
@@ -118,8 +119,8 @@ func TestAlertProvider_Send(t *testing.T) {
 		{
 			Name: "resolved",
 			Provider: AlertProvider{DefaultConfig: Config{
-				AlertSourceConfigID: "some-id",
-				AuthToken:           "some-token",
+				URL:       restAPIUrl + "some-id",
+				AuthToken: "some-token",
 			}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
@@ -170,6 +171,7 @@ func TestAlertProvider_Send(t *testing.T) {
 func TestAlertProvider_BuildRequestBody(t *testing.T) {
 	firstDescription := "description-1"
 	secondDescription := "description-2"
+	restAPIUrl := "https://api.incident.io/v2/alert_events/http/"
 	scenarios := []struct {
 		Name         string
 		Provider     AlertProvider
@@ -179,21 +181,21 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"}},
+			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"alert_source_config_id":"some-id","status":"firing","title":"Gatus: endpoint-name","deduplication_key":"","description":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  "}`,
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"}},
+			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: `{"alert_source_config_id":"some-id","status":"resolved","title":"Gatus: endpoint-name","deduplication_key":"","description":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2 and the following conditions:  🟢 [CONNECTED] == true  🟢 [STATUS] == 200  "}`,
 		},
 		{
 			Name:         "group-override",
-			Provider:     AlertProvider{DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"}, Overrides: []Override{{Group: "g", Config: Config{AlertSourceConfigID: "different-id", AuthToken: "some-token"}}}},
+			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}, Overrides: []Override{{Group: "g", Config: Config{URL: restAPIUrl + "different-id", AuthToken: "some-token"}}}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"alert_source_config_id":"different-id","status":"firing","title":"Gatus: endpoint-name","deduplication_key":"","description":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  "}`,
@@ -249,67 +251,67 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{AlertSourceConfigID: "diff-id"},
+						Config: Config{URL: "diff-id"},
 					},
 				},
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{AlertSourceConfigID: "diff-id", AuthToken: "some-token"},
+						Config: Config{URL: "diff-id", AuthToken: "some-token"},
 					},
 				},
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{AlertSourceConfigID: "diff-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "diff-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
 			Provider: AlertProvider{
-				DefaultConfig: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{AlertSourceConfigID: "diff-id", AuthToken: "some-token"},
+						Config: Config{URL: "diff-id", AuthToken: "some-token"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"alert-source-config-id": "another-id"}},
-			ExpectedOutput: Config{AlertSourceConfigID: "another-id", AuthToken: "some-token"},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "another-id"}},
+			ExpectedOutput: Config{URL: "another-id", AuthToken: "some-token"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -318,15 +320,11 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			if got.AlertSourceConfigID != scenario.ExpectedOutput.AlertSourceConfigID {
-				t.Errorf("expected alert source config to be %s, got %s", scenario.ExpectedOutput.AlertSourceConfigID, got.AlertSourceConfigID)
+			if got.URL != scenario.ExpectedOutput.URL {
+				t.Errorf("expected alert source config to be %s, got %s", scenario.ExpectedOutput.URL, got.URL)
 			}
 			if got.AuthToken != scenario.ExpectedOutput.AuthToken {
 				t.Errorf("expected alert auth token to be %s, got %s", scenario.ExpectedOutput.AuthToken, got.AuthToken)
-			}
-
-			if got.Status != scenario.ExpectedOutput.Status {
-				t.Errorf("expected alert status to be %s, got %s", scenario.ExpectedOutput.Status, got.Status)
 			}
 
 			if got.DeduplicationKey != scenario.ExpectedOutput.DeduplicationKey {
@@ -344,7 +342,7 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				Config: Config{AlertSourceConfigID: "some-id", AuthToken: "some-token"},
+				Config: Config{URL: "some-id", AuthToken: "some-token"},
 				Group:  "",
 			},
 		},
@@ -355,7 +353,7 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
-				Config: Config{AlertSourceConfigID: "", AuthToken: "some-token"},
+				Config: Config{URL: "", AuthToken: "some-token"},
 				Group:  "group",
 			},
 		},
@@ -364,10 +362,10 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		DefaultConfig: Config{AlertSourceConfigID: "nice-id", AuthToken: "some-token"},
+		DefaultConfig: Config{URL: "nice-id", AuthToken: "some-token"},
 		Overrides: []Override{
 			{
-				Config: Config{AlertSourceConfigID: "very-good-id", AuthToken: "some-token"},
+				Config: Config{URL: "very-good-id", AuthToken: "some-token"},
 				Group:  "group",
 			},
 		},

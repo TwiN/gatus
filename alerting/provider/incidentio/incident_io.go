@@ -30,9 +30,6 @@ type Config struct {
 	URL       string `yaml:"url,omitempty"`
 	AuthToken string `yaml:"auth-token,omitempty"`
 
-	//Status sent to incident.io, either "firing" or "resolved"
-	Status string
-
 	//key of the alert,initalized on the first event.
 	DeduplicationKey string
 }
@@ -125,13 +122,13 @@ type Response struct {
 }
 
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	var message, formattedConditionResults string
+	var message, formattedConditionResults, status string
 	if resolved {
 		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
-		cfg.Status = "resolved"
+		status = "resolved"
 	} else {
 		message = "An alert has been triggered due to having failed " + strconv.Itoa(alert.FailureThreshold) + " time(s) in a row"
-		cfg.Status = "firing"
+		status = "firing"
 	}
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
@@ -154,7 +151,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		body, _ = json.Marshal(Body{
 			AlertSourceConfigID: alertSourceID,
 			Title:               "Gatus: " + ep.DisplayName(),
-			Status:              cfg.Status,
+			Status:              status,
 			DeduplicationKey:    cfg.DeduplicationKey,
 			Description:         message,
 		})
@@ -162,7 +159,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		body, _ = json.Marshal(Body{
 			AlertSourceConfigID: alertSourceID,
 			Title:               "Gatus: " + ep.DisplayName(),
-			Status:              cfg.Status,
+			Status:              status,
 			Description:         message,
 		})
 	}
