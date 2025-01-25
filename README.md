@@ -580,7 +580,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
-| `alerting.incidentio`      | Configuration for alerts of type `incidentio`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).              | `{}`    |
+| `alerting.incident-io`     | Configuration for alerts of type `incidentio`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).              | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -909,13 +909,13 @@ Here's an example of what the notifications look like:
 #### Configuring Incident.io alerts
 | Parameter                          | Description                                                                                | Default       |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.incidentio`                   | Configuration for alerts of type `incidentio`                                                   | `{}`          |
-| `alerting.incidentio.url`       | url to trigger an alert event.                                                                         | Required `""` |
-| `alerting.incidentio.auth-token`     | Token that is used for authentication. |  Required `""`          |
-| `alerting.incidentio.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.incidentio.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.incidentio.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.incidentio.overrides[].*`     | See `alerting.incidentio.*` parameters                                                          | `{}`          |
+| `alerting.incident-io`                   | Configuration for alerts of type `incident-io`                                                   | `{}`          |
+| `alerting.incident-io.url`       | url to trigger an alert event.                                                                         | Required `""` |
+| `alerting.incident-io.auth-token`     | Token that is used for authentication. |  Required `""`          |
+| `alerting.incident-io.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.incident-io.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.incident-io.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.incident-io.overrides[].*`     | See `alerting.incident-io.*` parameters                                                          | `{}`          |
 
 ```yaml
 alerting:
