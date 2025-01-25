@@ -910,7 +910,7 @@ Here's an example of what the notifications look like:
 | Parameter                          | Description                                                                                | Default       |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.incidentio`                   | Configuration for alerts of type `incidentio`                                                   | `{}`          |
-| `alerting.incidentio.alert-source-config-id`       | Which alert source config produced this alert                                                                         | Required `""` |
+| `alerting.incidentio.url`       | url to trigger an alert event.                                                                         | Required `""` |
 | `alerting.incidentio.auth-token`     | Token that is used for authentication. |  Required `""`          |
 | `alerting.incidentio.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.incidentio.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
@@ -920,7 +920,7 @@ Here's an example of what the notifications look like:
 ```yaml
 alerting:
   incident-io:
-    alert-source-config-id: "*****************"
+    url: "*****************"
     auth-token: "********************************************"
 
 endpoints:
