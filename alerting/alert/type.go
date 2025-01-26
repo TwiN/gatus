@@ -33,7 +33,7 @@ const (
 	TypeGotify Type = "gotify"
 
 	// TypeIncidentio is the Type for the incident.io alerting provider
-	TypeIncidentio Type = "incident-io"
+	TypeIncidentIO Type = "incident-io"
 
 	// TypeJetBrainsSpace is the Type for the jetbrains alerting provider
 	TypeJetBrainsSpace Type = "jetbrainsspace"
