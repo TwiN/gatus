@@ -327,9 +327,6 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected alert auth token to be %s, got %s", scenario.ExpectedOutput.AuthToken, got.AuthToken)
 			}
 
-			if got.DeduplicationKey != scenario.ExpectedOutput.DeduplicationKey {
-				t.Errorf("expected alert deduplication key to be %s, got %s", scenario.ExpectedOutput.DeduplicationKey, got.DeduplicationKey)
-			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)

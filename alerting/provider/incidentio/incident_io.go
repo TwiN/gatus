@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,9 +30,6 @@ var (
 type Config struct {
 	URL       string `yaml:"url,omitempty"`
 	AuthToken string `yaml:"auth-token,omitempty"`
-
-	//key of the alert,initalized on the first event.
-	DeduplicationKey string
 }
 
 func (cfg *Config) Validate() error {
@@ -104,8 +102,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
 	incidentioResponse := Response{}
-	json.NewDecoder(response.Body).Decode(&incidentioResponse)
-	cfg.DeduplicationKey = incidentioResponse.DeduplicationKey
+	err = json.NewDecoder(response.Body).Decode(&incidentioResponse)
+	if err != nil {
+		// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
+		logr.Errorf("[incident-io.Send] Ran into error decoding pagerduty response: %s", err.Error())
+	}
+	alert.ResolveKey = incidentioResponse.DeduplicationKey
 	return err
 }
 
@@ -147,12 +149,12 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
 	var body []byte
 	alertSourceID := strings.Split(cfg.URL, restAPIUrl)[1]
-	if len(cfg.DeduplicationKey) > 0 {
+	if len(alert.ResolveKey) > 0 {
 		body, _ = json.Marshal(Body{
 			AlertSourceConfigID: alertSourceID,
 			Title:               "Gatus: " + ep.DisplayName(),
 			Status:              status,
-			DeduplicationKey:    cfg.DeduplicationKey,
+			DeduplicationKey:    alert.ResolveKey,
 			Description:         message,
 		})
 	} else {
