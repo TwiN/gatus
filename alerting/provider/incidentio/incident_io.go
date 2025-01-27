@@ -28,8 +28,10 @@ var (
 )
 
 type Config struct {
-	URL       string `yaml:"url,omitempty"`
-	AuthToken string `yaml:"auth-token,omitempty"`
+	URL       string                 `yaml:"url,omitempty"`
+	AuthToken string                 `yaml:"auth-token,omitempty"`
+	SourceURL string                 `yaml:"source-url,omitempty"`
+	Metadata  map[string]interface{} `yaml:"metadata,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -48,6 +50,12 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.AuthToken) > 0 {
 		cfg.AuthToken = override.AuthToken
+	}
+	if len(override.SourceURL) > 0 {
+		cfg.SourceURL = override.SourceURL
+	}
+	if len(override.Metadata) > 0 {
+		cfg.Metadata = override.Metadata
 	}
 }
 
@@ -112,11 +120,13 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
-	AlertSourceConfigID string `json:"alert_source_config_id"`
-	Status              string `json:"status"`
-	Title               string `json:"title"`
-	DeduplicationKey    string `json:"deduplication_key"`
-	Description         string `json:"description"`
+	AlertSourceConfigID string                 `json:"alert_source_config_id"`
+	Status              string                 `json:"status"`
+	Title               string                 `json:"title"`
+	DeduplicationKey    string                 `json:"deduplication_key,omitempty"`
+	Description         string                 `json:"description,omitempty"`
+	SourceURL           string                 `json:"source_url,omitempty"`
+	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type Response struct {
@@ -149,22 +159,16 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
 	var body []byte
 	alertSourceID := strings.Split(cfg.URL, restAPIUrl)[1]
-	if len(alert.ResolveKey) > 0 {
-		body, _ = json.Marshal(Body{
-			AlertSourceConfigID: alertSourceID,
-			Title:               "Gatus: " + ep.DisplayName(),
-			Status:              status,
-			DeduplicationKey:    alert.ResolveKey,
-			Description:         message,
-		})
-	} else {
-		body, _ = json.Marshal(Body{
-			AlertSourceConfigID: alertSourceID,
-			Title:               "Gatus: " + ep.DisplayName(),
-			Status:              status,
-			Description:         message,
-		})
-	}
+	body, _ = json.Marshal(Body{
+		AlertSourceConfigID: alertSourceID,
+		Title:               "Gatus: " + ep.DisplayName(),
+		Status:              status,
+		DeduplicationKey:    alert.ResolveKey,
+		Description:         message,
+		SourceURL:           cfg.SourceURL,
+		Metadata:            cfg.Metadata,
+	})
+	fmt.Printf("%v", string(body))
 	return body
 
 }
