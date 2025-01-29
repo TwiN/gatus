@@ -110,14 +110,13 @@ func (c *Config) IsUnderMaintenance() bool {
 	if c.TimezoneLocation != nil {
 		now = now.In(c.TimezoneLocation)
 	}
-	var dayWhereMaintenancePeriodWouldStart time.Time
 	adjustedDate := now.Day()
 	if now.Hour() < int(c.durationToStartFromMidnight.Hours()) {
 		// if time in maintenance window is later than now, treat it as yesterday
 		adjustedDate--
 	}
 	// Set to midnight prior to adding duration
-	dayWhereMaintenancePeriodWouldStart = time.Date(now.Year(), now.Month(), adjustedDate, 0, 0, 0, 0, now.Location())
+	dayWhereMaintenancePeriodWouldStart := time.Date(now.Year(), now.Month(), adjustedDate, 0, 0, 0, 0, now.Location())
 	hasMaintenanceEveryDay := len(c.Every) == 0
 	hasMaintenancePeriodScheduledToStartOnThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
 	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledToStartOnThatWeekday {
