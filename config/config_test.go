@@ -1971,7 +1971,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 					{
 						Name:    "endpoint1",
 						URL:     "https://example.com",
-						Enabled: toBoolPtr(true),
+						Enabled: toPtr(true),
 						Labels: map[string]string{
 							"env":  "production",
 							"team": "backend",
@@ -1988,7 +1988,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 					{
 						Name:    "endpoint1",
 						URL:     "https://example.com",
-						Enabled: toBoolPtr(true),
+						Enabled: toPtr(true),
 						Labels: map[string]string{
 							"env":    "production",
 							"team":   "backend",
@@ -1998,7 +1998,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 					{
 						Name:    "endpoint2",
 						URL:     "https://example.org",
-						Enabled: toBoolPtr(true),
+						Enabled: toPtr(true),
 						Labels: map[string]string{
 							"env":  "staging",
 							"team": "frontend",
@@ -2015,7 +2015,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 					{
 						Name:    "endpoint1",
 						URL:     "https://example.com",
-						Enabled: toBoolPtr(true),
+						Enabled: toPtr(true),
 						Labels: map[string]string{
 							"env":  "production",
 							"team": "backend",
@@ -2024,7 +2024,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 					{
 						Name:    "endpoint2",
 						URL:     "https://example.org",
-						Enabled: toBoolPtr(false),
+						Enabled: toPtr(false),
 						Labels: map[string]string{
 							"module": "auth",
 						},

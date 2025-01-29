@@ -103,9 +103,9 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
-// toBoolPtr converts a bool to a bool pointer
-func toBoolPtr(b bool) *bool {
-	return &b
+// toPtr returns a pointer to the given value
+func toPtr[T any](value T) *T {
+	return &value
 }
 
 // contains checks if a key exists in the slice
