@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/TwiN/logr"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/api/idtoken"
@@ -212,29 +213,18 @@ func (c *Config) getHTTPClient() *http.Client {
 		tlsConfig = configureTLS(tlsConfig, *c.TLS)
 	}
 	if c.httpClient == nil {
-		c.httpClient = &http.Client{
-			Timeout: c.Timeout,
-			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 20,
-				Proxy:               http.ProxyFromEnvironment,
-				TLSClientConfig:     tlsConfig,
-			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if c.IgnoreRedirect {
-					// Don't follow redirects
-					return http.ErrUseLastResponse
-				}
-				// Follow redirects
-				return nil
-			},
+		baseTransport := &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20,
+			Proxy:               http.ProxyFromEnvironment,
+			TLSClientConfig:     tlsConfig,
 		}
 		if c.ProxyURL != "" {
 			proxyURL, err := url.Parse(c.ProxyURL)
 			if err != nil {
 				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring custom proxy due to error: %s", err.Error())
 			} else {
-				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+				baseTransport.Proxy = http.ProxyURL(proxyURL)
 			}
 		}
 		if c.HasCustomDNSResolver() {
@@ -253,10 +243,21 @@ func (c *Config) getHTTPClient() *http.Client {
 						},
 					},
 				}
-				c.httpClient.Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				baseTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 					return dialer.DialContext(ctx, network, addr)
 				}
 			}
+		}
+		wrappedTransport := otelhttp.NewTransport(baseTransport)
+		c.httpClient = &http.Client{
+			Timeout:   c.Timeout,
+			Transport: wrappedTransport,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if c.IgnoreRedirect {
+					return http.ErrUseLastResponse
+				}
+				return nil
+			},
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {
 			logr.Errorf("[client.getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
