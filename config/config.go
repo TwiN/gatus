@@ -103,6 +103,44 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
+// toBoolPtr converts a bool to a bool pointer
+func toBoolPtr(b bool) *bool {
+	return &b
+}
+
+// contains checks if a key exists in the slice
+func contains[T comparable](slice []T, key T) bool {
+	for _, item := range slice {
+		if item == key {
+			return true
+		}
+	}
+	return false
+}
+
+// GetMetricLabels returns a slice of unique metric labels from all enabled endpoints
+// in the configuration. It iterates through each endpoint, checks if it is enabled,
+// and then collects unique labels from the endpoint's labels map.
+//
+// Returns:
+//
+//	[]string: A slice of unique metric labels.
+func (config *Config) GetMetricLabels() []string {
+	labels := make([]string, 0)
+	for _, ep := range config.Endpoints {
+		if !ep.IsEnabled() {
+			continue
+		}
+		for label := range ep.Labels {
+			if contains(labels, label) {
+				continue
+			}
+			labels = append(labels, label)
+		}
+	}
+	return labels
+}
+
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]

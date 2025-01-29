@@ -27,19 +27,20 @@ var (
 // Monitor loops over each endpoint and starts a goroutine to monitor each endpoint separately
 func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
+	labels := cfg.GetMetricLabels()
 	for _, endpoint := range cfg.Endpoints {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(777 * time.Millisecond)
-			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
+			go monitor(labels, endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
 		}
 	}
 }
 
 // monitor a single endpoint in a loop
-func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
+func monitor(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
 	// Run it immediately on start
-	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+	execute(labels, ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 	// Loop for the next executions
 	for {
 		select {
@@ -47,7 +48,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-time.After(ep.Interval):
-			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+			execute(labels, ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 		}
 	}
 	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
@@ -55,7 +56,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	// periodically like they are for normal endpoints.
 }
 
-func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
+func execute(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -70,7 +71,7 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
-		metrics.PublishMetricsForEndpoint(ep, result)
+		metrics.PublishMetricsForEndpoint(labels, ep, result)
 	}
 	UpdateEndpointStatuses(ep, result)
 	if logr.GetThreshold() == logr.LevelDebug && !result.Success {

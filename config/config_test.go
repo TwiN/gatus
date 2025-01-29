@@ -237,7 +237,7 @@ endpoints:
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			for path, content := range scenario.pathAndFiles {
-				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0644); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0o644); err != nil {
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
@@ -282,7 +282,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
-`), 0644)
+`), 0o644)
 
 	t.Run("config-file-as-config-path", func(t *testing.T) {
 		config, err := LoadConfiguration(configFilePath)
@@ -298,7 +298,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
   - name: website
     url: https://twin.sh/health
     conditions:
-      - "[STATUS] == 200"`), 0644); err != nil {
+      - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -315,7 +315,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		}
 		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
 		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -1934,6 +1934,117 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		t.Run(string(scenario.alertType), func(t *testing.T) {
 			if alertingConfig.GetAlertingProviderByAlertType(scenario.alertType) != scenario.expected {
 				t.Errorf("expected %s configuration", scenario.alertType)
+			}
+		})
+	}
+}
+
+func TestConfig_GetMetricLabels(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *Config
+		expected []string
+	}{
+		{
+			name: "no-endpoints",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-no-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "endpoint1",
+						URL:  "https://example.com",
+					},
+				},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toBoolPtr(true),
+						Labels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+		{
+			name: "multiple-endpoints-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toBoolPtr(true),
+						Labels: map[string]string{
+							"env":    "production",
+							"team":   "backend",
+							"module": "auth",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toBoolPtr(true),
+						Labels: map[string]string{
+							"env":  "staging",
+							"team": "frontend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team", "module"},
+		},
+		{
+			name: "multiple-endpoints-with-some-disabled",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toBoolPtr(true),
+						Labels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toBoolPtr(false),
+						Labels: map[string]string{
+							"module": "auth",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := tt.config.GetMetricLabels()
+			if len(labels) != len(tt.expected) {
+				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
+			}
+			for _, label := range tt.expected {
+				if !contains(labels, label) {
+					t.Errorf("expected label %s to be present", label)
+				}
 			}
 		})
 	}
