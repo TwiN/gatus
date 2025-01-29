@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -12,10 +13,13 @@ import (
 	"net/smtp"
 	"runtime"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/whois"
+	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
@@ -33,6 +37,12 @@ var (
 
 	whoisClient              = whois.NewClient().WithReferralCache(true)
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
+
+	mqttTemplateEngine = template.New("base").Funcs(template.FuncMap{
+		"uuidv4": func() string {
+			return uuid.New().String()
+		},
+	})
 )
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
@@ -361,6 +371,58 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		}
 	}
 	return connected, dnsRcode, body, nil
+}
+
+func QueryMQTT(address, topic, username, password, body string, config *Config) (bool, error) {
+	bodyTemplate, err := mqttTemplateEngine.Parse(body)
+	if err != nil {
+		return false, fmt.Errorf("error parsing mqtt request body: %w", err)
+	}
+
+	var renderedBodyBuffer bytes.Buffer
+	err = bodyTemplate.Execute(&renderedBodyBuffer, nil)
+	if err != nil {
+		return false, fmt.Errorf("error rendering mqtt request body: %w", err)
+	}
+	renderedBody := renderedBodyBuffer.String()
+
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(address)
+	opts.SetClientID(fmt.Sprintf("gatus-client-%d", time.Now().UnixMilli()))
+	if len(username) > 0 {
+		opts.SetUsername(username)
+	}
+	if len(password) > 0 {
+		opts.SetPassword(password)
+	}
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, fmt.Errorf("error connecting to mqtt: %w", token.Error())
+	}
+	defer client.Disconnect(1)
+
+	done := make(chan struct{})
+	defer close(done)
+
+	if token := client.Subscribe(topic, 0, func(client mqtt.Client, message mqtt.Message) {
+		message.Ack()
+		if string(message.Payload()) == renderedBody {
+			done <- struct{}{}
+		}
+	}); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, fmt.Errorf("error subscribing to mqtt topic: %w", token.Error())
+	}
+
+	if token := client.Publish(topic, 0, false, renderedBody); token.WaitTimeout(config.Timeout) && token.Error() != nil {
+		return false, fmt.Errorf("error publishing to mqtt topic: %w", token.Error())
+	}
+
+	select {
+	case <-done:
+		return true, nil
+	case <-time.After(config.Timeout):
+		return false, fmt.Errorf("timout while waiting for mqtt message: %w")
+	}
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
