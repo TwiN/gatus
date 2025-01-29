@@ -1673,6 +1673,19 @@ maintenance:
     - Monday
     - Thursday
 ```
+You can also specify maintenance windows on a per-endpoint basis:
+```yaml
+endpoints:
+  - name: endpoint-1
+    url: "https://example.org"
+    maintenance-windows:
+      - start: "07:30"
+        duration: 40m
+        timezone: "Europe/Berlin"
+      - start: "14:30"
+        duration: 1h
+        timezone: "Europe/Berlin"
+```
 
 
 ### Security
