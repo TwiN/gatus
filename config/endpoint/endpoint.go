@@ -105,7 +105,7 @@ type Endpoint struct {
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
 
-	// Maintenance is the configuration for per-endpoint maintenance periods
+	// MaintenanceWindow is the configuration for per-endpoint maintenance windows
 	MaintenanceWindows []*maintenance.Config `yaml:"maintenance-windows,omitempty"`
 
 	// DNSConfig is the configuration for DNS monitoring
