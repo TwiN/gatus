@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -30,11 +29,15 @@ func initTracer() *trace.TracerProvider {
 	ctx := context.Background()
 	exporter, err := otlptracehttp.New(ctx)
 	if err != nil {
-		log.Fatalf("failed to create otlp trace http exporter: %v", err)
+		logr.Infof("Failed to create otlp trace http exporter: %v", err)
 	}
-	res, err := resource.New(ctx)
+	res, err := resource.New(
+		ctx,
+		resource.WithFromEnv(),
+		resource.WithTelemetrySDK(),
+	)
 	if err != nil {
-		log.Fatalf("failed to create resource: %v", err)
+		logr.Infof("Failed to create resource: %v", err)
 	}
 	tp := trace.NewTracerProvider(
 		trace.WithResource(res),
