@@ -81,7 +81,7 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 
-	var inEndpointMaintenanceWindow = false
+	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
 		if maintenanceWindow.IsUnderMaintenance() {
 			logr.Debug("[watchdog.execute] Under endpoint maintenance window")
