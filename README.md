@@ -228,6 +228,7 @@ If you want to test it locally, see [Docker](#docker).
 | `security`                   | [Security configuration](#security).                                                                                                 | `{}`                       |
 | `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                  | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false`                    |
+| `configReloadCheckDuration`  | Duration between checking for config changes, e.g. 10s. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `30s`                    |
 | `web`                        | Web configuration.                                                                                                                   | `{}`                       |
 | `web.address`                | Address to listen on.                                                                                                                | `0.0.0.0`                  |
 | `web.port`                   | Port to listen on.                                                                                                                   | `8080`                     |
@@ -2229,6 +2230,7 @@ the same as restarting the application.
 
 > 📝 Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
+Config checks occur every 30 seconds, and can be configured with `configReloadCheckDuration`, e.g. `10s`.
 
 ### Endpoint groups
 Endpoint groups are used for grouping multiple endpoints together on the dashboard.

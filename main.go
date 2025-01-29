@@ -170,7 +170,10 @@ func initializeStorage(cfg *config.Config) {
 
 func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
-		time.Sleep(30 * time.Second)
+
+		logr.Debugf("[main.listenToConfigurationFileChanges] checking for config change in %s ", cfg.ConfigReloadCheckDuration)
+		time.Sleep(cfg.ConfigReloadCheckDuration)
+
 		if cfg.HasLoadedConfigurationBeenModified() {
 			logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")
 			stop(cfg)
