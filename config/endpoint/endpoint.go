@@ -95,6 +95,9 @@ type Endpoint struct {
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
+	// Labels are key-value pairs that can be used to metric the endpoint
+	Labels map[string]string `yaml:"labels,omitempty"`
+
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`
 
@@ -365,8 +368,7 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeSSH {
 		// If there's no username/password specified, attempt to validate just the SSH banner
 		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
-			result.Connected, result.HTTPStatus, err =
-				client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
+			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 			if err != nil {
 				result.AddError(err.Error())
 				return
