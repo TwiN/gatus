@@ -50,7 +50,7 @@ func monitor(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Co
 			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-ticker.C:
-			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+			execute(labels, ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 		}
 	}
 	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
