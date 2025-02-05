@@ -42,8 +42,10 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
+	case "1h":
+		from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
+		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 	}
 	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
 	if err != nil {

@@ -40,6 +40,11 @@ func TestResponseTimeChart(t *testing.T) {
 	}
 	scenarios := []Scenario{
 		{
+			Name:         "chart-response-time-1h",
+			Path:         "/api/v1/endpoints/core_backend/response-times/1h/chart.svg",
+			ExpectedCode: http.StatusOK,
+		},
+		{
 			Name:         "chart-response-time-24h",
 			Path:         "/api/v1/endpoints/core_backend/response-times/24h/chart.svg",
 			ExpectedCode: http.StatusOK,
