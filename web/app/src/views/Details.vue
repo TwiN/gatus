@@ -49,7 +49,6 @@
         <option value="30d">30 days</option>
       </select>
       <img :src="generateResponseTimeChartImageURL(selectedChartDuration)" alt="response time chart" class="mt-6" />
-      <img :src="generateResponseTimeChartImageURL('24h')" alt="response time chart" class="mt-6" />
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 30 days</h2>
