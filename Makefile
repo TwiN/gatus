@@ -18,14 +18,14 @@ test:
 
 
 ##########
-# Docker #
+# podman #
 ##########
 
 docker-build:
-	docker build -t twinproduction/gatus:latest .
+	podman build -t twinproduction/gatus:latest .
 
 docker-run:
-	docker run -p 8080:8080 --name gatus twinproduction/gatus:latest
+	podman run -p 8080:8080 --name gatus twinproduction/gatus:latest
 
 docker-build-and-run: docker-build docker-run
 

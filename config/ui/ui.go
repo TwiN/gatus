@@ -11,7 +11,7 @@ import (
 const (
 	defaultTitle       = "Health Dashboard | Gatus"
 	defaultDescription = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader      = "Health Status"
+	defaultHeader      = "Health StatusAAAA"
 	defaultLogo        = ""
 	defaultLink        = ""
 	defaultCustomCSS   = ""

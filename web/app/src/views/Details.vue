@@ -21,8 +21,12 @@
       <hr/>
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 30 days</h2>
+          <img :src="generateUptimeBadgeImageURL('30d')" alt="30d uptime badge" class="mx-auto" />
+        </div>
+        <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
-          <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto"/>
+          <img :src="generateUptimeBadgeImageURL('7d')" alt="7d uptime badge" class="mx-auto" />
         </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 24 hours</h2>
@@ -36,9 +40,21 @@
     </div>
     <div v-if="endpointStatus && endpointStatus.key && showResponseTimeChartAndBadges" class="mt-12">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
-      <hr/>
-      <img :src="generateResponseTimeChartImageURL()" alt="response time chart" class="mt-6"/>
+      <hr />
+      <!-- Dropdown to select duration -->
+      <select v-model="selectedChartDuration" @change="updateChart">
+        <option value="1h">1 hour</option>
+        <option value="7d">7 days</option>
+        <option value="24h">24 hours</option>
+        <option value="30d">30 days</option>
+      </select>
+      <img :src="generateResponseTimeChartImageURL(selectedChartDuration)" alt="response time chart" class="mt-6" />
+      <img :src="generateResponseTimeChartImageURL('24h')" alt="response time chart" class="mt-6" />
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
+        <div class="flex-1">
+          <h2 class="text-sm text-gray-400 mb-1">Last 30 days</h2>
+          <img :src="generateResponseTimeBadgeImageURL('30d')" alt="7d response time badge" class="mx-auto mt-2" />
+        </div>
         <div class="flex-1">
           <h2 class="text-sm text-gray-400 mb-1">Last 7 days</h2>
           <img :src="generateResponseTimeBadgeImageURL('7d')" alt="7d response time badge" class="mx-auto mt-2"/>
@@ -174,8 +190,8 @@ export default {
     generateResponseTimeBadgeImageURL(duration) {
       return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/badge.svg`;
     },
-    generateResponseTimeChartImageURL() {
-      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/24h/chart.svg`;
+    generateResponseTimeChartImageURL(duration) {
+      return `${this.serverUrl}/api/v1/endpoints/${this.endpointStatus.key}/response-times/${duration}/chart.svg`;
     },
     changePage(page) {
       this.currentPage = page;
@@ -193,6 +209,7 @@ export default {
       endpointStatus: {},
       events: [],
       hourlyAverageResponseTime: {},
+      selectedChartDuration: '24h',
       // Since this page isn't at the root, we need to modify the server URL a bit
       serverUrl: SERVER_URL === '.' ? '..' : SERVER_URL,
       currentPage: 1,
