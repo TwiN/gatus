@@ -39,15 +39,14 @@
       </div>
     </div>
     <div v-if="endpointStatus && endpointStatus.key && showResponseTimeChartAndBadges" class="mt-12">
-      <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
-      <hr />
-      <!-- Dropdown to select duration -->
-      <select v-model="selectedChartDuration" @change="updateChart">
-        <option value="1h">1 hour</option>
-        <option value="7d">7 days</option>
-        <option value="24h">24 hours</option>
-        <option value="30d">30 days</option>
-      </select>
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
+        <select v-model="selectedChartDuration" class="text-sm bg-gray-400 text-white border border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="24h">24 hours</option>
+          <option value="7d">7 days</option>
+          <option value="30d">30 days</option>
+        </select>
+      </div>
       <img :src="generateResponseTimeChartImageURL(selectedChartDuration)" alt="response time chart" class="mt-6" />
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
