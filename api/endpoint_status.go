@@ -59,12 +59,14 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 	for _, instance := range remoteConfig.Instances {
 		response, err := httpClient.Get(instance.URL)
 		if err != nil {
-			return nil, err
+			// Log the error but continue with other instances
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			continue
 		}
 		var endpointStatuses []*endpoint.Status
 		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
 			_ = response.Body.Close()
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to decode endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
 		}
 		_ = response.Body.Close()
@@ -72,6 +74,10 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 			endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
 		}
 		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
+	}
+	// Only return nil, error if no remote instances were successfully processed
+	if len(endpointStatusesFromAllRemotes) == 0 && remoteConfig.Instances != nil {
+		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
 	}
 	return endpointStatusesFromAllRemotes, nil
 }
