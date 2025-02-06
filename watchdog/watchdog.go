@@ -32,13 +32,13 @@ func Monitor(cfg *config.Config) {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(777 * time.Millisecond)
-			go monitor(labels, endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
+			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx, labels)
 		}
 	}
 }
 
 // monitor a single endpoint in a loop
-func monitor(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
+func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context, labels []string) {
 	// Run it immediately on start
 	execute(labels, ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 	// Loop for the next executions
@@ -73,7 +73,7 @@ func execute(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Co
 	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
-		metrics.PublishMetricsForEndpoint(labels, ep, result)
+		metrics.PublishMetricsForEndpoint(ep, result, labels)
 	}
 	UpdateEndpointStatuses(ep, result)
 	if logr.GetThreshold() == logr.LevelDebug && !result.Success {

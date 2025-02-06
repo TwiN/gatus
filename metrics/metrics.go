@@ -56,7 +56,7 @@ func InitializePrometheusMetrics(cfg *config.Config) {
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
-func PublishMetricsForEndpoint(labels []string, ep *endpoint.Endpoint, result *endpoint.Result) {
+func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, labels []string) {
 	labelValues := []string{}
 	for _, label := range labels {
 		if value, ok := ep.Labels[label]; ok {
