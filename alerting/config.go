@@ -62,7 +62,7 @@ type Config struct {
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
 
-	// IncidentIo is the configuration for the incident.io alerting provider
+	// IncidentIO is the configuration for the incident-io alerting provider
 	IncidentIO *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
 
 	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
