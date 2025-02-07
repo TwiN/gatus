@@ -22,9 +22,9 @@ const (
 )
 
 var (
-	ErrURLNotSet              = errors.New("url not set.")
+	ErrURLNotSet              = errors.New("url not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
-	ErrAuthTokenNotSet        = errors.New("auth-token not set.")
+	ErrAuthTokenNotSet        = errors.New("auth-token not set")
 )
 
 type Config struct {
