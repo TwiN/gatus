@@ -1296,7 +1296,6 @@ Here's an example of what the notifications look like:
 ![Slack notifications](.github/assets/slack-alerts.png)
 
 
-
 #### Configuring Teams alerts *(Deprecated)*
 
 > [!CAUTION]
