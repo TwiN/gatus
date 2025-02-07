@@ -1,0 +1,16 @@
+name: test-ui
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+  push:
+    paths:
+      - 'web/**'
+jobs:
+  test-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: make frontend-install-dependencies
+      - run: make frontend-build
