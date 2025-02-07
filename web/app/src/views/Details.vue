@@ -70,7 +70,7 @@
     </div>
     <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">CURRENT HEALTH</h1>
-      <hr/>
+      <hr />
       <div class="flex space-x-4 text-center text-2xl mt-6 relative bottom-2 mb-10">
         <div class="flex-1">
           <img :src="generateHealthBadgeImageURL()" alt="health badge" class="mx-auto"/>
@@ -79,7 +79,7 @@
     </div>
     <div v-if="endpointStatus && endpointStatus.key">
       <h1 class="text-xl xl:text-3xl font-mono text-gray-400 mt-4">EVENTS</h1>
-      <hr/>
+      <hr />
       <ul role="list" class="px-0 xl:px-24 divide-y divide-gray-200 dark:divide-gray-600">
         <li v-for="event in events" :key="event" class="p-3 my-4">
           <h2 class="text-sm sm:text-lg">
