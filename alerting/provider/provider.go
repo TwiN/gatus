@@ -105,6 +105,7 @@ var (
 	_ Config[github.Config]         = (*github.Config)(nil)
 	_ Config[gitlab.Config]         = (*gitlab.Config)(nil)
 	_ Config[googlechat.Config]     = (*googlechat.Config)(nil)
+	_ Config[incidentio.Config]     = (*incidentio.Config)(nil)
 	_ Config[jetbrainsspace.Config] = (*jetbrainsspace.Config)(nil)
 	_ Config[matrix.Config]         = (*matrix.Config)(nil)
 	_ Config[mattermost.Config]     = (*mattermost.Config)(nil)
@@ -119,5 +120,4 @@ var (
 	_ Config[telegram.Config]       = (*telegram.Config)(nil)
 	_ Config[twilio.Config]         = (*twilio.Config)(nil)
 	_ Config[zulip.Config]          = (*zulip.Config)(nil)
-	_ Config[incidentio.Config]     = (*incidentio.Config)(nil)
 )
