@@ -34,6 +34,9 @@ docker-build-and-run: docker-build docker-run
 # Front end #
 #############
 
+frontend-install-dependencies:
+	npm --prefix web/app install
+
 frontend-build:
 	npm --prefix web/app run build
 
