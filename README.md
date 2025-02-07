@@ -2385,6 +2385,19 @@ Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
+#### Response time (chart)
+![Response time 1h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/1h/chart.svg)
+![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/chart.svg)
+![Response time 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/7d/chart.svg)
+![Response time 30d](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/30d/chart.svg)
+
+The endpoint to generate a response time chart is the following:
+```
+/api/v1/endpoints/{key}/response-times/{duration}/chart.svg
+```
+Where:
+- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
