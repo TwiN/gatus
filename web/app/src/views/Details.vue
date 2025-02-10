@@ -42,7 +42,6 @@
       <div class="flex items-center justify-between">
         <h1 class="text-xl xl:text-3xl font-mono text-gray-400">RESPONSE TIME</h1>
         <select v-model="selectedChartDuration"  class="text-sm bg-gray-400 text-white border border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="1h">1 hour</option>
           <option value="24h">24 hours</option>
           <option value="7d">7 days</option>
           <option value="30d">30 days</option>
