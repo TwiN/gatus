@@ -16,10 +16,6 @@ body {
     min-height: 100vh;
 }
 
-html, body {
-    background-color: #f7f9fb;
-}
-
 #global {
     margin-top: 0 !important;
 }
