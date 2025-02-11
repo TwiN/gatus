@@ -6,6 +6,10 @@
     background-color: #28a745;
 }
 
+html:not(.dark) body {
+    background-color: #f7f9fb;
+}
+
 html {
     height: 100%;
 }
