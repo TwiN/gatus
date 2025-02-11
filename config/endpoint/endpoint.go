@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -13,11 +14,16 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -388,6 +394,15 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 	} else {
+
+		tp := otel.GetTracerProvider()
+		tracer := tp.Tracer("gatus")
+		var span trace.Span
+		ctx, span := tracer.Start(context.Background(), "HealthCheck")
+		attributes := strings.Split(e.Group, ".")
+		span.SetAttributes(semconv.ServiceNamespace(attributes[0]), semconv.PeerService(attributes[1]), attribute.KeyValue{Key: "user_agent.synthetic.type", Value: attribute.StringValue("bot")})
+		defer span.End()
+		request = request.WithContext(ctx)
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {

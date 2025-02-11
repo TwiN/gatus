@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,6 +13,11 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 	"github.com/TwiN/logr"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 const (
@@ -20,7 +26,34 @@ const (
 	GatusLogLevelEnvVar   = "GATUS_LOG_LEVEL"
 )
 
+func initTracer() *trace.TracerProvider {
+	ctx := context.Background()
+	exporter, err := otlptracehttp.New(ctx)
+	if err != nil {
+		logr.Infof("Failed to create otlp trace http exporter: %v", err)
+	}
+	res, err := resource.New(
+		ctx,
+		resource.WithFromEnv(),
+		resource.WithTelemetrySDK(),
+	)
+	if err != nil {
+		logr.Infof("Failed to create resource: %v", err)
+	}
+	tp := trace.NewTracerProvider(
+		trace.WithResource(res),
+		trace.WithBatcher(exporter),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	return tp
+}
+
 func main() {
+	tp := initTracer()
+	defer func() {
+		_ = tp.Shutdown(context.Background())
+	}()
 	if delayInSeconds, _ := strconv.Atoi(os.Getenv("GATUS_DELAY_START_SECONDS")); delayInSeconds > 0 {
 		logr.Infof("Delaying start by %d seconds", delayInSeconds)
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)

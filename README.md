@@ -82,6 +82,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [OIDC](#oidc)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
+  - [Traces](#traces)
   - [Connectivity](#connectivity)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -1793,6 +1794,17 @@ endpoint on the same port your application is configured to run on (`web.port`).
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
 
+
+### Traces
+To export traces around http.client requests you can set up standard Open Telemetry exporter and resource environment variables to configure your trace provider. For more details on viable configuration options for the [exporter](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md) and [resource](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/sdk.md) variables, please reference the Open Telemetry documentation. An example configuration is listed below.
+
+```bash
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+OTEL_SERVICE_NAME=gatus
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_TRACES_INSECURE=true
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=local,service.version=1.0.0
+```
 
 ### Connectivity
 | Parameter                       | Description                                | Default       |
