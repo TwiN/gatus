@@ -529,7 +529,7 @@ Alerts are configured at the endpoint level like so:
 | `alerts[].success-threshold`      | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
 | `alerts[].send-on-resolved`       | Whether to send a notification once a triggered alert is marked as resolved.   | `false`       |
 | `alerts[].description`            | Description of the alert. Will be included in the alert sent.                  | `""`          |
-| `alerts[].repeat-interval`        | Configuration for setting an interval between reminders.     | `""`          |
+| `alerts[].minimum-repeat-interval`        | Configuration for setting an interval between reminders.     | `""`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml

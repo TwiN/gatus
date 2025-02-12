@@ -488,7 +488,7 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, endpoint, 0, 2, false, "")
 }
 
-func TestHandleAlertingWithRepeatInterval(t *testing.T) {
+func TestHandleAlertingWithMinimumRepeatInterval(t *testing.T) {
 	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
 	defer os.Clearenv()
 
@@ -506,13 +506,13 @@ func TestHandleAlertingWithRepeatInterval(t *testing.T) {
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
-				Type:             alert.TypeCustom,
-				Enabled:          &enabled,
-				FailureThreshold: 2,
-				SuccessThreshold: 3,
-				SendOnResolved:   &enabled,
-				Triggered:        false,
-				RepeatInterval:   1 * time.Second,
+				Type:                    alert.TypeCustom,
+				Enabled:                 &enabled,
+				FailureThreshold:        2,
+				SuccessThreshold:        3,
+				SendOnResolved:          &enabled,
+				Triggered:               false,
+				MinimumRepeatInterval:   1 * time.Second,
 			},
 		},
 	}
