@@ -6,6 +6,10 @@
     background-color: #28a745;
 }
 
+html:not(.dark) body {
+    background-color: #f7f9fb;
+}
+
 html {
     height: 100%;
 }
@@ -14,10 +18,6 @@ body {
     padding-top: 20px;
     padding-bottom: 20px;
     min-height: 100vh;
-}
-
-html, body {
-    background-color: #f7f9fb;
 }
 
 #global {

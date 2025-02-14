@@ -4,6 +4,8 @@ on:
     paths:
       - 'web/**'
   push:
+    branches:
+      - master
     paths:
       - 'web/**'
 jobs:
