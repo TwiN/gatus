@@ -973,7 +973,7 @@ func (s *Store) getEndpointAverageResponseTime(tx *sql.Tx, endpointID int64, fro
 			SELECT SUM(total_executions), SUM(total_response_time)
 			FROM endpoint_uptimes
 			WHERE endpoint_id = ?
-				AND total_executions > ?
+				AND total_executions > 0
 				AND hour_unix_timestamp >= ?
 				AND hour_unix_timestamp <= ?
 		`
@@ -982,9 +982,9 @@ func (s *Store) getEndpointAverageResponseTime(tx *sql.Tx, endpointID int64, fro
 			SELECT SUM(total_executions), SUM(total_response_time)
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
-				AND total_executions > $2
-				AND hour_unix_timestamp >= $3
-				AND hour_unix_timestamp <= $4
+				AND total_executions > 0
+				AND hour_unix_timestamp >= $2
+				AND hour_unix_timestamp <= $3
 		`
 	}
 	rows, err := tx.Query(
