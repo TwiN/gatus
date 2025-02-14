@@ -233,6 +233,46 @@ endpoints:
 				},
 			},
 		},
+		{
+            name:       "templated-config",
+            configPath: filepath.Join(dir, "config.yaml"),
+            pathAndFiles: map[string]string{
+                "config.yaml": `
+endpoints:
+{{ range $ep := (list "aws" "google" "azure") }}
+  - name: {{ $ep | toUpper }}
+    url: https://{{ $ep }}.org
+    interval: 5s
+    conditions:
+      - "[STATUS] == 200"
+{{end}}
+`,
+            },
+            expectedConfig: &Config{
+                Endpoints: []*endpoint.Endpoint{
+                    {
+                        Name:       "AWS",
+                        URL:        "https://aws.org",
+                        Interval:   5 * time.Second,
+                        Conditions: []endpoint.Condition{"[STATUS] == 200"},
+                    },
+                    {
+                        Name:     "GOOGLE",
+                        URL:      "https://google.org",
+                        Interval: 5 * time.Second,
+
+                        Conditions: []endpoint.Condition{"[STATUS] == 200"},
+                    },
+                    {
+                        Name:     "AZURE",
+                        URL:      "https://azure.org",
+                        Interval: 5 * time.Second,
+
+                        Conditions: []endpoint.Condition{"[STATUS] == 200"},
+                    },
+                },
+            },
+        },
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {

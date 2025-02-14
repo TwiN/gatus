@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/template"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
@@ -202,7 +203,14 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	if len(configBytes) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
-	config, err := parseAndValidateConfigBytes(configBytes)
+
+
+    renderedConfig, err := template.Render(configBytes, nil)
+    if err != nil {
+        return nil, fmt.Errorf("error while rendering templated config: %w", err)
+    }
+
+	config, err = parseAndValidateConfigBytes(renderedConfig.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
