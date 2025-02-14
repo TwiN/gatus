@@ -405,8 +405,8 @@ See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-sto
 - If `storage.type` is `postgres` or `mysql`, `storage.path` must be the connection URL:
 ```yaml
 storage:
-  type: postgres
-  path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
+  type: postgres # or mysql
+  path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable" # or user:password@tcp(127.0.0.1:3306)/gatus?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true&interpolateParams=true
 ```
 See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
 
