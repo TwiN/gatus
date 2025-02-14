@@ -7,4 +7,5 @@ const (
 	TypeMemory   Type = "memory"   // In-memory store
 	TypeSQLite   Type = "sqlite"   // SQLite store
 	TypePostgres Type = "postgres" // Postgres store
+	TypeMySQL    Type = "mysql"    // MySQL store
 )

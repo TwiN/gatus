@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/logr"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
@@ -96,10 +97,16 @@ func NewStore(driver, path string, caching bool) (*Store, error) {
 
 // createSchema creates the schema required to perform all database operations.
 func (s *Store) createSchema() error {
-	if s.driver == "sqlite" {
+	switch s.driver {
+	case "sqlite":
 		return s.createSQLiteSchema()
+	case "postgres":
+		return s.createPostgresSchema()
+	case "mysql":
+		return s.createMySQLSchema()
+	default:
+		return fmt.Errorf("unsupported database driver: %s", s.driver)
 	}
-	return s.createPostgresSchema()
 }
 
 // GetAllEndpointStatuses returns all monitored endpoint.Status
@@ -377,10 +384,15 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		// Delete everything
 		result, err = s.db.Exec("DELETE FROM endpoints")
 	} else {
+		var query string
 		args := make([]interface{}, 0, len(keys))
-		query := "DELETE FROM endpoints WHERE endpoint_key NOT IN ("
+		query = "DELETE FROM endpoints WHERE endpoint_key NOT IN ("
 		for i := range keys {
-			query += fmt.Sprintf("$%d,", i+1)
+			if s.driver == "mysql" {
+				query += "?,"
+			} else {
+				query += fmt.Sprintf("$%d,", i+1)
+			}
 			args = append(args, keys[i])
 		}
 		query = query[:len(query)-1] + ")" // Remove the last comma and add the closing parenthesis
@@ -404,8 +416,14 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 // GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
 	//logr.Debugf("[sql.GetTriggeredEndpointAlert] Getting triggered alert with checksum=%s for endpoint with key=%s", alert.Checksum(), ep.Key())
+	var query string
+	if s.driver == "mysql" {
+		query = `SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = ? LIMIT 1) AND configuration_checksum = ?`
+	} else {
+		query = `SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2`
+	}
 	err = s.db.QueryRow(
-		"SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2",
+		query,
 		ep.Key(),
 		alert.Checksum(),
 	).Scan(&resolveKey, &numberOfSuccessesInARow)
@@ -442,14 +460,25 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 			return err
 		}
 	}
-	_, err = tx.Exec(
-		`
+	var query string
+	if s.driver == "mysql" {
+		query = `INSERT INTO endpoint_alerts_triggered 
+            (endpoint_id, configuration_checksum, resolve_key, number_of_successes_in_a_row)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                resolve_key = VALUES(resolve_key),
+                number_of_successes_in_a_row = VALUES(number_of_successes_in_a_row)`
+	} else {
+		query = `
 			INSERT INTO endpoint_alerts_triggered (endpoint_id, configuration_checksum, resolve_key, number_of_successes_in_a_row) 
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT(endpoint_id, configuration_checksum) DO UPDATE SET
 				resolve_key = $3,
 				number_of_successes_in_a_row = $4
-		`,
+		`
+	}
+	_, err = tx.Exec(
+		query,
 		endpointID,
 		triggeredAlert.Checksum(),
 		triggeredAlert.ResolveKey,
@@ -469,7 +498,13 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 // DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
 func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
 	//logr.Debugf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
-	_, err := s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)", triggeredAlert.Checksum(), ep.Key())
+	var query string
+	if s.driver == "mysql" {
+		query = `DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = ? AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = ? LIMIT 1)`
+	} else {
+		query = `DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)`
+	}
+	_, err := s.db.Exec(query, triggeredAlert.Checksum(), ep.Key())
 	return err
 }
 
@@ -483,7 +518,13 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	if len(checksums) == 0 {
 		// No checksums? Then it means there are no (enabled) alerts configured for that endpoint, so we can get rid of all
 		// persisted triggered alerts for that endpoint
-		result, err = s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)", ep.Key())
+		var query string
+		if s.driver == "mysql" {
+			query = `DELETE FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = ? LIMIT 1)`
+		} else {
+			query = `DELETE FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)`
+		}
+		result, err = s.db.Exec(query, ep.Key())
 	} else {
 		args := make([]interface{}, 0, len(checksums)+1)
 		args = append(args, ep.Key())
@@ -491,7 +532,11 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 			WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)
 			  AND configuration_checksum NOT IN (`
 		for i := range checksums {
-			query += fmt.Sprintf("$%d,", i+2)
+			if s.driver == "mysql" {
+				query += "?,"
+			} else {
+				query += fmt.Sprintf("$%d,", i+2)
+			}
 			args = append(args, checksums[i])
 		}
 		query = query[:len(query)-1] + ")" // Remove the last comma and add the closing parenthesis
@@ -532,68 +577,124 @@ func (s *Store) Close() {
 func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error) {
 	//logr.Debugf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", ep.Group, ep.Name)
 	var id int64
-	err := tx.QueryRow(
-		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
-		ep.Key(),
-		ep.Name,
-		ep.Group,
-	).Scan(&id)
-	if err != nil {
-		return 0, err
+	if s.driver == "mysql" {
+		result, err := tx.Exec(
+			"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES (?, ?, ?)",
+			ep.Key(), ep.Name, ep.Group,
+		)
+		if err != nil {
+			return 0, err
+		}
+		id, err = result.LastInsertId()
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		err := tx.QueryRow(
+			"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
+			ep.Key(), ep.Name, ep.Group,
+		).Scan(&id)
+		if err != nil {
+			return 0, err
+		}
 	}
 	return id, nil
 }
 
 // insertEndpointEvent inserts en event in the store
 func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *endpoint.Event) error {
-	_, err := tx.Exec(
-		"INSERT INTO endpoint_events (endpoint_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
-		endpointID,
-		event.Type,
-		event.Timestamp.UTC(),
-	)
-	if err != nil {
-		return err
+	var err error
+	if s.driver == "mysql" {
+		_, err = tx.Exec(
+			"INSERT INTO endpoint_events (endpoint_id, event_type, event_timestamp) VALUES (?, ?, ?)",
+			endpointID,
+			event.Type,
+			event.Timestamp.UTC(),
+		)
+	} else {
+		_, err = tx.Exec(
+			"INSERT INTO endpoint_events (endpoint_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
+			endpointID,
+			event.Type,
+			event.Timestamp.UTC(),
+		)
 	}
-	return nil
+	return err
 }
 
 // insertEndpointResult inserts a result in the store
 func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *endpoint.Result) error {
 	var endpointResultID int64
-	err := tx.QueryRow(
-		`
+	if s.driver == "mysql" {
+		res, err := tx.Exec(
+			`
+			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`,
+			endpointID,
+			result.Success,
+			strings.Join(result.Errors, arraySeparator),
+			result.Connected,
+			result.HTTPStatus,
+			result.DNSRCode,
+			result.CertificateExpiration,
+			result.DomainExpiration,
+			result.Hostname,
+			result.IP,
+			result.Duration,
+			result.Timestamp.UTC(),
+		)
+		if err != nil {
+			return err
+		}
+		endpointResultID, err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := tx.QueryRow(
+			`
 			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			RETURNING endpoint_result_id
 		`,
-		endpointID,
-		result.Success,
-		strings.Join(result.Errors, arraySeparator),
-		result.Connected,
-		result.HTTPStatus,
-		result.DNSRCode,
-		result.CertificateExpiration,
-		result.DomainExpiration,
-		result.Hostname,
-		result.IP,
-		result.Duration,
-		result.Timestamp.UTC(),
-	).Scan(&endpointResultID)
-	if err != nil {
-		return err
+			endpointID,
+			result.Success,
+			strings.Join(result.Errors, arraySeparator),
+			result.Connected,
+			result.HTTPStatus,
+			result.DNSRCode,
+			result.CertificateExpiration,
+			result.DomainExpiration,
+			result.Hostname,
+			result.IP,
+			result.Duration,
+			result.Timestamp.UTC(),
+		).Scan(&endpointResultID)
+		if err != nil {
+			return err
+		}
 	}
+
 	return s.insertConditionResults(tx, endpointResultID, result.ConditionResults)
 }
 
 func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*endpoint.ConditionResult) error {
 	var err error
 	for _, cr := range conditionResults {
-		_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES ($1, $2, $3)",
-			endpointResultID,
-			cr.Condition,
-			cr.Success,
-		)
+		if s.driver == "mysql" {
+			_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES (?, ?, ?)",
+				endpointResultID,
+				cr.Condition,
+				cr.Success,
+			)
+		} else {
+			_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES ($1, $2, $3)",
+				endpointResultID,
+				cr.Condition,
+				cr.Success,
+			)
+		}
 		if err != nil {
 			return err
 		}
@@ -607,15 +708,28 @@ func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *endpo
 	if result.Success {
 		successfulExecutions = 1
 	}
-	_, err := tx.Exec(
-		`
+
+	var query string
+	if s.driver == "mysql" {
+		query = `INSERT INTO endpoint_uptimes 
+            (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                total_executions = total_executions + VALUES(total_executions),
+                successful_executions = successful_executions + VALUES(successful_executions),
+                total_response_time = total_response_time + VALUES(total_response_time)`
+	} else {
+		query = `
 			INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time) 
 			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
 				total_executions = excluded.total_executions + endpoint_uptimes.total_executions,
 				successful_executions = excluded.successful_executions + endpoint_uptimes.successful_executions,
 				total_response_time = excluded.total_response_time + endpoint_uptimes.total_response_time
-		`,
+		`
+	}
+	_, err := tx.Exec(
+		query,
 		endpointID,
 		unixTimestampFlooredAtHour,
 		1,
@@ -670,15 +784,23 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 }
 
 func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, err error) {
-	err = tx.QueryRow(
-		`
-			SELECT endpoint_id, endpoint_group, endpoint_name
-			FROM endpoints
-			WHERE endpoint_key = $1
-			LIMIT 1
-		`,
-		key,
-	).Scan(&id, &group, &name)
+	var query string
+	if s.driver == "mysql" {
+		query = `
+            SELECT endpoint_id, endpoint_group, endpoint_name
+            FROM endpoints
+            WHERE endpoint_key = ?
+            LIMIT 1
+        `
+	} else {
+		query = `
+            SELECT endpoint_id, endpoint_group, endpoint_name
+            FROM endpoints
+            WHERE endpoint_key = $1
+            LIMIT 1
+        `
+	}
+	err = tx.QueryRow(query, key).Scan(&id, &group, &name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, "", "", common.ErrEndpointNotFound
@@ -689,14 +811,26 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 }
 
 func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (events []*endpoint.Event, err error) {
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT event_type, event_timestamp
+			FROM endpoint_events
+			WHERE endpoint_id = ?
+			ORDER BY endpoint_event_id ASC
+			LIMIT ? OFFSET ?
 		`
+	} else {
+		query = `
 			SELECT event_type, event_timestamp
 			FROM endpoint_events
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_event_id ASC
 			LIMIT $2 OFFSET $3
-		`,
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		pageSize,
 		(page-1)*pageSize,
@@ -713,14 +847,26 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 }
 
 func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*endpoint.Result, err error) {
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
+			FROM endpoint_results
+			WHERE endpoint_id = ?
+			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
+			LIMIT ? OFFSET ?
 		`
+	} else {
+		query = `
 			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
 			FROM endpoint_results
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
 			LIMIT $2 OFFSET $3
-		`,
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		pageSize,
 		(page-1)*pageSize,
@@ -751,12 +897,16 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	}
 	// Get condition results
 	args := make([]interface{}, 0, len(idResultMap))
-	query := `SELECT endpoint_result_id, condition, success
+	query = `SELECT endpoint_result_id, condition, success
 				FROM endpoint_result_conditions
 				WHERE endpoint_result_id IN (`
 	index := 1
 	for endpointResultID := range idResultMap {
-		query += "$" + strconv.Itoa(index) + ","
+		if s.driver == "mysql" {
+			query += "?,"
+		} else {
+			query += "$" + strconv.Itoa(index) + ","
+		}
 		args = append(args, endpointResultID)
 		index++
 	}
@@ -778,14 +928,26 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 }
 
 func (s *Store) getEndpointUptime(tx *sql.Tx, endpointID int64, from, to time.Time) (uptime float64, avgResponseTime time.Duration, err error) {
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT SUM(total_executions), SUM(successful_executions), SUM(total_response_time)
+			FROM endpoint_uptimes
+			WHERE endpoint_id = ?
+				AND hour_unix_timestamp >= ?
+				AND hour_unix_timestamp <= ?
 		`
+	} else {
+		query = `
 			SELECT SUM(total_executions), SUM(successful_executions), SUM(total_response_time)
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
 				AND hour_unix_timestamp >= $2
 				AND hour_unix_timestamp <= $3
-		`,
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		from.Unix(),
 		to.Unix(),
@@ -805,15 +967,28 @@ func (s *Store) getEndpointUptime(tx *sql.Tx, endpointID int64, from, to time.Ti
 }
 
 func (s *Store) getEndpointAverageResponseTime(tx *sql.Tx, endpointID int64, from, to time.Time) (int, error) {
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT SUM(total_executions), SUM(total_response_time)
+			FROM endpoint_uptimes
+			WHERE endpoint_id = ?
+				AND total_executions > ?
+				AND hour_unix_timestamp >= ?
+				AND hour_unix_timestamp <= ?
 		`
+	} else {
+		query = `
 			SELECT SUM(total_executions), SUM(total_response_time)
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
-				AND total_executions > 0
-				AND hour_unix_timestamp >= $2
-				AND hour_unix_timestamp <= $3
-		`,
+				AND total_executions > $2
+				AND hour_unix_timestamp >= $3
+				AND hour_unix_timestamp <= $4
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		from.Unix(),
 		to.Unix(),
@@ -832,15 +1007,28 @@ func (s *Store) getEndpointAverageResponseTime(tx *sql.Tx, endpointID int64, fro
 }
 
 func (s *Store) getEndpointHourlyAverageResponseTimes(tx *sql.Tx, endpointID int64, from, to time.Time) (map[int64]int, error) {
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT hour_unix_timestamp, total_executions, total_response_time
+			FROM endpoint_uptimes
+			WHERE endpoint_id = ?
+				AND total_executions > 0
+				AND hour_unix_timestamp >= ?
+				AND hour_unix_timestamp <= ?
 		`
+	} else {
+		query = `
 			SELECT hour_unix_timestamp, total_executions, total_response_time
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
 				AND total_executions > 0
 				AND hour_unix_timestamp >= $2
 				AND hour_unix_timestamp <= $3
-		`,
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		from.Unix(),
 		to.Unix(),
@@ -860,7 +1048,13 @@ func (s *Store) getEndpointHourlyAverageResponseTimes(tx *sql.Tx, endpointID int
 
 func (s *Store) getEndpointID(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error) {
 	var id int64
-	err := tx.QueryRow("SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1", ep.Key()).Scan(&id)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT endpoint_id FROM endpoints WHERE endpoint_key = ?"
+	} else {
+		query = "SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1"
+	}
+	err := tx.QueryRow(query, ep.Key()).Scan(&id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, common.ErrEndpointNotFound
@@ -872,33 +1066,48 @@ func (s *Store) getEndpointID(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error) 
 
 func (s *Store) getNumberOfEventsByEndpointID(tx *sql.Tx, endpointID int64) (int64, error) {
 	var numberOfEvents int64
-	err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_events WHERE endpoint_id = $1", endpointID).Scan(&numberOfEvents)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT COUNT(1) FROM endpoint_events WHERE endpoint_id = ?"
+	} else {
+		query = "SELECT COUNT(1) FROM endpoint_events WHERE endpoint_id = $1"
+	}
+	err := tx.QueryRow(query, endpointID).Scan(&numberOfEvents)
 	return numberOfEvents, err
 }
 
 func (s *Store) getNumberOfResultsByEndpointID(tx *sql.Tx, endpointID int64) (int64, error) {
 	var numberOfResults int64
-	err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_results WHERE endpoint_id = $1", endpointID).Scan(&numberOfResults)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT COUNT(1) FROM endpoint_results WHERE endpoint_id = ?"
+	} else {
+		query = "SELECT COUNT(1) FROM endpoint_results WHERE endpoint_id = $1"
+	}
+	err := tx.QueryRow(query, endpointID).Scan(&numberOfResults)
 	return numberOfResults, err
 }
 
 func (s *Store) getNumberOfUptimeEntriesByEndpointID(tx *sql.Tx, endpointID int64) (int64, error) {
 	var numberOfUptimeEntries int64
-	err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", endpointID).Scan(&numberOfUptimeEntries)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = ?"
+	} else {
+		query = "SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1"
+	}
+	err := tx.QueryRow(query, endpointID).Scan(&numberOfUptimeEntries)
 	return numberOfUptimeEntries, err
 }
 
 func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) (time.Duration, error) {
-	rows, err := tx.Query(
-		`
-			SELECT hour_unix_timestamp 
-			FROM endpoint_uptimes 
-			WHERE endpoint_id = $1 
-			ORDER BY hour_unix_timestamp
-			LIMIT 1
-		`,
-		endpointID,
-	)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT hour_unix_timestamp FROM endpoint_uptimes WHERE endpoint_id = ? ORDER BY hour_unix_timestamp LIMIT 1"
+	} else {
+		query = "SELECT hour_unix_timestamp FROM endpoint_uptimes WHERE endpoint_id = $1 ORDER BY hour_unix_timestamp LIMIT 1"
+	}
+	rows, err := tx.Query(query, endpointID)
 	if err != nil {
 		return 0, err
 	}
@@ -916,7 +1125,13 @@ func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) 
 
 func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) (bool, error) {
 	var success bool
-	err := tx.QueryRow("SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&success)
+	var query string
+	if s.driver == "mysql" {
+		query = "SELECT success FROM endpoint_results WHERE endpoint_id = ? ORDER BY endpoint_result_id DESC LIMIT 1"
+	} else {
+		query = "SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1"
+	}
+	err := tx.QueryRow(query, endpointID).Scan(&success)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, errNoRowsReturned
@@ -928,8 +1143,27 @@ func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) 
 
 // deleteOldEndpointEvents deletes endpoint events that are no longer needed
 func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
-	_, err := tx.Exec(
-		`
+	var err error
+	if s.driver == "mysql" {
+		_, err = tx.Exec(
+			`
+			DELETE FROM endpoint_events 
+			WHERE endpoint_id = ?
+				AND endpoint_event_id NOT IN (
+					SELECT endpoint_event_id 
+					FROM endpoint_events
+					WHERE endpoint_id = ?
+					ORDER BY endpoint_event_id DESC
+					LIMIT ?
+				)
+		`,
+			endpointID,
+			endpointID,
+			common.MaximumNumberOfEvents,
+		)
+	} else {
+		_, err = tx.Exec(
+			`
 			DELETE FROM endpoint_events 
 			WHERE endpoint_id = $1
 				AND endpoint_event_id NOT IN (
@@ -940,16 +1174,36 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 					LIMIT $2
 				)
 		`,
-		endpointID,
-		common.MaximumNumberOfEvents,
-	)
+			endpointID,
+			common.MaximumNumberOfEvents,
+		)
+	}
 	return err
 }
 
 // deleteOldEndpointResults deletes endpoint results that are no longer needed
 func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
-	_, err := tx.Exec(
-		`
+	var err error
+	if s.driver == "mysql" {
+		_, err = tx.Exec(
+			`
+			DELETE FROM endpoint_results
+			WHERE endpoint_id = ?
+				AND endpoint_result_id NOT IN (
+					SELECT endpoint_result_id
+					FROM endpoint_results
+					WHERE endpoint_id = ?
+					ORDER BY endpoint_result_id DESC
+					LIMIT ?
+				)
+		`,
+			endpointID,
+			endpointID,
+			common.MaximumNumberOfResults,
+		)
+	} else {
+		_, err = tx.Exec(
+			`
 			DELETE FROM endpoint_results
 			WHERE endpoint_id = $1 
 				AND endpoint_result_id NOT IN (
@@ -960,14 +1214,21 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 					LIMIT $2
 				)
 		`,
-		endpointID,
-		common.MaximumNumberOfResults,
-	)
+			endpointID,
+			common.MaximumNumberOfResults,
+		)
+	}
 	return err
 }
 
 func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time.Time) error {
-	_, err := tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, maxAge.Unix())
+	var query string
+	if s.driver == "mysql" {
+		query = "DELETE FROM endpoint_uptimes WHERE endpoint_id = ? AND hour_unix_timestamp < ?"
+	} else {
+		query = "DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2"
+	}
+	_, err := tx.Exec(query, endpointID, maxAge.Unix())
 	return err
 }
 
@@ -990,14 +1251,26 @@ func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEn
 	minThreshold = time.Date(minThreshold.Year(), minThreshold.Month(), minThreshold.Day(), 0, 0, 0, 0, minThreshold.Location())
 	maxThreshold := now.Add(-uptimeRetention)
 	// Get all uptime entries older than uptimeHourlyMergeThreshold
-	rows, err := tx.Query(
+	var query string
+	if s.driver == "mysql" {
+		query = `
+			SELECT hour_unix_timestamp, total_executions, successful_executions, total_response_time
+			FROM endpoint_uptimes
+			WHERE endpoint_id = ?
+				AND hour_unix_timestamp < ?
+			    AND hour_unix_timestamp >= ?
 		`
+	} else {
+		query = `
 			SELECT hour_unix_timestamp, total_executions, successful_executions, total_response_time
 			FROM endpoint_uptimes
 			WHERE endpoint_id = $1
 				AND hour_unix_timestamp < $2
 			    AND hour_unix_timestamp >= $3
-		`,
+		`
+	}
+	rows, err := tx.Query(
+		query,
 		endpointID,
 		minThreshold.Unix(),
 		maxThreshold.Unix(),
@@ -1028,21 +1301,38 @@ func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEn
 		}
 	}
 	// Delete older hourly uptime entries
-	_, err = tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, minThreshold.Unix())
+	if s.driver == "mysql" {
+		query = "DELETE FROM endpoint_uptimes WHERE endpoint_id = ? AND hour_unix_timestamp < ?"
+	} else {
+		query = "DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2"
+	}
+	_, err = tx.Exec(query, endpointID, minThreshold.Unix())
 	if err != nil {
 		return err
 	}
 	// Insert new daily uptime entries
 	for unixTimestamp, entry := range dailyEntries {
-		_, err = tx.Exec(
+		if s.driver == "mysql" {
+			query = `
+				INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
+				VALUES (?, ?, ?, ?, ?)
+				ON DUPLICATE KEY UPDATE
+					total_executions = VALUES(total_executions),
+					successful_executions = VALUES(successful_executions),
+					total_response_time = VALUES(total_response_time)
 			`
-					INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
-					VALUES ($1, $2, $3, $4, $5)
-					ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
-						total_executions = $3,
-						successful_executions = $4,
-						total_response_time = $5
-				`,
+		} else {
+			query = `
+				INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
+				VALUES ($1, $2, $3, $4, $5)
+				ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
+					total_executions = $3,
+					successful_executions = $4,
+					total_response_time = $5
+				`
+		}
+		_, err = tx.Exec(
+			query,
 			endpointID,
 			unixTimestamp,
 			entry.totalExecutions,

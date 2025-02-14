@@ -32,7 +32,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Type == "" {
 		c.Type = TypeMemory
 	}
-	if (c.Type == TypePostgres || c.Type == TypeSQLite) && len(c.Path) == 0 {
+	if (c.Type == TypeMySQL || c.Type == TypePostgres || c.Type == TypeSQLite) && len(c.Path) == 0 {
 		return ErrSQLStorageRequiresPath
 	}
 	if c.Type == TypeMemory && len(c.Path) > 0 {
