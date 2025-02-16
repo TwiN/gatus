@@ -528,9 +528,16 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	} else {
 		args := make([]interface{}, 0, len(checksums)+1)
 		args = append(args, ep.Key())
-		query := `DELETE FROM endpoint_alerts_triggered 
+		var query string
+		if s.driver == "mysql" {
+			query = `DELETE FROM endpoint_alerts_triggered 
+			WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = ? LIMIT 1)
+			  AND configuration_checksum NOT IN (`
+		} else {
+			query = `DELETE FROM endpoint_alerts_triggered 
 			WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)
 			  AND configuration_checksum NOT IN (`
+		}
 		for i := range checksums {
 			if s.driver == "mysql" {
 				query += "?,"
