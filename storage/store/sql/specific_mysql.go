@@ -50,7 +50,7 @@ func (s *Store) createMySQLSchema() error {
 		CREATE TABLE IF NOT EXISTS endpoint_result_conditions (
 			endpoint_result_condition_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
 			endpoint_result_id            BIGINT NOT NULL,
-			condition                     TEXT   NOT NULL,
+			` + "`condition`" + `         TEXT   NOT NULL,
 			success                       BOOLEAN NOT NULL,
 			FOREIGN KEY (endpoint_result_id) REFERENCES endpoint_results(endpoint_result_id) ON DELETE CASCADE
 		)
