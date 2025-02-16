@@ -913,9 +913,6 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 				FROM endpoint_result_conditions
 				WHERE endpoint_result_id IN (`
 	}
-	query = `SELECT endpoint_result_id, condition, success
-				FROM endpoint_result_conditions
-				WHERE endpoint_result_id IN (`
 	index := 1
 	for endpointResultID := range idResultMap {
 		if s.driver == "mysql" {
