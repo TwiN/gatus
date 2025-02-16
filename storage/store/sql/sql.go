@@ -690,7 +690,7 @@ func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, condi
 	var err error
 	for _, cr := range conditionResults {
 		if s.driver == "mysql" {
-			_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, condition, success) VALUES (?, ?, ?)",
+			_, err = tx.Exec("INSERT INTO endpoint_result_conditions (endpoint_result_id, `condition`, success) VALUES (?, ?, ?)",
 				endpointResultID,
 				cr.Condition,
 				cr.Success,
@@ -904,6 +904,15 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 	}
 	// Get condition results
 	args := make([]interface{}, 0, len(idResultMap))
+	if s.driver == "mysql" {
+		query = `SELECT endpoint_result_id, ` + "`condition`" + `, success
+				FROM endpoint_result_conditions
+				WHERE endpoint_result_id IN (`
+	} else {
+		query = `SELECT endpoint_result_id, condition, success
+				FROM endpoint_result_conditions
+				WHERE endpoint_result_id IN (`
+	}
 	query = `SELECT endpoint_result_id, condition, success
 				FROM endpoint_result_conditions
 				WHERE endpoint_result_id IN (`
