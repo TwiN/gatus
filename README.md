@@ -914,6 +914,7 @@ Here's an example of what the notifications look like:
 | `alerting.incident-io`                   | Configuration for alerts of type `incident-io`                                             | `{}`          |
 | `alerting.incident-io.url`               | url to trigger an alert event.                                                             | Required `""` |
 | `alerting.incident-io.auth-token`        | Token that is used for authentication.                                                     | Required `""` |
+| `alerting.incident-io.source-url`        | Source URL                                                                                 | `""`          |
 | `alerting.incident-io.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.incident-io.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.incident-io.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
