@@ -41,12 +41,14 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	// Run it immediately on start
 	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 	// Loop for the next executions
+	ticker := time.NewTicker(ep.Interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
-		case <-time.After(ep.Interval):
+		case <-ticker.C:
 			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 		}
 	}
@@ -78,7 +80,14 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	} else {
 		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
-	if !maintenanceConfig.IsUnderMaintenance() {
+	inEndpointMaintenanceWindow := false
+	for _, maintenanceWindow := range ep.MaintenanceWindows {
+		if maintenanceWindow.IsUnderMaintenance() {
+			logr.Debug("[watchdog.execute] Under endpoint maintenance window")
+			inEndpointMaintenanceWindow = true
+		}
+	}
+	if !maintenanceConfig.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
 		HandleAlerting(ep, result, alertingConfig)
 	} else {

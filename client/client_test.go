@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net/http"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -356,7 +357,7 @@ func TestTlsRenegotiation(t *testing.T) {
 }
 
 func TestQueryDNS(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name            string
 		inputDNS        dns.Config
 		inputURL        string
@@ -372,7 +373,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "93.184.215.14",
+			expectedBody:    "__IPV4__",
 		},
 		{
 			name: "test Config with type AAAA",
@@ -382,7 +383,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "2606:2800:21f:cb07:6820:80da:af6b:8b2c",
+			expectedBody:    "__IPV6__",
 		},
 		{
 			name: "test Config with type CNAME",
@@ -434,27 +435,77 @@ func TestQueryDNS(t *testing.T) {
 			isErrExpected: true,
 		},
 	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			_, dnsRCode, body, err := QueryDNS(test.inputDNS.QueryType, test.inputDNS.QueryName, test.inputURL)
-			if test.isErrExpected && err == nil {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, dnsRCode, body, err := QueryDNS(scenario.inputDNS.QueryType, scenario.inputDNS.QueryName, scenario.inputURL)
+			if scenario.isErrExpected && err == nil {
 				t.Errorf("there should be an error")
 			}
-			if dnsRCode != test.expectedDNSCode {
-				t.Errorf("expected DNSRCode to be %s, got %s", test.expectedDNSCode, dnsRCode)
+			if dnsRCode != scenario.expectedDNSCode {
+				t.Errorf("expected DNSRCode to be %s, got %s", scenario.expectedDNSCode, dnsRCode)
 			}
-			if test.inputDNS.QueryType == "NS" {
+			if scenario.inputDNS.QueryType == "NS" {
 				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
-				if !pattern.Match(test.expectedBody, string(body)) {
-					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				if !pattern.Match(scenario.expectedBody, string(body)) {
+					t.Errorf("got %s, expected result %s,", string(body), scenario.expectedBody)
 				}
 			} else {
-				if string(body) != test.expectedBody {
-					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				if string(body) != scenario.expectedBody {
+					// little hack to validate arbitrary ipv4/ipv6
+					switch scenario.expectedBody {
+					case "__IPV4__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is4() {
+							t.Errorf("got %s, expected valid IPv4", string(body))
+						}
+					case "__IPV6__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is6() {
+							t.Errorf("got %s, expected valid IPv6", string(body))
+						}
+					default:
+						t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+					}
 				}
 			}
 		})
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+func TestCheckSSHBanner(t *testing.T) {
+	cfg := &Config{Timeout: 3}
+
+	t.Run("no-auth-ssh", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
+
+		if err != nil {
+			t.Errorf("Expected: error != nil, got: %v ", err)
+		}
+
+		if connected == false {
+			t.Errorf("Expected: connected == true, got: %v", connected)
+		}
+		if status != 0 {
+			t.Errorf("Expected: 0, got: %v", status)
+		}
+	})
+
+	t.Run("invalid-address", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
+
+		if err == nil {
+			t.Errorf("Expected: error, got: %v ", err)
+		}
+
+		if connected != false {
+			t.Errorf("Expected: connected == false, got: %v", connected)
+		}
+		if status != 1 {
+			t.Errorf("Expected: 1, got: %v", status)
+		}
+	})
+
 }

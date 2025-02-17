@@ -265,6 +265,15 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "under-maintenance-perth-timezone-starting-now-for-2h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", inTimezone(now, "Australia/Perth", t).Hour()),
+				Duration: 2 * time.Hour,
+				Timezone: "Australia/Perth",
+			},
+			expected: true,
+		},
+		{
 			name: "under-maintenance-utc-timezone-starting-now-for-2h",
 			cfg: &Config{
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
@@ -339,4 +348,13 @@ func normalizeHour(hour int) int {
 		return hour + 24
 	}
 	return hour
+}
+
+func inTimezone(passedTime time.Time, timezone string, t *testing.T) time.Time {
+	timezoneLocation, err := time.LoadLocation(timezone)
+
+	if err != nil {
+		t.Fatalf("timezone %s did not load", timezone)
+	}
+	return passedTime.In(timezoneLocation)
 }
