@@ -106,10 +106,6 @@ type Config struct {
 // GetMetricLabels returns a slice of unique metric labels from all enabled endpoints
 // in the configuration. It iterates through each endpoint, checks if it is enabled,
 // and then collects unique labels from the endpoint's labels map.
-//
-// Returns:
-//
-//	[]string: A slice of unique metric labels.
 func (config *Config) GetMetricLabels() []string {
 	labels := make([]string, 0)
 	for _, ep := range config.Endpoints {
