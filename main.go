@@ -50,7 +50,6 @@ func main() {
 
 func start(cfg *config.Config) {
 	go controller.Handle(cfg)
-	// Initialize the metrics
 	metrics.InitializePrometheusMetrics(cfg)
 	watchdog.Monitor(cfg)
 	go listenToConfigurationFileChanges(cfg)
