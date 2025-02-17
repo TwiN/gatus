@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
@@ -103,6 +104,9 @@ type Endpoint struct {
 
 	// Alerts is the alerting configuration for the endpoint in case of failure
 	Alerts []*alert.Alert `yaml:"alerts,omitempty"`
+
+	// MaintenanceWindow is the configuration for per-endpoint maintenance windows
+	MaintenanceWindows []*maintenance.Config `yaml:"maintenance-windows,omitempty"`
 
 	// DNSConfig is the configuration for DNS monitoring
 	DNSConfig *dns.Config `yaml:"dns,omitempty"`
@@ -218,6 +222,11 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
+	}
+	for _, maintenanceWindow := range e.MaintenanceWindows {
+		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
 	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.Body)))

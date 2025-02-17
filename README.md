@@ -273,6 +273,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ssh.username`                      | SSH username (e.g. example).                                                                                                                | Required `""`              |
 | `endpoints[].ssh.password`                      | SSH password (e.g. password).                                                                                                               | Required `""`              |
 | `endpoints[].alerts`                            | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                                   | `[]`                       |
+| `endpoints[].maintenance-windows`               | List of all maintenance windows for a given endpoint. <br />See [Maintenance](#maintenance).                                                | `[]`                       |
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
 | `endpoints[].ui.hide-conditions`                | Whether to hide conditions from the results. Note that this only hides conditions from results evaluated from the moment this was enabled.  | `false`                    |
@@ -1709,6 +1710,19 @@ maintenance:
   every:
     - Monday
     - Thursday
+```
+You can also specify maintenance windows on a per-endpoint basis:
+```yaml
+endpoints:
+  - name: endpoint-1
+    url: "https://example.org"
+    maintenance-windows:
+      - start: "07:30"
+        duration: 40m
+        timezone: "Europe/Berlin"
+      - start: "14:30"
+        duration: 1h
+        timezone: "Europe/Berlin"
 ```
 
 
