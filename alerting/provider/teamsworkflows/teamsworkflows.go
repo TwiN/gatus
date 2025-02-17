@@ -147,7 +147,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	}
 
 	// Configure default title if it's not provided
-	title := "&#x26D1; Gatus"
+	title := "⛑️ Gatus"
 	if cfg.Title != "" {
 		title = cfg.Title
 	}
@@ -157,9 +157,9 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	for _, conditionResult := range result.ConditionResults {
 		var key string
 		if conditionResult.Success {
-			key = "&#x2705;"
+			key = "✅"
 		} else {
-			key = "&#x274C;"
+			key = "❌"
 		}
 		facts = append(facts, Fact{
 			Title: key,

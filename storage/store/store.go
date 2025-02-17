@@ -133,12 +133,14 @@ func Initialize(cfg *storage.Config) error {
 
 // autoSave automatically calls the Save function of the provider at every interval
 func autoSave(ctx context.Context, store Store, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			logr.Info("[store.autoSave] Stopping active job")
 			return
-		case <-time.After(interval):
+		case <-ticker.C:
 			logr.Info("[store.autoSave] Saving")
 			if err := store.Save(); err != nil {
 				logr.Errorf("[store.autoSave] Save failed: %s", err.Error())

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -96,16 +97,18 @@ func CanCreateUDPConnection(address string, config *Config) bool {
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
 func CanCreateSCTPConnection(address string, config *Config) bool {
-	ch := make(chan bool)
+	ch := make(chan bool, 1)
 	go (func(res chan bool) {
 		addr, err := sctp.ResolveSCTPAddr("sctp", address)
 		if err != nil {
 			res <- false
+			return
 		}
 
 		conn, err := sctp.DialSCTP("sctp", nil, addr)
 		if err != nil {
 			res <- false
+			return
 		}
 		_ = conn.Close()
 		res <- true
@@ -193,6 +196,34 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 		return false, nil, err
 	}
 	return true, cli, nil
+}
+
+func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+	dialer := net.Dialer{}
+	connStr := net.JoinHostPort(address, port)
+	conn, err := dialer.Dial("tcp", connStr)
+	if err != nil {
+		return false, 1, err
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	buf := make([]byte, 256)
+	_, err = io.ReadAtLeast(conn, buf, 1)
+	if err != nil {
+		return false, 1, err
+	}
+	return true, 0, err
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.

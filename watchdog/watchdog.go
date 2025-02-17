@@ -41,12 +41,14 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	// Run it immediately on start
 	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 	// Loop for the next executions
+	ticker := time.NewTicker(ep.Interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
-		case <-time.After(ep.Interval):
+		case <-ticker.C:
 			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
 		}
 	}

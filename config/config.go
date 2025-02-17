@@ -176,6 +176,10 @@ func LoadConfiguration(configPath string) (*Config, error) {
 			if err != nil {
 				return fmt.Errorf("error walking path %s: %w", path, err)
 			}
+			if strings.Contains(path, "..") {
+				logr.Warnf("[config.LoadConfiguration] Ignoring configuration from %s", path)
+				return nil
+			}
 			logr.Infof("[config.LoadConfiguration] Reading configuration from %s", path)
 			data, err := os.ReadFile(path)
 			if err != nil {
@@ -417,6 +421,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeTelegram,
 		alert.TypeTwilio,
 		alert.TypeZulip,
+		alert.TypeIncidentIO,
 	}
 	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {

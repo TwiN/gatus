@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -93,6 +94,7 @@ var (
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*zulip.AlertProvider)(nil)
+	_ AlertProvider = (*incidentio.AlertProvider)(nil)
 
 	// Validate config interface implementation on compile
 	_ Config[awsses.Config]         = (*awsses.Config)(nil)
@@ -103,6 +105,7 @@ var (
 	_ Config[github.Config]         = (*github.Config)(nil)
 	_ Config[gitlab.Config]         = (*gitlab.Config)(nil)
 	_ Config[googlechat.Config]     = (*googlechat.Config)(nil)
+	_ Config[incidentio.Config]     = (*incidentio.Config)(nil)
 	_ Config[jetbrainsspace.Config] = (*jetbrainsspace.Config)(nil)
 	_ Config[matrix.Config]         = (*matrix.Config)(nil)
 	_ Config[mattermost.Config]     = (*mattermost.Config)(nil)

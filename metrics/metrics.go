@@ -18,6 +18,7 @@ var (
 	resultConnectedTotal               *prometheus.CounterVec
 	resultCodeTotal                    *prometheus.CounterVec
 	resultCertificateExpirationSeconds *prometheus.GaugeVec
+	resultEndpointSuccess              *prometheus.GaugeVec
 )
 
 func initializePrometheusMetrics() {
@@ -46,6 +47,11 @@ func initializePrometheusMetrics() {
 		Name:      "results_certificate_expiration_seconds",
 		Help:      "Number of seconds until the certificate expires",
 	}, []string{"key", "group", "name", "type"})
+	resultEndpointSuccess = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_endpoint_success",
+		Help:      "Displays whether or not the endpoint was a success",
+	}, []string{"key", "group", "name", "type"})
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
@@ -69,5 +75,10 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result) {
 	}
 	if result.CertificateExpiration != 0 {
 		resultCertificateExpirationSeconds.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(result.CertificateExpiration.Seconds())
+	}
+	if result.Success {
+		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(1)
+	} else {
+		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(0)
 	}
 }
