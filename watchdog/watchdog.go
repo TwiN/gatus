@@ -81,7 +81,14 @@ func execute(labels []string, ep *endpoint.Endpoint, alertingConfig *alerting.Co
 	} else {
 		logr.Infof("[watchdog.execute] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
-	if !maintenanceConfig.IsUnderMaintenance() {
+	inEndpointMaintenanceWindow := false
+	for _, maintenanceWindow := range ep.MaintenanceWindows {
+		if maintenanceWindow.IsUnderMaintenance() {
+			logr.Debug("[watchdog.execute] Under endpoint maintenance window")
+			inEndpointMaintenanceWindow = true
+		}
+	}
+	if !maintenanceConfig.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
 		HandleAlerting(ep, result, alertingConfig)
 	} else {
