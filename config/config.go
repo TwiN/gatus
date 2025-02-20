@@ -103,6 +103,25 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
+// GetMetricLabels returns a slice of unique metric labels from all enabled endpoints
+// in the configuration. It iterates through each endpoint, checks if it is enabled,
+// and then collects unique labels from the endpoint's labels map.
+func (config *Config) GetMetricLabels() []string {
+	labels := make([]string, 0)
+	for _, ep := range config.Endpoints {
+		if !ep.IsEnabled() {
+			continue
+		}
+		for label := range ep.Labels {
+			if contains(labels, label) {
+				continue
+			}
+			labels = append(labels, label)
+		}
+	}
+	return labels
+}
+
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
