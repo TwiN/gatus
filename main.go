@@ -45,7 +45,12 @@ func initTracer() *trace.TracerProvider {
 		trace.WithBatcher(exporter),
 	)
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
 	return tp
 }
 

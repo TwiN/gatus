@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -23,7 +24,6 @@ import (
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -257,6 +257,41 @@ func (e *Endpoint) Close() {
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (e *Endpoint) EvaluateHealth() *Result {
+	tp := otel.GetTracerProvider()
+	tracer := tp.Tracer("gatus")
+	ctx, span := tracer.Start(context.Background(), "HealthCheck")
+	defer span.End()
+	templateBase := "gatus.io"
+	serviceAttr := templateBase + ".service"
+	serviceEnvAttr := templateBase + ".env"
+	visibilityAttr := templateBase + ".visibility"
+
+	// Set OpenTelemetry attributes
+	teamAndService := strings.Split(e.Group, ".")
+	if len(teamAndService) != 2 {
+		semconv.ServiceNamespace("none")
+	} else {
+		team, service := teamAndService[0], teamAndService[1]
+		span.SetAttributes(
+			semconv.ServiceNamespace(team),
+			attribute.String(serviceAttr, service),
+		)
+	}
+	envAndVisibility := strings.Split(e.Name, "-")
+	if len(envAndVisibility) != 2 {
+		span.SetAttributes(
+			attribute.String(serviceEnvAttr, e.Name),
+			attribute.String(visibilityAttr, "public"),
+			attribute.String("user_agent.synthetic.type", "bot"),
+		)
+	}
+	env, visibility := envAndVisibility[0], envAndVisibility[1]
+	span.SetAttributes(
+		attribute.String(serviceEnvAttr, env),
+		attribute.String(visibilityAttr, visibility),
+		attribute.String("user_agent.synthetic.type", "bot"),
+	)
+
 	result := &Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
 	if e.DNSConfig != nil {
@@ -282,7 +317,7 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
-		e.call(result)
+		e.call(ctx, result)
 	} else {
 		result.Success = false
 	}
@@ -292,6 +327,9 @@ func (e *Endpoint) EvaluateHealth() *Result {
 		if !success {
 			result.Success = false
 		}
+	}
+	if !result.Success {
+		span.SetStatus(codes.Error, "failure")
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
@@ -321,7 +359,7 @@ func (e *Endpoint) getIP(result *Result) {
 	}
 }
 
-func (e *Endpoint) call(result *Result) {
+func (e *Endpoint) call(ctx context.Context, result *Result) {
 	var request *http.Request
 	var response *http.Response
 	var err error
@@ -395,13 +433,6 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else {
 
-		tp := otel.GetTracerProvider()
-		tracer := tp.Tracer("gatus")
-		var span trace.Span
-		ctx, span := tracer.Start(context.Background(), "HealthCheck")
-		attributes := strings.Split(e.Group, ".")
-		span.SetAttributes(semconv.ServiceNamespace(attributes[0]), semconv.PeerService(attributes[1]), attribute.KeyValue{Key: "user_agent.synthetic.type", Value: attribute.StringValue("bot")})
-		defer span.End()
 		request = request.WithContext(ctx)
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
