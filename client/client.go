@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
@@ -326,6 +327,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 	m.SetQuestion(queryName, queryTypeAsUint16)
 	r, _, err := c.Exchange(m, url)
 	if err != nil {
+		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
 		return false, "", nil, err
 	}
 	connected = true
@@ -355,6 +357,10 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		case dns.TypePTR:
 			if ptr, ok := rr.(*dns.PTR); ok {
 				body = []byte(ptr.Ptr)
+			}
+		case dns.TypeSRV:
+			if srv, ok := rr.(*dns.SRV); ok {
+				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
 			}
 		default:
 			body = []byte("query type is not supported yet")
