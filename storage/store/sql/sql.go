@@ -1160,19 +1160,20 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 	if s.driver == "mysql" {
 		_, err = tx.Exec(
 			`
-			DELETE FROM endpoint_events 
-			WHERE endpoint_id = ?
-				AND endpoint_event_id NOT IN (
-					SELECT endpoint_event_id 
-					FROM endpoint_events
-					WHERE endpoint_id = ?
-					ORDER BY endpoint_event_id DESC
-					LIMIT ?
-				)
+			DELETE e1 FROM endpoint_events e1
+			LEFT JOIN (
+				SELECT endpoint_event_id
+				FROM endpoint_events
+				WHERE endpoint_id = ?
+				ORDER BY endpoint_event_id DESC
+				LIMIT ?
+			) e2 ON e1.endpoint_event_id = e2.endpoint_event_id
+			WHERE e1.endpoint_id = ?
+			AND e2.endpoint_event_id IS NULL
 		`,
 			endpointID,
-			endpointID,
 			common.MaximumNumberOfEvents,
+			endpointID,
 		)
 	} else {
 		_, err = tx.Exec(
@@ -1200,19 +1201,20 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 	if s.driver == "mysql" {
 		_, err = tx.Exec(
 			`
-			DELETE FROM endpoint_results
-			WHERE endpoint_id = ?
-				AND endpoint_result_id NOT IN (
-					SELECT endpoint_result_id
-					FROM endpoint_results
-					WHERE endpoint_id = ?
-					ORDER BY endpoint_result_id DESC
-					LIMIT ?
-				)
+			DELETE e1 FROM endpoint_results e1
+			LEFT JOIN (
+				SELECT endpoint_result_id
+				FROM endpoint_results
+				WHERE endpoint_id = ?
+				ORDER BY endpoint_result_id DESC
+				LIMIT ?
+			) e2 ON e1.endpoint_result_id = e2.endpoint_result_id
+			WHERE e1.endpoint_id = ?
+			AND e2.endpoint_result_id IS NULL;
 		`,
 			endpointID,
-			endpointID,
 			common.MaximumNumberOfResults,
+			endpointID,
 		)
 	} else {
 		_, err = tx.Exec(
