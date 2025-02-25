@@ -15,6 +15,7 @@ const (
 	defaultLogo        = ""
 	defaultLink        = ""
 	defaultCustomCSS   = ""
+	defaultBase        = "/"
 )
 
 var (
@@ -28,6 +29,7 @@ type Config struct {
 	Header      string   `yaml:"header,omitempty"`      // Header is the text at the top of the page
 	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
 	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
+	Base        string   `yaml:"base,omitempty"`        // href attribute for HTML base tag
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
 	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
 }
@@ -55,6 +57,7 @@ func GetDefaultConfig() *Config {
 		Logo:        defaultLogo,
 		Link:        defaultLink,
 		CustomCSS:   defaultCustomCSS,
+		Base:        defaultBase,
 	}
 }
 
