@@ -22,7 +22,7 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/valyala/fasthttp v1.58.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.214.0
@@ -75,9 +75,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
