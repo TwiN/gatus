@@ -6,6 +6,23 @@
           {{ data.name }}
         </router-link>
         <span v-if="data.results && data.results.length && data.results[data.results.length - 1].hostname" class='text-gray-500 font-light'> | {{ data.results[data.results.length - 1].hostname }}</span>
+        <div v-if="data.uiConfig.Menu.length > 0" class="relative inline-block ml-2">
+          <div>
+            <button type="button" class="relative top-1 inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white pr-1 py-0 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" id="menu-button" aria-expanded="true" aria-haspopup="true" @click="toggleMenu">
+              <svg class="-mr-1 size-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div v-if="menuOpen" class="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
+            <div class="py-1" role="none">
+              <template v-for="item in data.uiConfig.Menu" :key="item.Name">
+                <a :href="item.Value" v-if="item.Type === 'link'" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1">{{item.Name}}</a>
+                <span v-else class="block px-4 py-2 text-sm text-gray-700">{{item.Name}}</span>
+              </template>
+            </div>
+          </div>
+        </div>
       </div>
       <div class='w-1/4 text-right'>
         <span class='font-light overflow-x-hidden cursor-pointer select-none hover:text-gray-500' v-if="data.results && data.results.length" @click="toggleShowAverageResponseTime" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">
@@ -104,6 +121,9 @@ export default {
     },
     toggleShowAverageResponseTime() {
       this.$emit('toggleShowAverageResponseTime');
+    },
+    toggleMenu() {
+      this.menuOpen = !this.menuOpen;
     }
   },
   watch: {
@@ -118,7 +138,8 @@ export default {
     return {
       minResponseTime: 0,
       maxResponseTime: 0,
-      averageResponseTime: 0
+      averageResponseTime: 0,
+      menuOpen: false,
     }
   }
 }
@@ -182,5 +203,11 @@ export default {
     content: " ";
     white-space: pre;
   }
+}
+
+.size-5 {
+  --tw-spacing: 0.25rem;
+	width: calc(var(--tw-spacing) * 5);
+	height: calc(var(--tw-spacing) * 5);
 }
 </style>
