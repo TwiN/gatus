@@ -12,6 +12,8 @@ import (
 
 func SinglePageApplication(ui *ui.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		theme := string(c.Request().Header.Cookie("theme"))
+		ui.DarkMode = theme == "dark"
 		t, err := template.ParseFS(static.FileSystem, static.IndexPath)
 		if err != nil {
 			// This should never happen, because ui.ValidateAndSetDefaults validates that the template works.
