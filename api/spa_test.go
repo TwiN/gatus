@@ -43,17 +43,20 @@ func TestSinglePageApplication(t *testing.T) {
 		Path         string
 		ExpectedCode int
 		Gzip         bool
+		DarkMode     bool
 	}
 	scenarios := []Scenario{
 		{
 			Name:         "frontend-home",
 			Path:         "/",
 			ExpectedCode: 200,
+			DarkMode:     true,
 		},
 		{
 			Name:         "frontend-endpoint",
 			Path:         "/endpoints/core_frontend",
 			ExpectedCode: 200,
+			DarkMode:     false,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -61,6 +64,9 @@ func TestSinglePageApplication(t *testing.T) {
 			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
+			}
+			if scenario.DarkMode {
+				request.Header.Set("Cookie", "theme=dark")
 			}
 			response, err := router.Test(request)
 			if err != nil {
@@ -71,8 +77,15 @@ func TestSinglePageApplication(t *testing.T) {
 				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 			body, _ := io.ReadAll(response.Body)
-			if !strings.Contains(string(body), cfg.UI.Title) {
+			strBody := string(body)
+			if !strings.Contains(strBody, cfg.UI.Title) {
 				t.Errorf("%s %s should have contained the title", request.Method, request.URL)
+			}
+			if scenario.DarkMode && !strings.Contains(strBody, "class=\"dark\"") {
+				t.Errorf("%s %s should have responded with dark mode headers", request.Method, request.URL)
+			}
+			if !scenario.DarkMode && strings.Contains(strBody, "class=\"dark\"") {
+				t.Errorf("%s %s should not have responded with dark mode headers", request.Method, request.URL)
 			}
 		})
 	}

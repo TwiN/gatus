@@ -30,6 +30,7 @@ type Config struct {
 	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
 	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
+	DarkMode    bool
 }
 
 // Button is the configuration for a button on the UI
