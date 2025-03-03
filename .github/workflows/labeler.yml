@@ -19,7 +19,7 @@ jobs:
           BODY: ${{ github.event.issue.body }}${{ github.event.pull_request.body }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.issue.number }}
+          NUMBER: ${{ github.event.issue.number }}${{ github.event.pull_request.number }}
         run: |
           if [[ $TITLE == *"feat:"* || $TITLE == *"feat("* ]]; then
             gh issue edit "$NUMBER" --add-label "feature"
