@@ -23,13 +23,9 @@
 import { MoonIcon, SunIcon } from '@heroicons/vue/20/solid'
 import { ArrowPathIcon } from '@heroicons/vue/24/solid'
 
-function getTheme() {
-  return document.cookie.match(/theme=(dark|light);?/)?.[1];
-}
-
 function wantsDarkMode() {
-  const theme = getTheme();
-  return theme === 'dark' || !theme && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = document.cookie.match(/theme=(dark|light);?/)?.[1];
+  return theme === 'dark' || !theme && (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains("dark"));
 }
 
 export default {
@@ -57,7 +53,7 @@ export default {
       this.setRefreshInterval(this.$refs.refreshInterval.value);
     },
     toggleDarkMode() {
-      if (getTheme() === 'dark') {
+      if (wantsDarkMode()) {
         document.cookie = `theme=light; path=/; max-age=31536000; samesite=strict`;
       } else {
         document.cookie = `theme=dark; path=/; max-age=31536000; samesite=strict`;
@@ -79,7 +75,6 @@ export default {
       this.refreshInterval = 300;
     }
     this.setRefreshInterval(this.refreshInterval);
-    // dark mode
     this.applyTheme();
   },
   unmounted() {

@@ -242,6 +242,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
+| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
