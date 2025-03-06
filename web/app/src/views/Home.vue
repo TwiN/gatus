@@ -19,7 +19,6 @@ import Settings from '@/components/Settings.vue'
 import Endpoints from '@/components/Endpoints.vue';
 import Pagination from "@/components/Pagination";
 import Loading from "@/components/Loading";
-import {SERVER_URL} from "@/main.js";
 
 export default {
   name: 'Home',
@@ -32,7 +31,7 @@ export default {
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     fetchData() {
-      fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=${this.currentPage}`, {credentials: 'include'})
+      fetch(`api/v1/endpoints/statuses?page=${this.currentPage}`, {credentials: 'include'})
       .then(response => {
         this.retrievedData = true;
         if (response.status === 200) {

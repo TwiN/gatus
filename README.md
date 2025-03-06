@@ -238,6 +238,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                  | `Health Status`            |
 | `ui.logo`                    | URL to the logo to display.                                                                                                          | `""`                       |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                               | `""`                       |
+| `ui.base`                    | `href` attribute of the HTML `<base>` tag. Use this if you want to host Gatus on a subpath (e.g. `/status/`).                        | `/`                        |
 | `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
