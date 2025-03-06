@@ -265,8 +265,10 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	serviceAttr := templateBase + ".service"
 	serviceEnvAttr := templateBase + ".env"
 	visibilityAttr := templateBase + ".visibility"
+	urlAttr := templateBase + ".url"
 
 	// Set OpenTelemetry attributes
+	span.SetAttributes(attribute.String(urlAttr, e.URL))
 	teamAndService := strings.Split(e.Group, ".")
 	if len(teamAndService) != 2 {
 		semconv.ServiceNamespace("none")
