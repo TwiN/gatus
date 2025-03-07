@@ -632,55 +632,43 @@ func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *endpoin
 // insertEndpointResult inserts a result in the store
 func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *endpoint.Result) error {
 	var endpointResultID int64
+	var err error
+
+	queryParams := []any{
+		endpointID,
+		result.Success,
+		strings.Join(result.Errors, arraySeparator),
+		result.Connected,
+		result.HTTPStatus,
+		result.DNSRCode,
+		result.CertificateExpiration,
+		result.DomainExpiration,
+		result.Hostname,
+		result.IP,
+		result.Duration,
+		result.Timestamp.UTC(),
+	}
+
+	var query string
 	if s.driver == "mysql" {
-		res, err := tx.Exec(
-			`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`,
-			endpointID,
-			result.Success,
-			strings.Join(result.Errors, arraySeparator),
-			result.Connected,
-			result.HTTPStatus,
-			result.DNSRCode,
-			result.CertificateExpiration,
-			result.DomainExpiration,
-			result.Hostname,
-			result.IP,
-			result.Duration,
-			result.Timestamp.UTC(),
-		)
+		query = `
+            INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		res, err := tx.Exec(query, queryParams...)
 		if err != nil {
 			return err
 		}
 		endpointResultID, err = res.LastInsertId()
-		if err != nil {
-			return err
-		}
 	} else {
-		err := tx.QueryRow(
-			`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-			RETURNING endpoint_result_id
-		`,
-			endpointID,
-			result.Success,
-			strings.Join(result.Errors, arraySeparator),
-			result.Connected,
-			result.HTTPStatus,
-			result.DNSRCode,
-			result.CertificateExpiration,
-			result.DomainExpiration,
-			result.Hostname,
-			result.IP,
-			result.Duration,
-			result.Timestamp.UTC(),
-		).Scan(&endpointResultID)
-		if err != nil {
-			return err
-		}
+		query = `
+            INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING endpoint_result_id`
+		err = tx.QueryRow(query, queryParams...).Scan(&endpointResultID)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return s.insertConditionResults(tx, endpointResultID, result.ConditionResults)
