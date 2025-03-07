@@ -12,8 +12,10 @@ jobs:
     timeout-minutes: 5
     permissions:
       issues: write
+      pull-requests: write
     steps:
       - name: Label
+        continue-on-error: true
         env:
           TITLE: ${{ github.event.issue.title }}${{ github.event.pull_request.title }}
           BODY: ${{ github.event.issue.body }}${{ github.event.pull_request.body }}
