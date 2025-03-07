@@ -18,7 +18,6 @@ jobs:
         continue-on-error: true
         env:
           TITLE: ${{ github.event.issue.title }}${{ github.event.pull_request.title }}
-          BODY: ${{ github.event.issue.body }}${{ github.event.pull_request.body }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}${{ github.event.pull_request.number }}
@@ -34,10 +33,10 @@ jobs:
           if [[ $TITLE == *"storage"* || $TITLE == *"postgres"* || $TITLE == *"sqlite"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/storage"
           fi
-          if [[ $TITLE == *"security"* || $TITLE == *"oidc"* || $TITLE == *"oauth2"* || $BODY == *"security"* || $BODY == *"oidc"* || $BODY == *"oauth2"* ]]; then
+          if [[ $TITLE == *"security"* || $TITLE == *"oidc"* || $TITLE == *"oauth2"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/security"
           fi
-          if [[ $TITLE == *"metric"* || $TITLE == *"prometheus"* || $BODY == *"metric"* || $BODY == *"prometheus"* ]]; then
+          if [[ $TITLE == *"metric"* || $TITLE == *"prometheus"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/metrics"
           fi
           
