@@ -1,3 +1,4 @@
+name: labeler
 on:
   pull_request_target:
     types:
@@ -5,7 +6,6 @@ on:
   issues:
     types:
       - opened
-
 jobs:
   labeler:
     runs-on: ubuntu-latest
