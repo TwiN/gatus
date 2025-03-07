@@ -26,8 +26,11 @@ jobs:
           elif [[ $TITLE == *"fix:"* || $TITLE == *"fix("* ]]; then
             gh issue edit "$NUMBER" --add-label "bug"
           fi
-          if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* || $BODY == *"alerting"* || $BODY == *"provider"* || $BODY == *"alert"* ]]; then
+          if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/alerting"
+          fi
+          if [[ $TITLE == *"storage"* || $TITLE == *"postgres"* || $TITLE == *"sqlite"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/storage"
           fi
           if [[ $TITLE == *"security"* || $TITLE == *"oidc"* || $TITLE == *"oauth2"* || $BODY == *"security"* || $BODY == *"oidc"* || $BODY == *"oauth2"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/security"
