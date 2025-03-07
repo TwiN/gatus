@@ -2183,7 +2183,7 @@ endpoints:
 
 
 ### disable-monitoring-lock
-Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time (like parallel execution).
+Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time (i.e. parallel execution).
 
 While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted
 by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
