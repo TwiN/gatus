@@ -24,8 +24,8 @@ import { MoonIcon, SunIcon } from '@heroicons/vue/20/solid'
 import { ArrowPathIcon } from '@heroicons/vue/24/solid'
 
 function wantsDarkMode() {
-  const theme = document.cookie.match(/theme=(dark|light);?/)?.[1];
-  return theme === 'dark' || !theme && (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains("dark"));
+  const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
+  return themeFromCookie === 'dark' || !themeFromCookie && (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains("dark"));
 }
 
 export default {
