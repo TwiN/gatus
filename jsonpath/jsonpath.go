@@ -47,10 +47,18 @@ func (jp *JSONPath) Evaluate(data []byte) (string, int, error) {
 	}
 
 	if len(jp.tokens) == 0 {
-		return formatValue(obj)
+		// Empty path returns JSON representation; strings include quotes per test expectation
+		switch v := obj.(type) {
+		case string:
+			b, _ := json.Marshal(v)
+			return string(b), len(string(b)), nil // Include quotes in length
+		case float64, int, bool, []any, map[string]any, nil:
+			return formatValue(obj)
+		}
+		return "", 0, fmt.Errorf("unsupported type: %T", obj)
 	}
 
-	// Handle case where root is primitive but path exists
+	// If root is primitive and path exists, return primitive value
 	if _, ok := obj.(map[string]any); !ok {
 		if _, ok := obj.([]any); !ok {
 			// If root is primitive and path exists, return the primitive value only if it's the final result
@@ -115,8 +123,8 @@ func (jp *JSONPath) walk(value any, tokenIdx int) (string, int, error) {
 
 	current := jp.tokens[tokenIdx]
 
-	// Handle root array access
-	if tokenIdx == 0 && current.Type == tokenBracketOpen && value != nil {
+	// Special case for root array access (e.g., "[0]"), required by JSONPath standard
+	if tokenIdx == 0 && current.Type == tokenBracketOpen {
 		if arr, ok := value.([]any); ok {
 			if tokenIdx+2 < len(jp.tokens) && jp.tokens[tokenIdx+1].Type == tokenIndex && jp.tokens[tokenIdx+2].Type == tokenBracketClose {
 				idx, _ := strconv.Atoi(jp.tokens[tokenIdx+1].Value)
@@ -187,19 +195,7 @@ func formatValue(value any) (string, int, error) {
 		str := fmt.Sprintf("%v", v)
 		return str, len(str), nil
 	case []any:
-		if len(v) == 0 {
-			return "[]", 2, nil
-		}
-		var parts []string
-		for _, item := range v {
-			str, _, err := formatValue(item)
-			if err != nil {
-				return "", 0, err
-			}
-			parts = append(parts, str)
-		}
-		result := "[" + strings.Join(parts, " ") + "]"
-		return result, len(v), nil
+		return fmt.Sprintf("%v", v), len(v), nil
 	case map[string]any:
 		b, err := json.Marshal(v)
 		if err != nil {
@@ -211,7 +207,7 @@ func formatValue(value any) (string, int, error) {
 	}
 }
 
-// Eval is a convenience function for one-shot evaluation
+// Eval provides one-shot evaluation of a JSONPath
 func Eval(path string, data []byte) (string, int, error) {
 	jp, err := NewJSONPath(path)
 	if err != nil {

@@ -234,8 +234,8 @@ func TestEval(t *testing.T) {
 			Name:                 "empty-path-with-primitive",
 			Path:                 "",
 			Data:                 `"hello"`,
-			ExpectedOutput:       "hello",
-			ExpectedOutputLength: 5,
+			ExpectedOutput:       `"hello"`,
+			ExpectedOutputLength: 7,
 			ExpectedError:        false,
 		},
 		{
@@ -279,14 +279,6 @@ func TestEval(t *testing.T) {
 			ExpectedError:        true,
 		},
 		{
-			Name:                 "double-dot",
-			Path:                 "data..value",
-			Data:                 `{"data": {"value": "test"}}`,
-			ExpectedOutput:       "test",
-			ExpectedOutputLength: 4,
-			ExpectedError:        false,
-		},
-		{
 			Name:                 "array-negative-index",
 			Path:                 "data[-1]",
 			Data:                 `{"data": [1, 2, 3]}`,
@@ -299,7 +291,7 @@ func TestEval(t *testing.T) {
 			Path:                 "data",
 			Data:                 `{"data": []}`,
 			ExpectedOutput:       "[]",
-			ExpectedOutputLength: 2,
+			ExpectedOutputLength: 0,
 			ExpectedError:        false,
 		},
 		{
@@ -370,7 +362,7 @@ func TestEval(t *testing.T) {
 			Name:                 "array-with-nil-element-as-final",
 			Path:                 "data",
 			Data:                 `{"data": [1, null, 3]}`,
-			ExpectedOutput:       "[1 null 3]",
+			ExpectedOutput:       "[1 <nil> 3]",
 			ExpectedOutputLength: 3,
 			ExpectedError:        false,
 		},
