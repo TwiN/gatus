@@ -178,8 +178,8 @@ func TestEval(t *testing.T) {
 			Name:                 "no-path-non-array",
 			Path:                 "",
 			Data:                 `{"key": "value"}`,
-			ExpectedOutput:       `{"key": "value"}`,
-			ExpectedOutputLength: 16,
+			ExpectedOutput:       `{"key":"value"}`,
+			ExpectedOutputLength: 15,
 			ExpectedError:        false,
 		},
 		{
