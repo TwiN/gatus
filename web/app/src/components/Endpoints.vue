@@ -18,20 +18,30 @@ export default {
   props: {
     showStatusOnHover: Boolean,
     endpointStatuses: Object,
-    showAverageResponseTime: Boolean
+    showAverageResponseTime: Boolean,
+    groupEndpointStatuses: {
+      type: Boolean,
+      default: true
+    }
   },
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
   methods: {
     process() {
       let outputByGroup = {};
-      for (let endpointStatusIndex in this.endpointStatuses) {
-        let endpointStatus = this.endpointStatuses[endpointStatusIndex];
-        // create an empty entry if this group is new
-        if (!outputByGroup[endpointStatus.group] || outputByGroup[endpointStatus.group].length === 0) {
-          outputByGroup[endpointStatus.group] = [];
+      if (this.groupEndpointStatuses) {
+        for (let endpointStatusIndex in this.endpointStatuses) {
+          let endpointStatus = this.endpointStatuses[endpointStatusIndex];
+          // create an empty entry if this group is new
+          if (!outputByGroup[endpointStatus.group] || outputByGroup[endpointStatus.group].length === 0) {
+            outputByGroup[endpointStatus.group] = [];
+          }
+          outputByGroup[endpointStatus.group].push(endpointStatus);
         }
-        outputByGroup[endpointStatus.group].push(endpointStatus);
       }
+      else {
+        outputByGroup['undefined'] = this.endpointStatuses;
+      }
+
       let endpointGroups = [];
       for (let name in outputByGroup) {
         if (name !== 'undefined') {

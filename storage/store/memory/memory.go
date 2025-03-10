@@ -58,6 +58,36 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
 }
 
+// GetEndpointStatusByGroup returns the endpoint status for a given group
+func (s *Store) GetEndpointStatusesByGroup(groupName string, params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+	endpointStatuses := s.cache.GetAll()
+	groupEndpointStatuses := make([]*endpoint.Status, 0, len(endpointStatuses))
+	for _, v := range endpointStatuses {
+		if v.(*endpoint.Status).Group == groupName {
+			groupEndpointStatuses = append(groupEndpointStatuses, ShallowCopyEndpointStatus(v.(*endpoint.Status), params))
+		}
+	}
+	sort.Slice(groupEndpointStatuses, func(i, j int) bool {
+		return groupEndpointStatuses[i].Key < groupEndpointStatuses[j].Key
+	})
+	return groupEndpointStatuses, nil
+}
+
+// GetGroups returns the names of all groups
+func (s *Store) GetGroups() ([]string, error) {
+	endpointStatuses := s.cache.GetAll()
+	groups := make(map[string]struct{})
+	for _, v := range endpointStatuses {
+		groups[v.(*endpoint.Status).Group] = struct{}{}
+	}
+	groupNames := make([]string, 0, len(groups))
+	for groupName := range groups {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames)
+	return groupNames, nil
+}
+
 // GetUptimeByKey returns the uptime percentage during a time range
 func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
 	if from.After(to) {

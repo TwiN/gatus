@@ -150,6 +150,48 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	return endpointStatus, err
 }
 
+// GetEndpointStatusesByGroup returns the endpoint statuses for a given group
+func (s *Store) GetEndpointStatusesByGroup(groupName string, params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	keys, err := s.getEndpointKeysByGroup(tx, groupName)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	endpointStatuses := make([]*endpoint.Status, 0, len(keys))
+	for _, key := range keys {
+		endpointStatus, err := s.getEndpointStatusByKey(tx, key, params)
+		if err != nil {
+			continue
+		}
+		endpointStatuses = append(endpointStatuses, endpointStatus)
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return endpointStatuses, err
+}
+
+// GetGroups returns the names of all groups
+func (s *Store) GetGroups() ([]string, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	groups, err := s.getGroups(tx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+	}
+	return groups, nil
+}
+
 // GetUptimeByKey returns the uptime percentage during a time range
 func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) {
 	if from.After(to) {
@@ -444,7 +486,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 	}
 	_, err = tx.Exec(
 		`
-			INSERT INTO endpoint_alerts_triggered (endpoint_id, configuration_checksum, resolve_key, number_of_successes_in_a_row) 
+			INSERT INTO endpoint_alerts_triggered (endpoint_id, configuration_checksum, resolve_key, number_of_successes_in_a_row)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT(endpoint_id, configuration_checksum) DO UPDATE SET
 				resolve_key = $3,
@@ -487,7 +529,7 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	} else {
 		args := make([]interface{}, 0, len(checksums)+1)
 		args = append(args, ep.Key())
-		query := `DELETE FROM endpoint_alerts_triggered 
+		query := `DELETE FROM endpoint_alerts_triggered
 			WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1)
 			  AND configuration_checksum NOT IN (`
 		for i := range checksums {
@@ -609,7 +651,7 @@ func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *endpo
 	}
 	_, err := tx.Exec(
 		`
-			INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time) 
+			INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
 			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
 				total_executions = excluded.total_executions + endpoint_uptimes.total_executions,
@@ -634,6 +676,32 @@ func (s *Store) getAllEndpointKeys(tx *sql.Tx) (keys []string, err error) {
 		var key string
 		_ = rows.Scan(&key)
 		keys = append(keys, key)
+	}
+	return
+}
+
+func (s *Store) getEndpointKeysByGroup(tx *sql.Tx, groupName string) (keys []string, err error) {
+	rows, err := tx.Query("SELECT endpoint_key FROM endpoints WHERE endpoint_group = $1 ORDER BY endpoint_key", groupName)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var key string
+		_ = rows.Scan(&key)
+		keys = append(keys, key)
+	}
+	return
+}
+
+func (s *Store) getGroups(tx *sql.Tx) (groups []string, err error) {
+	rows, err := tx.Query("SELECT DISTINCT endpoint_group FROM endpoints ORDER BY endpoint_group")
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var group string
+		_ = rows.Scan(&group)
+		groups = append(groups, group)
 	}
 	return
 }
@@ -891,9 +959,9 @@ func (s *Store) getNumberOfUptimeEntriesByEndpointID(tx *sql.Tx, endpointID int6
 func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) (time.Duration, error) {
 	rows, err := tx.Query(
 		`
-			SELECT hour_unix_timestamp 
-			FROM endpoint_uptimes 
-			WHERE endpoint_id = $1 
+			SELECT hour_unix_timestamp
+			FROM endpoint_uptimes
+			WHERE endpoint_id = $1
 			ORDER BY hour_unix_timestamp
 			LIMIT 1
 		`,
@@ -930,10 +998,10 @@ func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) 
 func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 	_, err := tx.Exec(
 		`
-			DELETE FROM endpoint_events 
+			DELETE FROM endpoint_events
 			WHERE endpoint_id = $1
 				AND endpoint_event_id NOT IN (
-					SELECT endpoint_event_id 
+					SELECT endpoint_event_id
 					FROM endpoint_events
 					WHERE endpoint_id = $1
 					ORDER BY endpoint_event_id DESC
@@ -951,7 +1019,7 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 	_, err := tx.Exec(
 		`
 			DELETE FROM endpoint_results
-			WHERE endpoint_id = $1 
+			WHERE endpoint_id = $1
 				AND endpoint_result_id NOT IN (
 					SELECT endpoint_result_id
 					FROM endpoint_results

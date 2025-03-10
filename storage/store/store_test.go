@@ -33,6 +33,18 @@ var (
 		NumberOfFailuresInARow:  0,
 		NumberOfSuccessesInARow: 0,
 	}
+	testAnotherEndpoint = endpoint.Endpoint{
+		Name:                    "name",
+		Group:                   "another_group",
+		URL:                     "https://example.org/what/ever",
+		Method:                  "GET",
+		Body:                    "body",
+		Interval:                30 * time.Second,
+		Conditions:              []endpoint.Condition{firstCondition, secondCondition, thirdCondition},
+		Alerts:                  nil,
+		NumberOfFailuresInARow:  0,
+		NumberOfSuccessesInARow: 0,
+	}
 	testSuccessfulResult = endpoint.Result{
 		Timestamp:             now,
 		Success:               true,
@@ -164,6 +176,67 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 			}
 			if len(endpointStatus.Results) != 3 {
 				t.Fatalf("endpointStatus.Results should've had 3 entries")
+			}
+			scenario.Store.Clear()
+		})
+	}
+}
+
+func TestStore_GetEndpointStatusesByGroup(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetEndpointStatusesByGroup")
+	defer cleanUp(scenarios)
+	firstResult := testSuccessfulResult
+	firstResult.Timestamp = now.Add(-time.Minute)
+	secondResult := testUnsuccessfulResult
+	secondResult.Timestamp = now
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			scenario.Store.Insert(&testEndpoint, &firstResult)
+			scenario.Store.Insert(&testEndpoint, &secondResult)
+			scenario.Store.Insert(&testAnotherEndpoint, &firstResult)
+			scenario.Store.Insert(&testAnotherEndpoint, &secondResult)
+			endpointStatuses, err := scenario.Store.GetEndpointStatusesByGroup(testEndpoint.Group, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults))
+			if err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			}
+			if len(endpointStatuses) != 1 {
+				t.Fatal("expected 1 endpoint status")
+			}
+			actual := endpointStatuses[0]
+			if actual == nil {
+				t.Fatal("expected endpoint status to exist")
+			}
+			if len(actual.Results) != 2 {
+				t.Error("expected 2 results, got", len(actual.Results))
+			}
+			if len(actual.Events) != 0 {
+				t.Error("expected 0 events, got", len(actual.Events))
+			}
+			scenario.Store.Clear()
+		})
+	}
+}
+
+func TestStore_GetGroups(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetGroups")
+	defer cleanUp(scenarios)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			if groups, err := scenario.Store.GetGroups(); err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			} else {
+				if len(groups) != 0 {
+					t.Error("expected 0 groups, got", len(groups))
+				}
+			}
+			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.Insert(&testAnotherEndpoint, &testSuccessfulResult)
+			if groups, err := scenario.Store.GetGroups(); err != nil {
+				t.Error("shouldn't have returned an error, got", err.Error())
+			} else {
+				if len(groups) != 2 {
+					t.Error("expected 2 groups, got", len(groups))
+				}
 			}
 			scenario.Store.Clear()
 		})
