@@ -942,7 +942,7 @@ endpoints:
 ```
 In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
-> **_NOTE:_**  the source config id is of the form `api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
+> **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
 
 
 #### Configuring JetBrains Space alerts
