@@ -57,6 +57,7 @@ func GetDefaultConfig() *Config {
 	return &Config{
 		HideHostname:                false,
 		HideURL:                     false,
+		HidePort:                    false,
 		DontResolveFailedConditions: false,
 		HideConditions:              false,
 		Badge: &Badge{
