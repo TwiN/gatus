@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/maintenance"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -270,6 +270,7 @@ func (e *Endpoint) EvaluateHealth() *Result {
 			result.AddError(err.Error())
 		} else {
 			result.Hostname = urlObject.Hostname()
+			result.port = urlObject.Port()
 		}
 	}
 	// Retrieve IP if necessary
@@ -307,7 +308,13 @@ func (e *Endpoint) EvaluateHealth() *Result {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
-		result.Hostname = ""
+		result.Hostname = "" // remove it from the result so it doesn't get exposed
+	}
+	if e.UIConfig.HidePort && len(result.port) > 0 {
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
+		}
+		result.port = ""
 	}
 	if e.UIConfig.HideConditions {
 		result.ConditionResults = nil

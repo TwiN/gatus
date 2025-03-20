@@ -242,6 +242,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
+| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
@@ -277,8 +278,9 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
 | `endpoints[].ui.hide-conditions`                | Whether to hide conditions from the results. Note that this only hides conditions from results evaluated from the moment this was enabled.  | `false`                    |
-| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                 | `false`                    |
-| `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                              | `false`                    |
+| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname from the results.                                                                                              | `false`                    |
+| `endpoints[].ui.hide-port`                      | Whether to hide the port from the results.                                                                                                  | `false`                    |
+| `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
@@ -581,7 +583,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
-| `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).              | `{}`    |
+| `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -907,16 +909,18 @@ Here's an example of what the notifications look like:
 
 ![Gotify notifications](.github/assets/gotify-alerts.png)
 
+
 #### Configuring Incident.io alerts
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.incident-io`                   | Configuration for alerts of type `incident-io`                                                   | `{}`          |
-| `alerting.incident-io.url`       | url to trigger an alert event.                                                                         | Required `""` |
-| `alerting.incident-io.auth-token`     | Token that is used for authentication. |  Required `""`          |
-| `alerting.incident-io.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| Parameter                                | Description                                                                                | Default       |
+|:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.incident-io`                   | Configuration for alerts of type `incident-io`                                             | `{}`          |
+| `alerting.incident-io.url`               | url to trigger an alert event.                                                             | Required `""` |
+| `alerting.incident-io.auth-token`        | Token that is used for authentication.                                                     | Required `""` |
+| `alerting.incident-io.source-url`        | Source URL                                                                                 | `""`          |
 | `alerting.incident-io.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.incident-io.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.incident-io.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.incident-io.overrides[].*`     | See `alerting.incident-io.*` parameters                                                          | `{}`          |
+| `alerting.incident-io.overrides[].*`     | See `alerting.incident-io.*` parameters                                                    | `{}`          |
 
 ```yaml
 alerting:
@@ -937,12 +941,10 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
-in order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
+In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
-> **_NOTE:_**  the source config id is of the form `api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
+> **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
 
-
-> **_NOTE:_** ```
 
 #### Configuring JetBrains Space alerts
 | Parameter                                   | Description                                                                                | Default       |
@@ -2185,7 +2187,7 @@ endpoints:
 
 
 ### disable-monitoring-lock
-Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time.
+Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time (i.e. parallel execution).
 
 While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted
 by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
