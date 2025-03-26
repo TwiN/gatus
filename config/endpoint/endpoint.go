@@ -264,6 +264,10 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	// Parse or extract hostname from URL
 	if e.DNSConfig != nil {
 		result.Hostname = strings.TrimSuffix(e.URL, ":53")
+	} else if e.Type() == TypeICMP {
+		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
+		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
+		result.Hostname = strings.TrimPrefix(e.URL, "icmp://")
 	} else {
 		urlObject, err := url.Parse(e.URL)
 		if err != nil {
