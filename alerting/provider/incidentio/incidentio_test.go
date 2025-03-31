@@ -23,11 +23,21 @@ func TestAlertProvider_Validate(t *testing.T) {
 			name: "valid",
 			provider: AlertProvider{
 				DefaultConfig: Config{
-					URL:       "some-id",
+					URL:       "https://api.incident.io/v2/alert_events/http/some-id",
 					AuthToken: "some-token",
 				},
 			},
 			expected: true,
+		},
+		{
+			name: "invalid-url",
+			provider: AlertProvider{
+				DefaultConfig: Config{
+					URL:       "id-without-rest-api-url-as-prefix",
+					AuthToken: "some-token",
+				},
+			},
+			expected: false,
 		},
 		{
 			name: "invalid-missing-auth-token",
@@ -52,9 +62,9 @@ func TestAlertProvider_Validate(t *testing.T) {
 			provider: AlertProvider{
 				DefaultConfig: Config{
 					AuthToken: "some-token",
-					URL:       "some-id",
+					URL:       "https://api.incident.io/v2/alert_events/http/some-id",
 				},
-				Overrides: []Override{{Group: "core", Config: Config{URL: "another-id"}}},
+				Overrides: []Override{{Group: "core", Config: Config{URL: "https://api.incident.io/v2/alert_events/http/another-id"}}},
 			},
 			expected: true,
 		},
@@ -258,67 +268,67 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{URL: "diff-id"},
+						Config: Config{URL: "https://api.incident.io/v2/alert_events/http/diff-id"},
 					},
 				},
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{URL: "some-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{URL: "diff-id", AuthToken: "some-token"},
+						Config: Config{URL: "https://api.incident.io/v2/alert_events/http/diff-id", AuthToken: "some-token"},
 					},
 				},
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{URL: "diff-id", AuthToken: "some-token"},
+			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/diff-id", AuthToken: "some-token"},
 		},
 		{
 			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
 			Provider: AlertProvider{
-				DefaultConfig: Config{URL: "some-id", AuthToken: "some-token"},
+				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{URL: "diff-id", AuthToken: "some-token"},
+						Config: Config{URL: "https://api.incident.io/v2/alert_events/http/diff-id", AuthToken: "some-token"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "another-id"}},
-			ExpectedOutput: Config{URL: "another-id", AuthToken: "some-token"},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "https://api.incident.io/v2/alert_events/http/another-id"}},
+			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/another-id", AuthToken: "some-token"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -346,7 +356,7 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				Config: Config{URL: "some-id", AuthToken: "some-token"},
+				Config: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Group:  "",
 			},
 		},
@@ -366,10 +376,10 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		DefaultConfig: Config{URL: "nice-id", AuthToken: "some-token"},
+		DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/nice-id", AuthToken: "some-token"},
 		Overrides: []Override{
 			{
-				Config: Config{URL: "very-good-id", AuthToken: "some-token"},
+				Config: Config{URL: "https://api.incident.io/v2/alert_events/http/very-good-id", AuthToken: "some-token"},
 				Group:  "group",
 			},
 		},

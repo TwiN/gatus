@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/maintenance"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -267,12 +267,17 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	// Parse or extract hostname from URL
 	if e.DNSConfig != nil {
 		result.Hostname = strings.TrimSuffix(e.URL, ":53")
+	} else if e.Type() == TypeICMP {
+		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
+		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
+		result.Hostname = strings.TrimPrefix(e.URL, "icmp://")
 	} else {
 		urlObject, err := url.Parse(e.URL)
 		if err != nil {
 			result.AddError(err.Error())
 		} else {
 			result.Hostname = urlObject.Hostname()
+			result.port = urlObject.Port()
 		}
 	}
 	// Retrieve IP if necessary
@@ -310,7 +315,13 @@ func (e *Endpoint) EvaluateHealth() *Result {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
-		result.Hostname = ""
+		result.Hostname = "" // remove it from the result so it doesn't get exposed
+	}
+	if e.UIConfig.HidePort && len(result.port) > 0 {
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
+		}
+		result.port = ""
 	}
 	if e.UIConfig.HideConditions {
 		result.ConditionResults = nil

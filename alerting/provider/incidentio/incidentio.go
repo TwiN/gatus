@@ -22,9 +22,10 @@ const (
 )
 
 var (
-	ErrURLNotSet              = errors.New("url not set")
-	ErrDuplicateGroupOverride = errors.New("duplicate group override")
-	ErrAuthTokenNotSet        = errors.New("auth-token not set")
+	ErrURLNotSet                    = errors.New("url not set")
+	ErrURLNotPrefixedWithRestAPIURL = fmt.Errorf("url must be prefixed with %s", restAPIUrl)
+	ErrDuplicateGroupOverride       = errors.New("duplicate group override")
+	ErrAuthTokenNotSet              = errors.New("auth-token not set")
 )
 
 type Config struct {
@@ -37,6 +38,9 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	if len(cfg.URL) == 0 {
 		return ErrURLNotSet
+	}
+	if !strings.HasPrefix(cfg.URL, restAPIUrl) {
+		return ErrURLNotPrefixedWithRestAPIURL
 	}
 	if len(cfg.AuthToken) == 0 {
 		return ErrAuthTokenNotSet
@@ -113,7 +117,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	err = json.NewDecoder(response.Body).Decode(&incidentioResponse)
 	if err != nil {
 		// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
-		logr.Errorf("[incident-io.Send] Ran into error decoding pagerduty response: %s", err.Error())
+		logr.Errorf("[incidentio.Send] Ran into error decoding pagerduty response: %s", err.Error())
 	}
 	alert.ResolveKey = incidentioResponse.DeduplicationKey
 	return err
@@ -155,10 +159,9 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	if len(alert.GetDescription()) > 0 {
 		message += " with the following description: " + alert.GetDescription()
 	}
-
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
 	var body []byte
-	alertSourceID := strings.Split(cfg.URL, restAPIUrl)[1]
+	alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
 	body, _ = json.Marshal(Body{
 		AlertSourceConfigID: alertSourceID,
 		Title:               "Gatus: " + ep.DisplayName(),

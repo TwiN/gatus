@@ -23,6 +23,11 @@
 import { MoonIcon, SunIcon } from '@heroicons/vue/20/solid'
 import { ArrowPathIcon } from '@heroicons/vue/24/solid'
 
+function wantsDarkMode() {
+  const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
+  return themeFromCookie === 'dark' || !themeFromCookie && (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains("dark"));
+}
+
 export default {
   name: 'Settings',
   components: {
@@ -48,15 +53,15 @@ export default {
       this.setRefreshInterval(this.$refs.refreshInterval.value);
     },
     toggleDarkMode() {
-      if (localStorage.theme === 'dark') {
-        localStorage.theme = 'light';
+      if (wantsDarkMode()) {
+        document.cookie = `theme=light; path=/; max-age=31536000; samesite=strict`;
       } else {
-        localStorage.theme = 'dark';
+        document.cookie = `theme=dark; path=/; max-age=31536000; samesite=strict`;
       }
       this.applyTheme();
     },
     applyTheme() {
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      if (wantsDarkMode()) {
         this.darkMode = true;
         document.documentElement.classList.add('dark');
       } else {
@@ -70,7 +75,6 @@ export default {
       this.refreshInterval = 300;
     }
     this.setRefreshInterval(this.refreshInterval);
-    // dark mode
     this.applyTheme();
   },
   unmounted() {
@@ -80,7 +84,7 @@ export default {
     return {
       refreshInterval: localStorage.getItem('gatus:refresh-interval') < 10 ? 300 : parseInt(localStorage.getItem('gatus:refresh-interval')),
       refreshIntervalHandler: 0,
-      darkMode: true
+      darkMode: wantsDarkMode()
     }
   },
 }

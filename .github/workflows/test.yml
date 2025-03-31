@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.23.3
+          go-version: 1.24.1
       - uses: actions/checkout@v4
       - name: Build binary to make sure it works
         run: go build
@@ -28,7 +28,7 @@ jobs:
         # was configured by the "Set up Go" step (otherwise, it'd use sudo's "go" executable)
         run: sudo env "PATH=$PATH" "GOROOT=$GOROOT" go test ./... -race -coverprofile=coverage.txt -covermode=atomic
       - name: Codecov
-        uses: codecov/codecov-action@v5.3.1
+        uses: codecov/codecov-action@v5.4.0
         with:
           files: ./coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ .Theme }}">
   <head>
     <meta charset="utf-8" />
     <script type="text/javascript">
-      window.config = {logo: "{{ .Logo }}", header: "{{ .Header }}", link: "{{ .Link }}", buttons: []};{{- range .Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+      window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", link: "{{ .UI.Link }}", buttons: []};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
     </script>
-    <title>{{ .Title }}</title>
+    <title>{{ .UI.Title }}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -14,10 +14,10 @@
     <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/css/custom.css" />
-    <meta name="description" content="{{ .Description }}" />
+    <meta name="description" content="{{ .UI.Description }}" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="{{ .Title }}" />
-    <meta name="application-name" content="{{ .Title }}" />
+    <meta name="apple-mobile-web-app-title" content="{{ .UI.Title }}" />
+    <meta name="application-name" content="{{ .UI.Title }}" />
     <meta name="theme-color" content="#f7f9fb" />
   </head>
   <body class="dark:bg-gray-900">

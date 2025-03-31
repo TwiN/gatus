@@ -49,6 +49,11 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
+
+	///////////////////////////////////////////////////////////////////////
+	// Below is used only for the UI and is not persisted in the storage //
+	///////////////////////////////////////////////////////////////////////
+	port string `yaml:"-"` // used for endpoints[].ui.hide-port
 }
 
 // AddError adds an error to the result's list of errors.
