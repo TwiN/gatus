@@ -1,7 +1,6 @@
 module github.com/TwiN/gatus/v5
 
 go 1.24.1
-
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/TwiN/deepmerge v0.2.2
@@ -11,7 +10,7 @@ require (
 	github.com/TwiN/logr v0.3.1
 	github.com/TwiN/whois v1.1.10
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/coreos/go-oidc/v3 v3.12.0
+	github.com/coreos/go-oidc/v3 v3.13.0
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.6.0
@@ -42,7 +41,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
