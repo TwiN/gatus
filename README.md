@@ -86,6 +86,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [OIDC](#oidc)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
+    - [Custom Labels](#custom-labels)
   - [Connectivity](#connectivity)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -1851,6 +1852,24 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_endpoint_success               | gauge   | Displays whether or not the endpoint was a success (0 failure, 1 success)  | key, group, name, type          | All                     |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
+#### Custom Labels
+
+Added a Labels field to the Config and Endpoint structs to support key-value pairs for metrics. Updated the Prometheus metrics initialization to include dynamic labels from the configuration. See the example below:
+
+```yaml
+endpoints:
+  - name: front-end
+    group: core
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 150"
+    labels:
+      environment: staging
+```
 
 ### Connectivity
 
