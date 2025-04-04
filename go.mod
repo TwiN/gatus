@@ -1,7 +1,6 @@
 module github.com/TwiN/gatus/v5
 
 go 1.24.1
-
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/TwiN/deepmerge v0.2.2
@@ -18,8 +17,8 @@ require (
 	github.com/ishidawataru/sctp v0.0.0-20230406120618-7ff4192f6ff2
 	github.com/lib/pq v1.10.9
 	github.com/miekg/dns v1.1.64
-	github.com/prometheus-community/pro-bing v0.5.0
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus-community/pro-bing v0.6.1
+	github.com/prometheus/client_golang v1.21.1
 	github.com/valyala/fasthttp v1.58.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.36.0
@@ -61,7 +60,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.55.0 // indirect
+	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

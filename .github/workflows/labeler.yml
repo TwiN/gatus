@@ -22,9 +22,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}${{ github.event.pull_request.number }}
         run: |
-          if [[ $TITLE == *"feat:"* || $TITLE == *"feat("* ]]; then
+          if [[ $TITLE == "feat"* ]]; then
             gh issue edit "$NUMBER" --add-label "feature"
-          elif [[ $TITLE == *"fix:"* || $TITLE == *"fix("* ]]; then
+          elif [[ $TITLE == "fix"* ]]; then
             gh issue edit "$NUMBER" --add-label "bug"
           fi
           if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* ]]; then
