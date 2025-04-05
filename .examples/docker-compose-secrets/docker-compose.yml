@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    secrets:
+      - postgres_password
+    environment:
+      - POSTGRES_DB=gatus
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+    networks:
+      - web
+
+  gatus:
+    image: twinproduction/gatus:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    secrets:
+      - postgres_password
+    environment:
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=gatus
+    volumes:
+      - ./config:/config
+    networks:
+      - web
+    depends_on:
+      - postgres
+
+secrets:
+  postgres_password:
+    file: ./postgres_password.txt
+
+networks:
+  web:
