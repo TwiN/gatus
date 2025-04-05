@@ -380,12 +380,12 @@ Here are some examples of conditions you can use:
 
 
 ### Storage
-| Parameter         | Description                                                                                                                                        | Default    |
-|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
-| `storage`         | Storage configuration                                                                                                                              | `{}`       |
-| `storage.path`    | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
-| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
-| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| Parameter         | Description                                                                                                                                                   | Default    |
+|:------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
+| `storage`         | Storage configuration                                                                                                                                         | `{}`       |
+| `storage.path`    | Path to persist the data in. Only supported for types `sqlite`, `postgres` and `mysql`.                                                                       | `""`       |
+| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres` and `mysql`.                                                                                     | `"memory"` |
+| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` or `mysql` | `false`    |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
@@ -412,6 +412,14 @@ storage:
   path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
 See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
+
+- If `storage.type` is `mysql`, `storage.path` must be the connection URL:
+```yaml
+storage:
+  type: mysql
+  path: "user:password@tcp(127.0.0.1:3306)/gatus?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true&interpolateParams=true"
+```
+See [examples/docker-compose-mysql-storage](.examples/docker-compose-mysql-storage) for an example.
 
 
 ### Client configuration
