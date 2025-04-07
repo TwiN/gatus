@@ -1,6 +1,7 @@
 module github.com/TwiN/gatus/v5
 
 go 1.24.1
+
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/TwiN/deepmerge v0.2.2
@@ -22,7 +23,7 @@ require (
 	github.com/valyala/fasthttp v1.58.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.36.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.28.0
 	google.golang.org/api v0.228.0
 	gopkg.in/mail.v2 v2.3.1
