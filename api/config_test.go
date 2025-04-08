@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,7 +19,7 @@ func TestConfigHandler_ServeHTTP(t *testing.T) {
 			AllowedSubjects: []string{"user1@example.com"},
 		},
 	}
-	handler := ConfigHandler{securityConfig: securityConfig}
+	handler := ConfigHandler{config: &config.Config{Security: securityConfig}}
 	// Create a fake router. We're doing this because I need the gate to be initialized.
 	app := fiber.New()
 	app.Get("/api/v1/config", handler.GetConfig)

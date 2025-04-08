@@ -99,8 +99,9 @@ type Config struct {
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
 
-	configPath      string    // path to the file or directory from which config was loaded
-	lastFileModTime time.Time // last modification time
+	configPath           string    // path to the file or directory from which config was loaded
+	lastFileModTime      time.Time // last modification time
+	forceReloadRequested bool      // Force config reload requested
 }
 
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
@@ -126,6 +127,10 @@ func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEnd
 // HasLoadedConfigurationBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
 func (config *Config) HasLoadedConfigurationBeenModified() bool {
+	if config.forceReloadRequested {
+		return true
+	}
+
 	lastMod := config.lastFileModTime.Unix()
 	fileInfo, err := os.Stat(config.configPath)
 	if err != nil {
@@ -146,6 +151,10 @@ func (config *Config) HasLoadedConfigurationBeenModified() bool {
 // UpdateLastFileModTime refreshes Config.lastFileModTime
 func (config *Config) UpdateLastFileModTime() {
 	config.lastFileModTime = time.Now()
+}
+
+func (config *Config) RequestConfigForceReload() {
+	config.forceReloadRequested = true
 }
 
 // LoadConfiguration loads the full configuration composed of the main configuration file
@@ -208,6 +217,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
+	config.forceReloadRequested = false
 	return config, nil
 }
 
