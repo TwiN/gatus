@@ -118,10 +118,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Health](#health)
     - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
+    - [Response time (chart)](#response-time-chart)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
     - [Raw Data](#raw-data)
       - [Uptime](#uptime-1)
+      - [Response Time](#response-time-1)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 
@@ -2509,6 +2511,20 @@ Where:
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/uptimes/24h
+```
+
+##### Response Time
+The path to get raw response time data for an endpoint is:
+```
+/api/v1/endpoints/{key}/response-times/{duration}
+```
+Where:
+- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+
+For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/response-times/24h
 ```
 
 ### Installing as binary
