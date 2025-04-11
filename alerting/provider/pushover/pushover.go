@@ -48,6 +48,11 @@ type Config struct {
 	// Sound of the messages (see: https://pushover.net/api#sounds)
 	// default: "" (pushover)
 	Sound string `yaml:"sound,omitempty"`
+
+	// TTL of your message (https://pushover.net/api#ttl)
+	// If priority is 2 then this parameter is ignored
+	// default: 0
+	TTL int `yaml:"ttl,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -87,6 +92,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Sound) > 0 {
 		cfg.Sound = override.Sound
+	}
+	if override.TTL > 0 {
+		cfg.TTL = override.TTL
 	}
 }
 
@@ -136,6 +144,7 @@ type Body struct {
 	Priority int    `json:"priority"`
 	Html     int    `json:"html"`
 	Sound    string `json:"sound,omitempty"`
+	TTL      int    `json:"ttl,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -173,6 +182,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Priority: priority,
 		Html:     1,
 		Sound:    cfg.Sound,
+		TTL:      cfg.TTL,
 	})
 	return body
 }
