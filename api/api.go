@@ -87,6 +87,8 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// SPA
 	app.Get("/", SinglePageApplication(cfg.UI))
 	app.Get("/endpoints/:name", SinglePageApplication(cfg.UI))
+	app.Get("/groups", SinglePageApplication(cfg.UI))
+	app.Get("/groups/:name", SinglePageApplication(cfg.UI))
 	// Health endpoint
 	healthHandler := health.Handler().WithJSON(true)
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -126,5 +128,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	}
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
 	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
+	protectedAPIRouter.Get("/v1/groups", Groups(cfg))
+	protectedAPIRouter.Get("/v1/groups/:group/statuses", GroupStatuses)
 	return app
 }
