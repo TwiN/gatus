@@ -276,7 +276,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 		{
 			name: "not-under-maintenance-los-angeles-timezone-starting-now-for-2h-today",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", inTimezone(now, "America/Los_Angeles", t).Hour()),
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 2 * time.Hour,
 				Timezone: "America/Los_Angeles",
 				Every:    []string{now.Weekday().String()},

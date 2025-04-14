@@ -169,6 +169,13 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"sound\":\"falling\"}",
 		},
+		{
+			Name:         "with-ttl",
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, TTL: 3600}},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"ttl\":3600}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
