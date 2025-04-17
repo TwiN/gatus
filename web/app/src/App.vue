@@ -23,7 +23,8 @@
   </div>
 
   <div v-if="config && config.oidc && !config.authenticated" class="mx-auto max-w-md pt-12">
-    <img src="./assets/logo.svg" alt="Gatus" class="mx-auto" style="max-width:160px; min-width:50px; min-height:50px;"/>
+    <img v-if="logo" :src="logo" alt="Gatus" class="mx-auto" style="max-width:160px; min-width:50px; min-height:50px;"/>
+    <img v-else src="./assets/logo.svg" alt="Gatus" class="mx-auto" style="max-width:160px; min-width:50px; min-height:50px;"/>
     <h2 class="mt-4 text-center text-4xl font-extrabold text-gray-800 dark:text-gray-200">
       Gatus
     </h2>
