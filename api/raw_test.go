@@ -74,6 +74,36 @@ func TestRawDataEndpoint(t *testing.T) {
 			Path:         "/api/v1/endpoints/invalid_key/uptimes/7d",
 			ExpectedCode: http.StatusNotFound,
 		},
+		{
+			Name:         "raw-response-times-1h",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/1h",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-24h",
+			Path:         "/api/v1/endpoints/core_backend/response-times/24h",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-7d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/7d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-30d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/30d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-with-invalid-duration",
+			Path:         "/api/v1/endpoints/core_backend/response-times/3d",
+			ExpectedCode: http.StatusBadRequest,
+		},
+		{
+			Name:         "raw-response-times-for-invalid-key",
+			Path:         "/api/v1/endpoints/invalid_key/response-times/7d",
+			ExpectedCode: http.StatusNotFound,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
