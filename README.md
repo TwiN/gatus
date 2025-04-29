@@ -118,6 +118,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Health](#health)
     - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
+    - [Response time (chart)](#response-time-chart)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
     - [Raw Data](#raw-data)
@@ -1548,7 +1549,8 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
-
+- `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
+-
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
