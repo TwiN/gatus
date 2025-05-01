@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,6 +13,8 @@ import (
 )
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
+	InitializePrometheusMetrics(&config.Config{})
+
 	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
 	PublishMetricsForEndpoint(httpEndpoint, &endpoint.Result{
 		HTTPStatus: 200,
@@ -23,7 +26,7 @@ func TestPublishMetricsForEndpoint(t *testing.T) {
 		},
 		Success:               true,
 		CertificateExpiration: 49 * time.Hour,
-	})
+	}, []string{})
 	err := testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
@@ -57,7 +60,7 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 		},
 		Success:               false,
 		CertificateExpiration: 47 * time.Hour,
-	})
+	}, []string{})
 	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
@@ -82,10 +85,12 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}
-	dnsEndpoint := &endpoint.Endpoint{Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
-		QueryType: "A",
-		QueryName: "example.com.",
-	}}
+	dnsEndpoint := &endpoint.Endpoint{
+		Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
+			QueryType: "A",
+			QueryName: "example.com.",
+		},
+	}
 	PublishMetricsForEndpoint(dnsEndpoint, &endpoint.Result{
 		DNSRCode:  "NOERROR",
 		Connected: true,
@@ -94,7 +99,7 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 			{Condition: "[DNS_RCODE] == NOERROR", Success: true},
 		},
 		Success: true,
-	})
+	}, []string{})
 	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
