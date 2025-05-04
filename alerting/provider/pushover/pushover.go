@@ -23,6 +23,7 @@ var (
 	ErrInvalidApplicationToken = errors.New("application-token must be 30 characters long")
 	ErrInvalidUserKey          = errors.New("user-key must be 30 characters long")
 	ErrInvalidPriority         = errors.New("priority and resolved-priority must be between -2 and 2")
+	ErrInvalidDevice           = errors.New("device name must be 1–25 characters")
 )
 
 type Config struct {
@@ -53,6 +54,10 @@ type Config struct {
 	// If priority is 2 then this parameter is ignored
 	// default: 0
 	TTL int `yaml:"ttl,omitempty"`
+
+	// Device to send the message to (see: https://pushover.net/api#devices)
+	// default: "" (all devices)
+	Device string `yaml:"device,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -71,6 +76,9 @@ func (cfg *Config) Validate() error {
 	if cfg.Priority < -2 || cfg.Priority > 2 || cfg.ResolvedPriority < -2 || cfg.ResolvedPriority > 2 {
 		return ErrInvalidPriority
 	}
+    if len(cfg.Device) > 25 {
+        return ErrInvalidDevice
+    }
 	return nil
 }
 
@@ -96,6 +104,9 @@ func (cfg *Config) Merge(override *Config) {
 	if override.TTL > 0 {
 		cfg.TTL = override.TTL
 	}
+    if len(override.Device) > 0 {
+        cfg.Device = override.Device
+    }
 }
 
 // AlertProvider is the configuration necessary for sending an alert using Pushover
@@ -145,6 +156,7 @@ type Body struct {
 	Html     int    `json:"html"`
 	Sound    string `json:"sound,omitempty"`
 	TTL      int    `json:"ttl,omitempty"`
+	Device   string `json:"device,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -183,6 +195,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Html:     1,
 		Sound:    cfg.Sound,
 		TTL:      cfg.TTL,
+		Device:   cfg.Device,
 	})
 	return body
 }

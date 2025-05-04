@@ -1229,17 +1229,18 @@ endpoints:
 
 
 #### Configuring Pushover alerts
-| Parameter                             | Description                                                                                     | Default                      |
-|:--------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
-| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                     | `{}`                         |
-| `alerting.pushover.application-token` | Pushover application token                                                                      | `""`                         |
-| `alerting.pushover.user-key`          | User or group key                                                                               | `""`                         |
-| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | `"Gatus: <endpoint>"` |
-| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
-| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)      | `0`                          |
-| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
-| `alerting.pushover.ttl`               | Set the Time-to-live of the message to be automatically deleted from pushover notifications     | `0`                          |
-| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
+| Parameter                             | Description                                                                                              | Default                     |
+|:--------------------------------------|:---------------------------------------------------------------------------------------------------------|:----------------------------|
+| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                              | `{}`                        |
+| `alerting.pushover.application-token` | Pushover application token                                                                               | `""`                        |
+| `alerting.pushover.user-key`          | User or group key                                                                                        | `""`                        |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                           | `"Gatus: <endpoint>"`       |
+| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                                    | `0`                         |
+| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)               | `0`                         |
+| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices.          | `""`                        |
+| `alerting.pushover.ttl`               | Set the Time-to-live of the message to be automatically deleted from pushover notifications              | `0`                         |
+| `alerting.pushover.device`            | Device to send the message to (optional)<br/>See [devices](https://pushover.net/api#devices) for details | `""` (all devices)|
+| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)               | N/A                         |
 
 ```yaml
 alerting:
