@@ -89,6 +89,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			ExpectedCode:                   200,
 		},
 		{
+			Name:                           "good-duration-success-true",
+			Path:                           "/api/v1/endpoints/g_n/external?success=true&duration=10s",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   200,
+		},
+		{
 			Name:                           "good-token-success-false",
 			Path:                           "/api/v1/endpoints/g_n/external?success=false",
 			AuthorizationHeaderBearerToken: "Bearer token",
@@ -103,12 +109,6 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		{
 			Name:                           "good-token-success-false-with-error",
 			Path:                           "/api/v1/endpoints/g_n/external?success=false&error=failed",
-			AuthorizationHeaderBearerToken: "Bearer token",
-			ExpectedCode:                   200,
-		},
-		{
-			Name:                           "good-duration-success-true",
-			Path:                           "/api/v1/endpoints/g_n/external?success=true&duration=10s",
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   200,
 		},
@@ -130,7 +130,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		})
 	}
 	t.Run("verify-end-results", func(t *testing.T) {
-		endpointStatus, err := store.Get().GetEndpointStatus("g", "n", paging.NewEndpointStatusParams().WithResults(1, 10))
+		endpointStatus, err := store.Get().GetEndpointStatus("g", "n", paging.NewEndpointStatusParams().WithResults(1, 11))
 		if err != nil {
 			t.Errorf("failed to get endpoint status: %s", err.Error())
 			return
@@ -138,8 +138,8 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if endpointStatus.Key != "g_n" {
 			t.Errorf("expected key to be g_n but got %s", endpointStatus.Key)
 		}
-		if len(endpointStatus.Results) != 5 {
-			t.Errorf("expected 3 results but got %d", len(endpointStatus.Results))
+		if len(endpointStatus.Results) != 6 {
+			t.Errorf("expected 6 results but got %d", len(endpointStatus.Results))
 		}
 		if !endpointStatus.Results[0].Success {
 			t.Errorf("expected first result to be successful")
@@ -150,16 +150,19 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if len(endpointStatus.Results[1].Errors) > 0 {
 			t.Errorf("expected second result to have no errors")
 		}
-		if endpointStatus.Results[2].Success {
-			t.Errorf("expected third result to be unsuccessful")
+		if endpointStatus.Results[2].Duration == 0 || endpointStatus.Results[2].Duration.Seconds() != 10 {
+			t.Errorf("expected sixth result to have a duration of 10 seconds")
 		}
 		if endpointStatus.Results[3].Success {
-			t.Errorf("expected fourth result to be unsuccessful")
+			t.Errorf("expected third result to be unsuccessful")
 		}
 		if endpointStatus.Results[4].Success {
+			t.Errorf("expected fourth result to be unsuccessful")
+		}
+		if endpointStatus.Results[5].Success {
 			t.Errorf("expected fifth result to be unsuccessful")
 		}
-		if len(endpointStatus.Results[4].Errors) == 0 || endpointStatus.Results[4].Errors[0] != "failed" {
+		if len(endpointStatus.Results[5].Errors) == 0 || endpointStatus.Results[5].Errors[0] != "failed" {
 			t.Errorf("expected fifth result to have errors: failed")
 		}
 		externalEndpointFromConfig := cfg.GetExternalEndpointByKey("g_n")
