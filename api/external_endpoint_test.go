@@ -71,6 +71,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			ExpectedCode:                   400,
 		},
 		{
+			Name:                           "bad-duration-value",
+			Path:                           "/api/v1/endpoints/g_n/external?success=true&duration=invalid",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   400,
+		},
+		{
 			Name:                           "good-token-success-true",
 			Path:                           "/api/v1/endpoints/g_n/external?success=true",
 			AuthorizationHeaderBearerToken: "Bearer token",
@@ -97,6 +103,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		{
 			Name:                           "good-token-success-false-with-error",
 			Path:                           "/api/v1/endpoints/g_n/external?success=false&error=failed",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   200,
+		},
+		{
+			Name:                           "good-duration-success-true",
+			Path:                           "/api/v1/endpoints/g_n/external?success=true&duration=10s",
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   200,
 		},
