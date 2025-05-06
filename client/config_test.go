@@ -107,6 +107,20 @@ func TestConfig_getHTTPClient_withCustomProxyURL(t *testing.T) {
 	}
 }
 
+func TestConfig_getHTTPClient_withServerNameIndication(t *testing.T) {
+	cfg := &Config{TLS: &TLSConfig{
+		CertificateFile:      "../testdata/cert.pem",
+		PrivateKeyFile:       "../testdata/cert.key",
+		ServerNameIndication: "sni",
+	}}
+	cfg.ValidateAndSetDefaults()
+	client := cfg.getHTTPClient()
+	transport := client.Transport.(*http.Transport)
+	if transport.TLSClientConfig.ServerName != "sni" {
+		t.Errorf("expected Config.TLS.ServerNameIndication set to \"sni\" to cause the HTTP client to use \"sni\" as server name in TLS config")
+	}
+}
+
 func TestConfig_TlsIsValid(t *testing.T) {
 	tests := []struct {
 		name        string
