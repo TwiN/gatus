@@ -23,7 +23,7 @@ var (
 	ErrInvalidApplicationToken = errors.New("application-token must be 30 characters long")
 	ErrInvalidUserKey          = errors.New("user-key must be 30 characters long")
 	ErrInvalidPriority         = errors.New("priority and resolved-priority must be between -2 and 2")
-	ErrInvalidDevice           = errors.New("device name must be 1–25 characters")
+	ErrInvalidDevice           = errors.New("device name must have less than 25 characters")
 )
 
 type Config struct {
