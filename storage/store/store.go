@@ -25,6 +25,12 @@ type Store interface {
 	// GetEndpointStatusByKey returns the endpoint status for a given key
 	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
+	// GetEndpointStatusesByGroup returns the endpoint statuses for a given group
+	GetEndpointStatusesByGroup(groupName string, params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
+
+	// GetGroups returns the names of all groups
+	GetGroups() ([]string, error)
+
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
 
