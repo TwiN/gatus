@@ -10,10 +10,11 @@ import (
 // within the range defined by the page and pageSize parameters
 func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
 	shallowCopy := &endpoint.Status{
-		Name:   ss.Name,
-		Group:  ss.Group,
-		Key:    ss.Key,
-		Uptime: endpoint.NewUptime(),
+		Name:     ss.Name,
+		Group:    ss.Group,
+		Key:      ss.Key,
+		Uptime:   endpoint.NewUptime(),
+		UiConfig: ss.UiConfig,
 	}
 	numberOfResults := len(ss.Results)
 	resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
