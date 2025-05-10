@@ -637,6 +637,10 @@ endpoints:
         description: "healthcheck failed"
 ```
 
+If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
+
+Make sure you have the ability to use `ses:SendEmail`.
+
 
 #### Configuring Discord alerts
 | Parameter                            | Description                                                                                | Default                             |
@@ -1487,10 +1491,6 @@ endpoints:
         description: "healthcheck failed"
 ```
 
-
-If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
-
-Make sure you have the ability to use `ses:SendEmail`.
 
 #### Configuring Zulip alerts
 | Parameter                          | Description                                                                         | Default       |
