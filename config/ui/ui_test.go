@@ -25,6 +25,15 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
 	}
+	if cfg.Favicon.Default != defaultFavicon {
+		t.Errorf("expected favicon to be %s, got %s", defaultFavicon, cfg.Favicon.Default)
+	}
+	if cfg.Favicon.Size16x16 != defaultFavicon16 {
+		t.Errorf("expected favicon to be %s, got %s", defaultFavicon16, cfg.Favicon.Size16x16)
+	}
+	if cfg.Favicon.Size32x32 != defaultFavicon32 {
+		t.Errorf("expected favicon to be %s, got %s", defaultFavicon32, cfg.Favicon.Size32x32)
+	}
 }
 
 func TestButton_Validate(t *testing.T) {
