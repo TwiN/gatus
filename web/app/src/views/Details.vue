@@ -1,5 +1,5 @@
 <template>
-  <router-link to="../"
+  <router-link :to="previousPage ||  '../'"
                class="absolute top-2 left-5 inline-block px-2 pb-0.5 text-sm text-black bg-gray-100 rounded hover:bg-gray-200 focus:outline-none border border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-600">
     &larr;
   </router-link>
@@ -219,6 +219,11 @@ export default {
   },
   created() {
     this.fetchData();
+  },
+  computed: {
+    previousPage() {
+      return sessionStorage.getItem('previousPage') || null;
+    }
   }
 }
 </script>
