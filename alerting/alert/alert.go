@@ -142,9 +142,8 @@ func (alert *Alert) GetDescription(body []byte) string {
 			str, err := ExtractStringFromResponseBodyByJsonPath(strings.TrimPrefix(strings.TrimPrefix(*alert.Description, BodyPlaceholder), "."), body)
 			if err != nil {
 				logr.Debug(err.Error())
-			} else {
-				return str
 			}
+			return str
 		}
 	}
 	return *alert.Description
