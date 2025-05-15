@@ -65,10 +65,10 @@ func TestAlert_IsEnabled(t *testing.T) {
 }
 
 func TestAlert_GetDescription(t *testing.T) {
-	if (&Alert{Description: nil}).GetDescription() != "" {
+	if (&Alert{Description: nil}).GetDescription(nil) != "" {
 		t.Error("alert.GetDescription() should've returned an empty string, because Description was set to nil")
 	}
-	if value := "description"; (&Alert{Description: &value}).GetDescription() != value {
+	if value := "description"; (&Alert{Description: &value}).GetDescription(nil) != value {
 		t.Error("alert.GetDescription() should've returned false, because Description was set to 'description'")
 	}
 }

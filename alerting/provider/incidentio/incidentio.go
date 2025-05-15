@@ -156,8 +156,8 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		// No need for \n since incident.io trims it anyways.
 		formattedConditionResults += fmt.Sprintf(" %s %s ", prefix, conditionResult.Condition)
 	}
-	if len(alert.GetDescription()) > 0 {
-		message += " with the following description: " + alert.GetDescription()
+	if len(alert.GetDescription(result.Body)) > 0 {
+		message += " with the following description: " + alert.GetDescription(result.Body)
 	}
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
 	var body []byte

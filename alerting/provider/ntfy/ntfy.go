@@ -190,8 +190,8 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		}
 		formattedConditionResults += fmt.Sprintf("\n%s %s", prefix, conditionResult.Condition)
 	}
-	if len(alert.GetDescription()) > 0 {
-		message += " with the following description: " + alert.GetDescription()
+	if len(alert.GetDescription(result.Body)) > 0 {
+		message += " with the following description: " + alert.GetDescription(result.Body)
 	}
 	message += formattedConditionResults
 	body, _ := json.Marshal(Body{

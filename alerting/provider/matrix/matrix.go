@@ -164,7 +164,7 @@ func buildPlaintextMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result
 		formattedConditionResults += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
 	}
 	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+	if alertDescription := alert.GetDescription(result.Body); len(alertDescription) > 0 {
 		description = "\n" + alertDescription
 	}
 	return fmt.Sprintf("%s%s\n%s", message, description, formattedConditionResults)
@@ -193,7 +193,7 @@ func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *end
 		formattedConditionResults += "</ul>"
 	}
 	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+	if alertDescription := alert.GetDescription(result.Body); len(alertDescription) > 0 {
 		description = fmt.Sprintf("\n<blockquote>%s</blockquote>", alertDescription)
 	}
 	return fmt.Sprintf("<h3>%s</h3>%s%s", message, description, formattedConditionResults)

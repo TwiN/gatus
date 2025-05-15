@@ -4,16 +4,28 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/TwiN/logr"
+	"github.com/ohler55/ojg/jp"
+	"github.com/ohler55/ojg/oj"
 	"gopkg.in/yaml.v3"
 )
 
 var (
 	// ErrAlertWithInvalidDescription is the error with which Gatus will panic if an alert has an invalid character
-	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
+	ErrAlertWithInvalidDescription         = errors.New("alert description must not have \" or \\")
+	ErrAlertWithInvalidDescriptionJSONPath = errors.New("alert description JSONPath is invalid")
+)
+
+// Placeholders
+const (
+	// BodyPlaceholder is a placeholder for the Body of the response
+	//
+	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
+	BodyPlaceholder = "[BODY]"
 )
 
 // Alert is endpoint.Endpoint's alert configuration
@@ -66,6 +78,37 @@ type Alert struct {
 	Triggered bool `yaml:"-"`
 }
 
+// ExtractStringFromResponseBodyByJsonPath extracts a string from the response body by JSON path
+func ExtractStringFromResponseBodyByJsonPath(jsonPath string, body []byte) (string, error) {
+	// Parse JSON string to interface{}
+	parser := oj.Parser{}
+	data, err := parser.Parse(body)
+	if err != nil {
+		return "", fmt.Errorf("[alert.ExtractStringFromResponseBodyByJsonPath] Failed to parse JSON: %w", err)
+	}
+	// Compile JSONPath expression
+	expr, err := jp.ParseString(jsonPath)
+	if err != nil {
+		return "", fmt.Errorf("[alert.ExtractStringFromResponseBodyByJsonPath] Invalid JSONPath: %w", err)
+	}
+	// Apply JSONPath
+	result := expr.Get(data)
+	// Convert result to string
+	if len(result) == 0 {
+		return "", nil // No matches found
+	}
+	// Single match — return the first one
+	if len(result) == 1 {
+		return fmt.Sprintf("%v", result[0]), nil
+	}
+	// Multiple matches — join with commas
+	var parts []string
+	for _, v := range result {
+		parts = append(parts, fmt.Sprintf("%v", v))
+	}
+	return strings.Join(parts, ", "), nil
+}
+
 // ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one
 func (alert *Alert) ValidateAndSetDefaults() error {
 	if alert.FailureThreshold <= 0 {
@@ -74,16 +117,35 @@ func (alert *Alert) ValidateAndSetDefaults() error {
 	if alert.SuccessThreshold <= 0 {
 		alert.SuccessThreshold = 2
 	}
-	if strings.ContainsAny(alert.GetDescription(), "\"\\") {
+	description := alert.GetDescription(nil)
+	if strings.ContainsAny(description, "\"\\") {
 		return ErrAlertWithInvalidDescription
+	}
+	if alert.Description != nil && strings.Contains(description, BodyPlaceholder) && description != BodyPlaceholder {
+		_, err := jp.ParseString(strings.TrimPrefix(strings.TrimPrefix(description, BodyPlaceholder), "."))
+		if err != nil {
+			return ErrAlertWithInvalidDescriptionJSONPath
+		}
 	}
 	return nil
 }
 
 // GetDescription retrieves the description of the alert
-func (alert *Alert) GetDescription() string {
+func (alert *Alert) GetDescription(body []byte) string {
 	if alert.Description == nil {
 		return ""
+	}
+	if strings.Contains(*alert.Description, BodyPlaceholder) && body != nil {
+		if *alert.Description == BodyPlaceholder {
+			return string(body)
+		} else {
+			str, err := ExtractStringFromResponseBodyByJsonPath(strings.TrimPrefix(strings.TrimPrefix(*alert.Description, BodyPlaceholder), "."), body)
+			if err != nil {
+				logr.Debug(err.Error())
+			} else {
+				return str
+			}
+		}
 	}
 	return *alert.Description
 }
@@ -114,7 +176,7 @@ func (alert *Alert) Checksum() string {
 		strconv.FormatBool(alert.IsSendingOnResolved()) + "_" +
 		strconv.Itoa(alert.SuccessThreshold) + "_" +
 		strconv.Itoa(alert.FailureThreshold) + "_" +
-		alert.GetDescription()),
+		alert.GetDescription(nil)),
 	)
 	return hex.EncodeToString(hash.Sum(nil))
 }

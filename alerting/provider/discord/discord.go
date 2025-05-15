@@ -134,7 +134,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+	if alertDescription := alert.GetDescription(result.Body); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
 	title := ":helmet_with_white_cross: Gatus"

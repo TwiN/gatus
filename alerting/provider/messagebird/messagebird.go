@@ -102,9 +102,9 @@ type Body struct {
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription(result.Body))
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription(result.Body))
 	}
 	body, _ := json.Marshal(Body{
 		Originator: cfg.Originator,

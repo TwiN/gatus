@@ -145,7 +145,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		}
 	}
 	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+	if alertDescription := alert.GetDescription(result.Body); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
 	body := Body{

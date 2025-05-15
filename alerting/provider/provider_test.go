@@ -139,8 +139,8 @@ func TestParseWithDefaultAlert(t *testing.T) {
 			if scenario.EndpointAlert.IsSendingOnResolved() != scenario.ExpectedOutputAlert.IsSendingOnResolved() {
 				t.Errorf("expected EndpointAlert.IsSendingOnResolved() to be %v, got %v", scenario.ExpectedOutputAlert.IsSendingOnResolved(), scenario.EndpointAlert.IsSendingOnResolved())
 			}
-			if scenario.EndpointAlert.GetDescription() != scenario.ExpectedOutputAlert.GetDescription() {
-				t.Errorf("expected EndpointAlert.GetDescription() to be %v, got %v", scenario.ExpectedOutputAlert.GetDescription(), scenario.EndpointAlert.GetDescription())
+			if scenario.EndpointAlert.GetDescription(nil) != scenario.ExpectedOutputAlert.GetDescription(nil) {
+				t.Errorf("expected EndpointAlert.GetDescription() to be %v, got %v", scenario.ExpectedOutputAlert.GetDescription(nil), scenario.EndpointAlert.GetDescription(nil))
 			}
 			if scenario.EndpointAlert.FailureThreshold != scenario.ExpectedOutputAlert.FailureThreshold {
 				t.Errorf("expected EndpointAlert.FailureThreshold to be %v, got %v", scenario.ExpectedOutputAlert.FailureThreshold, scenario.EndpointAlert.FailureThreshold)

@@ -119,7 +119,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	if resolved {
-		err = provider.closeAlert(cfg, ep, alert)
+		err = provider.closeAlert(cfg, ep, alert, result)
 		if err != nil {
 			return err
 		}
@@ -140,8 +140,8 @@ func (provider *AlertProvider) sendAlertRequest(cfg *Config, ep *endpoint.Endpoi
 	return provider.sendRequest(cfg, restAPI, http.MethodPost, payload)
 }
 
-func (provider *AlertProvider) closeAlert(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert) error {
-	payload := provider.buildCloseRequestBody(ep, alert)
+func (provider *AlertProvider) closeAlert(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result) error {
+	payload := provider.buildCloseRequestBody(ep, alert, result)
 	url := restAPI + "/" + cfg.AliasPrefix + buildKey(ep) + "/close?identifierType=alias"
 	return provider.sendRequest(cfg, url, http.MethodPost, payload)
 }
@@ -172,10 +172,10 @@ func (provider *AlertProvider) sendRequest(cfg *Config, url, method string, payl
 func (provider *AlertProvider) buildCreateRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) alertCreateRequest {
 	var message, description string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription(result.Body))
 		description = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("%s - %s", ep.Name, alert.GetDescription())
+		message = fmt.Sprintf("%s - %s", ep.Name, alert.GetDescription(result.Body))
 		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	if ep.Group != "" {
@@ -221,10 +221,10 @@ func (provider *AlertProvider) buildCreateRequestBody(cfg *Config, ep *endpoint.
 	}
 }
 
-func (provider *AlertProvider) buildCloseRequestBody(ep *endpoint.Endpoint, alert *alert.Alert) alertCloseRequest {
+func (provider *AlertProvider) buildCloseRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result) alertCloseRequest {
 	return alertCloseRequest{
 		Source: buildKey(ep),
-		Note:   fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription()),
+		Note:   fmt.Sprintf("RESOLVED: %s - %s", ep.Name, alert.GetDescription(result.Body)),
 	}
 }
 

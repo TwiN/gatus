@@ -100,8 +100,8 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
 	body, url, method := cfg.Body, cfg.URL, cfg.Method
-	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription(result.Body))
+	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription(result.Body))
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
 	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
 	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)

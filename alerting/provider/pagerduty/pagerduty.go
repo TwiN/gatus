@@ -131,11 +131,11 @@ type Payload struct {
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, eventAction, resolveKey string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription(result.Body))
 		eventAction = "resolve"
 		resolveKey = alert.ResolveKey
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription(result.Body))
 		eventAction = "trigger"
 		resolveKey = ""
 	}

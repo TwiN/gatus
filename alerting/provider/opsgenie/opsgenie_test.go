@@ -282,6 +282,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 		Provider *AlertProvider
 		Alert    *alert.Alert
 		Endpoint *endpoint.Endpoint
+		Result   *endpoint.Result
 		want     alertCloseRequest
 	}{
 		{
@@ -312,7 +313,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		actual := scenario
 		t.Run(actual.Name, func(t *testing.T) {
-			if got := actual.Provider.buildCloseRequestBody(actual.Endpoint, actual.Alert); !reflect.DeepEqual(got, actual.want) {
+			if got := actual.Provider.buildCloseRequestBody(actual.Endpoint, actual.Alert, actual.Result); !reflect.DeepEqual(got, actual.want) {
 				t.Errorf("buildCloseRequestBody() = %v, want %v", got, actual.want)
 			}
 		})

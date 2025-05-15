@@ -182,7 +182,7 @@ func (provider *AlertProvider) buildIssueBody(ep *endpoint.Endpoint, alert *aler
 		}
 	}
 	var description string
-	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+	if alertDescription := alert.GetDescription(result.Body); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
 	message := fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)

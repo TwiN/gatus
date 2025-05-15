@@ -823,8 +823,8 @@ endpoints:
 	if config.Endpoints[0].Alerts[1].Type != alert.TypePagerDuty {
 		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Endpoints[0].Alerts[1].Type)
 	}
-	if config.Endpoints[0].Alerts[1].GetDescription() != "Healthcheck failed 7 times in a row" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Endpoints[0].Alerts[1].GetDescription())
+	if config.Endpoints[0].Alerts[1].GetDescription(nil) != "Healthcheck failed 7 times in a row" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "Healthcheck failed 7 times in a row", config.Endpoints[0].Alerts[1].GetDescription(nil))
 	}
 	if config.Endpoints[0].Alerts[1].FailureThreshold != 7 {
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Endpoints[0].Alerts[1].FailureThreshold)
@@ -1251,8 +1251,8 @@ endpoints:
 	if config.Endpoints[0].Alerts[1].Type != alert.TypePagerDuty {
 		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypePagerDuty, config.Endpoints[0].Alerts[1].Type)
 	}
-	if config.Endpoints[0].Alerts[1].GetDescription() != "default description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "default description", config.Endpoints[0].Alerts[1].GetDescription())
+	if config.Endpoints[0].Alerts[1].GetDescription(nil) != "default description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "default description", config.Endpoints[0].Alerts[1].GetDescription(nil))
 	}
 	if config.Endpoints[0].Alerts[1].FailureThreshold != 7 {
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 7, config.Endpoints[0].Alerts[1].FailureThreshold)
@@ -1450,14 +1450,14 @@ endpoints:
 	if config.Endpoints[0].Alerts[2].IsEnabled() {
 		t.Error("The alert should've been disabled")
 	}
-	if config.Endpoints[0].Alerts[0].GetDescription() != "description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[0].GetDescription())
+	if config.Endpoints[0].Alerts[0].GetDescription(nil) != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[0].GetDescription(nil))
 	}
-	if config.Endpoints[0].Alerts[1].GetDescription() != "wow" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[1].GetDescription())
+	if config.Endpoints[0].Alerts[1].GetDescription(nil) != "wow" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[1].GetDescription(nil))
 	}
-	if config.Endpoints[0].Alerts[2].GetDescription() != "description" {
-		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[2].GetDescription())
+	if config.Endpoints[0].Alerts[2].GetDescription(nil) != "description" {
+		t.Errorf("The description of the alert should've been %s, but it was %s", "description", config.Endpoints[0].Alerts[2].GetDescription(nil))
 	}
 	if config.Endpoints[0].Alerts[0].FailureThreshold != 10 {
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[0].FailureThreshold)

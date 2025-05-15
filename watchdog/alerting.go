@@ -31,12 +31,12 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			continue
 		}
 		if endpointAlert.Triggered {
-			logr.Debugf("[watchdog.handleAlertsToTrigger] Alert for endpoint with key=%s with description='%s' has already been TRIGGERED, skipping", ep.Key(), endpointAlert.GetDescription())
+			logr.Debugf("[watchdog.handleAlertsToTrigger] Alert for endpoint with key=%s with description='%s' has already been TRIGGERED, skipping", ep.Key(), endpointAlert.GetDescription(result.Body))
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
-			logr.Infof("[watchdog.handleAlertsToTrigger] Sending %s alert because alert for endpoint with key=%s with description='%s' has been TRIGGERED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
+			logr.Infof("[watchdog.handleAlertsToTrigger] Sending %s alert because alert for endpoint with key=%s with description='%s' has been TRIGGERED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription(result.Body))
 			var err error
 			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
@@ -84,7 +84,7 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
-			logr.Infof("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
+			logr.Infof("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription(result.Body))
 			err := alertProvider.Send(ep, endpointAlert, result, true)
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
