@@ -290,6 +290,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 			Provider: &AlertProvider{},
 			Alert:    &alert.Alert{},
 			Endpoint: &endpoint.Endpoint{},
+			Result:   &endpoint.Result{},
 			want: alertCloseRequest{
 				Source: "",
 				Note:   "RESOLVED:  - ",
@@ -304,6 +305,7 @@ func TestAlertProvider_buildCloseRequestBody(t *testing.T) {
 			Endpoint: &endpoint.Endpoint{
 				Name: "endpoint name",
 			},
+			Result: &endpoint.Result{},
 			want: alertCloseRequest{
 				Source: "endpoint-name",
 				Note:   "RESOLVED: endpoint name - alert description",
