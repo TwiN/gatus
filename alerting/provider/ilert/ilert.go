@@ -132,7 +132,6 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		ConditionResults: result.ConditionResults,
 		URL:              ep.URL,
 	})
-
 	return body
 }
 
