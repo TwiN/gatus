@@ -238,6 +238,9 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                            | `Health Dashboard ǀ Gatus` |
 | `ui.description`             | Meta description for the page.                                                                                                       | `Gatus is an advanced...`. |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                  | `Health Status`            |
+| `ui.favicon.default`         | Favourite default icon to display in web browser tab or address bar.                                                                 | `/favicon.ico`             |
+| `ui.favicon.size16x16`       | Favourite icon to display in web browser for 16x16 size.                                                                             | `/favicon-16x16.png`       |
+| `ui.favicon.size32x32`       | Favourite icon to display in web browser for 32x32 size.                                                                             | `/favicon-32x32.png`       |
 | `ui.logo`                    | URL to the logo to display.                                                                                                          | `""`                       |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                               | `""`                       |
 | `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
