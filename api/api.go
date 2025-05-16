@@ -126,6 +126,6 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		}
 	}
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
-	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
+	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
 	return app
 }
