@@ -382,12 +382,14 @@ Here are some examples of conditions you can use:
 
 
 ### Storage
-| Parameter         | Description                                                                                                                                        | Default    |
-|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
-| `storage`         | Storage configuration                                                                                                                              | `{}`       |
-| `storage.path`    | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
-| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
-| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| Parameter                           | Description                                                                                                                                        | Default    |
+|:------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
+| `storage`                           | Storage configuration                                                                                                                              | `{}`       |
+| `storage.path`                      | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
+| `storage.type`                      | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
+| `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                            | `100`      |
+| `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                             | `50`       |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
@@ -398,6 +400,8 @@ so that they can be displayed on the dashboard. These parameters allow you to co
 # Because the data is stored in memory, the data will not survive a restart.
 storage:
   type: memory
+  maximum-number-of-results: 200
+  maximum-number-of-events: 5
 ```
 - If `storage.type` is `sqlite`, `storage.path` must not be blank:
 ```yaml
