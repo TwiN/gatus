@@ -218,35 +218,35 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
-| Parameter                    | Description                                                                                                                          | Default                    |
-|:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
-| `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
-| `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
-| `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                               | Required `[]`              |
-| `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                             | `[]`                       |
-| `security`                   | [Security configuration](#security).                                                                                                 | `{}`                       |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                  | `false`                    |
-| `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false`                    |
-| `configReloadCheckDuration`  | Duration between checking for config changes, e.g. 10s. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `30s`                    |
-| `web`                        | Web configuration.                                                                                                                   | `{}`                       |
-| `web.address`                | Address to listen on.                                                                                                                | `0.0.0.0`                  |
-| `web.port`                   | Port to listen on.                                                                                                                   | `8080`                     |
-| `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                          | `8192`                     |
-| `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                              | ``                         |
-| `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                     | ``                         |
-| `ui`                         | UI configuration.                                                                                                                    | `{}`                       |
-| `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                            | `Health Dashboard ǀ Gatus` |
-| `ui.description`             | Meta description for the page.                                                                                                       | `Gatus is an advanced...`. |
-| `ui.header`                  | Header at the top of the dashboard.                                                                                                  | `Health Status`            |
-| `ui.logo`                    | URL to the logo to display.                                                                                                          | `""`                       |
-| `ui.link`                    | Link to open when the logo is clicked.                                                                                               | `""`                       |
-| `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
-| `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
-| `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
-| `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
-| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
-| `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
+| Parameter                      | Description                                                                                                                            | Default                    |
+|:-------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
+| `metrics`                      | Whether to expose metrics at `/metrics`.                                                                                               | `false`                    |
+| `storage`                      | [Storage configuration](#storage).                                                                                                     | `{}`                       |
+| `alerting`                     | [Alerting configuration](#alerting).                                                                                                   | `{}`                       |
+| `endpoints`                    | [Endpoints configuration](#endpoints).                                                                                                 | Required `[]`              |
+| `external-endpoints`           | [External Endpoints configuration](#external-endpoints).                                                                               | `[]`                       |
+| `security`                     | [Security configuration](#security).                                                                                                   | `{}`                       |
+| `disable-monitoring-lock`      | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                    | `false`                    |
+| `skip-invalid-config-update`   | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).   | `false`                    |
+| `config-reload-check-interval` | Interval between config changes checks, e.g. 10s. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `30s`                      |
+| `web`                          | Web configuration.                                                                                                                     | `{}`                       |
+| `web.address`                  | Address to listen on.                                                                                                                  | `0.0.0.0`                  |
+| `web.port`                     | Port to listen on.                                                                                                                     | `8080`                     |
+| `web.read-buffer-size`         | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                            | `8192`                     |
+| `web.tls.certificate-file`     | Optional public certificate file for TLS in PEM format.                                                                                | ``                         |
+| `web.tls.private-key-file`     | Optional private key file for TLS in PEM format.                                                                                       | ``                         |
+| `ui`                           | UI configuration.                                                                                                                      | `{}`                       |
+| `ui.title`                     | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                              | `Health Dashboard ǀ Gatus` |
+| `ui.description`               | Meta description for the page.                                                                                                         | `Gatus is an advanced...`. |
+| `ui.header`                    | Header at the top of the dashboard.                                                                                                    | `Health Status`            |
+| `ui.logo`                      | URL to the logo to display.                                                                                                            | `""`                       |
+| `ui.link`                      | Link to open when the logo is clicked.                                                                                                 | `""`                       |
+| `ui.buttons`                   | List of buttons to display below the header.                                                                                           | `[]`                       |
+| `ui.buttons[].name`            | Text to display on the button.                                                                                                         | Required `""`              |
+| `ui.buttons[].link`            | Link to open when the button is clicked.                                                                                               | Required `""`              |
+| `ui.custom-css`                | Custom CSS                                                                                                                             | `""`                       |
+| `ui.dark-mode`                 | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                 | `true`                     |
+| `maintenance`                  | [Maintenance configuration](#maintenance).                                                                                             | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
 Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
@@ -2230,7 +2230,7 @@ the same as restarting the application.
 
 > 📝 Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
-Config checks occur every 30 seconds, and can be configured with `configReloadCheckDuration`, e.g. `10s`.
+Config checks occur every 30 seconds, and can be configured with `config-reload-check-interval`, e.g. `10s`.
 
 ### Endpoint groups
 Endpoint groups are used for grouping multiple endpoints together on the dashboard.

@@ -171,8 +171,8 @@ func initializeStorage(cfg *config.Config) {
 func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 
-		logr.Debugf("[main.listenToConfigurationFileChanges] checking for config change in %s ", cfg.ConfigReloadCheckDuration)
-		time.Sleep(cfg.ConfigReloadCheckDuration)
+		logr.Debugf("[main.listenToConfigurationFileChanges] checking for config change in %s ", cfg.ConfigReloadCheckInterval)
+		time.Sleep(cfg.ConfigReloadCheckInterval)
 
 		if cfg.HasLoadedConfigurationBeenModified() {
 			logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")

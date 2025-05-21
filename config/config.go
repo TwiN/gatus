@@ -103,7 +103,7 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 
 	// how often to check for config changes
-	ConfigReloadCheckDuration time.Duration `yaml:"configReloadCheckDuration,omitempty"`
+	ConfigReloadCheckInterval time.Duration `yaml:"config-reload-check-interval,omitempty"`
 }
 
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
@@ -259,8 +259,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		}
 		// XXX: End of v6.0.0 removals
 
-		if config.ConfigReloadCheckDuration == 0 {
-			config.ConfigReloadCheckDuration = 30 * time.Second
+		if config.ConfigReloadCheckInterval == 0 {
+			config.ConfigReloadCheckInterval = 30 * time.Second
 		}
 		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
 		if err := validateSecurityConfig(config); err != nil {
