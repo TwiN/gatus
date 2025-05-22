@@ -179,6 +179,13 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error1,error2",
 			Errors:        []string{"error1", "error2"},
 		},
+		{
+			AlertProvider: alertProvider,
+			Resolved:      false,
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=test \\\"error with quotes\\\"",
+			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,test \\\"error with quotes\\\"",
+			Errors:        []string{"test \"error with quotes\""},
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {

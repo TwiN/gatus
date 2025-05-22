@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
 )
 
 func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllEndpointStatuses.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllEndpointStatuses.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -81,11 +82,11 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 }
 
 func BenchmarkStore_Insert(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -153,11 +154,11 @@ func BenchmarkStore_Insert(b *testing.B) {
 }
 
 func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointStatusByKey.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointStatusByKey.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}

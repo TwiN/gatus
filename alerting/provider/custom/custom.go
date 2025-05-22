@@ -108,8 +108,9 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
 	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
-	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
-	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", strings.Join(result.Errors, ","))
+	resultErrors := strings.ReplaceAll(strings.Join(result.Errors, ","), "\"", "\\\"")
+	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", resultErrors)
+	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", resultErrors)
 	if resolved {
 		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
 		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
