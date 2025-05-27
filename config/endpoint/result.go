@@ -6,13 +6,9 @@ import (
 
 // CertificateInfo stores information about a certificate in the chain
 type CertificateInfo struct {
-	// Subject is the certificate subject
-	Subject string `json:"subject"`
-	// Issuer is the certificate issuer
-	Issuer string `json:"issuer"`
-	// NotAfter is when the certificate expires
-	NotAfter time.Time `json:"not_after"`
-	// ExpiresIn is the duration until the certificate expires
+	Subject   string        `json:"subject"`
+	Issuer    string        `json:"issuer"`
+	NotAfter  time.Time     `json:"not_after"`
 	ExpiresIn time.Duration `json:"-"`
 }
 
@@ -61,9 +57,6 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
-
-	// CertificateChain contains information about all certificates in the chain
-	CertificateChain []CertificateInfo `json:"certificate_chain,omitempty"`
 
 	///////////////////////////////////////////////////////////////////////
 	// Below is used only for the UI and is not persisted in the storage //
