@@ -354,9 +354,13 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSTARTTLS || endpointType == TypeTLS {
 		if endpointType == TypeSTARTTLS {
-			e.evaluateSTARTTLS(result)
+			err = e.evaluateSTARTTLS(result)
 		} else {
-			e.evaluateTLS(result)
+			err = e.evaluateTLS(result)
+		}
+		if err != nil {
+			result.AddError(err.Error())
+			return
 		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeTCP {
@@ -477,15 +481,13 @@ func (e *Endpoint) needsToRetrieveIP() bool {
 	return false
 }
 
-func (e *Endpoint) evaluateSTARTTLS(result *Result) {
+func (e *Endpoint) evaluateSTARTTLS(result *Result) error {
 	if len(e.Body) > 0 {
-		result.AddError("STARTTLS endpoints do not support body")
-		return
+		return errors.New("STARTTLS endpoints do not support body")
 	}
 	info := client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 	if info.Error != nil {
-		result.AddError(info.Error.Error())
-		return
+		return info.Error
 	}
 	result.Connected = info.Connected
 	if len(info.Chain) > 0 {
@@ -499,17 +501,16 @@ func (e *Endpoint) evaluateSTARTTLS(result *Result) {
 			})
 		}
 	}
+	return nil
 }
 
-func (e *Endpoint) evaluateTLS(result *Result) {
+func (e *Endpoint) evaluateTLS(result *Result) error {
 	if len(e.Body) > 0 {
-		result.AddError("TLS endpoints do not support body")
-		return
+		return errors.New("TLS endpoints do not support body")
 	}
 	info := client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
 	if info.Error != nil {
-		result.AddError(info.Error.Error())
-		return
+		return info.Error
 	}
 	result.Connected = info.Connected
 	if len(info.Chain) > 0 {
@@ -523,4 +524,5 @@ func (e *Endpoint) evaluateTLS(result *Result) {
 			})
 		}
 	}
+	return nil
 }
