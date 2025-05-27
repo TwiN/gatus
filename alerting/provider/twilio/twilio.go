@@ -29,10 +29,8 @@ type Config struct {
 	From  string `yaml:"from"`
 	To    string `yaml:"to"`
 
-	// Strings used in the SMS body and subject
-	// These fields are optional and will be replaced with default values if not set
-	TextTwilioTriggered string `yaml:"text-twilio-triggered,omitempty"`
-	TextTwilioResolved  string `yaml:"text-twilio-resolved,omitempty"`
+	TextTwilioTriggered string `yaml:"text-twilio-triggered,omitempty"` // String used in the SMS body and subject (optional)
+	TextTwilioResolved  string `yaml:"text-twilio-resolved,omitempty"`  // String used in the SMS body and subject (optional)
 }
 
 func (cfg *Config) Validate() error {
