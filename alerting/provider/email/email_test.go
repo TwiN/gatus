@@ -99,6 +99,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			subject, body := scenario.Provider.buildMessageSubjectAndBody(
+				&Config{},
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
 				&endpoint.Result{
