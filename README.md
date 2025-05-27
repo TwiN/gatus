@@ -1551,7 +1551,7 @@ then automatically roll it back.
 
 Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
 - `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
-- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`) 
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
@@ -2553,12 +2553,30 @@ Gatus will check the expiration of all certificates in the certificate chain, in
 You can use the `[CERTIFICATE_EXPIRATION]` placeholder in your conditions to check the expiration time of the leaf certificate:
 
 ```yaml
+metrics: true  # Enable Prometheus metrics endpoint
+
 endpoints:
-  - name: check-certificate-expiration
-    url: https://example.com
-    interval: 30m
+  # Test HTTPS endpoint (will check the entire cert chain)
+  - name: google-cert-chain
+    url: https://google.com
+    interval: 1m
     conditions:
-      - "[CERTIFICATE_EXPIRATION] > 48h"  # Alert if leaf certificate expires in less than 48 hours
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+      - "[CONNECTED] == true"
+
+  - name: gmail-starttls-chain
+    url: "starttls://smtp.gmail.com:587"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: cloudflare-tls-chain
+    url: "tls://1.1.1.1:853"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
 
 The certificate chain information is also exposed via Prometheus metrics:
