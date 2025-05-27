@@ -122,53 +122,67 @@ func CanCreateSCTPConnection(address string, config *Config) bool {
 	}
 }
 
+// CertificateChainInfo contains information about a TLS certificate chain
+type CertificateChainInfo struct {
+	Connected bool
+	Chain     []*x509.Certificate
+	Error     error
+}
+
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
-func CanPerformStartTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformStartTLS(address string, config *Config) CertificateChainInfo {
 	hostAndPort := strings.Split(address, ":")
 	if len(hostAndPort) != 2 {
-		return false, nil, errors.New("invalid address for starttls, format must be host:port")
+		return CertificateChainInfo{Error: errors.New("invalid address for starttls, format must be host:port")}
 	}
 	connection, err := net.DialTimeout("tcp", address, config.Timeout)
 	if err != nil {
-		return
+		return CertificateChainInfo{Error: err}
 	}
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
-		return
+		return CertificateChainInfo{Error: err}
 	}
 	err = smtpClient.StartTLS(&tls.Config{
 		InsecureSkipVerify: config.Insecure,
 		ServerName:         hostAndPort[0],
 	})
 	if err != nil {
-		return
+		return CertificateChainInfo{Error: err}
 	}
 	if state, ok := smtpClient.TLSConnectionState(); ok {
-		certificate = state.PeerCertificates[0]
-	} else {
-		return false, nil, errors.New("could not get TLS connection state")
+		return CertificateChainInfo{
+			Connected: true,
+			Chain:     state.PeerCertificates,
+		}
 	}
-	return true, certificate, nil
+	return CertificateChainInfo{Error: errors.New("could not get TLS connection state")}
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
-func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformTLS(address string, config *Config) CertificateChainInfo {
 	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
 		InsecureSkipVerify: config.Insecure,
 	})
 	if err != nil {
-		return
+		return CertificateChainInfo{Error: err}
 	}
 	defer connection.Close()
-	verifiedChains := connection.ConnectionState().VerifiedChains
+
+	state := connection.ConnectionState()
 	// If config.Insecure is set to true, verifiedChains will be an empty list []
 	// We should get the parsed certificates from PeerCertificates, it can't be empty on the client side
 	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
-	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
-		peerCertificates := connection.ConnectionState().PeerCertificates
-		return true, peerCertificates[0], nil
+	if len(state.VerifiedChains) == 0 || len(state.VerifiedChains[0]) == 0 {
+		return CertificateChainInfo{
+			Connected: true,
+			Chain:     state.PeerCertificates,
+		}
 	}
-	return true, verifiedChains[0][0], nil
+	return CertificateChainInfo{
+		Connected: true,
+		Chain:     state.VerifiedChains[0],
+	}
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address

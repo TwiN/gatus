@@ -4,6 +4,18 @@ import (
 	"time"
 )
 
+// CertificateInfo stores information about a certificate in the chain
+type CertificateInfo struct {
+	// Subject is the certificate subject
+	Subject string `json:"subject"`
+	// Issuer is the certificate issuer
+	Issuer string `json:"issuer"`
+	// NotAfter is when the certificate expires
+	NotAfter time.Time `json:"not_after"`
+	// ExpiresIn is the duration until the certificate expires
+	ExpiresIn time.Duration `json:"-"`
+}
+
 // Result of the evaluation of a Endpoint
 type Result struct {
 	// HTTPStatus is the HTTP response status code
@@ -49,6 +61,9 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
+
+	// CertificateChain contains information about all certificates in the chain
+	CertificateChain []CertificateInfo `json:"certificate_chain,omitempty"`
 
 	///////////////////////////////////////////////////////////////////////
 	// Below is used only for the UI and is not persisted in the storage //

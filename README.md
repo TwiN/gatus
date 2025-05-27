@@ -1551,7 +1551,7 @@ then automatically roll it back.
 
 Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
 - `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
-- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`) 
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
@@ -2541,3 +2541,31 @@ go install github.com/TwiN/gatus/v5@latest
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
+
+### Certificate Monitoring
+
+Gatus supports monitoring SSL/TLS certificates for expiration. For endpoints using TLS (including HTTPS and STARTTLS), 
+Gatus will check the expiration of all certificates in the certificate chain, including:
+- The leaf (end-entity) certificate
+- Any intermediate certificates
+- The root certificate
+
+You can use the `[CERTIFICATE_EXPIRATION]` placeholder in your conditions to check the expiration time of the leaf certificate:
+
+```yaml
+endpoints:
+  - name: check-certificate-expiration
+    url: https://example.com
+    interval: 30m
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 48h"  # Alert if leaf certificate expires in less than 48 hours
+```
+
+The certificate chain information is also exposed via Prometheus metrics:
+- `gatus_results_certificate_expiration_seconds`: Time until leaf certificate expiration
+- `gatus_results_certificate_chain_expiration_seconds`: Time until expiration for each certificate in the chain, with labels for subject and issuer
+
+Example PromQL query to alert on any certificate in the chain expiring soon:
+```promql
+min(gatus_results_certificate_chain_expiration_seconds) by (key, group, name) < 172800  # 48 hours
+```

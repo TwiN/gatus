@@ -354,16 +354,11 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSTARTTLS || endpointType == TypeTLS {
 		if endpointType == TypeSTARTTLS {
-			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
+			e.evaluateSTARTTLS(result)
 		} else {
-			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
-		}
-		if err != nil {
-			result.AddError(err.Error())
-			return
+			e.evaluateTLS(result)
 		}
 		result.Duration = time.Since(startTime)
-		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == TypeTCP {
 		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(e.URL, "tcp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
@@ -480,4 +475,52 @@ func (e *Endpoint) needsToRetrieveIP() bool {
 		}
 	}
 	return false
+}
+
+func (e *Endpoint) evaluateSTARTTLS(result *Result) {
+	if len(e.Body) > 0 {
+		result.AddError("STARTTLS endpoints do not support body")
+		return
+	}
+	info := client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
+	if info.Error != nil {
+		result.AddError(info.Error.Error())
+		return
+	}
+	result.Connected = info.Connected
+	if len(info.Chain) > 0 {
+		result.CertificateExpiration = time.Until(info.Chain[0].NotAfter)
+		for _, cert := range info.Chain {
+			result.CertificateChain = append(result.CertificateChain, CertificateInfo{
+				Subject:   cert.Subject.String(),
+				Issuer:    cert.Issuer.String(),
+				NotAfter:  cert.NotAfter,
+				ExpiresIn: time.Until(cert.NotAfter),
+			})
+		}
+	}
+}
+
+func (e *Endpoint) evaluateTLS(result *Result) {
+	if len(e.Body) > 0 {
+		result.AddError("TLS endpoints do not support body")
+		return
+	}
+	info := client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
+	if info.Error != nil {
+		result.AddError(info.Error.Error())
+		return
+	}
+	result.Connected = info.Connected
+	if len(info.Chain) > 0 {
+		result.CertificateExpiration = time.Until(info.Chain[0].NotAfter)
+		for _, cert := range info.Chain {
+			result.CertificateChain = append(result.CertificateChain, CertificateInfo{
+				Subject:   cert.Subject.String(),
+				Issuer:    cert.Issuer.String(),
+				NotAfter:  cert.NotAfter,
+				ExpiresIn: time.Until(cert.NotAfter),
+			})
+		}
+	}
 }
