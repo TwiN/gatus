@@ -2552,11 +2552,10 @@ Gatus will check the expiration of all certificates in the certificate chain, in
 
 You can use the `[CERTIFICATE_EXPIRATION]` placeholder in your conditions to check the expiration time of the leaf certificate:
 
-```yaml
-metrics: true  # Enable Prometheus metrics endpoint
+```
+metrics: true
 
 endpoints:
-  # Test HTTPS endpoint (will check the entire cert chain)
   - name: google-cert-chain
     url: https://google.com
     interval: 1m
