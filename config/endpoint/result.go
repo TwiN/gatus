@@ -58,6 +58,9 @@ type Result struct {
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
 
+	// CertificateChain contains information about each certificate in the chain
+	CertificateChain []CertificateInfo `json:"-"`
+
 	///////////////////////////////////////////////////////////////////////
 	// Below is used only for the UI and is not persisted in the storage //
 	///////////////////////////////////////////////////////////////////////

@@ -485,9 +485,9 @@ func (e *Endpoint) evaluateSTARTTLS(result *Result) error {
 	if len(e.Body) > 0 {
 		return errors.New("STARTTLS endpoints do not support body")
 	}
-	info := client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
-	if info.Error != nil {
-		return info.Error
+	info, err := client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
+	if err != nil {
+		return err
 	}
 	result.Connected = info.Connected
 	if len(info.Chain) > 0 {
@@ -508,9 +508,9 @@ func (e *Endpoint) evaluateTLS(result *Result) error {
 	if len(e.Body) > 0 {
 		return errors.New("TLS endpoints do not support body")
 	}
-	info := client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
-	if info.Error != nil {
-		return info.Error
+	info, err := client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
+	if err != nil {
+		return err
 	}
 	result.Connected = info.Connected
 	if len(info.Chain) > 0 {

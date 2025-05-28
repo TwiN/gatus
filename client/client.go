@@ -130,42 +130,43 @@ type CertificateChainInfo struct {
 }
 
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
-func CanPerformStartTLS(address string, config *Config) CertificateChainInfo {
+func CanPerformStartTLS(address string, config *Config) (CertificateChainInfo, error) {
 	hostAndPort := strings.Split(address, ":")
 	if len(hostAndPort) != 2 {
-		return CertificateChainInfo{Error: errors.New("invalid address for starttls, format must be host:port")}
+		return CertificateChainInfo{}, errors.New("invalid address for starttls, format must be host:port")
 	}
 	connection, err := net.DialTimeout("tcp", address, config.Timeout)
 	if err != nil {
-		return CertificateChainInfo{Error: err}
+		return CertificateChainInfo{}, err
 	}
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
-		return CertificateChainInfo{Error: err}
+		return CertificateChainInfo{}, err
 	}
 	err = smtpClient.StartTLS(&tls.Config{
 		InsecureSkipVerify: config.Insecure,
 		ServerName:         hostAndPort[0],
 	})
 	if err != nil {
-		return CertificateChainInfo{Error: err}
+		return CertificateChainInfo{}, err
 	}
-	if state, ok := smtpClient.TLSConnectionState(); ok {
-		return CertificateChainInfo{
-			Connected: true,
-			Chain:     state.PeerCertificates,
-		}
+	state, ok := smtpClient.TLSConnectionState()
+	if !ok {
+		return CertificateChainInfo{}, errors.New("could not get TLS connection state")
 	}
-	return CertificateChainInfo{Error: errors.New("could not get TLS connection state")}
+	return CertificateChainInfo{
+		Connected: true,
+		Chain:     state.PeerCertificates,
+	}, nil
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
-func CanPerformTLS(address string, config *Config) CertificateChainInfo {
+func CanPerformTLS(address string, config *Config) (CertificateChainInfo, error) {
 	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
 		InsecureSkipVerify: config.Insecure,
 	})
 	if err != nil {
-		return CertificateChainInfo{Error: err}
+		return CertificateChainInfo{}, err
 	}
 	defer connection.Close()
 
@@ -177,12 +178,12 @@ func CanPerformTLS(address string, config *Config) CertificateChainInfo {
 		return CertificateChainInfo{
 			Connected: true,
 			Chain:     state.PeerCertificates,
-		}
+		}, nil
 	}
 	return CertificateChainInfo{
 		Connected: true,
 		Chain:     state.VerifiedChains[0],
-	}
+	}, nil
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
