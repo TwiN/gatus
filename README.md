@@ -118,10 +118,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Health](#health)
     - [Health (Shields.io)](#health-shieldsio)
     - [Response time](#response-time)
+    - [Response time (chart)](#response-time-chart)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
     - [Raw Data](#raw-data)
       - [Uptime](#uptime-1)
+      - [Response Time](#response-time-1)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
 
@@ -242,6 +244,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
 | `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
+| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
@@ -277,8 +280,9 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
 | `endpoints[].ui.hide-conditions`                | Whether to hide conditions from the results. Note that this only hides conditions from results evaluated from the moment this was enabled.  | `false`                    |
-| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname in the result.                                                                                                 | `false`                    |
-| `endpoints[].ui.hide-url`                       | Whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.                                              | `false`                    |
+| `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname from the results.                                                                                              | `false`                    |
+| `endpoints[].ui.hide-port`                      | Whether to hide the port from the results.                                                                                                  | `false`                    |
+| `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
@@ -318,7 +322,7 @@ To push the status of an external endpoint, the request would have to look like 
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
@@ -378,12 +382,14 @@ Here are some examples of conditions you can use:
 
 
 ### Storage
-| Parameter         | Description                                                                                                                                                   | Default    |
-|:------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
-| `storage`         | Storage configuration                                                                                                                                         | `{}`       |
-| `storage.path`    | Path to persist the data in. Only supported for types `sqlite`, `postgres` and `mysql`.                                                                       | `""`       |
-| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres` and `mysql`.                                                                                     | `"memory"` |
-| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` or `mysql` | `false`    |
+| Parameter                           | Description                                                                                                                                                    | Default    |
+|:------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
+| `storage`                           | Storage configuration                                                                                                                                          | `{}`       |
+| `storage.path`                      | Path to persist the data in. Only supported for types `sqlite`, `postgres` and `mysql`.                                                                        | `""`       |
+| `storage.type`                      | Type of storage. Valid types: `memory`, `sqlite`, `postgres` and `mysql`.                                                                                      | `"memory"` |
+| `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres`  or `mysql` | `false`    |
+| `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                                        | `100`      |
+| `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                                         | `50`       |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
@@ -394,6 +400,8 @@ so that they can be displayed on the dashboard. These parameters allow you to co
 # Because the data is stored in memory, the data will not survive a restart.
 storage:
   type: memory
+  maximum-number-of-results: 200
+  maximum-number-of-events: 5
 ```
 - If `storage.type` is `sqlite`, `storage.path` must not be blank:
 ```yaml
@@ -640,6 +648,10 @@ endpoints:
         send-on-resolved: true
         description: "healthcheck failed"
 ```
+
+If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
+
+Make sure you have the ability to use `ses:SendEmail`.
 
 
 #### Configuring Discord alerts
@@ -949,7 +961,7 @@ endpoints:
 ```
 In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
-> **_NOTE:_**  the source config id is of the form `api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
+> **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
 
 
 #### Configuring JetBrains Space alerts
@@ -1233,16 +1245,18 @@ endpoints:
 
 
 #### Configuring Pushover alerts
-| Parameter                             | Description                                                                                     | Default                      |
-|:--------------------------------------|:------------------------------------------------------------------------------------------------|:-----------------------------|
-| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                     | `{}`                         |
-| `alerting.pushover.application-token` | Pushover application token                                                                      | `""`                         |
-| `alerting.pushover.user-key`          | User or group key                                                                               | `""`                         |
-| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                  | `"Gatus: <endpoint>"` |
-| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                           | `0`                          |
-| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)      | `0`                          |
-| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices. | `""`                         |
-| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)      | N/A                          |
+| Parameter                             | Description                                                                                              | Default                     |
+|:--------------------------------------|:---------------------------------------------------------------------------------------------------------|:----------------------------|
+| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                              | `{}`                        |
+| `alerting.pushover.application-token` | Pushover application token                                                                               | `""`                        |
+| `alerting.pushover.user-key`          | User or group key                                                                                        | `""`                        |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                           | `"Gatus: <endpoint>"`       |
+| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                                    | `0`                         |
+| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)               | `0`                         |
+| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices.          | `""`                        |
+| `alerting.pushover.ttl`               | Set the Time-to-live of the message to be automatically deleted from pushover notifications              | `0`                         |
+| `alerting.pushover.device`            | Device to send the message to (optional)<br/>See [devices](https://pushover.net/api#identifiers) for details | `""` (all devices)|
+| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)               | N/A                         |
 
 ```yaml
 alerting:
@@ -1489,10 +1503,6 @@ endpoints:
         description: "healthcheck failed"
 ```
 
-
-If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
-
-Make sure you have the ability to use `ses:SendEmail`.
 
 #### Configuring Zulip alerts
 | Parameter                          | Description                                                                         | Default       |
@@ -2377,7 +2387,7 @@ The path to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2403,7 +2413,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.svg
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2420,7 +2430,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.shields
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2443,7 +2453,7 @@ The endpoint to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 #### Response time (chart)
 ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/chart.svg)
@@ -2456,7 +2466,7 @@ The endpoint to generate a response time chart is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, or `24h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
@@ -2509,11 +2519,25 @@ The path to get raw uptime data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
 https://example.com/api/v1/endpoints/core_frontend/uptimes/24h
+```
+
+##### Response Time
+The path to get raw response time data for an endpoint is:
+```
+/api/v1/endpoints/{key}/response-times/{duration}
+```
+Where:
+- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+
+For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
+```
+https://example.com/api/v1/endpoints/core_frontend/response-times/24h
 ```
 
 ### Installing as binary

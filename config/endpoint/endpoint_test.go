@@ -165,9 +165,9 @@ func TestEndpoint(t *testing.T) {
 			Name: "endpoint-that-will-time-out-and-hidden-hostname",
 			Endpoint: Endpoint{
 				Name:         "endpoint-that-will-time-out",
-				URL:          "https://twin.sh/health",
+				URL:          "https://twin.sh:9999/health",
 				Conditions:   []Condition{"[CONNECTED] == true"},
-				UIConfig:     &ui.Config{HideHostname: true},
+				UIConfig:     &ui.Config{HideHostname: true, HidePort: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
 			ExpectedResult: &Result{
@@ -180,7 +180,7 @@ func TestEndpoint(t *testing.T) {
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 				DomainExpiration: 0,
 				// Because Endpoint.UIConfig.HideHostname is true, the hostname should be replaced by <redacted>.
-				Errors: []string{`Get "https://<redacted>/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
+				Errors: []string{`Get "https://<redacted>:<redacted>/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
 			},
 			MockRoundTripper: nil,
 		},

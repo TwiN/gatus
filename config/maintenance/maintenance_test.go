@@ -177,16 +177,16 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 	yes, no := true, false
 	now := time.Now().UTC()
 	scenarios := []struct {
-		name     string
-		cfg      *Config
-		expected bool
+		name                     string
+		cfg                      *Config
+		expectedUnderMaintenance bool
 	}{
 		{
 			name: "disabled",
 			cfg: &Config{
 				Enabled: &no,
 			},
-			expected: false,
+			expectedUnderMaintenance: false,
 		},
 		{
 			name: "under-maintenance-explicitly-enabled",
@@ -195,7 +195,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 2 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-now-for-2h",
@@ -203,7 +203,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 2 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-now-for-8h",
@@ -211,7 +211,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", now.Hour()),
 				Duration: 8 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-now-for-8h-explicit-days",
@@ -220,7 +220,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Duration: 8 * time.Hour,
 				Every:    []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-now-for-23h-explicit-days",
@@ -229,7 +229,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Duration: 23 * time.Hour,
 				Every:    []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-4h-ago-for-8h",
@@ -237,7 +237,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
 				Duration: 8 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-22h-ago-for-23h",
@@ -245,7 +245,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-22)),
 				Duration: 23 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-starting-22h-ago-for-24h",
@@ -253,16 +253,16 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-22)),
 				Duration: 24 * time.Hour,
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-amsterdam-timezone-starting-now-for-2h",
 			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Start:    fmt.Sprintf("%02d:00", inTimezone(now, "Europe/Amsterdam", t).Hour()),
 				Duration: 2 * time.Hour,
 				Timezone: "Europe/Amsterdam",
 			},
-			expected: true,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "under-maintenance-perth-timezone-starting-now-for-2h",
@@ -271,50 +271,7 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Duration: 2 * time.Hour,
 				Timezone: "Australia/Perth",
 			},
-			expected: true,
-		},
-		{
-			name: "under-maintenance-utc-timezone-starting-now-for-2h",
-			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()),
-				Duration: 2 * time.Hour,
-				Timezone: "UTC",
-			},
-			expected: true,
-		},
-		{
-			name: "not-under-maintenance-starting-4h-ago-for-3h",
-			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
-				Duration: 3 * time.Hour,
-			},
-			expected: false,
-		},
-		{
-			name: "not-under-maintenance-starting-5h-ago-for-1h",
-			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-5)),
-				Duration: time.Hour,
-			},
-			expected: false,
-		},
-		{
-			name: "not-under-maintenance-today",
-			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()),
-				Duration: time.Hour,
-				Every:    []string{now.Add(48 * time.Hour).Weekday().String()},
-			},
-			expected: false,
-		},
-		{
-			name: "not-under-maintenance-today-with-24h-duration",
-			cfg: &Config{
-				Start:    fmt.Sprintf("%02d:00", now.Hour()),
-				Duration: 24 * time.Hour,
-				Every:    []string{now.Add(48 * time.Hour).Weekday().String()},
-			},
-			expected: false,
+			expectedUnderMaintenance: true,
 		},
 		{
 			name: "not-under-maintenance-los-angeles-timezone-starting-now-for-2h-today",
@@ -324,7 +281,50 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				Timezone: "America/Los_Angeles",
 				Every:    []string{now.Weekday().String()},
 			},
-			expected: false,
+			expectedUnderMaintenance: false,
+		},
+		{
+			name: "under-maintenance-utc-timezone-starting-now-for-2h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 2 * time.Hour,
+				Timezone: "UTC",
+			},
+			expectedUnderMaintenance: true,
+		},
+		{
+			name: "not-under-maintenance-starting-4h-ago-for-3h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-4)),
+				Duration: 3 * time.Hour,
+			},
+			expectedUnderMaintenance: false,
+		},
+		{
+			name: "not-under-maintenance-starting-5h-ago-for-1h",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", normalizeHour(now.Hour()-5)),
+				Duration: time.Hour,
+			},
+			expectedUnderMaintenance: false,
+		},
+		{
+			name: "not-under-maintenance-today",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: time.Hour,
+				Every:    []string{now.Add(48 * time.Hour).Weekday().String()},
+			},
+			expectedUnderMaintenance: false,
+		},
+		{
+			name: "not-under-maintenance-today-with-24h-duration",
+			cfg: &Config{
+				Start:    fmt.Sprintf("%02d:00", now.Hour()),
+				Duration: 24 * time.Hour,
+				Every:    []string{now.Add(48 * time.Hour).Weekday().String()},
+			},
+			expectedUnderMaintenance: false,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -335,8 +335,8 @@ func TestConfig_IsUnderMaintenance(t *testing.T) {
 				t.Fatal("validation shouldn't have returned an error, got", err)
 			}
 			isUnderMaintenance := scenario.cfg.IsUnderMaintenance()
-			if isUnderMaintenance != scenario.expected {
-				t.Errorf("expected %v, got %v", scenario.expected, isUnderMaintenance)
+			if isUnderMaintenance != scenario.expectedUnderMaintenance {
+				t.Errorf("expectedUnderMaintenance %v, got %v", scenario.expectedUnderMaintenance, isUnderMaintenance)
 				t.Logf("start=%v; duration=%v; now=%v", scenario.cfg.Start, scenario.cfg.Duration, time.Now().UTC())
 			}
 		})
@@ -352,7 +352,6 @@ func normalizeHour(hour int) int {
 
 func inTimezone(passedTime time.Time, timezone string, t *testing.T) time.Time {
 	timezoneLocation, err := time.LoadLocation(timezone)
-
 	if err != nil {
 		t.Fatalf("timezone %s did not load", timezone)
 	}
