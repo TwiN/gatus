@@ -154,9 +154,9 @@ func TestCanPerformStartTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			info := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
-			if (info.Error != nil) != tt.wantErr {
-				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", info.Error, tt.wantErr)
+			info, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
 			if info.Connected != tt.wantConnected {
@@ -223,9 +223,9 @@ func TestCanPerformTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			info := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
-			if (info.Error != nil) != tt.wantErr {
-				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", info.Error, tt.wantErr)
+			info, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
 			if info.Connected != tt.wantConnected {

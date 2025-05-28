@@ -126,7 +126,6 @@ func CanCreateSCTPConnection(address string, config *Config) bool {
 type CertificateChainInfo struct {
 	Connected bool
 	Chain     []*x509.Certificate
-	Error     error
 }
 
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
