@@ -1168,7 +1168,7 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 			AND e2.endpoint_event_id IS NULL
 		`,
 			endpointID,
-			common.MaximumNumberOfEvents,
+			s.maximumNumberOfEvents,
 			endpointID,
 		)
 	} else {
@@ -1184,8 +1184,8 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 					LIMIT $2
 				)
 		`,
-		endpointID,
-		s.maximumNumberOfEvents,
+			endpointID,
+			s.maximumNumberOfEvents,
 		)
 	}
 	return err
@@ -1209,7 +1209,7 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 			AND e2.endpoint_result_id IS NULL;
 		`,
 			endpointID,
-			common.MaximumNumberOfResults,
+			s.maximumNumberOfResults,
 			endpointID,
 		)
 	} else {
@@ -1225,8 +1225,8 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 					LIMIT $2
 				)
 		`,
-		endpointID,
-		s.maximumNumberOfResults,
+			endpointID,
+			s.maximumNumberOfResults,
 		)
 	}
 	return err
