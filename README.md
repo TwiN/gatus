@@ -2552,28 +2552,17 @@ Gatus will check the expiration of all certificates in the certificate chain, in
 
 By default, Gatus checks the expiration of the entire certificate chain. If you only want to check the leaf certificate's expiration, 
 you can set `disable-full-chain-certificate-expiration-check: true` in your endpoint's client configuration:
-
-```yaml
-endpoints:
-  - name: google-cert-leaf-only
-    url: https://google.com
-    interval: 1m
-    client:
-      disable-full-chain-certificate-expiration-check: true
-    conditions:
-      - "[CERTIFICATE_EXPIRATION] > 48h"
-      - "[CONNECTED] == true"
-```
-
 You can use the `[CERTIFICATE_EXPIRATION]` placeholder in your conditions to check the expiration time of the leaf certificate:
 
 ```
 metrics: true
 
 endpoints:
-  - name: google-cert-chain
-    url: https://google.com
+  - name: upwork-cert-chain-leaf-only
+    url: https://upwork.com
     interval: 1m
+    client:
+      disable-full-chain-certificate-expiration-check: true
     conditions:
       - "[CERTIFICATE_EXPIRATION] > 48h"
       - "[CONNECTED] == true"
