@@ -72,7 +72,6 @@ type Config struct {
 
 	// DisableFullChainCertificateExpirationCheck determines whether to only check the leaf certificate expiration (true)
 	// or verify the full certificate chain expiration (false, default).
-	// This is useful for cases where the full certificate chain is not available, such as when using a self-signed certificate.
 	DisableFullChainCertificateExpirationCheck bool `yaml:"disable-full-chain-certificate-expiration-check"`
 
 	httpClient *http.Client
