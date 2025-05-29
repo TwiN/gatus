@@ -194,6 +194,7 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpo
 		message = cfg.TextEmailBodyTriggered
 		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
 		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		message = strings.ReplaceAll(message, "[ENDPOINT_URL]", ep.URL)
 		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
 		}
@@ -205,6 +206,7 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpo
 		message = cfg.TextEmailBodyResolved
 		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
 		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		message = strings.ReplaceAll(message, "[ENDPOINT_URL]", ep.URL)
 		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
 		}
