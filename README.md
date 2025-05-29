@@ -440,6 +440,7 @@ the client used to send the request.
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
 | `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.       | `""`            |
 | `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.       | `""`            |
+| `client.tls.ca-file`                   | Path to a root CA (in PEM format) for mTLS configurations.                  | `""`            |
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).      | `"never"`       |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
 
@@ -525,6 +526,7 @@ endpoints:
       tls:
         certificate-file: /path/to/user_cert.pem
         private-key-file: /path/to/user_key.pem
+        ca-file: /path/to/root-ca.pem
         renegotiation: once
     conditions:
       - "[STATUS] == 200"
