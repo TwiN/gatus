@@ -203,6 +203,12 @@ func (t *TLSConfig) isValid() error {
 		if err != nil {
 			return err
 		}
+		if len(t.CAFile) > 0 {
+			_, err := os.ReadFile(t.CAFile)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 	return ErrInvalidClientTLSConfig
@@ -336,10 +342,12 @@ func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
 	}
 	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
 
-	caCert, _ := os.ReadFile(c.CAFile)
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-	tlsConfig.RootCAs = caCertPool
+	if c.CAFile != "" {
+		caCert, _ := os.ReadFile(c.CAFile)
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+		tlsConfig.RootCAs = caCertPool
+	}
 
 	tlsConfig.Renegotiation = tls.RenegotiateNever
 	renegotiationSupport := map[string]tls.RenegotiationSupport{
