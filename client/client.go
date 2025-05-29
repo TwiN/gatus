@@ -153,10 +153,14 @@ func CanPerformStartTLS(address string, config *Config) (CertificateChainInfo, e
 	if !ok {
 		return CertificateChainInfo{}, errors.New("could not get TLS connection state")
 	}
-	return CertificateChainInfo{
-		Connected: true,
-		Chain:     state.PeerCertificates,
-	}, nil
+
+	if len(state.PeerCertificates) == 0 {
+		return CertificateChainInfo{
+			Connected: true,
+			Chain:     []*x509.Certificate{},
+		}, nil
+	}
+	return newChainFromPeer(state.PeerCertificates, config), nil
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
@@ -168,21 +172,32 @@ func CanPerformTLS(address string, config *Config) (CertificateChainInfo, error)
 		return CertificateChainInfo{}, err
 	}
 	defer connection.Close()
-
 	state := connection.ConnectionState()
 	// If config.Insecure is set to true, verifiedChains will be an empty list []
 	// We should get the parsed certificates from PeerCertificates, it can't be empty on the client side
 	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
 	if len(state.VerifiedChains) == 0 || len(state.VerifiedChains[0]) == 0 {
-		return CertificateChainInfo{
-			Connected: true,
-			Chain:     state.PeerCertificates,
-		}, nil
+		return newChainFromPeer(state.PeerCertificates, config), nil
 	}
-	return CertificateChainInfo{
-		Connected: true,
-		Chain:     state.VerifiedChains[0],
-	}, nil
+	return newChainFromVerified(state.VerifiedChains, config), nil
+}
+
+func newChainFromVerified(verifiedChains [][]*x509.Certificate, config *Config) CertificateChainInfo {
+	if config.DisableFullChainCertificateExpirationCheck {
+		//leaf certificate
+		return CertificateChainInfo{Connected: true, Chain: []*x509.Certificate{verifiedChains[0][0]}}
+	}
+	//full chain
+	return CertificateChainInfo{Connected: true, Chain: verifiedChains[0]}
+}
+
+func newChainFromPeer(peerCertificates []*x509.Certificate, config *Config) CertificateChainInfo {
+	if config.DisableFullChainCertificateExpirationCheck {
+		//leaf certificate
+		return CertificateChainInfo{Connected: true, Chain: []*x509.Certificate{peerCertificates[0]}}
+	}
+	//full chain
+	return CertificateChainInfo{Connected: true, Chain: peerCertificates}
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address

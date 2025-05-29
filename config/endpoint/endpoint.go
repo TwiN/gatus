@@ -417,6 +417,7 @@ func (e *Endpoint) call(result *Result) {
 		if response.TLS != nil && len(response.TLS.PeerCertificates) > 0 {
 			certificate = response.TLS.PeerCertificates[0]
 			result.CertificateExpiration = time.Until(certificate.NotAfter)
+			e.setHTTPCertificateChain(response.TLS.PeerCertificates, result)
 		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
@@ -502,6 +503,30 @@ func (e *Endpoint) evaluateSTARTTLS(result *Result) error {
 		}
 	}
 	return nil
+}
+
+func (e *Endpoint) setHTTPCertificateChain(cas []*x509.Certificate, result *Result) {
+	if e.ClientConfig.DisableFullChainCertificateExpirationCheck {
+		result.CertificateChain = []CertificateInfo{
+			{
+				Subject:   cas[0].Subject.String(),
+				Issuer:    cas[0].Issuer.String(),
+				NotAfter:  cas[0].NotAfter,
+				ExpiresIn: time.Until(cas[0].NotAfter),
+			},
+		}
+		// only leaf certificate
+		return
+	}
+	// full chain
+	for _, ca := range cas {
+		result.CertificateChain = append(result.CertificateChain, CertificateInfo{
+			Subject:   ca.Subject.String(),
+			Issuer:    ca.Issuer.String(),
+			NotAfter:  ca.NotAfter,
+			ExpiresIn: time.Until(ca.NotAfter),
+		})
+	}
 }
 
 func (e *Endpoint) evaluateTLS(result *Result) error {
