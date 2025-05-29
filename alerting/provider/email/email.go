@@ -29,16 +29,10 @@ type Config struct {
 	Port     int    `yaml:"port"`
 	To       string `yaml:"to"`
 
-	// Strings used in the email body and subject
-	// These fields are optional and will be replaced with default values if not set
-	TextEmailSubjectTriggered   string `yaml:"text-email-subject-triggered,omitempty"`
-	TextEmailSubjectResolved    string `yaml:"text-email-subject-resolved,omitempty"`
-	TextEmailBodyTriggered      string `yaml:"text-email-body-triggered,omitempty"`
-	TextEmailBodyResolved       string `yaml:"text-email-body-resolved,omitempty"`
-	TextEmailHeader             string `yaml:"text-email-header,omitempty"`
-	TextEmailFooter             string `yaml:"text-email-footer,omitempty"`
-	TextEmailDescription        string `yaml:"text-email-description,omitempty"`
-	TextIncludeConditionResults *bool  `yaml:"text-include-condition-results,omitempty"`
+	TextEmailSubjectTriggered string `yaml:"text-email-subject-triggered,omitempty"` // String used in the email subject (optional)
+	TextEmailSubjectResolved  string `yaml:"text-email-subject-resolved,omitempty"`  // String used in the email subject (optional)
+	TextEmailBodyTriggered    string `yaml:"text-email-body-triggered,omitempty"`    // String used in the email body (optional)
+	TextEmailBodyResolved     string `yaml:"text-email-body-resolved,omitempty"`     // String used in the email body (optional)
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -90,18 +84,6 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.TextEmailBodyResolved) > 0 {
 		cfg.TextEmailBodyResolved = override.TextEmailBodyResolved
-	}
-	if len(override.TextEmailHeader) > 0 {
-		cfg.TextEmailHeader = override.TextEmailHeader
-	}
-	if len(override.TextEmailFooter) > 0 {
-		cfg.TextEmailFooter = override.TextEmailFooter
-	}
-	if len(override.TextEmailDescription) > 0 {
-		cfg.TextEmailDescription = override.TextEmailDescription
-	}
-	if override.TextIncludeConditionResults != nil {
-		cfg.TextIncludeConditionResults = override.TextIncludeConditionResults
 	}
 }
 
@@ -176,39 +158,16 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 // buildMessageSubjectAndBody builds the message subject and body
 func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
-	var header, footer, subject, message string
-	if len(cfg.TextEmailHeader) > 0 {
-		header = cfg.TextEmailHeader + "\n\n"
-	}
-	if len(cfg.TextEmailFooter) > 0 {
-		footer = "\n\n" + cfg.TextEmailFooter
-	}
+	var subject, message string
 	if resolved {
-		if len(cfg.TextEmailSubjectResolved) > 0 {
-			subject = strings.Replace(cfg.TextEmailSubjectResolved, "{endpoint}", ep.DisplayName(), 1)
-		} else {
-			subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
-		}
-		if len(cfg.TextEmailBodyResolved) > 0 {
-			message = strings.Replace(strings.Replace(cfg.TextEmailBodyResolved, "{endpoint}", ep.DisplayName(), 1), "{threshold}", string(rune(alert.SuccessThreshold)), 1)
-		} else {
-			message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-		}
+		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		if len(cfg.TextEmailSubjectTriggered) > 0 {
-			subject = strings.Replace(cfg.TextEmailSubjectTriggered, "{endpoint}", ep.DisplayName(), 1)
-		} else {
-			subject = fmt.Sprintf("[%s] Alert triggered", ep.DisplayName())
-		}
-		if len(cfg.TextEmailBodyTriggered) > 0 {
-			message = strings.Replace(strings.Replace(cfg.TextEmailBodyTriggered, "{endpoint}", ep.DisplayName(), 1), "{threshold}", string(rune(alert.FailureThreshold)), 1)
-		} else {
-			message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
-		}
+		subject = fmt.Sprintf("[%s] Alert triggered", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	var formattedConditionResults string
-	if len(result.ConditionResults) > 0 && (cfg.TextIncludeConditionResults == nil || *cfg.TextIncludeConditionResults) {
-		// If the condition results are included, format them
+	if len(result.ConditionResults) > 0 {
 		formattedConditionResults = "\n\nCondition results:\n"
 		for _, conditionResult := range result.ConditionResults {
 			var prefix string
@@ -220,16 +179,45 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpo
 			formattedConditionResults += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 		}
 	}
+	// Override subject and body if specified in the configuration
+	if len(cfg.TextEmailSubjectTriggered) > 0 && !resolved {
+		subject = cfg.TextEmailSubjectTriggered
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	if len(cfg.TextEmailSubjectResolved) > 0 && resolved {
+		subject = cfg.TextEmailSubjectResolved
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	if len(cfg.TextEmailBodyTriggered) > 0 && !resolved {
+		message = cfg.TextEmailBodyTriggered
+		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
+		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
+		}
+		message = strings.ReplaceAll(message, "[FAILURE_THRESHOLD]", string(rune(alert.FailureThreshold)))
+		message = strings.ReplaceAll(message, "[CONDITION_RESULTS]", formattedConditionResults)
+		return subject, message
+	}
+	if len(cfg.TextEmailBodyResolved) > 0 && resolved {
+		message = cfg.TextEmailBodyResolved
+		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
+		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
+		}
+		message = strings.ReplaceAll(message, "[FAILURE_THRESHOLD]", string(rune(alert.SuccessThreshold)))
+		message = strings.ReplaceAll(message, "[CONDITION_RESULTS]", formattedConditionResults)
+		return subject, message
+	}
+	// Fallback to the default message body if no overrides are specified
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		if len(cfg.TextEmailDescription) > 0 {
-			description = "\n\n" + strings.Replace(cfg.TextEmailDescription, "{description}", alertDescription, 1)
-		} else {
-			// If no description is provided, use the alert's description}
-			description = "\n\nAlert description: " + alertDescription
-		}
+		description = "\n\nAlert description: " + alertDescription
 	}
-	return subject, header + message + description + formattedConditionResults + footer
+	return subject, message + description + formattedConditionResults
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
