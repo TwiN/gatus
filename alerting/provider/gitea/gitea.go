@@ -140,7 +140,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			State:     gitea.StateOpen,
 			CreatedBy: cfg.username,
 			ListOptions: gitea.ListOptions{
-				Page: 100,
+				PageSize: 100,
 			},
 		},
 	)
@@ -153,7 +153,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			_, _, err = cfg.giteaClient.EditIssue(
 				cfg.repositoryOwner,
 				cfg.repositoryName,
-				issue.ID,
+				issue.Index,
 				gitea.EditIssueOption{
 					State: &stateClosed,
 				},
