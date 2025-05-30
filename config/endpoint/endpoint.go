@@ -433,9 +433,9 @@ func (e *Endpoint) getParsedBody() string {
 }
 
 func (e *Endpoint) getIP(result *Result) {
-
 	resolver := net.DefaultResolver
-
+	// Create a custom DNS resolver for use in looking up the IP address
+	// if the configuration specifies a custom DNS resolver address
 	if e.ClientConfig.HasCustomDNSResolver() {
 		dnsResolver := e.ClientConfig.DNSResolverConfig
 		resolver = &net.Resolver{
