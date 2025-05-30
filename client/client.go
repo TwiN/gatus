@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
@@ -197,6 +199,34 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	return true, cli, nil
 }
 
+func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+	dialer := net.Dialer{}
+	connStr := net.JoinHostPort(address, port)
+	conn, err := dialer.Dial("tcp", connStr)
+	if err != nil {
+		return false, 1, err
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	buf := make([]byte, 256)
+	_, err = io.ReadAtLeast(conn, buf, 1)
+	if err != nil {
+		return false, 1, err
+	}
+	return true, 0, err
+}
+
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
 func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, error) {
 	type Body struct {
@@ -297,6 +327,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 	m.SetQuestion(queryName, queryTypeAsUint16)
 	r, _, err := c.Exchange(m, url)
 	if err != nil {
+		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
 		return false, "", nil, err
 	}
 	connected = true
@@ -326,6 +357,10 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		case dns.TypePTR:
 			if ptr, ok := rr.(*dns.PTR); ok {
 				body = []byte(ptr.Ptr)
+			}
+		case dns.TypeSRV:
+			if srv, ok := rr.(*dns.SRV); ok {
+				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
 			}
 		default:
 			body = []byte("query type is not supported yet")

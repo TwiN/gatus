@@ -78,13 +78,13 @@ export default {
   },
   computed: {
     logo() {
-      return window.config && window.config.logo && window.config.logo !== '{{ .Logo }}' ? window.config.logo : "";
+      return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : "";
     },
     header() {
-      return window.config && window.config.header && window.config.header !== '{{ .Header }}' ? window.config.header : "Health Status";
+      return window.config && window.config.header && window.config.header !== '{{ .UI.Header }}' ? window.config.header : "Health Status";
     },
     link() {
-      return window.config && window.config.link && window.config.link !== '{{ .Link }}' ? window.config.link : null;
+      return window.config && window.config.link && window.config.link !== '{{ .UI.Link }}' ? window.config.link : null;
     },
     buttons() {
       return window.config && window.config.buttons ? window.config.buttons : [];

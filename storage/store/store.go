@@ -111,7 +111,10 @@ func Initialize(cfg *storage.Config) error {
 	if cfg == nil {
 		// This only happens in tests
 		logr.Warn("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
-		cfg = &storage.Config{}
+		cfg = &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
 		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
@@ -119,26 +122,28 @@ func Initialize(cfg *storage.Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		store, _ = memory.NewStore()
+		store, _ = memory.NewStore(cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 	}
 	return nil
 }
 
 // autoSave automatically calls the Save function of the provider at every interval
 func autoSave(ctx context.Context, store Store, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			logr.Info("[store.autoSave] Stopping active job")
 			return
-		case <-time.After(interval):
+		case <-ticker.C:
 			logr.Info("[store.autoSave] Saving")
 			if err := store.Save(); err != nil {
 				logr.Errorf("[store.autoSave] Save failed: %s", err.Error())

@@ -9,7 +9,7 @@
         @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
         :showAverageResponseTime="showAverageResponseTime"
     />
-    <Pagination v-show="retrievedData" @page="changePage"/>
+    <Pagination v-show="retrievedData" @page="changePage" :numberOfResultsPerPage="20" />
   </slot>
   <Settings @refreshData="fetchData"/>
 </template>

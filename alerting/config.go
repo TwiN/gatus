@@ -15,6 +15,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -60,6 +61,9 @@ type Config struct {
 
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
+
+	// IncidentIO is the configuration for the incident-io alerting provider
+	IncidentIO *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
 
 	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
 	JetBrainsSpace *jetbrainsspace.AlertProvider `yaml:"jetbrainsspace,omitempty"`

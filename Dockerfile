@@ -1,10 +1,11 @@
 # Build the go application into a binary
-FROM golang:alpine as builder
-RUN apk --update add ca-certificates
+FROM golang:alpine AS builder
+RUN apk --update add ca-certificates libcap-setcap
 WORKDIR /app
 COPY . ./
 RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
+RUN setcap CAP_NET_RAW+ep gatus
 
 # Run Tests inside docker image if you don't have a configured go environment
 #RUN apk update && apk add --virtual build-dependencies build-base gcc
