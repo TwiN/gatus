@@ -60,6 +60,8 @@ type Config struct {
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
+	// DNSResolverConfig is parsed DNSResolver
+	// We do this to avoid parsing DNSResolver every time it is needed
 	DNSResolverConfig *DNSResolverConfig `yaml:"-"`
 
 	// OAuth2Config is the OAuth2 configuration used for the client.
