@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"runtime"
 	"testing"
 	"time"
 
@@ -100,10 +101,13 @@ func TestPing(t *testing.T) {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
-		t.Error("expected true")
-		if rtt == 0 {
-			t.Error("Round-trip time returned on failure should've been 0")
+	// Skip IPv6 ping tests on Windows as they require elevated privileges
+	if runtime.GOOS != "windows" {
+		if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+			t.Error("expected true")
+			if rtt == 0 {
+				t.Error("Round-trip time returned on failure should've been 0")
+			}
 		}
 	}
 	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
