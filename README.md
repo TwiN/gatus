@@ -59,6 +59,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
+    - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
@@ -604,6 +605,7 @@ endpoints:
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).        | `{}`    |
 
 
 #### Configuring AWS SES alerts
@@ -918,6 +920,75 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Gotify notifications](.github/assets/gotify-alerts.png)
+
+
+#### Configuring HomeAssistant alerts
+To configure HomeAssistant alerts, you'll need to add the following to your configuration file:
+
+```yaml
+alerting:
+  homeassistant:
+    url: "http://homeassistant:8123"  # URL of your HomeAssistant instance
+    token: "YOUR_LONG_LIVED_ACCESS_TOKEN"  # Long-lived access token from HomeAssistant
+
+endpoints:
+  - name: my-service
+    url: "https://my-service.com"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: homeassistant
+        enabled: true
+        send-on-resolved: true
+        description: "My service health check"
+        failure-threshold: 3
+        success-threshold: 2
+```
+
+The alerts will be sent as events to HomeAssistant with the event type `gatus_alert`. The event data includes:
+- `status`: "triggered" or "resolved"
+- `endpoint`: The name of the monitored endpoint
+- `description`: The alert description if provided
+- `conditions`: List of conditions and their results
+- `failure_count`: Number of consecutive failures (when triggered)
+- `success_count`: Number of consecutive successes (when resolved)
+
+You can use these events in HomeAssistant automations to:
+- Send notifications
+- Control devices
+- Trigger scenes
+- Log to history
+- And more
+
+Example HomeAssistant automation:
+```yaml
+automation:
+  - alias: "Gatus Alert Handler"
+    trigger:
+      platform: event
+      event_type: gatus_alert
+    action:
+      - service: notify.notify
+        data_template:
+          title: "Gatus Alert: {{ trigger.event.data.endpoint }}"
+          message: >
+            Status: {{ trigger.event.data.status }}
+            {% if trigger.event.data.description %}
+            Description: {{ trigger.event.data.description }}
+            {% endif %}
+            {% for condition in trigger.event.data.conditions %}
+            {{ '✅' if condition.success else '❌' }} {{ condition.condition }}
+            {% endfor %}
+```
+
+To get your HomeAssistant long-lived access token:
+1. Open HomeAssistant
+2. Click on your profile name (bottom left)
+3. Scroll down to "Long-Lived Access Tokens"
+4. Click "Create Token"
+5. Give it a name (e.g., "Gatus")
+6. Copy the token - you'll only see it once!
 
 
 #### Configuring Incident.io alerts
