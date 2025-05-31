@@ -415,6 +415,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeMatrix,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
+		alert.TypeHomeAssistant,
 		alert.TypeNtfy,
 		alert.TypeOpsgenie,
 		alert.TypePagerDuty,
