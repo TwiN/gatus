@@ -1,6 +1,6 @@
 <template>
   <div id="settings" class="flex bg-gray-200 border-gray-300 rounded border shadow dark:text-gray-200 dark:bg-gray-800 dark:border-gray-500">
-    <div class="text-xs text-gray-600 rounded-xl py-1.5 px-1.5 dark:text-gray-200">
+    <div class="text-xs text-gray-600 rounded-xl py-1.5 px-1.5 dark:text-gray-200" @click="refreshData">
       <ArrowPathIcon class="w-3"/>
     </div>
     <select class="text-center text-gray-500 text-xs dark:text-gray-200 dark:bg-gray-800 border-r border-l border-gray-300 dark:border-gray-500 pl-1" id="refresh-rate" ref="refreshInterval" @change="handleChangeRefreshInterval">
