@@ -116,12 +116,12 @@ func Initialize(cfg *storage.Config) error {
 			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 		}
 	}
-	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
+	if len(cfg.Path) == 0 && (cfg.Type != storage.TypePostgres && cfg.Type != storage.TypeMySQL) {
 		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
-	case storage.TypeSQLite, storage.TypePostgres:
+	case storage.TypeSQLite, storage.TypePostgres, storage.TypeMySQL:
 		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
