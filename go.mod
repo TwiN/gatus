@@ -3,7 +3,7 @@ module github.com/TwiN/gatus/v5
 go 1.24.1
 
 require (
-	code.gitea.io/sdk/gitea v0.19.0
+	code.gitea.io/sdk/gitea v0.21.0
 	github.com/TwiN/deepmerge v0.2.2
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.2.2
@@ -35,6 +35,7 @@ require (
 	cloud.google.com/go/auth v0.15.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
+	github.com/42wim/httpsig v1.2.2 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -50,7 +51,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
