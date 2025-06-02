@@ -32,6 +32,9 @@ const (
 	// TypeGotify is the Type for the gotify alerting provider
 	TypeGotify Type = "gotify"
 
+	// TypeIlert is the Type for the ilert alerting provider
+	TypeIlert Type = "ilert"
+
 	// TypeIncidentIO is the Type for the incident-io alerting provider
 	TypeIncidentIO Type = "incident-io"
 
