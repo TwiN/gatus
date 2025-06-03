@@ -5,20 +5,27 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	strip "github.com/grokify/html-strip-tags-go"
 	gomail "gopkg.in/mail.v2"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	ErrDuplicateGroupOverride = errors.New("duplicate group override")
-	ErrMissingFromOrToFields  = errors.New("from and to fields are required")
-	ErrInvalidPort            = errors.New("port must be between 1 and 65535 inclusively")
-	ErrMissingHost            = errors.New("host is required")
+	ErrDuplicateGroupOverride  = errors.New("duplicate group override")
+	ErrMissingFromOrToFields   = errors.New("from and to fields are required")
+	ErrInvalidPort             = errors.New("port must be between 1 and 65535 inclusively")
+	ErrMissingHost             = errors.New("host is required")
+	ErrInvalidEmailTemplateDir = errors.New("invalid email template directory: it must be a valid directory path that exists and is accessible")
+)
+
+const (
+	EmailTemplateDirEnvVar = "GATUS_EMAIL_TEMPLATE_DIR" // Environment variable to specify the directory to the email templates
 )
 
 type Config struct {
@@ -28,6 +35,18 @@ type Config struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	To       string `yaml:"to"`
+
+	TextEmailSubjectTriggered string `yaml:"text-email-subject-triggered,omitempty"` // String used in the email subject (optional)
+	TextEmailSubjectResolved  string `yaml:"text-email-subject-resolved,omitempty"`  // String used in the email subject (optional)
+	TextEmailBodyTriggered    string `yaml:"text-email-body-triggered,omitempty"`    // String used in the email body (optional)
+	TextEmailBodyResolved     string `yaml:"text-email-body-resolved,omitempty"`     // String used in the email body (optional)
+	FileEmailBodyTriggered    string `yaml:"file-email-body-triggered,omitempty"`    // HTML file used as template in the email body (optional)
+	FileEmailBodyResolved     string `yaml:"file-email-body-resolved,omitempty"`     // HTML file used as template in the email body (optional)
+
+	// EmailFileTemplateTriggered is the name of the template used for triggered alerts
+	EmailFileTemplateTriggered string `yaml:"-"` // Value is set from the loaded template file
+	// EmailFileTemplateResolved is the name of the template used for resolved alerts
+	EmailFileTemplateResolved string `yaml:"-"` // Value is set from the loaded template file
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
@@ -42,6 +61,26 @@ func (cfg *Config) Validate() error {
 	}
 	if len(cfg.Host) == 0 {
 		return ErrMissingHost
+	}
+	// Validate template directory if specified
+	if templateDirectory := os.Getenv(EmailTemplateDirEnvVar); len(templateDirectory) > 0 {
+		info, err := os.Stat(templateDirectory)
+		if err != nil || os.IsNotExist(err) || !info.IsDir() {
+			return ErrInvalidEmailTemplateDir
+		}
+		// Load the email templates from the directory
+		if len(cfg.FileEmailBodyTriggered) > 0 {
+			fileContentTriggered, err := os.ReadFile(fmt.Sprintf("%s/%s", templateDirectory, cfg.FileEmailBodyTriggered))
+			if err == nil && len(fileContentTriggered) > 0 {
+				cfg.EmailFileTemplateTriggered = string(fileContentTriggered)
+			}
+		}
+		if len(cfg.FileEmailBodyResolved) > 0 {
+			fileContentResolved, err := os.ReadFile(fmt.Sprintf("%s/%s", templateDirectory, cfg.FileEmailBodyResolved))
+			if err == nil && len(fileContentResolved) > 0 {
+				cfg.EmailFileTemplateResolved = string(fileContentResolved)
+			}
+		}
 	}
 	return nil
 }
@@ -67,6 +106,24 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.To) > 0 {
 		cfg.To = override.To
+	}
+	if len(override.TextEmailSubjectTriggered) > 0 {
+		cfg.TextEmailSubjectTriggered = override.TextEmailSubjectTriggered
+	}
+	if len(override.TextEmailSubjectResolved) > 0 {
+		cfg.TextEmailSubjectResolved = override.TextEmailSubjectResolved
+	}
+	if len(override.TextEmailBodyTriggered) > 0 {
+		cfg.TextEmailBodyTriggered = override.TextEmailBodyTriggered
+	}
+	if len(override.TextEmailBodyResolved) > 0 {
+		cfg.TextEmailBodyResolved = override.TextEmailBodyResolved
+	}
+	if len(override.FileEmailBodyTriggered) > 0 {
+		cfg.FileEmailBodyTriggered = override.FileEmailBodyTriggered
+	}
+	if len(override.FileEmailBodyResolved) > 0 {
+		cfg.FileEmailBodyResolved = override.FileEmailBodyResolved
 	}
 }
 
@@ -113,12 +170,15 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	} else {
 		username = cfg.From
 	}
-	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
+	subject, body_text, body_html := provider.buildMessageSubjectAndBody(cfg, ep, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", cfg.From)
 	m.SetHeader("To", strings.Split(cfg.To, ",")...)
 	m.SetHeader("Subject", subject)
-	m.SetBody("text/plain", body)
+	m.SetBody("text/plain", body_text)
+	if len(body_html) > 0 {
+		m.AddAlternative("text/html", body_html)
+	}
 	var d *gomail.Dialer
 	if len(cfg.Password) == 0 {
 		// Get the domain in the From address
@@ -140,14 +200,14 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
-	var subject, message string
+func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string, string) {
+	var subject, body_text, body_html string
 	if resolved {
 		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+		body_text = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
 		subject = fmt.Sprintf("[%s] Alert triggered", ep.DisplayName())
-		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+		body_text = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	var formattedConditionResults string
 	if len(result.ConditionResults) > 0 {
@@ -162,11 +222,56 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 			formattedConditionResults += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 		}
 	}
+	// Override subject and body if specified in the configuration
+	if len(cfg.TextEmailSubjectTriggered) > 0 && !resolved {
+		subject = cfg.TextEmailSubjectTriggered
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	if len(cfg.TextEmailSubjectResolved) > 0 && resolved {
+		subject = cfg.TextEmailSubjectResolved
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	// If HTML template is not empty, use it as a template for the message body
+	if len(cfg.EmailFileTemplateTriggered) > 0 && !resolved {
+		body_html = provider.replaceBodyPlaceholders(ep, alert, cfg.EmailFileTemplateTriggered, strings.ReplaceAll(formattedConditionResults, "\n", "<br>"))
+		body_text = strip.StripTags(body_html)
+		return subject, body_text, body_html
+	}
+	if len(cfg.EmailFileTemplateResolved) > 0 && resolved {
+		body_html = provider.replaceBodyPlaceholders(ep, alert, cfg.EmailFileTemplateResolved, strings.ReplaceAll(formattedConditionResults, "\n", "<br>"))
+		body_text = strip.StripTags(body_html)
+		return subject, body_text, body_html
+	}
+	// If no HTML file is specified, use the text overrides from configuration
+	if len(cfg.TextEmailBodyTriggered) > 0 && !resolved {
+		body_text = provider.replaceBodyPlaceholders(ep, alert, cfg.TextEmailBodyTriggered, formattedConditionResults)
+		return subject, body_text, ""
+	}
+	if len(cfg.TextEmailBodyResolved) > 0 && resolved {
+		body_text = provider.replaceBodyPlaceholders(ep, alert, cfg.TextEmailBodyResolved, formattedConditionResults)
+		return subject, body_text, ""
+	}
+	// Fallback to the default message body if no overrides are specified
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = "\n\nAlert description: " + alertDescription
 	}
-	return subject, message + description + formattedConditionResults
+	return subject, body_text + description + formattedConditionResults, body_html
+}
+
+func (provider *AlertProvider) replaceBodyPlaceholders(ep *endpoint.Endpoint, alert *alert.Alert, str string, formattedConditionResults string) string {
+	str = strings.ReplaceAll(str, "[ENDPOINT_NAME]", ep.Name)
+	str = strings.ReplaceAll(str, "[ENDPOINT_GROUP]", ep.Group)
+	str = strings.ReplaceAll(str, "[ENDPOINT_URL]", ep.URL)
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		str = strings.ReplaceAll(str, "[ALERT_DESCRIPTION]", alertDescription)
+	}
+	str = strings.ReplaceAll(str, "[SUCCESS_THRESHOLD]", string(rune(alert.SuccessThreshold)))
+	str = strings.ReplaceAll(str, "[FAILURE_THRESHOLD]", string(rune(alert.FailureThreshold)))
+	str = strings.ReplaceAll(str, "[CONDITION_RESULTS]", formattedConditionResults)
+	return str
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
