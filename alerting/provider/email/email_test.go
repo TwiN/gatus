@@ -98,7 +98,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			subject, body := scenario.Provider.buildMessageSubjectAndBody(
+			subject, body_text, body_html := scenario.Provider.buildMessageSubjectAndBody(
 				&Config{},
 				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
@@ -113,8 +113,11 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			if subject != scenario.ExpectedSubject {
 				t.Errorf("expected subject to be %s, got %s", scenario.ExpectedSubject, subject)
 			}
-			if body != scenario.ExpectedBody {
-				t.Errorf("expected body to be %s, got %s", scenario.ExpectedBody, body)
+			if body_text != scenario.ExpectedBody {
+				t.Errorf("expected text body to be %s, got %s", scenario.ExpectedBody, body_text)
+			}
+			if body_html != "" {
+				t.Errorf("expected HTML body to be empty, got %s", body_html)
 			}
 		})
 	}
