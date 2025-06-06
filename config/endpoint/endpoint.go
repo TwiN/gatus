@@ -49,7 +49,7 @@ const (
 	TypeSSH      Type = "SSH"
 	TypeUNKNOWN  Type = "UNKNOWN"
 
-	Origin       = "http://localhost"
+	DefaultWebSocketOrigin       = "http://localhost"
 	OriginHeader = "Origin"
 )
 
@@ -210,7 +210,7 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	// Automatically add Origin header for websocket endpoints if there isn't one specified
 	if e.Type() == TypeWS {
 		if _, originHeaderExists := e.Headers[OriginHeader]; !originHeaderExists {
-			e.Headers[OriginHeader] = Origin
+			e.Headers[OriginHeader] = DefaultWebSocketOrigin
 		}
 	}
 
