@@ -76,7 +76,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	}
 	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", restAPIURL, cfg.IntegrationKey), buffer)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", restAPIUrl, cfg.IntegrationKey), buffer)
 	if err != nil {
 		return err
 	}
