@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/smtp"
 	"runtime"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
@@ -76,24 +78,62 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 	return domainExpiration, nil
 }
 
-// CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
-func CanCreateTCPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return false
+func GetBodyTemplate(body string, localAddr net.Addr) (string, error) {
+	functionMap := template.FuncMap{
+		"LocalAddr": func() string {
+			return localAddr.String()
+		},
+		"RandomString": func(n int) string {
+			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			b := make([]byte, n)
+			rand.Seed(time.Now().UnixNano())
+			for i := range b {
+				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
+			}
+			return string(b)
+		},
 	}
-	_ = conn.Close()
-	return true
+	t, err := template.New("body").Funcs(functionMap).Parse(body)
+	if err != nil {
+		return body, err
+	}
+	var b strings.Builder
+	if err := t.Execute(&b, nil); err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }
 
-// CanCreateUDPConnection checks whether a connection can be established with a UDP endpoint
-func CanCreateUDPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("udp", address, config.Timeout)
+// CanCreateNetConnection checks whether a connection can be established with a TCP or UDP endpoint
+func CanCreateNetConnection(netType string, address string, body string, config *Config) (bool, []byte) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
+	connection, err := net.DialTimeout(netType, address, config.Timeout)
 	if err != nil {
-		return false
+		return false, nil
 	}
-	_ = conn.Close()
-	return true
+	defer connection.Close()
+	if body != "" {
+		if strings.Contains(body, "{{") {
+			body, err = GetBodyTemplate(body, connection.LocalAddr())
+			if err != nil {
+				return false, nil
+			}
+		}
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return false, nil
+		}
+		buf := make([]byte, MaximumMessageSize)
+		n, err := connection.Read(buf)
+		if err != nil {
+			return false, nil
+		}
+		return true, buf[:n]
+	}
+	return true, nil
 }
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
@@ -152,7 +192,10 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
-func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformTLS(address string, body string, config *Config) (connected bool, response []byte, certificate *x509.Certificate, err error) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
 	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
 		InsecureSkipVerify: config.Insecure,
 	})
@@ -166,9 +209,32 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
 		peerCertificates := connection.ConnectionState().PeerCertificates
-		return true, peerCertificates[0], nil
+		certificate = peerCertificates[0]
+	} else {
+		certificate = verifiedChains[0][0]
 	}
-	return true, verifiedChains[0][0], nil
+	if body != "" {
+		if strings.Contains(body, "{{") {
+			body, err = GetBodyTemplate(body, connection.LocalAddr())
+			if err != nil {
+				err = fmt.Errorf("error getting body template: %w", err)
+				return
+			}
+		}
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return
+		}
+		buf := make([]byte, MaximumMessageSize)
+		var n int
+		n, err = connection.Read(buf)
+		if err != nil {
+			return
+		}
+		response = buf[:n]
+	}
+	return
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
@@ -304,6 +370,12 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	if strings.Contains(body, "{{") {
+		body, err = GetBodyTemplate(body, ws.LocalAddr())
+		if err != nil {
+			return false, nil, fmt.Errorf("error getting body template: %w", err)
+		}
+	}
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)

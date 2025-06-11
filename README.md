@@ -2004,8 +2004,10 @@ endpoints:
     conditions:
       - "[CONNECTED] == true"
 ```
+If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
@@ -2025,7 +2027,10 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
 
 This works for UDP based application.
@@ -2060,7 +2065,8 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established.
+shows whether the connection was successfully established. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
 
 
 ### Monitoring an endpoint using ICMP
@@ -2171,6 +2177,12 @@ endpoints:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
+
+If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for TLS endpoints.
 
 
 ### Monitoring domain expiration

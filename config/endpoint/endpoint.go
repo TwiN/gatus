@@ -356,7 +356,7 @@ func (e *Endpoint) call(result *Result) {
 		if endpointType == TypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 		} else {
-			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
+			result.Connected, result.Body, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.Body, e.ClientConfig)
 		}
 		if err != nil {
 			result.AddError(err.Error())
@@ -365,10 +365,10 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == TypeTCP {
-		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(e.URL, "tcp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.Body, e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeUDP {
-		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(e.URL, "udp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.Body, e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSCTP {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
