@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
+	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
 	"github.com/TwiN/gatus/v5/alerting/provider/homeassistant"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
@@ -81,7 +82,9 @@ var (
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
 	_ AlertProvider = (*googlechat.AlertProvider)(nil)
+	_ AlertProvider = (*gotify.AlertProvider)(nil)
 	_ AlertProvider = (*homeassistant.AlertProvider)(nil)
+	_ AlertProvider = (*incidentio.AlertProvider)(nil)
 	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
@@ -96,7 +99,6 @@ var (
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*zulip.AlertProvider)(nil)
-	_ AlertProvider = (*incidentio.AlertProvider)(nil)
 
 	// Validate config interface implementation on compile
 	_ Config[awsses.Config]         = (*awsses.Config)(nil)
@@ -107,6 +109,7 @@ var (
 	_ Config[github.Config]         = (*github.Config)(nil)
 	_ Config[gitlab.Config]         = (*gitlab.Config)(nil)
 	_ Config[googlechat.Config]     = (*googlechat.Config)(nil)
+	_ Config[gotify.Config]         = (*gotify.Config)(nil)
 	_ Config[homeassistant.Config]  = (*homeassistant.Config)(nil)
 	_ Config[incidentio.Config]     = (*incidentio.Config)(nil)
 	_ Config[jetbrainsspace.Config] = (*jetbrainsspace.Config)(nil)
