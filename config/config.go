@@ -411,6 +411,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeGitea,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
+		alert.TypeHomeAssistant,
 		alert.TypeJetBrainsSpace,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
