@@ -7,13 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/smtp"
 	"runtime"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
@@ -78,30 +76,10 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 	return domainExpiration, nil
 }
 
-func GetBodyTemplate(body string, localAddr net.Addr) (string, error) {
-	functionMap := template.FuncMap{
-		"LocalAddr": func() string {
-			return localAddr.String()
-		},
-		"RandomString": func(n int) string {
-			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			b := make([]byte, n)
-			rand.Seed(time.Now().UnixNano())
-			for i := range b {
-				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
-			}
-			return string(b)
-		},
-	}
-	t, err := template.New("body").Funcs(functionMap).Parse(body)
-	if err != nil {
-		return body, err
-	}
-	var b strings.Builder
-	if err := t.Execute(&b, nil); err != nil {
-		return "", err
-	}
-	return b.String(), nil
+// GetStringReplacement returns a string with the local address replaced
+func GetStringReplacement(item string, localAddr net.Addr) string {
+	item = strings.ReplaceAll(item, "[LOCAL_ADDRESS]", localAddr.String())
+	return item
 }
 
 // CanCreateNetConnection checks whether a connection can be established with a TCP or UDP endpoint
@@ -115,12 +93,7 @@ func CanCreateNetConnection(netType string, address string, body string, config 
 	}
 	defer connection.Close()
 	if body != "" {
-		if strings.Contains(body, "{{") {
-			body, err = GetBodyTemplate(body, connection.LocalAddr())
-			if err != nil {
-				return false, nil
-			}
-		}
+		body = GetStringReplacement(body, connection.LocalAddr())
 		connection.SetDeadline(time.Now().Add(config.Timeout))
 		_, err = connection.Write([]byte(body))
 		if err != nil {
@@ -214,13 +187,7 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 		certificate = verifiedChains[0][0]
 	}
 	if body != "" {
-		if strings.Contains(body, "{{") {
-			body, err = GetBodyTemplate(body, connection.LocalAddr())
-			if err != nil {
-				err = fmt.Errorf("error getting body template: %w", err)
-				return
-			}
-		}
+		body = GetStringReplacement(body, connection.LocalAddr())
 		connection.SetDeadline(time.Now().Add(config.Timeout))
 		_, err = connection.Write([]byte(body))
 		if err != nil {
@@ -300,6 +267,7 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	}
 	defer sshClient.Close()
 	var b Body
+	body = GetStringReplacement(body, sshClient.Conn.LocalAddr())
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
 		return false, 0, err
 	}
@@ -370,12 +338,7 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
-	if strings.Contains(body, "{{") {
-		body, err = GetBodyTemplate(body, ws.LocalAddr())
-		if err != nil {
-			return false, nil, fmt.Errorf("error getting body template: %w", err)
-		}
-	}
+	body = GetStringReplacement(body, ws.LocalAddr())
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)

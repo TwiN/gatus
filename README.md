@@ -286,6 +286,13 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
+You may use the following placeholders in the body (`endpoints[].body`):
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
+- `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
+- `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N)
+
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
@@ -2004,8 +2011,7 @@ endpoints:
     conditions:
       - "[CONNECTED] == true"
 ```
-If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
-syntax. The functions LocalAddr and RandomString with a length can be used.
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
 
 Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
@@ -2027,8 +2033,7 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
-syntax. The functions LocalAddr and RandomString with a length can be used.
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
 
 Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
@@ -2178,8 +2183,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
 
-If `endpoints[].body` is set it is sent and the first 1024 bytes will be in `[BODY]`. You can use Go template 
-syntax. The functions LocalAddr and RandomString with a length can be used.
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
 
 Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TLS endpoints.
