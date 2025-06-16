@@ -4,62 +4,64 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 )
 
-func TestAlertDefaultProvider_IsValid(t *testing.T) {
+func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{}
-	if invalidProvider.IsValid() {
+	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	invalidProviderWithOneKey := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}
-	if invalidProviderWithOneKey.IsValid() {
+	invalidProviderWithOneKey := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1"}}
+	if err := invalidProviderWithOneKey.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{From: "from@example.com", To: "to@example.com"}
-	if !validProvider.IsValid() {
+	validProvider := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com"}}
+	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithKeys := AlertProvider{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}
-	if !validProviderWithKeys.IsValid() {
+	validProviderWithKeys := AlertProvider{DefaultConfig: Config{From: "from@example.com", To: "to@example.com", AccessKeyID: "1", SecretAccessKey: "1"}}
+	if err := validProviderWithKeys.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
 
-func TestAlertProvider_IsValidWithOverride(t *testing.T) {
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
 		Overrides: []Override{
 			{
-				To:    "to@example.com",
-				Group: "",
+				Config: Config{To: "to@example.com"},
+				Group:  "",
 			},
 		},
 	}
-	if providerWithInvalidOverrideGroup.IsValid() {
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
 		Overrides: []Override{
 			{
-				To:    "",
-				Group: "group",
+				Config: Config{To: ""},
+				Group:  "group",
 			},
 		},
 	}
-	if providerWithInvalidOverrideTo.IsValid() {
+	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
 		t.Error("provider integration key shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		From: "from@example.com",
-		To:   "to@example.com",
+		DefaultConfig: Config{
+			From: "from@example.com",
+			To:   "to@example.com",
+		},
 		Overrides: []Override{
 			{
-				To:    "to@example.com",
-				Group: "group",
+				Config: Config{To: "to@example.com"},
+				Group:  "group",
 			},
 		},
 	}
-	if !providerWithValidOverride.IsValid() {
+	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
 }
@@ -95,10 +97,10 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			subject, body := scenario.Provider.buildMessageSubjectAndBody(
-				&core.Endpoint{Name: "endpoint-name"},
+				&endpoint.Endpoint{Name: "endpoint-name"},
 				&scenario.Alert,
-				&core.Result{
-					ConditionResults: []*core.ConditionResult{
+				&endpoint.Result{
+					ConditionResults: []*endpoint.ConditionResult{
 						{Condition: "[CONNECTED] == true", Success: scenario.Resolved},
 						{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 					},
@@ -124,64 +126,124 @@ func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	}
 }
 
-func TestAlertProvider_getToForGroup(t *testing.T) {
-	tests := []struct {
+func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
+	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
 		InputGroup     string
-		ExpectedOutput string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
 	}{
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				To:        "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
 				Overrides: nil,
 			},
 			InputGroup:     "",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				To:        "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
 				Overrides: nil,
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				To: "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
 				Overrides: []Override{
 					{
-						Group: "group",
-						To:    "to01@example.com",
+						Group:  "group",
+						Config: Config{To: "groupto@example.com"},
 					},
 				},
 			},
 			InputGroup:     "",
-			ExpectedOutput: "to@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				To: "to@example.com",
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
 				Overrides: []Override{
 					{
-						Group: "group",
-						To:    "to01@example.com",
+						Group:  "group",
+						Config: Config{To: "groupto@example.com", SecretAccessKey: "wow", AccessKeyID: "noway"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			ExpectedOutput: "to01@example.com",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{From: "from@example.com", To: "groupto@example.com", SecretAccessKey: "wow", AccessKeyID: "noway"},
+		},
+		{
+			Name: "provider-with-override-specify-group-but-alert-override-should-override-group-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{
+					From: "from@example.com",
+					To:   "to@example.com",
+				},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{From: "from@example.com", To: "groupto@example.com", SecretAccessKey: "sekrit"},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{
+				ProviderOverride: map[string]any{
+					"to":            "alertto@example.com",
+					"access-key-id": 123,
+				},
+			},
+			ExpectedOutput: Config{To: "alertto@example.com", From: "from@example.com", AccessKeyID: "123", SecretAccessKey: "sekrit"},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			if got := tt.Provider.getToForGroup(tt.InputGroup); got != tt.ExpectedOutput {
-				t.Errorf("AlertProvider.getToForGroup() = %v, want %v", got, tt.ExpectedOutput)
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.From != scenario.ExpectedOutput.From {
+				t.Errorf("expected From to be %s, got %s", scenario.ExpectedOutput.From, got.From)
+			}
+			if got.To != scenario.ExpectedOutput.To {
+				t.Errorf("expected To to be %s, got %s", scenario.ExpectedOutput.To, got.To)
+			}
+			if got.AccessKeyID != scenario.ExpectedOutput.AccessKeyID {
+				t.Errorf("expected AccessKeyID to be %s, got %s", scenario.ExpectedOutput.AccessKeyID, got.AccessKeyID)
+			}
+			if got.SecretAccessKey != scenario.ExpectedOutput.SecretAccessKey {
+				t.Errorf("expected SecretAccessKey to be %s, got %s", scenario.ExpectedOutput.SecretAccessKey, got.SecretAccessKey)
+			}
+			if got.Region != scenario.ExpectedOutput.Region {
+				t.Errorf("expected Region to be %s, got %s", scenario.ExpectedOutput.Region, got.Region)
+			}
+			// Test ValidateOverrides as well, since it really just calls GetConfig
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+				t.Errorf("unexpected error: %s", err)
 			}
 		})
 	}

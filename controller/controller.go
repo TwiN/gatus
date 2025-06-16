@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"log"
 	"os"
 	"time"
 
 	"github.com/TwiN/gatus/v5/api"
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -25,19 +25,19 @@ func Handle(cfg *config.Config) {
 	if os.Getenv("ROUTER_TEST") == "true" {
 		return
 	}
-	log.Println("[controller][Handle] Listening on " + cfg.Web.SocketAddress())
+	logr.Info("[controller.Handle] Listening on " + cfg.Web.SocketAddress())
 	if cfg.Web.HasTLS() {
 		err := app.ListenTLS(cfg.Web.SocketAddress(), cfg.Web.TLS.CertificateFile, cfg.Web.TLS.PrivateKeyFile)
 		if err != nil {
-			log.Fatal("[controller][Handle]", err)
+			logr.Fatalf("[controller.Handle] %s", err.Error())
 		}
 	} else {
 		err := app.Listen(cfg.Web.SocketAddress())
 		if err != nil {
-			log.Fatal("[controller][Handle]", err)
+			logr.Fatalf("[controller.Handle] %s", err.Error())
 		}
 	}
-	log.Println("[controller][Handle] Server has shut down successfully")
+	logr.Info("[controller.Handle] Server has shut down successfully")
 }
 
 // Shutdown stops the server

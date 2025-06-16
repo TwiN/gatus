@@ -23,11 +23,23 @@ const (
 	// TypeGitLab is the Type for the gitlab alerting provider
 	TypeGitLab Type = "gitlab"
 
+	// TypeGitea is the Type for the gitea alerting provider
+	TypeGitea Type = "gitea"
+
 	// TypeGoogleChat is the Type for the googlechat alerting provider
 	TypeGoogleChat Type = "googlechat"
 
 	// TypeGotify is the Type for the gotify alerting provider
 	TypeGotify Type = "gotify"
+
+	// TypeHomeAssistant is the Type for the homeassistant alerting provider
+	TypeHomeAssistant Type = "homeassistant"
+
+	// TypeIncidentIO is the Type for the incident-io alerting provider
+	TypeIncidentIO Type = "incident-io"
+
+	// TypeJetBrainsSpace is the Type for the jetbrains alerting provider
+	TypeJetBrainsSpace Type = "jetbrainsspace"
 
 	// TypeMatrix is the Type for the matrix alerting provider
 	TypeMatrix Type = "matrix"
@@ -56,9 +68,15 @@ const (
 	// TypeTeams is the Type for the teams alerting provider
 	TypeTeams Type = "teams"
 
+	// TypeTeamsWorkflows is the Type for the teams-workflows alerting provider
+	TypeTeamsWorkflows Type = "teams-workflows"
+
 	// TypeTelegram is the Type for the telegram alerting provider
 	TypeTelegram Type = "telegram"
 
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
+
+	// TypeZulip is the Type for the Zulip alerting provider
+	TypeZulip Type = "zulip"
 )

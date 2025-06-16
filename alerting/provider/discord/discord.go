@@ -3,53 +3,81 @@ package discord
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
+
+var (
+	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
+
+type Config struct {
+	WebhookURL string `yaml:"webhook-url"`
+	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
+}
+
+func (cfg *Config) Validate() error {
+	if len(cfg.WebhookURL) == 0 {
+		return ErrWebhookURLNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.WebhookURL) > 0 {
+		cfg.WebhookURL = override.WebhookURL
+	}
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
+	}
+}
 
 // AlertProvider is the configuration necessary for sending an alert using Discord
 type AlertProvider struct {
-	WebhookURL string `yaml:"webhook-url"`
+	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
-
-	// Title is the title of the message that will be sent
-	Title string `yaml:"title,omitempty"`
 }
 
-// Override is a case under which the default integration is overridden
 type Override struct {
-	Group      string `yaml:"group"`
-	WebhookURL string `yaml:"webhook-url"`
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.WebhookURL) == 0 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	return len(provider.WebhookURL) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, provider.getWebhookURLForGroup(endpoint.Group), buffer)
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
 	}
@@ -75,7 +103,7 @@ type Embed struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Color       int     `json:"color"`
-	Fields      []Field `json:"fields"`
+	Fields      []Field `json:"fields,omitempty"`
 }
 
 type Field struct {
@@ -85,16 +113,17 @@ type Field struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results string
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	var message string
 	var colorCode int
 	if resolved {
-		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 		colorCode = 3066993
 	} else {
-		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for **%s** has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 		colorCode = 15158332
 	}
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -102,49 +131,69 @@ func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *
 		} else {
 			prefix = ":x:"
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
 	title := ":helmet_with_white_cross: Gatus"
-	if provider.Title != "" {
-		title = provider.Title
+	if cfg.Title != "" {
+		title = cfg.Title
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		Content: "",
 		Embeds: []Embed{
 			{
 				Title:       title,
 				Description: message + description,
 				Color:       colorCode,
-				Fields: []Field{
-					{
-						Name:   "Condition results",
-						Value:  results,
-						Inline: false,
-					},
-				},
 			},
 		},
-	})
-	return body
-}
-
-// getWebhookURLForGroup returns the appropriate Webhook URL integration to for a given group
-func (provider *AlertProvider) getWebhookURLForGroup(group string) string {
-	if provider.Overrides != nil {
-		for _, override := range provider.Overrides {
-			if group == override.Group {
-				return override.WebhookURL
-			}
-		}
 	}
-	return provider.WebhookURL
+	if len(formattedConditionResults) > 0 {
+		body.Embeds[0].Fields = append(body.Embeds[0].Fields, Field{
+			Name:   "Condition results",
+			Value:  formattedConditionResults,
+			Inline: false,
+		})
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

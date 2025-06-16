@@ -3,7 +3,7 @@ package metrics
 import (
 	"strconv"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -18,6 +18,7 @@ var (
 	resultConnectedTotal               *prometheus.CounterVec
 	resultCodeTotal                    *prometheus.CounterVec
 	resultCertificateExpirationSeconds *prometheus.GaugeVec
+	resultEndpointSuccess              *prometheus.GaugeVec
 )
 
 func initializePrometheusMetrics() {
@@ -46,28 +47,38 @@ func initializePrometheusMetrics() {
 		Name:      "results_certificate_expiration_seconds",
 		Help:      "Number of seconds until the certificate expires",
 	}, []string{"key", "group", "name", "type"})
+	resultEndpointSuccess = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_endpoint_success",
+		Help:      "Displays whether or not the endpoint was a success",
+	}, []string{"key", "group", "name", "type"})
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
-func PublishMetricsForEndpoint(endpoint *core.Endpoint, result *core.Result) {
+func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if !initializedMetrics {
 		initializePrometheusMetrics()
 		initializedMetrics = true
 	}
-	endpointType := endpoint.Type()
-	resultTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.FormatBool(result.Success)).Inc()
-	resultDurationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(result.Duration.Seconds())
+	endpointType := ep.Type()
+	resultTotal.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType), strconv.FormatBool(result.Success)).Inc()
+	resultDurationSeconds.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(result.Duration.Seconds())
 	if result.Connected {
-		resultConnectedTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Inc()
+		resultConnectedTotal.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Inc()
 	}
 	if result.DNSRCode != "" {
-		resultCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), result.DNSRCode).Inc()
+		resultCodeTotal.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType), result.DNSRCode).Inc()
 	}
 	if result.HTTPStatus != 0 {
-		resultCodeTotal.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)).Inc()
+		resultCodeTotal.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)).Inc()
 	}
 	if result.CertificateExpiration != 0 {
-		resultCertificateExpirationSeconds.WithLabelValues(endpoint.Key(), endpoint.Group, endpoint.Name, string(endpointType)).Set(result.CertificateExpiration.Seconds())
+		resultCertificateExpirationSeconds.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(result.CertificateExpiration.Seconds())
+	}
+	if result.Success {
+		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(1)
+	} else {
+		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(0)
 	}
 }

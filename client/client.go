@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -14,11 +15,17 @@ import (
 	"time"
 
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
+	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
+)
+
+const (
+	dnsPort = 53
 )
 
 var (
@@ -91,21 +98,22 @@ func CanCreateUDPConnection(address string, config *Config) bool {
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
 func CanCreateSCTPConnection(address string, config *Config) bool {
-	ch := make(chan bool)
+	ch := make(chan bool, 1)
 	go (func(res chan bool) {
 		addr, err := sctp.ResolveSCTPAddr("sctp", address)
 		if err != nil {
 			res <- false
+			return
 		}
 
 		conn, err := sctp.DialSCTP("sctp", nil, addr)
 		if err != nil {
 			res <- false
+			return
 		}
 		_ = conn.Close()
 		res <- true
 	})(ch)
-
 	select {
 	case result := <-ch:
 		return result
@@ -177,7 +185,6 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	} else {
 		port = "22"
 	}
-
 	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            username,
@@ -189,8 +196,35 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	if err != nil {
 		return false, nil, err
 	}
-
 	return true, cli, nil
+}
+
+func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+	dialer := net.Dialer{}
+	connStr := net.JoinHostPort(address, port)
+	conn, err := dialer.Dial("tcp", connStr)
+	if err != nil {
+		return false, 1, err
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	buf := make([]byte, 256)
+	_, err = io.ReadAtLeast(conn, buf, 1)
+	if err != nil {
+		return false, 1, err
+	}
+	return true, 0, err
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
@@ -198,37 +232,29 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	type Body struct {
 		Command string `json:"command"`
 	}
-
 	defer sshClient.Close()
-
 	var b Body
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
 		return false, 0, err
 	}
-
 	sess, err := sshClient.NewSession()
 	if err != nil {
 		return false, 0, err
 	}
-
 	err = sess.Start(b.Command)
 	if err != nil {
 		return false, 0, err
 	}
-
 	defer sess.Close()
-
 	err = sess.Wait()
 	if err == nil {
 		return true, 0, nil
 	}
-
-	e, ok := err.(*ssh.ExitError)
-	if !ok {
+	var exitErr *ssh.ExitError
+	if ok := errors.As(err, &exitErr); !ok {
 		return false, 0, err
 	}
-
-	return true, e.ExitStatus(), nil
+	return true, exitErr.ExitStatus(), nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
@@ -289,6 +315,58 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error reading websocket message: %w", err)
 	}
 	return true, msg[:n], nil
+}
+
+func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
+	if !strings.Contains(url, ":") {
+		url = fmt.Sprintf("%s:%d", url, dnsPort)
+	}
+	queryTypeAsUint16 := dns.StringToType[queryType]
+	c := new(dns.Client)
+	m := new(dns.Msg)
+	m.SetQuestion(queryName, queryTypeAsUint16)
+	r, _, err := c.Exchange(m, url)
+	if err != nil {
+		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
+		return false, "", nil, err
+	}
+	connected = true
+	dnsRcode = dns.RcodeToString[r.Rcode]
+	for _, rr := range r.Answer {
+		switch rr.Header().Rrtype {
+		case dns.TypeA:
+			if a, ok := rr.(*dns.A); ok {
+				body = []byte(a.A.String())
+			}
+		case dns.TypeAAAA:
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				body = []byte(aaaa.AAAA.String())
+			}
+		case dns.TypeCNAME:
+			if cname, ok := rr.(*dns.CNAME); ok {
+				body = []byte(cname.Target)
+			}
+		case dns.TypeMX:
+			if mx, ok := rr.(*dns.MX); ok {
+				body = []byte(mx.Mx)
+			}
+		case dns.TypeNS:
+			if ns, ok := rr.(*dns.NS); ok {
+				body = []byte(ns.Ns)
+			}
+		case dns.TypePTR:
+			if ptr, ok := rr.(*dns.PTR); ok {
+				body = []byte(ptr.Ptr)
+			}
+		case dns.TypeSRV:
+			if srv, ok := rr.(*dns.SRV); ok {
+				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
+			}
+		default:
+			body = []byte("query type is not supported yet")
+		}
+	}
+	return connected, dnsRcode, body, nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes

@@ -5,18 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
 )
 
 func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllEndpointStatuses.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetAllEndpointStatuses.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -53,11 +54,11 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 		for _, numberOfEndpointsToCreate := range numberOfEndpoints {
 			// Create endpoints and insert results
 			for i := 0; i < numberOfEndpointsToCreate; i++ {
-				endpoint := testEndpoint
-				endpoint.Name = "endpoint" + strconv.Itoa(i)
+				ep := testEndpoint
+				ep.Name = "endpoint" + strconv.Itoa(i)
 				// Insert 20 results for each endpoint
 				for j := 0; j < 20; j++ {
-					scenario.Store.Insert(&endpoint, &testSuccessfulResult)
+					scenario.Store.Insert(&ep, &testSuccessfulResult)
 				}
 			}
 			// Run the scenarios
@@ -81,11 +82,11 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 }
 
 func BenchmarkStore_Insert(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_Insert.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
@@ -123,7 +124,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 				b.RunParallel(func(pb *testing.PB) {
 					n := 0
 					for pb.Next() {
-						var result core.Result
+						var result endpoint.Result
 						if n%10 == 0 {
 							result = testUnsuccessfulResult
 						} else {
@@ -136,7 +137,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					var result core.Result
+					var result endpoint.Result
 					if n%10 == 0 {
 						result = testUnsuccessfulResult
 					} else {
@@ -153,11 +154,11 @@ func BenchmarkStore_Insert(b *testing.B) {
 }
 
 func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
-	memoryStore, err := memory.NewStore()
+	memoryStore, err := memory.NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}
-	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointStatusByKey.db", false)
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointStatusByKey.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		b.Fatal("failed to create store:", err.Error())
 	}

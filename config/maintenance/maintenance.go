@@ -6,12 +6,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // Required for IANA timezone support
 )
 
 var (
 	errInvalidMaintenanceStartFormat = errors.New("invalid maintenance start format: must be hh:mm, between 00:00 and 23:59 inclusively (e.g. 23:00)")
 	errInvalidMaintenanceDuration    = errors.New("invalid maintenance duration: must be bigger than 0 (e.g. 30m)")
 	errInvalidDayName                = fmt.Errorf("invalid value specified for 'on'. supported values are %s", longDayNames)
+	errInvalidTimezone               = errors.New("invalid timezone specified or format not supported. Use IANA timezone format (e.g. America/Sao_Paulo)")
 
 	longDayNames = []string{
 		"Sunday",
@@ -27,17 +29,19 @@ var (
 // Config allows for the configuration of a maintenance period.
 // During this maintenance period, no alerts will be sent.
 //
-// Uses UTC.
+// Uses UTC by default.
 type Config struct {
 	Enabled  *bool         `yaml:"enabled"`  // Whether the maintenance period is enabled. Enabled by default if nil.
 	Start    string        `yaml:"start"`    // Time at which the maintenance period starts (e.g. 23:00)
 	Duration time.Duration `yaml:"duration"` // Duration of the maintenance period (e.g. 4h)
+	Timezone string        `yaml:"timezone"` // Timezone in string format which the maintenance period is configured (e.g. America/Sao_Paulo)
 
 	// Every is a list of days of the week during which maintenance period applies.
 	// See longDayNames for list of valid values.
 	// Every day if empty.
 	Every []string `yaml:"every"`
 
+	TimezoneLocation            *time.Location // Timezone in location format which the maintenance period is configured
 	durationToStartFromMidnight time.Duration
 }
 
@@ -49,7 +53,7 @@ func GetDefaultConfig() *Config {
 }
 
 // IsEnabled returns whether maintenance is enabled or not
-func (c Config) IsEnabled() bool {
+func (c *Config) IsEnabled() bool {
 	if c.Enabled == nil {
 		return true
 	}
@@ -85,21 +89,34 @@ func (c *Config) ValidateAndSetDefaults() error {
 	if c.Duration <= 0 || c.Duration > 24*time.Hour {
 		return errInvalidMaintenanceDuration
 	}
+	if c.Timezone != "" {
+		c.TimezoneLocation, err = time.LoadLocation(c.Timezone)
+		if err != nil {
+			return fmt.Errorf("%w: %w", errInvalidTimezone, err)
+		}
+	} else {
+		c.Timezone = "UTC"
+		c.TimezoneLocation = time.UTC
+	}
 	return nil
 }
 
 // IsUnderMaintenance checks whether the endpoints that Gatus monitors are within the configured maintenance window
-func (c Config) IsUnderMaintenance() bool {
+func (c *Config) IsUnderMaintenance() bool {
 	if !c.IsEnabled() {
 		return false
 	}
-	now := time.Now().UTC()
-	var dayWhereMaintenancePeriodWouldStart time.Time
-	if now.Hour() >= int(c.durationToStartFromMidnight.Hours()) {
-		dayWhereMaintenancePeriodWouldStart = now.Truncate(24 * time.Hour)
-	} else {
-		dayWhereMaintenancePeriodWouldStart = now.Add(-c.Duration).Truncate(24 * time.Hour)
+	now := time.Now()
+	if c.TimezoneLocation != nil {
+		now = now.In(c.TimezoneLocation)
 	}
+	adjustedDate := now.Day()
+	if now.Hour() < int(c.durationToStartFromMidnight.Hours()) {
+		// if time in maintenance window is later than now, treat it as yesterday
+		adjustedDate--
+	}
+	// Set to midnight prior to adding duration
+	dayWhereMaintenancePeriodWouldStart := time.Date(now.Year(), now.Month(), adjustedDate, 0, 0, 0, 0, now.Location())
 	hasMaintenanceEveryDay := len(c.Every) == 0
 	hasMaintenancePeriodScheduledToStartOnThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
 	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledToStartOnThatWeekday {
@@ -112,7 +129,7 @@ func (c Config) IsUnderMaintenance() bool {
 	return now.After(startOfMaintenancePeriod) && now.Before(endOfMaintenancePeriod)
 }
 
-func (c Config) hasDay(day string) bool {
+func (c *Config) hasDay(day string) bool {
 	for _, d := range c.Every {
 		if d == day {
 			return true

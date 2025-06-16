@@ -7,7 +7,7 @@ updates:
       interval: "daily"
   - package-ecosystem: "gomod"
     directory: "/"
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 3
     labels: ["dependencies"]
     schedule:
       interval: "daily"

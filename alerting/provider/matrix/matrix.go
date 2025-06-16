@@ -3,6 +3,7 @@ package matrix
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -12,30 +13,19 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-// AlertProvider is the configuration necessary for sending an alert using Matrix
-type AlertProvider struct {
-	MatrixProviderConfig `yaml:",inline"`
+const defaultServerURL = "https://matrix-client.matrix.org"
 
-	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
-	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+var (
+	ErrAccessTokenNotSet      = errors.New("access-token not set")
+	ErrInternalRoomID         = errors.New("internal-room-id not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
 
-	// Overrides is a list of Override that may be prioritized over the default configuration
-	Overrides []Override `yaml:"overrides,omitempty"`
-}
-
-// Override is a case under which the default integration is overridden
-type Override struct {
-	Group string `yaml:"group"`
-
-	MatrixProviderConfig `yaml:",inline"`
-}
-
-const defaultHomeserverURL = "https://matrix-client.matrix.org"
-
-type MatrixProviderConfig struct {
+type Config struct {
 	// ServerURL is the custom homeserver to use (optional)
 	ServerURL string `yaml:"server-url"`
 
@@ -46,36 +36,78 @@ type MatrixProviderConfig struct {
 	InternalRoomID string `yaml:"internal-room-id"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
+func (cfg *Config) Validate() error {
+	if len(cfg.ServerURL) == 0 {
+		cfg.ServerURL = defaultServerURL
+	}
+	if len(cfg.AccessToken) == 0 {
+		return ErrAccessTokenNotSet
+	}
+	if len(cfg.InternalRoomID) == 0 {
+		return ErrInternalRoomID
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if len(override.ServerURL) > 0 {
+		cfg.ServerURL = override.ServerURL
+	}
+	if len(override.AccessToken) > 0 {
+		cfg.AccessToken = override.AccessToken
+	}
+	if len(override.InternalRoomID) > 0 {
+		cfg.InternalRoomID = override.InternalRoomID
+	}
+}
+
+// AlertProvider is the configuration necessary for sending an alert using Matrix
+type AlertProvider struct {
+	DefaultConfig Config `yaml:",inline"`
+
+	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
+	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
 			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || len(override.AccessToken) == 0 || len(override.InternalRoomID) == 0 {
-				return false
+				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
 		}
 	}
-	return len(provider.AccessToken) > 0 && len(provider.InternalRoomID) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	config := provider.getConfigForGroup(endpoint.Group)
-	if config.ServerURL == "" {
-		config.ServerURL = defaultHomeserverURL
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
 	}
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
 	// The Matrix endpoint requires a unique transaction ID for each event sent
 	txnId := randStringBytes(24)
 	request, err := http.NewRequest(
 		http.MethodPut,
 		fmt.Sprintf("%s/_matrix/client/v3/rooms/%s/send/m.room.message/%s?access_token=%s",
-			config.ServerURL,
-			url.PathEscape(config.InternalRoomID),
+			cfg.ServerURL,
+			url.PathEscape(cfg.InternalRoomID),
 			txnId,
-			url.QueryEscape(config.AccessToken),
+			url.QueryEscape(cfg.AccessToken),
 		),
 		buffer,
 	)
@@ -103,24 +135,25 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	body, _ := json.Marshal(Body{
 		MsgType:       "m.text",
 		Format:        "org.matrix.custom.html",
-		Body:          buildPlaintextMessageBody(endpoint, alert, result, resolved),
-		FormattedBody: buildHTMLMessageBody(endpoint, alert, result, resolved),
+		Body:          buildPlaintextMessageBody(ep, alert, result, resolved),
+		FormattedBody: buildHTMLMessageBody(ep, alert, result, resolved),
 	})
 	return body
 }
 
 // buildPlaintextMessageBody builds the message body in plaintext to include in request
-func buildPlaintextMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
-	var message, results string
+func buildPlaintextMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
+	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for `%s` has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for `%s` has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
+	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
@@ -128,49 +161,42 @@ func buildPlaintextMessageBody(endpoint *core.Endpoint, alert *alert.Alert, resu
 		} else {
 			prefix = "✕"
 		}
-		results += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
+		formattedConditionResults += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = "\n" + alertDescription
 	}
-	return fmt.Sprintf("%s%s\n%s", message, description, results)
+	return fmt.Sprintf("%s%s\n%s", message, description, formattedConditionResults)
 }
 
 // buildHTMLMessageBody builds the message body in HTML to include in request
-func buildHTMLMessageBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) string {
-	var message, results string
+func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
+	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for <code>%s</code> has been resolved after passing successfully %d time(s) in a row", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for <code>%s</code> has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for <code>%s</code> has been triggered due to having failed %d time(s) in a row", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for <code>%s</code> has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✅"
-		} else {
-			prefix = "❌"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n<h5>Condition results</h5><ul>"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("<li>%s - <code>%s</code></li>", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("<li>%s - <code>%s</code></li>", prefix, conditionResult.Condition)
+		formattedConditionResults += "</ul>"
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = fmt.Sprintf("\n<blockquote>%s</blockquote>", alertDescription)
 	}
-	return fmt.Sprintf("<h3>%s</h3>%s\n<h5>Condition results</h5><ul>%s</ul>", message, description, results)
-}
-
-// getConfigForGroup returns the appropriate configuration for a given group
-func (provider *AlertProvider) getConfigForGroup(group string) MatrixProviderConfig {
-	if provider.Overrides != nil {
-		for _, override := range provider.Overrides {
-			if group == override.Group {
-				return override.MatrixProviderConfig
-			}
-		}
-	}
-	return provider.MatrixProviderConfig
+	return fmt.Sprintf("<h3>%s</h3>%s%s", message, description, formattedConditionResults)
 }
 
 func randStringBytes(n int) string {
@@ -187,4 +213,35 @@ func randStringBytes(n int) string {
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

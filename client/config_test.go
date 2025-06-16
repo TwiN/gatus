@@ -106,3 +106,66 @@ func TestConfig_getHTTPClient_withCustomProxyURL(t *testing.T) {
 		t.Errorf("expected Config.ProxyURL to set the HTTP client's proxy to %s", proxyURL)
 	}
 }
+
+func TestConfig_TlsIsValid(t *testing.T) {
+	tests := []struct {
+		name        string
+		cfg         *Config
+		expectedErr bool
+	}{
+		{
+			name:        "good-tls-config",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"}},
+			expectedErr: false,
+		},
+		{
+			name:        "missing-certificate-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "doesnotexist", PrivateKeyFile: "../testdata/cert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "bad-certificate-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/badcert.pem", PrivateKeyFile: "../testdata/cert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "no-certificate-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "", PrivateKeyFile: "../testdata/cert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "missing-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "doesnotexist"}},
+			expectedErr: true,
+		},
+		{
+			name:        "no-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: ""}},
+			expectedErr: true,
+		},
+		{
+			name:        "bad-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/badcert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "bad-certificate-and-private-key-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/badcert.pem", PrivateKeyFile: "../testdata/badcert.key"}},
+			expectedErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.cfg.TLS.isValid()
+			if (err != nil) != test.expectedErr {
+				t.Errorf("expected the existence of an error to be %v, got %v", test.expectedErr, err)
+				return
+			}
+			if !test.expectedErr {
+				if test.cfg.TLS.isValid() != nil {
+					t.Error("cfg.TLS.isValid() returned an error even though no error was expected")
+				}
+			}
+		})
+	}
+}

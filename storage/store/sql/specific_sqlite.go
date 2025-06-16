@@ -66,7 +66,39 @@ func (s *Store) createSQLiteSchema() error {
 			UNIQUE(endpoint_id, hour_unix_timestamp)
 		)
 	`)
-	// Silent table modifications TODO: Remove this
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS endpoint_alerts_triggered (
+			endpoint_alert_trigger_id     INTEGER PRIMARY KEY,
+			endpoint_id                   INTEGER NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
+		    configuration_checksum        TEXT    NOT NULL,
+		    resolve_key		              TEXT    NOT NULL,
+			number_of_successes_in_a_row  INTEGER NOT NULL,
+			UNIQUE(endpoint_id, configuration_checksum)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	// Create indices for performance reasons
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_results_endpoint_id_idx ON endpoint_results (endpoint_id);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_uptimes_endpoint_id_idx ON endpoint_uptimes (endpoint_id);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_result_conditions_endpoint_result_id_idx ON endpoint_result_conditions (endpoint_result_id);
+	`)
+	// Silent table modifications TODO: Remove this in v6.0.0
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD domain_expiration INTEGER NOT NULL DEFAULT 0`)
 	return err
 }

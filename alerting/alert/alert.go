@@ -1,8 +1,14 @@
 package alert
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
+
+	"github.com/TwiN/logr"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -10,7 +16,7 @@ var (
 	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
 )
 
-// Alert is a core.Endpoint's alert configuration
+// Alert is endpoint.Endpoint's alert configuration
 type Alert struct {
 	// Type of alert (required)
 	Type Type `yaml:"type"`
@@ -26,20 +32,24 @@ type Alert struct {
 	// FailureThreshold is the number of failures in a row needed before triggering the alert
 	FailureThreshold int `yaml:"failure-threshold"`
 
+	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
+	SuccessThreshold int `yaml:"success-threshold"`
+
 	// Description of the alert. Will be included in the alert sent.
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work.
-	Description *string `yaml:"description"`
+	Description *string `yaml:"description,omitempty"`
 
 	// SendOnResolved defines whether to send a second notification when the issue has been resolved
 	//
 	// This is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value
 	// or not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer
-	SendOnResolved *bool `yaml:"send-on-resolved"`
+	SendOnResolved *bool `yaml:"send-on-resolved,omitempty"`
 
-	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
-	SuccessThreshold int `yaml:"success-threshold"`
+	// ProviderOverride is an optional field that can be used to override the provider's configuration
+	// It is freeform so that it can be used for any provider-specific configuration.
+	ProviderOverride map[string]any `yaml:"provider-override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
@@ -71,7 +81,7 @@ func (alert *Alert) ValidateAndSetDefaults() error {
 }
 
 // GetDescription retrieves the description of the alert
-func (alert Alert) GetDescription() string {
+func (alert *Alert) GetDescription() string {
 	if alert.Description == nil {
 		return ""
 	}
@@ -80,7 +90,7 @@ func (alert Alert) GetDescription() string {
 
 // IsEnabled returns whether an alert is enabled or not
 // Returns true if not set
-func (alert Alert) IsEnabled() bool {
+func (alert *Alert) IsEnabled() bool {
 	if alert.Enabled == nil {
 		return true
 	}
@@ -88,9 +98,31 @@ func (alert Alert) IsEnabled() bool {
 }
 
 // IsSendingOnResolved returns whether an alert is sending on resolve or not
-func (alert Alert) IsSendingOnResolved() bool {
+func (alert *Alert) IsSendingOnResolved() bool {
 	if alert.SendOnResolved == nil {
 		return false
 	}
 	return *alert.SendOnResolved
+}
+
+// Checksum returns a checksum of the alert
+// Used to determine which persisted triggered alert should be deleted on application start
+func (alert *Alert) Checksum() string {
+	hash := sha256.New()
+	hash.Write([]byte(string(alert.Type) + "_" +
+		strconv.FormatBool(alert.IsEnabled()) + "_" +
+		strconv.FormatBool(alert.IsSendingOnResolved()) + "_" +
+		strconv.Itoa(alert.SuccessThreshold) + "_" +
+		strconv.Itoa(alert.FailureThreshold) + "_" +
+		alert.GetDescription()),
+	)
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (alert *Alert) ProviderOverrideAsBytes() []byte {
+	yamlBytes, err := yaml.Marshal(alert.ProviderOverride)
+	if err != nil {
+		logr.Warnf("[alert.ProviderOverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
+	}
+	return yamlBytes
 }

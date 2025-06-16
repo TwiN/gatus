@@ -2,11 +2,11 @@ package security
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/TwiN/logr"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -124,7 +124,7 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 			return
 		}
 	}
-	log.Printf("[security][callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
+	logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 

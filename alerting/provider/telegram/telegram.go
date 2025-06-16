@@ -3,51 +3,105 @@ package telegram
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/gatus/v5/core"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"gopkg.in/yaml.v3"
 )
 
-const defaultAPIURL = "https://api.telegram.org"
+const defaultApiUrl = "https://api.telegram.org"
+
+var (
+	ErrTokenNotSet            = errors.New("token not set")
+	ErrIDNotSet               = errors.New("id not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+)
+
+type Config struct {
+	Token  string `yaml:"token"`
+	ID     string `yaml:"id"`
+	ApiUrl string `yaml:"api-url"`
+
+	ClientConfig *client.Config `yaml:"client,omitempty"`
+}
+
+func (cfg *Config) Validate() error {
+	if len(cfg.ApiUrl) == 0 {
+		cfg.ApiUrl = defaultApiUrl
+	}
+	if len(cfg.Token) == 0 {
+		return ErrTokenNotSet
+	}
+	if len(cfg.ID) == 0 {
+		return ErrIDNotSet
+	}
+	return nil
+}
+
+func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
+	if len(override.Token) > 0 {
+		cfg.Token = override.Token
+	}
+	if len(override.ID) > 0 {
+		cfg.ID = override.ID
+	}
+	if len(override.ApiUrl) > 0 {
+		cfg.ApiUrl = override.ApiUrl
+	}
+}
 
 // AlertProvider is the configuration necessary for sending an alert using Telegram
 type AlertProvider struct {
-	Token  string `yaml:"token"`
-	ID     string `yaml:"id"`
-	APIURL string `yaml:"api-url"`
-
-	// ClientConfig is the configuration of the client used to communicate with the provider's target
-	ClientConfig *client.Config `yaml:"client,omitempty"`
+	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of overrides that may be prioritized over the default configuration
+	Overrides []*Override `yaml:"overrides,omitempty"`
 }
 
-// IsValid returns whether the provider's configuration is valid
-func (provider *AlertProvider) IsValid() bool {
-	if provider.ClientConfig == nil {
-		provider.ClientConfig = client.GetDefaultConfig()
+// Override is a configuration that may be prioritized over the default configuration
+type Override struct {
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
+}
+
+// Validate the provider's configuration
+func (provider *AlertProvider) Validate() error {
+	registeredGroups := make(map[string]bool)
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
+				return ErrDuplicateGroupOverride
+			}
+			registeredGroups[override.Group] = true
+		}
 	}
-	return len(provider.Token) > 0 && len(provider.ID) > 0
+	return provider.DefaultConfig.Validate()
 }
 
 // Send an alert using the provider
-func (provider *AlertProvider) Send(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) error {
-	buffer := bytes.NewBuffer(provider.buildRequestBody(endpoint, alert, result, resolved))
-	apiURL := provider.APIURL
-	if apiURL == "" {
-		apiURL = defaultAPIURL
+func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
+	cfg, err := provider.GetConfig(ep.Group, alert)
+	if err != nil {
+		return err
 	}
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", apiURL, provider.Token), buffer)
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", cfg.ApiUrl, cfg.Token), buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(provider.ClientConfig).Do(request)
+	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
@@ -66,37 +120,72 @@ type Body struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(endpoint *core.Endpoint, alert *alert.Alert, result *core.Result, resolved bool) []byte {
-	var message, results string
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", endpoint.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", ep.DisplayName(), alert.FailureThreshold)
 	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✅"
-		} else {
-			prefix = "❌"
+	var formattedConditionResults string
+	if len(result.ConditionResults) > 0 {
+		formattedConditionResults = "\n*Condition results*\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 		}
-		results += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
 	var text string
 	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n\n*Condition results*\n%s", message, alert.GetDescription(), results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n%s", message, alert.GetDescription(), formattedConditionResults)
 	} else {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Condition results*\n%s", message, results)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}
-	body, _ := json.Marshal(Body{
-		ChatID:    provider.ID,
+	bodyAsJSON, _ := json.Marshal(Body{
+		ChatID:    cfg.ID,
 		Text:      text,
 		ParseMode: "MARKDOWN",
 	})
-	return body
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
 func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 	return provider.DefaultAlert
+}
+
+// GetConfig returns the configuration for the provider with the overrides applied
+func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
+	// Handle alert overrides
+	if len(alert.ProviderOverride) != 0 {
+		overrideConfig := Config{}
+		if err := yaml.Unmarshal(alert.ProviderOverrideAsBytes(), &overrideConfig); err != nil {
+			return nil, err
+		}
+		cfg.Merge(&overrideConfig)
+	}
+	// Validate the configuration
+	err := cfg.Validate()
+	return &cfg, err
+}
+
+// ValidateOverrides validates the alert's provider override and, if present, the group override
+func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(group, alert)
+	return err
 }

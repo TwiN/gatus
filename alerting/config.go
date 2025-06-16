@@ -1,7 +1,6 @@
 package alerting
 
 import (
-	"log"
 	"reflect"
 	"strings"
 
@@ -11,10 +10,14 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
+	"github.com/TwiN/gatus/v5/alerting/provider/homeassistant"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
+	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
@@ -24,8 +27,11 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
+	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
+	"github.com/TwiN/logr"
 )
 
 // Config is the configuration for alerting providers
@@ -48,11 +54,23 @@ type Config struct {
 	// GitLab is the configuration for the gitlab alerting provider
 	GitLab *gitlab.AlertProvider `yaml:"gitlab,omitempty"`
 
+	// Gitea is the configuration for the gitea alerting provider
+	Gitea *gitea.AlertProvider `yaml:"gitea,omitempty"`
+
 	// GoogleChat is the configuration for the googlechat alerting provider
 	GoogleChat *googlechat.AlertProvider `yaml:"googlechat,omitempty"`
 
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
+
+	// HomeAssistant is the configuration for the homeassistant alerting provider
+	HomeAssistant *homeassistant.AlertProvider `yaml:"homeassistant,omitempty"`
+
+	// IncidentIO is the configuration for the incident-io alerting provider
+	IncidentIO *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
+
+	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
+	JetBrainsSpace *jetbrainsspace.AlertProvider `yaml:"jetbrainsspace,omitempty"`
 
 	// Matrix is the configuration for the matrix alerting provider
 	Matrix *matrix.AlertProvider `yaml:"matrix,omitempty"`
@@ -81,11 +99,17 @@ type Config struct {
 	// Teams is the configuration for the teams alerting provider
 	Teams *teams.AlertProvider `yaml:"teams,omitempty"`
 
+	// TeamsWorkflows is the configuration for the teams alerting provider using the new Workflow App Webhook Connector
+	TeamsWorkflows *teamsworkflows.AlertProvider `yaml:"teams-workflows,omitempty"`
+
 	// Telegram is the configuration for the telegram alerting provider
 	Telegram *telegram.AlertProvider `yaml:"telegram,omitempty"`
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`
+
+	// Zulip is the configuration for the zulip alerting provider
+	Zulip *zulip.AlertProvider `yaml:"zulip,omitempty"`
 }
 
 // GetAlertingProviderByAlertType returns an provider.AlertProvider by its corresponding alert.Type
@@ -102,7 +126,7 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 			return fieldValue.Interface().(provider.AlertProvider)
 		}
 	}
-	log.Printf("[alerting][GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
+	logr.Infof("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
 	return nil
 }
 

@@ -2,10 +2,10 @@ package security
 
 import (
 	"encoding/base64"
-	"log"
 	"net/http"
 
 	g8 "github.com/TwiN/g8/v2"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -99,7 +99,7 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
 		request, err := adaptor.ConvertRequest(ctx, false)
 		if err != nil {
-			log.Printf("[IsAuthenticated] Unexpected error converting request: %v", err)
+			logr.Errorf("[security.IsAuthenticated] Unexpected error converting request: %v", err)
 			return false
 		}
 		token := c.gate.ExtractTokenFromRequest(request)

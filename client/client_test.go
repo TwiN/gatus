@@ -2,11 +2,15 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io"
 	"net/http"
+	"net/netip"
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -197,6 +201,24 @@ func TestCanPerformTLS(t *testing.T) {
 			wantConnected: true,
 			wantErr:       false,
 		},
+		{
+			name: "bad cert with insecure true",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: true,
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+		{
+			name: "bad cert with insecure false",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: false,
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -276,7 +298,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 	// to us as `X-Org-Authorization` header, we check here if the value matches
 	// our expected token `secret-token`
 	if response.Header.Get("X-Org-Authorization") != "Bearer secret-token" {
-		t.Error("exptected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
+		t.Error("expected `secret-token` as Bearer token in the mocked response header `X-Org-Authorization`, but got", response.Header.Get("X-Org-Authorization"))
 	}
 }
 
@@ -289,4 +311,201 @@ func TestQueryWebSocket(t *testing.T) {
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
 	}
+}
+
+func TestTlsRenegotiation(t *testing.T) {
+	tests := []struct {
+		name           string
+		cfg            TLSConfig
+		expectedConfig tls.RenegotiationSupport
+	}{
+		{
+			name:           "default",
+			cfg:            TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "never",
+			cfg:            TLSConfig{RenegotiationSupport: "never", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+		{
+			name:           "once",
+			cfg:            TLSConfig{RenegotiationSupport: "once", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateOnceAsClient,
+		},
+		{
+			name:           "freely",
+			cfg:            TLSConfig{RenegotiationSupport: "freely", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateFreelyAsClient,
+		},
+		{
+			name:           "not-valid-and-broken",
+			cfg:            TLSConfig{RenegotiationSupport: "invalid", CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key"},
+			expectedConfig: tls.RenegotiateNever,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tls := &tls.Config{}
+			tlsConfig := configureTLS(tls, test.cfg)
+			if tlsConfig.Renegotiation != test.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			}
+		})
+	}
+}
+
+func TestQueryDNS(t *testing.T) {
+	scenarios := []struct {
+		name            string
+		inputDNS        dns.Config
+		inputURL        string
+		expectedDNSCode string
+		expectedBody    string
+		isErrExpected   bool
+	}{
+		{
+			name: "test Config with type A",
+			inputDNS: dns.Config{
+				QueryType: "A",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "__IPV4__",
+		},
+		{
+			name: "test Config with type AAAA",
+			inputDNS: dns.Config{
+				QueryType: "AAAA",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "__IPV6__",
+		},
+		{
+			name: "test Config with type CNAME",
+			inputDNS: dns.Config{
+				QueryType: "CNAME",
+				QueryName: "en.wikipedia.org.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dyna.wikimedia.org.",
+		},
+		{
+			name: "test Config with type MX",
+			inputDNS: dns.Config{
+				QueryType: "MX",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    ".",
+		},
+		{
+			name: "test Config with type NS",
+			inputDNS: dns.Config{
+				QueryType: "NS",
+				QueryName: "example.com.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "*.iana-servers.net.",
+		},
+		{
+			name: "test Config with type PTR",
+			inputDNS: dns.Config{
+				QueryType: "PTR",
+				QueryName: "8.8.8.8.in-addr.arpa.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dns.google.",
+		},
+		{
+			name: "test Config with fake type and retrieve error",
+			inputDNS: dns.Config{
+				QueryType: "B",
+				QueryName: "example",
+			},
+			inputURL:      "8.8.8.8",
+			isErrExpected: true,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, dnsRCode, body, err := QueryDNS(scenario.inputDNS.QueryType, scenario.inputDNS.QueryName, scenario.inputURL)
+			if scenario.isErrExpected && err == nil {
+				t.Errorf("there should be an error")
+			}
+			if dnsRCode != scenario.expectedDNSCode {
+				t.Errorf("expected DNSRCode to be %s, got %s", scenario.expectedDNSCode, dnsRCode)
+			}
+			if scenario.inputDNS.QueryType == "NS" {
+				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
+				if !pattern.Match(scenario.expectedBody, string(body)) {
+					t.Errorf("got %s, expected result %s,", string(body), scenario.expectedBody)
+				}
+			} else {
+				if string(body) != scenario.expectedBody {
+					// little hack to validate arbitrary ipv4/ipv6
+					switch scenario.expectedBody {
+					case "__IPV4__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is4() {
+							t.Errorf("got %s, expected valid IPv4", string(body))
+						}
+					case "__IPV6__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is6() {
+							t.Errorf("got %s, expected valid IPv6", string(body))
+						}
+					default:
+						t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+					}
+				}
+			}
+		})
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestCheckSSHBanner(t *testing.T) {
+	cfg := &Config{Timeout: 3}
+
+	t.Run("no-auth-ssh", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
+
+		if err != nil {
+			t.Errorf("Expected: error != nil, got: %v ", err)
+		}
+
+		if connected == false {
+			t.Errorf("Expected: connected == true, got: %v", connected)
+		}
+		if status != 0 {
+			t.Errorf("Expected: 0, got: %v", status)
+		}
+	})
+
+	t.Run("invalid-address", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
+
+		if err == nil {
+			t.Errorf("Expected: error, got: %v ", err)
+		}
+
+		if connected != false {
+			t.Errorf("Expected: connected == false, got: %v", connected)
+		}
+		if status != 1 {
+			t.Errorf("Expected: 1, got: %v", status)
+		}
+	})
+
 }
