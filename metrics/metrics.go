@@ -13,12 +13,13 @@ const namespace = "gatus" // The prefix of the metrics
 var (
 	initializedMetrics bool // Whether the metrics have been initialized
 
-	resultTotal                        *prometheus.CounterVec
-	resultDurationSeconds              *prometheus.GaugeVec
-	resultConnectedTotal               *prometheus.CounterVec
-	resultCodeTotal                    *prometheus.CounterVec
-	resultCertificateExpirationSeconds *prometheus.GaugeVec
-	resultEndpointSuccess              *prometheus.GaugeVec
+	resultTotal                             *prometheus.CounterVec
+	resultDurationSeconds                   *prometheus.GaugeVec
+	resultConnectedTotal                    *prometheus.CounterVec
+	resultCodeTotal                         *prometheus.CounterVec
+	resultCertificateExpirationSeconds      *prometheus.GaugeVec
+	resultEndpointSuccess                   *prometheus.GaugeVec
+	resultCertificateChainExpirationSeconds *prometheus.GaugeVec
 )
 
 func initializePrometheusMetrics() {
@@ -52,6 +53,11 @@ func initializePrometheusMetrics() {
 		Name:      "results_endpoint_success",
 		Help:      "Displays whether or not the endpoint was a success",
 	}, []string{"key", "group", "name", "type"})
+	resultCertificateChainExpirationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_certificate_chain_expiration_seconds",
+		Help:      "Number of seconds until each certificate in the chain expires",
+	}, []string{"key", "group", "name", "type", "subject", "issuer"})
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
@@ -80,5 +86,18 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result) {
 		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(1)
 	} else {
 		resultEndpointSuccess.WithLabelValues(ep.Key(), ep.Group, ep.Name, string(endpointType)).Set(0)
+	}
+
+	if len(result.CertificateChain) > 0 {
+		for _, cert := range result.CertificateChain {
+			resultCertificateChainExpirationSeconds.WithLabelValues(
+				ep.Key(),
+				ep.Group,
+				ep.Name,
+				string(endpointType),
+				cert.Subject,
+				cert.Issuer,
+			).Set(cert.ExpiresIn.Seconds())
+		}
 	}
 }
