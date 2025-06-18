@@ -3,6 +3,7 @@ package watchdog
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -30,14 +31,26 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		if !endpointAlert.IsEnabled() || endpointAlert.FailureThreshold > ep.NumberOfFailuresInARow {
 			continue
 		}
-		if endpointAlert.Triggered {
-			logr.Debugf("[watchdog.handleAlertsToTrigger] Alert for endpoint with key=%s with description='%s' has already been TRIGGERED, skipping", ep.Key(), endpointAlert.GetDescription())
+		// Determine if an initial alert should be sent
+		sendInitialAlert := !endpointAlert.Triggered
+		// Determine if a reminder should be sent
+		sendReminder := endpointAlert.Triggered && endpointAlert.MinimumRepeatInterval > 0 && time.Since(endpoint.LastReminderSent) >= endpointAlert.MinimumRepeatInterval
+		// If neither initial alert nor reminder needs to be sent, skip to the next alert
+		if !sendInitialAlert && !sendReminder {
+			if debug {
+				log.Debugf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' is not due for triggering or reminding, skipping", endpoint.Name, endpointAlert.GetDescription())
+			}
 			continue
 		}
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
 			logr.Infof("[watchdog.handleAlertsToTrigger] Sending %s alert because alert for endpoint with key=%s with description='%s' has been TRIGGERED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
 			var err error
+			alertType := "reminder"
+			if sendInitialAlert {
+				alertType = "initial"
+			}
+			log.Printf("[watchdog.handleAlertsToTrigger] Sending %s %s alert because alert for endpoint=%s with description='%s' has been TRIGGERED", alertType, endpointAlert.Type, endpoint.Name, endpointAlert.GetDescription())
 			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
 				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
 					err = errors.New("error")
@@ -48,10 +61,14 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToTrigger] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 			} else {
-				endpointAlert.Triggered = true
-				if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
-					logr.Errorf("[watchdog.handleAlertsToTrigger] Failed to persist triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				// Mark initial alert as triggered and update last reminder time
+				if sendInitialAlert {
+					endpointAlert.Triggered = true
 				}
+				endpoint.LastReminderSent = time.Now()
+				if err := store.Get().UpsertTriggeredEndpointAlert(ep, endpointAlert); err != nil {
+                    logr.Errorf("[watchdog.handleAlertsToTrigger] Failed to persist triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+                }
 			}
 		} else {
 			logr.Warnf("[watchdog.handleAlertsToTrigger] Not sending alert of type=%s endpoint with key=%s despite being TRIGGERED, because the provider wasn't configured properly", endpointAlert.Type, ep.Key())
