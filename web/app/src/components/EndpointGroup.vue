@@ -2,7 +2,7 @@
   <div :class="endpoints.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
       <div class="endpoint-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
-        <h5 class="font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500">
+        <h5 class="font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-300 dark:border-gray-500" :style="{ fontSize: fontSize }">
           <span class="endpoint-group-arrow mr-2">
             {{ collapsed ? '&#9660;' : '&#9650;' }}
           </span>
@@ -82,7 +82,17 @@ export default {
       unhealthyCount: 0,
       collapsed: localStorage.getItem(`gatus:endpoint-group:${this.name}:collapsed`) === "true"
     }
-  }
+  },
+  computed: {
+    fontSize() {
+      const fontSizeParam = this.$route?.query?.font_size;
+
+      if (fontSizeParam) {
+        return `${fontSizeParam}px !important`;
+      }
+      return null;
+    }
+  },
 }
 </script>
 
