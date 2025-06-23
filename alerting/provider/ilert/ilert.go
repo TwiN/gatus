@@ -98,7 +98,6 @@ type Body struct {
 	Alert            alert.Alert                 `json:"alert"`
 	Name             string                      `json:"name"`
 	Group            string                      `json:"group"`
-	Type             string                      `json:"type"`
 	Status           string                      `json:"status"`
 	Title            string                      `json:"title"`
 	Details          string                      `json:"details,omitempty"`
@@ -125,7 +124,6 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Alert:            *alert,
 		Name:             ep.Name,
 		Group:            ep.Group,
-		Type:             string(ep.Type()),
 		Title:            ep.DisplayName(),
 		Status:           status,
 		Details:          details,
