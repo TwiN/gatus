@@ -32,6 +32,9 @@ const (
 	// TypeGotify is the Type for the gotify alerting provider
 	TypeGotify Type = "gotify"
 
+  // TypeHomeAssistant is the Type for the homeassistant alerting provider
+	TypeHomeAssistant Type = "homeassistant"
+  
 	// TypeIlert is the Type for the ilert alerting provider
 	TypeIlert Type = "ilert"
 

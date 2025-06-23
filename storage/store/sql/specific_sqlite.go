@@ -79,6 +79,25 @@ func (s *Store) createSQLiteSchema() error {
 			UNIQUE(endpoint_id, configuration_checksum)
 		)
 	`)
+	if err != nil {
+		return err
+	}
+	// Create indices for performance reasons
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_results_endpoint_id_idx ON endpoint_results (endpoint_id);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_uptimes_endpoint_id_idx ON endpoint_uptimes (endpoint_id);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS endpoint_result_conditions_endpoint_result_id_idx ON endpoint_result_conditions (endpoint_result_id);
+	`)
 	// Silent table modifications TODO: Remove this in v6.0.0
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD domain_expiration INTEGER NOT NULL DEFAULT 0`)
 	return err

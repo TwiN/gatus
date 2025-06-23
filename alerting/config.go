@@ -15,7 +15,8 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
-	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
+  "github.com/TwiN/gatus/v5/alerting/provider/homeassistant"
+  "github.com/TwiN/gatus/v5/alerting/provider/ilert"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
@@ -62,7 +63,10 @@ type Config struct {
 
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
-
+  
+	// HomeAssistant is the configuration for the homeassistant alerting provider
+	HomeAssistant *homeassistant.AlertProvider `yaml:"homeassistant,omitempty"`
+  
 	// Ilert is the configuration for the ilert alerting provider
 	Ilert *ilert.AlertProvider `yaml:"ilert,omitempty"`
 
