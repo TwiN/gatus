@@ -60,6 +60,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
     - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
+    - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
@@ -590,6 +591,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
+| `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
@@ -896,6 +898,51 @@ endpoints:
 | `alerting.gotify.priority`                    | Priority of the alert according to Gotify standards.                                        | `5`                   |
 | `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
+
+#### Configuring ilert alerts
+| Parameter                              | Description                                                                                | Default |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.ilert`                   | Configuration for alerts of type `ilert`                                               | `{}`    |
+| `alerting.ilert.integration-key`   | ilert Alert Source integration key                                                    | `""`    |
+| `alerting.ilert.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.ilert.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.ilert.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.ilert.overrides[].*`     | See `alerting.ilert.*` parameters                                                      | `{}`    |
+
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
+of type `ilert`, because unlike other alerts, the operation resulting from setting said
+parameter to `true` will not create another alert but mark the alert as resolved on
+ilert instead.
+
+Behavior:
+- By default, `alerting.ilert.integration-key` is used as the integration key
+- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.ilert.overrides[].group`, the provider will use that override's integration key instead of `alerting.ilert.integration-key`'s
+
+```yaml
+alerting:
+  ilert:
+    integration-key: "********************************"
+    # You can also add group-specific integration keys, which will
+    # override the integration key above for the specified groups
+    overrides:
+      - group: "core"
+        integration-key: "********************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ilert
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 ```yaml
 alerting:
