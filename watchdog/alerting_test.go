@@ -523,40 +523,41 @@ func TestHandleAlertingWithMinimumRepeatInterval(t *testing.T) {
 	defer os.Clearenv()
 
 	cfg := &config.Config{
-		Debug: true,
 		Alerting: &alerting.Config{
 			Custom: &custom.AlertProvider{
-				URL:    "https://twin.sh/health",
-				Method: "GET",
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
 			},
 		},
 	}
 	enabled := true
-	endpoint := &core.Endpoint{
+	ep := &endpoint.Endpoint{
 		URL: "https://example.com",
 		Alerts: []*alert.Alert{
 			{
-				Type:                    alert.TypeCustom,
-				Enabled:                 &enabled,
-				FailureThreshold:        2,
-				SuccessThreshold:        3,
-				SendOnResolved:          &enabled,
-				Triggered:               false,
-				MinimumRepeatInterval:   1 * time.Second,
+				Type:                  alert.TypeCustom,
+				Enabled:               &enabled,
+				FailureThreshold:      2,
+				SuccessThreshold:      3,
+				SendOnResolved:        &enabled,
+				Triggered:             false,
+				MinimumRepeatInterval: 1 * time.Second,
 			},
 		},
 	}
 
-	verify(t, endpoint, 0, 0, false, "The alert shouldn't start triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 1, 0, false, "The alert shouldn't have triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 2, 0, true, "The alert should've triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 3, 0, true, "The alert should still be triggered")
-	HandleAlerting(endpoint, &core.Result{Success: false}, cfg.Alerting, cfg.Debug)
-	verify(t, endpoint, 4, 0, true, "The alert should still be triggered")
-	HandleAlerting(endpoint, &core.Result{Success: true}, cfg.Alerting, cfg.Debug)
+	verify(t, ep, 0, 0, false, "The alert shouldn't start triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+	verify(t, ep, 1, 0, false, "The alert shouldn't have triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+	verify(t, ep, 2, 0, true, "The alert should've triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+	verify(t, ep, 3, 0, true, "The alert should still be triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+	verify(t, ep, 4, 0, true, "The alert should still be triggered")
+	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
 }
 
 func verify(t *testing.T, ep *endpoint.Endpoint, expectedNumberOfFailuresInARow, expectedNumberOfSuccessInARow int, expectedTriggered bool, expectedTriggeredReason string) {
