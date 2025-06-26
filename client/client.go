@@ -286,12 +286,11 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 }
 
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server
-func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) {
+func QueryWebSocket(address, body string, origin string, config *Config) (bool, []byte, error) {
 	const (
-		Origin             = "http://localhost/"
 		MaximumMessageSize = 1024 // in bytes
 	)
-	wsConfig, err := websocket.NewConfig(address, Origin)
+	wsConfig, err := websocket.NewConfig(address, origin)
 	if err != nil {
 		return false, nil, fmt.Errorf("error configuring websocket connection: %w", err)
 	}
