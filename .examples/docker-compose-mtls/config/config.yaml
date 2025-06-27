@@ -6,8 +6,9 @@ endpoints:
       - "[STATUS] == 200"
     client:
       # mtls
-      insecure: true
+      insecure: false
       tls:
         certificate-file: /certs/client.crt
         private-key-file: /certs/client.key
         renegotiation: once
+        server-name-indication: localhost

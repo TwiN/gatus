@@ -443,6 +443,7 @@ the client used to send the request.
 | `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.       | `""`            |
 | `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.       | `""`            |
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).      | `"never"`       |
+| `client.tls.server-name-indication`    | Override default SNI hostname in secure TLS connections.                    | `""`            |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
 
 
@@ -524,15 +525,21 @@ endpoints:
   - name: website
     url: "https://your.mtls.protected.app/health"
     client:
+      insecure: false
       tls:
         certificate-file: /path/to/user_cert.pem
         private-key-file: /path/to/user_key.pem
         renegotiation: once
+        server-name-indication: your.mtls.app
     conditions:
       - "[STATUS] == 200"
 ```
 
-> 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
+> 📝 Note:
+> - If running in a container, you must volume mount the certificate and key into the container.
+> - You must provide neither or both certificate and private key.  You cannot provide one without the other.
+> - If `client.insecure` is true, server name will not be validated regardless of whether `client.server-name-indication` is set or not
+> - If you leave `client.server-name-indication` unset, the SNI set in the client hello will be sourced from `endpoints[].url` if applicable (i.e. left unset for IP).
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
