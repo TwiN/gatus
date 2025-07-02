@@ -20,7 +20,7 @@ require (
 	github.com/miekg/dns v1.1.66
 	github.com/prometheus-community/pro-bing v0.6.1
 	github.com/prometheus/client_golang v1.22.0
-	github.com/valyala/fasthttp v1.62.0
+	github.com/valyala/fasthttp v1.63.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.39.0
 	golang.org/x/net v0.41.0
@@ -36,7 +36,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	github.com/42wim/httpsig v1.2.2 // indirect
-	github.com/andybalholm/brotli v1.1.1 // indirect
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
