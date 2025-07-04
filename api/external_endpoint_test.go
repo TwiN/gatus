@@ -151,19 +151,19 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			t.Errorf("expected second result to have no errors")
 		}
 		if endpointStatus.Results[2].Duration == 0 || endpointStatus.Results[2].Duration.Seconds() != 10 {
-			t.Errorf("expected sixth result to have a duration of 10 seconds")
+			t.Errorf("expected third result to have a duration of 10 seconds")
 		}
 		if endpointStatus.Results[3].Success {
-			t.Errorf("expected third result to be unsuccessful")
-		}
-		if endpointStatus.Results[4].Success {
 			t.Errorf("expected fourth result to be unsuccessful")
 		}
-		if endpointStatus.Results[5].Success {
+		if endpointStatus.Results[4].Success {
 			t.Errorf("expected fifth result to be unsuccessful")
 		}
+		if endpointStatus.Results[5].Success {
+			t.Errorf("expected sixth result to be unsuccessful")
+		}
 		if len(endpointStatus.Results[5].Errors) == 0 || endpointStatus.Results[5].Errors[0] != "failed" {
-			t.Errorf("expected fifth result to have errors: failed")
+			t.Errorf("expected sixth result to have errors: failed")
 		}
 		externalEndpointFromConfig := cfg.GetExternalEndpointByKey("g_n")
 		if externalEndpointFromConfig.NumberOfFailuresInARow != 3 {
