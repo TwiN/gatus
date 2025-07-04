@@ -5,6 +5,7 @@ import (
 	"errors"
 	"html/template"
 
+	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
@@ -33,6 +34,11 @@ type Config struct {
 	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
 	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
 	DarkMode    *bool    `yaml:"dark-mode,omitempty"`   // DarkMode is a flag to enable dark mode by default
+
+	//////////////////////////////////////////////
+	// Non-configurable - used for UI rendering //
+	//////////////////////////////////////////////
+	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -59,13 +65,14 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
-		Title:       defaultTitle,
-		Description: defaultDescription,
-		Header:      defaultHeader,
-		Logo:        defaultLogo,
-		Link:        defaultLink,
-		CustomCSS:   defaultCustomCSS,
-		DarkMode:    &defaultDarkMode,
+		Title:                  defaultTitle,
+		Description:            defaultDescription,
+		Header:                 defaultHeader,
+		Logo:                   defaultLogo,
+		Link:                   defaultLink,
+		CustomCSS:              defaultCustomCSS,
+		DarkMode:               &defaultDarkMode,
+		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
 

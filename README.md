@@ -59,6 +59,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
+    - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
+    - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
@@ -322,7 +324,7 @@ To push the status of an external endpoint, the request would have to look like 
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
@@ -383,12 +385,14 @@ Here are some examples of conditions you can use:
 
 
 ### Storage
-| Parameter         | Description                                                                                                                                        | Default    |
-|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
-| `storage`         | Storage configuration                                                                                                                              | `{}`       |
-| `storage.path`    | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
-| `storage.type`    | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
-| `storage.caching` | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| Parameter                           | Description                                                                                                                                        | Default    |
+|:------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|:-----------|
+| `storage`                           | Storage configuration                                                                                                                              | `{}`       |
+| `storage.path`                      | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
+| `storage.type`                      | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
+| `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                            | `100`      |
+| `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                             | `50`       |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
@@ -399,6 +403,8 @@ so that they can be displayed on the dashboard. These parameters allow you to co
 # Because the data is stored in memory, the data will not survive a restart.
 storage:
   type: memory
+  maximum-number-of-results: 200
+  maximum-number-of-events: 5
 ```
 - If `storage.type` is `sqlite`, `storage.path` must not be blank:
 ```yaml
@@ -586,6 +592,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
+| `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
@@ -601,6 +608,7 @@ endpoints:
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).        | `{}`    |
 
 
 #### Configuring AWS SES alerts
@@ -892,6 +900,51 @@ endpoints:
 | `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
 
+#### Configuring ilert alerts
+| Parameter                              | Description                                                                                | Default |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.ilert`                   | Configuration for alerts of type `ilert`                                               | `{}`    |
+| `alerting.ilert.integration-key`   | ilert Alert Source integration key                                                    | `""`    |
+| `alerting.ilert.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.ilert.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.ilert.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.ilert.overrides[].*`     | See `alerting.ilert.*` parameters                                                      | `{}`    |
+
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
+of type `ilert`, because unlike other alerts, the operation resulting from setting said
+parameter to `true` will not create another alert but mark the alert as resolved on
+ilert instead.
+
+Behavior:
+- By default, `alerting.ilert.integration-key` is used as the integration key
+- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.ilert.overrides[].group`, the provider will use that override's integration key instead of `alerting.ilert.integration-key`'s
+
+```yaml
+alerting:
+  ilert:
+    integration-key: "********************************"
+    # You can also add group-specific integration keys, which will
+    # override the integration key above for the specified groups
+    overrides:
+      - group: "core"
+        integration-key: "********************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ilert
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
 ```yaml
 alerting:
   gotify:
@@ -915,6 +968,75 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Gotify notifications](.github/assets/gotify-alerts.png)
+
+
+#### Configuring HomeAssistant alerts
+To configure HomeAssistant alerts, you'll need to add the following to your configuration file:
+
+```yaml
+alerting:
+  homeassistant:
+    url: "http://homeassistant:8123"  # URL of your HomeAssistant instance
+    token: "YOUR_LONG_LIVED_ACCESS_TOKEN"  # Long-lived access token from HomeAssistant
+
+endpoints:
+  - name: my-service
+    url: "https://my-service.com"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: homeassistant
+        enabled: true
+        send-on-resolved: true
+        description: "My service health check"
+        failure-threshold: 3
+        success-threshold: 2
+```
+
+The alerts will be sent as events to HomeAssistant with the event type `gatus_alert`. The event data includes:
+- `status`: "triggered" or "resolved"
+- `endpoint`: The name of the monitored endpoint
+- `description`: The alert description if provided
+- `conditions`: List of conditions and their results
+- `failure_count`: Number of consecutive failures (when triggered)
+- `success_count`: Number of consecutive successes (when resolved)
+
+You can use these events in HomeAssistant automations to:
+- Send notifications
+- Control devices
+- Trigger scenes
+- Log to history
+- And more
+
+Example HomeAssistant automation:
+```yaml
+automation:
+  - alias: "Gatus Alert Handler"
+    trigger:
+      platform: event
+      event_type: gatus_alert
+    action:
+      - service: notify.notify
+        data_template:
+          title: "Gatus Alert: {{ trigger.event.data.endpoint }}"
+          message: >
+            Status: {{ trigger.event.data.status }}
+            {% if trigger.event.data.description %}
+            Description: {{ trigger.event.data.description }}
+            {% endif %}
+            {% for condition in trigger.event.data.conditions %}
+            {{ '✅' if condition.success else '❌' }} {{ condition.condition }}
+            {% endfor %}
+```
+
+To get your HomeAssistant long-lived access token:
+1. Open HomeAssistant
+2. Click on your profile name (bottom left)
+3. Scroll down to "Long-Lived Access Tokens"
+4. Click "Create Token"
+5. Give it a name (e.g., "Gatus")
+6. Copy the token - you'll only see it once!
 
 
 #### Configuring Incident.io alerts
@@ -2376,7 +2498,7 @@ The path to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2402,7 +2524,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.svg
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2419,7 +2541,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.shields
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -2442,7 +2564,7 @@ The endpoint to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 #### Response time (chart)
 ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/chart.svg)
@@ -2455,7 +2577,7 @@ The endpoint to generate a response time chart is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, or `24h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
@@ -2508,7 +2630,7 @@ The path to get raw uptime data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
@@ -2522,7 +2644,7 @@ The path to get raw response time data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,` and `.` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
