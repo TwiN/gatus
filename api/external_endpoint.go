@@ -50,7 +50,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			parsedDuration, err := time.ParseDuration(c.Query("duration"))
 			if err != nil {
 				logr.Errorf("[api.CreateExternalEndpointResult] Invalid duration from string=%s with error: %s", c.Query("duration"), err.Error())
-				return c.Status(400).SendString(fmt.Sprintf("invalid duration with error: %s", err.Error()))
+				return c.Status(400).SendString("invalid duration: " + err.Error())
 			}
 			result.Duration = parsedDuration
 		}
