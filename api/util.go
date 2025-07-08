@@ -34,11 +34,13 @@ func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maximumNumberOfResults int)
 		if err != nil {
 			pageSize = DefaultPageSize
 		}
-		if pageSize > maximumNumberOfResults {
-			pageSize = maximumNumberOfResults
-		} else if pageSize < 1 {
-			pageSize = DefaultPageSize
-		}
+	}
+	if page == 1 && pageSize > maximumNumberOfResults {
+		// If the page is 1 and the page size is greater than the maximum number of results, return
+		// no more than the maximum number of results
+		pageSize = maximumNumberOfResults
+	} else if pageSize < 1 {
+		pageSize = DefaultPageSize
 	}
 	return
 }
