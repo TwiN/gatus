@@ -321,13 +321,14 @@ external-endpoints:
 
 To push the status of an external endpoint, the request would have to look like this:
 ```
-POST /api/v1/endpoints/{key}/external?success={success}&error={error}
+POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
