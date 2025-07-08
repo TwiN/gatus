@@ -106,7 +106,7 @@ type Config struct {
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
-		if ep.Key() == key {
+		if ep.Key() == strings.ToLower(key) {
 			return ep
 		}
 	}
@@ -116,7 +116,7 @@ func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEndpoint {
 	for i := 0; i < len(config.ExternalEndpoints); i++ {
 		ee := config.ExternalEndpoints[i]
-		if ee.Key() == key {
+		if ee.Key() == strings.ToLower(key) {
 			return ee
 		}
 	}
@@ -411,8 +411,8 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeGitea,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
-    alert.TypeHomeAssistant,
-    alert.TypeIlert,
+		alert.TypeHomeAssistant,
+		alert.TypeIlert,
 		alert.TypeIncidentIO,
 		alert.TypeJetBrainsSpace,
 		alert.TypeMatrix,
