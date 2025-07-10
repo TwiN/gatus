@@ -324,6 +324,113 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 	})
 }
 
+func TestConfig_HasTLSCertificatesBeenModified(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	certFile := filepath.Join(dir, "cert.pem")
+	keyFile := filepath.Join(dir, "cert.key")
+
+	certData, err := os.ReadFile("../testdata/cert.pem")
+	if err != nil {
+		t.Fatalf("failed to read test certificate: %v", err)
+	}
+	keyData, err := os.ReadFile("../testdata/cert.key")
+	if err != nil {
+		t.Fatalf("failed to read test key: %v", err)
+	}
+
+	err = os.WriteFile(certFile, certData, 0644)
+	if err != nil {
+		t.Fatalf("failed to create certificate file: %v", err)
+	}
+	err = os.WriteFile(keyFile, keyData, 0644)
+	if err != nil {
+		t.Fatalf("failed to create key file: %v", err)
+	}
+
+	configFilePath := filepath.Join(dir, "config.yaml")
+	configContent := fmt.Sprintf(`web:
+  port: 8443
+  tls:
+    certificate-file: %s
+    private-key-file: %s
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`, certFile, keyFile)
+
+	err = os.WriteFile(configFilePath, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to create config file: %v", err)
+	}
+
+	t.Run("no-tls-config", func(t *testing.T) {
+		config := &Config{}
+		if config.HasTLSCertificatesBeenModified() {
+			t.Errorf("expected HasTLSCertificatesBeenModified() to return false when no TLS config")
+		}
+	})
+
+	t.Run("tls-certificates-not-modified", func(t *testing.T) {
+		config, err := LoadConfiguration(configFilePath)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasTLSCertificatesBeenModified() {
+			t.Errorf("expected HasTLSCertificatesBeenModified() to return false because nothing has happened since it was loaded")
+		}
+	})
+
+	t.Run("certificate-file-modified", func(t *testing.T) {
+		config, err := LoadConfiguration(configFilePath)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+
+		time.Sleep(time.Second) // Wait for time precision
+
+		// Modify the certificate file
+		originalCert, err := os.ReadFile(certFile)
+		if err != nil {
+			t.Fatalf("failed to read certificate file: %v", err)
+		}
+		err = os.WriteFile(certFile, append(originalCert, []byte("\n# modified")...), 0644)
+		if err != nil {
+			t.Fatalf("failed to modify certificate file: %v", err)
+		}
+
+		if !config.HasTLSCertificatesBeenModified() {
+			t.Errorf("expected HasTLSCertificatesBeenModified() to return true because certificate file was modified")
+		}
+	})
+
+	t.Run("private-key-file-modified", func(t *testing.T) {
+		config, err := LoadConfiguration(configFilePath)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+
+		time.Sleep(time.Second) // Wait for time precision
+
+		// Modify the private key file
+		originalKey, err := os.ReadFile(keyFile)
+		if err != nil {
+			t.Fatalf("failed to read key file: %v", err)
+		}
+		err = os.WriteFile(keyFile, append(originalKey, []byte("\n# modified")...), 0644)
+		if err != nil {
+			t.Fatalf("failed to modify key file: %v", err)
+		}
+
+		if !config.HasTLSCertificatesBeenModified() {
+			t.Errorf("expected HasTLSCertificatesBeenModified() to return true because private key file was modified")
+		}
+	})
+}
+
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
