@@ -32,7 +32,8 @@ var (
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
-		Network:        "ip",
+		DisableFullChainCertificateExpirationCheck: false,
+		Network: "ip",
 	}
 )
 
@@ -68,6 +69,10 @@ type Config struct {
 
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
+
+	// DisableFullChainCertificateExpirationCheck determines whether to only check the leaf certificate expiration (true)
+	// or verify the full certificate chain expiration (false, default).
+	DisableFullChainCertificateExpirationCheck bool `yaml:"disable-full-chain-certificate-expiration-check"`
 
 	httpClient *http.Client
 

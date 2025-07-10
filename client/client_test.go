@@ -2,10 +2,16 @@ package client
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
 	"io"
+	"math/big"
+	"net"
 	"net/http"
 	"net/netip"
+	"runtime"
 	"testing"
 	"time"
 
@@ -95,10 +101,13 @@ func TestPing(t *testing.T) {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
-		t.Error("expected true")
-		if rtt == 0 {
-			t.Error("Round-trip time returned on failure should've been 0")
+	// Skip IPv6 ping tests on Windows as they require elevated privileges
+	if runtime.GOOS != "windows" {
+		if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+			t.Error("expected true")
+			if rtt == 0 {
+				t.Error("Round-trip time returned on failure should've been 0")
+			}
 		}
 	}
 	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
@@ -154,13 +163,13 @@ func TestCanPerformStartTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			info, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
-			if connected != tt.wantConnected {
-				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			if info.Connected != tt.wantConnected {
+				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", info.Connected, tt.wantConnected)
 			}
 		})
 	}
@@ -223,13 +232,13 @@ func TestCanPerformTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			info, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
 			}
-			if connected != tt.wantConnected {
-				t.Errorf("CanPerformTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			if info.Connected != tt.wantConnected {
+				t.Errorf("CanPerformTLS() connected=%v, wantConnected=%v", info.Connected, tt.wantConnected)
 			}
 		})
 	}
@@ -508,4 +517,98 @@ func TestCheckSSHBanner(t *testing.T) {
 		}
 	})
 
+}
+
+func TestCanPerformTLS_WithDisableFullChainCheck(t *testing.T) {
+	rootKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	rootTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(24 * time.Hour),
+		IsCA:         true,
+	}
+	rootCert, _ := x509.CreateCertificate(rand.Reader, rootTemplate, rootTemplate, &rootKey.PublicKey, rootKey)
+	root, _ := x509.ParseCertificate(rootCert)
+
+	intermediateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	intermediateTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(36 * time.Hour),
+		IsCA:         true,
+	}
+	intermediateCert, _ := x509.CreateCertificate(rand.Reader, intermediateTemplate, root, &intermediateKey.PublicKey, rootKey)
+	intermediate, _ := x509.ParseCertificate(intermediateCert)
+
+	leafKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	leafTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(3),
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(48 * time.Hour),
+		IsCA:         false,
+		DNSNames:     []string{"localhost"},
+	}
+	leafCert, _ := x509.CreateCertificate(rand.Reader, leafTemplate, intermediate, &leafKey.PublicKey, intermediateKey)
+	leaf, _ := x509.ParseCertificate(leafCert)
+
+	serverCert := tls.Certificate{
+		Certificate: [][]byte{leafCert, intermediateCert, rootCert},
+		PrivateKey:  leafKey,
+	}
+
+	server := &http.Server{
+		Addr: "localhost:0",
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{serverCert},
+		},
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("OK"))
+		}),
+	}
+
+	ln, err := tls.Listen("tcp", server.Addr, server.TLSConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go server.Serve(ln)
+
+	_, port, _ := net.SplitHostPort(ln.Addr().String())
+	serverAddr := "localhost:" + port
+
+	config := &Config{
+		DisableFullChainCertificateExpirationCheck: true,
+		Insecure: true,
+	}
+	info, err := CanPerformTLS(serverAddr, config)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if len(info.Chain) != 1 {
+		t.Errorf("Expected only leaf certificate, got %d certificates", len(info.Chain))
+	}
+	if info.Chain[0].SerialNumber.Cmp(leaf.SerialNumber) != 0 {
+		t.Error("Expected leaf certificate, got different certificate")
+	}
+
+	config = &Config{
+		DisableFullChainCertificateExpirationCheck: false,
+		Insecure: true,
+	}
+	info, err = CanPerformTLS(serverAddr, config)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if len(info.Chain) < 3 {
+		t.Errorf("Expected full certificate chain (root, intermediate, leaf), got %d certificates", len(info.Chain))
+	}
+	if info.Chain[0].SerialNumber.Cmp(leaf.SerialNumber) != 0 {
+		t.Error("Expected root certificate, got different certificate")
+	}
+	if info.Chain[1].SerialNumber.Cmp(intermediate.SerialNumber) != 0 {
+		t.Error("Expected intermediate certificate, got different certificate")
+	}
+	if info.Chain[2].SerialNumber.Cmp(root.SerialNumber) != 0 {
+		t.Error("Expected leaf certificate, got different certificate")
+	}
 }
