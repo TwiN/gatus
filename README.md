@@ -1920,6 +1920,9 @@ web:
     private-key-file: "private.key"
 ```
 
+#### Automatic Certificate Reload
+Gatus automatically monitors TLS certificate files for changes and reloads them without requiring a manual restart.
+
 
 ### Metrics
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
