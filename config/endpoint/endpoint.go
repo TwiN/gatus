@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	redisconfig "github.com/TwiN/gatus/v5/config/endpoint/redis"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/config/maintenance"
@@ -47,6 +48,7 @@ const (
 	TypeHTTP     Type = "HTTP"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
+	TypeREDIS    Type = "REDIS"
 	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
@@ -114,6 +116,9 @@ type Endpoint struct {
 	// SSH is the configuration for SSH monitoring
 	SSHConfig *sshconfig.Config `yaml:"ssh,omitempty"`
 
+	// RedisConfig is the configuration for Redis monitoring
+	RedisConfig *redisconfig.Config `yaml:"redis,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
@@ -158,6 +163,8 @@ func (e *Endpoint) Type() Type {
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
 		return TypeSSH
+	case strings.HasPrefix(e.URL, "redis://"):
+		return TypeREDIS
 	default:
 		return TypeUNKNOWN
 	}
@@ -219,6 +226,9 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.SSHConfig != nil {
 		return e.SSHConfig.Validate()
+	}
+	if e.RedisConfig != nil {
+		return e.RedisConfig.Validate()
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
@@ -407,6 +417,32 @@ func (e *Endpoint) call(result *Result) {
 			return
 		}
 		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeREDIS {
+		// Parse Redis URL for address, password, db
+		u, err := url.Parse(e.URL)
+		if err != nil {
+			result.AddError("invalid redis url: " + err.Error())
+			return
+		}
+		address := u.Host
+		password, _ := e.RedisConfig.Password, 0
+		if u.User != nil {
+			password, _ = u.User.Password()
+		}
+		ssl := e.RedisConfig.SSL
+		db := e.RedisConfig.DB
+		if len(u.Path) > 1 {
+			fmt.Sscanf(u.Path[1:], "%d", &db)
+		}
+		ok, val, err := client.CanConnectToRedis(address, password, ssl, db, e.ClientConfig)
+		result.Connected = ok
+		result.Body = []byte(val)
+		result.HTTPStatus = 200
+		result.Duration = time.Since(startTime)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
 	} else {
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
