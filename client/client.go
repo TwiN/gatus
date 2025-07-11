@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -20,6 +21,7 @@ import (
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
 )
@@ -367,6 +369,29 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		}
 	}
 	return connected, dnsRcode, body, nil
+}
+
+// CanConnectToRedis checks if a connection to a Redis server can be established and responds to PING
+func CanConnectToRedis(address string, password string, ssl bool, db int, clientConfig *Config) (connected bool, val string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), clientConfig.Timeout)
+	defer cancel()
+	opt := &redis.Options{
+		Addr:     address,
+		Password: password,
+		DB:       db,
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: ssl,
+		},
+	}
+	client := redis.NewClient(opt)
+	defer client.Close()
+	status := client.Ping(ctx)
+	val = status.Val()
+	err = status.Err()
+	if status.Err() != nil {
+		return false, val, err
+	}
+	return true, val, err
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
