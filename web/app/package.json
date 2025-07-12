@@ -11,6 +11,7 @@
     "@headlessui/vue": "^1.7.3",
     "@heroicons/vue": "^2.0.12",
     "core-js": "3.22.8",
+    "lodash": "^4.17.21",
     "vue": "3.2.37",
     "vue-router": "4.0.16"
   },

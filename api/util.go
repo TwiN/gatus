@@ -2,7 +2,6 @@ package api
 
 import (
 	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -10,37 +9,34 @@ const (
 	// DefaultPage is the default page to use if none is specified or an invalid value is provided
 	DefaultPage = 1
 
-	// DefaultPageSize is the default page siZE to use if none is specified or an invalid value is provided
+	// DefaultPageSize is the default page size to use if none is specified or an invalid value is provided
 	DefaultPageSize = 20
 )
 
-func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maximumNumberOfResults int) (page, pageSize int) {
-	var err error
-	if pageParameter := c.Query("page"); len(pageParameter) == 0 {
+// extractPageAndPageSizeFromRequest parses `?page` and `?pageSize` from Fiber context
+// and clamps them to sensible defaults, with a maximum of `maxResults` on pageSize when page==1.
+func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maxResults int) (page, pageSize int) {
+	// Page
+	if s := c.Query("page"); s == "" {
+		page = DefaultPage
+	} else if p, err := strconv.Atoi(s); err != nil || p < 1 {
 		page = DefaultPage
 	} else {
-		page, err = strconv.Atoi(pageParameter)
-		if err != nil {
-			page = DefaultPage
-		}
-		if page < 1 {
-			page = DefaultPage
-		}
+		page = p
 	}
-	if pageSizeParameter := c.Query("pageSize"); len(pageSizeParameter) == 0 {
+
+	// PageSize
+	if s := c.Query("pageSize"); s == "" {
+		pageSize = DefaultPageSize
+	} else if sz, err := strconv.Atoi(s); err != nil || sz < 1 {
 		pageSize = DefaultPageSize
 	} else {
-		pageSize, err = strconv.Atoi(pageSizeParameter)
-		if err != nil {
-			pageSize = DefaultPageSize
-		}
+		pageSize = sz
 	}
-	if page == 1 && pageSize > maximumNumberOfResults {
-		// If the page is 1 and the page size is greater than the maximum number of results, return
-		// no more than the maximum number of results
-		pageSize = maximumNumberOfResults
-	} else if pageSize < 1 {
-		pageSize = DefaultPageSize
+
+	// Enforce maximum only on first page
+	if page == 1 && pageSize > maxResults {
+		pageSize = maxResults
 	}
 	return
 }
