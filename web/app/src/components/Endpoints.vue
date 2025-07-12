@@ -1,11 +1,16 @@
 <template>
   <div id="results">
-    <slot v-for="endpointGroup in endpointGroups" :key="endpointGroup">
-      <EndpointGroup :endpoints="endpointGroup.endpoints" :name="endpointGroup.name" @showTooltip="showTooltip" @toggleShowAverageResponseTime="toggleShowAverageResponseTime" :showAverageResponseTime="showAverageResponseTime" />
-    </slot>
+    <EndpointGroup
+      v-for="endpointGroup in endpointGroups"
+      :key="endpointGroup.name"
+      :endpoints="endpointGroup.endpoints"
+      :name="endpointGroup.name"
+      @showTooltip="showTooltip"
+      @toggleShowAverageResponseTime="toggleShowAverageResponseTime"
+      :showAverageResponseTime="showAverageResponseTime"
+    />
   </div>
 </template>
-
 
 <script>
 import EndpointGroup from './EndpointGroup.vue';
@@ -17,31 +22,47 @@ export default {
   },
   props: {
     showStatusOnHover: Boolean,
-    endpointStatuses: Object,
+    endpointStatuses: {
+      type: Array,
+      default: () => []
+    },
     showAverageResponseTime: Boolean
   },
   emits: ['showTooltip', 'toggleShowAverageResponseTime'],
+  watch: {
+    endpointStatuses: {
+      immediate: true,
+      handler() {
+        this.process();
+      }
+    }
+  },
   methods: {
     process() {
-      let outputByGroup = {};
-      for (let endpointStatusIndex in this.endpointStatuses) {
-        let endpointStatus = this.endpointStatuses[endpointStatusIndex];
-        // create an empty entry if this group is new
-        if (!outputByGroup[endpointStatus.group] || outputByGroup[endpointStatus.group].length === 0) {
-          outputByGroup[endpointStatus.group] = [];
+      if (!Array.isArray(this.endpointStatuses)) {
+        this.endpointGroups = [];
+        return;
+      }
+
+      const outputByGroup = {};
+
+      for (const endpointStatus of this.endpointStatuses) {
+        const groupName = endpointStatus.group || 'Ungrouped';
+        if (!outputByGroup[groupName]) {
+          outputByGroup[groupName] = [];
         }
-        outputByGroup[endpointStatus.group].push(endpointStatus);
+        outputByGroup[groupName].push(endpointStatus);
       }
-      let endpointGroups = [];
-      for (let name in outputByGroup) {
-        if (name !== 'undefined') {
-          endpointGroups.push({name: name, endpoints: outputByGroup[name]})
-        }
+
+      const endpointGroups = [];
+
+      for (const name in outputByGroup) {
+        endpointGroups.push({
+          name,
+          endpoints: outputByGroup[name]
+        });
       }
-      // Add all endpoints that don't have a group at the end
-      if (outputByGroup['undefined']) {
-        endpointGroups.push({name: 'undefined', endpoints: outputByGroup['undefined']})
-      }
+
       this.endpointGroups = endpointGroups;
     },
     showTooltip(result, event) {
@@ -51,20 +72,13 @@ export default {
       this.$emit('toggleShowAverageResponseTime');
     }
   },
-  watch: {
-    endpointStatuses: function () {
-      this.process();
-    }
-  },
   data() {
     return {
-      userClickedStatus: false,
       endpointGroups: []
     }
   }
 }
 </script>
-
 
 <style>
 .endpoint-group-content > div:nth-child(1) {
