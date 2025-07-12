@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/TwiN/gatus/v5/client"
@@ -21,71 +19,76 @@ import (
 )
 
 // EndpointStatuses handles paginated, filtered retrieval of endpoint statuses
+
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Extract pagination params
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 
-		// Read filter query params
-		searchTerm := strings.ToLower(c.Query("search"))
-		statusFilter := strings.ToLower(c.Query("status")) // "success" or "error"
+		searchFilter := c.Query("search", "")
+		statusFilter := c.Query("status", "")
 
-		// Get all statuses without slicing to apply filtering
-		allList, err := store.Get().GetAllEndpointStatuses(
-			paging.NewEndpointStatusParams().WithResults(1, math.MaxInt32),
+		cacheKey := fmt.Sprintf("endpoint-status-%d-%d-%s-%s",
+			page, pageSize, searchFilter, statusFilter)
+
+		if cached, ok := cache.Get(cacheKey); ok {
+			c.Set("Content-Type", "application/json")
+			return c.Status(200).Send(cached.([]byte))
+		}
+
+		endpointStatuses, err := store.Get().GetAllEndpointStatuses(
+			paging.NewEndpointStatusParams().WithResults(1, cfg.Storage.MaximumNumberOfResults),
 		)
 		if err != nil {
-			logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err)
-			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
+			return c.Status(500).SendString(err.Error())
 		}
 
-		// Append remote statuses if any
-		if remoteList, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] silently failed: %s", err)
-		} else if remoteList != nil {
-			allList = append(allList, remoteList...)
-		}
+		var filtered []*endpoint.Status
 
-		// Apply filters
-		filtered := make([]*endpoint.Status, 0, len(allList))
-		for _, es := range allList {
-			if searchTerm != "" && !strings.Contains(strings.ToLower(es.Name), searchTerm) {
+
+		reverseResults := c.Query("reverse", "") == "true"
+
+		for _, es := range endpointStatuses {
+			if searchFilter != "" && !matchesSearch(es, searchFilter) {
 				continue
 			}
-			// Determine latest check success
-			latestOK := true
-			if len(es.Results) > 0 {
-				latestOK = es.Results[0].Success
-			}
-			if statusFilter == "success" && !latestOK {
+			if statusFilter != "" && !matchesStatus(es, statusFilter) {
 				continue
 			}
-			if statusFilter == "error" && latestOK {
-				continue
+
+			if reverseResults && len(es.Results) > 1 {
+				// Reverse results for UI
+				for i, j := 0, len(es.Results)-1; i < j; i, j = i+1, j-1 {
+					es.Results[i], es.Results[j] = es.Results[j], es.Results[i]
+				}
 			}
+
+			start := (page - 1) * pageSize
+			end := start + pageSize
+			if start < len(es.Results) {
+				if end > len(es.Results) {
+					end = len(es.Results)
+				}
+				es.Results = es.Results[start:end]
+			} else {
+				es.Results = []*endpoint.Result{}
+			}
+
 			filtered = append(filtered, es)
 		}
 
-		// Compute total count after filtering
-		total := len(filtered)
 
-		// Apply pagination slice to filtered list
-		start := (page - 1) * pageSize
-		if start > total {
-			start = total
-		}
-		end := start + pageSize
-		if end > total {
-			end = total
-		}
-		pageSlice := filtered[start:end]
 
-		// Set headers
-		c.Set("X-Total-Count", strconv.Itoa(total))
+		data, err := json.Marshal(filtered)
+		if err != nil {
+			logr.Errorf("[api.EndpointStatuses] Unable to marshal JSON: %s", err.Error())
+			return c.Status(500).SendString("unable to marshal object to JSON")
+		}
+
+		cache.SetWithTTL(cacheKey, data, cacheTTL)
+
 		c.Set("Content-Type", "application/json")
-
-		// Return paginated, filtered results
-		return c.Status(fiber.StatusOK).JSON(pageSlice)
+		return c.Status(200).Send(data)
 	}
 }
 
@@ -150,4 +153,45 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
 	}
 	return all, nil
+}
+
+func matchesSearch(es *endpoint.Status, search string) bool {
+    return containsInsensitive(es.Name, search) ||
+           containsInsensitive(es.Group, search) ||
+           containsInsensitive(es.Key, search)
+}
+
+func containsInsensitive(s, sub string) bool {
+    return len(s) > 0 && len(sub) > 0 && ( // avoid empty search matching everything
+        (len(s) >= len(sub)) && 
+        (containsFold(s, sub)))
+}
+
+func containsFold(s, substr string) bool {
+    return len(substr) == 0 || (len(s) >= len(substr) && 
+        (stringContainsFold(s, substr)))
+}
+
+func stringContainsFold(s, substr string) bool {
+    return len(s) > 0 && len(substr) > 0 && 
+           (stringIndexFold(s, substr) >= 0)
+}
+
+func stringIndexFold(s, substr string) int {
+    return strings.Index(strings.ToLower(s), strings.ToLower(substr))
+}
+
+func matchesStatus(es *endpoint.Status, status string) bool {
+    if len(es.Results) == 0 {
+        return false
+    }
+    last := es.Results[len(es.Results)-1]
+    switch status {
+    case "success":
+        return last.Success
+    case "error":
+        return !last.Success
+    default:
+        return true
+    }
 }
