@@ -30,7 +30,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
         cacheKey := fmt.Sprintf("endpoint-status-%d-%d-%s-%s",
             page, pageSize, searchFilter, statusFilter)
 
-        // ✅ Check cache
+        //  Check cache
         if cached, ok := cache.Get(cacheKey); ok {
             if pageData, ok := cached.(struct {
                 TotalCount int
@@ -43,7 +43,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
             logr.Warn("[api.EndpointStatuses] Cache contained unexpected type")
         }
 
-        // ✅ Query store
+        //  Query store
         endpointStatuses, err := store.Get().GetAllEndpointStatuses(
             paging.NewEndpointStatusParams().WithResults(1, cfg.Storage.MaximumNumberOfResults),
         )
@@ -74,7 +74,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 
         totalCount := len(filtered)
 
-        // ✅ Page endpoints
+        //  Page endpoints
         start := (page - 1) * pageSize
         end := start + pageSize
         if start >= totalCount {
@@ -86,7 +86,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
             filtered = filtered[start:end]
         }
 
-        // ✅ Page results inside each endpoint
+        //  Page results inside each endpoint
         for _, es := range filtered {
             start := 0
             end := pageSize
@@ -102,7 +102,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
             return c.Status(500).SendString("unable to marshal object to JSON")
         }
 
-        // ✅ Cache JSON + total count
+        //  Cache JSON + total count
         cache.SetWithTTL(cacheKey, struct {
             TotalCount int
             Data       []byte

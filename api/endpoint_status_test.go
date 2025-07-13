@@ -93,7 +93,7 @@ func TestEndpointStatuses(t *testing.T) {
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
 
-	// ✅ Use watchdog to insert
+	//  Use watchdog to insert
 	watchdog.UpdateEndpointStatuses(&testEndpoint, firstResult)
 	watchdog.UpdateEndpointStatuses(&testEndpoint, secondResult)
 
@@ -183,7 +183,7 @@ func TestEndpointStatuses(t *testing.T) {
 				}
 			}
 
-			// ✅ check body
+			//  check body
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
 				t.Fatalf("failed reading response body: %v", err)
