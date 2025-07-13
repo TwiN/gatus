@@ -21,75 +21,100 @@ import (
 // EndpointStatuses handles paginated, filtered retrieval of endpoint statuses
 
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
+    return func(c *fiber.Ctx) error {
+        page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 
-		searchFilter := c.Query("search", "")
-		statusFilter := c.Query("status", "")
+        searchFilter := c.Query("search", "")
+        statusFilter := c.Query("status", "")
 
-		cacheKey := fmt.Sprintf("endpoint-status-%d-%d-%s-%s",
-			page, pageSize, searchFilter, statusFilter)
+        cacheKey := fmt.Sprintf("endpoint-status-%d-%d-%s-%s",
+            page, pageSize, searchFilter, statusFilter)
 
-		if cached, ok := cache.Get(cacheKey); ok {
-			c.Set("Content-Type", "application/json")
-			return c.Status(200).Send(cached.([]byte))
-		}
+        // ✅ Check cache
+        if cached, ok := cache.Get(cacheKey); ok {
+            if pageData, ok := cached.(struct {
+                TotalCount int
+                Data       []byte
+            }); ok {
+                c.Set("Content-Type", "application/json")
+                c.Set("X-Total-Count", fmt.Sprintf("%d", pageData.TotalCount))
+                return c.Status(200).Send(pageData.Data)
+            }
+            logr.Warn("[api.EndpointStatuses] Cache contained unexpected type")
+        }
 
-		endpointStatuses, err := store.Get().GetAllEndpointStatuses(
-			paging.NewEndpointStatusParams().WithResults(1, cfg.Storage.MaximumNumberOfResults),
-		)
-		if err != nil {
-			logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
-			return c.Status(500).SendString(err.Error())
-		}
+        // ✅ Query store
+        endpointStatuses, err := store.Get().GetAllEndpointStatuses(
+            paging.NewEndpointStatusParams().WithResults(1, cfg.Storage.MaximumNumberOfResults),
+        )
+        if err != nil {
+            logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
+            return c.Status(500).SendString(err.Error())
+        }
 
-		var filtered []*endpoint.Status
+        var filtered []*endpoint.Status
+        reverseResults := c.Query("reverse", "") == "true"
 
+        for _, es := range endpointStatuses {
+            if searchFilter != "" && !matchesSearch(es, searchFilter) {
+                continue
+            }
+            if statusFilter != "" && !matchesStatus(es, statusFilter) {
+                continue
+            }
 
-		reverseResults := c.Query("reverse", "") == "true"
+            if reverseResults && len(es.Results) > 1 {
+                for i, j := 0, len(es.Results)-1; i < j; i, j = i+1, j-1 {
+                    es.Results[i], es.Results[j] = es.Results[j], es.Results[i]
+                }
+            }
 
-		for _, es := range endpointStatuses {
-			if searchFilter != "" && !matchesSearch(es, searchFilter) {
-				continue
-			}
-			if statusFilter != "" && !matchesStatus(es, statusFilter) {
-				continue
-			}
+            filtered = append(filtered, es)
+        }
 
-			if reverseResults && len(es.Results) > 1 {
-				// Reverse results for UI
-				for i, j := 0, len(es.Results)-1; i < j; i, j = i+1, j-1 {
-					es.Results[i], es.Results[j] = es.Results[j], es.Results[i]
-				}
-			}
+        totalCount := len(filtered)
 
-			start := (page - 1) * pageSize
-			end := start + pageSize
-			if start < len(es.Results) {
-				if end > len(es.Results) {
-					end = len(es.Results)
-				}
-				es.Results = es.Results[start:end]
-			} else {
-				es.Results = []*endpoint.Result{}
-			}
+        // ✅ Page endpoints
+        start := (page - 1) * pageSize
+        end := start + pageSize
+        if start >= totalCount {
+            filtered = []*endpoint.Status{}
+        } else {
+            if end > totalCount {
+                end = totalCount
+            }
+            filtered = filtered[start:end]
+        }
 
-			filtered = append(filtered, es)
-		}
+        // ✅ Page results inside each endpoint
+        for _, es := range filtered {
+            start := 0
+            end := pageSize
+            if end > len(es.Results) {
+                end = len(es.Results)
+            }
+            es.Results = es.Results[start:end]
+        }
 
+        data, err := json.Marshal(filtered)
+        if err != nil {
+            logr.Errorf("[api.EndpointStatuses] Unable to marshal JSON: %s", err.Error())
+            return c.Status(500).SendString("unable to marshal object to JSON")
+        }
 
+        // ✅ Cache JSON + total count
+        cache.SetWithTTL(cacheKey, struct {
+            TotalCount int
+            Data       []byte
+        }{
+            TotalCount: totalCount,
+            Data:       data,
+        }, cacheTTL)
 
-		data, err := json.Marshal(filtered)
-		if err != nil {
-			logr.Errorf("[api.EndpointStatuses] Unable to marshal JSON: %s", err.Error())
-			return c.Status(500).SendString("unable to marshal object to JSON")
-		}
-
-		cache.SetWithTTL(cacheKey, data, cacheTTL)
-
-		c.Set("Content-Type", "application/json")
-		return c.Status(200).Send(data)
-	}
+        c.Set("Content-Type", "application/json")
+        c.Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
+        return c.Status(200).Send(data)
+    }
 }
 
 // EndpointStatus retrieves a single endpoint.Status by key, with pagination on its events
