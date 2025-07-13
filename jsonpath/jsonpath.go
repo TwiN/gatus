@@ -57,6 +57,21 @@ func walk(path string, object interface{}) (string, int, error) {
 		}
 		return value, len(value), nil
 	case []interface{}:
+		// Wildcard array support
+		if strings.HasSuffix(currentKey, "[*]") {
+			remainingPath := strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1)
+			var results []string
+			for _, item := range value {
+				result, _, err := walk(remainingPath, item)
+				if err != nil {
+					return "", 0, err
+				}
+				results = append(results, result)
+			}
+			finalResult := strings.Join(results, ", ")
+			return finalResult, len(finalResult), nil
+		}
+		// Normal arrays (backward compatibility)
 		return fmt.Sprintf("%v", value), len(value), nil
 	case interface{}:
 		newValue := fmt.Sprintf("%v", value)
@@ -67,6 +82,20 @@ func walk(path string, object interface{}) (string, int, error) {
 }
 
 func extractValue(currentKey string, value interface{}) interface{} {
+	// Wildcard array support: data[*]
+	if strings.HasSuffix(currentKey, "[*]") {
+		baseKey := currentKey[:len(currentKey)-3]
+		var array []interface{}
+		if len(baseKey) == 0 {
+			// if the baseKey is empty, then we are at the root of the JSON object
+			array, _ = value.([]interface{})
+		} else {
+			if valueAsMap, ok := value.(map[string]interface{}); ok {
+				array, _ = valueAsMap[baseKey].([]interface{})
+			}
+		}
+		return array
+	}
 	// Check if the current key ends with [#]
 	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey, "[") {
 		var isNestedArray bool
