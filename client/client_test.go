@@ -303,11 +303,11 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 }
 
 func TestQueryWebSocket(t *testing.T) {
-	_, _, err := QueryWebSocket("", "body", &Config{Timeout: 2 * time.Second})
+	_, _, err := QueryWebSocket("", "body", "", &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the address being invalid")
 	}
-	_, _, err = QueryWebSocket("ws://example.org", "body", &Config{Timeout: 2 * time.Second})
+	_, _, err = QueryWebSocket("ws://example.org", "body", "", &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
 	}
