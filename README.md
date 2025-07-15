@@ -2662,3 +2662,52 @@ go install github.com/TwiN/gatus/v5@latest
 
 ### High level design overview
 ![Gatus diagram](.github/assets/gatus-diagram.jpg)
+
+### Certificate Monitoring
+
+Gatus supports monitoring SSL/TLS certificates for expiration. For endpoints using TLS (including HTTPS and STARTTLS), 
+Gatus will check the expiration of all certificates in the certificate chain, including:
+- The leaf (end-entity) certificate
+- Any intermediate certificates
+- The root certificate
+
+By default, Gatus checks the expiration of the entire certificate chain. If you only want to check the leaf certificate's expiration, 
+you can set `disable-full-chain-certificate-expiration-check: true` in your endpoint's client configuration:
+You can use the `[CERTIFICATE_EXPIRATION]` placeholder in your conditions to check the expiration time of the leaf certificate:
+
+```
+metrics: true
+
+endpoints:
+  - name: upwork-cert-chain-leaf-only
+    url: https://upwork.com
+    interval: 1m
+    client:
+      disable-full-chain-certificate-expiration-check: true
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+      - "[CONNECTED] == true"
+
+  - name: gmail-starttls-chain
+    url: "starttls://smtp.gmail.com:587"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: cloudflare-tls-chain
+    url: "tls://1.1.1.1:853"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+```
+
+The certificate chain information is also exposed via Prometheus metrics:
+- `gatus_results_certificate_expiration_seconds`: Time until leaf certificate expiration
+- `gatus_results_certificate_chain_expiration_seconds`: Time until expiration for each certificate in the chain, with labels for subject and issuer
+
+Example PromQL query to alert on any certificate in the chain expiring soon:
+```promql
+min(gatus_results_certificate_chain_expiration_seconds) by (key, group, name) < 172800  # 48 hours
+```
