@@ -22,7 +22,18 @@ import (
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
-		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
+		group, status := extractFiltersFromRequest(c)
+
+		// Create cache key including filters
+		cacheKey := fmt.Sprintf("endpoint-status-%d-%d", page, pageSize)
+		if group != "" {
+			cacheKey += "-group-" + group
+		}
+		if status != "" {
+			cacheKey += "-status-" + status
+		}
+
+		value, exists := cache.Get(cacheKey)
 		var data []byte
 		if !exists {
 			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
@@ -36,19 +47,63 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 			} else if endpointStatusesFromRemote != nil {
 				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
 			}
+
+			// Apply filters
+			if group != "" || status != "" {
+				endpointStatuses = filterEndpointStatuses(endpointStatuses, group, status)
+			}
+
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
 			if err != nil {
 				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
 				return c.Status(500).SendString("unable to marshal object to JSON")
 			}
-			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
+			cache.SetWithTTL(cacheKey, data, cacheTTL)
 		} else {
 			data = value.([]byte)
 		}
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
 	}
+}
+
+// filterEndpointStatuses filters endpoint statuses by group and/or status
+func filterEndpointStatuses(endpointStatuses []*endpoint.Status, group, status string) []*endpoint.Status {
+	if group == "" && status == "" {
+		return endpointStatuses
+	}
+
+	var filtered []*endpoint.Status
+	for _, endpointStatus := range endpointStatuses {
+		// Check group filter
+		if group != "" && endpointStatus.Group != group {
+			continue
+		}
+
+		// Check status filter (check the latest result success status)
+		if status != "" {
+			if len(endpointStatus.Results) == 0 {
+				continue
+			}
+			latestResult := endpointStatus.Results[0]
+			switch status {
+			case "up":
+				if !latestResult.Success {
+					continue
+				}
+			case "down":
+				if latestResult.Success {
+					continue
+				}
+			default:
+				// Unknown status filter, skip this filter
+			}
+		}
+
+		filtered = append(filtered, endpointStatus)
+	}
+	return filtered
 }
 
 func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
