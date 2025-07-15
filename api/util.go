@@ -44,3 +44,10 @@ func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maximumNumberOfResults int)
 	}
 	return
 }
+
+// extractFiltersFromRequest extracts filter parameters from the request
+func extractFiltersFromRequest(c *fiber.Ctx) (group, status string) {
+	group = c.Query("group")
+	status = c.Query("status")
+	return
+}
