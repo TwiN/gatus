@@ -186,6 +186,7 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 	} else {
 		certificate = verifiedChains[0][0]
 	}
+	connected = true
 	if body != "" {
 		body = GetStringReplacement(body, connection.LocalAddr())
 		connection.SetDeadline(time.Now().Add(config.Timeout))
