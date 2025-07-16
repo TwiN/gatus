@@ -35,7 +35,10 @@ type Config struct {
 	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
 	DarkMode    *bool    `yaml:"dark-mode,omitempty"`   // DarkMode is a flag to enable dark mode by default
 
-	MaximumNumberOfResults int // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	//////////////////////////////////////////////
+	// Non-configurable - used for UI rendering //
+	//////////////////////////////////////////////
+	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
 }
 
 func (cfg *Config) IsDarkMode() bool {
