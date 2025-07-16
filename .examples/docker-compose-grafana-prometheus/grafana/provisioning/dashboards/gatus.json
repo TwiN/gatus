@@ -265,8 +265,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
-        "w": 5,
+        "h": 8,
+        "w": 12,
         "x": 12,
         "y": 0
       },
@@ -315,112 +315,6 @@
       ],
       "title": "Service Health by Group",
       "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "$datasource"
-      },
-      "description": "Network activity for the Gatus process",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 12,
-        "w": 7,
-        "x": 17,
-        "y": 0
-      },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.0.2",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "rate(process_network_receive_bytes_total[5m])",
-          "legendFormat": "Network Receive",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "rate(process_network_transmit_bytes_total[5m])",
-          "legendFormat": "Network Transmit",
-          "refId": "B"
-        }
-      ],
-      "title": "Network Activity",
-      "type": "timeseries"
     },
     {
       "datasource": {
@@ -631,7 +525,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -908,7 +802,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 16
       },
       "id": 5,
       "options": {
