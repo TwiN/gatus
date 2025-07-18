@@ -240,7 +240,7 @@ func TestCanCreateConnection(t *testing.T) {
 	if connected {
 		t.Error("should've failed, because there's no port in the address")
 	}
-	connected, _ = CanCreateNetConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
+	connected, _ = CanCreateNetworkConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
 	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
 	}
