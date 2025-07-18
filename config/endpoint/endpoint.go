@@ -388,7 +388,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == TypeTCP {
-		result.Connected, result.Body = client.CanCreateNetConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeUDP {
 		result.Connected, result.Body = client.CanCreateNetConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
