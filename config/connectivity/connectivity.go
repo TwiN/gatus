@@ -42,7 +42,7 @@ type Checker struct {
 }
 
 func (c *Checker) Check() bool {
-	connected, _ := client.CanCreateNetConnection("tcp", c.Target, "", &client.Config{Timeout: 5 * time.Second})
+	connected, _ := client.CanCreateNetworkConnection("tcp", c.Target, "", &client.Config{Timeout: 5 * time.Second})
 	return connected
 }
 
