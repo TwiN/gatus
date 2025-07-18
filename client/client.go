@@ -76,7 +76,7 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 	return domainExpiration, nil
 }
 
-// GetStringReplacement returns a string with the local address replaced
+// parseLocalAddressPlaceholder returns a string with the local address replaced
 func GetStringReplacement(item string, localAddr net.Addr) string {
 	item = strings.ReplaceAll(item, "[LOCAL_ADDRESS]", localAddr.String())
 	return item
