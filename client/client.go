@@ -339,7 +339,7 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
-	body = GetStringReplacement(body, ws.LocalAddr())
+	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
