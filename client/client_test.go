@@ -236,7 +236,7 @@ func TestCanPerformTLS(t *testing.T) {
 }
 
 func TestCanCreateConnection(t *testing.T) {
-	connected, _ := CanCreateNetConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
+	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
 	if connected {
 		t.Error("should've failed, because there's no port in the address")
 	}
