@@ -93,7 +93,7 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 	}
 	defer connection.Close()
 	if body != "" {
-		body = GetStringReplacement(body, connection.LocalAddr())
+		body = parseLocalAddressPlaceholder(body, connection.LocalAddr())
 		connection.SetDeadline(time.Now().Add(config.Timeout))
 		_, err = connection.Write([]byte(body))
 		if err != nil {
