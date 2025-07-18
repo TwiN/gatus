@@ -391,7 +391,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Connected, result.Body = client.CanCreateNetworkConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeUDP {
-		result.Connected, result.Body = client.CanCreateNetConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSCTP {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
