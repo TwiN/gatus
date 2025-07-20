@@ -82,7 +82,7 @@ func parseLocalAddressPlaceholder(item string, localAddr net.Addr) string {
 	return item
 }
 
-// CanCreateNetConnection checks whether a connection can be established with a TCP or UDP endpoint
+// CanCreateNetworkConnection checks whether a connection can be established with a TCP or UDP endpoint
 func CanCreateNetworkConnection(netType string, address string, body string, config *Config) (bool, []byte) {
 	const (
 		MaximumMessageSize = 1024 // in bytes
