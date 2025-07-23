@@ -96,6 +96,21 @@ type Condition string
 
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
+	condition := string(c)
+	// Check for invalid duration units in CERTIFICATE_EXPIRATION conditions
+	if strings.Contains(condition, CertificateExpirationPlaceholder) {
+		parts := strings.Split(condition, " ")
+		for i, part := range parts {
+			if strings.Contains(part, CertificateExpirationPlaceholder) && i+2 < len(parts) {
+				// Check the value after the operator
+				value := parts[i+2]
+				if isDurationWithInvalidUnit(value) {
+					return fmt.Errorf("invalid duration unit in condition '%s': Go's time.Duration only supports units up to 'h' (hours). Use hours instead (e.g., '336h' instead of '14d')", condition)
+				}
+			}
+		}
+	}
+	
 	r := &Result{}
 	c.evaluate(r, false)
 	if len(r.Errors) != 0 {
@@ -306,13 +321,50 @@ func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) 
 	return parameters, resolvedParameters
 }
 
+// isDurationWithInvalidUnit checks if a string looks like a duration but uses units not supported by Go's time.Duration
+func isDurationWithInvalidUnit(s string) bool {
+	// Check for common invalid duration units like days (d), weeks (w), months (m), years (y)
+	// Go's time.Duration only supports: ns, us (or µs), ms, s, m, h
+	s = strings.TrimSpace(s)
+	return len(s) > 0 && (strings.HasSuffix(s, "d") || strings.HasSuffix(s, "D") || 
+		strings.HasSuffix(s, "w") || strings.HasSuffix(s, "W") ||
+		strings.HasSuffix(s, "y") || strings.HasSuffix(s, "Y") ||
+		strings.Contains(strings.ToLower(s), "mo")) && isNumericPrefix(s)
+}
+
+// isNumericPrefix checks if a string starts with a numeric value
+func isNumericPrefix(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	// Find the first non-digit, non-decimal point character
+	for i, r := range s {
+		if r != '.' && (r < '0' || r > '9') {
+			// Check if we found at least one digit before this position
+			prefix := s[:i]
+			if _, err := strconv.ParseFloat(prefix, 64); err == nil && len(prefix) > 0 {
+				return true
+			}
+			return false
+		}
+	}
+	return false
+}
+
 func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
 	parameters, resolvedParameters := sanitizeAndResolve(list, result)
-	for _, element := range resolvedParameters {
+	for i, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
 		} else if number, err := strconv.ParseInt(element, 0, 64); err != nil {
+			// Check if this is a duration with an invalid unit (like "14d")
+			if isDurationWithInvalidUnit(element) {
+				// Check if we're dealing with CERTIFICATE_EXPIRATION
+				if strings.Contains(parameters[i], CertificateExpirationPlaceholder) {
+					result.AddError(fmt.Sprintf("invalid duration unit in condition '%s': Go's time.Duration only supports units up to 'h' (hours). Use hours instead (e.g., '336h' instead of '14d')", strings.Join(parameters, " ")))
+				}
+			}
 			// It's not an int, so we'll check if it's a float
 			if f, err := strconv.ParseFloat(element, 64); err == nil {
 				// It's a float, but we'll convert it to an int. We're losing precision here, but it's better than
