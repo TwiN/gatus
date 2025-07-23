@@ -1,3 +1,33 @@
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=TwiN&project=gatus&lang=id">Bahasa Indonesia</a>
+      </div>
+    </div>
+  </details>
+</div>
+
 [![Gatus](.github/assets/logo-with-dark-text.png)](https://gatus.io)
 
 ![test](https://github.com/TwiN/gatus/actions/workflows/test.yml/badge.svg)
