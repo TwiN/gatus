@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -17,99 +18,205 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// EndpointStatuses handles requests to retrieve all EndpointStatus
-// Due to how intensive this operation can be on the storage, this function leverages a cache.
+// EndpointStatuses handles paginated, filtered retrieval of endpoint statuses
+
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
-		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
-		var data []byte
-		if !exists {
-			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
-			if err != nil {
-				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
-				return c.Status(500).SendString(err.Error())
-			}
-			// ALPHA: Retrieve endpoint statuses from remote instances
-			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
-				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
-			} else if endpointStatusesFromRemote != nil {
-				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
-			}
-			// Marshal endpoint statuses to JSON
-			data, err = json.Marshal(endpointStatuses)
-			if err != nil {
-				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
-				return c.Status(500).SendString("unable to marshal object to JSON")
-			}
-			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
-		} else {
-			data = value.([]byte)
-		}
-		c.Set("Content-Type", "application/json")
-		return c.Status(200).Send(data)
-	}
+    return func(c *fiber.Ctx) error {
+        page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
+
+        searchFilter := c.Query("search", "")
+        statusFilter := c.Query("status", "")
+
+        cacheKey := fmt.Sprintf("endpoint-status-%d-%d-%s-%s",
+            page, pageSize, searchFilter, statusFilter)
+
+        //  Check cache
+        if cached, ok := cache.Get(cacheKey); ok {
+            if pageData, ok := cached.(struct {
+                TotalCount int
+                Data       []byte
+            }); ok {
+                c.Set("Content-Type", "application/json")
+                c.Set("X-Total-Count", fmt.Sprintf("%d", pageData.TotalCount))
+                return c.Status(200).Send(pageData.Data)
+            }
+            logr.Warn("[api.EndpointStatuses] Cache contained unexpected type")
+        }
+
+        //  Query store
+        endpointStatuses, err := store.Get().GetAllEndpointStatuses(
+            paging.NewEndpointStatusParams().WithResults(1, cfg.Storage.MaximumNumberOfResults),
+        )
+        if err != nil {
+            logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
+            return c.Status(500).SendString(err.Error())
+        }
+
+        var filtered []*endpoint.Status
+        reverseResults := c.Query("reverse", "") == "true"
+
+        for _, es := range endpointStatuses {
+            if searchFilter != "" && !matchesSearch(es, searchFilter) {
+                continue
+            }
+            if statusFilter != "" && !matchesStatus(es, statusFilter) {
+                continue
+            }
+
+            if reverseResults && len(es.Results) > 1 {
+                for i, j := 0, len(es.Results)-1; i < j; i, j = i+1, j-1 {
+                    es.Results[i], es.Results[j] = es.Results[j], es.Results[i]
+                }
+            }
+
+            filtered = append(filtered, es)
+        }
+
+        totalCount := len(filtered)
+
+        //  Page endpoints
+        start := (page - 1) * pageSize
+        end := start + pageSize
+        if start >= totalCount {
+            filtered = []*endpoint.Status{}
+        } else {
+            if end > totalCount {
+                end = totalCount
+            }
+            filtered = filtered[start:end]
+        }
+
+        //  Page results inside each endpoint
+        for _, es := range filtered {
+            start := 0
+            end := pageSize
+            if end > len(es.Results) {
+                end = len(es.Results)
+            }
+            es.Results = es.Results[start:end]
+        }
+
+        data, err := json.Marshal(filtered)
+        if err != nil {
+            logr.Errorf("[api.EndpointStatuses] Unable to marshal JSON: %s", err.Error())
+            return c.Status(500).SendString("unable to marshal object to JSON")
+        }
+
+        //  Cache JSON + total count
+        cache.SetWithTTL(cacheKey, struct {
+            TotalCount int
+            Data       []byte
+        }{
+            TotalCount: totalCount,
+            Data:       data,
+        }, cacheTTL)
+
+        c.Set("Content-Type", "application/json")
+        c.Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
+        return c.Status(200).Send(data)
+    }
 }
 
-func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
-	if remoteConfig == nil || len(remoteConfig.Instances) == 0 {
-		return nil, nil
-	}
-	var endpointStatusesFromAllRemotes []*endpoint.Status
-	httpClient := client.GetHTTPClient(remoteConfig.ClientConfig)
-	for _, instance := range remoteConfig.Instances {
-		response, err := httpClient.Get(instance.URL)
-		if err != nil {
-			// Log the error but continue with other instances
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
-		var endpointStatuses []*endpoint.Status
-		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
-			_ = response.Body.Close()
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to decode endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
-		_ = response.Body.Close()
-		for _, endpointStatus := range endpointStatuses {
-			endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
-		}
-		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
-	}
-	// Only return nil, error if no remote instances were successfully processed
-	if len(endpointStatusesFromAllRemotes) == 0 && remoteConfig.Instances != nil {
-		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
-	}
-	return endpointStatusesFromAllRemotes, nil
-}
-
-// EndpointStatus retrieves a single endpoint.Status by group and endpoint name
+// EndpointStatus retrieves a single endpoint.Status by key, with pagination on its events
 func EndpointStatus(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		key, err := url.QueryUnescape(c.Params("key"))
 		if err != nil {
-			logr.Errorf("[api.EndpointStatus] Failed to decode key: %s", err.Error())
-			return c.Status(400).SendString("invalid key encoding")
+			logr.Errorf("[api.EndpointStatus] Invalid key encoding: %s", err)
+			return c.Status(fiber.StatusBadRequest).SendString("invalid key encoding")
 		}
-		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
+
+		endpointStatus, err := store.Get().GetEndpointStatusByKey(
+			key,
+			paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents),
+		)
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
-				return c.Status(404).SendString(err.Error())
+				return c.Status(fiber.StatusNotFound).SendString(err.Error())
 			}
-			logr.Errorf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
-			return c.Status(500).SendString(err.Error())
+			logr.Errorf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err)
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
-		if endpointStatus == nil { // XXX: is this check necessary?
+
+		if endpointStatus == nil {
 			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
-			return c.Status(404).SendString("not found")
+			return c.Status(fiber.StatusNotFound).SendString("not found")
 		}
-		output, err := json.Marshal(endpointStatus)
-		if err != nil {
-			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
-			return c.Status(500).SendString("unable to marshal object to JSON")
-		}
+
 		c.Set("Content-Type", "application/json")
-		return c.Status(200).Send(output)
+		return c.Status(fiber.StatusOK).JSON(endpointStatus)
 	}
+}
+
+// Helper to fetch from remote instances
+func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
+	if remoteConfig == nil || len(remoteConfig.Instances) == 0 {
+		return nil, nil
+	}
+	var all []*endpoint.Status
+	client := client.GetHTTPClient(remoteConfig.ClientConfig)
+	for _, inst := range remoteConfig.Instances {
+		resp, err := client.Get(inst.URL)
+		if err != nil {
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] %s: %s", inst.URL, err)
+			continue
+		}
+		var list []*endpoint.Status
+		if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+			_ = resp.Body.Close()
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] decode %s: %s", inst.URL, err)
+			continue
+		}
+		_ = resp.Body.Close()
+		for _, s := range list {
+			s.Name = inst.EndpointPrefix + s.Name
+		}
+		all = append(all, list...)
+	}
+	if len(all) == 0 && remoteConfig.Instances != nil {
+		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
+	}
+	return all, nil
+}
+
+func matchesSearch(es *endpoint.Status, search string) bool {
+    return containsInsensitive(es.Name, search) ||
+           containsInsensitive(es.Group, search) ||
+           containsInsensitive(es.Key, search)
+}
+
+func containsInsensitive(s, sub string) bool {
+    return len(s) > 0 && len(sub) > 0 && ( // avoid empty search matching everything
+        (len(s) >= len(sub)) && 
+        (containsFold(s, sub)))
+}
+
+func containsFold(s, substr string) bool {
+    return len(substr) == 0 || (len(s) >= len(substr) && 
+        (stringContainsFold(s, substr)))
+}
+
+func stringContainsFold(s, substr string) bool {
+    return len(s) > 0 && len(substr) > 0 && 
+           (stringIndexFold(s, substr) >= 0)
+}
+
+func stringIndexFold(s, substr string) int {
+    return strings.Index(strings.ToLower(s), strings.ToLower(substr))
+}
+
+func matchesStatus(es *endpoint.Status, status string) bool {
+    if len(es.Results) == 0 {
+        return false
+    }
+    last := es.Results[len(es.Results)-1]
+    switch status {
+    case "success":
+        return last.Success
+    case "error":
+        return !last.Success
+    default:
+        return true
+    }
 }

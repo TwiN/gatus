@@ -88,6 +88,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// SPA
 	app.Get("/", SinglePageApplication(cfg.UI))
 	app.Get("/endpoints/:name", SinglePageApplication(cfg.UI))
+	app.Get("/endpoints-list", SinglePageApplication(cfg.UI))
 	// Health endpoint
 	healthHandler := health.Handler().WithJSON(true)
 	app.Get("/health", func(c *fiber.Ctx) error {
