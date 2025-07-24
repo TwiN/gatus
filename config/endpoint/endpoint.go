@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -229,7 +232,7 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 		}
 	}
 	// Make sure that the request can be created
-	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.Body)))
+	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
 	if err != nil {
 		return err
 	}
@@ -326,6 +329,26 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	return result
 }
 
+func (e *Endpoint) getParsedBody() string {
+	body := e.Body
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", e.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", e.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", e.URL)
+	randRegex, err := regexp.Compile(`\[RANDOM_STRING_\d+\]`)
+	if err == nil {
+		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
+			n, _ := strconv.Atoi(match[15 : len(match)-1])
+			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			b := make([]byte, n)
+			for i := range b {
+				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
+			}
+			return string(b)
+		})
+	}
+	return body
+}
+
 func (e *Endpoint) getIP(result *Result) {
 	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
@@ -356,7 +379,7 @@ func (e *Endpoint) call(result *Result) {
 		if endpointType == TypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 		} else {
-			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
+			result.Connected, result.Body, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.getParsedBody(), e.ClientConfig)
 		}
 		if err != nil {
 			result.AddError(err.Error())
@@ -365,10 +388,10 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == TypeTCP {
-		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(e.URL, "tcp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeUDP {
-		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(e.URL, "udp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSCTP {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
@@ -376,7 +399,7 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	} else if endpointType == TypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.Body, e.ClientConfig)
+		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
@@ -401,7 +424,7 @@ func (e *Endpoint) call(result *Result) {
 			result.AddError(err.Error())
 			return
 		}
-		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.Body, e.ClientConfig)
+		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
@@ -435,12 +458,12 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if e.GraphQL {
 		graphQlBody := map[string]string{
-			"query": e.Body,
+			"query": e.getParsedBody(),
 		}
 		body, _ := json.Marshal(graphQlBody)
 		bodyBuffer = bytes.NewBuffer(body)
 	} else {
-		bodyBuffer = bytes.NewBuffer([]byte(e.Body))
+		bodyBuffer = bytes.NewBuffer([]byte(e.getParsedBody()))
 	}
 	request, _ := http.NewRequest(e.Method, e.URL, bodyBuffer)
 	for k, v := range e.Headers {
