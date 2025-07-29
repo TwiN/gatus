@@ -223,7 +223,7 @@ func TestCanPerformTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			connected, _, _, err := CanPerformTLS(tt.args.address, "", &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -235,11 +235,13 @@ func TestCanPerformTLS(t *testing.T) {
 	}
 }
 
-func TestCanCreateTCPConnection(t *testing.T) {
-	if CanCreateTCPConnection("127.0.0.1", &Config{Timeout: 5 * time.Second}) {
+func TestCanCreateConnection(t *testing.T) {
+	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
+	if connected {
 		t.Error("should've failed, because there's no port in the address")
 	}
-	if !CanCreateTCPConnection("1.1.1.1:53", &Config{Timeout: 5 * time.Second}) {
+	connected, _ = CanCreateNetworkConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
+	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
 	}
 }
