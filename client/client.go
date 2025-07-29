@@ -332,6 +332,12 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 	}
 	if config != nil {
 		wsConfig.Dialer = &net.Dialer{Timeout: config.Timeout}
+		wsConfig.TlsConfig = &tls.Config{
+			InsecureSkipVerify: config.Insecure,
+		}
+		if config.HasTLSConfig() && config.TLS.isValid() == nil {
+			wsConfig.TlsConfig = configureTLS(wsConfig.TlsConfig, *config.TLS)
+		}
 	}
 	// Dial URL
 	ws, err := websocket.DialConfig(wsConfig)
