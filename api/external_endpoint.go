@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -71,6 +72,9 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+		}
+		if cfg.Metrics {
+			metrics.PublishMetricsForEndpoint(convertedEndpoint, result)
 		}
 		// Return the result
 		return c.Status(200).SendString("")

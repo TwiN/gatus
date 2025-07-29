@@ -57,6 +57,9 @@ type Store interface {
 	// This prevents triggered alerts that have been removed or modified from lingering in the database.
 	DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int
 
+	// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+	HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error)
+
 	// Clear deletes everything from the store
 	Clear()
 

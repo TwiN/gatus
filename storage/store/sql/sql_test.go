@@ -853,3 +853,36 @@ func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
 		t.Error("expected alert3 to exist for ep2")
 	}
 }
+
+func TestStore_HasEndpointStatusNewerThan(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_HasEndpointStatusNewerThan.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Close()
+	// Insert an endpoint status
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Check if it has a status newer than 1 hour ago
+	hasNewerStatus, err := store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(-time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !hasNewerStatus {
+		t.Error("expected to have a newer status")
+	}
+	// Check if it has a status newer than 2 days ago
+	hasNewerStatus, err = store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(-48*time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !hasNewerStatus {
+		t.Error("expected to have a newer status")
+	}
+	// Check if there's a status newer than 1 hour in the future (silly test, but it should work)
+	hasNewerStatus, err = store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if hasNewerStatus {
+		t.Error("expected not to have a newer status in the future")
+	}
+}
