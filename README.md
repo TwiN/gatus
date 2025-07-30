@@ -305,14 +305,16 @@ For instance:
 - You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
-| Parameter                      | Description                                                                                                            | Default       |
-|:-------------------------------|:-----------------------------------------------------------------------------------------------------------------------|:--------------|
-| `external-endpoints`           | List of endpoints to monitor.                                                                                          | `[]`          |
-| `external-endpoints[].enabled` | Whether to monitor the endpoint.                                                                                       | `true`        |
-| `external-endpoints[].name`    | Name of the endpoint. Can be anything.                                                                                 | Required `""` |
-| `external-endpoints[].group`   | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups). | `""`          |
-| `external-endpoints[].token`   | Bearer token required to push status to.                                                                               | Required `""` |
-| `external-endpoints[].alerts`  | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                              | `[]`          |
+| Parameter                                 | Description                                                                                                                       | Default        |
+|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
+| `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
+| `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
+| `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
+| `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
+| `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
+| `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
+| `external-endpoints[].heartbeat.interval` | Expected interval between updates. If no update is received within this interval, alerts will be triggered. Must be at least 10s. | `0` (disabled) |
 
 Example:
 ```yaml
@@ -320,6 +322,8 @@ external-endpoints:
   - name: ext-ep-test
     group: core
     token: "potato"
+    heartbeat:
+      interval: 30m  # Automatically create a failure if no update is received within 30 minutes
     alerts:
       - type: discord
         description: "healthcheck failed"

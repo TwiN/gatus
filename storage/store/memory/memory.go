@@ -211,6 +211,23 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	return 0
 }
 
+// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error) {
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil {
+		// If no endpoint exists, there's no newer status, so return false instead of an error
+		return false, nil
+	}
+	for _, result := range endpointStatus.(*endpoint.Status).Results {
+		if result.Timestamp.After(timestamp) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // Clear deletes everything from the store
 func (s *Store) Clear() {
 	s.cache.Clear()
