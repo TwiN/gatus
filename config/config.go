@@ -125,7 +125,7 @@ func (config *Config) GetMetricLabels() []string {
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
-		if ep.Key() == key {
+		if ep.Key() == strings.ToLower(key) {
 			return ep
 		}
 	}
@@ -135,7 +135,7 @@ func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEndpoint {
 	for i := 0; i < len(config.ExternalEndpoints); i++ {
 		ee := config.ExternalEndpoints[i]
-		if ee.Key() == key {
+		if ee.Key() == strings.ToLower(key) {
 			return ee
 		}
 	}
@@ -299,6 +299,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		// Cross-config changes
+		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
 	return
 }
@@ -322,7 +324,9 @@ func validateRemoteConfig(config *Config) error {
 func validateStorageConfig(config *Config) error {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{
-			Type: storage.TypeMemory,
+			Type:                   storage.TypeMemory,
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 		}
 	} else {
 		if err := config.Storage.ValidateAndSetDefaults(); err != nil {
@@ -426,6 +430,9 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeGitea,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
+		alert.TypeHomeAssistant,
+		alert.TypeIlert,
+		alert.TypeIncidentIO,
 		alert.TypeJetBrainsSpace,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
@@ -440,7 +447,6 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeTelegram,
 		alert.TypeTwilio,
 		alert.TypeZulip,
-		alert.TypeIncidentIO,
 	}
 	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {

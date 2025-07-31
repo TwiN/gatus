@@ -8,7 +8,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
@@ -84,13 +84,13 @@ var (
 )
 
 func TestNewStore(t *testing.T) {
-	if _, err := NewStore("", t.TempDir()+"/TestNewStore.db", false); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
+	if _, err := NewStore("", t.TempDir()+"/TestNewStore.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents); !errors.Is(err, ErrDatabaseDriverNotSpecified) {
 		t.Error("expected error due to blank driver parameter")
 	}
-	if _, err := NewStore("sqlite", "", false); !errors.Is(err, ErrPathNotSpecified) {
+	if _, err := NewStore("sqlite", "", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents); !errors.Is(err, ErrPathNotSpecified) {
 		t.Error("expected error due to blank path parameter")
 	}
-	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", true); err != nil {
+	if store, err := NewStore("sqlite", t.TempDir()+"/TestNewStore.db", true, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents); err != nil {
 		t.Error("shouldn't have returned any error, got", err.Error())
 	} else {
 		_ = store.db.Close()
@@ -98,7 +98,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpOldUptimeEntriesProperly.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
@@ -155,7 +155,7 @@ func TestStore_InsertCleansUpOldUptimeEntriesProperly(t *testing.T) {
 }
 
 func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	now := time.Now().Truncate(time.Hour)
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
@@ -212,7 +212,7 @@ func TestStore_HourlyUptimeEntriesAreMergedIntoDailyUptimeEntriesProperly(t *tes
 }
 
 func TestStore_getEndpointUptime(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Clear()
 	defer store.Close()
 	// Add 768 hourly entries (32 days)
@@ -274,13 +274,15 @@ func TestStore_getEndpointUptime(t *testing.T) {
 }
 
 func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertCleansUpEventsAndResultsProperly.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Clear()
 	defer store.Close()
+	resultsCleanUpThreshold := store.maximumNumberOfResults + resultsAboveMaximumCleanUpThreshold
+	eventsCleanUpThreshold := store.maximumNumberOfEvents + eventsAboveMaximumCleanUpThreshold
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.Insert(&testEndpoint, &testSuccessfulResult)
 		store.Insert(&testEndpoint, &testUnsuccessfulResult)
-		ss, _ := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults*5).WithEvents(1, common.MaximumNumberOfEvents*5))
+		ss, _ := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults*5).WithEvents(1, storage.DefaultMaximumNumberOfEvents*5))
 		if len(ss.Results) > resultsCleanUpThreshold+1 {
 			t.Errorf("number of results shouldn't have exceeded %d, reached %d", resultsCleanUpThreshold, len(ss.Results))
 		}
@@ -291,7 +293,7 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 }
 
 func TestStore_InsertWithCaching(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertWithCaching.db", true)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertWithCaching.db", true, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	// Add 2 results
 	store.Insert(&testEndpoint, &testSuccessfulResult)
@@ -326,7 +328,7 @@ func TestStore_InsertWithCaching(t *testing.T) {
 
 func TestStore_Persistence(t *testing.T) {
 	path := t.TempDir() + "/TestStore_Persistence.db"
-	store, _ := NewStore("sqlite", path, false)
+	store, _ := NewStore("sqlite", path, false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	store.Insert(&testEndpoint, &testUnsuccessfulResult)
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); uptime != 0.5 {
@@ -341,15 +343,15 @@ func TestStore_Persistence(t *testing.T) {
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*30), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 30d should've been 0.5, got %f", uptime)
 	}
-	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
 	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
-	store, _ = NewStore("sqlite", path, false)
+	store, _ = NewStore("sqlite", path, false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
-	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, common.MaximumNumberOfResults).WithEvents(1, common.MaximumNumberOfEvents))
+	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
@@ -411,7 +413,7 @@ func TestStore_Persistence(t *testing.T) {
 }
 
 func TestStore_Save(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_Save.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	if store.Save() != nil {
 		t.Error("Save shouldn't do anything for this store")
@@ -421,7 +423,7 @@ func TestStore_Save(t *testing.T) {
 // Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
@@ -465,7 +467,7 @@ func TestStore_SanityCheck(t *testing.T) {
 
 // TestStore_InvalidTransaction tests what happens if an invalid transaction is passed as parameter
 func TestStore_InvalidTransaction(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InvalidTransaction.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	tx.Commit()
@@ -523,7 +525,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 }
 
 func TestStore_NoRows(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_NoRows.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
@@ -537,7 +539,7 @@ func TestStore_NoRows(t *testing.T) {
 
 // This tests very unlikely cases where a table is deleted.
 func TestStore_BrokenSchema(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_BrokenSchema.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, got", err.Error())
@@ -725,7 +727,7 @@ func TestCacheKey(t *testing.T) {
 }
 
 func TestTriggeredEndpointAlertsPersistence(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestTriggeredEndpointAlertsPersistence.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestTriggeredEndpointAlertsPersistence.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	yes, desc := false, "description"
 	ep := testEndpoint
@@ -791,7 +793,7 @@ func TestTriggeredEndpointAlertsPersistence(t *testing.T) {
 }
 
 func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
-	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint.db", false)
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	yes, desc := false, "description"
 	ep1 := testEndpoint
@@ -849,5 +851,38 @@ func TestStore_DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(t *testing.T) {
 	// Make sure the alert for ep2 still exists
 	if exists, _, _, _ := store.GetTriggeredEndpointAlert(&ep2, &alert3); !exists {
 		t.Error("expected alert3 to exist for ep2")
+	}
+}
+
+func TestStore_HasEndpointStatusNewerThan(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_HasEndpointStatusNewerThan.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Close()
+	// Insert an endpoint status
+	if err := store.Insert(&testEndpoint, &testSuccessfulResult); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	// Check if it has a status newer than 1 hour ago
+	hasNewerStatus, err := store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(-time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !hasNewerStatus {
+		t.Error("expected to have a newer status")
+	}
+	// Check if it has a status newer than 2 days ago
+	hasNewerStatus, err = store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(-48*time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if !hasNewerStatus {
+		t.Error("expected to have a newer status")
+	}
+	// Check if there's a status newer than 1 hour in the future (silly test, but it should work)
+	hasNewerStatus, err = store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if hasNewerStatus {
+		t.Error("expected not to have a newer status in the future")
 	}
 }

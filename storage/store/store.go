@@ -57,6 +57,9 @@ type Store interface {
 	// This prevents triggered alerts that have been removed or modified from lingering in the database.
 	DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int
 
+	// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+	HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error)
+
 	// Clear deletes everything from the store
 	Clear()
 
@@ -111,7 +114,10 @@ func Initialize(cfg *storage.Config) error {
 	if cfg == nil {
 		// This only happens in tests
 		logr.Warn("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
-		cfg = &storage.Config{}
+		cfg = &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
 		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
@@ -119,14 +125,14 @@ func Initialize(cfg *storage.Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		store, _ = memory.NewStore()
+		store, _ = memory.NewStore(cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 	}
 	return nil
 }

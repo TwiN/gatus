@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -53,7 +54,10 @@ func UptimeBadge(c *fiber.Ctx) error {
 	default:
 		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 	}
-	key := c.Params("key")
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
@@ -88,7 +92,10 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 		default:
 			return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 		}
-		key := c.Params("key")
+		key, err := url.QueryUnescape(c.Params("key"))
+		if err != nil {
+			return c.Status(400).SendString("invalid key encoding")
+		}
 		averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
@@ -107,7 +114,10 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 
 // HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 func HealthBadge(c *fiber.Ctx) error {
-	key := c.Params("key")
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
 	pagingConfig := paging.NewEndpointStatusParams()
 	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
 	if err != nil {
@@ -133,7 +143,10 @@ func HealthBadge(c *fiber.Ctx) error {
 }
 
 func HealthBadgeShields(c *fiber.Ctx) error {
-	key := c.Params("key")
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
 	pagingConfig := paging.NewEndpointStatusParams()
 	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
 	if err != nil {
