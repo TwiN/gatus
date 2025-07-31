@@ -99,8 +99,8 @@ type Endpoint struct {
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
-	// Labels are key-value pairs that can be used to metric the endpoint
-	Labels map[string]string `yaml:"labels,omitempty"`
+	// ExtraLabels are key-value pairs that can be used to metric the endpoint
+	ExtraLabels map[string]string `yaml:"extra-labels,omitempty"`
 
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`

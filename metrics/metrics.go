@@ -21,45 +21,45 @@ var (
 )
 
 func InitializePrometheusMetrics(cfg *config.Config) {
-	labels := cfg.GetMetricLabels()
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	resultTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_total",
 		Help:      "Number of results per endpoint",
-	}, append([]string{"key", "group", "name", "type", "success"}, labels...))
+	}, append([]string{"key", "group", "name", "type", "success"}, extraLabels...))
 	resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_duration_seconds",
 		Help:      "Duration of the request in seconds",
-	}, append([]string{"key", "group", "name", "type"}, labels...))
+	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_connected_total",
 		Help:      "Total number of results in which a connection was successfully established",
-	}, append([]string{"key", "group", "name", "type"}, labels...))
+	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	resultCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_code_total",
 		Help:      "Total number of results by code",
-	}, append([]string{"key", "group", "name", "type", "code"}, labels...))
+	}, append([]string{"key", "group", "name", "type", "code"}, extraLabels...))
 	resultCertificateExpirationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_certificate_expiration_seconds",
 		Help:      "Number of seconds until the certificate expires",
-	}, append([]string{"key", "group", "name", "type"}, labels...))
+	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	resultEndpointSuccess = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_endpoint_success",
 		Help:      "Displays whether or not the endpoint was a success",
-	}, append([]string{"key", "group", "name", "type"}, labels...))
+	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
-func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, labels []string) {
+func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, extraLabels []string) {
 	labelValues := []string{}
-	for _, label := range labels {
-		if value, ok := ep.Labels[label]; ok {
+	for _, label := range extraLabels {
+		if value, ok := ep.ExtraLabels[label]; ok {
 			labelValues = append(labelValues, value)
 		} else {
 			labelValues = append(labelValues, "")

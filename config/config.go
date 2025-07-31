@@ -103,16 +103,16 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
-// GetMetricLabels returns a slice of unique metric labels from all enabled endpoints
+// GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
 // in the configuration. It iterates through each endpoint, checks if it is enabled,
 // and then collects unique labels from the endpoint's labels map.
-func (config *Config) GetMetricLabels() []string {
+func (config *Config) GetUniqueExtraMetricLabels() []string {
 	labels := make([]string, 0)
 	for _, ep := range config.Endpoints {
 		if !ep.IsEnabled() {
 			continue
 		}
-		for label := range ep.Labels {
+		for label := range ep.ExtraLabels {
 			if contains(labels, label) {
 				continue
 			}

@@ -124,7 +124,7 @@ endpoints:
 			name:       "dir-with-two-config-files",
 			configPath: dir,
 			pathAndFiles: map[string]string{
-				"config.yaml": `endpoints: 
+				"config.yaml": `endpoints:
   - name: one
     url: https://example.com
     conditions:
@@ -135,7 +135,7 @@ endpoints:
     url: https://example.org
     conditions:
       - "len([BODY]) > 0"`,
-				"config.yml": `endpoints: 
+				"config.yml": `endpoints:
   - name: three
     url: https://twin.sh/health
     conditions:
@@ -713,7 +713,7 @@ func TestParseAndValidateBadConfigBytes(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 badconfig:
   - asdsa: w0w
-    usadasdrl: asdxzczxc	
+    usadasdrl: asdxzczxc
     asdas:
       - soup
 `))
@@ -1944,7 +1944,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}
 }
 
-func TestConfig_GetMetricLabels(t *testing.T) {
+func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
 	tests := []struct {
 		name     string
 		config   *Config
@@ -1977,7 +1977,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 						Name:    "endpoint1",
 						URL:     "https://example.com",
 						Enabled: toPtr(true),
-						Labels: map[string]string{
+						ExtraLabels: map[string]string{
 							"env":  "production",
 							"team": "backend",
 						},
@@ -1994,7 +1994,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 						Name:    "endpoint1",
 						URL:     "https://example.com",
 						Enabled: toPtr(true),
-						Labels: map[string]string{
+						ExtraLabels: map[string]string{
 							"env":    "production",
 							"team":   "backend",
 							"module": "auth",
@@ -2004,7 +2004,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 						Name:    "endpoint2",
 						URL:     "https://example.org",
 						Enabled: toPtr(true),
-						Labels: map[string]string{
+						ExtraLabels: map[string]string{
 							"env":  "staging",
 							"team": "frontend",
 						},
@@ -2021,7 +2021,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 						Name:    "endpoint1",
 						URL:     "https://example.com",
 						Enabled: toPtr(true),
-						Labels: map[string]string{
+						ExtraLabels: map[string]string{
 							"env":  "production",
 							"team": "backend",
 						},
@@ -2030,7 +2030,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 						Name:    "endpoint2",
 						URL:     "https://example.org",
 						Enabled: toPtr(false),
-						Labels: map[string]string{
+						ExtraLabels: map[string]string{
 							"module": "auth",
 						},
 					},
@@ -2042,7 +2042,7 @@ func TestConfig_GetMetricLabels(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			labels := tt.config.GetMetricLabels()
+			labels := tt.config.GetUniqueExtraMetricLabels()
 			if len(labels) != len(tt.expected) {
 				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
 			}
