@@ -16,6 +16,7 @@ import (
 )
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	return func(c *fiber.Ctx) error {
 		// Check if the success query parameter is present
 		success, exists := c.Queries()["success"]
@@ -74,7 +75,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
 		}
 		if cfg.Metrics {
-			metrics.PublishMetricsForEndpoint(convertedEndpoint, result)
+			metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 		}
 		// Return the result
 		return c.Status(200).SendString("")

@@ -27,11 +27,12 @@ var (
 // Monitor loops over each endpoint and starts a goroutine to monitor each endpoint separately
 func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	for _, endpoint := range cfg.Endpoints {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(777 * time.Millisecond)
-			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
+			go monitor(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, extraLabels, ctx)
 		}
 	}
 	for _, externalEndpoint := range cfg.ExternalEndpoints {
@@ -39,15 +40,15 @@ func Monitor(cfg *config.Config) {
 		// If the external endpoint does not use heartbeat, then it does not need to be monitored periodically, because
 		// alerting is checked every time an external endpoint is pushed to Gatus, unlike normal endpoints.
 		if externalEndpoint.IsEnabled() && externalEndpoint.Heartbeat.Interval > 0 {
-			go monitorExternalEndpointHeartbeat(externalEndpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx)
+			go monitorExternalEndpointHeartbeat(externalEndpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx, extraLabels)
 		}
 	}
 }
 
 // monitor a single endpoint in a loop
-func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
+func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string, ctx context.Context) {
 	// Run it immediately on start
-	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+	execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
 	// Loop for the next executions
 	ticker := time.NewTicker(ep.Interval)
 	defer ticker.Stop()
@@ -57,7 +58,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 			logr.Warnf("[watchdog.monitor] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-ticker.C:
-			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+			execute(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
 		}
 	}
 	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
@@ -65,7 +66,7 @@ func monitor(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	// periodically like they are for normal endpoints.
 }
 
-func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
+func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -80,7 +81,7 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	logr.Debugf("[watchdog.execute] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
 	if enabledMetrics {
-		metrics.PublishMetricsForEndpoint(ep, result)
+		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatuses(ep, result)
 	if logr.GetThreshold() == logr.LevelDebug && !result.Success {
@@ -104,7 +105,7 @@ func execute(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenance
 	logr.Debugf("[watchdog.execute] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
 }
 
-func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context) {
+func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context, extraLabels []string) {
 	ticker := time.NewTicker(ee.Heartbeat.Interval)
 	defer ticker.Stop()
 	for {
@@ -113,12 +114,12 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingCon
 			logr.Warnf("[watchdog.monitorExternalEndpointHeartbeat] Canceling current execution of group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
 			return
 		case <-ticker.C:
-			executeExternalEndpointHeartbeat(ee, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics)
+			executeExternalEndpointHeartbeat(ee, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
 		}
 	}
 }
 
-func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool) {
+func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string) {
 	if !disableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
@@ -152,7 +153,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingCon
 		Errors:    []string{"heartbeat: no update received within " + ee.Heartbeat.Interval.String()},
 	}
 	if enabledMetrics {
-		metrics.PublishMetricsForEndpoint(convertedEndpoint, result)
+		metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 	}
 	UpdateEndpointStatuses(convertedEndpoint, result)
 	logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] Checked heartbeat for group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ee.Group, ee.Name, ee.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
