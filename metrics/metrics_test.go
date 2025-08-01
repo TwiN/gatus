@@ -12,6 +12,53 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
+// TestInitializePrometheusMetrics tests metrics initialization with extraLabels.
+// Note: Because of the global Prometheus registry, this test can only safely verify one label set per process.
+// If the function is called with a different set of labels for the same metric, a panic will occur.
+func TestInitializePrometheusMetrics(t *testing.T) {
+	cfgWithExtras := &config.Config{
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name:  "TestEP",
+				Group: "G",
+				URL:   "http://x/",
+				ExtraLabels: map[string]string{
+					"foo":   "foo-val",
+					"hello": "world-val",
+				},
+			},
+		},
+	}
+	InitializePrometheusMetrics(cfgWithExtras)
+	// Metrics variables should be non-nil
+	if resultTotal == nil {
+		t.Error("resultTotal metric not initialized")
+	}
+	if resultDurationSeconds == nil {
+		t.Error("resultDurationSeconds metric not initialized")
+	}
+	if resultConnectedTotal == nil {
+		t.Error("resultConnectedTotal metric not initialized")
+	}
+	if resultCodeTotal == nil {
+		t.Error("resultCodeTotal metric not initialized")
+	}
+	if resultCertificateExpirationSeconds == nil {
+		t.Error("resultCertificateExpirationSeconds metric not initialized")
+	}
+	if resultEndpointSuccess == nil {
+		t.Error("resultEndpointSuccess metric not initialized")
+	}
+
+	// Test the correct length of WithLabelValues: should accept default + extra labels
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("resultTotal.WithLabelValues panicked: %v", r)
+		}
+	}()
+	_ = resultTotal.WithLabelValues("k", "g", "n", "ty", "true", "fval", "hval")
+}
+
 func TestPublishMetricsForEndpoint(t *testing.T) {
 	InitializePrometheusMetrics(&config.Config{})
 
