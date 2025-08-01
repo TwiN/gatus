@@ -50,13 +50,57 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 		t.Error("resultEndpointSuccess metric not initialized")
 	}
 
-	// Test the correct length of WithLabelValues: should accept default + extra labels
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("resultTotal.WithLabelValues panicked: %v", r)
 		}
 	}()
 	_ = resultTotal.WithLabelValues("k", "g", "n", "ty", "true", "fval", "hval")
+}
+
+// TestPublishMetricsForEndpoint_withExtraLabels ensures extraLabels are included in the exported metrics.
+func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
+	// Only test one label set per process due to Prometheus registry limits.
+	InitializePrometheusMetrics(&config.Config{
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name: "ep-extra",
+				URL:  "https://sample.com",
+				ExtraLabels: map[string]string{
+					"foo": "my-foo",
+					"bar": "my-bar",
+				},
+			},
+		},
+	})
+
+	ep := &endpoint.Endpoint{
+		Name:  "ep-extra",
+		Group: "g1",
+		URL:   "https://sample.com",
+		ExtraLabels: map[string]string{
+			"foo": "my-foo",
+			"bar": "my-bar",
+		},
+	}
+	result := &endpoint.Result{
+		HTTPStatus: 200,
+		Connected:  true,
+		Duration:   2340 * time.Millisecond,
+		Success:    true,
+	}
+	// Order of extraLabels as per GetUniqueExtraMetricLabels is ["foo", "bar"]
+	PublishMetricsForEndpoint(ep, result, []string{"foo", "bar"})
+
+	expected := `
+# HELP gatus_results_total Number of results per endpoint
+# TYPE gatus_results_total counter
+gatus_results_total{bar="my-bar",foo="my-foo",group="g1",key="g1_ep-extra",name="ep-extra",success="true",type="HTTP"} 1
+`
+	err := testutil.GatherAndCompare(prometheus.DefaultGatherer, bytes.NewBufferString(expected), "gatus_results_total")
+	if err != nil {
+		t.Error("metrics export does not include extraLabels as expected:", err)
+	}
 }
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
