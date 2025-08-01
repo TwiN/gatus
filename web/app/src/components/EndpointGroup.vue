@@ -2,7 +2,9 @@
   <div :class="endpoints.length === 0 ? 'mt-3' : 'mt-4'">
     <slot v-if="name !== 'undefined'">
       <div class="endpoint-group pt-2 border dark:bg-gray-800 dark:border-gray-500" @click="toggleGroup">
-        <h5 class="font-mono text-gray-400 text-xl font-medium pb-2 px-3 dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500">
+        <button class="font-mono text-gray-400 text-xl font-medium pb-2 px-3
+					dark:text-gray-200 dark:hover:text-gray-500 dark:border-gray-500
+					w-full text-left">
           <span class="endpoint-group-arrow mr-2">
             {{ collapsed ? '&#9660;' : '&#9650;' }}
           </span>
@@ -11,7 +13,7 @@
           <span v-else class="float-right text-green-600 w-7 hover:scale-110" title="Operational">
             <CheckCircleIcon />
           </span>
-        </h5>
+        </button>
       </div>
     </slot>
     <div v-if="!collapsed" :class="name === 'undefined' ? '' : 'endpoint-group-content'">
