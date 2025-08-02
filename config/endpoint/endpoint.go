@@ -399,7 +399,16 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	} else if endpointType == TypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), e.ClientConfig)
+		wsHeaders := map[string]string{}
+		if e.Headers != nil {
+			for k, v := range e.Headers {
+				wsHeaders[k] = v
+			}
+		}
+		if _, exists := wsHeaders["User-Agent"]; !exists {
+			wsHeaders["User-Agent"] = GatusUserAgent
+		}
+		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), wsHeaders, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
