@@ -22,7 +22,6 @@ import (
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -444,7 +443,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ep.Group, endpointAlert); err != nil {
-										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
+										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
 									}
 								}
 							}
@@ -458,7 +457,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ee.Group, endpointAlert); err != nil {
-										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
+										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
 									}
 								}
 							}
