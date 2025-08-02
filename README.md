@@ -2183,7 +2183,7 @@ This works for SCTP based application.
 
 
 ### Monitoring a WebSocket endpoint
-By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints at a very basic level:
+By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints:
 ```yaml
 endpoints:
   - name: example
