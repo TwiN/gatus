@@ -29,6 +29,11 @@ type Config struct {
 	Port     int    `yaml:"port"`
 	To       string `yaml:"to"`
 
+	TextEmailSubjectTriggered string `yaml:"text-email-subject-triggered,omitempty"` // String used in the email subject (optional)
+	TextEmailSubjectResolved  string `yaml:"text-email-subject-resolved,omitempty"`  // String used in the email subject (optional)
+	TextEmailBodyTriggered    string `yaml:"text-email-body-triggered,omitempty"`    // String used in the email body (optional)
+	TextEmailBodyResolved     string `yaml:"text-email-body-resolved,omitempty"`     // String used in the email body (optional)
+
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
@@ -67,6 +72,18 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.To) > 0 {
 		cfg.To = override.To
+	}
+	if len(override.TextEmailSubjectTriggered) > 0 {
+		cfg.TextEmailSubjectTriggered = override.TextEmailSubjectTriggered
+	}
+	if len(override.TextEmailSubjectResolved) > 0 {
+		cfg.TextEmailSubjectResolved = override.TextEmailSubjectResolved
+	}
+	if len(override.TextEmailBodyTriggered) > 0 {
+		cfg.TextEmailBodyTriggered = override.TextEmailBodyTriggered
+	}
+	if len(override.TextEmailBodyResolved) > 0 {
+		cfg.TextEmailBodyResolved = override.TextEmailBodyResolved
 	}
 }
 
@@ -113,7 +130,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	} else {
 		username = cfg.From
 	}
-	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
+	subject, body := provider.buildMessageSubjectAndBody(cfg, ep, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", cfg.From)
 	m.SetHeader("To", strings.Split(cfg.To, ",")...)
@@ -140,7 +157,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 // buildMessageSubjectAndBody builds the message subject and body
-func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
+func (provider *AlertProvider) buildMessageSubjectAndBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
 		subject = fmt.Sprintf("[%s] Alert resolved", ep.DisplayName())
@@ -162,6 +179,42 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 			formattedConditionResults += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 		}
 	}
+	// Override subject and body if specified in the configuration
+	if len(cfg.TextEmailSubjectTriggered) > 0 && !resolved {
+		subject = cfg.TextEmailSubjectTriggered
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	if len(cfg.TextEmailSubjectResolved) > 0 && resolved {
+		subject = cfg.TextEmailSubjectResolved
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_NAME]", ep.Name)
+		subject = strings.ReplaceAll(subject, "[ENDPOINT_GROUP]", ep.Group)
+	}
+	if len(cfg.TextEmailBodyTriggered) > 0 && !resolved {
+		message = cfg.TextEmailBodyTriggered
+		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
+		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		message = strings.ReplaceAll(message, "[ENDPOINT_URL]", ep.URL)
+		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
+		}
+		message = strings.ReplaceAll(message, "[FAILURE_THRESHOLD]", string(rune(alert.FailureThreshold)))
+		message = strings.ReplaceAll(message, "[CONDITION_RESULTS]", formattedConditionResults)
+		return subject, message
+	}
+	if len(cfg.TextEmailBodyResolved) > 0 && resolved {
+		message = cfg.TextEmailBodyResolved
+		message = strings.ReplaceAll(message, "[ENDPOINT_NAME]", ep.Name)
+		message = strings.ReplaceAll(message, "[ENDPOINT_GROUP]", ep.Group)
+		message = strings.ReplaceAll(message, "[ENDPOINT_URL]", ep.URL)
+		if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+			message = strings.ReplaceAll(message, "[ALERT_DESCRIPTION]", alertDescription)
+		}
+		message = strings.ReplaceAll(message, "[FAILURE_THRESHOLD]", string(rune(alert.SuccessThreshold)))
+		message = strings.ReplaceAll(message, "[CONDITION_RESULTS]", formattedConditionResults)
+		return subject, message
+	}
+	// Fallback to the default message body if no overrides are specified
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = "\n\nAlert description: " + alertDescription
