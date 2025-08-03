@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -237,7 +238,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
 	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	yamlBytes = []byte(os.Expand(string(yamlBytes), expandEnvironmentVariable))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
@@ -283,6 +284,31 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
 	return
+}
+
+func expandEnvironmentVariable(name string) string {
+	secretPathVarName := name + "_FILE"
+	secretPath, secretIsSet := os.LookupEnv(secretPathVarName)
+
+	if !secretIsSet {
+		return os.Getenv(name)
+	}
+
+	secretFile, err := os.Open(secretPath)
+	if err != nil {
+		return ""
+	}
+
+	defer func() {
+		_ = secretFile.Close()
+	}()
+
+	secretBytes, err := io.ReadAll(secretFile)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(secretBytes))
 }
 
 func validateConnectivityConfig(config *Config) error {
