@@ -6,7 +6,6 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const namespace = "gatus" // The prefix of the metrics
@@ -20,38 +19,47 @@ var (
 	resultEndpointSuccess              *prometheus.GaugeVec
 )
 
-func InitializePrometheusMetrics(cfg *config.Config) {
+func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) {
+	if reg == nil {
+		reg = prometheus.DefaultRegisterer
+	}
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
-	resultTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	resultTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_total",
 		Help:      "Number of results per endpoint",
 	}, append([]string{"key", "group", "name", "type", "success"}, extraLabels...))
-	resultDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	reg.MustRegister(resultTotal)
+	resultDurationSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_duration_seconds",
 		Help:      "Duration of the request in seconds",
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
-	resultConnectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	reg.MustRegister(resultDurationSeconds)
+	resultConnectedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_connected_total",
 		Help:      "Total number of results in which a connection was successfully established",
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
-	resultCodeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	reg.MustRegister(resultConnectedTotal)
+	resultCodeTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_code_total",
 		Help:      "Total number of results by code",
 	}, append([]string{"key", "group", "name", "type", "code"}, extraLabels...))
-	resultCertificateExpirationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	reg.MustRegister(resultCodeTotal)
+	resultCertificateExpirationSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_certificate_expiration_seconds",
 		Help:      "Number of seconds until the certificate expires",
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
-	resultEndpointSuccess = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	reg.MustRegister(resultCertificateExpirationSeconds)
+	resultEndpointSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_endpoint_success",
 		Help:      "Displays whether or not the endpoint was a success",
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
+	reg.MustRegister(resultEndpointSuccess)
 }
 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.

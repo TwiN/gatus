@@ -29,7 +29,8 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 			},
 		},
 	}
-	InitializePrometheusMetrics(cfgWithExtras)
+	reg := prometheus.NewRegistry()
+	InitializePrometheusMetrics(cfgWithExtras, reg)
 	// Metrics variables should be non-nil
 	if resultTotal == nil {
 		t.Error("resultTotal metric not initialized")
@@ -61,6 +62,7 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 // TestPublishMetricsForEndpoint_withExtraLabels ensures extraLabels are included in the exported metrics.
 func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 	// Only test one label set per process due to Prometheus registry limits.
+	reg := prometheus.NewRegistry()
 	InitializePrometheusMetrics(&config.Config{
 		Endpoints: []*endpoint.Endpoint{
 			{
@@ -72,7 +74,7 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, reg)
 
 	ep := &endpoint.Endpoint{
 		Name:  "ep-extra",
@@ -97,14 +99,15 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 # TYPE gatus_results_total counter
 gatus_results_total{bar="my-bar",foo="my-foo",group="g1",key="g1_ep-extra",name="ep-extra",success="true",type="HTTP"} 1
 `
-	err := testutil.GatherAndCompare(prometheus.DefaultGatherer, bytes.NewBufferString(expected), "gatus_results_total")
+	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(expected), "gatus_results_total")
 	if err != nil {
 		t.Error("metrics export does not include extraLabels as expected:", err)
 	}
 }
 
 func TestPublishMetricsForEndpoint(t *testing.T) {
-	InitializePrometheusMetrics(&config.Config{})
+	reg := prometheus.NewRegistry()
+	InitializePrometheusMetrics(&config.Config{}, reg)
 
 	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
 	PublishMetricsForEndpoint(httpEndpoint, &endpoint.Result{
@@ -118,7 +121,7 @@ func TestPublishMetricsForEndpoint(t *testing.T) {
 		Success:               true,
 		CertificateExpiration: 49 * time.Hour,
 	}, []string{})
-	err := testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
+	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
 gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
@@ -152,7 +155,7 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 		Success:               false,
 		CertificateExpiration: 47 * time.Hour,
 	}, []string{})
-	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
+	err = testutil.GatherAndCompare(reg, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
 gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
@@ -191,7 +194,7 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 		},
 		Success: true,
 	}, []string{})
-	err = testutil.GatherAndCompare(prometheus.Gatherers{prometheus.DefaultGatherer}, bytes.NewBufferString(`
+	err = testutil.GatherAndCompare(reg, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
 # TYPE gatus_results_code_total counter
 gatus_results_code_total{code="200",group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 2
