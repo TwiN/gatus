@@ -33,6 +33,9 @@ type Alert struct {
 	// FailureThreshold is the number of failures in a row needed before triggering the alert
 	FailureThreshold int `yaml:"failure-threshold"`
 
+	// MinimumReminderInterval is the interval between reminders
+	MinimumReminderInterval time.Duration `yaml:"minimum-reminder-interval,omitempty"`
+
 	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
 	SuccessThreshold int `yaml:"success-threshold"`
 
@@ -55,9 +58,6 @@ type Alert struct {
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
 	// ongoing/triggered incidents
 	ResolveKey string `yaml:"-"`
-
-	// MinimumRepeatInterval is the interval between reminders
-	MinimumRepeatInterval time.Duration `yaml:"minimum-repeat-interval,omitempty"`
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value
 	// should be set back to false. It is used to prevent the same alert from going out twice.
