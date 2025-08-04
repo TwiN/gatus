@@ -40,6 +40,9 @@ func TestGetHTTPClient(t *testing.T) {
 }
 
 func TestRdapQuery(t *testing.T) {
+	if _, err := RdapQuery("1.1.1.1"); err == nil {
+		t.Error("expected an error due to the invalid domain type")
+	}
 	if _, err := RdapQuery("eurid.eu"); err == nil {
 		t.Error("expected an error as there is no RDAP support currently in .eu")
 	}
