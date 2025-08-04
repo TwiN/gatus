@@ -50,7 +50,7 @@ func GetHTTPClient(config *Config) *http.Client {
 	return config.getHTTPClient()
 }
 
-func rdapQuery(hostname string) (*whois.Response, error) {
+func RdapQuery(hostname string) (*whois.Response, error) {
 	data, _, err := rdapClient.Query(hostname, nil, nil)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 			return domainExpiration, nil
 		}
 	}
-	whoisResponse, err := rdapQuery(hostname)
+	whoisResponse, err := RdapQuery(hostname)
 	if err != nil {
 		// fallback to WHOIS protocol
 		whoisResponse, err = whoisClient.QueryAndParse(hostname)
