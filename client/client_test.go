@@ -39,15 +39,33 @@ func TestGetHTTPClient(t *testing.T) {
 	}
 }
 
+func TestRdapQuery(t *testing.T) {
+	if _, err := RdapQuery("1.1.1.1"); err == nil {
+		t.Error("expected an error due to the invalid domain type")
+	}
+	if _, err := RdapQuery("eurid.eu"); err == nil {
+		t.Error("expected an error as there is no RDAP support currently in .eu")
+	}
+	response, err := RdapQuery("example.com")
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+		t.FailNow()
+	}
+	if response.ExpirationDate.Unix() <= 0 {
+		t.Error("expected to have a valid expiry date, got", response.ExpirationDate.Unix())
+	}
+	if len(response.NameServers) == 0 {
+		t.Error("expected to have at least one name server")
+	}
+	if len(response.DomainStatuses) == 0 {
+		t.Error("expected to have at least one domain status")
+	}
+}
+
 func TestGetDomainExpiration(t *testing.T) {
 	t.Parallel()
 	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
 		t.Fatalf("expected error to be nil, but got: `%s`", err)
-	} else if domainExpiration <= 0 {
-		t.Error("expected domain expiration to be higher than 0")
-	}
-	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
-		t.Errorf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
 	}

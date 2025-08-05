@@ -20,6 +20,8 @@ import (
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
+	"github.com/registrobr/rdap"
+	"github.com/registrobr/rdap/protocol"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
 )
@@ -34,6 +36,7 @@ var (
 
 	whoisClient              = whois.NewClient().WithReferralCache(true)
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
+	rdapClient               = rdap.NewClient(nil)
 )
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
@@ -45,6 +48,31 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+func RdapQuery(hostname string) (*whois.Response, error) {
+	data, _, err := rdapClient.Query(hostname, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	domain, ok := data.(*protocol.Domain)
+	if !ok {
+		return nil, errors.New("invalid domain type")
+	}
+	response := whois.Response{}
+	for _, s := range domain.Status {
+		response.DomainStatuses = append(response.DomainStatuses, string(s))
+	}
+	for _, n := range domain.Nameservers {
+		response.NameServers = append(response.NameServers, n.LDHName)
+	}
+	for _, e := range domain.Events {
+		if e.Action == "expiration" {
+			response.ExpirationDate = e.Date.Time
+			break
+		}
+	}
+	return &response, nil
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires
@@ -61,7 +89,12 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 			return domainExpiration, nil
 		}
 	}
-	if whoisResponse, err := whoisClient.QueryAndParse(hostname); err != nil {
+	whoisResponse, err := RdapQuery(hostname)
+	if err != nil {
+		// fallback to WHOIS protocol
+		whoisResponse, err = whoisClient.QueryAndParse(hostname)
+	}
+	if err != nil {
 		if !retrievedCachedValue { // Add an error unless we already retrieved a cached value
 			return 0, fmt.Errorf("error querying and parsing hostname using whois client: %w", err)
 		}
