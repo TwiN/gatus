@@ -288,6 +288,13 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
+You may use the following placeholders in the body (`endpoints[].body`):
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
+- `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
+- `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N)
+
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
@@ -298,14 +305,16 @@ For instance:
 - You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
-| Parameter                      | Description                                                                                                            | Default       |
-|:-------------------------------|:-----------------------------------------------------------------------------------------------------------------------|:--------------|
-| `external-endpoints`           | List of endpoints to monitor.                                                                                          | `[]`          |
-| `external-endpoints[].enabled` | Whether to monitor the endpoint.                                                                                       | `true`        |
-| `external-endpoints[].name`    | Name of the endpoint. Can be anything.                                                                                 | Required `""` |
-| `external-endpoints[].group`   | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups). | `""`          |
-| `external-endpoints[].token`   | Bearer token required to push status to.                                                                               | Required `""` |
-| `external-endpoints[].alerts`  | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                              | `[]`          |
+| Parameter                                 | Description                                                                                                                       | Default        |
+|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
+| `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
+| `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
+| `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
+| `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
+| `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
+| `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
+| `external-endpoints[].heartbeat.interval` | Expected interval between updates. If no update is received within this interval, alerts will be triggered. Must be at least 10s. | `0` (disabled) |
 
 Example:
 ```yaml
@@ -313,6 +322,8 @@ external-endpoints:
   - name: ext-ep-test
     group: core
     token: "potato"
+    heartbeat:
+      interval: 30m  # Automatically create a failure if no update is received within 30 minutes
     alerts:
       - type: discord
         description: "healthcheck failed"
@@ -321,13 +332,14 @@ external-endpoints:
 
 To push the status of an external endpoint, the request would have to look like this:
 ```
-POST /api/v1/endpoints/{key}/external?success={success}&error={error}
+POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
@@ -1551,6 +1563,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
+| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |    
 | `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
 | `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
@@ -1563,6 +1576,7 @@ alerting:
   telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
+    topic-id: "7"
 
 endpoints:
   - name: website
@@ -2123,8 +2137,9 @@ endpoints:
     conditions:
       - "[CONNECTED] == true"
 ```
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
@@ -2144,7 +2159,9 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
 
 This works for UDP based application.
@@ -2167,7 +2184,7 @@ This works for SCTP based application.
 
 
 ### Monitoring a WebSocket endpoint
-By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints at a very basic level:
+By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints:
 ```yaml
 endpoints:
   - name: example
@@ -2179,7 +2196,8 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established.
+shows whether the connection was successfully established. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
 
 
 ### Monitoring an endpoint using ICMP
@@ -2290,6 +2308,11 @@ endpoints:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
+
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for TLS endpoints.
 
 
 ### Monitoring domain expiration
