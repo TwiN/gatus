@@ -58,6 +58,7 @@ func start(cfg *config.Config) {
 func stop(cfg *config.Config) {
 	watchdog.Shutdown(cfg)
 	controller.Shutdown()
+	metrics.UnregisterPrometheusMetrics()
 }
 
 func save() {
