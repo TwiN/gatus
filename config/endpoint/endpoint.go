@@ -131,6 +131,9 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	LastReminderSent time.Time `yaml:"-"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
