@@ -3,7 +3,7 @@ on: [workflow_dispatch]
 jobs:
   publish-experimental:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU

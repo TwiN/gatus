@@ -59,6 +59,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
+    - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
+    - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
@@ -82,6 +84,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [OIDC](#oidc)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
+    - [Custom Labels](#custom-labels)
   - [Connectivity](#connectivity)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
@@ -286,6 +289,13 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 
+You may use the following placeholders in the body (`endpoints[].body`):
+- `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
+- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
+- `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
+- `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N)
+
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
@@ -296,14 +306,16 @@ For instance:
 - You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
-| Parameter                      | Description                                                                                                            | Default       |
-|:-------------------------------|:-----------------------------------------------------------------------------------------------------------------------|:--------------|
-| `external-endpoints`           | List of endpoints to monitor.                                                                                          | `[]`          |
-| `external-endpoints[].enabled` | Whether to monitor the endpoint.                                                                                       | `true`        |
-| `external-endpoints[].name`    | Name of the endpoint. Can be anything.                                                                                 | Required `""` |
-| `external-endpoints[].group`   | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups). | `""`          |
-| `external-endpoints[].token`   | Bearer token required to push status to.                                                                               | Required `""` |
-| `external-endpoints[].alerts`  | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                              | `[]`          |
+| Parameter                                 | Description                                                                                                                       | Default        |
+|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
+| `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
+| `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
+| `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
+| `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
+| `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
+| `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
+| `external-endpoints[].heartbeat.interval` | Expected interval between updates. If no update is received within this interval, alerts will be triggered. Must be at least 10s. | `0` (disabled) |
 
 Example:
 ```yaml
@@ -311,6 +323,8 @@ external-endpoints:
   - name: ext-ep-test
     group: core
     token: "potato"
+    heartbeat:
+      interval: 30m  # Automatically create a failure if no update is received within 30 minutes
     alerts:
       - type: discord
         description: "healthcheck failed"
@@ -319,13 +333,14 @@ external-endpoints:
 
 To push the status of an external endpoint, the request would have to look like this:
 ```
-POST /api/v1/endpoints/{key}/external?success={success}&error={error}
+POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}`: a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, it can be omitted or left empty.
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
@@ -538,16 +553,17 @@ individual endpoints with configurable descriptions and thresholds.
 
 Alerts are configured at the endpoint level like so:
 
-| Parameter                    | Description                                                                    | Default       |
-|:-----------------------------|:-------------------------------------------------------------------------------|:--------------|
-| `alerts`                     | List of all alerts for a given endpoint.                                       | `[]`          |
-| `alerts[].type`              | Type of alert. <br />See table below for all valid types.                      | Required `""` |
-| `alerts[].enabled`           | Whether to enable the alert.                                                   | `true`        |
-| `alerts[].failure-threshold` | Number of failures in a row needed before triggering the alert.                | `3`           |
-| `alerts[].success-threshold` | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
-| `alerts[].send-on-resolved`  | Whether to send a notification once a triggered alert is marked as resolved.   | `false`       |
-| `alerts[].description`       | Description of the alert. Will be included in the alert sent.                  | `""`          |
-| `alerts[].provider-override` | Alerting provider configuration override for the given alert type              | `{}`          |
+| Parameter                            | Description                                                                    | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------|:--------------|
+| `alerts`                             | List of all alerts for a given endpoint.                                       | `[]`          |
+| `alerts[].type`                      | Type of alert. <br />See table below for all valid types.                      | Required `""` |
+| `alerts[].enabled`                   | Whether to enable the alert.                                                   | `true`        |
+| `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                | `3`           |
+| `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
+| `alerts[].minimum-reminder-interval` | Configuration for setting an interval between reminders.                       | `""`          |
+| `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.   | `false`       |
+| `alerts[].description`               | Description of the alert. Will be included in the alert sent.                  | `""`          |
+| `alerts[].provider-override`         | Alerting provider configuration override for the given alert type              | `{}`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml
@@ -589,6 +605,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
+| `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
@@ -604,6 +621,7 @@ endpoints:
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).        | `{}`    |
 
 
 #### Configuring AWS SES alerts
@@ -895,6 +913,51 @@ endpoints:
 | `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
 
+#### Configuring ilert alerts
+| Parameter                              | Description                                                                                | Default |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.ilert`                   | Configuration for alerts of type `ilert`                                               | `{}`    |
+| `alerting.ilert.integration-key`   | ilert Alert Source integration key                                                    | `""`    |
+| `alerting.ilert.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.ilert.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.ilert.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.ilert.overrides[].*`     | See `alerting.ilert.*` parameters                                                      | `{}`    |
+
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
+of type `ilert`, because unlike other alerts, the operation resulting from setting said
+parameter to `true` will not create another alert but mark the alert as resolved on
+ilert instead.
+
+Behavior:
+- By default, `alerting.ilert.integration-key` is used as the integration key
+- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.ilert.overrides[].group`, the provider will use that override's integration key instead of `alerting.ilert.integration-key`'s
+
+```yaml
+alerting:
+  ilert:
+    integration-key: "********************************"
+    # You can also add group-specific integration keys, which will
+    # override the integration key above for the specified groups
+    overrides:
+      - group: "core"
+        integration-key: "********************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ilert
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
 ```yaml
 alerting:
   gotify:
@@ -918,6 +981,75 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Gotify notifications](.github/assets/gotify-alerts.png)
+
+
+#### Configuring HomeAssistant alerts
+To configure HomeAssistant alerts, you'll need to add the following to your configuration file:
+
+```yaml
+alerting:
+  homeassistant:
+    url: "http://homeassistant:8123"  # URL of your HomeAssistant instance
+    token: "YOUR_LONG_LIVED_ACCESS_TOKEN"  # Long-lived access token from HomeAssistant
+
+endpoints:
+  - name: my-service
+    url: "https://my-service.com"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: homeassistant
+        enabled: true
+        send-on-resolved: true
+        description: "My service health check"
+        failure-threshold: 3
+        success-threshold: 2
+```
+
+The alerts will be sent as events to HomeAssistant with the event type `gatus_alert`. The event data includes:
+- `status`: "triggered" or "resolved"
+- `endpoint`: The name of the monitored endpoint
+- `description`: The alert description if provided
+- `conditions`: List of conditions and their results
+- `failure_count`: Number of consecutive failures (when triggered)
+- `success_count`: Number of consecutive successes (when resolved)
+
+You can use these events in HomeAssistant automations to:
+- Send notifications
+- Control devices
+- Trigger scenes
+- Log to history
+- And more
+
+Example HomeAssistant automation:
+```yaml
+automation:
+  - alias: "Gatus Alert Handler"
+    trigger:
+      platform: event
+      event_type: gatus_alert
+    action:
+      - service: notify.notify
+        data_template:
+          title: "Gatus Alert: {{ trigger.event.data.endpoint }}"
+          message: >
+            Status: {{ trigger.event.data.status }}
+            {% if trigger.event.data.description %}
+            Description: {{ trigger.event.data.description }}
+            {% endif %}
+            {% for condition in trigger.event.data.conditions %}
+            {{ '✅' if condition.success else '❌' }} {{ condition.condition }}
+            {% endfor %}
+```
+
+To get your HomeAssistant long-lived access token:
+1. Open HomeAssistant
+2. Click on your profile name (bottom left)
+3. Scroll down to "Long-Lived Access Tokens"
+4. Click "Create Token"
+5. Give it a name (e.g., "Gatus")
+6. Copy the token - you'll only see it once!
 
 
 #### Configuring Incident.io alerts
@@ -1432,6 +1564,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
+| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |    
 | `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
 | `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
@@ -1444,6 +1577,7 @@ alerting:
   telegram:
     token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     id: "0123456789"
+    topic-id: "7"
 
 endpoints:
   - name: website
@@ -1817,6 +1951,23 @@ endpoint on the same port your application is configured to run on (`web.port`).
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
 
+#### Custom Labels
+
+Added a Labels field to the Config and Endpoint structs to support key-value pairs for metrics. Updated the Prometheus metrics initialization to include dynamic labels from the configuration. See the example below:
+
+```yaml
+endpoints:
+  - name: front-end
+    group: core
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 150"
+    labels:
+      environment: staging
+```
 
 ### Connectivity
 | Parameter                       | Description                                | Default       |
@@ -2004,8 +2155,9 @@ endpoints:
     conditions:
       - "[CONNECTED] == true"
 ```
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for TCP endpoints.
 
 This works for applications such as databases (Postgres, MySQL, etc.) and caches (Redis, Memcached, etc.).
@@ -2025,7 +2177,9 @@ endpoints:
       - "[CONNECTED] == true"
 ```
 
-Placeholders `[STATUS]` and `[BODY]` as well as the fields `endpoints[].body`, `endpoints[].headers`,
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
 `endpoints[].method` and `endpoints[].graphql` are not supported for UDP endpoints.
 
 This works for UDP based application.
@@ -2060,7 +2214,8 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established.
+shows whether the connection was successfully established. You can use Go template 
+syntax. The functions LocalAddr and RandomString with a length can be used.
 
 
 ### Monitoring an endpoint using ICMP
@@ -2171,6 +2326,11 @@ endpoints:
       - "[CONNECTED] == true"
       - "[CERTIFICATE_EXPIRATION] > 48h"
 ```
+
+If `endpoints[].body` is set then it is sent and the first 1024 bytes of the response will be in `[BODY]`.
+
+Placeholder `[STATUS]` as well as the fields `endpoints[].headers`,
+`endpoints[].method` and `endpoints[].graphql` are not supported for TLS endpoints.
 
 
 ### Monitoring domain expiration

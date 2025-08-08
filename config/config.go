@@ -22,7 +22,6 @@ import (
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -103,10 +102,29 @@ type Config struct {
 	lastFileModTime time.Time // last modification time
 }
 
+// GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
+// in the configuration. It iterates through each endpoint, checks if it is enabled,
+// and then collects unique labels from the endpoint's labels map.
+func (config *Config) GetUniqueExtraMetricLabels() []string {
+	labels := make([]string, 0)
+	for _, ep := range config.Endpoints {
+		if !ep.IsEnabled() {
+			continue
+		}
+		for label := range ep.ExtraLabels {
+			if contains(labels, label) {
+				continue
+			}
+			labels = append(labels, label)
+		}
+	}
+	return labels
+}
+
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
-		if ep.Key() == key {
+		if ep.Key() == strings.ToLower(key) {
 			return ep
 		}
 	}
@@ -116,7 +134,7 @@ func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEndpoint {
 	for i := 0; i < len(config.ExternalEndpoints); i++ {
 		ee := config.ExternalEndpoints[i]
-		if ee.Key() == key {
+		if ee.Key() == strings.ToLower(key) {
 			return ee
 		}
 	}
@@ -411,6 +429,9 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeGitea,
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
+		alert.TypeHomeAssistant,
+		alert.TypeIlert,
+		alert.TypeIncidentIO,
 		alert.TypeJetBrainsSpace,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
@@ -425,7 +446,6 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeTelegram,
 		alert.TypeTwilio,
 		alert.TypeZulip,
-		alert.TypeIncidentIO,
 	}
 	var validProviders, invalidProviders []alert.Type
 	for _, alertType := range alertTypes {
@@ -442,7 +462,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ep.Group, endpointAlert); err != nil {
-										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
+										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
 									}
 								}
 							}
@@ -456,7 +476,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ee.Group, endpointAlert); err != nil {
-										log.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
+										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
 									}
 								}
 							}

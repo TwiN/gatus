@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -15,6 +16,7 @@ import (
 )
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	return func(c *fiber.Ctx) error {
 		// Check if the success query parameter is present
 		success, exists := c.Queries()["success"]
@@ -46,6 +48,14 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			Success:   c.QueryBool("success"),
 			Errors:    []string{},
 		}
+		if len(c.Query("duration")) > 0 {
+			parsedDuration, err := time.ParseDuration(c.Query("duration"))
+			if err != nil {
+				logr.Errorf("[api.CreateExternalEndpointResult] Invalid duration from string=%s with error: %s", c.Query("duration"), err.Error())
+				return c.Status(400).SendString("invalid duration: " + err.Error())
+			}
+			result.Duration = parsedDuration
+		}
 		if !result.Success && c.Query("error") != "" {
 			result.Errors = append(result.Errors, c.Query("error"))
 		}
@@ -63,6 +73,9 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+		}
+		if cfg.Metrics {
+			metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 		}
 		// Return the result
 		return c.Status(200).SendString("")

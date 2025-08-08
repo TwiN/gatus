@@ -514,6 +514,24 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	return int(rowsAffects)
 }
 
+// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error) {
+	if timestamp.IsZero() {
+		return false, errors.New("timestamp is zero")
+	}
+	var count int
+	err := s.db.QueryRow(
+		"SELECT COUNT(*) FROM endpoint_results WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND timestamp > $2",
+		key,
+		timestamp.UTC(),
+	).Scan(&count)
+	if err != nil {
+		// If the endpoint doesn't exist, we return false instead of an error
+		return false, nil
+	}
+	return count > 0, nil
+}
+
 // Clear deletes everything from the store
 func (s *Store) Clear() {
 	_, _ = s.db.Exec("DELETE FROM endpoints")
