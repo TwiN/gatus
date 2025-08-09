@@ -560,7 +560,7 @@ Alerts are configured at the endpoint level like so:
 | `alerts[].enabled`                   | Whether to enable the alert.                                                   | `true`        |
 | `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                | `3`           |
 | `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved. | `2`           |
-| `alerts[].minimum-reminder-interval` | Configuration for setting an interval between reminders.                       | `""`          |
+| `alerts[].minimum-reminder-interval` | Configuration for setting an interval between reminders. (e.g. 30m, 24h)       | `""`          |
 | `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.   | `false`       |
 | `alerts[].description`               | Description of the alert. Will be included in the alert sent.                  | `""`          |
 | `alerts[].provider-override`         | Alerting provider configuration override for the given alert type              | `{}`          |
