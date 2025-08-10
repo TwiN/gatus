@@ -26,6 +26,8 @@ jobs:
             gh issue edit "$NUMBER" --add-label "feature"
           elif [[ $TITLE == "fix"* ]]; then
             gh issue edit "$NUMBER" --add-label "bug"
+          elif [[ $TITLE == "docs"* ]]; then
+            gh issue edit "$NUMBER" --add-label "documentation"
           fi
           if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/alerting"
@@ -39,4 +41,3 @@ jobs:
           if [[ $TITLE == *"metric"* || $TITLE == *"prometheus"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/metrics"
           fi
-          
