@@ -124,6 +124,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Response time (chart)](#response-time-chart)
       - [How to change the color thresholds of the response time badge](#how-to-change-the-color-thresholds-of-the-response-time-badge)
   - [API](#api)
+    - [Interacting with the API programmatically](#interacting-with-the-api-programmatically)
     - [Raw Data](#raw-data)
       - [Uptime](#uptime-1)
       - [Response Time](#response-time-1)
@@ -2660,6 +2661,11 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
+
+#### Interacting with the API programmatically
+See [TwiN/gatus-sdk](https://github.com/TwiN/gatus-sdk)
+
+
 #### Raw Data
 Gatus exposes the raw data for one of your monitored endpoints.
 This allows you to track and aggregate data in your own applications for monitored endpoints. For instance if you want to track uptime for a period longer than 7 days.
@@ -2691,6 +2697,7 @@ For instance, if you want the raw response time data for the last 24 hours from 
 ```
 https://example.com/api/v1/endpoints/core_frontend/response-times/24h
 ```
+
 
 ### Installing as binary
 You can download Gatus as a binary using the following command:
