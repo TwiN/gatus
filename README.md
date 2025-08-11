@@ -295,7 +295,7 @@ You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
-- `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N)
+- `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N (max: 8192))
 
 
 ### External Endpoints
