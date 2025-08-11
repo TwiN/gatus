@@ -100,6 +100,9 @@ type Config struct {
 
 	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
+
+	// how often to check for config changes
+	ConfigReloadCheckInterval time.Duration `yaml:"config-reload-check-interval,omitempty"`
 }
 
 // GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
@@ -273,6 +276,10 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 			logr.Warn("WARNING: Please use the GATUS_LOG_LEVEL environment variable instead")
 		}
 		// XXX: End of v6.0.0 removals
+
+		if config.ConfigReloadCheckInterval == 0 {
+			config.ConfigReloadCheckInterval = 30 * time.Second
+		}
 		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
 		if err := validateSecurityConfig(config); err != nil {
 			return nil, err
