@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -105,6 +106,7 @@ type Config struct {
 // GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
 // in the configuration. It iterates through each endpoint, checks if it is enabled,
 // and then collects unique labels from the endpoint's labels map.
+// The returned labels are sorted alphabetically to ensure deterministic ordering.
 func (config *Config) GetUniqueExtraMetricLabels() []string {
 	labels := make([]string, 0)
 	for _, ep := range config.Endpoints {
@@ -118,6 +120,7 @@ func (config *Config) GetUniqueExtraMetricLabels() []string {
 			labels = append(labels, label)
 		}
 	}
+	sort.Strings(labels)
 	return labels
 }
 

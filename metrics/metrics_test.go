@@ -91,8 +91,8 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 		Duration:   2340 * time.Millisecond,
 		Success:    true,
 	}
-	// Order of extraLabels as per GetUniqueExtraMetricLabels is ["foo", "bar"]
-	PublishMetricsForEndpoint(ep, result, []string{"foo", "bar"})
+	// Order of extraLabels as per GetUniqueExtraMetricLabels is ["bar", "foo"] (alphabetical)
+	PublishMetricsForEndpoint(ep, result, []string{"bar", "foo"})
 
 	expected := `
 # HELP gatus_results_total Number of results per endpoint
