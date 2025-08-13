@@ -62,36 +62,38 @@
             <CardHeader>
               <div class="flex items-center justify-between">
                 <CardTitle>Recent Checks</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  @click="fetchData"
-                  title="Refresh data"
-                  :disabled="isRefreshing"
-                >
-                  <RefreshCw :class="['h-4 w-4', isRefreshing && 'animate-spin']" />
-                </Button>
+                <div class="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    @click="showAverageResponseTime = !showAverageResponseTime"
+                    :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
+                  >
+                    <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
+                    <Timer v-else class="h-5 w-5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    @click="fetchData"
+                    title="Refresh data"
+                    :disabled="isRefreshing"
+                  >
+                    <RefreshCw :class="['h-4 w-4', isRefreshing && 'animate-spin']" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <div class="space-y-4">
-                <div class="flex gap-1">
-                  <div
-                    v-for="(result, index) in displayResults"
-                    :key="index"
-                    :class="[
-                      'flex-1 h-12 rounded transition-all hover:scale-105 cursor-pointer relative group',
-                      result ? (result.success ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700') : 'bg-gray-200 dark:bg-gray-700'
-                    ]"
-                    @mouseenter="showTooltip(result, $event)"
-                    @mouseleave="showTooltip(null, $event)"
-                  >
-                  </div>
-                </div>
-                <div class="flex items-center justify-between text-sm text-muted-foreground mt-1">
-                  <span>{{ oldestResultTime }}</span>
-                  <span>{{ newestResultTime }}</span>
-                </div>
+                <EndpointCard 
+                  v-if="endpointStatus"
+                  :endpoint="endpointStatus"
+                  :maxResults="50"
+                  :showAverageResponseTime="showAverageResponseTime"
+                  @showTooltip="showTooltip"
+                  class="border-0 shadow-none bg-transparent p-0"
+                />
                 <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
                   <Pagination @page="changePage" :numberOfResultsPerPage="50" :currentPageProp="currentPage" />
                 </div>
@@ -196,10 +198,11 @@
 /* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
+import EndpointCard from '@/components/EndpointCard.vue'
 import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
@@ -215,6 +218,7 @@ const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
 const currentPage = ref(1)
 const showResponseTimeChartAndBadges = ref(false)
+const showAverageResponseTime = ref(false)
 const selectedChartDuration = ref('24h')
 const serverUrl = SERVER_URL === '.' ? '..' : SERVER_URL
 const isRefreshing = ref(false)
@@ -272,7 +276,13 @@ const pageResponseTimeRange = computed(() => {
   }
   
   if (!hasData) return 'N/A'
-  return `${Math.round(min)}-${Math.round(max)}ms`
+  const minMs = Math.round(min)
+  const maxMs = Math.round(max)
+  // If min and max are the same, show single value
+  if (minMs === maxMs) {
+    return `${minMs}ms`
+  }
+  return `${minMs}-${maxMs}ms`
 })
 
 const lastCheckTime = computed(() => {
@@ -283,25 +293,6 @@ const lastCheckTime = computed(() => {
   return helper.methods.generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
 })
 
-const displayResults = computed(() => {
-  if (!endpointStatus.value || !endpointStatus.value.results) return []
-  const results = [...endpointStatus.value.results]
-  const maxResults = 50
-  while (results.length < maxResults) {
-    results.unshift(null)
-  }
-  return results.slice(-maxResults)
-})
-
-const oldestResultTime = computed(() => {
-  if (!endpointStatus.value || !endpointStatus.value.results || endpointStatus.value.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(endpointStatus.value.results[0].timestamp)
-})
-
-const newestResultTime = computed(() => {
-  if (!endpointStatus.value || !endpointStatus.value.results || endpointStatus.value.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(endpointStatus.value.results[endpointStatus.value.results.length - 1].timestamp)
-})
 
 const fetchData = async () => {
   isRefreshing.value = true

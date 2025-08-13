@@ -136,6 +136,10 @@ const formattedResponseTime = computed(() => {
     // Show min-max range
     const minMs = Math.round(min)
     const maxMs = Math.round(max)
+    // If min and max are the same, show single value
+    if (minMs === maxMs) {
+      return `${minMs}ms`
+    }
     return `${minMs}-${maxMs}ms`
   }
 })
