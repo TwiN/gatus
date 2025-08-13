@@ -16,24 +16,30 @@ const (
 	defaultLogo        = ""
 	defaultLink        = ""
 	defaultCustomCSS   = ""
+	defaultSortBy      = "name"
+	defaultFilterBy    = "nothing"
 )
 
 var (
 	defaultDarkMode = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'nothing', 'failing', or 'unstable'")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title       string   `yaml:"title,omitempty"`       // Title of the page
-	Description string   `yaml:"description,omitempty"` // Meta description of the page
-	Header      string   `yaml:"header,omitempty"`      // Header is the text at the top of the page
-	Logo        string   `yaml:"logo,omitempty"`        // Logo to display on the page
-	Link        string   `yaml:"link,omitempty"`        // Link to open when clicking on the logo
-	Buttons     []Button `yaml:"buttons,omitempty"`     // Buttons to display below the header
-	CustomCSS   string   `yaml:"custom-css,omitempty"`  // Custom CSS to include in the page
-	DarkMode    *bool    `yaml:"dark-mode,omitempty"`   // DarkMode is a flag to enable dark mode by default
+	Title           string   `yaml:"title,omitempty"`             // Title of the page
+	Description     string   `yaml:"description,omitempty"`       // Meta description of the page
+	Header          string   `yaml:"header,omitempty"`            // Header is the text at the top of the page
+	Logo            string   `yaml:"logo,omitempty"`              // Logo to display on the page
+	Link            string   `yaml:"link,omitempty"`              // Link to open when clicking on the logo
+	Buttons         []Button `yaml:"buttons,omitempty"`           // Buttons to display below the header
+	CustomCSS       string   `yaml:"custom-css,omitempty"`        // Custom CSS to include in the page
+	DarkMode        *bool    `yaml:"dark-mode,omitempty"`         // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy   string   `yaml:"default-sort-by,omitempty"`   // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('nothing', 'failing', 'unstable')
 
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
@@ -72,6 +78,8 @@ func GetDefaultConfig() *Config {
 		Link:                   defaultLink,
 		CustomCSS:              defaultCustomCSS,
 		DarkMode:               &defaultDarkMode,
+		DefaultSortBy:          defaultSortBy,
+		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
@@ -98,6 +106,16 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if cfg.DarkMode == nil {
 		cfg.DarkMode = &defaultDarkMode
+	}
+	if len(cfg.DefaultSortBy) == 0 {
+		cfg.DefaultSortBy = defaultSortBy
+	} else if cfg.DefaultSortBy != "name" && cfg.DefaultSortBy != "group" && cfg.DefaultSortBy != "health" {
+		return ErrInvalidDefaultSortBy
+	}
+	if len(cfg.DefaultFilterBy) == 0 {
+		cfg.DefaultFilterBy = defaultFilterBy
+	} else if cfg.DefaultFilterBy != "nothing" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
+		return ErrInvalidDefaultFilterBy
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
