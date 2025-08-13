@@ -179,7 +179,7 @@ const logo = computed(() => {
 })
 
 const header = computed(() => {
-  return window.config && window.config.header && window.config.header !== '{{ .UI.Header }}' ? window.config.header : "Health Status"
+  return window.config && window.config.header && window.config.header !== '{{ .UI.Header }}' ? window.config.header : "Gatus"
 })
 
 const link = computed(() => {
