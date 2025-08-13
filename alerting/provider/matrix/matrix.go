@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -203,7 +202,6 @@ func randStringBytes(n int) string {
 	// All the compatible characters to use in a transaction ID
 	const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
 	for i := range b {
 		b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
 	}
