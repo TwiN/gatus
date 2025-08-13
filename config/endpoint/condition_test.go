@@ -24,6 +24,7 @@ func TestCondition_Validate(t *testing.T) {
 		{condition: "[CONNECTED] == true", expectedErr: nil},
 		{condition: "[RESPONSE_TIME] < 500", expectedErr: nil},
 		{condition: "[IP] == 127.0.0.1", expectedErr: nil},
+		{condition: "[IP] == [EXTERNAL_IP]", expectedErr: nil},
 		{condition: "[BODY] == 1", expectedErr: nil},
 		{condition: "[BODY].test == wat", expectedErr: nil},
 		{condition: "[BODY].test.wat == wat", expectedErr: nil},
@@ -489,6 +490,13 @@ func TestCondition_evaluate(t *testing.T) {
 			Result:          &Result{CertificateExpiration: 24 * time.Hour},
 			ExpectedSuccess: false,
 			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (86400000) > 48h (172800000)",
+		},
+		{
+			Name:            "external-ip-failure",
+			Condition:       Condition("[BODY] == [EXTERNAL_IP]"),
+			Result:          &Result{Body: []byte("1.2.3.4"), ExternalIP: []byte("5.6.7.8")},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY] (1.2.3.4) == [EXTERNAL_IP] (5.6.7.8)",
 		},
 		{
 			Name:            "no-placeholders",

@@ -22,6 +22,7 @@ import (
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gocache/v2"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -71,6 +72,8 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+
+	EndpointCache = gocache.NewCache().WithMaxSize(100).WithDefaultTTL(1 * time.Hour)
 )
 
 // Endpoint is the configuration of a service to be monitored
@@ -290,6 +293,10 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	if e.needsToRetrieveIP() {
 		e.getIP(result)
 	}
+	// Retrieve IP if necessary
+	if e.needsToRetrieveExternalIP() {
+		e.getExternalIP(result)
+	}
 	// Retrieve domain expiration if necessary
 	if e.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
 		var err error
@@ -365,6 +372,27 @@ func (e *Endpoint) getIP(result *Result) {
 	} else {
 		result.IP = ips[0].String()
 	}
+}
+
+func (e *Endpoint) getExternalIP(result *Result) {
+	if externalIP, exists := EndpointCache.Get("ExternalIP"); exists {
+		result.ExternalIP = externalIP.([]byte)
+		return
+	}
+
+	request, _ := http.NewRequest("GET", "https://ifconfig.me/ip", &bytes.Buffer{})
+	response, err := client.GetHTTPClient(e.ClientConfig).Do(request)
+	if err != nil {
+		result.AddError(err.Error())
+		return
+	}
+	defer response.Body.Close()
+	externalIP, err := io.ReadAll(response.Body)
+	if err != nil {
+		result.AddError("error reading response body:" + err.Error())
+	}
+	EndpointCache.Set("ExternalIP", externalIP)
+	result.ExternalIP = externalIP
 }
 
 func (e *Endpoint) call(result *Result) {
@@ -516,6 +544,16 @@ func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
 func (e *Endpoint) needsToRetrieveIP() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasIPPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// needsToRetrieveExternalIP checks if there's any condition that requires ExternalIP lookup
+func (e *Endpoint) needsToRetrieveExternalIP() bool {
+	for _, condition := range e.Conditions {
+		if condition.hasExternalIPPlaceholder() {
 			return true
 		}
 	}

@@ -865,7 +865,7 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 		t.Error("Because the connection has been established, result.Connected should've been true")
 	}
 	if !result.Success {
-		t.Error("Because all conditions passed, this should have been a success")
+		t.Error("Because all conditions passed, this should have been a success", result)
 	}
 }
 

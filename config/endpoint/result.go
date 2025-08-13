@@ -44,6 +44,11 @@ type Result struct {
 	// DomainExpiration is the duration before the domain expires
 	DomainExpiration time.Duration `json:"-"`
 
+	// Result of external IP lookup
+	//
+	// Note that this field is not persisted in the storage.
+	ExternalIP []byte `json:"-"`
+
 	// Body is the response body
 	//
 	// Note that this field is not persisted in the storage.
