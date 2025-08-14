@@ -32,7 +32,7 @@ For more details, see [Usage](#usage)
 
 > ❤ Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
-![Gatus dashboard](.github/assets/dashboard-dark.png)
+![Gatus dashboard](.github/assets/dashboard-dark.jpg)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
@@ -162,7 +162,7 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.jpg)
 
 
 ## Usage
@@ -201,7 +201,7 @@ endpoints:
 
 This example would look similar to this:
 
-![Simple example](.github/assets/example.png)
+![Simple example](.github/assets/example.jpg)
 
 By default, the configuration file is expected to be at `config/config.yaml`.
 
@@ -2434,9 +2434,9 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-The configuration above will result in a dashboard that looks like this:
+The configuration above will result in a dashboard that looks like this when sorting by group:
 
-![Gatus Endpoint Groups](.github/assets/endpoint-groups.png)
+![Gatus Endpoint Groups](.github/assets/endpoint-groups.jpg)
 
 
 ### Exposing Gatus on a custom path
