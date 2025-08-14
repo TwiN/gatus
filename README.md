@@ -32,7 +32,7 @@ For more details, see [Usage](#usage)
 
 > ❤ Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
-![Gatus dashboard](.github/assets/dashboard-dark.png)
+![Gatus dashboard](.github/assets/dashboard-dark.jpg)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
@@ -162,7 +162,7 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.jpg)
 
 
 ## Usage
@@ -201,7 +201,7 @@ endpoints:
 
 This example would look similar to this:
 
-![Simple example](.github/assets/example.png)
+![Simple example](.github/assets/example.jpg)
 
 By default, the configuration file is expected to be at `config/config.yaml`.
 
@@ -222,34 +222,36 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
-| Parameter                    | Description                                                                                                                          | Default                    |
-|:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
-| `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
-| `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
-| `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                               | Required `[]`              |
-| `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                             | `[]`                       |
-| `security`                   | [Security configuration](#security).                                                                                                 | `{}`                       |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                  | `false`                    |
-| `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false`                    |
-| `web`                        | Web configuration.                                                                                                                   | `{}`                       |
-| `web.address`                | Address to listen on.                                                                                                                | `0.0.0.0`                  |
-| `web.port`                   | Port to listen on.                                                                                                                   | `8080`                     |
-| `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                          | `8192`                     |
-| `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                              | ``                         |
-| `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                     | ``                         |
-| `ui`                         | UI configuration.                                                                                                                    | `{}`                       |
-| `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                            | `Health Dashboard ǀ Gatus` |
-| `ui.description`             | Meta description for the page.                                                                                                       | `Gatus is an advanced...`. |
-| `ui.header`                  | Header at the top of the dashboard.                                                                                                  | `Health Status`            |
-| `ui.logo`                    | URL to the logo to display.                                                                                                          | `""`                       |
-| `ui.link`                    | Link to open when the logo is clicked.                                                                                               | `""`                       |
-| `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
-| `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
-| `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
-| `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
-| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
-| `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
+| Parameter                    | Description                                                                                                                                 | Default                    |
+|:-----------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
+| `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                                    | `false`                    |
+| `storage`                    | [Storage configuration](#storage).                                                                                                          | `{}`                       |
+| `alerting`                   | [Alerting configuration](#alerting).                                                                                                        | `{}`                       |
+| `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                                      | Required `[]`              |
+| `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                                    | `[]`                       |
+| `security`                   | [Security configuration](#security).                                                                                                        | `{}`                       |
+| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                         | `false`                    |
+| `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).        | `false`                    |
+| `web`                        | Web configuration.                                                                                                                          | `{}`                       |
+| `web.address`                | Address to listen on.                                                                                                                       | `0.0.0.0`                  |
+| `web.port`                   | Port to listen on.                                                                                                                          | `8080`                     |
+| `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                                 | `8192`                     |
+| `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                                     | `""`                       |
+| `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                            | `""`                       |
+| `ui`                         | UI configuration.                                                                                                                           | `{}`                       |
+| `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                   | `Health Dashboard ǀ Gatus` |
+| `ui.description`             | Meta description for the page.                                                                                                              | `Gatus is an advanced...`. |
+| `ui.header`                  | Header at the top of the dashboard.                                                                                                         | `Gatus`                    |
+| `ui.logo`                    | URL to the logo to display.                                                                                                                 | `""`                       |
+| `ui.link`                    | Link to open when the logo is clicked.                                                                                                      | `""`                       |
+| `ui.buttons`                 | List of buttons to display below the header.                                                                                                | `[]`                       |
+| `ui.buttons[].name`          | Text to display on the button.                                                                                                              | Required `""`              |
+| `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                                    | Required `""`              |
+| `ui.custom-css`              | Custom CSS                                                                                                                                  | `""`                       |
+| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                      | `true`                     |
+| `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.       | `name`                     |
+| `ui.default-filter-by`       | Default filter option for endpoints in the dashboard. Can be `nothing`, `failing`, or `unstable`. Note that user preferences override this. | `nothing`                  |
+| `maintenance`                | [Maintenance configuration](#maintenance).                                                                                                  | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
 Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
@@ -289,6 +291,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 
 You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
@@ -1966,7 +1969,7 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 150"
-    labels:
+    extra-labels:
       environment: staging
 ```
 
@@ -2431,9 +2434,9 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-The configuration above will result in a dashboard that looks like this:
+The configuration above will result in a dashboard that looks like this when sorting by group:
 
-![Gatus Endpoint Groups](.github/assets/endpoint-groups.png)
+![Gatus Endpoint Groups](.github/assets/endpoint-groups.jpg)
 
 
 ### Exposing Gatus on a custom path

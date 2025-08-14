@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -117,6 +118,9 @@ func (config *Config) GetUniqueExtraMetricLabels() []string {
 			}
 			labels = append(labels, label)
 		}
+	}
+	if len(labels) > 1 {
+		sort.Strings(labels)
 	}
 	return labels
 }
