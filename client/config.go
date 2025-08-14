@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -106,6 +108,9 @@ type TLSConfig struct {
 	// PrivateKeyFile is the private key file for TLS in PEM format.
 	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
 
+	// CAFile is the CA certificate file for TLS in PEM format.
+	CAFile string `yaml:"ca-file,omitempty"`
+
 	RenegotiationSupport string `yaml:"renegotiation,omitempty"`
 }
 
@@ -197,6 +202,12 @@ func (t *TLSConfig) isValid() error {
 		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
 		if err != nil {
 			return err
+		}
+		if len(t.CAFile) > 0 {
+			_, err := os.ReadFile(t.CAFile)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -330,6 +341,14 @@ func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
 		return nil
 	}
 	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
+
+	if c.CAFile != "" {
+		caCert, _ := os.ReadFile(c.CAFile)
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+		tlsConfig.RootCAs = caCertPool
+	}
+
 	tlsConfig.Renegotiation = tls.RenegotiateNever
 	renegotiationSupport := map[string]tls.RenegotiationSupport{
 		"once":   tls.RenegotiateOnceAsClient,
