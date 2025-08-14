@@ -17,7 +17,7 @@ const (
 	defaultLink        = ""
 	defaultCustomCSS   = ""
 	defaultSortBy      = "name"
-	defaultFilterBy    = "nothing"
+	defaultFilterBy    = "none"
 )
 
 var (
@@ -25,7 +25,7 @@ var (
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
-	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'nothing', 'failing', or 'unstable'")
+	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -39,7 +39,7 @@ type Config struct {
 	CustomCSS       string   `yaml:"custom-css,omitempty"`        // Custom CSS to include in the page
 	DarkMode        *bool    `yaml:"dark-mode,omitempty"`         // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy   string   `yaml:"default-sort-by,omitempty"`   // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('nothing', 'failing', 'unstable')
+	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
@@ -114,7 +114,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.DefaultFilterBy) == 0 {
 		cfg.DefaultFilterBy = defaultFilterBy
-	} else if cfg.DefaultFilterBy != "nothing" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
+	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
 	}
 	for _, btn := range cfg.Buttons {
