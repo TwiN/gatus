@@ -328,36 +328,15 @@ const toggleGroupCollapse = (groupName) => {
 }
 
 const initializeCollapsedGroups = () => {
-  // Get saved preferences from localStorage
-  let savedGroups = []
+  // Get saved collapsed groups from localStorage
   try {
-    const savedCollapsed = localStorage.getItem('gatus:collapsed-groups')
-    if (savedCollapsed) {
-      savedGroups = JSON.parse(savedCollapsed)
+    const saved = localStorage.getItem('gatus:collapsed-groups')
+    if (saved) {
+      collapsedGroups.value = new Set(JSON.parse(saved))
     }
   } catch (e) {
     console.warn('Failed to parse saved collapsed groups:', e)
-    // Clear invalid data
     localStorage.removeItem('gatus:collapsed-groups')
-  }
-  
-  // Get all group names from groupedEndpoints
-  const allGroups = Object.keys(groupedEndpoints.value || {})
-  
-  // Collapse all groups by default
-  collapsedGroups.value = new Set(allGroups)
-  
-  // Then uncollapse groups that were saved as uncollapsed (open)
-  // Logic: If a group is NOT in savedGroups, it means it was open (uncollapsed)
-  // So we remove it from collapsedGroups
-  if (savedGroups.length > 0) {
-    // Only respect saved state for groups that still exist
-    allGroups.forEach(group => {
-      if (!savedGroups.includes(group)) {
-        // This group was open (not in saved collapsed), so remove from collapsed
-        collapsedGroups.value.delete(group)
-      }
-    })
   }
 }
 
