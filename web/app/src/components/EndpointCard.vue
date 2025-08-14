@@ -41,7 +41,6 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? (result.success ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700') : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              :title="result ? `${result.success ? 'Success' : 'Failure'} - ${formatTime(result.timestamp)}` : 'No data'"
               @mouseenter="result && emit('showTooltip', result, $event)"
               @mouseleave="result && emit('showTooltip', null, $event)"
             />
@@ -153,10 +152,6 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return helper.methods.generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
-
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleString()
-}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
