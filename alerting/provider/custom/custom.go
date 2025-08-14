@@ -111,6 +111,25 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 	resultErrors := strings.ReplaceAll(strings.Join(result.Errors, ","), "\"", "\\\"")
 	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", resultErrors)
 	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", resultErrors)
+
+	if len(result.ConditionResults) > 0 && strings.Contains(body, "[RESULT_CONDITIONS]") {
+		var formattedConditionResults string
+		for index, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✅"
+			} else {
+				prefix = "❌"
+			}
+			formattedConditionResults += fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition)
+			if index < len(result.ConditionResults)-1 {
+				formattedConditionResults += ", "
+			}
+		}
+		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", formattedConditionResults)
+		url = strings.ReplaceAll(url, "[RESULT_CONDITIONS]", formattedConditionResults)
+	}
+
 	if resolved {
 		body = strings.ReplaceAll(body, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
 		url = strings.ReplaceAll(url, "[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, true))
