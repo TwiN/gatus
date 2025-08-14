@@ -155,10 +155,10 @@ func TestConfig_ValidateAndSetDefaults_DefaultFilterBy(t *testing.T) {
 			ExpectedValue:   defaultFilterBy,
 		},
 		{
-			Name:            "ValidDefaultFilterBy_nothing",
-			DefaultFilterBy: "nothing",
+			Name:            "ValidDefaultFilterBy_none",
+			DefaultFilterBy: "none",
 			ExpectedError:   nil,
-			ExpectedValue:   "nothing",
+			ExpectedValue:   "none",
 		},
 		{
 			Name:            "ValidDefaultFilterBy_failing",

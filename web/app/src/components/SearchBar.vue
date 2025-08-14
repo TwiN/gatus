@@ -20,7 +20,7 @@
         <Select 
           v-model="filterBy" 
           :options="filterOptions"
-          placeholder="Nothing"
+          placeholder="None"
           class="flex-1 sm:w-[140px] md:w-[160px]"
           @update:model-value="handleFilterChange"
         />
@@ -47,11 +47,11 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 
 const searchQuery = ref('')
-const filterBy = ref(localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'nothing')
+const filterBy = ref(localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'none')
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || (typeof window !== 'undefined' && window.config?.defaultSortBy) || 'name')
 
 const filterOptions = [
-  { label: 'Nothing', value: 'nothing' },
+  { label: 'None', value: 'none' },
   { label: 'Failing', value: 'failing' },
   { label: 'Unstable', value: 'unstable' }
 ]
