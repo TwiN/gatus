@@ -76,6 +76,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Provider        AlertProvider
 		Alert           alert.Alert
 		Resolved        bool
+		Endpoint        *endpoint.Endpoint
 		ExpectedSubject string
 		ExpectedBody    string
 	}{
@@ -84,6 +85,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:        AlertProvider{},
 			Alert:           alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:        false,
+			Endpoint:        &endpoint.Endpoint{Name: "endpoint-name"},
 			ExpectedSubject: "[endpoint-name] Alert triggered",
 			ExpectedBody:    "An alert for endpoint-name has been triggered due to having failed 3 time(s) in a row\n\nAlert description: description-1\n\nCondition results:\n❌ [CONNECTED] == true\n❌ [STATUS] == 200\n",
 		},
@@ -92,14 +94,42 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Provider:        AlertProvider{},
 			Alert:           alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:        true,
+			Endpoint:        &endpoint.Endpoint{Name: "endpoint-name"},
 			ExpectedSubject: "[endpoint-name] Alert resolved",
 			ExpectedBody:    "An alert for endpoint-name has been resolved after passing successfully 5 time(s) in a row\n\nAlert description: description-2\n\nCondition results:\n✅ [CONNECTED] == true\n✅ [STATUS] == 200\n",
+		},
+		{
+			Name:            "triggered-with-single-extra-label",
+			Provider:        AlertProvider{},
+			Alert:           alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:        false,
+			Endpoint:        &endpoint.Endpoint{Name: "endpoint-name", ExtraLabels: map[string]string{"environment": "production"}},
+			ExpectedSubject: "[endpoint-name] Alert triggered",
+			ExpectedBody:    "An alert for endpoint-name has been triggered due to having failed 3 time(s) in a row\n\nAlert description: description-1\n\nExtra labels:\n  environment: production\n\n\nCondition results:\n❌ [CONNECTED] == true\n❌ [STATUS] == 200\n",
+		},
+		{
+			Name:            "resolved-with-single-extra-label",
+			Provider:        AlertProvider{},
+			Alert:           alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:        true,
+			Endpoint:        &endpoint.Endpoint{Name: "endpoint-name", ExtraLabels: map[string]string{"service": "api"}},
+			ExpectedSubject: "[endpoint-name] Alert resolved",
+			ExpectedBody:    "An alert for endpoint-name has been resolved after passing successfully 5 time(s) in a row\n\nAlert description: description-2\n\nExtra labels:\n  service: api\n\n\nCondition results:\n✅ [CONNECTED] == true\n✅ [STATUS] == 200\n",
+		},
+		{
+			Name:            "triggered-with-no-extra-labels",
+			Provider:        AlertProvider{},
+			Alert:           alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:        false,
+			Endpoint:        &endpoint.Endpoint{Name: "endpoint-name", ExtraLabels: map[string]string{}},
+			ExpectedSubject: "[endpoint-name] Alert triggered",
+			ExpectedBody:    "An alert for endpoint-name has been triggered due to having failed 3 time(s) in a row\n\nAlert description: description-1\n\nCondition results:\n❌ [CONNECTED] == true\n❌ [STATUS] == 200\n",
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			subject, body := scenario.Provider.buildMessageSubjectAndBody(
-				&endpoint.Endpoint{Name: "endpoint-name"},
+				scenario.Endpoint,
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
