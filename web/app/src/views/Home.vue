@@ -33,6 +33,12 @@
         />
       </div>
 
+      <!-- Announcements Banner -->
+      <AnnouncementBanner :announcements="props.announcements" />
+
+      <div>
+      </div>
+
       <div v-if="loading" class="flex items-center justify-center py-20">
         <Loading size="lg" />
       </div>
@@ -145,7 +151,15 @@ import EndpointCard from '@/components/EndpointCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
+import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import { SERVER_URL } from '@/main.js'
+
+const props = defineProps({
+  announcements: {
+    type: Array,
+    default: () => []
+  }
+})
 
 const emit = defineEmits(['showTooltip'])
 
