@@ -65,7 +65,7 @@
               <div class="space-y-2 ml-7 relative">
                 <div
                   v-for="(announcement, index) in group"
-                  :key="index"
+                  :key="`${date}-${index}-${announcement.timestamp}`"
                   class="relative"
                 >
                   <!-- Timeline Icon -->
@@ -221,26 +221,10 @@ const getTypeClasses = (type) => {
 }
 
 const getTimelineHeight = (group) => {
-  // Calculate height to stop at the top of the last icon
-  // Date header margin-bottom: 0.5rem (mb-2)
-  // Each announcement + gap: varies, but we need to reach the last icon's top edge
-  if (group.length === 1) {
-    // For single announcement, line goes from date to top of icon
-    // Icon is vertically centered, so we need about half the card height
-    return {
-      top: '1.5rem',
-      height: '2rem'
-    }
-  }
-  
-  // For multiple announcements
-  // We need to reach the last icon's top position
-  // Each card + gap is roughly consistent
-  const heightToLastIcon = 2 + (group.length - 1) * 3.5 // Adjusted for actual spacing
-  
+  const height = group.length === 1 ? '2rem' : `${2 + (group.length - 1) * 3.5}rem`
   return {
     top: '1.5rem',
-    height: `${heightToLastIcon}rem`
+    height
   }
 }
 
@@ -306,10 +290,5 @@ const formatFullTimestamp = (timestamp) => {
   .announcement-container .ml-7 {
     margin-left: 1.5rem;
   }
-  
-  .announcement-container .-left-\[26px\] {
-    left: -22px;
-  }
-
 }
 </style>

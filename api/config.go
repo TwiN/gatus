@@ -26,12 +26,12 @@ func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	response := map[string]interface{}{
 		"oidc":          hasOIDC,
 		"authenticated": isAuthenticated,
-		"announcements": []interface{}{},
 	}
-
-	// Add announcements if available
-	if handler.config != nil && handler.config.Announcements != nil {
+	// Add announcements if available, otherwise use empty slice
+	if handler.config != nil && handler.config.Announcements != nil && len(handler.config.Announcements) > 0 {
 		response["announcements"] = handler.config.Announcements
+	} else {
+		response["announcements"] = []interface{}{}
 	}
 
 	// Return the config as JSON
