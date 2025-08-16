@@ -38,7 +38,6 @@
 
       <div>
       </div>
-
       <div v-if="loading" class="flex items-center justify-center py-20">
         <Loading size="lg" />
       </div>
