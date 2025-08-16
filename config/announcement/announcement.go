@@ -77,21 +77,6 @@ func (a *Announcement) ValidateAndSetDefaults() error {
 	return nil
 }
 
-// IsValidType returns true if the given type is a valid announcement type
-func IsValidType(t string) bool {
-	return validTypes[t]
-}
-
-// GetValidTypes returns a slice of all valid announcement types
-func GetValidTypes() []string {
-	types := make([]string, 0, len(validTypes))
-	for t := range validTypes {
-		types = append(types, t)
-	}
-	sort.Strings(types)
-	return types
-}
-
 // SortByTimestamp sorts a slice of announcements by timestamp in descending order (newest first)
 func SortByTimestamp(announcements []*Announcement) {
 	sort.Slice(announcements, func(i, j int) bool {
