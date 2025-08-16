@@ -92,7 +92,7 @@
 
       <!-- Main Content -->
       <main class="relative">
-        <router-view @showTooltip="showTooltip" />
+        <router-view @showTooltip="showTooltip" :announcements="announcements" />
       </main>
 
       <!-- Footer -->
@@ -154,7 +154,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu, X, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -169,9 +169,11 @@ const route = useRoute()
 // State
 const retrievedConfig = ref(false)
 const config = ref({ oidc: false, authenticated: true })
+const announcements = ref([])
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
+let configInterval = null
 
 // Computed properties
 const logo = computed(() => {
@@ -199,6 +201,7 @@ const fetchConfig = async () => {
     if (response.status === 200) {
       const data = await response.json()
       config.value = data
+      announcements.value = data.announcements || []
     }
   } catch (error) {
     console.error('Failed to fetch config:', error)
@@ -210,8 +213,18 @@ const showTooltip = (result, event) => {
   tooltip.value = { result, event }
 }
 
-// Fetch config on mount
+// Fetch config on mount and set up interval
 onMounted(() => {
   fetchConfig()
+  // Refresh config every 10 minutes for announcements
+  configInterval = setInterval(fetchConfig, 600000)
+})
+
+// Clean up interval on unmount
+onUnmounted(() => {
+  if (configInterval) {
+    clearInterval(configInterval)
+    configInterval = null
+  }
 })
 </script>

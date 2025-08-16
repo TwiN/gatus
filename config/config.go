@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
@@ -98,6 +99,9 @@ type Config struct {
 
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
+
+	// Announcements is the list of system-wide announcements
+	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
 
 	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
@@ -302,6 +306,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateAnnouncementsConfig(config); err != nil {
+			return nil, err
+		}
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
@@ -311,6 +318,17 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 func validateConnectivityConfig(config *Config) error {
 	if config.Connectivity != nil {
 		return config.Connectivity.ValidateAndSetDefaults()
+	}
+	return nil
+}
+
+func validateAnnouncementsConfig(config *Config) error {
+	if config.Announcements != nil {
+		if err := announcement.ValidateAndSetDefaults(config.Announcements); err != nil {
+			return err
+		}
+		// Sort announcements by timestamp (newest first) for API response
+		announcement.SortByTimestamp(config.Announcements)
 	}
 	return nil
 }
