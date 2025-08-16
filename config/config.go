@@ -120,7 +120,9 @@ func (config *Config) GetUniqueExtraMetricLabels() []string {
 			labels = append(labels, label)
 		}
 	}
-	sort.Strings(labels)
+	if len(labels) > 1 {
+		sort.Strings(labels)
+	}
 	return labels
 }
 

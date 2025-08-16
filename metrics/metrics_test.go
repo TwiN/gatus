@@ -63,7 +63,7 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 	// Only test one label set per process due to Prometheus registry limits.
 	reg := prometheus.NewRegistry()
-	InitializePrometheusMetrics(&config.Config{
+	cfg := &config.Config{
 		Endpoints: []*endpoint.Endpoint{
 			{
 				Name: "ep-extra",
@@ -74,7 +74,8 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 				},
 			},
 		},
-	}, reg)
+	}
+	InitializePrometheusMetrics(cfg, reg)
 
 	ep := &endpoint.Endpoint{
 		Name:  "ep-extra",
@@ -91,8 +92,9 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 		Duration:   2340 * time.Millisecond,
 		Success:    true,
 	}
-	// Order of extraLabels as per GetUniqueExtraMetricLabels is ["bar", "foo"] (alphabetical)
-	PublishMetricsForEndpoint(ep, result, []string{"bar", "foo"})
+	// Get labels in sorted order as per GetUniqueExtraMetricLabels
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
+	PublishMetricsForEndpoint(ep, result, extraLabels)
 
 	expected := `
 # HELP gatus_results_total Number of results per endpoint
