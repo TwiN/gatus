@@ -137,7 +137,7 @@ const u=({name:e,iconNode:t,absoluteStrokeWidth:n,"absolute-stroke-width":s,stro
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const o=(0,r.Z)("log-in",[["path",{d:"m10 17 5-5-5-5",key:"1bsop3"}],["path",{d:"M15 12H3",key:"6jk70r"}],["path",{d:"M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4",key:"u53s6r"}]])},507:function(e,t,n){n.d(t,{Z:function(){return o}});var r=n(264);
+ */const o=(0,r.Z)("log-in",[["path",{d:"m10 17 5-5-5-5",key:"1bsop3"}],["path",{d:"M15 12H3",key:"6jk70r"}],["path",{d:"M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4",key:"u53s6r"}]])},104:function(e,t,n){n.d(t,{Z:function(){return o}});var r=n(264);
 /**
  * @license lucide-vue-next v0.539.0 - ISC
  *
