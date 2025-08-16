@@ -30,6 +30,9 @@ var (
 	// ErrEmptyMessage is returned when an announcement has an empty message
 	ErrEmptyMessage = errors.New("announcement message cannot be empty")
 
+	// ErrMissingTimestamp is returned when an announcement has an empty timestamp
+	ErrMissingTimestamp = errors.New("announcement timestamp must be set")
+
 	// validTypes contains all valid announcement types
 	validTypes = map[string]bool{
 		TypeOutage:      true,
@@ -52,28 +55,24 @@ type Announcement struct {
 	Message string `yaml:"message" json:"message"`
 }
 
-// Validate validates the announcement and sets default values if necessary
+// ValidateAndSetDefaults validates the announcement and sets default values if necessary
 func (a *Announcement) ValidateAndSetDefaults() error {
 	// Validate message
 	if a.Message == "" {
 		return ErrEmptyMessage
 	}
-
 	// Set default type if empty
 	if a.Type == "" {
 		a.Type = TypeNone
 	}
-
 	// Validate type
 	if !validTypes[a.Type] {
 		return ErrInvalidAnnouncementType
 	}
-
-	// If timestamp is zero, use current time
+	// If timestamp is zero, return an error
 	if a.Timestamp.IsZero() {
-		a.Timestamp = time.Now().UTC()
+		return ErrMissingTimestamp
 	}
-
 	return nil
 }
 
