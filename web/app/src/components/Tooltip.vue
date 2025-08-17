@@ -1,130 +1,158 @@
 <template>
-  <div id="tooltip" ref="tooltip" :class="hidden ? 'invisible' : ''" :style="'top:' + top + 'px; left:' + left + 'px'">
-    <slot v-if="result">
-      <div class="tooltip-title">Timestamp:</div>
-      <code id="tooltip-timestamp">{{ prettifyTimestamp(result.timestamp) }}</code>
-      <div class="tooltip-title">Response time:</div>
-      <code id="tooltip-response-time">{{ (result.duration / 1000000).toFixed(0) }}ms</code>
-      <slot v-if="result.conditionResults && result.conditionResults.length">
-        <div class="tooltip-title">Conditions:</div>
-        <code id="tooltip-conditions">
-          <slot v-for="conditionResult in result.conditionResults" :key="conditionResult">
-            {{ conditionResult.success ? "&#10003;" : "X" }} ~ {{ conditionResult.condition }}<br/>
-          </slot>
-        </code>
-      </slot>
-      <div id="tooltip-errors-container" v-if="result.errors && result.errors.length">
-        <div class="tooltip-title">Errors:</div>
-        <code id="tooltip-errors">
-          <slot v-for="error in result.errors" :key="error">
-            - {{ error }}<br/>
-          </slot>
-        </code>
+  <div 
+    id="tooltip" 
+    ref="tooltip" 
+    :class="[
+      'fixed z-50 px-3 py-2 text-sm rounded-md shadow-lg border transition-all duration-200',
+      'bg-popover text-popover-foreground border-border',
+      hidden ? 'invisible opacity-0' : 'visible opacity-100'
+    ]" 
+    :style="`top: ${top}px; left: ${left}px;`"
+  >
+    <div v-if="result" class="space-y-2">
+      <!-- Timestamp -->
+      <div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.timestamp) }}</div>
       </div>
-    </slot>
+      
+      <!-- Response Time -->
+      <div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Response Time</div>
+        <div class="font-mono text-xs">{{ (result.duration / 1000000).toFixed(0) }}ms</div>
+      </div>
+      
+      <!-- Conditions -->
+      <div v-if="result.conditionResults && result.conditionResults.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions</div>
+        <div class="font-mono text-xs space-y-0.5">
+          <div 
+            v-for="(conditionResult, index) in result.conditionResults" 
+            :key="index"
+            class="flex items-start gap-1"
+          >
+            <span :class="conditionResult.success ? 'text-green-500' : 'text-red-500'">
+              {{ conditionResult.success ? '✓' : '✗' }}
+            </span>
+            <span class="break-all">{{ conditionResult.condition }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Errors -->
+      <div v-if="result.errors && result.errors.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors</div>
+        <div class="font-mono text-xs space-y-0.5">
+          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500">
+            • {{ error }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
+<script setup>
+/* eslint-disable no-undef */
+import { ref, watch, nextTick } from 'vue'
+import { helper } from '@/mixins/helper'
 
-<script>
-import {helper} from "@/mixins/helper";
-
-export default {
-  name: 'Endpoints',
-  props: {
-    event: Event,
-    result: Object
+const props = defineProps({
+  event: {
+    type: [Event, Object],
+    default: null
   },
-  mixins: [helper],
-  methods: {
-    htmlEntities(s) {
-      return String(s)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&apos;');
-    },
-    reposition() {
-      if (this.event && this.event.type) {
-        if (this.event.type === 'mouseenter') {
-          let targetTopPosition = this.event.target.getBoundingClientRect().y + 30;
-          let targetLeftPosition = this.event.target.getBoundingClientRect().x;
-          let tooltipBoundingClientRect = this.$refs.tooltip.getBoundingClientRect();
-          if (targetLeftPosition + window.scrollX + tooltipBoundingClientRect.width + 50 > document.body.getBoundingClientRect().width) {
-            targetLeftPosition = this.event.target.getBoundingClientRect().x - tooltipBoundingClientRect.width + this.event.target.getBoundingClientRect().width;
-            if (targetLeftPosition < 0) {
-              targetLeftPosition += -targetLeftPosition;
-            }
-          }
-          if (targetTopPosition + window.scrollY + tooltipBoundingClientRect.height + 50 > document.body.getBoundingClientRect().height && targetTopPosition >= 0) {
-            targetTopPosition = this.event.target.getBoundingClientRect().y - (tooltipBoundingClientRect.height + 10);
-            if (targetTopPosition < 0) {
-              targetTopPosition = this.event.target.getBoundingClientRect().y + 30;
-            }
-          }
-          this.top = targetTopPosition;
-          this.left = targetLeftPosition;
-        } else if (this.event.type === 'mouseleave') {
-          this.hidden = true;
+  result: {
+    type: Object,
+    default: null
+  }
+})
+
+// State
+const hidden = ref(true)
+const top = ref(0)
+const left = ref(0)
+const tooltip = ref(null)
+
+// Methods from helper mixin
+const { prettifyTimestamp } = helper.methods
+
+const reposition = async () => {
+  if (!props.event || !props.event.type) return
+  
+  await nextTick()
+  
+  if (props.event.type === 'mouseenter' && tooltip.value) {
+    const target = props.event.target
+    const targetRect = target.getBoundingClientRect()
+    
+    // First, position tooltip to get its dimensions
+    hidden.value = false
+    await nextTick()
+    
+    const tooltipRect = tooltip.value.getBoundingClientRect()
+    
+    // Since tooltip uses position: fixed, we work with viewport coordinates
+    // getBoundingClientRect() already gives us viewport-relative positions
+    
+    // Default position: below the target
+    let newTop = targetRect.bottom + 8
+    let newLeft = targetRect.left
+    
+    // Check if tooltip would overflow the viewport bottom
+    const spaceBelow = window.innerHeight - targetRect.bottom
+    const spaceAbove = targetRect.top
+    
+    if (spaceBelow < tooltipRect.height + 20) {
+      // Not enough space below, try above
+      if (spaceAbove > tooltipRect.height + 20) {
+        // Position above
+        newTop = targetRect.top - tooltipRect.height - 8
+      } else {
+        // Not enough space above either, position at the best spot
+        if (spaceAbove > spaceBelow) {
+          // More space above
+          newTop = 10
+        } else {
+          // More space below or equal, keep below but adjust
+          newTop = window.innerHeight - tooltipRect.height - 10
         }
       }
     }
-  },
-  watch: {
-    event: function (value) {
-      if (value && value.type) {
-        if (value.type === 'mouseenter') {
-          this.hidden = false;
-        } else if (value.type === 'mouseleave') {
-          this.hidden = true;
-        }
+    
+    // Adjust horizontal position if tooltip would overflow right edge
+    const spaceRight = window.innerWidth - targetRect.left
+    if (spaceRight < tooltipRect.width + 20) {
+      // Align right edge of tooltip with right edge of target
+      newLeft = targetRect.right - tooltipRect.width
+      // Make sure it doesn't go off the left edge
+      if (newLeft < 10) {
+        newLeft = 10
       }
     }
-  },
-  updated() {
-    this.reposition();
-  },
-  created() {
-    this.reposition();
-  },
-  data() {
-    return {
-      hidden: true,
-      top: 0,
-      left: 0
-    }
+    
+    top.value = Math.round(newTop)
+    left.value = Math.round(newLeft)
+  } else if (props.event.type === 'mouseleave') {
+    hidden.value = true
   }
 }
+
+// Watchers
+watch(() => props.event, (newEvent) => {
+  if (newEvent && newEvent.type) {
+    if (newEvent.type === 'mouseenter') {
+      hidden.value = false
+      nextTick(() => reposition())
+    } else if (newEvent.type === 'mouseleave') {
+      hidden.value = true
+    }
+  }
+}, { immediate: true })
+
+watch(() => props.result, () => {
+  if (!hidden.value) {
+    nextTick(() => reposition())
+  }
+})
 </script>
-
-
-<style>
-#tooltip {
-  position: fixed;
-  background-color: white;
-  border: 1px solid lightgray;
-  border-radius: 4px;
-  padding: 6px;
-  font-size: 13px;
-}
-
-#tooltip code {
-  color: #212529;
-  line-height: 1;
-}
-
-#tooltip .tooltip-title {
-  font-weight: bold;
-  margin-bottom: 0;
-  display: block;
-}
-
-#tooltip .tooltip-title {
-  margin-top: 8px;
-}
-
-#tooltip > .tooltip-title:first-child {
-  margin-top: 0;
-}
-</style>
