@@ -2008,7 +2008,6 @@ endpoints:
 ```
 
 ### Connectivity
-
 | Parameter                       | Description                                | Default       |
 |:--------------------------------|:-------------------------------------------|:--------------|
 | `connectivity`                  | Connectivity configuration                 | `{}`          |
