@@ -1975,6 +1975,7 @@ web:
 
 
 ### Metrics
+
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
 endpoint on the same port your application is configured to run on (`web.port`).
 
@@ -1991,7 +1992,7 @@ See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafan
 
 #### Custom Labels
 
-Added a Labels field to the Config and Endpoint structs to support key-value pairs for metrics. Updated the Prometheus metrics initialization to include dynamic labels from the configuration. See the example below:
+You can add custom labels to your endpoints’ Prometheus metrics by defining key–value pairs under the `extra-labels` field. For example:
 
 ```yaml
 endpoints:
@@ -2008,6 +2009,7 @@ endpoints:
 ```
 
 ### Connectivity
+
 | Parameter                       | Description                                | Default       |
 |:--------------------------------|:-------------------------------------------|:--------------|
 | `connectivity`                  | Connectivity configuration                 | `{}`          |
