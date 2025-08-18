@@ -32,7 +32,7 @@ jobs:
           if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/alerting"
           fi
-          if [[ $TITLE == *"(ui)"* $TITLE == *"ui:"* || ]]; then
+          if [[ $TITLE == *"(ui)"* || $TITLE == *"ui:"* ]]; then
             gh issue edit "$NUMBER" --add-label "area/ui"
           fi
           if [[ $TITLE == *"storage"* || $TITLE == *"postgres"* || $TITLE == *"sqlite"* ]]; then
