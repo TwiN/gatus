@@ -9,7 +9,7 @@
       <!-- Header -->
       <div 
         :class="[
-          'px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors',
+          'announcement-header px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors',
           isCollapsed ? 'rounded-lg' : 'rounded-t-lg border-b border-gray-200 dark:border-gray-600'
         ]"
         @click="toggleCollapsed"
@@ -34,7 +34,7 @@
       <!-- Timeline Content -->
       <div 
         v-if="!isCollapsed"
-        class="p-4  transition-all duration-200 rounded-b-lg"
+        class="announcement-content p-4 transition-all duration-200 rounded-b-lg"
       >
         <div class="relative">
           <!-- Announcements -->
