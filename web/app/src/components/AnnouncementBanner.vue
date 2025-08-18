@@ -1,5 +1,5 @@
 <template>
-  <div v-if="announcements && announcements.length" class="announcement-container mb-4">
+  <div v-if="announcements && announcements.length" class="announcement-container mb-6">
     <div 
       :class="[
         'rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200',

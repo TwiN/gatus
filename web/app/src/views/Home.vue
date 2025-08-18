@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container bg-background">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
-      <div class="mb-8">
+      <div class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-4xl font-bold tracking-tight">Health Dashboard</h1>
@@ -22,7 +22,9 @@
             </Button>
           </div>
         </div>
-        
+        <!-- Announcement Banner -->
+        <AnnouncementBanner :announcements="props.announcements" />
+        <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
           @update:showOnlyFailing="showOnlyFailing = $event"
@@ -33,11 +35,6 @@
         />
       </div>
 
-      <!-- Announcements Banner -->
-      <AnnouncementBanner :announcements="props.announcements" />
-
-      <div>
-      </div>
       <div v-if="loading" class="flex items-center justify-center py-20">
         <Loading size="lg" />
       </div>
