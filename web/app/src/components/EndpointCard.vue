@@ -1,5 +1,5 @@
 <template>
-  <Card class="endpoint hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
+  <Card class="endpoint h-full flex flex-col transition hover:shadow-lg hover:scale-[1.01] dark:hover:border-gray-700">
     <CardHeader class="endpoint-header px-3 sm:px-6 pt-3 sm:pt-6 pb-2 space-y-0">
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">

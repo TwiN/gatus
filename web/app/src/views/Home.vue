@@ -280,26 +280,55 @@ const visiblePages = computed(() => {
 })
 
 const fetchData = async () => {
-  loading.value = true
+  // Don't show loading state on refresh to prevent UI flicker
+  const isInitialLoad = endpointStatuses.value.length === 0
+  if (isInitialLoad) {
+    loading.value = true
+  }
   try {
     const response = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
       credentials: 'include'
     })
-    
     if (response.status === 200) {
       const data = await response.json()
-      endpointStatuses.value = data
+      // If this is the initial load, just set the data
+      if (isInitialLoad) {
+        endpointStatuses.value = data
+      } else {
+        // Check if endpoints have been added or removed
+        const currentKeys = new Set(endpointStatuses.value.map(ep => ep.key))
+        const newKeys = new Set(data.map(ep => ep.key))
+        const hasAdditions = data.some(ep => !currentKeys.has(ep.key))
+        const hasRemovals = endpointStatuses.value.some(ep => !newKeys.has(ep.key))
+        if (hasAdditions || hasRemovals) {
+          // Endpoints have changed, reset the array to maintain proper order
+          endpointStatuses.value = data
+        } else {
+          // Only statuses/results have changed, update in place to preserve scroll
+          const endpointMap = new Map(data.map(ep => [ep.key, ep]))
+          endpointStatuses.value.forEach((endpoint, index) => {
+            const updated = endpointMap.get(endpoint.key)
+            if (updated) {
+              // Update in place to preserve Vue's reactivity and scroll position
+              Object.assign(endpointStatuses.value[index], updated)
+            }
+          })
+        }
+      }
     } else {
       console.error('[Home][fetchData] Error:', await response.text())
     }
   } catch (error) {
     console.error('[Home][fetchData] Error:', error)
   } finally {
-    loading.value = false
+    if (isInitialLoad) {
+      loading.value = false
+    }
   }
 }
 
 const refreshData = () => {
+  endpointStatuses.value = [];
   fetchData()
 }
 
