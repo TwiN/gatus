@@ -1975,7 +1975,6 @@ web:
 
 
 ### Metrics
-
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
 endpoint on the same port your application is configured to run on (`web.port`).
 
