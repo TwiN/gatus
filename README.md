@@ -32,7 +32,7 @@ For more details, see [Usage](#usage)
 
 > ❤ Like this project? Please consider [sponsoring me](https://github.com/sponsors/TwiN).
 
-![Gatus dashboard](.github/assets/dashboard-dark.png)
+![Gatus dashboard](.github/assets/dashboard-dark.jpg)
 
 Have any feedback or questions? [Create a discussion](https://github.com/TwiN/gatus/discussions/new).
 
@@ -78,6 +78,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
+  - [Announcements](#announcements)
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -162,7 +163,7 @@ The main features of Gatus are:
 - **[Badges](#badges)**: ![Uptime 7d](https://status.twin.sh/api/v1/endpoints/core_blog-external/uptimes/7d/badge.svg) ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/badge.svg)
 - **Dark mode**
 
-![Gatus dashboard conditions](.github/assets/dashboard-conditions.png)
+![Gatus dashboard conditions](.github/assets/dashboard-conditions.jpg)
 
 
 ## Usage
@@ -201,7 +202,7 @@ endpoints:
 
 This example would look similar to this:
 
-![Simple example](.github/assets/example.png)
+![Simple example](.github/assets/example.jpg)
 
 By default, the configuration file is expected to be at `config/config.yaml`.
 
@@ -222,34 +223,37 @@ If you want to test it locally, see [Docker](#docker).
 
 
 ## Configuration
-| Parameter                    | Description                                                                                                                          | Default                    |
-|:-----------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
-| `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                             | `false`                    |
-| `storage`                    | [Storage configuration](#storage).                                                                                                   | `{}`                       |
-| `alerting`                   | [Alerting configuration](#alerting).                                                                                                 | `{}`                       |
-| `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                               | Required `[]`              |
-| `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                             | `[]`                       |
-| `security`                   | [Security configuration](#security).                                                                                                 | `{}`                       |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                  | `false`                    |
-| `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly). | `false`                    |
-| `web`                        | Web configuration.                                                                                                                   | `{}`                       |
-| `web.address`                | Address to listen on.                                                                                                                | `0.0.0.0`                  |
-| `web.port`                   | Port to listen on.                                                                                                                   | `8080`                     |
-| `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                          | `8192`                     |
-| `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                              | ``                         |
-| `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                     | ``                         |
-| `ui`                         | UI configuration.                                                                                                                    | `{}`                       |
-| `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                            | `Health Dashboard ǀ Gatus` |
-| `ui.description`             | Meta description for the page.                                                                                                       | `Gatus is an advanced...`. |
-| `ui.header`                  | Header at the top of the dashboard.                                                                                                  | `Health Status`            |
-| `ui.logo`                    | URL to the logo to display.                                                                                                          | `""`                       |
-| `ui.link`                    | Link to open when the logo is clicked.                                                                                               | `""`                       |
-| `ui.buttons`                 | List of buttons to display below the header.                                                                                         | `[]`                       |
-| `ui.buttons[].name`          | Text to display on the button.                                                                                                       | Required `""`              |
-| `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                             | Required `""`              |
-| `ui.custom-css`              | Custom CSS                                                                                                                           | `""`                       |
-| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.               | `true`                     |
-| `maintenance`                | [Maintenance configuration](#maintenance).                                                                                           | `{}`                       |
+| Parameter                    | Description                                                                                                                              | Default                    |
+|:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
+| `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                                 | `false`                    |
+| `storage`                    | [Storage configuration](#storage).                                                                                                       | `{}`                       |
+| `alerting`                   | [Alerting configuration](#alerting).                                                                                                     | `{}`                       |
+| `announcements`              | [Announcements configuration](#announcements).                                                                                           | `[]`                       |
+| `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                                   | Required `[]`              |
+| `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                                 | `[]`                       |
+| `security`                   | [Security configuration](#security).                                                                                                     | `{}`                       |
+| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                      | `false`                    |
+| `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`                    |
+| `web`                        | Web configuration.                                                                                                                       | `{}`                       |
+| `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
+| `web.port`                   | Port to listen on.                                                                                                                       | `8080`                     |
+| `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                              | `8192`                     |
+| `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                                  | `""`                       |
+| `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                         | `""`                       |
+| `ui`                         | UI configuration.                                                                                                                        | `{}`                       |
+| `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                | `Health Dashboard ǀ Gatus` |
+| `ui.description`             | Meta description for the page.                                                                                                           | `Gatus is an advanced...`. |
+| `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
+| `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
+| `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
+| `ui.buttons`                 | List of buttons to display below the header.                                                                                             | `[]`                       |
+| `ui.buttons[].name`          | Text to display on the button.                                                                                                           | Required `""`              |
+| `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                                 | Required `""`              |
+| `ui.custom-css`              | Custom CSS                                                                                                                               | `""`                       |
+| `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                     |
+| `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                     |
+| `ui.default-filter-by`       | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                     |
+| `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
 Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
@@ -289,6 +293,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 
 You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
@@ -395,6 +400,38 @@ Here are some examples of conditions you can use:
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
 > 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+
+
+### Announcements
+System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information.
+
+| Parameter                   | Description                                                                                   | Default  |
+|:----------------------------|:----------------------------------------------------------------------------------------------|:---------|
+| `announcements`             | List of announcements to display                                                              | `[]`     |
+| `announcements[].timestamp` | UTC timestamp when the announcement was made (RFC3339 format)                                 | Required |
+| `announcements[].type`      | Type of announcement. Valid values: `outage`, `warning`, `information`, `operational`, `none` | `"none"` |
+| `announcements[].message`   | The message to display to users                                                               | Required |
+
+Types:
+- **outage**: Indicates service disruptions or critical issues (red theme)
+- **warning**: Indicates potential issues or important notices (yellow theme)  
+- **information**: General information or updates (blue theme)
+- **operational**: Indicates resolved issues or normal operations (green theme)
+- **none**: Neutral announcements with no specific severity (gray theme, default if none are specified)
+
+Example Configuration:
+```yaml
+announcements:
+  - timestamp: 2025-08-15T14:00:00Z
+    type: outage
+    message: "Scheduled maintenance on database servers from 14:00 to 16:00 UTC"
+  - timestamp: 2025-08-15T16:15:00Z
+    type: operational  
+    message: "Database maintenance completed successfully. All systems operational."
+  - timestamp: 2025-08-15T12:00:00Z
+    type: information
+    message: "New monitoring dashboard features will be deployed next week"
+```
 
 
 ### Storage
@@ -1954,7 +1991,7 @@ See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafan
 
 #### Custom Labels
 
-Added a Labels field to the Config and Endpoint structs to support key-value pairs for metrics. Updated the Prometheus metrics initialization to include dynamic labels from the configuration. See the example below:
+You can add custom labels to your endpoints’ Prometheus metrics by defining key–value pairs under the `extra-labels` field. For example:
 
 ```yaml
 endpoints:
@@ -1966,7 +2003,7 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 150"
-    labels:
+    extra-labels:
       environment: staging
 ```
 
@@ -2431,9 +2468,9 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-The configuration above will result in a dashboard that looks like this:
+The configuration above will result in a dashboard that looks like this when sorting by group:
 
-![Gatus Endpoint Groups](.github/assets/endpoint-groups.png)
+![Gatus Endpoint Groups](.github/assets/endpoint-groups.jpg)
 
 
 ### Exposing Gatus on a custom path
