@@ -344,6 +344,9 @@ func (e *Endpoint) getParsedBody() string {
 	if err == nil {
 		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
 			n, _ := strconv.Atoi(match[15 : len(match)-1])
+			if n > 8192 {
+				n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
+			}
 			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			b := make([]byte, n)
 			for i := range b {
