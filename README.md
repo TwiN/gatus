@@ -1070,13 +1070,13 @@ automation:
     action:
       - service: notify.notify
         data_template:
-          title: "Gatus Alert: {{ trigger.event.data.endpoint }}"
+          title: "Gatus Alert: {{ trigger.event.data.event_data.endpoint }}"
           message: >
-            Status: {{ trigger.event.data.status }}
-            {% if trigger.event.data.description %}
-            Description: {{ trigger.event.data.description }}
+            Status: {{ trigger.event.data.event_data.status }}
+            {% if trigger.event.data.event_data.description %}
+            Description: {{ trigger.event.data.event_data.description }}
             {% endif %}
-            {% for condition in trigger.event.data.conditions %}
+            {% for condition in trigger.event.data.event_data.conditions %}
             {{ '✅' if condition.success else '❌' }} {{ condition.condition }}
             {% endfor %}
 ```
