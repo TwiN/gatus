@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 	"github.com/TwiN/whois"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
@@ -74,43 +76,57 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 	return domainExpiration, nil
 }
 
-// CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
-func CanCreateTCPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return false
-	}
-	_ = conn.Close()
-	return true
+// parseLocalAddressPlaceholder returns a string with the local address replaced
+func parseLocalAddressPlaceholder(item string, localAddr net.Addr) string {
+	item = strings.ReplaceAll(item, "[LOCAL_ADDRESS]", localAddr.String())
+	return item
 }
 
-// CanCreateUDPConnection checks whether a connection can be established with a UDP endpoint
-func CanCreateUDPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("udp", address, config.Timeout)
+// CanCreateNetworkConnection checks whether a connection can be established with a TCP or UDP endpoint
+func CanCreateNetworkConnection(netType string, address string, body string, config *Config) (bool, []byte) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
+	connection, err := net.DialTimeout(netType, address, config.Timeout)
 	if err != nil {
-		return false
+		return false, nil
 	}
-	_ = conn.Close()
-	return true
+	defer connection.Close()
+	if body != "" {
+		body = parseLocalAddressPlaceholder(body, connection.LocalAddr())
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return false, nil
+		}
+		buf := make([]byte, MaximumMessageSize)
+		n, err := connection.Read(buf)
+		if err != nil {
+			return false, nil
+		}
+		return true, buf[:n]
+	}
+	return true, nil
 }
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
 func CanCreateSCTPConnection(address string, config *Config) bool {
-	ch := make(chan bool)
+	ch := make(chan bool, 1)
 	go (func(res chan bool) {
 		addr, err := sctp.ResolveSCTPAddr("sctp", address)
 		if err != nil {
 			res <- false
+			return
 		}
 
 		conn, err := sctp.DialSCTP("sctp", nil, addr)
 		if err != nil {
 			res <- false
+			return
 		}
 		_ = conn.Close()
 		res <- true
 	})(ch)
-
 	select {
 	case result := <-ch:
 		return result
@@ -149,7 +165,10 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
-func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformTLS(address string, body string, config *Config) (connected bool, response []byte, certificate *x509.Certificate, err error) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
 	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
 		InsecureSkipVerify: config.Insecure,
 	})
@@ -163,9 +182,27 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
 		peerCertificates := connection.ConnectionState().PeerCertificates
-		return true, peerCertificates[0], nil
+		certificate = peerCertificates[0]
+	} else {
+		certificate = verifiedChains[0][0]
 	}
-	return true, verifiedChains[0][0], nil
+	connected = true
+	if body != "" {
+		body = parseLocalAddressPlaceholder(body, connection.LocalAddr())
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return
+		}
+		buf := make([]byte, MaximumMessageSize)
+		var n int
+		n, err = connection.Read(buf)
+		if err != nil {
+			return
+		}
+		response = buf[:n]
+	}
+	return
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
@@ -182,7 +219,6 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	} else {
 		port = "22"
 	}
-
 	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            username,
@@ -194,8 +230,35 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	if err != nil {
 		return false, nil, err
 	}
-
 	return true, cli, nil
+}
+
+func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+	dialer := net.Dialer{}
+	connStr := net.JoinHostPort(address, port)
+	conn, err := dialer.Dial("tcp", connStr)
+	if err != nil {
+		return false, 1, err
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	buf := make([]byte, 256)
+	_, err = io.ReadAtLeast(conn, buf, 1)
+	if err != nil {
+		return false, 1, err
+	}
+	return true, 0, err
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
@@ -203,37 +266,30 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	type Body struct {
 		Command string `json:"command"`
 	}
-
 	defer sshClient.Close()
-
 	var b Body
+	body = parseLocalAddressPlaceholder(body, sshClient.Conn.LocalAddr())
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
 		return false, 0, err
 	}
-
 	sess, err := sshClient.NewSession()
 	if err != nil {
 		return false, 0, err
 	}
-
 	err = sess.Start(b.Command)
 	if err != nil {
 		return false, 0, err
 	}
-
 	defer sess.Close()
-
 	err = sess.Wait()
 	if err == nil {
 		return true, 0, nil
 	}
-
-	e, ok := err.(*ssh.ExitError)
-	if !ok {
+	var exitErr *ssh.ExitError
+	if ok := errors.As(err, &exitErr); !ok {
 		return false, 0, err
 	}
-
-	return true, e.ExitStatus(), nil
+	return true, exitErr.ExitStatus(), nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
@@ -265,7 +321,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 }
 
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server
-func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) {
+func QueryWebSocket(address, body string, headers map[string]string, config *Config) (bool, []byte, error) {
 	const (
 		Origin             = "http://localhost/"
 		MaximumMessageSize = 1024 // in bytes
@@ -274,8 +330,22 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 	if err != nil {
 		return false, nil, fmt.Errorf("error configuring websocket connection: %w", err)
 	}
+	if headers != nil {
+		if wsConfig.Header == nil {
+			wsConfig.Header = make(http.Header)
+		}
+		for name, value := range headers {
+			wsConfig.Header.Set(name, value)
+		}
+	}
 	if config != nil {
 		wsConfig.Dialer = &net.Dialer{Timeout: config.Timeout}
+		wsConfig.TlsConfig = &tls.Config{
+			InsecureSkipVerify: config.Insecure,
+		}
+		if config.HasTLSConfig() && config.TLS.isValid() == nil {
+			wsConfig.TlsConfig = configureTLS(wsConfig.TlsConfig, *config.TLS)
+		}
 	}
 	// Dial URL
 	ws, err := websocket.DialConfig(wsConfig)
@@ -283,6 +353,7 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
@@ -306,6 +377,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 	m.SetQuestion(queryName, queryTypeAsUint16)
 	r, _, err := c.Exchange(m, url)
 	if err != nil {
+		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
 		return false, "", nil, err
 	}
 	connected = true
@@ -331,6 +403,14 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		case dns.TypeNS:
 			if ns, ok := rr.(*dns.NS); ok {
 				body = []byte(ns.Ns)
+			}
+		case dns.TypePTR:
+			if ptr, ok := rr.(*dns.PTR); ok {
+				body = []byte(ptr.Ptr)
+			}
+		case dns.TypeSRV:
+			if srv, ok := rr.(*dns.SRV); ok {
+				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
 			}
 		default:
 			body = []byte("query type is not supported yet")

@@ -2,19 +2,21 @@ package api
 
 import (
 	"errors"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	return func(c *fiber.Ctx) error {
 		// Check if the success query parameter is present
 		success, exists := c.Queries()["success"]
@@ -33,11 +35,11 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		key := c.Params("key")
 		externalEndpoint := cfg.GetExternalEndpointByKey(key)
 		if externalEndpoint == nil {
-			log.Printf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
+			logr.Errorf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
 		if externalEndpoint.Token != token {
-			log.Printf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
+			logr.Errorf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
 			return c.Status(401).SendString("invalid token")
 		}
 		// Persist the result in the storage
@@ -46,20 +48,34 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			Success:   c.QueryBool("success"),
 			Errors:    []string{},
 		}
+		if len(c.Query("duration")) > 0 {
+			parsedDuration, err := time.ParseDuration(c.Query("duration"))
+			if err != nil {
+				logr.Errorf("[api.CreateExternalEndpointResult] Invalid duration from string=%s with error: %s", c.Query("duration"), err.Error())
+				return c.Status(400).SendString("invalid duration: " + err.Error())
+			}
+			result.Duration = parsedDuration
+		}
+		if !result.Success && c.Query("error") != "" {
+			result.Errors = append(result.Errors, c.Query("error"))
+		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().Insert(convertedEndpoint, result); err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
 			}
-			log.Printf("[api.CreateExternalEndpointResult] Failed to insert result in storage: %s", err.Error())
+			logr.Errorf("[api.CreateExternalEndpointResult] Failed to insert result in storage: %s", err.Error())
 			return c.Status(500).SendString(err.Error())
 		}
-		log.Printf("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
+		logr.Infof("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
 		// Check if an alert should be triggered or resolved
 		if !cfg.Maintenance.IsUnderMaintenance() {
-			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting, cfg.Debug)
+			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+		}
+		if cfg.Metrics {
+			metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 		}
 		// Return the result
 		return c.Status(200).SendString("")

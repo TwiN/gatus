@@ -2,14 +2,15 @@ package api
 
 import (
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
+	"github.com/TwiN/logr"
 	fiber "github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -28,8 +29,12 @@ type API struct {
 func New(cfg *config.Config) *API {
 	api := &API{}
 	if cfg.Web == nil {
-		log.Println("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
+		logr.Warnf("[api.New] nil web config passed as parameter. This should only happen in tests. Using default web configuration")
 		cfg.Web = web.GetDefaultConfig()
+	}
+	if cfg.UI == nil {
+		logr.Warnf("[api.New] nil ui config passed as parameter. This should only happen in tests. Using default ui configuration")
+		cfg.UI = ui.GetDefaultConfig()
 	}
 	api.router = api.createRouter(cfg)
 	return api
@@ -42,7 +47,7 @@ func (a *API) Router() *fiber.App {
 func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			log.Printf("[api.ErrorHandler] %s", err.Error())
+			logr.Errorf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
 		ReadBufferSize: cfg.Web.ReadBufferSize,
@@ -70,10 +75,12 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// UNPROTECTED ROUTES //
 	////////////////////////
 	unprotectedAPIRouter := apiRouter.Group("/")
-	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security}.GetConfig)
+	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security, config: cfg}.GetConfig)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", HealthBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.shields", HealthBadgeShields)
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration", UptimeRaw)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration/badge.svg", UptimeBadge)
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration", ResponseTimeRaw)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/badge.svg", ResponseTimeBadge(cfg))
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/chart.svg", ResponseTimeChart)
 	// This endpoint requires authz with bearer token, so technically it is protected
@@ -87,6 +94,8 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		statusCode, body := healthHandler.GetResponseStatusCodeAndBody()
 		return c.Status(statusCode).Send(body)
 	})
+	// Custom CSS
+	app.Get("/css/custom.css", CustomCSSHandler{customCSS: cfg.UI.CustomCSS}.GetCustomCSS)
 	// Everything else falls back on static content
 	app.Use(redirect.New(redirect.Config{
 		Rules: map[string]string{
@@ -117,6 +126,6 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		}
 	}
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
-	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus)
+	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
 	return app
 }

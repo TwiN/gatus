@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/test"
 )
 
@@ -164,9 +165,9 @@ func TestEndpoint(t *testing.T) {
 			Name: "endpoint-that-will-time-out-and-hidden-hostname",
 			Endpoint: Endpoint{
 				Name:         "endpoint-that-will-time-out",
-				URL:          "https://twin.sh/health",
+				URL:          "https://twin.sh:9999/health",
 				Conditions:   []Condition{"[CONNECTED] == true"},
-				UIConfig:     &ui.Config{HideHostname: true},
+				UIConfig:     &ui.Config{HideHostname: true, HidePort: true},
 				ClientConfig: &client.Config{Timeout: time.Millisecond},
 			},
 			ExpectedResult: &Result{
@@ -179,7 +180,7 @@ func TestEndpoint(t *testing.T) {
 				// Because there's no [DOMAIN_EXPIRATION] condition, this is not resolved, so it should be 0.
 				DomainExpiration: 0,
 				// Because Endpoint.UIConfig.HideHostname is true, the hostname should be replaced by <redacted>.
-				Errors: []string{`Get "https://<redacted>/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
+				Errors: []string{`Get "https://<redacted>:<redacted>/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`},
 			},
 			MockRoundTripper: nil,
 		},
@@ -390,10 +391,11 @@ func TestEndpoint_Type(t *testing.T) {
 
 func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	endpoint := Endpoint{
-		Name:       "website-health",
-		URL:        "https://twin.sh/health",
-		Conditions: []Condition{Condition("[STATUS] == 200")},
-		Alerts:     []*alert.Alert{{Type: alert.TypePagerDuty}},
+		Name:               "website-health",
+		URL:                "https://twin.sh/health",
+		Conditions:         []Condition{Condition("[STATUS] == 200")},
+		Alerts:             []*alert.Alert{{Type: alert.TypePagerDuty}},
+		MaintenanceWindows: []*maintenance.Config{{Start: "03:50", Duration: 4 * time.Hour}},
 	}
 	if err := endpoint.ValidateAndSetDefaults(); err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -431,6 +433,15 @@ func TestEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	}
 	if endpoint.Alerts[0].FailureThreshold != 3 {
 		t.Error("Endpoint alert should've defaulted to a failure threshold of 3")
+	}
+	if len(endpoint.MaintenanceWindows) != 1 {
+		t.Error("Endpoint should've had 1 maintenance window")
+	}
+	if !endpoint.MaintenanceWindows[0].IsEnabled() {
+		t.Error("Endpoint maintenance should've defaulted to true")
+	}
+	if endpoint.MaintenanceWindows[0].Timezone != "UTC" {
+		t.Error("Endpoint maintenance should've defaulted to UTC")
 	}
 }
 
@@ -761,7 +772,7 @@ func TestIntegrationEvaluateHealthWithErrorAndHideURL(t *testing.T) {
 
 func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	conditionSuccess := Condition("[DNS_RCODE] == NOERROR")
-	conditionBody := Condition("[BODY] == 93.184.215.14")
+	conditionBody := Condition("[BODY] == pat(*.*.*.*)")
 	endpoint := Endpoint{
 		Name: "example",
 		URL:  "8.8.8.8",

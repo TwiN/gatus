@@ -39,28 +39,49 @@ func TestSinglePageApplication(t *testing.T) {
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
-		Name         string
-		Path         string
-		ExpectedCode int
-		Gzip         bool
+		Name              string
+		Path              string
+		Gzip              bool
+		CookieDarkMode    bool
+		UIDarkMode        bool
+		ExpectedCode      int
+		ExpectedDarkTheme bool
 	}
 	scenarios := []Scenario{
 		{
-			Name:         "frontend-home",
-			Path:         "/",
-			ExpectedCode: 200,
+			Name:              "frontend-home",
+			Path:              "/",
+			CookieDarkMode:    true,
+			UIDarkMode:        false,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
 		},
 		{
-			Name:         "frontend-endpoint",
-			Path:         "/endpoints/core_frontend",
-			ExpectedCode: 200,
+			Name:              "frontend-endpoint-light",
+			Path:              "/endpoints/core_frontend",
+			CookieDarkMode:    false,
+			UIDarkMode:        false,
+			ExpectedDarkTheme: false,
+			ExpectedCode:      200,
+		},
+		{
+			Name:              "frontend-endpoint-dark",
+			Path:              "/endpoints/core_frontend",
+			CookieDarkMode:    false,
+			UIDarkMode:        true,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			cfg.UI.DarkMode = &scenario.UIDarkMode
 			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
+			}
+			if scenario.CookieDarkMode {
+				request.Header.Set("Cookie", "theme=dark")
 			}
 			response, err := router.Test(request)
 			if err != nil {
@@ -71,8 +92,15 @@ func TestSinglePageApplication(t *testing.T) {
 				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 			body, _ := io.ReadAll(response.Body)
-			if !strings.Contains(string(body), cfg.UI.Title) {
+			strBody := string(body)
+			if !strings.Contains(strBody, cfg.UI.Title) {
 				t.Errorf("%s %s should have contained the title", request.Method, request.URL)
+			}
+			if scenario.ExpectedDarkTheme && !strings.Contains(strBody, "class=\"dark\"") {
+				t.Errorf("%s %s should have responded with dark mode headers", request.Method, request.URL)
+			}
+			if !scenario.ExpectedDarkTheme && strings.Contains(strBody, "class=\"dark\"") {
+				t.Errorf("%s %s should not have responded with dark mode headers", request.Method, request.URL)
 			}
 		})
 	}

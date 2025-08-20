@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -11,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
+	"github.com/TwiN/logr"
 )
 
 // Store is the interface that each store should implement
@@ -57,6 +57,9 @@ type Store interface {
 	// This prevents triggered alerts that have been removed or modified from lingering in the database.
 	DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int
 
+	// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+	HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error)
+
 	// Clear deletes everything from the store
 	Clear()
 
@@ -91,7 +94,7 @@ var (
 func Get() Store {
 	if !initialized {
 		// This only happens in tests
-		log.Println("[store.Get] Provider requested before it was initialized, automatically initializing")
+		logr.Info("[store.Get] Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
 			panic("failed to automatically initialize store: " + err.Error())
@@ -110,39 +113,43 @@ func Initialize(cfg *storage.Config) error {
 	}
 	if cfg == nil {
 		// This only happens in tests
-		log.Println("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
-		cfg = &storage.Config{}
+		logr.Warn("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
+		cfg = &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		log.Printf("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
+		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching)
+		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
 	case storage.TypeMemory:
 		fallthrough
 	default:
-		store, _ = memory.NewStore()
+		store, _ = memory.NewStore(cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 	}
 	return nil
 }
 
 // autoSave automatically calls the Save function of the provider at every interval
 func autoSave(ctx context.Context, store Store, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[store.autoSave] Stopping active job")
+			logr.Info("[store.autoSave] Stopping active job")
 			return
-		case <-time.After(interval):
-			log.Printf("[store.autoSave] Saving")
-			err := store.Save()
-			if err != nil {
-				log.Println("[store.autoSave] Save failed:", err.Error())
+		case <-ticker.C:
+			logr.Info("[store.autoSave] Saving")
+			if err := store.Save(); err != nil {
+				logr.Errorf("[store.autoSave] Save failed: %s", err.Error())
 			}
 		}
 	}

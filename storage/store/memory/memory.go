@@ -17,15 +17,20 @@ type Store struct {
 	sync.RWMutex
 
 	cache *gocache.Cache
+
+	maximumNumberOfResults int // maximum number of results that an endpoint can have
+	maximumNumberOfEvents  int // maximum number of events that an endpoint can have
 }
 
 // NewStore creates a new store using gocache.Cache
 //
 // This store holds everything in memory, and if the file parameter is not blank,
 // supports eventual persistence.
-func NewStore() (*Store, error) {
+func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error) {
 	store := &Store{
-		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		cache:                  gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		maximumNumberOfResults: maximumNumberOfResults,
+		maximumNumberOfEvents:  maximumNumberOfEvents,
 	}
 	return store, nil
 }
@@ -151,7 +156,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(status.(*endpoint.Status), result)
+	AddResult(status.(*endpoint.Status), result, s.maximumNumberOfResults, s.maximumNumberOfEvents)
 	s.cache.Set(key, status)
 	s.Unlock()
 	return nil
@@ -204,6 +209,23 @@ func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 // Does nothing for the in-memory store since it does not support persistence across restarts
 func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int {
 	return 0
+}
+
+// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error) {
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.cache.GetValue(key)
+	if endpointStatus == nil {
+		// If no endpoint exists, there's no newer status, so return false instead of an error
+		return false, nil
+	}
+	for _, result := range endpointStatus.(*endpoint.Status).Results {
+		if result.Timestamp.After(timestamp) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Clear deletes everything from the store

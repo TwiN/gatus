@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net/http"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -40,26 +41,26 @@ func TestGetHTTPClient(t *testing.T) {
 
 func TestGetDomainExpiration(t *testing.T) {
 	t.Parallel()
-	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+	if domainExpiration, err := GetDomainExpiration("gatus.io"); err != nil {
 		t.Fatalf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
 	}
-	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+	if domainExpiration, err := GetDomainExpiration("gatus.io"); err != nil {
 		t.Errorf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
 	}
 	// Hack to pretend like the domain is expiring in 1 hour, which should trigger a refresh
-	whoisExpirationDateCache.SetWithTTL("example.com", time.Now().Add(time.Hour), 25*time.Hour)
-	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+	whoisExpirationDateCache.SetWithTTL("gatus.io", time.Now().Add(time.Hour), 25*time.Hour)
+	if domainExpiration, err := GetDomainExpiration("gatus.io"); err != nil {
 		t.Errorf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
 	}
 	// Make sure the refresh works when the ttl is <24 hours
-	whoisExpirationDateCache.SetWithTTL("example.com", time.Now().Add(35*time.Hour), 23*time.Hour)
-	if domainExpiration, err := GetDomainExpiration("example.com"); err != nil {
+	whoisExpirationDateCache.SetWithTTL("gatus.io", time.Now().Add(35*time.Hour), 23*time.Hour)
+	if domainExpiration, err := GetDomainExpiration("gatus.io"); err != nil {
 		t.Errorf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
@@ -200,11 +201,29 @@ func TestCanPerformTLS(t *testing.T) {
 			wantConnected: true,
 			wantErr:       false,
 		},
+		{
+			name: "bad cert with insecure true",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: true,
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
+		{
+			name: "bad cert with insecure false",
+			args: args{
+				address:  "expired.badssl.com:443",
+				insecure: false,
+			},
+			wantConnected: false,
+			wantErr:       true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			connected, _, _, err := CanPerformTLS(tt.args.address, "", &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -216,11 +235,13 @@ func TestCanPerformTLS(t *testing.T) {
 	}
 }
 
-func TestCanCreateTCPConnection(t *testing.T) {
-	if CanCreateTCPConnection("127.0.0.1", &Config{Timeout: 5 * time.Second}) {
+func TestCanCreateConnection(t *testing.T) {
+	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
+	if connected {
 		t.Error("should've failed, because there's no port in the address")
 	}
-	if !CanCreateTCPConnection("1.1.1.1:53", &Config{Timeout: 5 * time.Second}) {
+	connected, _ = CanCreateNetworkConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
+	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
 	}
 }
@@ -284,11 +305,11 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 }
 
 func TestQueryWebSocket(t *testing.T) {
-	_, _, err := QueryWebSocket("", "body", &Config{Timeout: 2 * time.Second})
+	_, _, err := QueryWebSocket("", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the address being invalid")
 	}
-	_, _, err = QueryWebSocket("ws://example.org", "body", &Config{Timeout: 2 * time.Second})
+	_, _, err = QueryWebSocket("ws://example.org", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
 	}
@@ -338,7 +359,7 @@ func TestTlsRenegotiation(t *testing.T) {
 }
 
 func TestQueryDNS(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name            string
 		inputDNS        dns.Config
 		inputURL        string
@@ -354,7 +375,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "93.184.215.14",
+			expectedBody:    "__IPV4__",
 		},
 		{
 			name: "test Config with type AAAA",
@@ -364,7 +385,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "2606:2800:21f:cb07:6820:80da:af6b:8b2c",
+			expectedBody:    "__IPV6__",
 		},
 		{
 			name: "test Config with type CNAME",
@@ -397,6 +418,16 @@ func TestQueryDNS(t *testing.T) {
 			expectedBody:    "*.iana-servers.net.",
 		},
 		{
+			name: "test Config with type PTR",
+			inputDNS: dns.Config{
+				QueryType: "PTR",
+				QueryName: "8.8.8.8.in-addr.arpa.",
+			},
+			inputURL:        "8.8.8.8",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "dns.google.",
+		},
+		{
 			name: "test Config with fake type and retrieve error",
 			inputDNS: dns.Config{
 				QueryType: "B",
@@ -406,27 +437,77 @@ func TestQueryDNS(t *testing.T) {
 			isErrExpected: true,
 		},
 	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			_, dnsRCode, body, err := QueryDNS(test.inputDNS.QueryType, test.inputDNS.QueryName, test.inputURL)
-			if test.isErrExpected && err == nil {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, dnsRCode, body, err := QueryDNS(scenario.inputDNS.QueryType, scenario.inputDNS.QueryName, scenario.inputURL)
+			if scenario.isErrExpected && err == nil {
 				t.Errorf("there should be an error")
 			}
-			if dnsRCode != test.expectedDNSCode {
-				t.Errorf("expected DNSRCode to be %s, got %s", test.expectedDNSCode, dnsRCode)
+			if dnsRCode != scenario.expectedDNSCode {
+				t.Errorf("expected DNSRCode to be %s, got %s", scenario.expectedDNSCode, dnsRCode)
 			}
-			if test.inputDNS.QueryType == "NS" {
+			if scenario.inputDNS.QueryType == "NS" {
 				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
-				if !pattern.Match(test.expectedBody, string(body)) {
-					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				if !pattern.Match(scenario.expectedBody, string(body)) {
+					t.Errorf("got %s, expected result %s,", string(body), scenario.expectedBody)
 				}
 			} else {
-				if string(body) != test.expectedBody {
-					t.Errorf("got %s, expected result %s,", string(body), test.expectedBody)
+				if string(body) != scenario.expectedBody {
+					// little hack to validate arbitrary ipv4/ipv6
+					switch scenario.expectedBody {
+					case "__IPV4__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is4() {
+							t.Errorf("got %s, expected valid IPv4", string(body))
+						}
+					case "__IPV6__":
+						if addr, err := netip.ParseAddr(string(body)); err != nil {
+							t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+						} else if !addr.Is6() {
+							t.Errorf("got %s, expected valid IPv6", string(body))
+						}
+					default:
+						t.Errorf("got %s, expected result %s", string(body), scenario.expectedBody)
+					}
 				}
 			}
 		})
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+func TestCheckSSHBanner(t *testing.T) {
+	cfg := &Config{Timeout: 3}
+
+	t.Run("no-auth-ssh", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
+
+		if err != nil {
+			t.Errorf("Expected: error != nil, got: %v ", err)
+		}
+
+		if connected == false {
+			t.Errorf("Expected: connected == true, got: %v", connected)
+		}
+		if status != 0 {
+			t.Errorf("Expected: 0, got: %v", status)
+		}
+	})
+
+	t.Run("invalid-address", func(t *testing.T) {
+		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
+
+		if err == nil {
+			t.Errorf("Expected: error, got: %v ", err)
+		}
+
+		if connected != false {
+			t.Errorf("Expected: connected == false, got: %v", connected)
+		}
+		if status != 1 {
+			t.Errorf("Expected: 1, got: %v", status)
+		}
+	})
+
 }

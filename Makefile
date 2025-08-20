@@ -6,7 +6,11 @@ install:
 
 .PHONY: run
 run:
-	GATUS_CONFIG_PATH=./config.yaml ./$(BINARY)
+	ENVIRONMENT=dev GATUS_CONFIG_PATH=./config.yaml go run main.go
+
+.PHONY: run-binary
+run-binary:
+	ENVIRONMENT=dev GATUS_CONFIG_PATH=./config.yaml ./$(BINARY)
 
 .PHONY: clean
 clean:
@@ -33,6 +37,9 @@ docker-build-and-run: docker-build docker-run
 #############
 # Front end #
 #############
+
+frontend-install-dependencies:
+	npm --prefix web/app install
 
 frontend-build:
 	npm --prefix web/app run build

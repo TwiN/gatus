@@ -13,6 +13,9 @@ type Config struct {
 	// HideURL whether to ensure the URL is not displayed in the results. Useful if the URL contains a token.
 	HideURL bool `yaml:"hide-url"`
 
+	// HidePort whether to hide the port in the Result
+	HidePort bool `yaml:"hide-port"`
+
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
 	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
 
@@ -54,6 +57,7 @@ func GetDefaultConfig() *Config {
 	return &Config{
 		HideHostname:                false,
 		HideURL:                     false,
+		HidePort:                    false,
 		DontResolveFailedConditions: false,
 		HideConditions:              false,
 		Badge: &Badge{

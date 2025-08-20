@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
+	"net/url"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -14,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,25 +21,25 @@ import (
 // Due to how intensive this operation can be on the storage, this function leverages a cache.
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		page, pageSize := extractPageAndPageSizeFromRequest(c)
+		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
 		var data []byte
 		if !exists {
 			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
 			if err != nil {
-				log.Printf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
+				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
 			}
 			// ALPHA: Retrieve endpoint statuses from remote instances
 			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
-				log.Printf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
+				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
 			} else if endpointStatusesFromRemote != nil {
 				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
 			}
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
 			if err != nil {
-				log.Printf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
+				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
 				return c.Status(500).SendString("unable to marshal object to JSON")
 			}
 			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
@@ -60,18 +60,14 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 	for _, instance := range remoteConfig.Instances {
 		response, err := httpClient.Get(instance.URL)
 		if err != nil {
-			return nil, err
-		}
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			_ = response.Body.Close()
-			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			// Log the error but continue with other instances
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
 		}
 		var endpointStatuses []*endpoint.Status
-		if err = json.Unmarshal(body, &endpointStatuses); err != nil {
+		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
 			_ = response.Body.Close()
-			log.Printf("[api.getEndpointStatusesFromRemoteInstances] Silently failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to decode endpoint statuses from %s: %s", instance.URL, err.Error())
 			continue
 		}
 		_ = response.Body.Close()
@@ -80,29 +76,40 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 		}
 		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
 	}
+	// Only return nil, error if no remote instances were successfully processed
+	if len(endpointStatusesFromAllRemotes) == 0 && remoteConfig.Instances != nil {
+		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
+	}
 	return endpointStatusesFromAllRemotes, nil
 }
 
 // EndpointStatus retrieves a single endpoint.Status by group and endpoint name
-func EndpointStatus(c *fiber.Ctx) error {
-	page, pageSize := extractPageAndPageSizeFromRequest(c)
-	endpointStatus, err := store.Get().GetEndpointStatusByKey(c.Params("key"), paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, common.MaximumNumberOfEvents))
-	if err != nil {
-		if errors.Is(err, common.ErrEndpointNotFound) {
-			return c.Status(404).SendString(err.Error())
+func EndpointStatus(cfg *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
+		key, err := url.QueryUnescape(c.Params("key"))
+		if err != nil {
+			logr.Errorf("[api.EndpointStatus] Failed to decode key: %s", err.Error())
+			return c.Status(400).SendString("invalid key encoding")
 		}
-		log.Printf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
-		return c.Status(500).SendString(err.Error())
+		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
+		if err != nil {
+			if errors.Is(err, common.ErrEndpointNotFound) {
+				return c.Status(404).SendString(err.Error())
+			}
+			logr.Errorf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
+			return c.Status(500).SendString(err.Error())
+		}
+		if endpointStatus == nil { // XXX: is this check necessary?
+			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
+			return c.Status(404).SendString("not found")
+		}
+		output, err := json.Marshal(endpointStatus)
+		if err != nil {
+			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
+			return c.Status(500).SendString("unable to marshal object to JSON")
+		}
+		c.Set("Content-Type", "application/json")
+		return c.Status(200).Send(output)
 	}
-	if endpointStatus == nil { // XXX: is this check necessary?
-		log.Printf("[api.EndpointStatus] Endpoint with key=%s not found", c.Params("key"))
-		return c.Status(404).SendString("not found")
-	}
-	output, err := json.Marshal(endpointStatus)
-	if err != nil {
-		log.Printf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
-		return c.Status(500).SendString("unable to marshal object to JSON")
-	}
-	c.Set("Content-Type", "application/json")
-	return c.Status(200).Send(output)
 }

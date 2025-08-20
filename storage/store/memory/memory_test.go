@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
@@ -82,7 +83,8 @@ var (
 // Note that are much more extensive tests in /storage/store/store_test.go.
 // This test is simply an extra sanity check
 func TestStore_SanityCheck(t *testing.T) {
-	store, _ := NewStore()
+	store, _ := NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Clear()
 	defer store.Close()
 	store.Insert(&testEndpoint, &testSuccessfulResult)
 	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
@@ -122,7 +124,7 @@ func TestStore_SanityCheck(t *testing.T) {
 }
 
 func TestStore_Save(t *testing.T) {
-	store, err := NewStore()
+	store, err := NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	if err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
@@ -132,4 +134,31 @@ func TestStore_Save(t *testing.T) {
 	}
 	store.Clear()
 	store.Close()
+}
+
+func TestStore_HasEndpointStatusNewerThan(t *testing.T) {
+	store, _ := NewStore(storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Clear()
+	defer store.Close()
+	// Insert a result
+	err := store.Insert(&testEndpoint, &testSuccessfulResult)
+	if err != nil {
+		t.Fatalf("expected no error while inserting result, got %v", err)
+	}
+	// Check with a timestamp in the past
+	hasNewerStatus, err := store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(-time.Hour))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !hasNewerStatus {
+		t.Fatal("expected to have a newer status, but didn't")
+	}
+	// Check with a timestamp in the future
+	hasNewerStatus, err = store.HasEndpointStatusNewerThan(testEndpoint.Key(), time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if hasNewerStatus {
+		t.Fatal("expected not to have a newer status, but did")
+	}
 }

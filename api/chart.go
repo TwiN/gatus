@@ -2,14 +2,15 @@ package api
 
 import (
 	"errors"
-	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 	"github.com/wcharczuk/go-chart/v2"
 	"github.com/wcharczuk/go-chart/v2/drawing"
@@ -32,16 +33,24 @@ var (
 
 func ResponseTimeChart(c *fiber.Ctx) error {
 	duration := c.Params("duration")
+	chartTimestampFormatter := chart.TimeValueFormatterWithFormat(timeFormat)
 	var from time.Time
 	switch duration {
+	case "30d":
+		from = time.Now().Truncate(time.Hour).Add(-30 * 24 * time.Hour)
+		chartTimestampFormatter = chart.TimeDateValueFormatter
 	case "7d":
-		from = time.Now().Truncate(time.Hour).Add(-24 * 7 * time.Hour)
+		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		return c.Status(400).SendString("Durations supported: 7d, 24h")
+		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
 	}
-	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
@@ -88,7 +97,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 		Width:      1280,
 		Height:     300,
 		XAxis: chart.XAxis{
-			ValueFormatter: chart.TimeValueFormatterWithFormat(timeFormat),
+			ValueFormatter: chartTimestampFormatter,
 			GridMajorStyle: gridStyle,
 			GridMinorStyle: gridStyle,
 			Style:          axisStyle,
@@ -112,7 +121,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	c.Set("Expires", "0")
 	c.Status(http.StatusOK)
 	if err := graph.Render(chart.SVG, c); err != nil {
-		log.Println("[api.ResponseTimeChart] Failed to render response time chart:", err.Error())
+		logr.Errorf("[api.ResponseTimeChart] Failed to render response time chart: %s", err.Error())
 		return c.Status(500).SendString(err.Error())
 	}
 	return nil

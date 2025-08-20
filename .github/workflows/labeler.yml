@@ -1,0 +1,46 @@
+name: labeler
+on:
+  pull_request_target:
+    types:
+      - opened
+  issues:
+    types:
+      - opened
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Label
+        continue-on-error: true
+        env:
+          TITLE: ${{ github.event.issue.title }}${{ github.event.pull_request.title }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}${{ github.event.pull_request.number }}
+        run: |
+          if [[ $TITLE == "feat"* ]]; then
+            gh issue edit "$NUMBER" --add-label "feature"
+          elif [[ $TITLE == "fix"* ]]; then
+            gh issue edit "$NUMBER" --add-label "bug"
+          elif [[ $TITLE == "docs"* ]]; then
+            gh issue edit "$NUMBER" --add-label "documentation"
+          fi
+          if [[ $TITLE == *"alerting"* || $TITLE == *"provider"* || $TITLE == *"alert"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/alerting"
+          fi
+          if [[ $TITLE == *"(ui)"* || $TITLE == *"ui:"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/ui"
+          fi
+          if [[ $TITLE == *"storage"* || $TITLE == *"postgres"* || $TITLE == *"sqlite"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/storage"
+          fi
+          if [[ $TITLE == *"security"* || $TITLE == *"oidc"* || $TITLE == *"oauth2"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/security"
+          fi
+          if [[ $TITLE == *"metric"* || $TITLE == *"prometheus"* ]]; then
+            gh issue edit "$NUMBER" --add-label "area/metrics"
+          fi

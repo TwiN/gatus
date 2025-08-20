@@ -1,5 +1,5 @@
 # Build the go application into a binary
-FROM golang:alpine as builder
+FROM golang:alpine AS builder
 RUN apk --update add ca-certificates
 WORKDIR /app
 COPY . ./
@@ -15,6 +15,8 @@ FROM scratch
 COPY --from=builder /app/gatus .
 COPY --from=builder /app/config.yaml ./config/config.yaml
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-ENV PORT=8080
+ENV GATUS_CONFIG_PATH=""
+ENV GATUS_LOG_LEVEL="INFO"
+ENV PORT="8080"
 EXPOSE ${PORT}
 ENTRYPOINT ["/gatus"]

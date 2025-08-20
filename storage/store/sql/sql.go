@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
@@ -28,11 +28,13 @@ const (
 	// for aesthetic purposes, I deemed it wasn't worth the performance impact of yet another one-to-many table.
 	arraySeparator = "|~|"
 
-	uptimeCleanUpThreshold  = 10 * 24 * time.Hour                // Maximum uptime age before triggering a cleanup
-	eventsCleanUpThreshold  = common.MaximumNumberOfEvents + 10  // Maximum number of events before triggering a cleanup
-	resultsCleanUpThreshold = common.MaximumNumberOfResults + 10 // Maximum number of results before triggering a cleanup
+	eventsAboveMaximumCleanUpThreshold  = 10 // Maximum number of events above the configured maximum before triggering a cleanup
+	resultsAboveMaximumCleanUpThreshold = 10 // Maximum number of results above the configured maximum before triggering a cleanup
 
-	uptimeRetention = 7 * 24 * time.Hour
+	uptimeTotalEntriesMergeThreshold = 100                 // Maximum number of uptime entries before triggering a merge
+	uptimeAgeCleanUpThreshold        = 32 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
+	uptimeRetention                  = 30 * 24 * time.Hour // Minimum duration that must be kept to operate as intended
+	uptimeHourlyBuffer               = 48 * time.Hour      // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
 
 	cacheTTL = 10 * time.Minute
 )
@@ -56,17 +58,25 @@ type Store struct {
 	// writeThroughCache is a cache used to drastically decrease read latency by pre-emptively
 	// caching writes as they happen. If nil, writes are not cached.
 	writeThroughCache *gocache.Cache
+
+	maximumNumberOfResults int // maximum number of results that an endpoint can have
+	maximumNumberOfEvents  int // maximum number of events that an endpoint can have
 }
 
 // NewStore initializes the database and creates the schema if it doesn't already exist in the path specified
-func NewStore(driver, path string, caching bool) (*Store, error) {
+func NewStore(driver, path string, caching bool, maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error) {
 	if len(driver) == 0 {
 		return nil, ErrDatabaseDriverNotSpecified
 	}
 	if len(path) == 0 {
 		return nil, ErrPathNotSpecified
 	}
-	store := &Store{driver: driver, path: path}
+	store := &Store{
+		driver:                 driver,
+		path:                   path,
+		maximumNumberOfResults: maximumNumberOfResults,
+		maximumNumberOfEvents:  maximumNumberOfEvents,
+	}
 	var err error
 	if store.db, err = sql.Open(driver, path); err != nil {
 		return nil, err
@@ -235,12 +245,12 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 			// Endpoint doesn't exist in the database, insert it
 			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
 				_ = tx.Rollback()
-				log.Printf("[sql.Insert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[sql.Insert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			log.Printf("[sql.Insert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
+			logr.Errorf("[sql.Insert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
 			return err
 		}
 	}
@@ -251,12 +261,12 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	//    of type EventStart, in which case we will have to create a new event of type EventHealthy or EventUnhealthy
 	//    based on result.Success.
 	// 2. The lastResult.Success != result.Success. This implies that the endpoint went from healthy to unhealthy or
-	//    vice-versa, in which case we will have to create a new event of type EventHealthy or EventUnhealthy
+	//    vice versa, in which case we will have to create a new event of type EventHealthy or EventUnhealthy
 	//	  based on result.Success.
 	numberOfEvents, err := s.getNumberOfEventsByEndpointID(tx, endpointID)
 	if err != nil {
 		// Silently fail
-		log.Printf("[sql.Insert] Failed to retrieve total number of events for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.Insert] Failed to retrieve total number of events for endpoint with key=%s: %s", ep.Key(), err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -266,18 +276,18 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 		})
 		if err != nil {
 			// Silently fail
-			log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", endpoint.EventStart, ep.Key(), err.Error())
+			logr.Errorf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", endpoint.EventStart, ep.Key(), err.Error())
 		}
 		event := endpoint.NewEventFromResult(result)
 		if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 			// Silently fail
-			log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+			logr.Errorf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
 		}
 	} else {
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
-			log.Printf("[sql.Insert] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
+			logr.Errorf("[sql.Insert] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
@@ -287,49 +297,64 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
-					log.Printf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+					logr.Errorf("[sql.Insert] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
 				}
 			}
 		}
-		// Clean up old events if there's more than twice the maximum number of events
+		// Clean up old events if we're above the threshold
 		// This lets us both keep the table clean without impacting performance too much
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
-		if numberOfEvents > eventsCleanUpThreshold {
+		if numberOfEvents > int64(s.maximumNumberOfEvents+eventsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointEvents(tx, endpointID); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old events for endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[sql.Insert] Failed to delete old events for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
 	// Second, we need to insert the result.
 	if err = s.insertEndpointResult(tx, endpointID, result); err != nil {
-		log.Printf("[sql.Insert] Failed to insert result for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.Insert] Failed to insert result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByEndpointID(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql.Insert] Failed to retrieve total number of results for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.Insert] Failed to retrieve total number of results for endpoint with key=%s: %s", ep.Key(), err.Error())
 	} else {
-		if numberOfResults > resultsCleanUpThreshold {
+		if numberOfResults > int64(s.maximumNumberOfResults+resultsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[sql.Insert] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
 	if err = s.updateEndpointUptime(tx, endpointID, result); err != nil {
-		log.Printf("[sql.Insert] Failed to update uptime for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.Insert] Failed to update uptime for endpoint with key=%s: %s", ep.Key(), err.Error())
 	}
-	// Clean up old uptime entries
+	// Merge hourly uptime entries that can be merged into daily entries and clean up old uptime entries
+	numberOfUptimeEntries, err := s.getNumberOfUptimeEntriesByEndpointID(tx, endpointID)
+	if err != nil {
+		logr.Errorf("[sql.Insert] Failed to retrieve total number of uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+	} else {
+		// Merge older hourly uptime entries into daily uptime entries if we have more than uptimeTotalEntriesMergeThreshold
+		if numberOfUptimeEntries >= uptimeTotalEntriesMergeThreshold {
+			logr.Infof("[sql.Insert] Merging hourly uptime entries for endpoint with key=%s; This is a lot of work, it shouldn't happen too often", ep.Key())
+			if err = s.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, endpointID); err != nil {
+				logr.Errorf("[sql.Insert] Failed to merge hourly uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+			}
+		}
+	}
+	// Clean up outdated uptime entries
+	// In most cases, this would be handled by mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries,
+	// but if Gatus was temporarily shut down, we might have some old entries that need to be cleaned up
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestEndpointUptimeEntry(tx, endpointID)
 	if err != nil {
-		log.Printf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.Insert] Failed to retrieve oldest endpoint uptime entry for endpoint with key=%s: %s", ep.Key(), err.Error())
 	} else {
-		if ageOfOldestUptimeEntry > uptimeCleanUpThreshold {
+		if ageOfOldestUptimeEntry > uptimeAgeCleanUpThreshold {
 			if err = s.deleteOldUptimeEntries(tx, endpointID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
-				log.Printf("[sql.Insert] Failed to delete old uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[sql.Insert] Failed to delete old uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
 		}
 	}
@@ -339,7 +364,7 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 			s.writeThroughCache.Delete(cacheKey)
 			endpointKey, params, err := extractKeyAndParamsFromCacheKey(cacheKey)
 			if err != nil {
-				log.Printf("[sql.Insert] Silently deleting cache key %s instead of refreshing due to error: %s", cacheKey, err.Error())
+				logr.Errorf("[sql.Insert] Silently deleting cache key %s instead of refreshing due to error: %s", cacheKey, err.Error())
 				continue
 			}
 			// Retrieve the endpoint status by key, which will in turn refresh the cache
@@ -370,7 +395,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {
-		log.Printf("[sql.DeleteAllEndpointStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
+		logr.Errorf("[sql.DeleteAllEndpointStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
 		return 0
 	}
 	if s.writeThroughCache != nil {
@@ -386,7 +411,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 
 // GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
-	//log.Printf("[sql.GetTriggeredEndpointAlert] Getting triggered alert with checksum=%s for endpoint with key=%s", alert.Checksum(), ep.Key())
+	//logr.Debugf("[sql.GetTriggeredEndpointAlert] Getting triggered alert with checksum=%s for endpoint with key=%s", alert.Checksum(), ep.Key())
 	err = s.db.QueryRow(
 		"SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2",
 		ep.Key(),
@@ -404,7 +429,7 @@ func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Al
 // UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
 // Used for persistence of triggered alerts across application restarts
 func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//log.Printf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
+	//logr.Debugf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -416,12 +441,12 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 			// This shouldn't happen, but we'll handle it anyway
 			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
 				_ = tx.Rollback()
-				log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
+				logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
+			logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
 			return err
 		}
 	}
@@ -440,7 +465,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 	)
 	if err != nil {
 		_ = tx.Rollback()
-		log.Printf("[sql.UpsertTriggeredEndpointAlert] Failed to persist triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+		logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to persist triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 		return err
 	}
 	if err = tx.Commit(); err != nil {
@@ -451,7 +476,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 
 // DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
 func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//log.Printf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
+	//logr.Debugf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
 	_, err := s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)", triggeredAlert.Checksum(), ep.Key())
 	return err
 }
@@ -460,7 +485,7 @@ func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 // configurations are not provided in the checksums list.
 // This prevents triggered alerts that have been removed or modified from lingering in the database.
 func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int {
-	//log.Printf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Deleting triggered alerts for endpoint with key=%s that do not belong to any of checksums=%v", ep.Key(), checksums)
+	//logr.Debugf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Deleting triggered alerts for endpoint with key=%s that do not belong to any of checksums=%v", ep.Key(), checksums)
 	var err error
 	var result sql.Result
 	if len(checksums) == 0 {
@@ -481,12 +506,30 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {
-		log.Printf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Failed to delete rows for endpoint with key=%s that do not belong to any of checksums=%v: %s", ep.Key(), checksums, err.Error())
+		logr.Errorf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Failed to delete rows for endpoint with key=%s that do not belong to any of checksums=%v: %s", ep.Key(), checksums, err.Error())
 		return 0
 	}
 	// Return number of rows deleted
 	rowsAffects, _ := result.RowsAffected()
 	return int(rowsAffects)
+}
+
+// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error) {
+	if timestamp.IsZero() {
+		return false, errors.New("timestamp is zero")
+	}
+	var count int
+	err := s.db.QueryRow(
+		"SELECT COUNT(*) FROM endpoint_results WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND timestamp > $2",
+		key,
+		timestamp.UTC(),
+	).Scan(&count)
+	if err != nil {
+		// If the endpoint doesn't exist, we return false instead of an error
+		return false, nil
+	}
+	return count > 0, nil
 }
 
 // Clear deletes everything from the store
@@ -513,7 +556,7 @@ func (s *Store) Close() {
 
 // insertEndpoint inserts an endpoint in the store and returns the generated id of said endpoint
 func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error) {
-	//log.Printf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", ep.Group, ep.Name)
+	//logr.Debugf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", ep.Group, ep.Name)
 	var id int64
 	err := tx.QueryRow(
 		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
@@ -638,12 +681,12 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	endpointStatus := endpoint.NewStatus(group, endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
-			log.Printf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
+			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
 		}
 	}
 	if parameters.ResultsPageSize > 0 {
 		if endpointStatus.Results, err = s.getEndpointResultsByEndpointID(tx, endpointID, parameters.ResultsPage, parameters.ResultsPageSize); err != nil {
-			log.Printf("[sql.getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
+			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
 		}
 	}
 	if s.writeThroughCache != nil {
@@ -718,7 +761,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		var joinedErrors string
 		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
-			log.Printf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
+			logr.Errorf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
@@ -865,6 +908,12 @@ func (s *Store) getNumberOfResultsByEndpointID(tx *sql.Tx, endpointID int64) (in
 	return numberOfResults, err
 }
 
+func (s *Store) getNumberOfUptimeEntriesByEndpointID(tx *sql.Tx, endpointID int64) (int64, error) {
+	var numberOfUptimeEntries int64
+	err := tx.QueryRow("SELECT COUNT(1) FROM endpoint_uptimes WHERE endpoint_id = $1", endpointID).Scan(&numberOfUptimeEntries)
+	return numberOfUptimeEntries, err
+}
+
 func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) (time.Duration, error) {
 	rows, err := tx.Query(
 		`
@@ -918,7 +967,7 @@ func (s *Store) deleteOldEndpointEvents(tx *sql.Tx, endpointID int64) error {
 				)
 		`,
 		endpointID,
-		common.MaximumNumberOfEvents,
+		s.maximumNumberOfEvents,
 	)
 	return err
 }
@@ -938,7 +987,7 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 				)
 		`,
 		endpointID,
-		common.MaximumNumberOfResults,
+		s.maximumNumberOfResults,
 	)
 	return err
 }
@@ -946,6 +995,92 @@ func (s *Store) deleteOldEndpointResults(tx *sql.Tx, endpointID int64) error {
 func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time.Time) error {
 	_, err := tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, maxAge.Unix())
 	return err
+}
+
+// mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries merges all hourly uptime entries older than
+// uptimeHourlyMergeThreshold from now into daily uptime entries by summing all hourly entries of the same day into a
+// single entry.
+//
+// This effectively limits the number of uptime entries to (48+(n-2)) where 48 is for the first 48 entries with hourly
+// entries (defined by uptimeHourlyBuffer) and n is the number of days for all entries older than 48 hours.
+// Supporting 30d of entries would then result in far less than 24*30=720 entries.
+func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx *sql.Tx, endpointID int64) error {
+	// Calculate timestamp of the first full day of uptime entries that would not impact the uptime calculation for 24h badges
+	// The logic is that once at least 48 hours passed, we:
+	// - No longer need to worry about keeping hourly entries
+	// - Don't have to worry about new hourly entries being inserted, as the day has already passed
+	// which implies that no matter at what hour of the day we are, any timestamp + 48h floored to the current day
+	// will never impact the 24h uptime badge calculation
+	now := time.Now()
+	minThreshold := now.Add(-uptimeHourlyBuffer)
+	minThreshold = time.Date(minThreshold.Year(), minThreshold.Month(), minThreshold.Day(), 0, 0, 0, 0, minThreshold.Location())
+	maxThreshold := now.Add(-uptimeRetention)
+	// Get all uptime entries older than uptimeHourlyMergeThreshold
+	rows, err := tx.Query(
+		`
+			SELECT hour_unix_timestamp, total_executions, successful_executions, total_response_time
+			FROM endpoint_uptimes
+			WHERE endpoint_id = $1
+				AND hour_unix_timestamp < $2
+			    AND hour_unix_timestamp >= $3
+		`,
+		endpointID,
+		minThreshold.Unix(),
+		maxThreshold.Unix(),
+	)
+	if err != nil {
+		return err
+	}
+	type Entry struct {
+		totalExecutions      int
+		successfulExecutions int
+		totalResponseTime    int
+	}
+	dailyEntries := make(map[int64]*Entry)
+	for rows.Next() {
+		var unixTimestamp int64
+		entry := Entry{}
+		if err = rows.Scan(&unixTimestamp, &entry.totalExecutions, &entry.successfulExecutions, &entry.totalResponseTime); err != nil {
+			return err
+		}
+		timestamp := time.Unix(unixTimestamp, 0)
+		unixTimestampFlooredAtDay := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 0, 0, 0, 0, timestamp.Location()).Unix()
+		if dailyEntry := dailyEntries[unixTimestampFlooredAtDay]; dailyEntry == nil {
+			dailyEntries[unixTimestampFlooredAtDay] = &entry
+		} else {
+			dailyEntries[unixTimestampFlooredAtDay].totalExecutions += entry.totalExecutions
+			dailyEntries[unixTimestampFlooredAtDay].successfulExecutions += entry.successfulExecutions
+			dailyEntries[unixTimestampFlooredAtDay].totalResponseTime += entry.totalResponseTime
+		}
+	}
+	// Delete older hourly uptime entries
+	_, err = tx.Exec("DELETE FROM endpoint_uptimes WHERE endpoint_id = $1 AND hour_unix_timestamp < $2", endpointID, minThreshold.Unix())
+	if err != nil {
+		return err
+	}
+	// Insert new daily uptime entries
+	for unixTimestamp, entry := range dailyEntries {
+		_, err = tx.Exec(
+			`
+					INSERT INTO endpoint_uptimes (endpoint_id, hour_unix_timestamp, total_executions, successful_executions, total_response_time)
+					VALUES ($1, $2, $3, $4, $5)
+					ON CONFLICT(endpoint_id, hour_unix_timestamp) DO UPDATE SET
+						total_executions = $3,
+						successful_executions = $4,
+						total_response_time = $5
+				`,
+			endpointID,
+			unixTimestamp,
+			entry.totalExecutions,
+			entry.successfulExecutions,
+			entry.totalResponseTime,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	// TODO: Find a way to ignore entries that were already merged?
+	return nil
 }
 
 func generateCacheKey(endpointKey string, p *paging.EndpointStatusParams) string {
