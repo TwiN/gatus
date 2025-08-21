@@ -111,6 +111,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [disable-monitoring-lock](#disable-monitoring-lock)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
+  - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
   - [Configuring a startup delay](#configuring-a-startup-delay)
@@ -659,7 +660,7 @@ endpoints:
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
-| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).        | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).      | `{}`    |
 
 
 #### Configuring AWS SES alerts
@@ -2471,6 +2472,16 @@ endpoints:
 The configuration above will result in a dashboard that looks like this when sorting by group:
 
 ![Gatus Endpoint Groups](.github/assets/endpoint-groups.jpg)
+
+
+### How do I sort by group by default?
+Set `ui.default-sort-by` to `group` in the configuration file:
+```yaml
+ui:
+  default-sort-by: group
+```
+Note that if a user has already sorted the dashboard by a different field, the default sort will not be applied unless the user
+clears their browser's localstorage. 
 
 
 ### Exposing Gatus on a custom path
