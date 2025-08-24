@@ -1672,7 +1672,7 @@ endpoints:
 #### Configuring Zulip alerts
 | Parameter                          | Description                                                                         | Default       |
 |:-----------------------------------|:------------------------------------------------------------------------------------|:--------------|
-| `alerting.zulip`                   | Configuration for alerts of type `discord`                                          | `{}`          |
+| `alerting.zulip`                   | Configuration for alerts of type `zulip`                                          | `{}`          |
 | `alerting.zulip.bot-email`         | Bot Email                                                                           | Required `""` |
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
