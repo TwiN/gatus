@@ -81,7 +81,6 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-
 	url := fmt.Sprintf("https://maker.ifttt.com/trigger/%s/with/key/%s", cfg.EventName, cfg.WebhookKey)
 	body, err := provider.buildRequestBody(ep, alert, result, resolved)
 	if err != nil {
