@@ -52,6 +52,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
+    - [Configuring Datadog alerts](#configuring-datadog-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Gitea alerts](#configuring-gitea-alerts)
@@ -60,21 +61,34 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
     - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
+    - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
     - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
+    - [Configuring Line alerts](#configuring-line-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
+    - [Configuring New Relic alerts](#configuring-new-relic-alerts)
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
+    - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
+    - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
+    - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
+    - [Configuring Signal alerts](#configuring-signal-alerts)
+    - [Configuring SIGNL4 alerts](#configuring-signl4-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
+    - [Configuring Splunk alerts](#configuring-splunk-alerts)
+    - [Configuring Squadcast alerts](#configuring-squadcast-alerts)
     - [Configuring Teams alerts *(Deprecated)*](#configuring-teams-alerts-deprecated)
     - [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
+    - [Configuring Vonage alerts](#configuring-vonage-alerts)
+    - [Configuring Webex alerts](#configuring-webex-alerts)
+    - [Configuring Zapier alerts](#configuring-zapier-alerts)
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
@@ -637,6 +651,7 @@ endpoints:
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
+| `alerting.datadog`         | Configuration for alerts of type `datadog`. <br />See [Configuring Datadog alerts](#configuring-datadog-alerts).                        | `{}`    |
 | `alerting.discord`         | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                        | `{}`    |
 | `alerting.email`           | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                              | `{}`    |
 | `alerting.gitea`           | Configuration for alerts of type `gitea`. <br />See [Configuring Gitea alerts](#configuring-gitea-alerts).                              | `{}`    |
@@ -644,23 +659,36 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).      | `{}`    |
+| `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
 | `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
+| `alerting.line`            | Configuration for alerts of type `line`. <br />See [Configuring Line alerts](#configuring-line-alerts).                                 | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
 | `alerting.messagebird`     | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts).            | `{}`    |
+| `alerting.newrelic`        | Configuration for alerts of type `newrelic`. <br />See [Configuring New Relic alerts](#configuring-new-relic-alerts).                   | `{}`    |
 | `alerting.ntfy`            | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                 | `{}`    |
 | `alerting.opsgenie`        | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                     | `{}`    |
 | `alerting.pagerduty`       | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                  | `{}`    |
+| `alerting.plivo`           | Configuration for alerts of type `plivo`. <br />See [Configuring Plivo alerts](#configuring-plivo-alerts).                              | `{}`    |
 | `alerting.pushover`        | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                     | `{}`    |
+| `alerting.rocketchat`      | Configuration for alerts of type `rocketchat`. <br />See [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts).              | `{}`    |
+| `alerting.sendgrid`        | Configuration for alerts of type `sendgrid`. <br />See [Configuring SendGrid alerts](#configuring-sendgrid-alerts).                     | `{}`    |
+| `alerting.signal`          | Configuration for alerts of type `signal`. <br />See [Configuring Signal alerts](#configuring-signal-alerts).                           | `{}`    |
+| `alerting.signl4`          | Configuration for alerts of type `signl4`. <br />See [Configuring SIGNL4 alerts](#configuring-signl4-alerts).                           | `{}`    |
 | `alerting.slack`           | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                              | `{}`    |
+| `alerting.splunk`          | Configuration for alerts of type `splunk`. <br />See [Configuring Splunk alerts](#configuring-splunk-alerts).                           | `{}`    |
+| `alerting.squadcast`       | Configuration for alerts of type `squadcast`. <br />See [Configuring Squadcast alerts](#configuring-squadcast-alerts).                  | `{}`    |
 | `alerting.teams`           | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).    | `{}`    |
 | `alerting.teams-workflows` | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).  | `{}`    |
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
+| `alerting.vonage`          | Configuration for alerts of type `vonage`. <br />See [Configuring Vonage alerts](#configuring-vonage-alerts).                           | `{}`    |
+| `alerting.webex`           | Configuration for alerts of type `webex`. <br />See [Configuring Webex alerts](#configuring-webex-alerts).                              | `{}`    |
+| `alerting.zapier`          | Configuration for alerts of type `zapier`. <br />See [Configuring Zapier alerts](#configuring-zapier-alerts).                           | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
-| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).      | `{}`    |
 
 
 #### Configuring AWS SES alerts
@@ -701,6 +729,39 @@ endpoints:
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
+
+
+#### Configuring Datadog alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                        | Description                                                                                | Default           |
+|:---------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
+| `alerting.datadog`               | Configuration for alerts of type `datadog`                                                 | `{}`              |
+| `alerting.datadog.api-key`       | Datadog API key                                                                            | Required `""`     |
+| `alerting.datadog.site`          | Datadog site (e.g., datadoghq.com, datadoghq.eu)                                           | `"datadoghq.com"` |
+| `alerting.datadog.tags`          | Additional tags to include                                                                 | `[]`              |
+| `alerting.datadog.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+
+```yaml
+alerting:
+  datadog:
+    api-key: "YOUR_API_KEY"
+    site: "datadoghq.com"  # or datadoghq.eu for EU region
+    tags:
+      - "environment:production"
+      - "team:platform"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: datadog
+        send-on-resolved: true
+```
 
 
 #### Configuring Discord alerts
@@ -795,6 +856,7 @@ endpoints:
 
 > ⚠ Some mail servers are painfully slow.
 
+
 #### Configuring Gitea alerts
 
 | Parameter                       | Description                                                                                                | Default       |
@@ -832,6 +894,7 @@ endpoints:
 
 ![Gitea alert](.github/assets/gitea-alerts.png)
 
+
 #### Configuring GitHub alerts
 
 | Parameter                        | Description                                                                                                | Default       |
@@ -868,6 +931,7 @@ endpoints:
 ```
 
 ![GitHub alert](.github/assets/github-alerts.png)
+
 
 #### Configuring GitLab alerts
 | Parameter                           | Description                                                                                                         | Default       |
@@ -951,51 +1015,6 @@ endpoints:
 | `alerting.gotify.priority`                    | Priority of the alert according to Gotify standards.                                        | `5`                   |
 | `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
-
-#### Configuring ilert alerts
-| Parameter                              | Description                                                                                | Default |
-|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
-| `alerting.ilert`                   | Configuration for alerts of type `ilert`                                               | `{}`    |
-| `alerting.ilert.integration-key`   | ilert Alert Source integration key                                                    | `""`    |
-| `alerting.ilert.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
-| `alerting.ilert.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
-| `alerting.ilert.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
-| `alerting.ilert.overrides[].*`     | See `alerting.ilert.*` parameters                                                      | `{}`    |
-
-It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
-of type `ilert`, because unlike other alerts, the operation resulting from setting said
-parameter to `true` will not create another alert but mark the alert as resolved on
-ilert instead.
-
-Behavior:
-- By default, `alerting.ilert.integration-key` is used as the integration key
-- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.ilert.overrides[].group`, the provider will use that override's integration key instead of `alerting.ilert.integration-key`'s
-
-```yaml
-alerting:
-  ilert:
-    integration-key: "********************************"
-    # You can also add group-specific integration keys, which will
-    # override the integration key above for the specified groups
-    overrides:
-      - group: "core"
-        integration-key: "********************************"
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: ilert
-        failure-threshold: 3
-        success-threshold: 5
-        send-on-resolved: true
-        description: "healthcheck failed"
-```
 
 ```yaml
 alerting:
@@ -1091,6 +1110,81 @@ To get your HomeAssistant long-lived access token:
 6. Copy the token - you'll only see it once!
 
 
+#### Configuring IFTTT alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.ifttt`               | Configuration for alerts of type `ifttt`                                                   | `{}`          |
+| `alerting.ifttt.webhook-key`   | IFTTT Webhook key                                                                          | Required `""` |
+| `alerting.ifttt.event-name`    | IFTTT event name                                                                           | Required `""` |
+| `alerting.ifttt.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  ifttt:
+    webhook-key: "YOUR_WEBHOOK_KEY"
+    event-name: "gatus_alert"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: ifttt
+        send-on-resolved: true
+```
+
+
+#### Configuring ilert alerts
+| Parameter                          | Description                                                                                | Default |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.ilert`                   | Configuration for alerts of type `ilert`                                                   | `{}`    |
+| `alerting.ilert.integration-key`   | ilert Alert Source integration key                                                         | `""`    |
+| `alerting.ilert.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A     |
+| `alerting.ilert.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`    |
+| `alerting.ilert.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`    |
+| `alerting.ilert.overrides[].*`     | See `alerting.ilert.*` parameters                                                          | `{}`    |
+
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` for alerts
+of type `ilert`, because unlike other alerts, the operation resulting from setting said
+parameter to `true` will not create another alert but mark the alert as resolved on
+ilert instead.
+
+Behavior:
+- By default, `alerting.ilert.integration-key` is used as the integration key
+- If the endpoint being evaluated belongs to a group (`endpoints[].group`) matching the value of `alerting.ilert.overrides[].group`, the provider will use that override's integration key instead of `alerting.ilert.integration-key`'s
+
+```yaml
+alerting:
+  ilert:
+    integration-key: "********************************"
+    # You can also add group-specific integration keys, which will
+    # override the integration key above for the specified groups
+    overrides:
+      - group: "core"
+        integration-key: "********************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: ilert
+        failure-threshold: 3
+        success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring Incident.io alerts
 | Parameter                                | Description                                                                                | Default       |
 |:-----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
@@ -1161,6 +1255,37 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![JetBrains Space notifications](.github/assets/jetbrains-space-alerts.png)
+
+
+#### Configuring Line alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.line`                      | Configuration for alerts of type `line`                                                    | `{}`          |
+| `alerting.line.channel-access-token` | Line Messaging API channel access token                                                    | Required `""` |
+| `alerting.line.user-ids`             | List of Line user IDs to send messages to                                                  | Required `[]` |
+| `alerting.line.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  line:
+    channel-access-token: "YOUR_CHANNEL_ACCESS_TOKEN"
+    user-ids:
+      - "U1234567890abcdef"
+      - "U2345678901bcdefg"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: line
+        send-on-resolved: true
+```
 
 
 #### Configuring Matrix alerts
@@ -1262,6 +1387,37 @@ endpoints:
         failure-threshold: 3
         send-on-resolved: true
         description: "healthcheck failed"
+```
+
+
+#### Configuring New Relic alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                         | Description                                                                                | Default       |
+|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.newrelic`               | Configuration for alerts of type `newrelic`                                                | `{}`          |
+| `alerting.newrelic.api-key`       | New Relic API key                                                                          | Required `""` |
+| `alerting.newrelic.account-id`    | New Relic account ID                                                                       | Required `""` |
+| `alerting.newrelic.region`        | Region (US or EU)                                                                          | `"US"`        |
+| `alerting.newrelic.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  newrelic:
+    api-key: "YOUR_API_KEY"
+    account-id: "1234567"
+    region: "US"  # or "EU" for European region
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: newrelic
+        send-on-resolved: true
 ```
 
 
@@ -1407,19 +1563,58 @@ endpoints:
 ```
 
 
+#### Configuring Plivo alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                       | Description                                                                                | Default       |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.plivo`                | Configuration for alerts of type `plivo`                                                   | `{}`          |
+| `alerting.plivo.auth-id`        | Plivo Auth ID                                                                              | Required `""` |
+| `alerting.plivo.auth-token`     | Plivo Auth Token                                                                           | Required `""` |
+| `alerting.plivo.from`           | Phone number to send SMS from                                                              | Required `""` |
+| `alerting.plivo.to`             | List of phone numbers to send SMS to                                                       | Required `[]` |
+| `alerting.plivo.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  plivo:
+    auth-id: "MAXXXXXXXXXXXXXXXXXX"
+    auth-token: "your-auth-token"
+    from: "+1234567890"
+    to:
+      - "+0987654321"
+      - "+1122334455"
+
+endpoints:
+  - name: website
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: plivo
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring Pushover alerts
-| Parameter                             | Description                                                                                              | Default                     |
-|:--------------------------------------|:---------------------------------------------------------------------------------------------------------|:----------------------------|
-| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                              | `{}`                        |
-| `alerting.pushover.application-token` | Pushover application token                                                                               | `""`                        |
-| `alerting.pushover.user-key`          | User or group key                                                                                        | `""`                        |
-| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                           | `"Gatus: <endpoint>"`       |
-| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                                    | `0`                         |
-| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)               | `0`                         |
-| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices.          | `""`                        |
-| `alerting.pushover.ttl`               | Set the Time-to-live of the message to be automatically deleted from pushover notifications              | `0`                         |
-| `alerting.pushover.device`            | Device to send the message to (optional)<br/>See [devices](https://pushover.net/api#identifiers) for details | `""` (all devices)|
-| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)               | N/A                         |
+| Parameter                             | Description                                                                                                  | Default               |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------------------------|:----------------------|
+| `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                                  | `{}`                  |
+| `alerting.pushover.application-token` | Pushover application token                                                                                   | `""`                  |
+| `alerting.pushover.user-key`          | User or group key                                                                                            | `""`                  |
+| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                               | `"Gatus: <endpoint>"` |
+| `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                                        | `0`                   |
+| `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)                   | `0`                   |
+| `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices.              | `""`                  |
+| `alerting.pushover.ttl`               | Set the Time-to-live of the message to be automatically deleted from pushover notifications                  | `0`                   |
+| `alerting.pushover.device`            | Device to send the message to (optional)<br/>See [devices](https://pushover.net/api#identifiers) for details | `""` (all devices)    |
+| `alerting.pushover.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                   | N/A                   |
 
 ```yaml
 alerting:
@@ -1441,6 +1636,131 @@ endpoints:
         success-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
+```
+
+
+#### Configuring Rocket.Chat alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                           | Description                                                                                | Default       |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.rocketchat`               | Configuration for alerts of type `rocketchat`                                              | `{}`          |
+| `alerting.rocketchat.webhook-url`   | Rocket.Chat incoming webhook URL                                                           | Required `""` |
+| `alerting.rocketchat.channel`       | Optional channel override                                                                  | `""`          |
+| `alerting.rocketchat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  rocketchat:
+    webhook-url: "https://your-rocketchat.com/hooks/YOUR_WEBHOOK_ID/YOUR_TOKEN"
+    channel: "#alerts"  # Optional
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: rocketchat
+        send-on-resolved: true
+```
+
+
+#### Configuring Signal alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                       | Description                                                                                | Default       |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.signal`               | Configuration for alerts of type `signal`                                                  | `{}`          |
+| `alerting.signal.api-url`       | Signal API URL (e.g., signal-cli-rest-api instance)                                        | Required `""` |
+| `alerting.signal.number`        | Sender phone number                                                                        | Required `""` |
+| `alerting.signal.recipients`    | List of recipient phone numbers                                                            | Required `[]` |
+| `alerting.signal.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  signal:
+    api-url: "http://localhost:8080"
+    number: "+1234567890"
+    recipients:
+      - "+0987654321"
+      - "+1122334455"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: signal
+        send-on-resolved: true
+```
+
+
+#### Configuring SIGNL4 alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+SIGNL4 is a mobile alerting and incident management service that sends critical alerts to team members via mobile push, SMS, voice calls, and email.
+
+| Parameter                           | Description                                                                                | Default       |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.signl4`                   | Configuration for alerts of type `signl4`                                                  | `{}`          |
+| `alerting.signl4.team-secret`       | SIGNL4 team secret (part of webhook URL)                                                   | Required `""` |
+| `alerting.signl4.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.signl4.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.signl4.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.signl4.overrides[].*`     | See `alerting.signl4.*` parameters                                                         | `{}`          |
+
+```yaml
+alerting:
+  signl4:
+    team-secret: "your-team-secret-here"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: signl4
+        send-on-resolved: true
+```
+
+
+#### Configuring SendGrid alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                         | Description                                                                                | Default       |
+|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.sendgrid`               | Configuration for alerts of type `sendgrid`                                                | `{}`          |
+| `alerting.sendgrid.api-key`       | SendGrid API key                                                                           | Required `""` |
+| `alerting.sendgrid.from`          | Email address to send from                                                                 | Required `""` |
+| `alerting.sendgrid.to`            | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
+| `alerting.sendgrid.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  sendgrid:
+    api-key: "SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    from: "alerts@example.com"
+    to: "admin@example.com,ops@example.com"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: sendgrid
+        send-on-resolved: true
 ```
 
 
@@ -1480,6 +1800,66 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Slack notifications](.github/assets/slack-alerts.png)
+
+
+#### Configuring Splunk alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                       | Description                                                                                | Default         |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:----------------|
+| `alerting.splunk`               | Configuration for alerts of type `splunk`                                                  | `{}`            |
+| `alerting.splunk.hec-url`       | Splunk HEC (HTTP Event Collector) URL                                                      | Required `""`   |
+| `alerting.splunk.hec-token`     | Splunk HEC token                                                                           | Required `""`   |
+| `alerting.splunk.source`        | Event source                                                                               | `"gatus"`       |
+| `alerting.splunk.sourcetype`    | Event source type                                                                          | `"gatus:alert"` |
+| `alerting.splunk.index`         | Splunk index                                                                               | `""`            |
+| `alerting.splunk.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A             |
+
+```yaml
+alerting:
+  splunk:
+    hec-url: "https://splunk.example.com:8088"
+    hec-token: "YOUR_HEC_TOKEN"
+    index: "main"  # Optional
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: splunk
+        send-on-resolved: true
+```
+
+
+#### Configuring Squadcast alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                          | Description                                                                                | Default       |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.squadcast`               | Configuration for alerts of type `squadcast`                                               | `{}`          |
+| `alerting.squadcast.webhook-url`   | Squadcast webhook URL                                                                      | Required `""` |
+| `alerting.squadcast.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  squadcast:
+    webhook-url: "https://api.squadcast.com/v3/incidents/api/YOUR_API_KEY"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: squadcast
+        send-on-resolved: true
+```
 
 
 #### Configuring Teams alerts *(Deprecated)*
@@ -1540,6 +1920,7 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Teams notifications](.github/assets/teams-alerts.png)
+
 
 #### Configuring Teams Workflow alerts
 
@@ -1645,6 +2026,13 @@ Here's an example of what the notifications look like:
 | `alerting.twilio.to`            | Number to send twilio alerts to                                                            | Required `""` |
 | `alerting.twilio.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
+Custom message templates are supported via the following additional parameters:
+
+| Parameter                               | Description                                                                                | Default |
+|:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
+| `alerting.twilio.text-twilio-triggered` | Custom message template for triggered alerts. Supports `[ENDPOINT]`, `[ALERT_DESCRIPTION]` | `""`    |
+| `alerting.twilio.text-twilio-resolved`  | Custom message template for resolved alerts. Supports `[ENDPOINT]`, `[ALERT_DESCRIPTION]`  | `""`    |
+
 ```yaml
 alerting:
   twilio:
@@ -1652,6 +2040,10 @@ alerting:
     token: "..."
     from: "+1-234-567-8901"
     to: "+1-234-567-8901"
+    # Custom message templates using placeholders (optional)
+    # Supports both old format {endpoint}/{description} and new format [ENDPOINT]/[ALERT_DESCRIPTION]
+    text-twilio-triggered: "🚨 ALERT: [ENDPOINT] is down! [ALERT_DESCRIPTION]"
+    text-twilio-resolved: "✅ RESOLVED: [ENDPOINT] is back up! [ALERT_DESCRIPTION]"
 
 endpoints:
   - name: website
@@ -1666,6 +2058,98 @@ endpoints:
         failure-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
+```
+
+
+#### Configuring Vonage alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                           | Description                                                                                | Default       |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.vonage`                   | Configuration for alerts of type `vonage`                                                  | `{}`          |
+| `alerting.vonage.api-key`           | Vonage API key                                                                             | Required `""` |
+| `alerting.vonage.api-secret`        | Vonage API secret                                                                          | Required `""` |
+| `alerting.vonage.from`              | Sender name or phone number                                                                | Required `""` |
+| `alerting.vonage.to`                | Recipient phone number                                                                     | Required `""` |
+| `alerting.vonage.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.vonage.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.vonage.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.vonage.overrides[].*`     | See `alerting.vonage.*` parameters                                                         | `{}`          |
+
+```yaml
+alerting:
+  vonage:
+    api-key: "YOUR_API_KEY"
+    api-secret: "YOUR_API_SECRET"
+    from: "Gatus"
+    to: "+1234567890"
+```
+
+Example of sending alerts to Vonage:
+```yaml
+endpoints:
+  - name: website
+    url: "https://example.org"
+    alerts:
+      - type: vonage
+        failure-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
+#### Configuring Webex alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                      | Description                                                                                | Default       |
+|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.webex`               | Configuration for alerts of type `webex`                                                   | `{}`          |
+| `alerting.webex.webhook-url`   | Webex Teams webhook URL                                                                    | Required `""` |
+| `alerting.webex.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  webex:
+    webhook-url: "https://webexapis.com/v1/webhooks/incoming/YOUR_WEBHOOK_ID"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: webex
+        send-on-resolved: true
+```
+
+
+#### Configuring Zapier alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                       | Description                                                                                | Default       |
+|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.zapier`               | Configuration for alerts of type `zapier`                                                  | `{}`          |
+| `alerting.zapier.webhook-url`   | Zapier webhook URL                                                                         | Required `""` |
+| `alerting.zapier.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+```yaml
+alerting:
+  zapier:
+    webhook-url: "https://hooks.zapier.com/hooks/catch/YOUR_WEBHOOK_ID/"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: zapier
+        send-on-resolved: true
 ```
 
 
@@ -2569,7 +3053,6 @@ By default, `web.read-buffer-size` is set to `8192`, but increasing this value l
 web:
   read-buffer-size: 32768
 ```
-
 
 ### Badges
 #### Uptime
