@@ -82,12 +82,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-
 	site := cfg.Site
 	if site == "" {
 		site = "datadoghq.com"
 	}
-
 	body, err := provider.buildRequestBody(cfg, ep, alert, result, resolved)
 	if err != nil {
 		return err
