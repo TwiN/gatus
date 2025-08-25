@@ -86,7 +86,6 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-
 	// Determine the API endpoint based on region
 	var apiHost string
 	if cfg.Region == "EU" {
@@ -94,7 +93,6 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	} else {
 		apiHost = "insights-collector.newrelic.com"
 	}
-
 	body, err := provider.buildRequestBody(cfg, ep, alert, result, resolved)
 	if err != nil {
 		return err
