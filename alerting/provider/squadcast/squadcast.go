@@ -135,7 +135,6 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 			description += fmt.Sprintf("\n%s %s", status, conditionResult.Condition)
 		}
 	}
-
 	body := Body{
 		Message:     message,
 		Description: description,
