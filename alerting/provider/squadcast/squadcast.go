@@ -107,7 +107,6 @@ type Body struct {
 func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) ([]byte, error) {
 	var message, status string
 	eventID := fmt.Sprintf("gatus-%s", ep.Key())
-
 	if resolved {
 		message = fmt.Sprintf("RESOLVED: %s", ep.DisplayName())
 		status = "resolve"
@@ -115,18 +114,15 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		message = fmt.Sprintf("ALERT: %s", ep.DisplayName())
 		status = "trigger"
 	}
-
 	description := fmt.Sprintf("Endpoint: %s\n", ep.DisplayName())
 	if resolved {
 		description += fmt.Sprintf("Alert has been resolved after passing successfully %d time(s) in a row\n", alert.SuccessThreshold)
 	} else {
 		description += fmt.Sprintf("Endpoint has failed %d time(s) in a row\n", alert.FailureThreshold)
 	}
-
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description += fmt.Sprintf("\nDescription: %s", alertDescription)
 	}
-
 	if len(result.ConditionResults) > 0 {
 		description += "\n\nCondition Results:"
 		for _, conditionResult := range result.ConditionResults {
