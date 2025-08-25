@@ -20,22 +20,22 @@ func TestAlertProvider_Validate(t *testing.T) {
 	}{
 		{
 			name:     "valid",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
 			expected: nil,
 		},
 		{
 			name:     "invalid-api-url",
 			provider: AlertProvider{DefaultConfig: Config{Number: "+1234567890", Recipients: []string{"+0987654321"}}},
-			expected: ErrAPIURLNotSet,
+			expected: ErrApiURLNotSet,
 		},
 		{
 			name:     "invalid-number",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Recipients: []string{"+0987654321"}}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Recipients: []string{"+0987654321"}}},
 			expected: ErrNumberNotSet,
 		},
 		{
 			name:     "invalid-recipients",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Number: "+1234567890"}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Number: "+1234567890"}},
 			expected: ErrRecipientsNotSet,
 		},
 	}
@@ -63,7 +63,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			name:     "triggered",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321", "+1111111111"}}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321", "+1111111111"}}},
 			alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: false,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -92,7 +92,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			name:     "resolved",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
 			alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: true,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -108,7 +108,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			name:     "error-response",
-			provider: AlertProvider{DefaultConfig: Config{APIURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
+			provider: AlertProvider{DefaultConfig: Config{ApiURL: "http://localhost:8080", Number: "+1234567890", Recipients: []string{"+0987654321"}}},
 			alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: false,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {

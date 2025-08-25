@@ -16,35 +16,35 @@ import (
 )
 
 var (
-	ErrHECURLNotSet           = errors.New("hec-url not set")
-	ErrHECTokenNotSet         = errors.New("hec-token not set")
+	ErrHecURLNotSet           = errors.New("hec-url not set")
+	ErrHecTokenNotSet         = errors.New("hec-token not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	HECURL     string `yaml:"hec-url"`              // Splunk HEC (HTTP Event Collector) URL
-	HECToken   string `yaml:"hec-token"`            // Splunk HEC token
+	HecURL     string `yaml:"hec-url"`              // Splunk HEC (HTTP Event Collector) URL
+	HecToken   string `yaml:"hec-token"`            // Splunk HEC token
 	Source     string `yaml:"source,omitempty"`     // Event source
 	SourceType string `yaml:"sourcetype,omitempty"` // Event source type
 	Index      string `yaml:"index,omitempty"`      // Splunk index
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.HECURL) == 0 {
-		return ErrHECURLNotSet
+	if len(cfg.HecURL) == 0 {
+		return ErrHecURLNotSet
 	}
-	if len(cfg.HECToken) == 0 {
-		return ErrHECTokenNotSet
+	if len(cfg.HecToken) == 0 {
+		return ErrHecTokenNotSet
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.HECURL) > 0 {
-		cfg.HECURL = override.HECURL
+	if len(override.HecURL) > 0 {
+		cfg.HecURL = override.HecURL
 	}
-	if len(override.HECToken) > 0 {
-		cfg.HECToken = override.HECToken
+	if len(override.HecToken) > 0 {
+		cfg.HecToken = override.HecToken
 	}
 	if len(override.Source) > 0 {
 		cfg.Source = override.Source
@@ -99,12 +99,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	buffer := bytes.NewBuffer(body)
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/services/collector/event", cfg.HECURL), buffer)
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/services/collector/event", cfg.HecURL), buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Splunk %s", cfg.HECToken))
+	request.Header.Set("Authorization", fmt.Sprintf("Splunk %s", cfg.HecToken))
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err

@@ -19,23 +19,23 @@ func TestAlertProvider_Validate(t *testing.T) {
 	}{
 		{
 			name:     "valid",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088", HECToken: "token123"}},
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088", HecToken: "token123"}},
 			expected: nil,
 		},
 		{
 			name:     "valid-with-index",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088", HECToken: "token123", Index: "main"}},
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088", HecToken: "token123", Index: "main"}},
 			expected: nil,
 		},
 		{
 			name:     "invalid-hec-url",
-			provider: AlertProvider{DefaultConfig: Config{HECToken: "token123"}},
-			expected: ErrHECURLNotSet,
+			provider: AlertProvider{DefaultConfig: Config{HecToken: "token123"}},
+			expected: ErrHecURLNotSet,
 		},
 		{
 			name:     "invalid-hec-token",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088"}},
-			expected: ErrHECTokenNotSet,
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088"}},
+			expected: ErrHecTokenNotSet,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -62,7 +62,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			name:     "triggered",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088", HECToken: "token123"}},
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088", HecToken: "token123"}},
 			alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: false,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -90,7 +90,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			name:     "resolved",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088", HECToken: "token123", Index: "main"}},
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088", HecToken: "token123", Index: "main"}},
 			alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: true,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -112,7 +112,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			name:     "error-response",
-			provider: AlertProvider{DefaultConfig: Config{HECURL: "https://splunk.example.com:8088", HECToken: "token123"}},
+			provider: AlertProvider{DefaultConfig: Config{HecURL: "https://splunk.example.com:8088", HecToken: "token123"}},
 			alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			resolved: false,
 			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {

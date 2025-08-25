@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const restAPIURL = "https://rest.nexmo.com/sms/json"
+const ApiURL = "https://rest.nexmo.com/sms/json"
 
 var (
 	ErrAPIKeyNotSet           = errors.New("api-key not set")
@@ -119,7 +119,7 @@ func (provider *AlertProvider) sendSMS(cfg *Config, to, message string) error {
 	data.Set("from", cfg.From)
 	data.Set("to", to)
 	data.Set("text", message)
-	request, err := http.NewRequest(http.MethodPost, restAPIURL, strings.NewReader(data.Encode()))
+	request, err := http.NewRequest(http.MethodPost, ApiURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return err
 	}

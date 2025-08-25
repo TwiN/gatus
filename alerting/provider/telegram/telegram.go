@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultApiUrl = "https://api.telegram.org"
+const ApiURL = "https://api.telegram.org"
 
 var (
 	ErrTokenNotSet            = errors.New("token not set")
@@ -33,7 +33,7 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	if len(cfg.ApiUrl) == 0 {
-		cfg.ApiUrl = defaultApiUrl
+		cfg.ApiUrl = ApiURL
 	}
 	if len(cfg.Token) == 0 {
 		return ErrTokenNotSet

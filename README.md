@@ -742,6 +742,9 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.datadog.site`          | Datadog site (e.g., datadoghq.com, datadoghq.eu)                                           | `"datadoghq.com"` |
 | `alerting.datadog.tags`          | Additional tags to include                                                                 | `[]`              |
 | `alerting.datadog.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+| `alerting.datadog.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`              |
+| `alerting.datadog.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`              |
+| `alerting.datadog.overrides[].*` | See `alerting.datadog.*` parameters                                                       | `{}`              |
 
 ```yaml
 alerting:
@@ -1120,6 +1123,9 @@ To get your HomeAssistant long-lived access token:
 | `alerting.ifttt.webhook-key`   | IFTTT Webhook key                                                                          | Required `""` |
 | `alerting.ifttt.event-name`    | IFTTT event name                                                                           | Required `""` |
 | `alerting.ifttt.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.ifttt.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.ifttt.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.ifttt.overrides[].*` | See `alerting.ifttt.*` parameters                                                         | `{}`          |
 
 ```yaml
 alerting:
@@ -1267,6 +1273,9 @@ Here's an example of what the notifications look like:
 | `alerting.line.channel-access-token` | Line Messaging API channel access token                                                    | Required `""` |
 | `alerting.line.user-ids`             | List of Line user IDs to send messages to                                                  | Required `[]` |
 | `alerting.line.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.line.overrides`            | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.line.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.line.overrides[].*`        | See `alerting.line.*` parameters                                                           | `{}`          |
 
 ```yaml
 alerting:
@@ -1296,6 +1305,9 @@ endpoints:
 | `alerting.matrix.access-token`           | Bot user access token (see https://webapps.stackexchange.com/q/131056)                     | Required `""`                      |
 | `alerting.matrix.internal-room-id`       | Internal room ID of room to send alerts to (can be found in Room Settings > Advanced)      | Required `""`                      |
 | `alerting.matrix.default-alert`          | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                |
+| `alerting.matrix.overrides`              | List of overrides that may be prioritized over the default configuration                   | `[]`                               |
+| `alerting.matrix.overrides[].group`      | Endpoint group for which the configuration will be overridden by this configuration        | `""`                               |
+| `alerting.matrix.overrides[].*`          | See `alerting.matrix.*` parameters                                                         | `{}`                               |
 
 ```yaml
 alerting:
@@ -1401,6 +1413,9 @@ endpoints:
 | `alerting.newrelic.account-id`    | New Relic account ID                                                                       | Required `""` |
 | `alerting.newrelic.region`        | Region (US or EU)                                                                          | `"US"`        |
 | `alerting.newrelic.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.newrelic.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.newrelic.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.newrelic.overrides[].*` | See `alerting.newrelic.*` parameters                                                      | `{}`          |
 
 ```yaml
 alerting:
@@ -1575,6 +1590,9 @@ endpoints:
 | `alerting.plivo.from`           | Phone number to send SMS from                                                              | Required `""` |
 | `alerting.plivo.to`             | List of phone numbers to send SMS to                                                       | Required `[]` |
 | `alerting.plivo.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.plivo.overrides`      | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.plivo.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
+| `alerting.plivo.overrides[].*`  | See `alerting.plivo.*` parameters                                                         | `{}`          |
 
 ```yaml
 alerting:
@@ -1649,6 +1667,9 @@ endpoints:
 | `alerting.rocketchat.webhook-url`   | Rocket.Chat incoming webhook URL                                                           | Required `""` |
 | `alerting.rocketchat.channel`       | Optional channel override                                                                  | `""`          |
 | `alerting.rocketchat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.rocketchat.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.rocketchat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.rocketchat.overrides[].*` | See `alerting.rocketchat.*` parameters                                                    | `{}`          |
 
 ```yaml
 alerting:
@@ -1679,6 +1700,9 @@ endpoints:
 | `alerting.signal.number`        | Sender phone number                                                                        | Required `""` |
 | `alerting.signal.recipients`    | List of recipient phone numbers                                                            | Required `[]` |
 | `alerting.signal.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.signal.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.signal.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
+| `alerting.signal.overrides[].*` | See `alerting.signal.*` parameters                                                        | `{}`          |
 
 ```yaml
 alerting:
@@ -1744,6 +1768,9 @@ endpoints:
 | `alerting.sendgrid.from`          | Email address to send from                                                                 | Required `""` |
 | `alerting.sendgrid.to`            | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
 | `alerting.sendgrid.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.sendgrid.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.sendgrid.overrides[].*` | See `alerting.sendgrid.*` parameters                                                      | `{}`          |
 
 ```yaml
 alerting:
@@ -1815,6 +1842,9 @@ Here's an example of what the notifications look like:
 | `alerting.splunk.sourcetype`    | Event source type                                                                          | `"gatus:alert"` |
 | `alerting.splunk.index`         | Splunk index                                                                               | `""`            |
 | `alerting.splunk.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A             |
+| `alerting.splunk.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`            |
+| `alerting.splunk.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`            |
+| `alerting.splunk.overrides[].*` | See `alerting.splunk.*` parameters                                                        | `{}`            |
 
 ```yaml
 alerting:
@@ -1844,6 +1874,9 @@ endpoints:
 | `alerting.squadcast`               | Configuration for alerts of type `squadcast`                                               | `{}`          |
 | `alerting.squadcast.webhook-url`   | Squadcast webhook URL                                                                      | Required `""` |
 | `alerting.squadcast.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.squadcast.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.squadcast.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.squadcast.overrides[].*` | See `alerting.squadcast.*` parameters                                                     | `{}`          |
 
 ```yaml
 alerting:
@@ -2108,6 +2141,9 @@ endpoints:
 | `alerting.webex`               | Configuration for alerts of type `webex`                                                   | `{}`          |
 | `alerting.webex.webhook-url`   | Webex Teams webhook URL                                                                    | Required `""` |
 | `alerting.webex.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.webex.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.webex.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
+| `alerting.webex.overrides[].*` | See `alerting.webex.*` parameters                                                         | `{}`          |
 
 ```yaml
 alerting:
@@ -2135,6 +2171,9 @@ endpoints:
 | `alerting.zapier`               | Configuration for alerts of type `zapier`                                                  | `{}`          |
 | `alerting.zapier.webhook-url`   | Zapier webhook URL                                                                         | Required `""` |
 | `alerting.zapier.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.zapier.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.zapier.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.zapier.overrides[].*` | See `alerting.zapier.*` parameters                                                        | `{}`          |
 
 ```yaml
 alerting:

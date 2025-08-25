@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SendGridAPIURL = "https://api.sendgrid.com/v3/mail/send"
+	ApiURL = "https://api.sendgrid.com/v3/mail/send"
 )
 
 var (
@@ -106,7 +106,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	request, err := http.NewRequest(http.MethodPost, SendGridAPIURL, bytes.NewBuffer(payloadBytes))
+	request, err := http.NewRequest(http.MethodPost, ApiURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return err
 	}
@@ -126,9 +126,9 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 type SendGridPayload struct {
 	Personalizations []Personalization `json:"personalizations"`
-	From             Email              `json:"from"`
-	Subject          string             `json:"subject"`
-	Content          []Content          `json:"content"`
+	From             Email             `json:"from"`
+	Subject          string            `json:"subject"`
+	Content          []Content         `json:"content"`
 }
 
 type Personalization struct {

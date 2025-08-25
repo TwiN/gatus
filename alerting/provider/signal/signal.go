@@ -15,21 +15,21 @@ import (
 )
 
 var (
-	ErrAPIURLNotSet           = errors.New("api-url not set")
+	ErrApiURLNotSet           = errors.New("api-url not set")
 	ErrNumberNotSet           = errors.New("number not set")
 	ErrRecipientsNotSet       = errors.New("recipients not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	APIURL     string   `yaml:"api-url"`     // Signal API URL (e.g., signal-cli-rest-api instance)
-	Number     string   `yaml:"number"`      // Sender phone number
-	Recipients []string `yaml:"recipients"`  // List of recipient phone numbers
+	ApiURL     string   `yaml:"api-url"`    // Signal API URL (e.g., signal-cli-rest-api instance)
+	Number     string   `yaml:"number"`     // Sender phone number
+	Recipients []string `yaml:"recipients"` // List of recipient phone numbers
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.APIURL) == 0 {
-		return ErrAPIURLNotSet
+	if len(cfg.ApiURL) == 0 {
+		return ErrApiURLNotSet
 	}
 	if len(cfg.Number) == 0 {
 		return ErrNumberNotSet
@@ -41,8 +41,8 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.APIURL) > 0 {
-		cfg.APIURL = override.APIURL
+	if len(override.ApiURL) > 0 {
+		cfg.ApiURL = override.ApiURL
 	}
 	if len(override.Number) > 0 {
 		cfg.Number = override.Number
@@ -95,7 +95,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			return err
 		}
 		buffer := bytes.NewBuffer(body)
-		request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v2/send", cfg.APIURL), buffer)
+		request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v2/send", cfg.ApiURL), buffer)
 		if err != nil {
 			return err
 		}
