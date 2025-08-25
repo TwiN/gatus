@@ -735,16 +735,16 @@ Make sure you have the ability to use `ses:SendEmail`.
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                        | Description                                                                                | Default           |
-|:---------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
-| `alerting.datadog`               | Configuration for alerts of type `datadog`                                                 | `{}`              |
-| `alerting.datadog.api-key`       | Datadog API key                                                                            | Required `""`     |
-| `alerting.datadog.site`          | Datadog site (e.g., datadoghq.com, datadoghq.eu)                                           | `"datadoghq.com"` |
-| `alerting.datadog.tags`          | Additional tags to include                                                                 | `[]`              |
-| `alerting.datadog.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
-| `alerting.datadog.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`              |
-| `alerting.datadog.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`              |
-| `alerting.datadog.overrides[].*` | See `alerting.datadog.*` parameters                                                       | `{}`              |
+| Parameter                            | Description                                                                                | Default           |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:------------------|
+| `alerting.datadog`                   | Configuration for alerts of type `datadog`                                                 | `{}`              |
+| `alerting.datadog.api-key`           | Datadog API key                                                                            | Required `""`     |
+| `alerting.datadog.site`              | Datadog site (e.g., datadoghq.com, datadoghq.eu)                                           | `"datadoghq.com"` |
+| `alerting.datadog.tags`              | Additional tags to include                                                                 | `[]`              |
+| `alerting.datadog.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A               |
+| `alerting.datadog.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`              |
+| `alerting.datadog.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`              |
+| `alerting.datadog.overrides[].*`     | See `alerting.datadog.*` parameters                                                        | `{}`              |
 
 ```yaml
 alerting:
@@ -867,7 +867,7 @@ endpoints:
 | `alerting.gitea`                | Configuration for alerts of type `gitea`                                                                   | `{}`          |
 | `alerting.gitea.repository-url` | Gitea repository URL (e.g. `https://gitea.com/TwiN/example`)                                               | Required `""` |
 | `alerting.gitea.token`          | Personal access token to use for authentication. <br />Must have at least RW on issues and RO on metadata. | Required `""` |
-| `alerting.github.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
+| `alerting.gitea.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).                | N/A           |
 
 The Gitea alerting provider creates an issue prefixed with `alert(gatus):` and suffixed with the endpoint's display
 name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the issue will be automatically
@@ -1045,7 +1045,14 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring HomeAssistant alerts
-To configure HomeAssistant alerts, you'll need to add the following to your configuration file:
+| Parameter                                  | Description                                                                            | Default Value |
+|:-------------------------------------------|:---------------------------------------------------------------------------------------|:--------------|
+| `alerting.homeassistant.url`               | HomeAssistant instance URL                                                             | Required `""` |
+| `alerting.homeassistant.token`             | Long-lived access token from HomeAssistant                                             | Required `""` |
+| `alerting.homeassistant.default-alert`     | Default alert configuration to use for endpoints with an alert of the appropriate type | `{}`          |
+| `alerting.homeassistant.overrides`         | List of overrides that may be prioritized over the default configuration               | `[]`          |
+| `alerting.homeassistant.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
+| `alerting.homeassistant.overrides[].*`     | See `alerting.homeassistant.*` parameters                                              | `{}`          |
 
 ```yaml
 alerting:
@@ -1117,15 +1124,15 @@ To get your HomeAssistant long-lived access token:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.ifttt`               | Configuration for alerts of type `ifttt`                                                   | `{}`          |
-| `alerting.ifttt.webhook-key`   | IFTTT Webhook key                                                                          | Required `""` |
-| `alerting.ifttt.event-name`    | IFTTT event name                                                                           | Required `""` |
-| `alerting.ifttt.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.ifttt.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.ifttt.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
-| `alerting.ifttt.overrides[].*` | See `alerting.ifttt.*` parameters                                                         | `{}`          |
+| Parameter                          | Description                                                                                | Default       |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.ifttt`                   | Configuration for alerts of type `ifttt`                                                   | `{}`          |
+| `alerting.ifttt.webhook-key`       | IFTTT Webhook key                                                                          | Required `""` |
+| `alerting.ifttt.event-name`        | IFTTT event name                                                                           | Required `""` |
+| `alerting.ifttt.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.ifttt.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.ifttt.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.ifttt.overrides[].*`     | See `alerting.ifttt.*` parameters                                                          | `{}`          |
 
 ```yaml
 alerting:
@@ -1406,16 +1413,16 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                         | Description                                                                                | Default       |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.newrelic`               | Configuration for alerts of type `newrelic`                                                | `{}`          |
-| `alerting.newrelic.api-key`       | New Relic API key                                                                          | Required `""` |
-| `alerting.newrelic.account-id`    | New Relic account ID                                                                       | Required `""` |
-| `alerting.newrelic.region`        | Region (US or EU)                                                                          | `"US"`        |
-| `alerting.newrelic.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.newrelic.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.newrelic.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
-| `alerting.newrelic.overrides[].*` | See `alerting.newrelic.*` parameters                                                      | `{}`          |
+| Parameter                             | Description                                                                                | Default       |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.newrelic`                   | Configuration for alerts of type `newrelic`                                                | `{}`          |
+| `alerting.newrelic.api-key`           | New Relic API key                                                                          | Required `""` |
+| `alerting.newrelic.account-id`        | New Relic account ID                                                                       | Required `""` |
+| `alerting.newrelic.region`            | Region (US or EU)                                                                          | `"US"`        |
+| `alerting.newrelic.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.newrelic.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.newrelic.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.newrelic.overrides[].*`     | See `alerting.newrelic.*` parameters                                                       | `{}`          |
 
 ```yaml
 alerting:
@@ -1582,17 +1589,17 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                       | Description                                                                                | Default       |
-|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.plivo`                | Configuration for alerts of type `plivo`                                                   | `{}`          |
-| `alerting.plivo.auth-id`        | Plivo Auth ID                                                                              | Required `""` |
-| `alerting.plivo.auth-token`     | Plivo Auth Token                                                                           | Required `""` |
-| `alerting.plivo.from`           | Phone number to send SMS from                                                              | Required `""` |
-| `alerting.plivo.to`             | List of phone numbers to send SMS to                                                       | Required `[]` |
-| `alerting.plivo.default-alert`  | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.plivo.overrides`      | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.plivo.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
-| `alerting.plivo.overrides[].*`  | See `alerting.plivo.*` parameters                                                         | `{}`          |
+| Parameter                          | Description                                                                                | Default       |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.plivo`                   | Configuration for alerts of type `plivo`                                                   | `{}`          |
+| `alerting.plivo.auth-id`           | Plivo Auth ID                                                                              | Required `""` |
+| `alerting.plivo.auth-token`        | Plivo Auth Token                                                                           | Required `""` |
+| `alerting.plivo.from`              | Phone number to send SMS from                                                              | Required `""` |
+| `alerting.plivo.to`                | List of phone numbers to send SMS to                                                       | Required `[]` |
+| `alerting.plivo.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.plivo.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.plivo.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.plivo.overrides[].*`     | See `alerting.plivo.*` parameters                                                          | `{}`          |
 
 ```yaml
 alerting:
@@ -1661,15 +1668,15 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                           | Description                                                                                | Default       |
-|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.rocketchat`               | Configuration for alerts of type `rocketchat`                                              | `{}`          |
-| `alerting.rocketchat.webhook-url`   | Rocket.Chat incoming webhook URL                                                           | Required `""` |
-| `alerting.rocketchat.channel`       | Optional channel override                                                                  | `""`          |
-| `alerting.rocketchat.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.rocketchat.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.rocketchat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
-| `alerting.rocketchat.overrides[].*` | See `alerting.rocketchat.*` parameters                                                    | `{}`          |
+| Parameter                               | Description                                                                                | Default       |
+|:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.rocketchat`                   | Configuration for alerts of type `rocketchat`                                              | `{}`          |
+| `alerting.rocketchat.webhook-url`       | Rocket.Chat incoming webhook URL                                                           | Required `""` |
+| `alerting.rocketchat.channel`           | Optional channel override                                                                  | `""`          |
+| `alerting.rocketchat.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.rocketchat.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.rocketchat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.rocketchat.overrides[].*`     | See `alerting.rocketchat.*` parameters                                                     | `{}`          |
 
 ```yaml
 alerting:
@@ -1693,16 +1700,16 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                       | Description                                                                                | Default       |
-|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.signal`               | Configuration for alerts of type `signal`                                                  | `{}`          |
-| `alerting.signal.api-url`       | Signal API URL (e.g., signal-cli-rest-api instance)                                        | Required `""` |
-| `alerting.signal.number`        | Sender phone number                                                                        | Required `""` |
-| `alerting.signal.recipients`    | List of recipient phone numbers                                                            | Required `[]` |
-| `alerting.signal.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.signal.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.signal.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
-| `alerting.signal.overrides[].*` | See `alerting.signal.*` parameters                                                        | `{}`          |
+| Parameter                           | Description                                                                                | Default       |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.signal`                   | Configuration for alerts of type `signal`                                                  | `{}`          |
+| `alerting.signal.api-url`           | Signal API URL (e.g., signal-cli-rest-api instance)                                        | Required `""` |
+| `alerting.signal.number`            | Sender phone number                                                                        | Required `""` |
+| `alerting.signal.recipients`        | List of recipient phone numbers                                                            | Required `[]` |
+| `alerting.signal.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.signal.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.signal.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.signal.overrides[].*`     | See `alerting.signal.*` parameters                                                         | `{}`          |
 
 ```yaml
 alerting:
@@ -1761,16 +1768,16 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                         | Description                                                                                | Default       |
-|:----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.sendgrid`               | Configuration for alerts of type `sendgrid`                                                | `{}`          |
-| `alerting.sendgrid.api-key`       | SendGrid API key                                                                           | Required `""` |
-| `alerting.sendgrid.from`          | Email address to send from                                                                 | Required `""` |
-| `alerting.sendgrid.to`            | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
-| `alerting.sendgrid.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.sendgrid.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
-| `alerting.sendgrid.overrides[].*` | See `alerting.sendgrid.*` parameters                                                      | `{}`          |
+| Parameter                             | Description                                                                                | Default       |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.sendgrid`                   | Configuration for alerts of type `sendgrid`                                                | `{}`          |
+| `alerting.sendgrid.api-key`           | SendGrid API key                                                                           | Required `""` |
+| `alerting.sendgrid.from`              | Email address to send from                                                                 | Required `""` |
+| `alerting.sendgrid.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
+| `alerting.sendgrid.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.sendgrid.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.sendgrid.overrides[].*`     | See `alerting.sendgrid.*` parameters                                                       | `{}`          |
 
 ```yaml
 alerting:
@@ -1833,18 +1840,18 @@ Here's an example of what the notifications look like:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                       | Description                                                                                | Default         |
-|:--------------------------------|:-------------------------------------------------------------------------------------------|:----------------|
-| `alerting.splunk`               | Configuration for alerts of type `splunk`                                                  | `{}`            |
-| `alerting.splunk.hec-url`       | Splunk HEC (HTTP Event Collector) URL                                                      | Required `""`   |
-| `alerting.splunk.hec-token`     | Splunk HEC token                                                                           | Required `""`   |
-| `alerting.splunk.source`        | Event source                                                                               | `"gatus"`       |
-| `alerting.splunk.sourcetype`    | Event source type                                                                          | `"gatus:alert"` |
-| `alerting.splunk.index`         | Splunk index                                                                               | `""`            |
-| `alerting.splunk.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A             |
-| `alerting.splunk.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`            |
-| `alerting.splunk.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`            |
-| `alerting.splunk.overrides[].*` | See `alerting.splunk.*` parameters                                                        | `{}`            |
+| Parameter                           | Description                                                                                | Default         |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:----------------|
+| `alerting.splunk`                   | Configuration for alerts of type `splunk`                                                  | `{}`            |
+| `alerting.splunk.hec-url`           | Splunk HEC (HTTP Event Collector) URL                                                      | Required `""`   |
+| `alerting.splunk.hec-token`         | Splunk HEC token                                                                           | Required `""`   |
+| `alerting.splunk.source`            | Event source                                                                               | `"gatus"`       |
+| `alerting.splunk.sourcetype`        | Event source type                                                                          | `"gatus:alert"` |
+| `alerting.splunk.index`             | Splunk index                                                                               | `""`            |
+| `alerting.splunk.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A             |
+| `alerting.splunk.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`            |
+| `alerting.splunk.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`            |
+| `alerting.splunk.overrides[].*`     | See `alerting.splunk.*` parameters                                                         | `{}`            |
 
 ```yaml
 alerting:
@@ -1869,14 +1876,14 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.squadcast`               | Configuration for alerts of type `squadcast`                                               | `{}`          |
-| `alerting.squadcast.webhook-url`   | Squadcast webhook URL                                                                      | Required `""` |
-| `alerting.squadcast.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.squadcast.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.squadcast.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration    | `""`          |
-| `alerting.squadcast.overrides[].*` | See `alerting.squadcast.*` parameters                                                     | `{}`          |
+| Parameter                              | Description                                                                                | Default       |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.squadcast`                   | Configuration for alerts of type `squadcast`                                               | `{}`          |
+| `alerting.squadcast.webhook-url`       | Squadcast webhook URL                                                                      | Required `""` |
+| `alerting.squadcast.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.squadcast.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.squadcast.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.squadcast.overrides[].*`     | See `alerting.squadcast.*` parameters                                                      | `{}`          |
 
 ```yaml
 alerting:
