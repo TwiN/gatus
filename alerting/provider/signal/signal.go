@@ -104,11 +104,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		if err != nil {
 			return err
 		}
-		defer response.Body.Close()
 		if response.StatusCode >= 400 {
 			body, _ := io.ReadAll(response.Body)
+			response.Body.Close()
 			return fmt.Errorf("call to signal alert returned status code %d: %s", response.StatusCode, string(body))
 		}
+		response.Body.Close()
 	}
 	return nil
 }
