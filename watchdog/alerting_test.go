@@ -8,18 +8,26 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
+	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
+	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/newrelic"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
+	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 )
@@ -269,6 +277,17 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			},
 		},
 		{
+			Name:      "datadog",
+			AlertType: alert.TypeDatadog,
+			AlertingConfig: &alerting.Config{
+				Datadog: &datadog.AlertProvider{
+					DefaultConfig: datadog.Config{
+						APIKey: "test-key",
+					},
+				},
+			},
+		},
+		{
 			Name:      "discord",
 			AlertType: alert.TypeDiscord,
 			AlertingConfig: &alerting.Config{
@@ -295,6 +314,18 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			},
 		},
 		{
+			Name:      "ifttt",
+			AlertType: alert.TypeIFTTT,
+			AlertingConfig: &alerting.Config{
+				IFTTT: &ifttt.AlertProvider{
+					DefaultConfig: ifttt.Config{
+						WebhookKey: "test-key",
+						EventName:  "test-event",
+					},
+				},
+			},
+		},
+		{
 			Name:      "jetbrainsspace",
 			AlertType: alert.TypeJetBrainsSpace,
 			AlertingConfig: &alerting.Config{
@@ -303,6 +334,18 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 						Project:   "foo",
 						ChannelID: "bar",
 						Token:     "baz",
+					},
+				},
+			},
+		},
+		{
+			Name:      "line",
+			AlertType: alert.TypeLine,
+			AlertingConfig: &alerting.Config{
+				Line: &line.AlertProvider{
+					DefaultConfig: line.Config{
+						ChannelAccessToken: "test-token",
+						UserIDs:            []string{"test-user"},
 					},
 				},
 			},
@@ -332,12 +375,38 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			},
 		},
 		{
+			Name:      "newrelic",
+			AlertType: alert.TypeNewRelic,
+			AlertingConfig: &alerting.Config{
+				NewRelic: &newrelic.AlertProvider{
+					DefaultConfig: newrelic.Config{
+						InsertKey: "test-key",
+						AccountID: "test-account",
+					},
+				},
+			},
+		},
+		{
 			Name:      "pagerduty",
 			AlertType: alert.TypePagerDuty,
 			AlertingConfig: &alerting.Config{
 				PagerDuty: &pagerduty.AlertProvider{
 					DefaultConfig: pagerduty.Config{
 						IntegrationKey: "00000000000000000000000000000000",
+					},
+				},
+			},
+		},
+		{
+			Name:      "plivo",
+			AlertType: alert.TypePlivo,
+			AlertingConfig: &alerting.Config{
+				Plivo: &plivo.AlertProvider{
+					DefaultConfig: plivo.Config{
+						AuthID:    "test-id",
+						AuthToken: "test-token",
+						From:      "test-from",
+						To:        []string{"test-to"},
 					},
 				},
 			},
@@ -350,6 +419,17 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					DefaultConfig: pushover.Config{
 						ApplicationToken: "000000000000000000000000000000",
 						UserKey:          "000000000000000000000000000000",
+					},
+				},
+			},
+		},
+		{
+			Name:      "signl4",
+			AlertType: alert.TypeSIGNL4,
+			AlertingConfig: &alerting.Config{
+				SIGNL4: &signl4.AlertProvider{
+					DefaultConfig: signl4.Config{
+						TeamSecret: "test-secret",
 					},
 				},
 			},
@@ -398,6 +478,31 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 						Token: "2",
 						From:  "3",
 						To:    "4",
+					},
+				},
+			},
+		},
+		{
+			Name:      "vonage",
+			AlertType: alert.TypeVonage,
+			AlertingConfig: &alerting.Config{
+				Vonage: &vonage.AlertProvider{
+					DefaultConfig: vonage.Config{
+						APIKey:    "test-key",
+						APISecret: "test-secret",
+						From:      "test-from",
+						To:        []string{"test-to"},
+					},
+				},
+			},
+		},
+		{
+			Name:      "zapier",
+			AlertType: alert.TypeZapier,
+			AlertingConfig: &alerting.Config{
+				Zapier: &zapier.AlertProvider{
+					DefaultConfig: zapier.Config{
+						WebhookURL: "https://example.com",
 					},
 				},
 			},

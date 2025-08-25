@@ -1,4 +1,4 @@
-package telegram
+package signl4
 
 import (
 	"bytes"
@@ -14,66 +14,40 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const ApiURL = "https://api.telegram.org"
-
 var (
-	ErrTokenNotSet            = errors.New("token not set")
-	ErrIDNotSet               = errors.New("id not set")
+	ErrTeamSecretNotSet       = errors.New("team-secret not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	Token   string `yaml:"token"`
-	ID      string `yaml:"id"`
-	TopicID string `yaml:"topic-id,omitempty"`
-	ApiUrl  string `yaml:"api-url"`
-
-	ClientConfig *client.Config `yaml:"client,omitempty"`
+	TeamSecret string `yaml:"team-secret"` // SIGNL4 team secret
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.ApiUrl) == 0 {
-		cfg.ApiUrl = ApiURL
-	}
-	if len(cfg.Token) == 0 {
-		return ErrTokenNotSet
-	}
-	if len(cfg.ID) == 0 {
-		return ErrIDNotSet
+	if len(cfg.TeamSecret) == 0 {
+		return ErrTeamSecretNotSet
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if override.ClientConfig != nil {
-		cfg.ClientConfig = override.ClientConfig
-	}
-	if len(override.Token) > 0 {
-		cfg.Token = override.Token
-	}
-	if len(override.ID) > 0 {
-		cfg.ID = override.ID
-	}
-	if len(override.TopicID) > 0 {
-		cfg.TopicID = override.TopicID
-	}
-	if len(override.ApiUrl) > 0 {
-		cfg.ApiUrl = override.ApiUrl
+	if len(override.TeamSecret) > 0 {
+		cfg.TeamSecret = override.TeamSecret
 	}
 }
 
-// AlertProvider is the configuration necessary for sending an alert using Telegram
+// AlertProvider is the configuration necessary for sending an alert using SIGNL4
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
-	// Overrides is a list of overrides that may be prioritized over the default configuration
-	Overrides []*Override `yaml:"overrides,omitempty"`
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
-// Override is a configuration that may be prioritized over the default configuration
+// Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
@@ -99,65 +73,78 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", cfg.ApiUrl, cfg.Token), buffer)
+	body, err := provider.buildRequestBody(ep, alert, result, resolved)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(body)
+	webhookURL := fmt.Sprintf("https://connect.signl4.com/webhook/%s", cfg.TeamSecret)
+	request, err := http.NewRequest(http.MethodPost, webhookURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
+	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
-	if response.StatusCode > 399 {
+	if response.StatusCode >= 400 {
 		body, _ := io.ReadAll(response.Body)
-		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+		return fmt.Errorf("call to signl4 alert returned status code %d: %s", response.StatusCode, string(body))
 	}
-	return err
+	return nil
 }
 
 type Body struct {
-	ChatID    string `json:"chat_id"`
-	Text      string `json:"text"`
-	ParseMode string `json:"parse_mode"`
-	TopicID   string `json:"message_thread_id,omitempty"`
+	Title         string `json:"Title"`
+	Message       string `json:"Message"`
+	XS4Service    string `json:"X-S4-Service"`
+	XS4Status     string `json:"X-S4-Status"`
+	XS4ExternalID string `json:"X-S4-ExternalID"`
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	var message string
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) ([]byte, error) {
+	var title, message, status string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", ep.DisplayName(), alert.SuccessThreshold)
+		title = fmt.Sprintf("RESOLVED: %s", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+		status = "resolved"
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", ep.DisplayName(), alert.FailureThreshold)
+		title = fmt.Sprintf("TRIGGERED: %s", ep.DisplayName())
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+		status = "new"
 	}
-	var formattedConditionResults string
+	var conditionResults string
 	if len(result.ConditionResults) > 0 {
-		formattedConditionResults = "\n*Condition results*\n"
+		conditionResults = "\n\nCondition results:\n"
 		for _, conditionResult := range result.ConditionResults {
 			var prefix string
 			if conditionResult.Success {
-				prefix = "✅"
+				prefix = "✓"
 			} else {
-				prefix = "❌"
+				prefix = "✗"
 			}
-			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+			conditionResults += fmt.Sprintf("%s %s\n", prefix, conditionResult.Condition)
 		}
 	}
-	var text string
-	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n%s", message, alert.GetDescription(), formattedConditionResults)
-	} else {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		message += "\n\nDescription: " + alertDescription
 	}
-	bodyAsJSON, _ := json.Marshal(Body{
-		ChatID:    cfg.ID,
-		Text:      text,
-		ParseMode: "MARKDOWN",
-		TopicID:   cfg.TopicID,
-	})
-	return bodyAsJSON
+	message += conditionResults
+	body := Body{
+		Title:         title,
+		Message:       message,
+		XS4Service:    ep.DisplayName(),
+		XS4Status:     status,
+		XS4ExternalID: fmt.Sprintf("gatus-%s", ep.Key()),
+	}
+	bodyAsJSON, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return bodyAsJSON, nil
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
