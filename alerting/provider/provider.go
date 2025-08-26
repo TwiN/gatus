@@ -84,6 +84,9 @@ func MergeProviderDefaultAlertIntoEndpointAlert(providerDefaultAlert, endpointAl
 	if endpointAlert.SuccessThreshold == 0 {
 		endpointAlert.SuccessThreshold = providerDefaultAlert.SuccessThreshold
 	}
+	if endpointAlert.MinimumReminderInterval == 0 {
+		endpointAlert.MinimumReminderInterval = providerDefaultAlert.MinimumReminderInterval
+	}
 }
 
 var (
