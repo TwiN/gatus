@@ -75,7 +75,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// UNPROTECTED ROUTES //
 	////////////////////////
 	unprotectedAPIRouter := apiRouter.Group("/")
-	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security}.GetConfig)
+	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security, config: cfg}.GetConfig)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", HealthBadge)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.shields", HealthBadgeShields)
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration", UptimeRaw)

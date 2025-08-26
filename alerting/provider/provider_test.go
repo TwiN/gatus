@@ -2,6 +2,7 @@ package provider
 
 import (
 	"testing"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 )
@@ -24,6 +25,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
+				MinimumReminderInterval: 30 * time.Second,
 			},
 			EndpointAlert: &alert.Alert{
 				Type: alert.TypeDiscord,
@@ -35,6 +37,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
+				MinimumReminderInterval: 30 * time.Second,
 			},
 		},
 		{
@@ -147,6 +150,9 @@ func TestParseWithDefaultAlert(t *testing.T) {
 			}
 			if scenario.EndpointAlert.SuccessThreshold != scenario.ExpectedOutputAlert.SuccessThreshold {
 				t.Errorf("expected EndpointAlert.SuccessThreshold to be %v, got %v", scenario.ExpectedOutputAlert.SuccessThreshold, scenario.EndpointAlert.SuccessThreshold)
+			}
+			if int(scenario.EndpointAlert.MinimumReminderInterval) != int(scenario.ExpectedOutputAlert.MinimumReminderInterval) {
+				t.Errorf("expected EndpointAlert.MinimumReminderInterval to be %v, got %v", scenario.ExpectedOutputAlert.MinimumReminderInterval, scenario.EndpointAlert.MinimumReminderInterval)
 			}
 		})
 	}

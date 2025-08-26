@@ -99,6 +99,9 @@ type Endpoint struct {
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
+	// ExtraLabels are key-value pairs that can be used to metric the endpoint
+	ExtraLabels map[string]string `yaml:"extra-labels,omitempty"`
+
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`
 
@@ -128,6 +131,9 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	LastReminderSent time.Time `yaml:"-"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -338,6 +344,9 @@ func (e *Endpoint) getParsedBody() string {
 	if err == nil {
 		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
 			n, _ := strconv.Atoi(match[15 : len(match)-1])
+			if n > 8192 {
+				n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
+			}
 			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			b := make([]byte, n)
 			for i := range b {
@@ -417,8 +426,7 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeSSH {
 		// If there's no username/password specified, attempt to validate just the SSH banner
 		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
-			result.Connected, result.HTTPStatus, err =
-				client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
+			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 			if err != nil {
 				result.AddError(err.Error())
 				return

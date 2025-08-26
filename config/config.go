@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
@@ -98,8 +100,33 @@ type Config struct {
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
 
+	// Announcements is the list of system-wide announcements
+	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
+
 	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
+}
+
+// GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
+// in the configuration. It iterates through each endpoint, checks if it is enabled,
+// and then collects unique labels from the endpoint's labels map.
+func (config *Config) GetUniqueExtraMetricLabels() []string {
+	labels := make([]string, 0)
+	for _, ep := range config.Endpoints {
+		if !ep.IsEnabled() {
+			continue
+		}
+		for label := range ep.ExtraLabels {
+			if contains(labels, label) {
+				continue
+			}
+			labels = append(labels, label)
+		}
+	}
+	if len(labels) > 1 {
+		sort.Strings(labels)
+	}
+	return labels
 }
 
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
@@ -279,6 +306,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateAnnouncementsConfig(config); err != nil {
+			return nil, err
+		}
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
@@ -288,6 +318,17 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 func validateConnectivityConfig(config *Config) error {
 	if config.Connectivity != nil {
 		return config.Connectivity.ValidateAndSetDefaults()
+	}
+	return nil
+}
+
+func validateAnnouncementsConfig(config *Config) error {
+	if config.Announcements != nil {
+		if err := announcement.ValidateAndSetDefaults(config.Announcements); err != nil {
+			return err
+		}
+		// Sort announcements by timestamp (newest first) for API response
+		announcement.SortByTimestamp(config.Announcements)
 	}
 	return nil
 }
@@ -403,6 +444,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 	alertTypes := []alert.Type{
 		alert.TypeAWSSES,
 		alert.TypeCustom,
+		alert.TypeDatadog,
 		alert.TypeDiscord,
 		alert.TypeEmail,
 		alert.TypeGitHub,
@@ -411,21 +453,34 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeGoogleChat,
 		alert.TypeGotify,
 		alert.TypeHomeAssistant,
+		alert.TypeIFTTT,
 		alert.TypeIlert,
 		alert.TypeIncidentIO,
 		alert.TypeJetBrainsSpace,
+		alert.TypeLine,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
+		alert.TypeNewRelic,
 		alert.TypeNtfy,
 		alert.TypeOpsgenie,
 		alert.TypePagerDuty,
+		alert.TypePlivo,
 		alert.TypePushover,
+		alert.TypeRocketChat,
+		alert.TypeSendGrid,
+		alert.TypeSignal,
+		alert.TypeSIGNL4,
 		alert.TypeSlack,
+		alert.TypeSplunk,
+		alert.TypeSquadcast,
 		alert.TypeTeams,
 		alert.TypeTeamsWorkflows,
 		alert.TypeTelegram,
 		alert.TypeTwilio,
+		alert.TypeVonage,
+		alert.TypeWebex,
+		alert.TypeZapier,
 		alert.TypeZulip,
 	}
 	var validProviders, invalidProviders []alert.Type

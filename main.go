@@ -9,6 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/controller"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 	"github.com/TwiN/logr"
@@ -49,6 +50,7 @@ func main() {
 
 func start(cfg *config.Config) {
 	go controller.Handle(cfg)
+	metrics.InitializePrometheusMetrics(cfg, nil)
 	watchdog.Monitor(cfg)
 	go listenToConfigurationFileChanges(cfg)
 }
@@ -56,6 +58,7 @@ func start(cfg *config.Config) {
 func stop(cfg *config.Config) {
 	watchdog.Shutdown(cfg)
 	controller.Shutdown()
+	metrics.UnregisterPrometheusMetrics()
 }
 
 func save() {

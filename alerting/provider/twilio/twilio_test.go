@@ -129,6 +129,27 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     true,
 			ExpectedBody: "Body=RESOLVED%3A+endpoint-name+-+description-2&From=3&To=4",
 		},
+		{
+			Name:         "triggered-with-old-placeholders",
+			Provider:     AlertProvider{DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4", TextTwilioTriggered: "Alert: {endpoint} - {description}"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "Body=Alert%3A+endpoint-name+-+description-1&From=3&To=4",
+		},
+		{
+			Name:         "triggered-with-new-placeholders",
+			Provider:     AlertProvider{DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4", TextTwilioTriggered: "Alert: [ENDPOINT] - [ALERT_DESCRIPTION]"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "Body=Alert%3A+endpoint-name+-+description-1&From=3&To=4",
+		},
+		{
+			Name:         "resolved-with-mixed-placeholders",
+			Provider:     AlertProvider{DefaultConfig: Config{SID: "1", Token: "2", From: "3", To: "4", TextTwilioResolved: "Resolved: {endpoint} and [ENDPOINT] - {description} and [ALERT_DESCRIPTION]"}},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "Body=Resolved%3A+endpoint-name+and+endpoint-name+-+description-2+and+description-2&From=3&To=4",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

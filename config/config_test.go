@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
+	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -20,19 +21,35 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
+	"github.com/TwiN/gatus/v5/alerting/provider/homeassistant"
+	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
+	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
 	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
+	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/newrelic"
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
+	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
+	"github.com/TwiN/gatus/v5/alerting/provider/signal"
+	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
+	"github.com/TwiN/gatus/v5/alerting/provider/squadcast"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
+	"github.com/TwiN/gatus/v5/alerting/provider/webex"
+	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -124,7 +141,7 @@ endpoints:
 			name:       "dir-with-two-config-files",
 			configPath: dir,
 			pathAndFiles: map[string]string{
-				"config.yaml": `endpoints: 
+				"config.yaml": `endpoints:
   - name: one
     url: https://example.com
     conditions:
@@ -135,7 +152,7 @@ endpoints:
     url: https://example.org
     conditions:
       - "len([BODY]) > 0"`,
-				"config.yml": `endpoints: 
+				"config.yml": `endpoints:
   - name: three
     url: https://twin.sh/health
     conditions:
@@ -237,7 +254,7 @@ endpoints:
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			for path, content := range scenario.pathAndFiles {
-				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0644); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0o644); err != nil {
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
@@ -282,7 +299,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
-`), 0644)
+`), 0o644)
 
 	t.Run("config-file-as-config-path", func(t *testing.T) {
 		config, err := LoadConfiguration(configFilePath)
@@ -298,7 +315,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
   - name: website
     url: https://twin.sh/health
     conditions:
-      - "[STATUS] == 200"`), 0644); err != nil {
+      - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -315,7 +332,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		}
 		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
 		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -713,7 +730,7 @@ func TestParseAndValidateBadConfigBytes(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 badconfig:
   - asdsa: w0w
-    usadasdrl: asdxzczxc	
+    usadasdrl: asdxzczxc
     asdas:
       - soup
 `))
@@ -1885,6 +1902,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		AWSSimpleEmailService: &awsses.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
+		Datadog:               &datadog.AlertProvider{},
 		Discord:               &discord.AlertProvider{},
 		Email:                 &email.AlertProvider{},
 		Gitea:                 &gitea.AlertProvider{},
@@ -1892,19 +1910,35 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		GitLab:                &gitlab.AlertProvider{},
 		GoogleChat:            &googlechat.AlertProvider{},
 		Gotify:                &gotify.AlertProvider{},
+		HomeAssistant:         &homeassistant.AlertProvider{},
+		IFTTT:                 &ifttt.AlertProvider{},
+		Ilert:                 &ilert.AlertProvider{},
+		IncidentIO:            &incidentio.AlertProvider{},
 		JetBrainsSpace:        &jetbrainsspace.AlertProvider{},
+		Line:                  &line.AlertProvider{},
 		Matrix:                &matrix.AlertProvider{},
 		Mattermost:            &mattermost.AlertProvider{},
 		Messagebird:           &messagebird.AlertProvider{},
+		NewRelic:              &newrelic.AlertProvider{},
 		Ntfy:                  &ntfy.AlertProvider{},
 		Opsgenie:              &opsgenie.AlertProvider{},
 		PagerDuty:             &pagerduty.AlertProvider{},
+		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		RocketChat:            &rocketchat.AlertProvider{},
+		SendGrid:              &sendgrid.AlertProvider{},
+		Signal:                &signal.AlertProvider{},
+		SIGNL4:                &signl4.AlertProvider{},
 		Slack:                 &slack.AlertProvider{},
+		Splunk:                &splunk.AlertProvider{},
+		Squadcast:             &squadcast.AlertProvider{},
 		Telegram:              &telegram.AlertProvider{},
 		Teams:                 &teams.AlertProvider{},
 		TeamsWorkflows:        &teamsworkflows.AlertProvider{},
 		Twilio:                &twilio.AlertProvider{},
+		Vonage:                &vonage.AlertProvider{},
+		Webex:                 &webex.AlertProvider{},
+		Zapier:                &zapier.AlertProvider{},
 		Zulip:                 &zulip.AlertProvider{},
 	}
 	scenarios := []struct {
@@ -1913,6 +1947,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}{
 		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
+		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitea, expected: alertingConfig.Gitea},
@@ -1920,25 +1955,152 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeGitLab, expected: alertingConfig.GitLab},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
 		{alertType: alert.TypeGotify, expected: alertingConfig.Gotify},
+		{alertType: alert.TypeHomeAssistant, expected: alertingConfig.HomeAssistant},
+		{alertType: alert.TypeIFTTT, expected: alertingConfig.IFTTT},
+		{alertType: alert.TypeIlert, expected: alertingConfig.Ilert},
+		{alertType: alert.TypeIncidentIO, expected: alertingConfig.IncidentIO},
 		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
+		{alertType: alert.TypeLine, expected: alertingConfig.Line},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
 		{alertType: alert.TypeMessagebird, expected: alertingConfig.Messagebird},
+		{alertType: alert.TypeNewRelic, expected: alertingConfig.NewRelic},
 		{alertType: alert.TypeNtfy, expected: alertingConfig.Ntfy},
 		{alertType: alert.TypeOpsgenie, expected: alertingConfig.Opsgenie},
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
+		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
+		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
+		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
+		{alertType: alert.TypeSIGNL4, expected: alertingConfig.SIGNL4},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
+		{alertType: alert.TypeSplunk, expected: alertingConfig.Splunk},
+		{alertType: alert.TypeSquadcast, expected: alertingConfig.Squadcast},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
 		{alertType: alert.TypeTeamsWorkflows, expected: alertingConfig.TeamsWorkflows},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
+		{alertType: alert.TypeVonage, expected: alertingConfig.Vonage},
+		{alertType: alert.TypeWebex, expected: alertingConfig.Webex},
+		{alertType: alert.TypeZapier, expected: alertingConfig.Zapier},
 		{alertType: alert.TypeZulip, expected: alertingConfig.Zulip},
 	}
 	for _, scenario := range scenarios {
 		t.Run(string(scenario.alertType), func(t *testing.T) {
 			if alertingConfig.GetAlertingProviderByAlertType(scenario.alertType) != scenario.expected {
 				t.Errorf("expected %s configuration", scenario.alertType)
+			}
+		})
+	}
+}
+
+func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *Config
+		expected []string
+	}{
+		{
+			name: "no-endpoints",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-no-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "endpoint1",
+						URL:  "https://example.com",
+					},
+				},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+		{
+			name: "multiple-endpoints-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":    "production",
+							"team":   "backend",
+							"module": "auth",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "staging",
+							"team": "frontend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team", "module"},
+		},
+		{
+			name: "multiple-endpoints-with-some-disabled",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toPtr(false),
+						ExtraLabels: map[string]string{
+							"module": "auth",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := tt.config.GetUniqueExtraMetricLabels()
+			if len(labels) != len(tt.expected) {
+				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
+			}
+			for _, label := range tt.expected {
+				if !contains(labels, label) {
+					t.Errorf("expected label %s to be present", label)
+				}
 			}
 		})
 	}

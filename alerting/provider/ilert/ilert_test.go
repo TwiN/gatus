@@ -174,21 +174,21 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 			Provider:     AlertProvider{DefaultConfig: Config{IntegrationKey: "some-integration-key"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 3, FailureThreshold: 3, ResolveKey: "123", Type: "ilert", SendOnResolved: &sendOnResolved},
 			Resolved:     false,
-			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":3,"Description":"description-1","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"firing","title":"endpoint-name","details":"description-1","condition_results":[{"condition":"[CONNECTED] == true","success":false},{"condition":"[STATUS] == 200","success":false}],"url":""}`,
+			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":3,"MinimumReminderInterval":0,"Description":"description-1","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"firing","title":"endpoint-name","details":"description-1","condition_results":[{"condition":"[CONNECTED] == true","success":false},{"condition":"[STATUS] == 200","success":false}],"url":""}`,
 		},
 		{
 			Name:         "resolved",
 			Provider:     AlertProvider{DefaultConfig: Config{IntegrationKey: "some-integration-key"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 4, FailureThreshold: 3, ResolveKey: "123", Type: "ilert", SendOnResolved: &sendOnResolved},
 			Resolved:     true,
-			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":4,"Description":"description-1","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"resolved","title":"endpoint-name","details":"description-1","condition_results":[{"condition":"[CONNECTED] == true","success":true},{"condition":"[STATUS] == 200","success":true}],"url":""}`,
+			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":4,"MinimumReminderInterval":0,"Description":"description-1","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"resolved","title":"endpoint-name","details":"description-1","condition_results":[{"condition":"[CONNECTED] == true","success":true},{"condition":"[STATUS] == 200","success":true}],"url":""}`,
 		},
 		{
 			Name:         "group-override",
 			Provider:     AlertProvider{DefaultConfig: Config{IntegrationKey: "some-integration-key"}, Overrides: []Override{{Group: "g", Config: Config{IntegrationKey: "different-integration-key"}}}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3, ResolveKey: "123", Type: "ilert", SendOnResolved: &sendOnResolved},
 			Resolved:     false,
-			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":5,"Description":"description-2","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"firing","title":"endpoint-name","details":"description-2","condition_results":[{"condition":"[CONNECTED] == true","success":false},{"condition":"[STATUS] == 200","success":false}],"url":""}`,
+			ExpectedBody: `{"alert":{"Type":"ilert","Enabled":null,"FailureThreshold":3,"SuccessThreshold":5,"MinimumReminderInterval":0,"Description":"description-2","SendOnResolved":true,"ProviderOverride":null,"ResolveKey":"123","Triggered":false},"name":"endpoint-name","group":"","status":"firing","title":"endpoint-name","details":"description-2","condition_results":[{"condition":"[CONNECTED] == true","success":false},{"condition":"[STATUS] == 200","success":false}],"url":""}`,
 		},
 	}
 

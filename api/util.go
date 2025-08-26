@@ -10,8 +10,8 @@ const (
 	// DefaultPage is the default page to use if none is specified or an invalid value is provided
 	DefaultPage = 1
 
-	// DefaultPageSize is the default page siZE to use if none is specified or an invalid value is provided
-	DefaultPageSize = 20
+	// DefaultPageSize is the default page size to use if none is specified or an invalid value is provided
+	DefaultPageSize = 50
 )
 
 func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maximumNumberOfResults int) (page, pageSize int) {

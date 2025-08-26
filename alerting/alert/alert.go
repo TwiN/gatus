@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
@@ -34,6 +35,9 @@ type Alert struct {
 
 	// SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved
 	SuccessThreshold int `yaml:"success-threshold"`
+
+	// MinimumReminderInterval is the interval between reminders
+	MinimumReminderInterval time.Duration `yaml:"minimum-reminder-interval,omitempty"`
 
 	// Description of the alert. Will be included in the alert sent.
 	//
