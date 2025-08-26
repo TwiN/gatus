@@ -24,6 +24,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
+				MinimumReminderInterval: 30 * time.Second,
 			},
 			EndpointAlert: &alert.Alert{
 				Type: alert.TypeDiscord,
@@ -35,6 +36,7 @@ func TestParseWithDefaultAlert(t *testing.T) {
 				Description:      &firstDescription,
 				FailureThreshold: 5,
 				SuccessThreshold: 10,
+				MinimumReminderInterval: 30 * time.Second,
 			},
 		},
 		{
