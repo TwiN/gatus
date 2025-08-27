@@ -11,7 +11,7 @@ require (
 	github.com/TwiN/logr v0.3.1
 	github.com/TwiN/whois v1.1.11
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/coreos/go-oidc/v3 v3.14.1
+	github.com/coreos/go-oidc/v3 v3.15.0
 	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.6.0
