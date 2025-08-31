@@ -65,6 +65,10 @@ const props = defineProps({
   result: {
     type: Object,
     default: null
+  },
+  isPersistent: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -82,7 +86,7 @@ const reposition = async () => {
   
   await nextTick()
   
-  if (props.event.type === 'mouseenter' && tooltip.value) {
+  if ((props.event.type === 'mouseenter' || props.event.type === 'click') && tooltip.value) {
     const target = props.event.target
     const targetRect = target.getBoundingClientRect()
     
@@ -134,24 +138,42 @@ const reposition = async () => {
     top.value = Math.round(newTop)
     left.value = Math.round(newLeft)
   } else if (props.event.type === 'mouseleave') {
-    hidden.value = true
+    // Only hide on mouseleave if not in persistent mode
+    if (!props.isPersistent) {
+      hidden.value = true
+    }
   }
 }
 
 // Watchers
 watch(() => props.event, (newEvent) => {
   if (newEvent && newEvent.type) {
-    if (newEvent.type === 'mouseenter') {
+    if (newEvent.type === 'mouseenter' || newEvent.type === 'click') {
       hidden.value = false
       nextTick(() => reposition())
     } else if (newEvent.type === 'mouseleave') {
-      hidden.value = true
+      // Only hide on mouseleave if not in persistent mode
+      if (!props.isPersistent) {
+        hidden.value = true
+      }
     }
   }
 }, { immediate: true })
 
 watch(() => props.result, () => {
   if (!hidden.value) {
+    nextTick(() => reposition())
+  }
+})
+
+// Watch for persistent state changes and result changes
+watch(() => [props.isPersistent, props.result], ([isPersistent, result]) => {
+  if (!isPersistent && !result) {
+    // Hide tooltip when both persistent mode is off and no result
+    hidden.value = true
+  } else if (result && (isPersistent || props.event?.type === 'mouseenter')) {
+    // Show tooltip when there's a result and either persistent or hovering
+    hidden.value = false
     nextTick(() => reposition())
   }
 })
