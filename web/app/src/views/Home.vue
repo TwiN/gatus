@@ -4,8 +4,8 @@
       <div class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-4xl font-bold tracking-tight">Health Dashboard</h1>
-            <p class="text-muted-foreground mt-2">Monitor the health of your endpoints in real-time</p>
+            <h1 class="text-4xl font-bold tracking-tight">{{ dashboardTitle }}</h1>
+            <p class="text-muted-foreground mt-2">{{ dashboardDescription }}</p>
           </div>
           <div class="flex items-center gap-4">
             <Button 
@@ -531,6 +531,14 @@ const initializeCollapsedGroups = () => {
     // On error, uncollapsedGroups stays empty (all collapsed by default)
   }
 }
+
+const dashboardTitle = computed(() => {
+  return window.config && window.config.dashboardTitle && window.config.dashboardTitle !== '{{ .UI.DashboardTitle }}' ? window.config.dashboardTitle : "Health Dashboard"
+})
+
+const dashboardDescription = computed(() => {
+  return window.config && window.config.dashboardDescription && window.config.dashboardDescription !== '{{ .UI.dashboardDescription }}' ? window.config.dashboardDescription : "Monitor the health of your endpoints in real-time"
+})
 
 onMounted(() => {
   fetchData()

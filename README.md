@@ -263,6 +263,8 @@ If you want to test it locally, see [Docker](#docker).
 | `ui`                         | UI configuration.                                                                                                                        | `{}`                       |
 | `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                | `Health Dashboard ǀ Gatus` |
 | `ui.description`             | Meta description for the page.                                                                                                           | `Gatus is an advanced...`. |
+| `ui.dashboard-title`         | Dashboard title between header and endpoints                                                                                             | `Health Dashboard` |
+| `ui.dashboard-description`   | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
 | `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
