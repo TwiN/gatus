@@ -323,7 +323,6 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
-		fmt.Println("calling endpoint", processedEndpoint.DisplayName(), "at", processedEndpoint.URL)
 		processedEndpoint.call(result)
 	} else {
 		result.Success = false
@@ -365,43 +364,48 @@ func (e *Endpoint) preprocessWithContext(result *Result, context *gontext.Gontex
 	// Create a deep copy of the endpoint
 	processed := &Endpoint{}
 	*processed = *e
+	var err error
 	// Replace context placeholders in URL
-	processed.URL = replaceContextPlaceholders(e.URL, context)
-	if strings.Contains(processed.URL, ContextPlaceholder) {
-		// If the URL still contains a context placeholder, it means that the context value was not found.
-		// Since the URL is essential to call the endpoint, we return an error.
-		result.AddError("could not resolve all context placeholders in url")
+	if processed.URL, err = replaceContextPlaceholders(e.URL, context); err != nil {
+		result.AddError(err.Error())
 	}
 	// Replace context placeholders in Body
-	processed.Body = replaceContextPlaceholders(e.Body, context)
+	if processed.Body, err = replaceContextPlaceholders(e.Body, context); err != nil {
+		result.AddError(err.Error())
+	}
 	// Replace context placeholders in Headers
 	if e.Headers != nil {
 		processed.Headers = make(map[string]string)
 		for k, v := range e.Headers {
-			processed.Headers[k] = replaceContextPlaceholders(v, context)
+			if processed.Headers[k], err = replaceContextPlaceholders(v, context); err != nil {
+				result.AddError(err.Error())
+			}
 		}
 	}
 	return processed
 }
 
 // replaceContextPlaceholders replaces [CONTEXT].path placeholders with actual values
-func replaceContextPlaceholders(input string, ctx *gontext.Gontext) string {
+func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, error) {
 	if ctx == nil {
-		return input
+		return input, nil
 	}
-	// Use regex to find all [CONTEXT].path patterns
+	var contextErrors []string
 	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.]+`)
-	return contextRegex.ReplaceAllStringFunc(input, func(match string) string {
+	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
 		// Extract the path after [CONTEXT].
 		path := strings.TrimPrefix(match, "[CONTEXT].")
 		value, err := ctx.Get(path)
 		if err != nil {
-			// If the path doesn't exist, keep the original placeholder
-			return match
+			contextErrors = append(contextErrors, fmt.Sprintf("path '%s' not found", path))
+			return match // Keep placeholder for error reporting
 		}
-		// Convert the value to string
 		return fmt.Sprintf("%v", value)
 	})
+	if len(contextErrors) > 0 {
+		return result, fmt.Errorf("context placeholder resolution failed: %s", strings.Join(contextErrors, ", "))
+	}
+	return result, nil
 }
 
 func (e *Endpoint) getParsedBody() string {

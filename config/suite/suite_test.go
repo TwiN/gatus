@@ -275,7 +275,7 @@ func TestSuite_ExecuteWithAlwaysRunEndpoints(t *testing.T) {
 		Endpoints: []*endpoint.Endpoint{
 			{
 				Name: "create-resource",
-				URL:  "https://httpbin.org/status/200",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
 					endpoint.Condition("[STATUS] == 200"),
 				},
@@ -285,14 +285,14 @@ func TestSuite_ExecuteWithAlwaysRunEndpoints(t *testing.T) {
 			},
 			{
 				Name: "failing-endpoint",
-				URL:  "https://httpbin.org/status/500",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
-					endpoint.Condition("[STATUS] == 200"),
+					endpoint.Condition("[STATUS] != 200"), // This will fail
 				},
 			},
 			{
 				Name: "cleanup-resource",
-				URL:  "https://httpbin.org/status/200",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
 					endpoint.Condition("[STATUS] == 200"),
 				},
@@ -316,6 +316,9 @@ func TestSuite_ExecuteWithAlwaysRunEndpoints(t *testing.T) {
 	if result.EndpointResults[1].Name != "failing-endpoint" {
 		t.Errorf("expected second endpoint to be 'failing-endpoint', got '%s'", result.EndpointResults[1].Name)
 	}
+	if result.EndpointResults[1].Success {
+		t.Error("expected failing-endpoint to fail")
+	}
 	if result.EndpointResults[2].Name != "cleanup-resource" {
 		t.Errorf("expected third endpoint to be 'cleanup-resource', got '%s'", result.EndpointResults[2].Name)
 	}
@@ -330,21 +333,21 @@ func TestSuite_ExecuteWithoutAlwaysRunEndpoints(t *testing.T) {
 		Endpoints: []*endpoint.Endpoint{
 			{
 				Name: "create-resource",
-				URL:  "https://httpbin.org/status/200",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
 					endpoint.Condition("[STATUS] == 200"),
 				},
 			},
 			{
 				Name: "failing-endpoint",
-				URL:  "https://httpbin.org/status/500",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
-					endpoint.Condition("[STATUS] == 200"),
+					endpoint.Condition("[STATUS] != 200"), // This will fail
 				},
 			},
 			{
 				Name: "skipped-endpoint",
-				URL:  "https://httpbin.org/status/200",
+				URL:  "https://example.org",
 				Conditions: []endpoint.Condition{
 					endpoint.Condition("[STATUS] == 200"),
 				},

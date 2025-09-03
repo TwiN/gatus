@@ -16,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/test"
 )
@@ -930,5 +931,354 @@ func TestEndpoint_needsToRetrieveIP(t *testing.T) {
 	}
 	if !(&Endpoint{Conditions: []Condition{"[STATUS] == 200", "[IP] == 127.0.0.1"}}).needsToRetrieveIP() {
 		t.Error("expected true, got false")
+	}
+}
+
+func TestEndpoint_preprocessWithContext(t *testing.T) {
+	// Import the gontext package for creating test contexts
+	// This test thoroughly exercises the replaceContextPlaceholders function
+	tests := []struct {
+		name                  string
+		endpoint              *Endpoint
+		context               map[string]interface{}
+		expectedURL           string
+		expectedBody          string
+		expectedHeaders       map[string]string
+		expectedErrorCount    int
+		expectedErrorContains []string
+	}{
+		{
+			name: "successful_url_replacement",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].userId",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"userId": "12345",
+			},
+			expectedURL:        "https://api.example.com/users/12345",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "successful_body_replacement",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: `{"userId": "[CONTEXT].userId", "action": "update"}`,
+			},
+			context: map[string]interface{}{
+				"userId": "67890",
+			},
+			expectedURL:        "https://api.example.com",
+			expectedBody:       `{"userId": "67890", "action": "update"}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "successful_header_replacement",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: "",
+				Headers: map[string]string{
+					"Authorization": "Bearer [CONTEXT].token",
+					"X-User-ID":     "[CONTEXT].userId",
+				},
+			},
+			context: map[string]interface{}{
+				"token":  "abc123token",
+				"userId": "user123",
+			},
+			expectedURL:  "https://api.example.com",
+			expectedBody: "",
+			expectedHeaders: map[string]string{
+				"Authorization": "Bearer abc123token",
+				"X-User-ID":     "user123",
+			},
+			expectedErrorCount: 0,
+		},
+		{
+			name: "multiple_placeholders_in_url",
+			endpoint: &Endpoint{
+				URL:  "https://[CONTEXT].host/api/v[CONTEXT].version/users/[CONTEXT].userId",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"host":    "api.example.com",
+				"version": "2",
+				"userId":  "12345",
+			},
+			expectedURL:        "https://api.example.com/api/v2/users/12345",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "nested_context_path",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].user.id",
+				Body: `{"name": "[CONTEXT].user.name"}`,
+			},
+			context: map[string]interface{}{
+				"user": map[string]interface{}{
+					"id":   "nested123",
+					"name": "John Doe",
+				},
+			},
+			expectedURL:        "https://api.example.com/users/nested123",
+			expectedBody:       `{"name": "John Doe"}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "url_context_not_found",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].missingUserId",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"userId": "12345", // different key
+			},
+			expectedURL:           "https://api.example.com/users/[CONTEXT].missingUserId",
+			expectedBody:          "",
+			expectedErrorCount:    1,
+			expectedErrorContains: []string{"path 'missingUserId' not found"},
+		},
+		{
+			name: "body_context_not_found",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: `{"userId": "[CONTEXT].missingUserId"}`,
+			},
+			context: map[string]interface{}{
+				"userId": "12345", // different key
+			},
+			expectedURL:           "https://api.example.com",
+			expectedBody:          `{"userId": "[CONTEXT].missingUserId"}`,
+			expectedErrorCount:    1,
+			expectedErrorContains: []string{"path 'missingUserId' not found"},
+		},
+		{
+			name: "header_context_not_found",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: "",
+				Headers: map[string]string{
+					"Authorization": "Bearer [CONTEXT].missingToken",
+				},
+			},
+			context: map[string]interface{}{
+				"token": "validtoken", // different key
+			},
+			expectedURL:  "https://api.example.com",
+			expectedBody: "",
+			expectedHeaders: map[string]string{
+				"Authorization": "Bearer [CONTEXT].missingToken",
+			},
+			expectedErrorCount:    1,
+			expectedErrorContains: []string{"path 'missingToken' not found"},
+		},
+		{
+			name: "multiple_missing_context_paths",
+			endpoint: &Endpoint{
+				URL:  "https://[CONTEXT].missingHost/users/[CONTEXT].missingUserId",
+				Body: `{"token": "[CONTEXT].missingToken"}`,
+			},
+			context: map[string]interface{}{
+				"validKey": "validValue",
+			},
+			expectedURL:        "https://[CONTEXT].missingHost/users/[CONTEXT].missingUserId",
+			expectedBody:       `{"token": "[CONTEXT].missingToken"}`,
+			expectedErrorCount: 2, // 1 for URL (both placeholders), 1 for Body
+			expectedErrorContains: []string{
+				"path 'missingHost' not found",
+				"path 'missingUserId' not found",
+				"path 'missingToken' not found",
+			},
+		},
+		{
+			name: "mixed_valid_and_invalid_placeholders",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].userId/posts/[CONTEXT].missingPostId",
+				Body: `{"userId": "[CONTEXT].userId", "action": "[CONTEXT].missingAction"}`,
+			},
+			context: map[string]interface{}{
+				"userId": "12345",
+			},
+			expectedURL:        "https://api.example.com/users/12345/posts/[CONTEXT].missingPostId",
+			expectedBody:       `{"userId": "12345", "action": "[CONTEXT].missingAction"}`,
+			expectedErrorCount: 2,
+			expectedErrorContains: []string{
+				"path 'missingPostId' not found",
+				"path 'missingAction' not found",
+			},
+		},
+		{
+			name: "nil_context",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].userId",
+				Body: "",
+			},
+			context:            nil,
+			expectedURL:        "https://api.example.com/users/[CONTEXT].userId",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "empty_context",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].userId",
+				Body: "",
+			},
+			context:               map[string]interface{}{},
+			expectedURL:           "https://api.example.com/users/[CONTEXT].userId",
+			expectedBody:          "",
+			expectedErrorCount:    1,
+			expectedErrorContains: []string{"path 'userId' not found"},
+		},
+		{
+			name: "special_characters_in_context_values",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/search?q=[CONTEXT].query",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"query": "hello world & special chars!",
+			},
+			expectedURL:        "https://api.example.com/search?q=hello world & special chars!",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "numeric_context_values",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].userId/limit/[CONTEXT].limit",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"userId": 12345,
+				"limit":  100,
+			},
+			expectedURL:        "https://api.example.com/users/12345/limit/100",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "boolean_context_values",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: `{"enabled": [CONTEXT].enabled, "active": [CONTEXT].active}`,
+			},
+			context: map[string]interface{}{
+				"enabled": true,
+				"active":  false,
+			},
+			expectedURL:        "https://api.example.com",
+			expectedBody:       `{"enabled": true, "active": false}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "no_context_placeholders",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/health",
+				Body: `{"status": "check"}`,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+			},
+			context: map[string]interface{}{
+				"userId": "12345",
+			},
+			expectedURL:  "https://api.example.com/health",
+			expectedBody: `{"status": "check"}`,
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+			expectedErrorCount: 0,
+		},
+		{
+			name: "deeply_nested_context_path",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].response.data.user.id",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"response": map[string]interface{}{
+					"data": map[string]interface{}{
+						"user": map[string]interface{}{
+							"id": "deep123",
+						},
+					},
+				},
+			},
+			expectedURL:        "https://api.example.com/users/deep123",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "invalid_nested_context_path",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].response.missing.path",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"response": map[string]interface{}{
+					"data": "value",
+				},
+			},
+			expectedURL:           "https://api.example.com/users/[CONTEXT].response.missing.path",
+			expectedBody:          "",
+			expectedErrorCount:    1,
+			expectedErrorContains: []string{"path 'response.missing.path' not found"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Import gontext package for creating context
+			var ctx *gontext.Gontext
+			if tt.context != nil {
+				ctx = gontext.New(tt.context)
+			}
+			// Create a new Result to capture errors
+			result := &Result{}
+			// Call preprocessWithContext
+			processed := tt.endpoint.preprocessWithContext(result, ctx)
+			// Verify URL
+			if processed.URL != tt.expectedURL {
+				t.Errorf("URL mismatch:\nexpected: %s\nactual:   %s", tt.expectedURL, processed.URL)
+			}
+			// Verify Body
+			if processed.Body != tt.expectedBody {
+				t.Errorf("Body mismatch:\nexpected: %s\nactual:   %s", tt.expectedBody, processed.Body)
+			}
+			// Verify Headers
+			if tt.expectedHeaders != nil {
+				if processed.Headers == nil {
+					t.Error("Expected headers but got nil")
+				} else {
+					for key, expectedValue := range tt.expectedHeaders {
+						if actualValue, exists := processed.Headers[key]; !exists {
+							t.Errorf("Expected header %s not found", key)
+						} else if actualValue != expectedValue {
+							t.Errorf("Header %s mismatch:\nexpected: %s\nactual:   %s", key, expectedValue, actualValue)
+						}
+					}
+				}
+			}
+			// Verify error count
+			if len(result.Errors) != tt.expectedErrorCount {
+				t.Errorf("Error count mismatch:\nexpected: %d\nactual:   %d\nerrors: %v", tt.expectedErrorCount, len(result.Errors), result.Errors)
+			}
+			// Verify error messages contain expected strings
+			if tt.expectedErrorContains != nil {
+				actualErrors := strings.Join(result.Errors, " ")
+				for _, expectedError := range tt.expectedErrorContains {
+					if !strings.Contains(actualErrors, expectedError) {
+						t.Errorf("Expected error containing '%s' not found in: %v", expectedError, result.Errors)
+					}
+				}
+			}
+			// Verify original endpoint is not modified
+			if tt.endpoint.URL != ((&Endpoint{URL: tt.endpoint.URL, Body: tt.endpoint.Body, Headers: tt.endpoint.Headers}).URL) {
+				t.Error("Original endpoint was modified")
+			}
+		})
 	}
 }

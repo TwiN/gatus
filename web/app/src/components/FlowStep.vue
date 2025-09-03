@@ -33,29 +33,12 @@
           {{ step.errors.length }} error{{ step.errors.length !== 1 ? 's' : '' }}
         </span>
       </div>
-      
-      <!-- Error preview (expandable) -->
-      <div v-if="step.errors?.length && showErrors" class="mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
-        <div v-for="(error, index) in step.errors.slice(0, 3)" :key="index" class="text-xs text-red-700 dark:text-red-300 font-mono break-all">
-          {{ error }}
-        </div>
-        <div v-if="step.errors.length > 3" class="text-xs text-red-600 dark:text-red-400 mt-1">
-          ... and {{ step.errors.length - 3 }} more errors
-        </div>
-      </div>
-      
-      <!-- Toggle errors button -->
-      <button v-if="step.errors?.length" 
-              @click.stop="showErrors = !showErrors"
-              class="mt-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors">
-        {{ showErrors ? 'Hide' : 'Show' }} errors
-      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { CheckCircle, XCircle, SkipForward, RotateCcw, Pause } from 'lucide-vue-next'
 import { formatDuration } from '@/utils/format'
 
@@ -67,8 +50,6 @@ const props = defineProps({
 })
 
 defineEmits(['step-click'])
-
-const showErrors = ref(false)
 
 // Status icon mapping
 const statusIcon = computed(() => {
