@@ -371,13 +371,11 @@ You must also pass the token as a `Bearer` token in the `Authorization` header.
 Suites are collections of endpoints that are executed sequentially with a shared context. 
 This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
 
-Suites are particularly useful for:
+Here are a few cases in which suites could be useful:
 - Testing multi-step authentication flows (login -> access protected resource -> logout)
 - API workflows where you need to chain requests (create resource -> update -> verify -> delete)
 - Monitoring business processes that span multiple services
 - Validating data consistency across multiple endpoints
-
-**Important**: Suites fail immediately when any endpoint fails. There is no continue-on-error behavior.
 
 | Parameter                         | Description                                                                                         | Default       |
 |:----------------------------------|:----------------------------------------------------------------------------------------------------|:--------------|
