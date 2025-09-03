@@ -1,6 +1,9 @@
 package endpoint
 
+import "github.com/TwiN/gatus/v5/config/key"
+
 // Status contains the evaluation Results of an Endpoint
+// This is essentially a DTO
 type Status struct {
 	// Name of the endpoint
 	Name string `json:"name,omitempty"`
@@ -30,7 +33,7 @@ func NewStatus(group, name string) *Status {
 	return &Status{
 		Name:    name,
 		Group:   group,
-		Key:     ConvertGroupAndEndpointNameToKey(group, name),
+		Key:     key.ConvertGroupAndNameToKey(group, name),
 		Results: make([]*Result, 0),
 		Events:  make([]*Event, 0),
 		Uptime:  NewUptime(),

@@ -45,6 +45,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 - [Configuration](#configuration)
   - [Endpoints](#endpoints)
   - [External Endpoints](#external-endpoints)
+  - [Suites (ALPHA)](#suites-alpha)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
@@ -364,6 +365,101 @@ Where:
 - `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
+
+
+### Suites (ALPHA)
+Suites are collections of endpoints that are executed sequentially with a shared context. 
+This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
+
+Suites are particularly useful for:
+- Testing multi-step authentication flows (login -> access protected resource -> logout)
+- API workflows where you need to chain requests (create resource -> update -> verify -> delete)
+- Monitoring business processes that span multiple services
+- Validating data consistency across multiple endpoints
+
+**Important**: Suites fail immediately when any endpoint fails. There is no continue-on-error behavior.
+
+| Parameter                         | Description                                                                                         | Default       |
+|:----------------------------------|:----------------------------------------------------------------------------------------------------|:--------------|
+| `suites`                          | List of suites to monitor.                                                                          | `[]`          |
+| `suites[].enabled`                | Whether to monitor the suite.                                                                       | `true`        |
+| `suites[].name`                   | Name of the suite. Must be unique.                                                                  | Required `""` |
+| `suites[].group`                  | Group name. Used to group multiple suites together on the dashboard.                                | `""`          |
+| `suites[].interval`               | Duration to wait between suite executions.                                                          | `60s`         |
+| `suites[].timeout`                | Maximum duration for the entire suite execution.                                                    | `10m`         |
+| `suites[].context`                | Initial context values that can be referenced by endpoints.                                         | `{}`          |
+| `suites[].endpoints`              | List of endpoints to execute sequentially.                                                          | Required `[]` |
+| `suites[].endpoints[].store`      | Map of values to extract from the response and store in the suite context (stored even on failure). | `{}`          |
+| `suites[].endpoints[].always-run` | Whether to execute this endpoint even if previous endpoints in the suite failed.                    | `false`       |
+
+**Note**: Suite-level alerts are not supported yet. Configure alerts on individual endpoints within the suite instead.
+
+#### Using Context in Endpoints
+Once values are stored in the context, they can be referenced in subsequent endpoints:
+- In the URL: `https://api.example.com/users/[CONTEXT].userId`
+- In headers: `Authorization: Bearer [CONTEXT].authToken`
+- In the body: `{"user_id": "[CONTEXT].userId"}`
+- In conditions: `[BODY].server_ip == [CONTEXT].serverIp`
+
+#### Example Suite Configuration
+```yaml
+suites:
+  - name: item-crud-workflow
+    group: api-tests
+    interval: 5m
+    context:
+      price: "19.99"  # Initial static value in context
+    endpoints:
+      # Step 1: Create an item and store the item ID 
+      - name: create-item
+        url: https://api.example.com/items
+        method: POST
+        body: '{"name": "Test Item", "price": "[CONTEXT].price"}'
+        conditions:
+          - "[STATUS] == 201"
+          - "len([BODY].id) > 0"
+          - "[BODY].price == [CONTEXT].price"
+        store:
+          itemId: "[BODY].id"
+        alerts:
+          - type: slack
+            description: "Failed to create item"
+            
+      # Step 2: Update the item using the stored item ID
+      - name: update-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: PUT
+        body: '{"price": "24.99"}'
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: slack
+            description: "Failed to update item"
+        
+      # Step 3: Fetch the item and validate the price
+      - name: get-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: GET
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].price == 24.99"
+        alerts:
+          - type: slack
+            description: "Item price did not update correctly"
+            
+      # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
+      - name: delete-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: DELETE
+        always-run: true
+        conditions:
+          - "[STATUS] == 204"
+        alerts:
+          - type: slack
+            description: "Failed to delete item"
+```
+
+The suite will be considered successful only if all required endpoints pass their conditions.
 
 
 ### Conditions

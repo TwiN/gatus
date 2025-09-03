@@ -7,82 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v5/jsonpath"
+	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
-// Placeholders
 const (
-	// StatusPlaceholder is a placeholder for a HTTP status.
-	//
-	// Values that could replace the placeholder: 200, 404, 500, ...
-	StatusPlaceholder = "[STATUS]"
-
-	// IPPlaceholder is a placeholder for an IP.
-	//
-	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
-	IPPlaceholder = "[IP]"
-
-	// DNSRCodePlaceholder is a placeholder for DNS_RCODE
-	//
-	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
-	DNSRCodePlaceholder = "[DNS_RCODE]"
-
-	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
-	//
-	// Values that could replace the placeholder: 1, 500, 1000, ...
-	ResponseTimePlaceholder = "[RESPONSE_TIME]"
-
-	// BodyPlaceholder is a placeholder for the Body of the response
-	//
-	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
-	BodyPlaceholder = "[BODY]"
-
-	// ConnectedPlaceholder is a placeholder for whether a connection was successfully established.
-	//
-	// Values that could replace the placeholder: true, false
-	ConnectedPlaceholder = "[CONNECTED]"
-
-	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
-	//
-	// Values that could replace the placeholder: 4461677039 (~52 days)
-	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
-
-	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
-	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
-)
-
-// Functions
-const (
-	// LengthFunctionPrefix is the prefix for the length function
-	//
-	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
-	LengthFunctionPrefix = "len("
-
-	// HasFunctionPrefix is the prefix for the has function
-	//
-	// Usage: has([BODY].errors) == true
-	HasFunctionPrefix = "has("
-
-	// PatternFunctionPrefix is the prefix for the pattern function
-	//
-	// Usage: [IP] == pat(192.168.*.*)
-	PatternFunctionPrefix = "pat("
-
-	// AnyFunctionPrefix is the prefix for the any function
-	//
-	// Usage: [IP] == any(1.1.1.1, 1.0.0.1)
-	AnyFunctionPrefix = "any("
-
-	// FunctionSuffix is the suffix for all functions
-	FunctionSuffix = ")"
-)
-
-// Other constants
-const (
-	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
-	InvalidConditionElementSuffix = "(INVALID)"
-
 	// maximumLengthBeforeTruncatingWhenComparedWithPattern is the maximum length an element being compared to a
 	// pattern can have.
 	//
@@ -97,50 +26,50 @@ type Condition string
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
 	r := &Result{}
-	c.evaluate(r, false)
+	c.evaluate(r, false, nil)
 	if len(r.Errors) != 0 {
 		return errors.New(r.Errors[0])
 	}
 	return nil
 }
 
-// evaluate the Condition with the Result of the health check
-func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
+// evaluate the Condition with the Result and an optional context
+func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " == "), result, context)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " != "), result, context)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
@@ -235,79 +164,29 @@ func isEqual(first, second string) bool {
 	return first == second
 }
 
-// sanitizeAndResolve sanitizes and resolves a list of elements and returns the list of parameters as well as a list
-// of resolved parameters
-func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
+// sanitizeAndResolveWithContext sanitizes and resolves a list of elements with an optional context
+func sanitizeAndResolveWithContext(elements []string, result *Result, context *gontext.Gontext) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
-	body := strings.TrimSpace(string(result.Body))
 	for i, element := range elements {
 		element = strings.TrimSpace(element)
 		parameters[i] = element
-		switch strings.ToUpper(element) {
-		case StatusPlaceholder:
-			element = strconv.Itoa(result.HTTPStatus)
-		case IPPlaceholder:
-			element = result.IP
-		case ResponseTimePlaceholder:
-			element = strconv.Itoa(int(result.Duration.Milliseconds()))
-		case BodyPlaceholder:
-			element = body
-		case DNSRCodePlaceholder:
-			element = result.DNSRCode
-		case ConnectedPlaceholder:
-			element = strconv.FormatBool(result.Connected)
-		case CertificateExpirationPlaceholder:
-			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
-		case DomainExpirationPlaceholder:
-			element = strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10)
-		default:
-			// if contains the BodyPlaceholder, then evaluate json path
-			if strings.Contains(element, BodyPlaceholder) {
-				checkingForLength := false
-				checkingForExistence := false
-				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForLength = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
-				}
-				if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForExistence = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
-				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.Body)
-				if checkingForExistence {
-					if err != nil {
-						element = "false"
-					} else {
-						element = "true"
-					}
-				} else {
-					if err != nil {
-						if err.Error() != "unexpected end of JSON input" {
-							result.AddError(err.Error())
-						}
-						if checkingForLength {
-							element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
-						} else {
-							element = element + " " + InvalidConditionElementSuffix
-						}
-					} else {
-						if checkingForLength {
-							element = strconv.Itoa(resolvedElementLength)
-						} else {
-							element = resolvedElement
-						}
-					}
-				}
-			}
+
+		// Use the unified ResolvePlaceholder function
+		resolved, err := ResolvePlaceholder(element, result, context)
+		if err != nil {
+			// If there's an error, add it to the result
+			result.AddError(err.Error())
+			resolvedParameters[i] = element + " " + InvalidConditionElementSuffix
+		} else {
+			resolvedParameters[i] = resolved
 		}
-		resolvedParameters[i] = element
 	}
 	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
-	parameters, resolvedParameters := sanitizeAndResolve(list, result)
+func sanitizeAndResolveNumericalWithContext(list []string, result *Result, context *gontext.Gontext) (parameters []string, resolvedNumericalParameters []int64) {
+	parameters, resolvedParameters := sanitizeAndResolveWithContext(list, result, context)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds

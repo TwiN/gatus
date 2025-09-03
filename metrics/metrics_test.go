@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
@@ -222,6 +223,96 @@ gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-
 gatus_results_endpoint_success{group="dns-ep-group",key="dns-ep-group_dns-ep-name",name="dns-ep-name",type="DNS"} 1
 gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0
 `), "gatus_results_code_total", "gatus_results_connected_total", "gatus_results_duration_seconds", "gatus_results_total", "gatus_results_certificate_expiration_seconds", "gatus_results_endpoint_success")
+	if err != nil {
+		t.Errorf("Expected no errors but got: %v", err)
+	}
+}
+
+func TestPublishMetricsForSuite(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	InitializePrometheusMetrics(&config.Config{}, reg)
+
+	testSuite := &suite.Suite{
+		Name:  "test-suite",
+		Group: "test-group",
+	}
+	// Test successful suite execution
+	successResult := &suite.Result{
+		Success:  true,
+		Duration: 5 * time.Second,
+		Name:     "test-suite",
+		Group:    "test-group",
+	}
+	PublishMetricsForSuite(testSuite, successResult, []string{})
+
+	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(`
+# HELP gatus_suite_results_duration_seconds Duration of suite execution in seconds
+# TYPE gatus_suite_results_duration_seconds gauge
+gatus_suite_results_duration_seconds{group="test-group",key="test-group_test-suite",name="test-suite"} 5
+# HELP gatus_suite_results_success Whether the suite execution was successful (1) or not (0)
+# TYPE gatus_suite_results_success gauge
+gatus_suite_results_success{group="test-group",key="test-group_test-suite",name="test-suite"} 1
+# HELP gatus_suite_results_total Total number of suite executions
+# TYPE gatus_suite_results_total counter
+gatus_suite_results_total{group="test-group",key="test-group_test-suite",name="test-suite",success="true"} 1
+`), "gatus_suite_results_duration_seconds", "gatus_suite_results_success", "gatus_suite_results_total")
+	if err != nil {
+		t.Errorf("Expected no errors but got: %v", err)
+	}
+
+	// Test failed suite execution
+	failureResult := &suite.Result{
+		Success:  false,
+		Duration: 10 * time.Second,
+		Name:     "test-suite",
+		Group:    "test-group",
+	}
+	PublishMetricsForSuite(testSuite, failureResult, []string{})
+
+	err = testutil.GatherAndCompare(reg, bytes.NewBufferString(`
+# HELP gatus_suite_results_duration_seconds Duration of suite execution in seconds
+# TYPE gatus_suite_results_duration_seconds gauge
+gatus_suite_results_duration_seconds{group="test-group",key="test-group_test-suite",name="test-suite"} 10
+# HELP gatus_suite_results_success Whether the suite execution was successful (1) or not (0)
+# TYPE gatus_suite_results_success gauge
+gatus_suite_results_success{group="test-group",key="test-group_test-suite",name="test-suite"} 0
+# HELP gatus_suite_results_total Total number of suite executions
+# TYPE gatus_suite_results_total counter
+gatus_suite_results_total{group="test-group",key="test-group_test-suite",name="test-suite",success="false"} 1
+gatus_suite_results_total{group="test-group",key="test-group_test-suite",name="test-suite",success="true"} 1
+`), "gatus_suite_results_duration_seconds", "gatus_suite_results_success", "gatus_suite_results_total")
+	if err != nil {
+		t.Errorf("Expected no errors but got: %v", err)
+	}
+}
+
+func TestPublishMetricsForSuite_NoGroup(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	InitializePrometheusMetrics(&config.Config{}, reg)
+
+	testSuite := &suite.Suite{
+		Name:  "no-group-suite",
+		Group: "",
+	}
+	result := &suite.Result{
+		Success:  true,
+		Duration: 3 * time.Second,
+		Name:     "no-group-suite",
+		Group:    "",
+	}
+	PublishMetricsForSuite(testSuite, result, []string{})
+
+	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(`
+# HELP gatus_suite_results_duration_seconds Duration of suite execution in seconds
+# TYPE gatus_suite_results_duration_seconds gauge
+gatus_suite_results_duration_seconds{group="",key="_no-group-suite",name="no-group-suite"} 3
+# HELP gatus_suite_results_success Whether the suite execution was successful (1) or not (0)
+# TYPE gatus_suite_results_success gauge
+gatus_suite_results_success{group="",key="_no-group-suite",name="no-group-suite"} 1
+# HELP gatus_suite_results_total Total number of suite executions
+# TYPE gatus_suite_results_total counter
+gatus_suite_results_total{group="",key="_no-group-suite",name="no-group-suite",success="true"} 1
+`), "gatus_suite_results_duration_seconds", "gatus_suite_results_success", "gatus_suite_results_total")
 	if err != nil {
 		t.Errorf("Expected no errors but got: %v", err)
 	}

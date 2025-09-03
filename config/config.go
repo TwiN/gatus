@@ -19,6 +19,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
@@ -80,6 +81,9 @@ type Config struct {
 
 	// ExternalEndpoints is the list of all external endpoints
 	ExternalEndpoints []*endpoint.ExternalEndpoint `yaml:"external-endpoints,omitempty"`
+
+	// Suites is the list of suites to monitor
+	Suites []*suite.Suite `yaml:"suites,omitempty"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
@@ -309,6 +313,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateAnnouncementsConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateSuitesConfig(config); err != nil {
+			return nil, err
+		}
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
@@ -416,6 +423,41 @@ func validateEndpointsConfig(config *Config) error {
 		}
 	}
 	logr.Infof("[config.validateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
+	return nil
+}
+
+func validateSuitesConfig(config *Config) error {
+	if config.Suites == nil || len(config.Suites) == 0 {
+		logr.Info("[config.validateSuitesConfig] No suites configured")
+		return nil
+	}
+	suiteNames := make(map[string]bool)
+	for _, suite := range config.Suites {
+		// Check for duplicate suite names
+		if suiteNames[suite.Name] {
+			return fmt.Errorf("duplicate suite name: %s", suite.Name)
+		}
+		suiteNames[suite.Name] = true
+		// Validate the suite configuration
+		if err := suite.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid suite '%s': %w", suite.Name, err)
+		}
+		// Check that endpoints referenced in Store mappings use valid placeholders
+		for _, endpoint := range suite.Endpoints {
+			if endpoint.Store != nil {
+				for contextKey, placeholder := range endpoint.Store {
+					// Basic validation that the context key is a valid identifier
+					if len(contextKey) == 0 {
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty context key in store mapping", suite.Name, endpoint.Name)
+					}
+					if len(placeholder) == 0 {
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty placeholder in store mapping for key '%s'", suite.Name, endpoint.Name, contextKey)
+					}
+				}
+			}
+		}
+	}
+	logr.Infof("[config.validateSuitesConfig] Validated %d suite(s)", len(config.Suites))
 	return nil
 }
 
