@@ -20,9 +20,9 @@ var (
 	resultEndpointSuccess              *prometheus.GaugeVec
 
 	// Suite metrics
-	suiteResultTotal          *prometheus.CounterVec
+	suiteResultTotal           *prometheus.CounterVec
 	suiteResultDurationSeconds *prometheus.GaugeVec
-	suiteResultSuccess        *prometheus.GaugeVec
+	suiteResultSuccess         *prometheus.GaugeVec
 
 	// Track if metrics have been initialized to prevent duplicate registration
 	metricsInitialized bool
