@@ -10,17 +10,12 @@ import (
 var (
 	// ErrGontextPathNotFound is returned when a gontext path doesn't exist
 	ErrGontextPathNotFound = errors.New("gontext path not found")
-
-	// ErrCircularDependency is returned when a circular dependency is detected
-	ErrCircularDependency = errors.New("circular dependency detected in gontext resolution")
 )
 
 // Gontext holds values that can be shared between endpoints in a suite
 type Gontext struct {
-	mu              sync.RWMutex
-	values          map[string]interface{}
-	resolutionPath  []string // Track resolution path for circular dependency detection
-	resolutionMutex sync.Mutex
+	mu     sync.RWMutex
+	values map[string]interface{}
 }
 
 // New creates a new gontext with initial values
@@ -42,19 +37,6 @@ func New(initial map[string]interface{}) *Gontext {
 func (g *Gontext) Get(path string) (interface{}, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	// Check for circular dependencies
-	g.resolutionMutex.Lock()
-	for _, p := range g.resolutionPath {
-		if p == path {
-			g.resolutionMutex.Unlock()
-			return nil, fmt.Errorf("%w: %s", ErrCircularDependency, path)
-		}
-	}
-	g.resolutionPath = append(g.resolutionPath, path)
-	defer func() {
-		g.resolutionPath = g.resolutionPath[:len(g.resolutionPath)-1]
-		g.resolutionMutex.Unlock()
-	}()
 	parts := strings.Split(path, ".")
 	current := interface{}(g.values)
 	for _, part := range parts {

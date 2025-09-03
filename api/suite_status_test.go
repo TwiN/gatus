@@ -211,6 +211,158 @@ func TestSuiteStatus(t *testing.T) {
 	}
 }
 
+func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	tests := []struct {
+		name         string
+		suiteKey     string
+		cfg          *config.Config
+		expectedCode int
+		expectJSON   bool
+		expectError  string
+	}{
+		{
+			name:     "suite-not-in-store-but-exists-in-config-enabled",
+			suiteKey: "test-group_test-suite",
+			cfg: &config.Config{
+				Metrics: true,
+				Suites: []*suite.Suite{
+					{
+						Name:    "test-suite",
+						Group:   "test-group",
+						Enabled: boolPtr(true),
+						Endpoints: []*endpoint.Endpoint{
+							{
+								Name:  "endpoint-1",
+								Group: "test-group",
+								URL:   "https://example.com",
+							},
+						},
+					},
+				},
+				Storage: &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+				},
+			},
+			expectedCode: http.StatusOK,
+			expectJSON:   true,
+		},
+		{
+			name:     "suite-not-in-store-but-exists-in-config-disabled",
+			suiteKey: "test-group_disabled-suite",
+			cfg: &config.Config{
+				Metrics: true,
+				Suites: []*suite.Suite{
+					{
+						Name:    "disabled-suite",
+						Group:   "test-group",
+						Enabled: boolPtr(false),
+					},
+				},
+				Storage: &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+				},
+			},
+			expectedCode: http.StatusOK,
+			expectJSON:   true,
+		},
+		{
+			name:     "suite-not-in-store-and-not-in-config",
+			suiteKey: "nonexistent_suite",
+			cfg: &config.Config{
+				Metrics: true,
+				Suites: []*suite.Suite{
+					{
+						Name:  "different-suite",
+						Group: "different-group",
+					},
+				},
+				Storage: &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+				},
+			},
+			expectedCode: http.StatusNotFound,
+			expectError:  "Suite with key 'nonexistent_suite' not found",
+		},
+		{
+			name:     "suite-with-empty-group-in-config",
+			suiteKey: "_empty-group-suite",
+			cfg: &config.Config{
+				Metrics: true,
+				Suites: []*suite.Suite{
+					{
+						Name:  "empty-group-suite",
+						Group: "",
+					},
+				},
+				Storage: &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+				},
+			},
+			expectedCode: http.StatusOK,
+			expectJSON:   true,
+		},
+		{
+			name:     "suite-nil-enabled-defaults-to-true",
+			suiteKey: "default_enabled-suite",
+			cfg: &config.Config{
+				Metrics: true,
+				Suites: []*suite.Suite{
+					{
+						Name:    "enabled-suite",
+						Group:   "default",
+						Enabled: nil,
+					},
+				},
+				Storage: &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+				},
+			},
+			expectedCode: http.StatusOK,
+			expectJSON:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			api := New(tt.cfg)
+			router := api.Router()
+			request := httptest.NewRequest("GET", "/api/v1/suites/"+tt.suiteKey+"/statuses", http.NoBody)
+			response, err := router.Test(request)
+			if err != nil {
+				t.Fatalf("Router test failed: %v", err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != tt.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, response.StatusCode)
+			}
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+			}
+			bodyStr := string(body)
+			if tt.expectJSON {
+				if response.Header.Get("Content-Type") != "application/json" {
+					t.Errorf("Expected JSON content type, got %s", response.Header.Get("Content-Type"))
+				}
+				if len(bodyStr) == 0 || bodyStr[0] != '{' {
+					t.Errorf("Expected JSON response, got: %s", bodyStr)
+				}
+			}
+			if tt.expectError != "" {
+				if !contains(bodyStr, tt.expectError) {
+					t.Errorf("Expected error message '%s' in response, got: %s", tt.expectError, bodyStr)
+				}
+			}
+		})
+	}
+}
+
 func TestSuiteStatuses(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()
@@ -293,4 +445,75 @@ func TestSuiteStatuses(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSuiteStatuses_NoSuitesInStoreButExistInConfig(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	cfg := &config.Config{
+		Metrics: true,
+		Suites: []*suite.Suite{
+			{
+				Name:    "config-only-suite-1",
+				Group:   "test-group",
+				Enabled: boolPtr(true),
+			},
+			{
+				Name:    "config-only-suite-2",
+				Group:   "test-group",
+				Enabled: boolPtr(true),
+			},
+			{
+				Name:    "disabled-suite",
+				Group:   "test-group",
+				Enabled: boolPtr(false),
+			},
+		},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/suites/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatalf("Router test failed: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+	bodyStr := string(body)
+	if !contains(bodyStr, "config-only-suite-1") {
+		t.Error("Expected config-only-suite-1 in response")
+	}
+	if !contains(bodyStr, "config-only-suite-2") {
+		t.Error("Expected config-only-suite-2 in response")
+	}
+	if contains(bodyStr, "disabled-suite") {
+		t.Error("Should not include disabled-suite in response")
+	}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			func() bool {
+				for i := 1; i <= len(s)-len(substr); i++ {
+					if s[i:i+len(substr)] == substr {
+						return true
+					}
+				}
+				return false
+			}())))
 }
