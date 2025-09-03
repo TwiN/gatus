@@ -73,7 +73,7 @@ func executeSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceCo
 			}
 		}
 	}
-	logr.Infof("[watchdog.executeSuite] Completed suite=%s; success=%v; duration=%v; endpoints_executed=%d/%d", s.Name, result.Success, result.Duration, len(result.EndpointResults), len(s.Endpoints))
+	logr.Infof("[watchdog.executeSuite] Completed suite=%s; success=%v; errors=%d; duration=%v; endpoints_executed=%d/%d", s.Name, result.Success, len(result.Errors), result.Duration, len(result.EndpointResults), len(s.Endpoints))
 	// Store result in database
 	UpdateSuiteStatus(s, result)
 }

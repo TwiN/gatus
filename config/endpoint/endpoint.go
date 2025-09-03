@@ -288,12 +288,12 @@ func (e *Endpoint) EvaluateHealth() *Result {
 
 // EvaluateHealthWithContext sends a request to the endpoint's URL with context support and evaluates the conditions
 func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
+	result := &Result{Success: true, Errors: []string{}}
 	// Preprocess the endpoint with context if provided
 	processedEndpoint := e
 	if context != nil {
-		processedEndpoint = e.preprocessWithContext(context)
+		processedEndpoint = e.preprocessWithContext(result, context)
 	}
-	result := &Result{Success: true, Errors: []string{}}
 	// Parse or extract hostname from URL
 	if processedEndpoint.DNSConfig != nil {
 		result.Hostname = strings.TrimSuffix(processedEndpoint.URL, ":53")
@@ -323,6 +323,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
+		fmt.Println("calling endpoint", processedEndpoint.DisplayName(), "at", processedEndpoint.URL)
 		processedEndpoint.call(result)
 	} else {
 		result.Success = false
@@ -360,12 +361,17 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 }
 
 // preprocessWithContext creates a copy of the endpoint with context placeholders replaced
-func (e *Endpoint) preprocessWithContext(context *gontext.Gontext) *Endpoint {
+func (e *Endpoint) preprocessWithContext(result *Result, context *gontext.Gontext) *Endpoint {
 	// Create a deep copy of the endpoint
 	processed := &Endpoint{}
 	*processed = *e
 	// Replace context placeholders in URL
 	processed.URL = replaceContextPlaceholders(e.URL, context)
+	if strings.Contains(processed.URL, ContextPlaceholder) {
+		// If the URL still contains a context placeholder, it means that the context value was not found.
+		// Since the URL is essential to call the endpoint, we return an error.
+		result.AddError("could not resolve all context placeholders in url")
+	}
 	// Replace context placeholders in Body
 	processed.Body = replaceContextPlaceholders(e.Body, context)
 	// Replace context placeholders in Headers

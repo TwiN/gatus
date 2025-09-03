@@ -40,7 +40,7 @@
           </h3>
           <div class="space-y-2">
             <div v-for="(error, index) in step.errors" :key="index" 
-                 class="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-sm font-mono text-red-800 dark:text-red-200 break-all">
+                 class="p-3 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded text-sm font-mono text-red-800 dark:text-red-300 break-all">
               {{ error }}
             </div>
           </div>
