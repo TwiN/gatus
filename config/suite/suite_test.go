@@ -371,3 +371,108 @@ func TestSuite_ExecuteWithoutAlwaysRunEndpoints(t *testing.T) {
 		t.Errorf("expected second endpoint to be 'failing-endpoint', got '%s'", result.EndpointResults[1].Name)
 	}
 }
+
+func TestResult_AddError(t *testing.T) {
+	result := &Result{
+		Name:      "test-suite",
+		Timestamp: time.Now(),
+	}
+	if len(result.Errors) != 0 {
+		t.Errorf("Expected 0 errors initially, got %d", len(result.Errors))
+	}
+	result.AddError("first error")
+	if len(result.Errors) != 1 {
+		t.Errorf("Expected 1 error after AddError, got %d", len(result.Errors))
+	}
+	if result.Errors[0] != "first error" {
+		t.Errorf("Expected 'first error', got '%s'", result.Errors[0])
+	}
+	result.AddError("second error")
+	if len(result.Errors) != 2 {
+		t.Errorf("Expected 2 errors after second AddError, got %d", len(result.Errors))
+	}
+	if result.Errors[1] != "second error" {
+		t.Errorf("Expected 'second error', got '%s'", result.Errors[1])
+	}
+}
+
+func TestResult_CalculateSuccess(t *testing.T) {
+	tests := []struct {
+		name            string
+		endpointResults []*endpoint.Result
+		errors          []string
+		expectedSuccess bool
+	}{
+		{
+			name:            "no-endpoints-no-errors",
+			endpointResults: []*endpoint.Result{},
+			errors:          []string{},
+			expectedSuccess: true,
+		},
+		{
+			name: "all-endpoints-successful-no-errors",
+			endpointResults: []*endpoint.Result{
+				{Success: true},
+				{Success: true},
+			},
+			errors:          []string{},
+			expectedSuccess: true,
+		},
+		{
+			name: "second-endpoint-failed-no-errors",
+			endpointResults: []*endpoint.Result{
+				{Success: true},
+				{Success: false},
+			},
+			errors:          []string{},
+			expectedSuccess: false,
+		},
+		{
+			name: "first-endpoint-failed-no-errors",
+			endpointResults: []*endpoint.Result{
+				{Success: false},
+				{Success: true},
+			},
+			errors:          []string{},
+			expectedSuccess: false,
+		},
+		{
+			name: "all-endpoints-successful-with-errors",
+			endpointResults: []*endpoint.Result{
+				{Success: true},
+				{Success: true},
+			},
+			errors:          []string{"suite level error"},
+			expectedSuccess: false,
+		},
+		{
+			name: "endpoint-failed-and-errors",
+			endpointResults: []*endpoint.Result{
+				{Success: true},
+				{Success: false},
+			},
+			errors:          []string{"suite level error"},
+			expectedSuccess: false,
+		},
+		{
+			name:            "no-endpoints-with-errors",
+			endpointResults: []*endpoint.Result{},
+			errors:          []string{"configuration error"},
+			expectedSuccess: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := &Result{
+				Name:            "test-suite",
+				Timestamp:       time.Now(),
+				EndpointResults: tt.endpointResults,
+				Errors:          tt.errors,
+			}
+			result.CalculateSuccess()
+			if result.Success != tt.expectedSuccess {
+				t.Errorf("Expected success=%v, got %v", tt.expectedSuccess, result.Success)
+			}
+		})
+	}
+}
