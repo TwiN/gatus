@@ -188,35 +188,6 @@ func TestSuite_DefaultValues(t *testing.T) {
 	}
 }
 
-func TestSuite_TimeoutAdjustment(t *testing.T) {
-	s := &Suite{
-		Name:     "test",
-		Interval: 10 * time.Minute,
-		Timeout:  5 * time.Minute, // Less than interval
-		Endpoints: []*endpoint.Endpoint{
-			{
-				Name: "endpoint1",
-				URL:  "https://example.org",
-				Conditions: []endpoint.Condition{
-					endpoint.Condition("[STATUS] == 200"),
-				},
-			},
-		},
-	}
-	err := s.ValidateAndSetDefaults()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// Timeout should be adjusted to be greater than interval
-	if s.Timeout <= s.Interval {
-		t.Errorf("Expected Timeout (%v) to be greater than Interval (%v)", s.Timeout, s.Interval)
-	}
-	expectedTimeout := s.Interval * 2
-	if s.Timeout != expectedTimeout {
-		t.Errorf("Expected Timeout to be %v, got %v", expectedTimeout, s.Timeout)
-	}
-}
-
 // Helper function to create bool pointers
 func boolPtr(b bool) *bool {
 	return &b

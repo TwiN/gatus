@@ -25,10 +25,10 @@ var (
 	ErrSuiteWithInvalidTimeout = errors.New("suite timeout must be positive")
 
 	// DefaultInterval is the default interval for suite execution
-	DefaultInterval = 60 * time.Second
+	DefaultInterval = 10 * time.Minute
 
 	// DefaultTimeout is the default timeout for suite execution
-	DefaultTimeout = 10 * time.Minute
+	DefaultTimeout = 5 * time.Minute
 )
 
 // Suite is a collection of endpoints that are executed sequentially with shared context
@@ -103,10 +103,6 @@ func (s *Suite) ValidateAndSetDefaults() error {
 	// Validate timeout
 	if s.Timeout < 0 {
 		return ErrSuiteWithInvalidTimeout
-	}
-	// Ensure timeout is greater than interval
-	if s.Timeout <= s.Interval {
-		s.Timeout = s.Interval * 2
 	}
 	// Initialize context if nil
 	if s.InitialContext == nil {

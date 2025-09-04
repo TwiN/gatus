@@ -385,8 +385,8 @@ Here are a few cases in which suites could be useful:
 | `suites[].enabled`                | Whether to monitor the suite.                                                                       | `true`        |
 | `suites[].name`                   | Name of the suite. Must be unique.                                                                  | Required `""` |
 | `suites[].group`                  | Group name. Used to group multiple suites together on the dashboard.                                | `""`          |
-| `suites[].interval`               | Duration to wait between suite executions.                                                          | `60s`         |
-| `suites[].timeout`                | Maximum duration for the entire suite execution.                                                    | `10m`         |
+| `suites[].interval`               | Duration to wait between suite executions.                                                          | `10m`         |
+| `suites[].timeout`                | Maximum duration for the entire suite execution.                                                    | `5m`          |
 | `suites[].context`                | Initial context values that can be referenced by endpoints.                                         | `{}`          |
 | `suites[].endpoints`              | List of endpoints to execute sequentially.                                                          | Required `[]` |
 | `suites[].endpoints[].store`      | Map of values to extract from the response and store in the suite context (stored even on failure). | `{}`          |
