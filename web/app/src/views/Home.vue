@@ -423,30 +423,7 @@ const fetchData = async () => {
     })
     if (endpointResponse.status === 200) {
       const data = await endpointResponse.json()
-      // If this is the initial load, just set the data
-      if (isInitialLoad) {
-        endpointStatuses.value = data
-      } else {
-        // Check if endpoints have been added or removed
-        const currentKeys = new Set(endpointStatuses.value.map(ep => ep.key))
-        const newKeys = new Set(data.map(ep => ep.key))
-        const hasAdditions = data.some(ep => !currentKeys.has(ep.key))
-        const hasRemovals = endpointStatuses.value.some(ep => !newKeys.has(ep.key))
-        if (hasAdditions || hasRemovals) {
-          // Endpoints have changed, reset the array to maintain proper order
-          endpointStatuses.value = data
-        } else {
-          // Only statuses/results have changed, update in place to preserve scroll
-          const endpointMap = new Map(data.map(ep => [ep.key, ep]))
-          endpointStatuses.value.forEach((endpoint, index) => {
-            const updated = endpointMap.get(endpoint.key)
-            if (updated) {
-              // Update in place to preserve Vue's reactivity and scroll position
-              Object.assign(endpointStatuses.value[index], updated)
-            }
-          })
-        }
-      }
+      endpointStatuses.value = data
     } else {
       console.error('[Home][fetchData] Error fetching endpoints:', await endpointResponse.text())
     }
