@@ -4,9 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/TwiN/gatus/v5/alerting"
-	"github.com/TwiN/gatus/v5/config/connectivity"
-	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
@@ -14,9 +12,9 @@ import (
 )
 
 // monitorSuite monitors a suite by executing it at regular intervals
-func monitorSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string, ctx context.Context) {
+func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx context.Context) {
 	// Execute immediately on start
-	executeSuite(s, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
+	executeSuite(s, cfg, extraLabels)
 	// Set up ticker for periodic execution
 	ticker := time.NewTicker(s.Interval)
 	defer ticker.Stop()
@@ -26,20 +24,20 @@ func monitorSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceCo
 			logr.Warnf("[watchdog.monitorSuite] Canceling monitoring for suite=%s", s.Name)
 			return
 		case <-ticker.C:
-			executeSuite(s, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
+			executeSuite(s, cfg, extraLabels)
 		}
 	}
 }
 
 // executeSuite executes a suite with proper locking
-func executeSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string) {
-	if !disableMonitoringLock {
+func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
+	if !cfg.DisableMonitoringLock {
 		// Use the same monitoring lock to prevent concurrent executions
 		monitoringMutex.Lock()
 		defer monitoringMutex.Unlock()
 	}
 	// Check connectivity if configured
-	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
+	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
 		logr.Infof("[watchdog.executeSuite] No connectivity; skipping suite=%s", s.Name)
 		return
 	}
@@ -47,7 +45,7 @@ func executeSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceCo
 	// Execute the suite using its Execute method
 	result := s.Execute()
 	// Publish metrics for the suite execution
-	if enabledMetrics {
+	if cfg.Metrics {
 		metrics.PublishMetricsForSuite(s, result, extraLabels)
 	}
 	// Store individual endpoint results and handle alerting
@@ -57,7 +55,7 @@ func executeSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceCo
 			// Store the endpoint result
 			UpdateEndpointStatus(ep, epResult)
 			// Handle alerting if configured and not under maintenance
-			if alertingConfig != nil && !maintenanceConfig.IsUnderMaintenance() {
+			if cfg.Alerting != nil && !cfg.Maintenance.IsUnderMaintenance() {
 				// Check if endpoint is under maintenance
 				inEndpointMaintenanceWindow := false
 				for _, maintenanceWindow := range ep.MaintenanceWindows {
@@ -68,7 +66,7 @@ func executeSuite(s *suite.Suite, alertingConfig *alerting.Config, maintenanceCo
 					}
 				}
 				if !inEndpointMaintenanceWindow {
-					HandleAlerting(ep, epResult, alertingConfig)
+					HandleAlerting(ep, epResult, cfg.Alerting)
 				}
 			}
 		}

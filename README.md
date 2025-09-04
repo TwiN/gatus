@@ -310,6 +310,8 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
+| `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
+| `endpoints[].store`                             | (SUITES ONLY) Map of values to extract from the response and store in the suite context (stored even on failure).                           | `{}`                       |
 
 You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)

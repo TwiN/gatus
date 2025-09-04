@@ -4,16 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/TwiN/gatus/v5/alerting"
-	"github.com/TwiN/gatus/v5/config/connectivity"
+	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
 )
 
-func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, ctx context.Context, extraLabels []string) {
+func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
 	ticker := time.NewTicker(ee.Heartbeat.Interval)
 	defer ticker.Stop()
 	for {
@@ -22,20 +20,20 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingCon
 			logr.Warnf("[watchdog.monitorExternalEndpointHeartbeat] Canceling current execution of group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
 			return
 		case <-ticker.C:
-			executeExternalEndpointHeartbeat(ee, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
+			executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
 		}
 	}
 }
 
-func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string) {
-	if !disableMonitoringLock {
+func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string) {
+	if !cfg.DisableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
 		monitoringMutex.Lock()
 		defer monitoringMutex.Unlock()
 	}
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
-	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
+	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
 		logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] No connectivity; skipping execution")
 		return
 	}
@@ -60,7 +58,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingCon
 		Success:   false,
 		Errors:    []string{"heartbeat: no update received within " + ee.Heartbeat.Interval.String()},
 	}
-	if enabledMetrics {
+	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 	}
 	UpdateEndpointStatus(convertedEndpoint, result)
@@ -72,8 +70,8 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, alertingCon
 			inEndpointMaintenanceWindow = true
 		}
 	}
-	if !maintenanceConfig.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
-		HandleAlerting(convertedEndpoint, result, alertingConfig)
+	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
+		HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 		// Sync the failure/success counters back to the external endpoint
 		ee.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 		ee.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow

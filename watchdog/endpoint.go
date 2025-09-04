@@ -4,19 +4,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/TwiN/gatus/v5/alerting"
-	"github.com/TwiN/gatus/v5/config/connectivity"
+	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
 )
 
 // monitorEndpoint a single endpoint in a loop
-func monitorEndpoint(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string, ctx context.Context) {
+func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
 	// Run it immediately on start
-	executeEndpoint(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
+	executeEndpoint(ep, cfg, extraLabels)
 	// Loop for the next executions
 	ticker := time.NewTicker(ep.Interval)
 	defer ticker.Stop()
@@ -26,7 +24,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, alertingConfig *alerting.Config, mai
 			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-ticker.C:
-			executeEndpoint(ep, alertingConfig, maintenanceConfig, connectivityConfig, disableMonitoringLock, enabledMetrics, extraLabels)
+			executeEndpoint(ep, cfg, extraLabels)
 		}
 	}
 	// Just in case somebody wandered all the way to here and wonders, "what about ExternalEndpoints?"
@@ -34,21 +32,21 @@ func monitorEndpoint(ep *endpoint.Endpoint, alertingConfig *alerting.Config, mai
 	// periodically like they are for normal endpoints.
 }
 
-func executeEndpoint(ep *endpoint.Endpoint, alertingConfig *alerting.Config, maintenanceConfig *maintenance.Config, connectivityConfig *connectivity.Config, disableMonitoringLock bool, enabledMetrics bool, extraLabels []string) {
-	if !disableMonitoringLock {
+func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []string) {
+	if !cfg.DisableMonitoringLock {
 		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
 		// could cause performance issues and return inaccurate results
 		monitoringMutex.Lock()
 		defer monitoringMutex.Unlock()
 	}
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
-	if connectivityConfig != nil && connectivityConfig.Checker != nil && !connectivityConfig.Checker.IsConnected() {
+	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
 		logr.Infof("[watchdog.executeEndpoint] No connectivity; skipping execution")
 		return
 	}
 	logr.Debugf("[watchdog.executeEndpoint] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
-	if enabledMetrics {
+	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
@@ -64,9 +62,9 @@ func executeEndpoint(ep *endpoint.Endpoint, alertingConfig *alerting.Config, mai
 			inEndpointMaintenanceWindow = true
 		}
 	}
-	if !maintenanceConfig.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
+	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
-		HandleAlerting(ep, result, alertingConfig)
+		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
 		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")
 	}

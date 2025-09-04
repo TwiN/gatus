@@ -25,7 +25,7 @@ func Monitor(cfg *config.Config) {
 		if endpoint.IsEnabled() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(222 * time.Millisecond)
-			go monitorEndpoint(endpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, extraLabels, ctx)
+			go monitorEndpoint(endpoint, cfg, extraLabels, ctx)
 		}
 	}
 	for _, externalEndpoint := range cfg.ExternalEndpoints {
@@ -33,13 +33,13 @@ func Monitor(cfg *config.Config) {
 		// If the external endpoint does not use heartbeat, then it does not need to be monitored periodically, because
 		// alerting is checked every time an external endpoint is pushed to Gatus, unlike normal endpoints.
 		if externalEndpoint.IsEnabled() && externalEndpoint.Heartbeat.Interval > 0 {
-			go monitorExternalEndpointHeartbeat(externalEndpoint, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, ctx, extraLabels)
+			go monitorExternalEndpointHeartbeat(externalEndpoint, cfg, extraLabels, ctx)
 		}
 	}
 	for _, suite := range cfg.Suites {
 		if suite.IsEnabled() {
 			time.Sleep(222 * time.Millisecond)
-			go monitorSuite(suite, cfg.Alerting, cfg.Maintenance, cfg.Connectivity, cfg.DisableMonitoringLock, cfg.Metrics, extraLabels, ctx)
+			go monitorSuite(suite, cfg, extraLabels, ctx)
 		}
 	}
 }
