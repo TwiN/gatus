@@ -29,13 +29,15 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 	}
 }
 
-// executeSuite executes a suite with proper locking
+// executeSuite executes a suite with proper concurrency control
 func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
-	if !cfg.DisableMonitoringLock {
-		// Use the same monitoring lock to prevent concurrent executions
-		monitoringMutex.Lock()
-		defer monitoringMutex.Unlock()
+	// Acquire semaphore to limit concurrent suite monitoring
+	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
+		// Only fails if context is cancelled (during shutdown)
+		logr.Debugf("[watchdog.executeSuite] Context cancelled, skipping execution: %s", err.Error())
+		return
 	}
+	defer monitoringSemaphore.Release(1)
 	// Check connectivity if configured
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
 		logr.Infof("[watchdog.executeSuite] No connectivity; skipping suite=%s", s.Name)

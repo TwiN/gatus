@@ -68,7 +68,13 @@ type Config struct {
 	// DisableMonitoringLock Whether to disable the monitoring lock
 	// The monitoring lock is what prevents multiple endpoints from being processed at the same time.
 	// Disabling this may lead to inaccurate response times
+	//
+	// Deprecated: Use Concurrency instead TODO: REMOVE THIS IN v6.0.0
 	DisableMonitoringLock bool `yaml:"disable-monitoring-lock,omitempty"`
+
+	// Concurrency is the maximum number of endpoints/suites that can be monitored concurrently
+	// Defaults to 5. Set to 0 for unlimited concurrency.
+	Concurrency int `yaml:"concurrency,omitempty"`
 
 	// Security is the configuration for securing access to Gatus
 	Security *security.Config `yaml:"security,omitempty"`
@@ -316,6 +322,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateSuitesConfig(config); err != nil {
 			return nil, err
 		}
+		validateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
@@ -572,4 +579,18 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		}
 	}
 	logr.Infof("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+}
+
+func validateAndSetConcurrencyDefaults(config *Config) {
+	if config.DisableMonitoringLock {
+		config.Concurrency = 0
+		logr.Warn("WARNING: The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
+		logr.Warn("WARNING: Please set 'concurrency: 0' instead")
+		logr.Debug("[config.validateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
+	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
+		config.Concurrency = 5
+		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
+	} else {
+		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)
+	}
 }

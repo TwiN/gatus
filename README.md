@@ -123,7 +123,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
-  - [disable-monitoring-lock](#disable-monitoring-lock)
+  - [Concurrency](#concurrency)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
@@ -248,7 +248,8 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                                   | Required `[]`              |
 | `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                                 | `[]`                       |
 | `security`                   | [Security configuration](#security).                                                                                                     | `{}`                       |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                      | `false`                    |
+| `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                 | `5`                        |
+| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                       | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`                    |
 | `web`                        | Web configuration.                                                                                                                       | `{}`                       |
 | `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
@@ -3017,17 +3018,34 @@ endpoints:
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
 
-### disable-monitoring-lock
-Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time (i.e. parallel execution).
+### Concurrency
+By default, Gatus allows up to 5 endpoints/suites to be monitored concurrently. This provides a balance between performance and resource usage while maintaining accurate response time measurements.
 
-While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted
-by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
+You can configure the concurrency level using the `concurrency` parameter:
 
-There are three main reasons why you might want to disable the monitoring lock:
-- You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so
-technically, if you create 100 endpoints with a 1 seconds interval, Gatus will send 100 requests per second)
-- You have a _lot_ of endpoints to monitor
-- You want to test multiple endpoints at very short intervals (< 5s)
+```yaml
+# Allow 10 endpoints/suites to be monitored concurrently
+concurrency: 10
+
+# Allow unlimited concurrent monitoring
+concurrency: 0
+
+# Use default concurrency (5)
+# concurrency: 5
+```
+
+**Important considerations:**
+- Higher concurrency can improve monitoring performance when you have many endpoints
+- Conditions using the `[RESPONSE_TIME]` placeholder may be less accurate with very high concurrency due to system resource contention
+- Set to `0` for unlimited concurrency (equivalent to the deprecated `disable-monitoring-lock: true`)
+
+**Use cases for higher concurrency:**
+- You have a large number of endpoints to monitor
+- You want to monitor endpoints at very short intervals (< 5s)  
+- You're using Gatus for load testing scenarios
+
+**Legacy configuration:**
+The `disable-monitoring-lock` parameter is deprecated but still supported for backward compatibility. It's equivalent to setting `concurrency: 0`.
 
 
 ### Reloading configuration on the fly

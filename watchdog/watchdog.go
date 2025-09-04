@@ -2,16 +2,16 @@ package watchdog
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"golang.org/x/sync/semaphore"
 )
 
 var (
-	// monitoringMutex is used to prevent multiple endpoint from being evaluated at the same time.
+	// monitoringSemaphore is used to limit the number of endpoints/suites that can be evaluated concurrently.
 	// Without this, conditions using response time may become inaccurate.
-	monitoringMutex sync.Mutex
+	monitoringSemaphore *semaphore.Weighted
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -20,6 +20,14 @@ var (
 // Monitor loops over each endpoint and starts a goroutine to monitorEndpoint each endpoint separately
 func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
+	// Initialize semaphore based on concurrency configuration
+	if cfg.Concurrency == 0 {
+		// Unlimited concurrency - use a very high limit
+		monitoringSemaphore = semaphore.NewWeighted(10000)
+	} else {
+		// Limited concurrency based on configuration
+		monitoringSemaphore = semaphore.NewWeighted(int64(cfg.Concurrency))
+	}
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	for _, endpoint := range cfg.Endpoints {
 		if endpoint.IsEnabled() {

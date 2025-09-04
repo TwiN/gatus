@@ -26,12 +26,13 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 }
 
 func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string) {
-	if !cfg.DisableMonitoringLock {
-		// By placing the lock here, we prevent multiple endpoints from being monitored at the exact same time, which
-		// could cause performance issues and return inaccurate results
-		monitoringMutex.Lock()
-		defer monitoringMutex.Unlock()
+	// Acquire semaphore to limit concurrent external endpoint monitoring
+	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
+		// Only fails if context is cancelled (during shutdown)
+		logr.Debugf("[watchdog.executeExternalEndpointHeartbeat] Context cancelled, skipping execution: %s", err.Error())
+		return
 	}
+	defer monitoringSemaphore.Release(1)
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
 		logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] No connectivity; skipping execution")
