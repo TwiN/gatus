@@ -16,6 +16,7 @@ var (
 	resultConnectedTotal               *prometheus.CounterVec
 	resultCodeTotal                    *prometheus.CounterVec
 	resultCertificateExpirationSeconds *prometheus.GaugeVec
+	resultDomainExpirationSeconds      *prometheus.GaugeVec
 	resultEndpointSuccess              *prometheus.GaugeVec
 
 	// Track if metrics have been initialized to prevent duplicate registration
@@ -44,6 +45,9 @@ func UnregisterPrometheusMetrics() {
 	}
 	if resultCertificateExpirationSeconds != nil {
 		currentRegisterer.Unregister(resultCertificateExpirationSeconds)
+	}
+	if resultDomainExpirationSeconds != nil {
+		currentRegisterer.Unregister(resultDomainExpirationSeconds)
 	}
 	if resultEndpointSuccess != nil {
 		currentRegisterer.Unregister(resultEndpointSuccess)
@@ -102,6 +106,13 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	reg.MustRegister(resultCertificateExpirationSeconds)
 
+	resultDomainExpirationSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "results_domain_expiration_seconds",
+		Help:      "Number of seconds until the domain expires",
+	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
+	reg.MustRegister(resultDomainExpirationSeconds)
+
 	resultEndpointSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      "results_endpoint_success",
@@ -139,6 +150,9 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, e
 	}
 	if result.CertificateExpiration != 0 {
 		resultCertificateExpirationSeconds.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(result.CertificateExpiration.Seconds())
+	}
+	if result.DomainExpiration != 0 {
+		resultDomainExpirationSeconds.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(result.DomainExpiration.Seconds())
 	}
 	if result.Success {
 		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(1)
