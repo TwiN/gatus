@@ -317,6 +317,7 @@ You may use the following placeholders in the body (`endpoints[].body`):
 - `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
 - `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N (max: 8192))
 
+> 💡 Since you can use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`), you have to escape URLs containing `$` with `$$` or use an urlencoded representation.
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
