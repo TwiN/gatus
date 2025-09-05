@@ -1296,8 +1296,7 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 			return err
 		}
 	}
-
-	// InsertEndpointResult suite result
+	// Insert suite result
 	var suiteResultID int64
 	err = tx.QueryRow(`
 		INSERT INTO suite_results (suite_id, success, errors, duration, timestamp)
@@ -1313,7 +1312,6 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 	if err != nil {
 		return err
 	}
-
 	// For each endpoint result in the suite, we need to store them
 	for _, epResult := range result.EndpointResults {
 		// Create a temporary endpoint object for storage
@@ -1321,7 +1319,6 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 			Name:  epResult.Name,
 			Group: su.Group,
 		}
-
 		// Get or create the endpoint (without suite linkage in endpoints table)
 		epID, err := s.getEndpointID(tx, ep)
 		if err != nil {
@@ -1336,14 +1333,12 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 				continue
 			}
 		}
-
 		// InsertEndpointResult the endpoint result with suite linkage
 		err = s.insertEndpointResultWithSuiteID(tx, epID, epResult, &suiteResultID)
 		if err != nil {
 			logr.Errorf("[sql.InsertSuiteResult] Failed to insert endpoint result for %s: %s", epResult.Name, err.Error())
 		}
 	}
-
 	// Clean up old suite results
 	numberOfResults, err := s.getNumberOfSuiteResultsByID(tx, suiteID)
 	if err != nil {
@@ -1355,7 +1350,6 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 			}
 		}
 	}
-
 	if err = tx.Commit(); err != nil {
 		return err
 	}
@@ -1376,7 +1370,6 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 		rowsAffected, _ := result.RowsAffected()
 		return int(rowsAffected)
 	}
-
 	args := make([]interface{}, 0, len(keys))
 	query := "DELETE FROM suites WHERE suite_key NOT IN ("
 	for i := range keys {
@@ -1387,7 +1380,6 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 		args = append(args, keys[i])
 	}
 	query += ")"
-
 	// First, let's see what we're about to delete
 	checkQuery := "SELECT suite_key FROM suites WHERE suite_key NOT IN ("
 	for i := range keys {
@@ -1397,7 +1389,6 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 		checkQuery += fmt.Sprintf("$%d", i+1)
 	}
 	checkQuery += ")"
-
 	rows, err := s.db.Query(checkQuery, args...)
 	if err == nil {
 		defer rows.Close()
@@ -1412,7 +1403,6 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 			logr.Infof("[sql.DeleteAllSuiteStatusesNotInKeys] Deleting suites with keys: %v", deletedKeys)
 		}
 	}
-
 	result, err := s.db.Exec(query, args...)
 	if err != nil {
 		logr.Errorf("[sql.DeleteAllSuiteStatusesNotInKeys] Failed to delete suites: %s", err.Error())
@@ -1471,13 +1461,11 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		return nil, err
 	}
 	defer rows.Close()
-
 	type suiteResultData struct {
 		result *suite.Result
 		id     int64
 	}
 	var resultsData []suiteResultData
-
 	for rows.Next() {
 		result := &suite.Result{
 			EndpointResults: []*endpoint.Result{},
@@ -1485,18 +1473,15 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		var suiteResultID int64
 		var joinedErrors string
 		var nanoseconds int64
-
 		err = rows.Scan(&suiteResultID, &result.Success, &joinedErrors, &nanoseconds, &result.Timestamp)
 		if err != nil {
 			logr.Errorf("[sql.getSuiteResults] Failed to scan suite result: %s", err.Error())
 			continue
 		}
-
 		result.Duration = time.Duration(nanoseconds)
 		if len(joinedErrors) > 0 {
 			result.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
-
 		// Store both result and ID together
 		resultsData = append(resultsData, suiteResultData{
 			result: result,
@@ -1510,12 +1495,10 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		resultsData[i], resultsData[opp] = resultsData[opp], resultsData[i]
 	}
 	logr.Debugf("[sql.getSuiteResults] Processing %d suite results", len(resultsData))
-
 	// Fetch endpoint results for each suite result
 	for _, data := range resultsData {
 		result := data.result
 		resultID := data.id
-
 		// Query endpoint results for this suite result
 		epRows, err := tx.Query(`
 			SELECT 
@@ -1533,7 +1516,6 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			logr.Errorf("[sql.getSuiteResults] Failed to get endpoint results for suite_result_id=%d: %s", resultID, err.Error())
 			continue
 		}
-
 		epCount := 0
 		for epRows.Next() {
 			epCount++
@@ -1542,24 +1524,20 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			var joinedErrors string
 			var duration int64
 			var timestamp time.Time
-
 			err = epRows.Scan(&name, &success, &joinedErrors, &duration, &timestamp)
 			if err != nil {
 				logr.Errorf("[sql.getSuiteResults] Failed to scan endpoint result: %s", err.Error())
 				continue
 			}
-
 			epResult := &endpoint.Result{
 				Name:      name,
 				Success:   success,
 				Duration:  time.Duration(duration),
 				Timestamp: timestamp,
 			}
-
 			if len(joinedErrors) > 0 {
 				epResult.Errors = strings.Split(joinedErrors, arraySeparator)
 			}
-
 			result.EndpointResults = append(result.EndpointResults, epResult)
 		}
 		epRows.Close()
@@ -1567,13 +1545,11 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			logr.Debugf("[sql.getSuiteResults] Found %d endpoint results for suite_result_id=%d", epCount, resultID)
 		}
 	}
-
 	// Extract just the results for return
 	var results []*suite.Result
 	for _, data := range resultsData {
 		results = append(results, data.result)
 	}
-
 	return results, nil
 }
 

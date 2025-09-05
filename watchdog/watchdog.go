@@ -8,6 +8,12 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const (
+	// UnlimitedConcurrencyWeight is the semaphore weight used when concurrency is set to 0 (unlimited).
+	// This provides a practical upper limit while allowing very high concurrency for large deployments.
+	UnlimitedConcurrencyWeight = 10000
+)
+
 var (
 	// monitoringSemaphore is used to limit the number of endpoints/suites that can be evaluated concurrently.
 	// Without this, conditions using response time may become inaccurate.
@@ -23,7 +29,7 @@ func Monitor(cfg *config.Config) {
 	// Initialize semaphore based on concurrency configuration
 	if cfg.Concurrency == 0 {
 		// Unlimited concurrency - use a very high limit
-		monitoringSemaphore = semaphore.NewWeighted(10000)
+		monitoringSemaphore = semaphore.NewWeighted(UnlimitedConcurrencyWeight)
 	} else {
 		// Limited concurrency based on configuration
 		monitoringSemaphore = semaphore.NewWeighted(int64(cfg.Concurrency))
