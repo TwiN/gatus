@@ -1444,7 +1444,6 @@ func (s *Store) insertSuite(tx *sql.Tx, su *suite.Suite) (int64, error) {
 
 // getSuiteResults retrieves paginated suite results
 func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) ([]*suite.Result, error) {
-	logr.Infof("[sql.getSuiteResults] Fetching results for suite_id=%d, page=%d, pageSize=%d", suiteID, page, pageSize)
 	rows, err := tx.Query(`
 		SELECT suite_result_id, success, errors, duration, timestamp
 		FROM suite_results
@@ -1494,7 +1493,6 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		opp := len(resultsData) - 1 - i
 		resultsData[i], resultsData[opp] = resultsData[opp], resultsData[i]
 	}
-	logr.Debugf("[sql.getSuiteResults] Processing %d suite results", len(resultsData))
 	// Fetch endpoint results for each suite result
 	for _, data := range resultsData {
 		result := data.result
