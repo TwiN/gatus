@@ -2,6 +2,7 @@ package memory
 
 import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
@@ -14,19 +15,46 @@ func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatu
 		Key:    ss.Key,
 		Uptime: endpoint.NewUptime(),
 	}
-	numberOfResults := len(ss.Results)
-	resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
-	if resultsStart < 0 || resultsEnd < 0 {
-		shallowCopy.Results = []*endpoint.Result{}
+	if params == nil || (params.ResultsPage == 0 && params.ResultsPageSize == 0 && params.EventsPage == 0 && params.EventsPageSize == 0) {
+		shallowCopy.Results = ss.Results
+		shallowCopy.Events = ss.Events
 	} else {
-		shallowCopy.Results = ss.Results[resultsStart:resultsEnd]
+		numberOfResults := len(ss.Results)
+		resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
+		if resultsStart < 0 || resultsEnd < 0 {
+			shallowCopy.Results = []*endpoint.Result{}
+		} else {
+			shallowCopy.Results = ss.Results[resultsStart:resultsEnd]
+		}
+		numberOfEvents := len(ss.Events)
+		eventsStart, eventsEnd := getStartAndEndIndex(numberOfEvents, params.EventsPage, params.EventsPageSize)
+		if eventsStart < 0 || eventsEnd < 0 {
+			shallowCopy.Events = []*endpoint.Event{}
+		} else {
+			shallowCopy.Events = ss.Events[eventsStart:eventsEnd]
+		}
 	}
-	numberOfEvents := len(ss.Events)
-	eventsStart, eventsEnd := getStartAndEndIndex(numberOfEvents, params.EventsPage, params.EventsPageSize)
-	if eventsStart < 0 || eventsEnd < 0 {
-		shallowCopy.Events = []*endpoint.Event{}
+	return shallowCopy
+}
+
+// ShallowCopySuiteStatus returns a shallow copy of a suite Status with only the results
+// within the range defined by the page and pageSize parameters
+func ShallowCopySuiteStatus(ss *suite.Status, params *paging.SuiteStatusParams) *suite.Status {
+	shallowCopy := &suite.Status{
+		Name:  ss.Name,
+		Group: ss.Group,
+		Key:   ss.Key,
+	}
+	if params == nil || (params.Page == 0 && params.PageSize == 0) {
+		shallowCopy.Results = ss.Results
 	} else {
-		shallowCopy.Events = ss.Events[eventsStart:eventsEnd]
+		numberOfResults := len(ss.Results)
+		resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.Page, params.PageSize)
+		if resultsStart < 0 || resultsEnd < 0 {
+			shallowCopy.Results = []*suite.Result{}
+		} else {
+			shallowCopy.Results = ss.Results[resultsStart:resultsEnd]
+		}
 	}
 	return shallowCopy
 }

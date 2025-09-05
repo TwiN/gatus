@@ -755,7 +755,7 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions)
+			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, nil)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
 			}
@@ -769,7 +769,7 @@ func TestCondition_evaluate(t *testing.T) {
 func TestCondition_evaluateWithInvalidOperator(t *testing.T) {
 	condition := Condition("[STATUS] ? 201")
 	result := &Result{HTTPStatus: 201}
-	condition.evaluate(result, false)
+	condition.evaluate(result, false, nil)
 	if result.Success {
 		t.Error("condition was invalid, result should've been a failure")
 	}
