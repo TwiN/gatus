@@ -23,7 +23,7 @@ var (
 	cancelFunc context.CancelFunc
 )
 
-// Monitor loops over each endpoint and starts a goroutine to monitorEndpoint each endpoint separately
+// Monitor loops over each endpoint and starts a goroutine to monitor each endpoint separately
 func Monitor(cfg *config.Config) {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	// Initialize semaphore based on concurrency configuration
