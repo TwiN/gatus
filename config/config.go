@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/config/suite"
@@ -322,6 +323,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateSuitesConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateUniqueKeys(config); err != nil {
+			return nil, err
+		}
 		validateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
@@ -419,7 +423,7 @@ func validateEndpointsConfig(config *Config) error {
 	logr.Infof("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
-		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Name)
+		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
 		if endpointKey := ee.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid external endpoint %s: name and group combination must be unique", ee.Key())
 		} else {
@@ -442,29 +446,66 @@ func validateSuitesConfig(config *Config) error {
 	for _, suite := range config.Suites {
 		// Check for duplicate suite names
 		if suiteNames[suite.Name] {
-			return fmt.Errorf("duplicate suite name: %s", suite.Name)
+			return fmt.Errorf("duplicate suite name: %s", suite.Key())
 		}
 		suiteNames[suite.Name] = true
 		// Validate the suite configuration
 		if err := suite.ValidateAndSetDefaults(); err != nil {
-			return fmt.Errorf("invalid suite '%s': %w", suite.Name, err)
+			return fmt.Errorf("invalid suite '%s': %w", suite.Key(), err)
 		}
 		// Check that endpoints referenced in Store mappings use valid placeholders
-		for _, endpoint := range suite.Endpoints {
-			if endpoint.Store != nil {
-				for contextKey, placeholder := range endpoint.Store {
+		for _, suiteEndpoint := range suite.Endpoints {
+			if suiteEndpoint.Store != nil {
+				for contextKey, placeholder := range suiteEndpoint.Store {
 					// Basic validation that the context key is a valid identifier
 					if len(contextKey) == 0 {
-						return fmt.Errorf("suite '%s' endpoint '%s' has empty context key in store mapping", suite.Name, endpoint.Name)
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty context key in store mapping", suite.Key(), suiteEndpoint.Key())
 					}
 					if len(placeholder) == 0 {
-						return fmt.Errorf("suite '%s' endpoint '%s' has empty placeholder in store mapping for key '%s'", suite.Name, endpoint.Name, contextKey)
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty placeholder in store mapping for key '%s'", suite.Key(), suiteEndpoint.Key(), contextKey)
 					}
 				}
 			}
 		}
 	}
 	logr.Infof("[config.validateSuitesConfig] Validated %d suite(s)", len(config.Suites))
+	return nil
+}
+
+func validateUniqueKeys(config *Config) error {
+	keyMap := make(map[string]string) // key -> description for error messages
+	// Check all endpoints
+	for _, ep := range config.Endpoints {
+		epKey := ep.Key()
+		if existing, exists := keyMap[epKey]; exists {
+			return fmt.Errorf("duplicate key '%s': endpoint '%s' conflicts with %s", epKey, ep.Key(), existing)
+		}
+		keyMap[epKey] = fmt.Sprintf("endpoint '%s'", ep.Key())
+	}
+	// Check all external endpoints
+	for _, ee := range config.ExternalEndpoints {
+		eeKey := ee.Key()
+		if existing, exists := keyMap[eeKey]; exists {
+			return fmt.Errorf("duplicate key '%s': external endpoint '%s' conflicts with %s", eeKey, ee.Key(), existing)
+		}
+		keyMap[eeKey] = fmt.Sprintf("external endpoint '%s'", ee.Key())
+	}
+	// Check all suites
+	for _, suite := range config.Suites {
+		suiteKey := suite.Key()
+		if existing, exists := keyMap[suiteKey]; exists {
+			return fmt.Errorf("duplicate key '%s': suite '%s' conflicts with %s", suiteKey, suite.Key(), existing)
+		}
+		keyMap[suiteKey] = fmt.Sprintf("suite '%s'", suite.Key())
+		// Check endpoints within suites (they generate keys using suite group + endpoint name)
+		for _, ep := range suite.Endpoints {
+			epKey := key.ConvertGroupAndNameToKey(suite.Group, ep.Name)
+			if existing, exists := keyMap[epKey]; exists {
+				return fmt.Errorf("duplicate key '%s': endpoint '%s' in suite '%s' conflicts with %s", epKey, epKey, suite.Key(), existing)
+			}
+			keyMap[epKey] = fmt.Sprintf("endpoint '%s' in suite '%s'", epKey, suite.Key())
+		}
+	}
 	return nil
 }
 
