@@ -27,7 +27,7 @@
             <RotateCcw class="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <div>
               <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Always Run</p>
-              <p class="text-xs text-blue-600 dark:text-blue-400">This endpoint is configured to executes even after failures</p>
+              <p class="text-xs text-blue-600 dark:text-blue-400">This endpoint is configured to execute even after failures</p>
             </div>
           </div>
         </div>
