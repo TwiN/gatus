@@ -37,6 +37,9 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
+
+	// DefaultConcurrency is the default number of endpoints/suites that can be monitored concurrently
+	DefaultConcurrency = 3
 )
 
 var (
@@ -74,7 +77,7 @@ type Config struct {
 	DisableMonitoringLock bool `yaml:"disable-monitoring-lock,omitempty"`
 
 	// Concurrency is the maximum number of endpoints/suites that can be monitored concurrently
-	// Defaults to 5. Set to 0 for unlimited concurrency.
+	// Defaults to DefaultConcurrency. Set to 0 for unlimited concurrency.
 	Concurrency int `yaml:"concurrency,omitempty"`
 
 	// Security is the configuration for securing access to Gatus
@@ -629,7 +632,7 @@ func validateAndSetConcurrencyDefaults(config *Config) {
 		logr.Warn("WARNING: Please set 'concurrency: 0' instead")
 		logr.Debug("[config.validateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
 	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
-		config.Concurrency = 5
+		config.Concurrency = DefaultConcurrency
 		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
 	} else {
 		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)

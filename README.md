@@ -248,8 +248,8 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                                   | Required `[]`              |
 | `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                                 | `[]`                       |
 | `security`                   | [Security configuration](#security).                                                                                                     | `{}`                       |
-| `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                 | `5`                        |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                       | `false`                    |
+| `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                   | `3`                        |
+| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                        | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`                    |
 | `web`                        | Web configuration.                                                                                                                       | `{}`                       |
 | `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
@@ -3030,8 +3030,8 @@ concurrency: 10
 # Allow unlimited concurrent monitoring
 concurrency: 0
 
-# Use default concurrency (5)
-# concurrency: 5
+# Use default concurrency (3)
+# concurrency: 3
 ```
 
 **Important considerations:**
