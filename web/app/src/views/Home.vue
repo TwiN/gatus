@@ -256,7 +256,7 @@ const filteredEndpoints = computed(() => {
 })
 
 const filteredSuites = computed(() => {
-  let filtered = [...suiteStatuses.value]
+  let filtered = [...(suiteStatuses.value || [])]
   
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
@@ -434,9 +434,13 @@ const fetchData = async () => {
     })
     if (suiteResponse.status === 200) {
       const suiteData = await suiteResponse.json()
-      suiteStatuses.value = suiteData
+      suiteStatuses.value = suiteData || []
     } else {
       console.error('[Home][fetchData] Error fetching suites:', await suiteResponse.text())
+      // Ensure suiteStatuses stays as empty array instead of becoming null/undefined
+      if (!suiteStatuses.value) {
+        suiteStatuses.value = []
+      }
     }
   } catch (error) {
     console.error('[Home][fetchData] Error:', error)
@@ -449,6 +453,7 @@ const fetchData = async () => {
 
 const refreshData = () => {
   endpointStatuses.value = [];
+  suiteStatuses.value = [];
   fetchData()
 }
 
