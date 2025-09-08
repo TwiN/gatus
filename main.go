@@ -103,6 +103,15 @@ func initializeStorage(cfg *config.Config) {
 	if err != nil {
 		panic(err)
 	}
+	// Remove all SuiteStatuses that represent suites which no longer exist in the configuration
+	var suiteKeys []string
+	for _, suite := range cfg.Suites {
+		suiteKeys = append(suiteKeys, suite.Key())
+	}
+	numberOfSuiteStatusesDeleted := store.Get().DeleteAllSuiteStatusesNotInKeys(suiteKeys)
+	if numberOfSuiteStatusesDeleted > 0 {
+		logr.Infof("[main.initializeStorage] Deleted %d suite statuses because their matching suites no longer existed", numberOfSuiteStatusesDeleted)
+	}
 	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
 	for _, ep := range cfg.Endpoints {
@@ -111,6 +120,13 @@ func initializeStorage(cfg *config.Config) {
 	for _, ee := range cfg.ExternalEndpoints {
 		keys = append(keys, ee.Key())
 	}
+	// Also add endpoints that are part of suites
+	for _, suite := range cfg.Suites {
+		for _, ep := range suite.Endpoints {
+			keys = append(keys, ep.Key())
+		}
+	}
+	logr.Infof("[main.initializeStorage] Total endpoint keys to preserve: %d", len(keys))
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
 		logr.Infof("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)

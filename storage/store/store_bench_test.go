@@ -56,9 +56,9 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 			for i := 0; i < numberOfEndpointsToCreate; i++ {
 				ep := testEndpoint
 				ep.Name = "endpoint" + strconv.Itoa(i)
-				// Insert 20 results for each endpoint
+				// InsertEndpointResult 20 results for each endpoint
 				for j := 0; j < 20; j++ {
-					scenario.Store.Insert(&ep, &testSuccessfulResult)
+					scenario.Store.InsertEndpointResult(&ep, &testSuccessfulResult)
 				}
 			}
 			// Run the scenarios
@@ -131,7 +131,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 							result = testSuccessfulResult
 						}
 						result.Timestamp = time.Now()
-						scenario.Store.Insert(&testEndpoint, &result)
+						scenario.Store.InsertEndpointResult(&testEndpoint, &result)
 						n++
 					}
 				})
@@ -144,7 +144,7 @@ func BenchmarkStore_Insert(b *testing.B) {
 						result = testSuccessfulResult
 					}
 					result.Timestamp = time.Now()
-					scenario.Store.Insert(&testEndpoint, &result)
+					scenario.Store.InsertEndpointResult(&testEndpoint, &result)
 				}
 			}
 			b.ReportAllocs()
@@ -192,8 +192,8 @@ func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
 	}
 	for _, scenario := range scenarios {
 		for i := 0; i < 50; i++ {
-			scenario.Store.Insert(&testEndpoint, &testSuccessfulResult)
-			scenario.Store.Insert(&testEndpoint, &testUnsuccessfulResult)
+			scenario.Store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
+			scenario.Store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 		}
 		b.Run(scenario.Name, func(b *testing.B) {
 			if scenario.Parallel {

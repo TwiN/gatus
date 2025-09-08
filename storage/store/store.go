@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
@@ -19,11 +20,17 @@ type Store interface {
 	// with a subset of endpoint.Result defined by the page and pageSize parameters
 	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
 
+	// GetAllSuiteStatuses returns all monitored suite statuses
+	GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.Status, error)
+
 	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
 	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetEndpointStatusByKey returns the endpoint status for a given key
 	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
+
+	// GetSuiteStatusByKey returns the suite status for a given key
+	GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams) (*suite.Status, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -34,13 +41,19 @@ type Store interface {
 	// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
-	// Insert adds the observed result for the specified endpoint into the store
-	Insert(ep *endpoint.Endpoint, result *endpoint.Result) error
+	// InsertEndpointResult adds the observed result for the specified endpoint into the store
+	InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error
+
+	// InsertSuiteResult adds the observed result for the specified suite into the store
+	InsertSuiteResult(s *suite.Suite, result *suite.Result) error
 
 	// DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 	//
 	// Used to delete endpoints that have been persisted but are no longer part of the configured endpoints
 	DeleteAllEndpointStatusesNotInKeys(keys []string) int
+
+	// DeleteAllSuiteStatusesNotInKeys removes all suite statuses that are not within the keys provided
+	DeleteAllSuiteStatusesNotInKeys(keys []string) int
 
 	// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 	GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error)
