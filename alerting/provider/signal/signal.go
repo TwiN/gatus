@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -30,6 +31,9 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	if len(cfg.ApiURL) == 0 {
 		return ErrApiURLNotSet
+	}
+	if !strings.HasSuffix(cfg.ApiURL, "/v2/send") {
+		cfg.ApiURL = cfg.ApiURL + "/v2/send"
 	}
 	if len(cfg.Number) == 0 {
 		return ErrNumberNotSet
@@ -95,7 +99,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			return err
 		}
 		buffer := bytes.NewBuffer(body)
-		request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v2/send", cfg.ApiURL), buffer)
+		request, err := http.NewRequest(http.MethodPost, cfg.ApiURL, buffer)
 		if err != nil {
 			return err
 		}
