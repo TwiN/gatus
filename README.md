@@ -1369,13 +1369,11 @@ Here's an example of what the notifications look like:
 
 #### Configuring Line alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 | Parameter                            | Description                                                                                | Default       |
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.line`                      | Configuration for alerts of type `line`                                                    | `{}`          |
 | `alerting.line.channel-access-token` | Line Messaging API channel access token                                                    | Required `""` |
-| `alerting.line.user-ids`             | List of Line user IDs to send messages to                                                  | Required `[]` |
+| `alerting.line.user-ids`             | List of Line user IDs to send messages to (this can be user ids, room ids or group ids)    | Required `[]` |
 | `alerting.line.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.line.overrides`            | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.line.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
@@ -1386,7 +1384,7 @@ alerting:
   line:
     channel-access-token: "YOUR_CHANNEL_ACCESS_TOKEN"
     user-ids:
-      - "U1234567890abcdef"
+      - "U1234567890abcdef" # This can be a group id, room id or user id
       - "U2345678901bcdefg"
 
 endpoints:
