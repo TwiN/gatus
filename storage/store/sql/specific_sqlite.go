@@ -1,7 +1,34 @@
 package sql
 
 func (s *Store) createSQLiteSchema() error {
+	// Create suite tables
 	_, err := s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS suites (
+			suite_id    INTEGER PRIMARY KEY,
+			suite_key   TEXT UNIQUE,
+			suite_name  TEXT NOT NULL,
+			suite_group TEXT NOT NULL,
+			UNIQUE(suite_name, suite_group)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS suite_results (
+			suite_result_id  INTEGER PRIMARY KEY,
+			suite_id         INTEGER   NOT NULL REFERENCES suites(suite_id) ON DELETE CASCADE,
+			success          INTEGER   NOT NULL,
+			errors           TEXT      NOT NULL,
+			duration         INTEGER   NOT NULL,
+			timestamp        TIMESTAMP NOT NULL
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	// Create endpoint tables
+	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS endpoints (
 			endpoint_id    INTEGER PRIMARY KEY,
 			endpoint_key   TEXT UNIQUE,
@@ -78,32 +105,6 @@ func (s *Store) createSQLiteSchema() error {
 		    resolve_key		              TEXT    NOT NULL,
 			number_of_successes_in_a_row  INTEGER NOT NULL,
 			UNIQUE(endpoint_id, configuration_checksum)
-		)
-	`)
-	if err != nil {
-		return err
-	}
-	// Create suite tables
-	_, err = s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS suites (
-			suite_id    INTEGER PRIMARY KEY,
-			suite_key   TEXT UNIQUE,
-			suite_name  TEXT NOT NULL,
-			suite_group TEXT NOT NULL,
-			UNIQUE(suite_name, suite_group)
-		)
-	`)
-	if err != nil {
-		return err
-	}
-	_, err = s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS suite_results (
-			suite_result_id  INTEGER PRIMARY KEY,
-			suite_id         INTEGER   NOT NULL REFERENCES suites(suite_id) ON DELETE CASCADE,
-			success          INTEGER   NOT NULL,
-			errors           TEXT      NOT NULL,
-			duration         INTEGER   NOT NULL,
-			timestamp        TIMESTAMP NOT NULL
 		)
 	`)
 	if err != nil {
