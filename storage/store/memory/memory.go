@@ -43,6 +43,8 @@ func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error)
 // GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
 func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
 	allStatuses := s.endpointCache.GetAll()
 	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(allStatuses))
 	for _, v := range allStatuses {
@@ -79,6 +81,8 @@ func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
 func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
@@ -102,6 +106,8 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
@@ -131,6 +137,8 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
@@ -159,6 +167,8 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	if from.After(to) {
 		return nil, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return nil, common.ErrEndpointNotFound
