@@ -20,6 +20,7 @@ require (
 	github.com/miekg/dns v1.1.68
 	github.com/prometheus-community/pro-bing v0.6.1
 	github.com/prometheus/client_golang v1.23.0
+	github.com/registrobr/rdap v1.1.8
 	github.com/valyala/fasthttp v1.64.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.40.0

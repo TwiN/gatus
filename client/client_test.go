@@ -39,6 +39,20 @@ func TestGetHTTPClient(t *testing.T) {
 	}
 }
 
+func TestRdapQuery(t *testing.T) {
+	if _, err := rdapQuery("1.1.1.1"); err == nil {
+		t.Error("expected an error due to the invalid domain type")
+	}
+	if _, err := rdapQuery("eurid.eu"); err == nil {
+		t.Error("expected an error as there is no RDAP support currently in .eu")
+	}
+	if response, err := rdapQuery("example.com"); err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	} else if response.ExpirationDate.Unix() <= 0 {
+		t.Error("expected to have a valid expiry date, got", response.ExpirationDate.Unix())
+	}
+}
+
 func TestGetDomainExpiration(t *testing.T) {
 	t.Parallel()
 	if domainExpiration, err := GetDomainExpiration("gatus.io"); err != nil {
