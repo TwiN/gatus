@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -141,10 +142,39 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
-	connection, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return
+
+	var connection net.Conn
+	var dnsResolver *DNSResolverConfig
+
+	if config.HasCustomDNSResolver() {
+		dnsResolver, err = config.parseDNSResolver()
+
+		if err != nil {
+			// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
+			// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
+			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+		} else {
+			dialer := &net.Dialer{
+				Resolver: &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+						d := net.Dialer{}
+						return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+					},
+				},
+			}
+			connection, err = dialer.DialContext(context.Background(), "tcp", address)
+			if err != nil {
+				return
+			}
+		}
+	} else {
+		connection, err = net.DialTimeout("tcp", address, config.Timeout)
+		if err != nil {
+			return
+		}
 	}
+
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
