@@ -119,6 +119,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
 		address  string
 		insecure bool
+		dnsresolver string
 	}
 	tests := []struct {
 		name          string
@@ -150,11 +151,20 @@ func TestCanPerformStartTLS(t *testing.T) {
 			wantConnected: true,
 			wantErr:       false,
 		},
+		{
+			name: "dns resolver",
+			args: args{
+				address: "smtp.gmail.com:587",
+				dnsresolver: "tcp://1.1.1.1:53",
+			},
+			wantConnected: true,
+			wantErr:       false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second, DNSResolver: tt.args.dnsresolver})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
