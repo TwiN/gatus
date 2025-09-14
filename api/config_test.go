@@ -16,6 +16,7 @@ func TestConfigHandler_ServeHTTP(t *testing.T) {
 			RedirectURL:     "http://localhost:80/authorization-code/callback",
 			Scopes:          []string{"openid"},
 			AllowedSubjects: []string{"user1@example.com"},
+			LoginRedirect:   true,
 		},
 	}
 	handler := ConfigHandler{securityConfig: securityConfig}
@@ -40,7 +41,7 @@ func TestConfigHandler_ServeHTTP(t *testing.T) {
 	if err != nil {
 		t.Error("expected err to be nil, but was", err)
 	}
-	if string(body) != `{"announcements":[],"authenticated":false,"oidc":true}` {
-		t.Error("expected body to be `{\"announcements\":[],\"authenticated\":false,\"oidc\":true}`, but was", string(body))
+	if string(body) != `{"announcements":[],"authenticated":false,"loginRedirect":true,"oidc":true}` {
+		t.Error("expected body to be `{\"announcements\":[],\"authenticated\":false,\"loginRedirect\":true,\"oidc\":true}`, but was", string(body))
 	}
 }
