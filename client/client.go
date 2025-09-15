@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -410,6 +411,17 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		url = fmt.Sprintf("%s:%d", url, dnsPort)
 	}
 	queryTypeAsUint16 := dns.StringToType[queryType]
+	// Special handling: if this is a PTR query and queryName looks like a plain IP,
+	// convert it to the proper reverse lookup domain automatically.
+	if queryTypeAsUint16 == dns.TypePTR &&
+		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
+		!strings.HasSuffix(queryName, ".ip6.arpa.") {
+		if rev, convErr := reverseNameForIP(queryName); convErr == nil {
+			queryName = rev
+		} else {
+			return false, "", nil, convErr
+		}
+	}
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(queryName, queryTypeAsUint16)
@@ -480,4 +492,28 @@ func rdapQuery(hostname string) (*whois.Response, error) {
 		}
 	}
 	return &response, nil
+}
+
+// helper to reverse IP and add in-addr.arpa. IPv4 and IPv6
+func reverseNameForIP(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP: %s", ipStr)
+	}
+
+	if ipv4 := ip.To4(); ipv4 != nil {
+		parts := strings.Split(ipv4.String(), ".")
+		for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+			parts[i], parts[j] = parts[j], parts[i]
+		}
+		return strings.Join(parts, ".") + ".in-addr.arpa.", nil
+	}
+
+	ip = ip.To16()
+	hexStr := hex.EncodeToString(ip)
+	nibbles := strings.Split(hexStr, "")
+	for i, j := 0, len(nibbles)-1; i < j; i, j = i+1, j-1 {
+		nibbles[i], nibbles[j] = nibbles[j], nibbles[i]
+	}
+	return strings.Join(nibbles, ".") + ".ip6.arpa.", nil
 }
