@@ -407,68 +407,68 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 }
 
 func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
-    if !strings.Contains(url, ":") {
-        url = fmt.Sprintf("%s:%d", url, dnsPort)
-    }
-    queryTypeAsUint16 := dns.StringToType[queryType]
+	if !strings.Contains(url, ":") {
+		url = fmt.Sprintf("%s:%d", url, dnsPort)
+	}
+	queryTypeAsUint16 := dns.StringToType[queryType]
 
-    // 🔑 Special handling: if this is a PTR query and queryName looks like a plain IP,
-    // convert it to the proper reverse lookup domain automatically.
-    if queryTypeAsUint16 == dns.TypePTR &&
-        !strings.HasSuffix(queryName, ".in-addr.arpa.") &&
-        !strings.HasSuffix(queryName, ".ip6.arpa.") {
+	// 🔑 Special handling: if this is a PTR query and queryName looks like a plain IP,
+	// convert it to the proper reverse lookup domain automatically.
+	if queryTypeAsUint16 == dns.TypePTR &&
+		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
+		!strings.HasSuffix(queryName, ".ip6.arpa.") {
 
-        if rev, convErr := reverseNameForIP(queryName); convErr == nil {
-            queryName = rev
-        } else {
-            return false, "", nil, convErr
-        }
-    }
-    c := new(dns.Client)
-    m := new(dns.Msg)
-    m.SetQuestion(queryName, queryTypeAsUint16)
-    r, _, err := c.Exchange(m, url)
-    if err != nil {
-        logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
-        return false, "", nil, err
-    }
-    connected = true
-    dnsRcode = dns.RcodeToString[r.Rcode]
-    for _, rr := range r.Answer {
-        switch rr.Header().Rrtype {
-        case dns.TypeA:
-            if a, ok := rr.(*dns.A); ok {
-                body = []byte(a.A.String())
-            }
-        case dns.TypeAAAA:
-            if aaaa, ok := rr.(*dns.AAAA); ok {
-                body = []byte(aaaa.AAAA.String())
-            }
-        case dns.TypeCNAME:
-            if cname, ok := rr.(*dns.CNAME); ok {
-                body = []byte(cname.Target)
-            }
-        case dns.TypeMX:
-            if mx, ok := rr.(*dns.MX); ok {
-                body = []byte(mx.Mx)
-            }
-        case dns.TypeNS:
-            if ns, ok := rr.(*dns.NS); ok {
-                body = []byte(ns.Ns)
-            }
-        case dns.TypePTR:
-            if ptr, ok := rr.(*dns.PTR); ok {
-                body = []byte(ptr.Ptr)
-            }
-        case dns.TypeSRV:
-            if srv, ok := rr.(*dns.SRV); ok {
-                body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
-            }
-        default:
-            body = []byte("query type is not supported yet")
-        }
-    }
-    return connected, dnsRcode, body, nil
+		if rev, convErr := reverseNameForIP(queryName); convErr == nil {
+			queryName = rev
+		} else {
+			return false, "", nil, convErr
+		}
+	}
+	c := new(dns.Client)
+	m := new(dns.Msg)
+	m.SetQuestion(queryName, queryTypeAsUint16)
+	r, _, err := c.Exchange(m, url)
+	if err != nil {
+		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
+		return false, "", nil, err
+	}
+	connected = true
+	dnsRcode = dns.RcodeToString[r.Rcode]
+	for _, rr := range r.Answer {
+		switch rr.Header().Rrtype {
+		case dns.TypeA:
+			if a, ok := rr.(*dns.A); ok {
+				body = []byte(a.A.String())
+			}
+		case dns.TypeAAAA:
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				body = []byte(aaaa.AAAA.String())
+			}
+		case dns.TypeCNAME:
+			if cname, ok := rr.(*dns.CNAME); ok {
+				body = []byte(cname.Target)
+			}
+		case dns.TypeMX:
+			if mx, ok := rr.(*dns.MX); ok {
+				body = []byte(mx.Mx)
+			}
+		case dns.TypeNS:
+			if ns, ok := rr.(*dns.NS); ok {
+				body = []byte(ns.Ns)
+			}
+		case dns.TypePTR:
+			if ptr, ok := rr.(*dns.PTR); ok {
+				body = []byte(ptr.Ptr)
+			}
+		case dns.TypeSRV:
+			if srv, ok := rr.(*dns.SRV); ok {
+				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
+			}
+		default:
+			body = []byte("query type is not supported yet")
+		}
+	}
+	return connected, dnsRcode, body, nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
@@ -498,24 +498,24 @@ func rdapQuery(hostname string) (*whois.Response, error) {
 
 // helper to reverse IP and add in-addr.arpa. IPv4 and IPv6
 func reverseNameForIP(ipStr string) (string, error) {
-    ip := net.ParseIP(ipStr)
-    if ip == nil {
-        return "", fmt.Errorf("invalid IP: %s", ipStr)
-    }
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP: %s", ipStr)
+	}
 
-    if ipv4 := ip.To4(); ipv4 != nil {
-        parts := strings.Split(ipv4.String(), ".")
-        for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
-            parts[i], parts[j] = parts[j], parts[i]
-        }
-        return strings.Join(parts, ".") + ".in-addr.arpa.", nil
-    }
+	if ipv4 := ip.To4(); ipv4 != nil {
+		parts := strings.Split(ipv4.String(), ".")
+		for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+			parts[i], parts[j] = parts[j], parts[i]
+		}
+		return strings.Join(parts, ".") + ".in-addr.arpa.", nil
+	}
 
-    ip = ip.To16()
-    hexStr := hex.EncodeToString(ip)
-    nibbles := strings.Split(hexStr, "")
-    for i, j := 0, len(nibbles)-1; i < j; i, j = i+1, j-1 {
-        nibbles[i], nibbles[j] = nibbles[j], nibbles[i]
-    }
-    return strings.Join(nibbles, ".") + ".ip6.arpa.", nil
+	ip = ip.To16()
+	hexStr := hex.EncodeToString(ip)
+	nibbles := strings.Split(hexStr, "")
+	for i, j := 0, len(nibbles)-1; i < j; i, j = i+1, j-1 {
+		nibbles[i], nibbles[j] = nibbles[j], nibbles[i]
+	}
+	return strings.Join(nibbles, ".") + ".ip6.arpa.", nil
 }
