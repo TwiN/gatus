@@ -411,8 +411,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		url = fmt.Sprintf("%s:%d", url, dnsPort)
 	}
 	queryTypeAsUint16 := dns.StringToType[queryType]
-
-	// 🔑 Special handling: if this is a PTR query and queryName looks like a plain IP,
+	// Special handling: if this is a PTR query and queryName looks like a plain IP,
 	// convert it to the proper reverse lookup domain automatically.
 	if queryTypeAsUint16 == dns.TypePTR &&
 		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
