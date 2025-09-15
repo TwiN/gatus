@@ -416,7 +416,6 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 	if queryTypeAsUint16 == dns.TypePTR &&
 		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
 		!strings.HasSuffix(queryName, ".ip6.arpa.") {
-
 		if rev, convErr := reverseNameForIP(queryName); convErr == nil {
 			queryName = rev
 		} else {
