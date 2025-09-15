@@ -356,7 +356,7 @@ external-endpoints:
         send-on-resolved: true
 ```
 
-To push the status of an external endpoint, the request would have to look like this:
+To push the status of an external endpoint, you can use [gatus-cli](https://github.com/TwiN/gatus-cli), or send an HTTP request:
 ```
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
