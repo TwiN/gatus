@@ -452,6 +452,16 @@ func TestQueryDNS(t *testing.T) {
 			expectedBody:    "dns.google.",
 		},
 		{
+			name: "test Config with type PTR and forward IP / no in-addr",
+			inputDNS: dns.Config{
+				QueryType: "PTR",
+				QueryName: "1.0.0.1",
+			},
+			inputURL:        "1.1.1.1",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "one.one.one.one.",
+		},
+		{
 			name: "test Config with fake type and retrieve error",
 			inputDNS: dns.Config{
 				QueryType: "B",
