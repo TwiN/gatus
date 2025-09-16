@@ -234,6 +234,8 @@ subdirectories are merged like so:
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
 > See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
+>
+> When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -320,7 +322,6 @@ You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
 - `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N (max: 8192))
-
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
