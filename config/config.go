@@ -43,8 +43,8 @@ const (
 )
 
 var (
-	// ErrNoEndpointInConfig is an error returned when a configuration file or directory has no endpoints configured
-	ErrNoEndpointInConfig = errors.New("configuration should contain at least 1 endpoint")
+	// ErrNoEndpointOrSuiteInConfig is an error returned when a configuration file or directory has no endpoints configured
+	ErrNoEndpointOrSuiteInConfig = errors.New("configuration should contain at least one endpoint or suite")
 
 	// ErrConfigFileNotFound is an error returned when a configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
@@ -286,8 +286,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		return
 	}
 	// Check if the configuration file at least has endpoints configured
-	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
-		err = ErrNoEndpointInConfig
+	if config == nil || (len(config.Endpoints) == 0 && len(config.Suites) == 0) {
+		err = ErrNoEndpointOrSuiteInConfig
 	} else {
 		// XXX: Remove this in v6.0.0
 		if config.Debug {
