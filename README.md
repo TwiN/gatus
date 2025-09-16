@@ -2770,24 +2770,24 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-> 📝 This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
-> tells Gatus to only evaluate one endpoint at a time.
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of 
+endpoints/suites that can be evaluated at the same time.
+In other words, even if you have multiple endpoints with the same interval, they are not guaranteed to run at the same time.
 
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
-In other words, even if you have multiple endpoints with the same interval, they will not execute at the same time.
+The number of concurrent evaluations is determined by the `concurrency` configuration parameter, which defaults to `3`.
 
 You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval,
 such as 1ms. You'll notice that the response time does not fluctuate - that is because while endpoints are evaluated on
-different goroutines, there's a global lock that prevents multiple endpoints from running at the same time.
+different goroutines, there's a semaphore that controls how many endpoints/suites from running at the same time.
 
 Unfortunately, there is a drawback. If you have a lot of endpoints, including some that are very slow or prone to timing out
-(the default timeout is 10s), then it means that for the entire duration of the request, no other endpoint can be evaluated.
+(the default timeout is 10s), those slow evaluations may prevent other endpoints/suites from being evaluated.
 
 The interval does not include the duration of the request itself, which means that if an endpoint has an interval of 30s
 and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s.
 
 While this does not prevent Gatus' from performing health checks on all other endpoints, it may cause Gatus to be unable
-to respect the configured interval, for instance:
+to respect the configured interval, for instance, assuming `concurrency` is set to `1`:
 - Endpoint A has an interval of 5s, and times out after 10s to complete
 - Endpoint B has an interval of 5s, and takes 1ms to complete
 - Endpoint B will be unable to run every 5s, because endpoint A's health evaluation takes longer than its interval
