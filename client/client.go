@@ -1,9 +1,11 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +22,8 @@ import (
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
+	"github.com/registrobr/rdap"
+	"github.com/registrobr/rdap/protocol"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
 )
@@ -34,6 +38,7 @@ var (
 
 	whoisClient              = whois.NewClient().WithReferralCache(true)
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
+	rdapClient               = rdap.NewClient(nil)
 )
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
@@ -61,7 +66,12 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 			return domainExpiration, nil
 		}
 	}
-	if whoisResponse, err := whoisClient.QueryAndParse(hostname); err != nil {
+	whoisResponse, err := rdapQuery(hostname)
+	if err != nil {
+		// fallback to WHOIS protocol
+		whoisResponse, err = whoisClient.QueryAndParse(hostname)
+	}
+	if err != nil {
 		if !retrievedCachedValue { // Add an error unless we already retrieved a cached value
 			return 0, fmt.Errorf("error querying and parsing hostname using whois client: %w", err)
 		}
@@ -141,10 +151,39 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
-	connection, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return
+
+	var connection net.Conn
+	var dnsResolver *DNSResolverConfig
+
+	if config.HasCustomDNSResolver() {
+		dnsResolver, err = config.parseDNSResolver()
+
+		if err != nil {
+			// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
+			// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
+			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+		} else {
+			dialer := &net.Dialer{
+				Resolver: &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+						d := net.Dialer{}
+						return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+					},
+				},
+			}
+			connection, err = dialer.DialContext(context.Background(), "tcp", address)
+			if err != nil {
+				return
+			}
+		}
+	} else {
+		connection, err = net.DialTimeout("tcp", address, config.Timeout)
+		if err != nil {
+			return
+		}
 	}
+
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
@@ -372,6 +411,17 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		url = fmt.Sprintf("%s:%d", url, dnsPort)
 	}
 	queryTypeAsUint16 := dns.StringToType[queryType]
+	// Special handling: if this is a PTR query and queryName looks like a plain IP,
+	// convert it to the proper reverse lookup domain automatically.
+	if queryTypeAsUint16 == dns.TypePTR &&
+		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
+		!strings.HasSuffix(queryName, ".ip6.arpa.") {
+		if rev, convErr := reverseNameForIP(queryName); convErr == nil {
+			queryName = rev
+		} else {
+			return false, "", nil, convErr
+		}
+	}
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(queryName, queryTypeAsUint16)
@@ -422,4 +472,48 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
 func InjectHTTPClient(httpClient *http.Client) {
 	injectedHTTPClient = httpClient
+}
+
+// rdapQuery returns domain expiration via RDAP protocol
+func rdapQuery(hostname string) (*whois.Response, error) {
+	data, _, err := rdapClient.Query(hostname, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	domain, ok := data.(*protocol.Domain)
+	if !ok {
+		return nil, errors.New("invalid domain type")
+	}
+	response := whois.Response{}
+	for _, e := range domain.Events {
+		if e.Action == "expiration" {
+			response.ExpirationDate = e.Date.Time
+			break
+		}
+	}
+	return &response, nil
+}
+
+// helper to reverse IP and add in-addr.arpa. IPv4 and IPv6
+func reverseNameForIP(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP: %s", ipStr)
+	}
+
+	if ipv4 := ip.To4(); ipv4 != nil {
+		parts := strings.Split(ipv4.String(), ".")
+		for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+			parts[i], parts[j] = parts[j], parts[i]
+		}
+		return strings.Join(parts, ".") + ".in-addr.arpa.", nil
+	}
+
+	ip = ip.To16()
+	hexStr := hex.EncodeToString(ip)
+	nibbles := strings.Split(hexStr, "")
+	for i, j := 0, len(nibbles)-1; i < j; i, j = i+1, j-1 {
+		nibbles[i], nibbles[j] = nibbles[j], nibbles[i]
+	}
+	return strings.Join(nibbles, ".") + ".ip6.arpa.", nil
 }

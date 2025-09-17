@@ -135,7 +135,7 @@ endpoints:
 			pathAndFiles: map[string]string{
 				"config.yaml": "",
 			},
-			expectedError: ErrNoEndpointInConfig,
+			expectedError: ErrNoEndpointOrSuiteInConfig,
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -737,8 +737,8 @@ badconfig:
 	if err == nil {
 		t.Error("An error should've been returned")
 	}
-	if err != ErrNoEndpointInConfig {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if err != ErrNoEndpointOrSuiteInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 
@@ -1893,8 +1893,8 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if !errors.Is(err, ErrNoEndpointInConfig) {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 

@@ -106,6 +106,8 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
@@ -135,6 +137,8 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
@@ -163,6 +167,8 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	if from.After(to) {
 		return nil, common.ErrInvalidTimeRange
 	}
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return nil, common.ErrEndpointNotFound
