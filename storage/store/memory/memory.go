@@ -49,7 +49,7 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(allStatuses))
 	for _, v := range allStatuses {
 		if status, ok := v.(*endpoint.Status); ok {
-			pagedEndpointStatuses = append(pagedEndpointStatuses, CopyEndpointStatus(status, params))
+			pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(status, params))
 		}
 	}
 	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
@@ -87,7 +87,7 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
-	return CopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
+	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
 }
 
 // GetSuiteStatusByKey returns the suite status for a given key
