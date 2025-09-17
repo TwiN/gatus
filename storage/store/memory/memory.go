@@ -43,11 +43,13 @@ func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error)
 // GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
 func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
 	allStatuses := s.endpointCache.GetAll()
 	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(allStatuses))
 	for _, v := range allStatuses {
 		if status, ok := v.(*endpoint.Status); ok {
-			pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(status, params))
+			pagedEndpointStatuses = append(pagedEndpointStatuses, CopyEndpointStatus(status, params))
 		}
 	}
 	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
@@ -79,11 +81,13 @@ func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
 func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
-	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
+	return CopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
 }
 
 // GetSuiteStatusByKey returns the suite status for a given key
