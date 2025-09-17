@@ -6,47 +6,35 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 )
 
-// CopyEndpointStatus returns a safe copy of a Status with only the results
-// within the range defined by the page and pageSize parameters.
-// This function performs deep copying of slices to prevent race conditions
-// when the original slice is modified concurrently.
-func CopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
-	statusCopy := &endpoint.Status{
+// ShallowCopyEndpointStatus returns a shallow copy of a Status with only the results
+// within the range defined by the page and pageSize parameters
+func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
+	shallowCopy := &endpoint.Status{
 		Name:   ss.Name,
 		Group:  ss.Group,
 		Key:    ss.Key,
 		Uptime: endpoint.NewUptime(),
 	}
 	if params == nil || (params.ResultsPage == 0 && params.ResultsPageSize == 0 && params.EventsPage == 0 && params.EventsPageSize == 0) {
-		// Deep copy all results to prevent race conditions
-		statusCopy.Results = make([]*endpoint.Result, len(ss.Results))
-		copy(statusCopy.Results, ss.Results)
-		// Deep copy all events to prevent race conditions
-		statusCopy.Events = make([]*endpoint.Event, len(ss.Events))
-		copy(statusCopy.Events, ss.Events)
+		shallowCopy.Results = ss.Results
+		shallowCopy.Events = ss.Events
 	} else {
 		numberOfResults := len(ss.Results)
 		resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
 		if resultsStart < 0 || resultsEnd < 0 {
-			statusCopy.Results = []*endpoint.Result{}
+			shallowCopy.Results = []*endpoint.Result{}
 		} else {
-			// Deep copy the slice range to prevent race conditions
-			resultRange := ss.Results[resultsStart:resultsEnd]
-			statusCopy.Results = make([]*endpoint.Result, len(resultRange))
-			copy(statusCopy.Results, resultRange)
+			shallowCopy.Results = ss.Results[resultsStart:resultsEnd]
 		}
 		numberOfEvents := len(ss.Events)
 		eventsStart, eventsEnd := getStartAndEndIndex(numberOfEvents, params.EventsPage, params.EventsPageSize)
 		if eventsStart < 0 || eventsEnd < 0 {
-			statusCopy.Events = []*endpoint.Event{}
+			shallowCopy.Events = []*endpoint.Event{}
 		} else {
-			// Deep copy the slice range to prevent race conditions
-			eventRange := ss.Events[eventsStart:eventsEnd]
-			statusCopy.Events = make([]*endpoint.Event, len(eventRange))
-			copy(statusCopy.Events, eventRange)
+			shallowCopy.Events = ss.Events[eventsStart:eventsEnd]
 		}
 	}
-	return statusCopy
+	return shallowCopy
 }
 
 // ShallowCopySuiteStatus returns a shallow copy of a suite Status with only the results
