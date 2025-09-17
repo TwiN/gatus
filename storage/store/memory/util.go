@@ -11,7 +11,7 @@ import (
 // This function performs deep copying of slices to prevent race conditions
 // when the original slice is modified concurrently.
 func CopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
-	copy := &endpoint.Status{
+	statusCopy := &endpoint.Status{
 		Name:   ss.Name,
 		Group:  ss.Group,
 		Key:    ss.Key,
@@ -19,34 +19,34 @@ func CopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams
 	}
 	if params == nil || (params.ResultsPage == 0 && params.ResultsPageSize == 0 && params.EventsPage == 0 && params.EventsPageSize == 0) {
 		// Deep copy all results to prevent race conditions
-		copy.Results = make([]*endpoint.Result, len(ss.Results))
-		copy(copy.Results, ss.Results)
+		statusCopy.Results = make([]*endpoint.Result, len(ss.Results))
+		copy(statusCopy.Results, ss.Results)
 		// Deep copy all events to prevent race conditions
-		copy.Events = make([]*endpoint.Event, len(ss.Events))
-		copy(copy.Events, ss.Events)
+		statusCopy.Events = make([]*endpoint.Event, len(ss.Events))
+		copy(statusCopy.Events, ss.Events)
 	} else {
 		numberOfResults := len(ss.Results)
 		resultsStart, resultsEnd := getStartAndEndIndex(numberOfResults, params.ResultsPage, params.ResultsPageSize)
 		if resultsStart < 0 || resultsEnd < 0 {
-			copy.Results = []*endpoint.Result{}
+			statusCopy.Results = []*endpoint.Result{}
 		} else {
 			// Deep copy the slice range to prevent race conditions
 			resultRange := ss.Results[resultsStart:resultsEnd]
-			copy.Results = make([]*endpoint.Result, len(resultRange))
-			copy(copy.Results, resultRange)
+			statusCopy.Results = make([]*endpoint.Result, len(resultRange))
+			copy(statusCopy.Results, resultRange)
 		}
 		numberOfEvents := len(ss.Events)
 		eventsStart, eventsEnd := getStartAndEndIndex(numberOfEvents, params.EventsPage, params.EventsPageSize)
 		if eventsStart < 0 || eventsEnd < 0 {
-			copy.Events = []*endpoint.Event{}
+			statusCopy.Events = []*endpoint.Event{}
 		} else {
 			// Deep copy the slice range to prevent race conditions
 			eventRange := ss.Events[eventsStart:eventsEnd]
-			copy.Events = make([]*endpoint.Event, len(eventRange))
-			copy(copy.Events, eventRange)
+			statusCopy.Events = make([]*endpoint.Event, len(eventRange))
+			copy(statusCopy.Events, eventRange)
 		}
 	}
-	return copy
+	return statusCopy
 }
 
 // ShallowCopySuiteStatus returns a shallow copy of a suite Status with only the results
