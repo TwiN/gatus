@@ -21,6 +21,7 @@ type OIDCConfig struct {
 	ClientSecret    string   `yaml:"client-secret"`
 	Scopes          []string `yaml:"scopes"`           // e.g. ["openid"]
 	AllowedSubjects []string `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	LoginRedirect   bool     `yaml:"login-redirect"`
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier

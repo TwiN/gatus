@@ -154,7 +154,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onUpdated } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu, X, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -168,7 +168,7 @@ const route = useRoute()
 
 // State
 const retrievedConfig = ref(false)
-const config = ref({ oidc: false, authenticated: true })
+const config = ref({ oidc: false, authenticated: true, loginRedirect: false })
 const announcements = ref([])
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
@@ -218,6 +218,13 @@ onMounted(() => {
   fetchConfig()
   // Refresh config every 10 minutes for announcements
   configInterval = setInterval(fetchConfig, 600000)
+})
+
+// Redirect to OIDC login if configured
+onUpdated(() => {
+  if (!config.value.authenticated && config.value.loginRedirect) {
+    window.location.href = '/oidc/login';
+  }
 })
 
 // Clean up interval on unmount

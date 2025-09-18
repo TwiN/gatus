@@ -16,9 +16,11 @@ type ConfigHandler struct {
 
 func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	hasOIDC := false
+	loginRedirect := false
 	isAuthenticated := true // Default to true if no security config is set
 	if handler.securityConfig != nil {
 		hasOIDC = handler.securityConfig.OIDC != nil
+		loginRedirect = hasOIDC && handler.securityConfig.OIDC.LoginRedirect
 		isAuthenticated = handler.securityConfig.IsAuthenticated(c)
 	}
 
@@ -26,6 +28,7 @@ func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	response := map[string]interface{}{
 		"oidc":          hasOIDC,
 		"authenticated": isAuthenticated,
+		"loginRedirect": loginRedirect,
 	}
 	// Add announcements if available, otherwise use empty slice
 	if handler.config != nil && handler.config.Announcements != nil && len(handler.config.Announcements) > 0 {

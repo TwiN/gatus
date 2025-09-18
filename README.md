@@ -2568,15 +2568,16 @@ security:
 
 
 #### OIDC
-| Parameter                        | Description                                                    | Default       |
-|:---------------------------------|:---------------------------------------------------------------|:--------------|
-| `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
-| `security.oidc.issuer-url`       | Issuer URL                                                     | Required `""` |
-| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`     | Required `""` |
-| `security.oidc.client-id`        | Client id                                                      | Required `""` |
-| `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
-| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
-| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| Parameter                        | Description                                                                    | Default       |
+|:---------------------------------|:-------------------------------------------------------------------------------|:--------------|
+| `security.oidc`                  | OpenID Connect configuration                                                   | `{}`          |
+| `security.oidc.issuer-url`       | Issuer URL                                                                     | Required `""` |
+| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`                     | Required `""` |
+| `security.oidc.client-id`        | Client id                                                                      | Required `""` |
+| `security.oidc.client-secret`    | Client secret                                                                  | Required `""` |
+| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.                        | Required `[]` |
+| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed.                 | `[]`          |
+| `security.oidc.login-redirect`   | Automatically redirect to login page, without showing the "OIDC Login" button. | `false`       |
 
 ```yaml
 security:
@@ -2588,6 +2589,9 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You can also redirect to login page directly. This is useful when using one OIDC session for multiple applications,
+    # so if you log in once, you want to skip login flow in any of them.
+    #login-redirect: true
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
