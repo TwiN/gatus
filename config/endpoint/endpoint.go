@@ -391,7 +391,7 @@ func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, err
 		return input, nil
 	}
 	var contextErrors []string
-	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.]+`)
+	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
 	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
 		// Extract the path after [CONTEXT].
 		path := strings.TrimPrefix(match, "[CONTEXT].")
