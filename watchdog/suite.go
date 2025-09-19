@@ -50,12 +50,10 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 	if cfg.Metrics {
 		metrics.PublishMetricsForSuite(s, result, extraLabels)
 	}
-	// Store individual endpoint results and handle alerting
+	// Handle alerting for suite endpoints
 	for i, ep := range s.Endpoints {
 		if i < len(result.EndpointResults) {
 			epResult := result.EndpointResults[i]
-			// Store the endpoint result
-			UpdateEndpointStatus(ep, epResult)
 			// Handle alerting if configured and not under maintenance
 			if cfg.Alerting != nil && !cfg.Maintenance.IsUnderMaintenance() {
 				// Check if endpoint is under maintenance
