@@ -136,7 +136,7 @@ func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDTok
 		Name:     cookieNameSession,
 		Value:    sessionID,
 		Path:     "/",
-		MaxAge:   int(time.Hour.Seconds()),
+		MaxAge:   int(8 * time.Hour.Seconds()),
 		SameSite: http.SameSiteStrictMode,
 	})
 }
