@@ -1227,6 +1227,138 @@ func TestEndpoint_preprocessWithContext(t *testing.T) {
 			expectedErrorCount:    1,
 			expectedErrorContains: []string{"path 'response.missing.path' not found"},
 		},
+		{
+			name: "hyphen_support_in_simple_keys",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].user-id",
+				Body: `{"api-key": "[CONTEXT].api-key", "user-name": "[CONTEXT].user-name"}`,
+			},
+			context: map[string]interface{}{
+				"user-id":   "user-12345",
+				"api-key":   "key-abcdef",
+				"user-name": "john-doe",
+			},
+			expectedURL:        "https://api.example.com/users/user-12345",
+			expectedBody:       `{"api-key": "key-abcdef", "user-name": "john-doe"}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "hyphen_support_in_headers",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: "",
+				Headers: map[string]string{
+					"X-API-Key":    "[CONTEXT].api-key",
+					"X-User-ID":    "[CONTEXT].user-id",
+					"Content-Type": "[CONTEXT].content-type",
+				},
+			},
+			context: map[string]interface{}{
+				"api-key":      "secret-key-123",
+				"user-id":      "user-456",
+				"content-type": "application-json",
+			},
+			expectedURL:  "https://api.example.com",
+			expectedBody: "",
+			expectedHeaders: map[string]string{
+				"X-API-Key":    "secret-key-123",
+				"X-User-ID":    "user-456",
+				"Content-Type": "application-json",
+			},
+			expectedErrorCount: 0,
+		},
+		{
+			name: "mixed_hyphens_underscores_and_dots",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/[CONTEXT].service-name/[CONTEXT].user_data.user-id",
+				Body: `{"tenant-id": "[CONTEXT].tenant_config.tenant-id"}`,
+			},
+			context: map[string]interface{}{
+				"service-name": "auth-service",
+				"user_data": map[string]interface{}{
+					"user-id": "user-789",
+				},
+				"tenant_config": map[string]interface{}{
+					"tenant-id": "tenant-abc-123",
+				},
+			},
+			expectedURL:        "https://api.example.com/auth-service/user-789",
+			expectedBody:       `{"tenant-id": "tenant-abc-123"}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "hyphen_in_nested_paths",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].auth-response.user-data.profile-id",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"auth-response": map[string]interface{}{
+					"user-data": map[string]interface{}{
+						"profile-id": "profile-xyz-789",
+					},
+				},
+			},
+			expectedURL:        "https://api.example.com/users/profile-xyz-789",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "missing_hyphenated_context_key",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/users/[CONTEXT].missing-user-id",
+				Body: `{"api-key": "[CONTEXT].missing-api-key"}`,
+			},
+			context: map[string]interface{}{
+				"user-id": "valid-user", // different key
+			},
+			expectedURL:           "https://api.example.com/users/[CONTEXT].missing-user-id",
+			expectedBody:          `{"api-key": "[CONTEXT].missing-api-key"}`,
+			expectedErrorCount:    2,
+			expectedErrorContains: []string{"path 'missing-user-id' not found", "path 'missing-api-key' not found"},
+		},
+		{
+			name: "multiple_hyphens_in_single_key",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/[CONTEXT].multi-hyphen-key-name",
+				Body: "",
+			},
+			context: map[string]interface{}{
+				"multi-hyphen-key-name": "value-with-multiple-hyphens",
+			},
+			expectedURL:        "https://api.example.com/value-with-multiple-hyphens",
+			expectedBody:       "",
+			expectedErrorCount: 0,
+		},
+		{
+			name: "hyphens_with_numeric_values",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com/limit/[CONTEXT].max-items",
+				Body: `{"timeout-ms": [CONTEXT].timeout-ms, "retry-count": [CONTEXT].retry-count}`,
+			},
+			context: map[string]interface{}{
+				"max-items":   100,
+				"timeout-ms":  5000,
+				"retry-count": 3,
+			},
+			expectedURL:        "https://api.example.com/limit/100",
+			expectedBody:       `{"timeout-ms": 5000, "retry-count": 3}`,
+			expectedErrorCount: 0,
+		},
+		{
+			name: "hyphens_with_boolean_values",
+			endpoint: &Endpoint{
+				URL:  "https://api.example.com",
+				Body: `{"enable-feature": [CONTEXT].enable-feature, "disable-cache": [CONTEXT].disable-cache}`,
+			},
+			context: map[string]interface{}{
+				"enable-feature": true,
+				"disable-cache":  false,
+			},
+			expectedURL:        "https://api.example.com",
+			expectedBody:       `{"enable-feature": true, "disable-cache": false}`,
+			expectedErrorCount: 0,
+		},
 	}
 
 	for _, tt := range tests {

@@ -403,10 +403,12 @@ Here are a few cases in which suites could be useful:
 
 #### Using Context in Endpoints
 Once values are stored in the context, they can be referenced in subsequent endpoints:
-- In the URL: `https://api.example.com/users/[CONTEXT].userId`
-- In headers: `Authorization: Bearer [CONTEXT].authToken`
-- In the body: `{"user_id": "[CONTEXT].userId"}`
-- In conditions: `[BODY].server_ip == [CONTEXT].serverIp`
+- In the URL: `https://api.example.com/users/[CONTEXT].user_id`
+- In headers: `Authorization: Bearer [CONTEXT].auth_token`
+- In the body: `{"user_id": "[CONTEXT].user_id"}`
+- In conditions: `[BODY].server_ip == [CONTEXT].server_ip`
+
+Note that context/store keys are limited to A-Z, a-z, 0-9, underscores (`_`), and hyphens (`-`).
 
 #### Example Suite Configuration
 ```yaml
