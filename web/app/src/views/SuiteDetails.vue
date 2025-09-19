@@ -68,7 +68,7 @@
               <!-- Enhanced Execution Flow -->
               <div class="mt-6">
                 <h3 class="text-lg font-semibold mb-4">Execution Flow</h3>
-                <SequentialFlowDiagram 
+                <SequentialFlowDiagram
                   :flow-steps="flowSteps"
                   :progress-percentage="executionProgress"
                   :completed-steps="completedStepsCount"
@@ -132,7 +132,7 @@
     <Settings @refreshData="fetchData" />
     
     <!-- Step Details Modal -->
-    <StepDetailsModal 
+    <StepDetailsModal
       v-if="selectedStep"
       :step="selectedStep"
       :index="selectedStepIndex"
@@ -255,13 +255,10 @@ const flowSteps = computed(() => {
   if (!latestResult.value || !latestResult.value.endpointResults) {
     return []
   }
-  
   const results = latestResult.value.endpointResults
-  
   return results.map((result, index) => {
     const endpoint = suite.value?.endpoints?.[index]
     const nextResult = results[index + 1]
-    
     // Determine if this is an always-run endpoint by checking execution pattern
     // If a previous step failed but this one still executed, it must be always-run
     let isAlwaysRun = false
@@ -272,7 +269,6 @@ const flowSteps = computed(() => {
         break
       }
     }
-    
     return {
       name: endpoint?.name || result.name || `Step ${index + 1}`,
       endpoint: endpoint,
@@ -296,21 +292,17 @@ const executionProgress = computed(() => {
 })
 
 
-
 // Helper functions
 const determineStepStatus = (result) => {
   if (!result) return 'not-started'
-  
   // Check if step was skipped
   if (result.conditionResults && result.conditionResults.some(c => c.condition.includes('SKIP'))) {
     return 'skipped'
   }
-  
   // Check if step failed but is always-run (still shows as failed but executed)
   if (!result.success) {
     return 'failed'
   }
-  
   return 'success'
 }
 
