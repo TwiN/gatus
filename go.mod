@@ -1,12 +1,14 @@
 module github.com/TwiN/gatus/v5
 
-go 1.24.1
+go 1.24.4
+
+toolchain go1.24.7
 
 require (
 	code.gitea.io/sdk/gitea v0.21.0
 	github.com/TwiN/deepmerge v0.2.2
 	github.com/TwiN/g8/v2 v2.0.0
-	github.com/TwiN/gocache/v2 v2.2.2
+	github.com/TwiN/gocache/v2 v2.4.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/logr v0.3.1
 	github.com/TwiN/whois v1.1.11

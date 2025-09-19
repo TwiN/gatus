@@ -72,5 +72,5 @@ func (r *Result) AddError(error string) {
 			return
 		}
 	}
-	r.Errors = append(r.Errors, error)
+	r.Errors = append(r.Errors, error+"")
 }
