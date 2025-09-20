@@ -1542,7 +1542,7 @@ endpoints:
 		t.Fatal("config.Alerting shouldn't have been nil")
 	}
 	if config.Alerting.Pushover != nil {
-		t.Fatal("Pushover alerting config should've been set to nil, because its ValidateAndSetDefaults() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
+		t.Fatal("Pushover alerting config should've been set to nil, because its IsValid() method returned false and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
 
