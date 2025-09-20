@@ -2579,6 +2579,7 @@ security:
 | `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
 
 ```yaml
 security:
@@ -2590,6 +2591,8 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
+    #session-ttl: 8h
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
