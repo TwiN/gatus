@@ -20,7 +20,7 @@ var (
 )
 
 type Config struct {
-	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
+	WebhookURL string `yaml:"webhook-url"`     // Slack webhook URL
 	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
 }
 
@@ -77,7 +77,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved, cfg.Title))
 	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ type Field struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool, title string) []byte {
 	var message, color string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
@@ -138,20 +138,19 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = ":\n> " + alertDescription
 	}
-	title := ":helmet_with_white_cross: Gatus"
-	if cfg.Title != "" {
-		title = cfg.Title
-	}
 	body := Body{
 		Text: "",
 		Attachments: []Attachment{
 			{
-				Title: title,
+				Title: ":helmet_with_white_cross: Gatus",
 				Text:  message + description,
 				Short: false,
 				Color: color,
 			},
 		},
+	}
+	if title != "" {
+		body.Attachments[0].Title = title
 	}
 	if len(formattedConditionResults) > 0 {
 		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{

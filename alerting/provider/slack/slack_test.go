@@ -189,6 +189,14 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     true,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
 		},
+		{
+			Name:         "resolved-with-group-and-custom-title",
+			Provider:     AlertProvider{DefaultConfig: Config{Title: "custom title"}},
+			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\"custom title\",\"text\":\"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -206,6 +214,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					ConditionResults: conditionResults,
 				},
 				scenario.Resolved,
+				scenario.Provider.DefaultConfig.Title, // we're skipping group cfg overrides, it doesn't matter we're testing buildRequestBody here
 			)
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
