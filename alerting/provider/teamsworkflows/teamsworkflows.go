@@ -166,7 +166,10 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 			Value: conditionResult.Condition,
 		})
 	}
-
+	var description string
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		description = "**Description**: " + alertDescription
+	}
 	cardContent := AdaptiveCardBody{
 		Type:    "AdaptiveCard",
 		Version: "1.4", // Version 1.5 and 1.6 doesn't seem to be supported by Teams as of 27/08/2024
@@ -188,6 +191,11 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 							{
 								Type: "TextBlock",
 								Text: message,
+								Wrap: true,
+							},
+							{
+								Type: "TextBlock",
+								Text: description,
 								Wrap: true,
 							},
 							{
