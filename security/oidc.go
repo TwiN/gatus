@@ -13,21 +13,29 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	DefaultOIDCSessionTTL = 8 * time.Hour
+)
+
 // OIDCConfig is the configuration for OIDC authentication
 type OIDCConfig struct {
-	IssuerURL       string   `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
-	RedirectURL     string   `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
-	ClientID        string   `yaml:"client-id"`
-	ClientSecret    string   `yaml:"client-secret"`
-	Scopes          []string `yaml:"scopes"`           // e.g. ["openid"]
-	AllowedSubjects []string `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	IssuerURL       string        `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
+	RedirectURL     string        `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
+	ClientID        string        `yaml:"client-id"`
+	ClientSecret    string        `yaml:"client-secret"`
+	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
+	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
 }
 
-// isValid returns whether the basic security configuration is valid or not
-func (c *OIDCConfig) isValid() bool {
+// ValidateAndSetDefaults returns whether the OIDC configuration is valid and sets default values.
+func (c *OIDCConfig) ValidateAndSetDefaults() bool {
+	if c.SessionTTL <= 0 {
+		c.SessionTTL = DefaultOIDCSessionTTL
+	}
 	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
@@ -131,12 +139,12 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
 	// At this point, the user has been confirmed. All that's left to do is create a session.
 	sessionID := uuid.NewString()
-	sessions.SetWithTTL(sessionID, idToken.Subject, time.Hour)
+	sessions.SetWithTTL(sessionID, idToken.Subject, c.SessionTTL)
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieNameSession,
 		Value:    sessionID,
 		Path:     "/",
-		MaxAge:   int(time.Hour.Seconds()),
+		MaxAge:   int(c.SessionTTL.Seconds()),
 		SameSite: http.SameSiteStrictMode,
 	})
 }
