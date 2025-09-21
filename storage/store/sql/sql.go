@@ -289,6 +289,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
@@ -758,13 +759,19 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 }
 
 func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (events []*endpoint.Event, err error) {
+	// We need to get the most recent events, but return them in chronological order (oldest to newest)
+	// First, get the most recent events using a subquery, then order them chronologically
 	rows, err := tx.Query(
 		`
 			SELECT event_type, event_timestamp
-			FROM endpoint_events
-			WHERE endpoint_id = $1
+			FROM (
+				SELECT event_type, event_timestamp, endpoint_event_id
+				FROM endpoint_events
+				WHERE endpoint_id = $1
+				ORDER BY endpoint_event_id DESC
+				LIMIT $2 OFFSET $3
+			) AS recent_events
 			ORDER BY endpoint_event_id ASC
-			LIMIT $2 OFFSET $3
 		`,
 		endpointID,
 		pageSize,

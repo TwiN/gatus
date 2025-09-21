@@ -886,3 +886,59 @@ func TestStore_HasEndpointStatusNewerThan(t *testing.T) {
 		t.Error("expected not to have a newer status in the future")
 	}
 }
+
+// TestEventOrderingFix specifically tests the SQL ordering fix for issue #1040
+// This test verifies that getEndpointEventsByEndpointID returns the most recent events
+// in chronological order (oldest to newest)
+func TestEventOrderingFix(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/test.db", false, 100, 100)
+	defer store.Close()
+	ep := &endpoint.Endpoint{
+		Name:  "ordering-test",
+		Group: "test",
+		URL:   "https://example.com",
+	}
+	// Create many events over time
+	baseTime := time.Now().Add(-100 * time.Hour) // Start 100 hours ago
+	for i := 0; i < 50; i++ {
+		result := &endpoint.Result{
+			Success:   i%2 == 0, // Alternate between true/false to create events
+			Timestamp: baseTime.Add(time.Duration(i) * time.Hour),
+		}
+		err := store.InsertEndpointResult(ep, result)
+		if err != nil {
+			t.Fatalf("Failed to insert result %d: %v", i, err)
+		}
+	}
+	// Now retrieve events with pagination to test the ordering
+	tx, _ := store.db.Begin()
+	endpointID, _, _, _ := store.getEndpointIDGroupAndNameByKey(tx, ep.Key())
+	// Get the first page (should get the MOST RECENT events, but in chronological order)
+	events, err := store.getEndpointEventsByEndpointID(tx, endpointID, 1, 10)
+	tx.Commit()
+	if err != nil {
+		t.Fatalf("Failed to get events: %v", err)
+	}
+	if len(events) != 10 {
+		t.Errorf("Expected 10 events, got %d", len(events))
+	}
+	// Verify the events are in chronological order (oldest to newest)
+	for i := 1; i < len(events); i++ {
+		if events[i].Timestamp.Before(events[i-1].Timestamp) {
+			t.Errorf("Events not in chronological order: event %d timestamp %v is before event %d timestamp %v",
+				i, events[i].Timestamp, i-1, events[i-1].Timestamp)
+		}
+	}
+	// Verify these are the most recent events
+	// The last event in the returned list should be close to "now" (within the last few events we created)
+	lastEventTime := events[len(events)-1].Timestamp
+	expectedRecentTime := baseTime.Add(49 * time.Hour) // The most recent event we created
+	timeDiff := expectedRecentTime.Sub(lastEventTime)
+	if timeDiff > 10*time.Hour { // Allow some margin for events
+		t.Errorf("Events are not the most recent ones. Last event time: %v, expected around: %v (diff: %v)",
+			lastEventTime, expectedRecentTime, timeDiff)
+	}
+	t.Logf("Successfully retrieved %d most recent events in chronological order", len(events))
+	t.Logf("First event: %s at %v", events[0].Type, events[0].Timestamp)
+	t.Logf("Last event: %s at %v", events[len(events)-1].Type, events[len(events)-1].Timestamp)
+}
