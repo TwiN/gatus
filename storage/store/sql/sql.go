@@ -287,33 +287,21 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		}
 	} else {
 		// Get the success value of the previous result
-		var lastResultSuccess, shouldCreateEvent bool
+		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
-			// Fallback: try to determine state from the last event
-			if lastEventType, eventErr := s.getLastEndpointEventType(tx, endpointID); eventErr != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve last event type for endpoint with key=%s: %s", ep.Key(), eventErr.Error())
-				// If we can't determine the previous state at all, we should create an event to ensure we don't miss state changes
-				// This is conservative - we might create duplicate events, but that's better than missing events entirely
-				shouldCreateEvent = true
-			} else {
-				// Determine if state changed based on last event type
-				lastEventSuccess := lastEventType == endpoint.EventHealthy || lastEventType == endpoint.EventStart
-				shouldCreateEvent = lastEventSuccess != result.Success
-				if shouldCreateEvent {
-					logr.Infof("[sql.InsertEndpointResult] Using last event type as fallback; last event was %s, current result success=%v", lastEventType, result.Success)
-				}
-			}
 		} else {
-			// Normal path: we have the last result's success value
-			shouldCreateEvent = lastResultSuccess != result.Success
-		}
-		// Create event if state changed
-		if shouldCreateEvent {
-			event := endpoint.NewEventFromResult(result)
-			if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
-				// Log the error but don't fail the transaction - events aren't critical to Gatus' well-being
-				logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
+			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
+			// that the endpoint either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
+			// an event to mark the change in state
+			if lastResultSuccess != result.Success {
+				event := endpoint.NewEventFromResult(result)
+				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
+					// Silently fail
+					logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+				}
 			}
 		}
 		// Clean up old events if we're above the threshold
@@ -771,13 +759,19 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 }
 
 func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (events []*endpoint.Event, err error) {
+	// We need to get the most recent events, but return them in chronological order (oldest to newest)
+	// First, get the most recent events using a subquery, then order them chronologically
 	rows, err := tx.Query(
 		`
 			SELECT event_type, event_timestamp
-			FROM endpoint_events
-			WHERE endpoint_id = $1
+			FROM (
+				SELECT event_type, event_timestamp, endpoint_event_id
+				FROM endpoint_events
+				WHERE endpoint_id = $1
+				ORDER BY endpoint_event_id DESC
+				LIMIT $2 OFFSET $3
+			) AS recent_events
 			ORDER BY endpoint_event_id ASC
-			LIMIT $2 OFFSET $3
 		`,
 		endpointID,
 		pageSize,
@@ -1006,20 +1000,6 @@ func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) 
 		return false, err
 	}
 	return success, nil
-}
-
-// getLastEndpointEventType retrieves the type of the last event for an endpoint
-// Used as a fallback when we can't get the last result's success value
-func (s *Store) getLastEndpointEventType(tx *sql.Tx, endpointID int64) (endpoint.EventType, error) {
-	var eventType string
-	err := tx.QueryRow("SELECT event_type FROM endpoint_events WHERE endpoint_id = $1 ORDER BY event_timestamp DESC LIMIT 1", endpointID).Scan(&eventType)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", errNoRowsReturned
-		}
-		return "", err
-	}
-	return endpoint.EventType(eventType), nil
 }
 
 // deleteOldEndpointEvents deletes endpoint events that are no longer needed
