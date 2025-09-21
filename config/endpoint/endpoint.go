@@ -565,11 +565,19 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any condition that requires the response Body to be read
+// needsToReadBody checks if there's any condition or store mapping that requires the response Body to be read
 func (e *Endpoint) needsToReadBody() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasBodyPlaceholder() {
 			return true
+		}
+	}
+	// Check store values for body placeholders
+	if e.Store != nil {
+		for _, value := range e.Store {
+			if strings.Contains(value, BodyPlaceholder) {
+				return true
+			}
 		}
 	}
 	return false
