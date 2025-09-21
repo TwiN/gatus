@@ -150,7 +150,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}{
 		{
 			Name:         "triggered",
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
@@ -158,7 +158,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "triggered-with-group",
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
@@ -167,7 +167,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-no-conditions",
 			NoConditions: true,
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
@@ -175,7 +175,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Endpoint:     endpoint.Endpoint{Name: "name"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
@@ -183,7 +183,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved-with-group",
-			Provider:     AlertProvider{},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
@@ -191,7 +191,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved-with-group-and-custom-title",
-			Provider:     AlertProvider{DefaultConfig: Config{Title: "custom title"}},
+			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com", Title: "custom title"}},
 			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
@@ -207,14 +207,18 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 				}
 			}
+			cfg, err := scenario.Provider.GetConfig(scenario.Endpoint.Group, &scenario.Alert)
+			if err != nil {
+				t.Fatal("couldn't get config:", err.Error())
+			}
 			body := scenario.Provider.buildRequestBody(
+				cfg,
 				&scenario.Endpoint,
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: conditionResults,
 				},
 				scenario.Resolved,
-				scenario.Provider.DefaultConfig.Title, // we're skipping group cfg overrides, it doesn't matter we're testing buildRequestBody here
 			)
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
