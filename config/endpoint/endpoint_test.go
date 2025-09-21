@@ -914,6 +914,40 @@ func TestEndpoint_needsToReadBody(t *testing.T) {
 	if !(&Endpoint{Conditions: []Condition{bodyConditionWithLength, statusCondition}}).needsToReadBody() {
 		t.Error("expected true, got false")
 	}
+	// Test store configuration with body placeholder
+	storeWithBodyPlaceholder := map[string]string{
+		"token": "[BODY].accessToken",
+	}
+	if !(&Endpoint{
+		Conditions: []Condition{statusCondition},
+		Store:      storeWithBodyPlaceholder,
+	}).needsToReadBody() {
+		t.Error("expected true when store has body placeholder, got false")
+	}
+	// Test store configuration without body placeholder
+	storeWithoutBodyPlaceholder := map[string]string{
+		"status": "[STATUS]",
+	}
+	if (&Endpoint{
+		Conditions: []Condition{statusCondition},
+		Store:      storeWithoutBodyPlaceholder,
+	}).needsToReadBody() {
+		t.Error("expected false when store has no body placeholder, got true")
+	}
+	// Test empty store
+	if (&Endpoint{
+		Conditions: []Condition{statusCondition},
+		Store:      map[string]string{},
+	}).needsToReadBody() {
+		t.Error("expected false when store is empty, got true")
+	}
+	// Test nil store
+	if (&Endpoint{
+		Conditions: []Condition{statusCondition},
+		Store:      nil,
+	}).needsToReadBody() {
+		t.Error("expected false when store is nil, got true")
+	}
 }
 
 func TestEndpoint_needsToRetrieveDomainExpiration(t *testing.T) {
