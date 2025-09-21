@@ -190,8 +190,17 @@ func initializeStorage(cfg *config.Config) {
 func listenToConfigurationFileChanges(cfg *config.Config) {
 	for {
 		time.Sleep(30 * time.Second)
-		if cfg.HasLoadedConfigurationBeenModified() {
-			logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")
+		configModified := cfg.HasLoadedConfigurationBeenModified()
+		tlsModified := cfg.HasTLSCertificatesBeenModified()
+
+		if configModified || tlsModified {
+			if configModified {
+				logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")
+			}
+			if tlsModified {
+				logr.Info("[main.listenToConfigurationFileChanges] TLS certificate files have been modified")
+			}
+
 			stop(cfg)
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
@@ -202,6 +211,9 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 					logr.Error("[main.listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
 					// Update the last file modification time to avoid trying to process the same invalid configuration again
 					cfg.UpdateLastFileModTime()
+					if tlsModified {
+						cfg.UpdateTLSCertificatesModTime()
+					}
 					continue
 				} else {
 					panic(err)

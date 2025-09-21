@@ -119,6 +119,9 @@ type Config struct {
 
 	configPath      string    // path to the file or directory from which config was loaded
 	lastFileModTime time.Time // last modification time
+
+	tlsCertModTime       time.Time // certificate file last modification time
+	tlsPrivateKeyModTime time.Time // private key file last modification time
 }
 
 // GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
@@ -188,6 +191,52 @@ func (config *Config) UpdateLastFileModTime() {
 	config.lastFileModTime = time.Now()
 }
 
+// HasTLSCertificatesBeenModified returns whether the TLS certificate files have been modified since they were last read
+func (config *Config) HasTLSCertificatesBeenModified() bool {
+	if config.Web == nil || config.Web.TLS == nil {
+		return false
+	}
+
+	tls := config.Web.TLS
+	if len(tls.CertificateFile) == 0 || len(tls.PrivateKeyFile) == 0 {
+		return false
+	}
+
+	if certInfo, err := os.Stat(tls.CertificateFile); err == nil {
+		if !certInfo.ModTime().IsZero() && config.tlsCertModTime.Unix() < certInfo.ModTime().Unix() {
+			return true
+		}
+	}
+
+	if keyInfo, err := os.Stat(tls.PrivateKeyFile); err == nil {
+		if !keyInfo.ModTime().IsZero() && config.tlsPrivateKeyModTime.Unix() < keyInfo.ModTime().Unix() {
+			return true
+		}
+	}
+
+	return false
+}
+
+// UpdateTLSCertificatesModTime refreshes the TLS certificate file modification times
+func (config *Config) UpdateTLSCertificatesModTime() {
+	if config.Web == nil || config.Web.TLS == nil {
+		return
+	}
+
+	tls := config.Web.TLS
+	if len(tls.CertificateFile) == 0 || len(tls.PrivateKeyFile) == 0 {
+		return
+	}
+
+	if certInfo, err := os.Stat(tls.CertificateFile); err == nil {
+		config.tlsCertModTime = certInfo.ModTime()
+	}
+
+	if keyInfo, err := os.Stat(tls.PrivateKeyFile); err == nil {
+		config.tlsPrivateKeyModTime = keyInfo.ModTime()
+	}
+}
+
 // LoadConfiguration loads the full configuration composed of the main configuration file
 // and all composed configuration files
 func LoadConfiguration(configPath string) (*Config, error) {
@@ -248,6 +297,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
+	config.UpdateTLSCertificatesModTime()
 	return config, nil
 }
 
