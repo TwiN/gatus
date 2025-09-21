@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -237,6 +238,50 @@ func TestStoreResultValues(t *testing.T) {
 	val, err := ctx.Get("status")
 	if err != nil || val != "OK" {
 		t.Errorf("Expected status=OK in context, got %v, err=%v", val, err)
+	}
+}
+
+func TestStoreResultValuesWithInvalidPath(t *testing.T) {
+	ctx := gontext.New(map[string]interface{}{})
+	result := &endpoint.Result{
+		HTTPStatus: 200,
+		Body:       []byte(`{"data": {"name": "john"}}`),
+	}
+	// Define store mappings with invalid paths
+	mappings := map[string]string{
+		"valid_status":   "[STATUS]",
+		"invalid_token":  "[BODY].accessToken",     // This path doesn't exist
+		"invalid_nested": "[BODY].user.id.invalid", // This nested path doesn't exist
+	}
+	// Store values - should return error for invalid paths
+	stored, err := StoreResultValues(ctx, mappings, result)
+	if err == nil {
+		t.Fatal("Expected error when storing invalid paths, got nil")
+	}
+	// Check that the error message contains information about the invalid paths
+	if !strings.Contains(err.Error(), "invalid_token") {
+		t.Errorf("Error should mention invalid_token, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "invalid path") {
+		t.Errorf("Error should mention 'invalid path', got: %v", err)
+	}
+	// Verify that valid values were still stored
+	if stored["valid_status"] != int64(200) {
+		t.Errorf("Expected valid_status=200, got %v", stored["valid_status"])
+	}
+	// Verify that invalid values show error messages in stored map
+	if !strings.Contains(stored["invalid_token"].(string), "ERROR") {
+		t.Errorf("Expected invalid_token to contain ERROR, got %v", stored["invalid_token"])
+	}
+	// Verify that invalid values are NOT in context
+	_, err = ctx.Get("invalid_token")
+	if err == nil {
+		t.Error("Invalid token should not be stored in context")
+	}
+	// Verify that valid value IS in context
+	val, err := ctx.Get("valid_status")
+	if err != nil || val != int64(200) {
+		t.Errorf("Expected valid_status=200 in context, got %v, err=%v", val, err)
 	}
 }
 
