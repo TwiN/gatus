@@ -181,8 +181,7 @@ func StoreResultValues(ctx *gontext.Gontext, mappings map[string]string, result 
 		value, err := extractValueForStorage(placeholder, result)
 		if err != nil {
 			// Continue storing other values even if one fails
-			errMsg := fmt.Sprintf("%s: %v", contextKey, err)
-			extractionErrors = append(extractionErrors, errMsg)
+			extractionErrors = append(extractionErrors, fmt.Sprintf("%s: %v", contextKey, err))
 			storedValues[contextKey] = fmt.Sprintf("ERROR: %v", err)
 			continue
 		}
