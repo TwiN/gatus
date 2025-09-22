@@ -27,7 +27,7 @@ require (
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.40.0
 	golang.org/x/net v0.42.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 	golang.org/x/sync v0.17.0
 	google.golang.org/api v0.242.0
 	gopkg.in/mail.v2 v2.3.1
