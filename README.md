@@ -2951,57 +2951,6 @@ endpoints:
       - "[STATUS] == 0"
 ```
 
-You can also use the `[BODY]` placeholder to validate the command output:
-
-```yaml
-endpoints:
-  - name: ssh-body-check
-    url: "ssh://example.com:22"
-    ssh:
-      username: "username"
-      password: "password"
-    body: |
-      {
-        "command": "echo 'system is healthy'"
-      }
-    interval: 1m
-    conditions:
-      - "[CONNECTED] == true"
-      - "[STATUS] == 0"
-      - "[BODY] == system is healthy"
-      - "[BODY] == pat(*healthy*)"
-      - "len([BODY]) == 16"
-      - "has([BODY]) == true"
-      - "[BODY] != system is unhealthy"
-```
-
-For JSON output, you can use JSONPath expressions:
-
-```yaml
-endpoints:
-  - name: ssh-json-check
-    url: "ssh://example.com:22"
-    ssh:
-      username: "username"
-      password: "password"
-    body: |
-      {
-        "command": "echo '{\"status\": \"healthy\", \"memory\": {\"used\": 512, \"total\": 1024}, \"users\": [\"admin\", \"user1\"]}'"
-      }
-    interval: 1m
-    conditions:
-      - "[CONNECTED] == true"
-      - "[STATUS] == 0"
-      - "[BODY].status == healthy"
-      - "[BODY].memory.used > 500"
-      - "[BODY].memory.used < 600"
-      - "[BODY].memory.total == 1024"
-      - "len([BODY].users) == 2"
-      - "has([BODY].errors) == false"
-      - "[BODY].users[0] == admin"
-      - "[BODY].users == any(admin, user1)"
-```
-
 you can also use no authentication to monitor the endpoint by not specifying the username
 and password fields.
 
@@ -3022,7 +2971,6 @@ endpoints:
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
 - `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
-- `[BODY]` resolves to the stdout output of the command executed on the remote server
 - `[IP]` resolves to the IP address of the server
 - `[RESPONSE_TIME]` resolves to the time it took to establish the connection and execute the command
 
