@@ -2971,6 +2971,7 @@ endpoints:
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
 - `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
+- `[BODY]` resolves to the stdout output of the command executed on the remote server
 - `[IP]` resolves to the IP address of the server
 - `[RESPONSE_TIME]` resolves to the time it took to establish the connection and execute the command
 
