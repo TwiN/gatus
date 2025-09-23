@@ -1850,7 +1850,7 @@ endpoints:
 	if config.Security == nil {
 		t.Fatal("config.Security shouldn't have been nil")
 	}
-	if !config.Security.IsValid() {
+	if !config.Security.ValidateAndSetDefaults() {
 		t.Error("Security config should've been valid")
 	}
 	if config.Security.Basic == nil {

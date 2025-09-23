@@ -514,7 +514,7 @@ func validateUniqueKeys(config *Config) error {
 
 func validateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if config.Security.IsValid() {
+		if config.Security.ValidateAndSetDefaults() {
 			logr.Debug("[config.validateSecurityConfig] Basic security configuration has been validated")
 		} else {
 			// If there was an attempt to configure security, then it must mean that some confidential or private

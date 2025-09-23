@@ -289,6 +289,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
@@ -758,13 +759,19 @@ func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64
 }
 
 func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (events []*endpoint.Event, err error) {
+	// We need to get the most recent events, but return them in chronological order (oldest to newest)
+	// First, get the most recent events using a subquery, then order them chronologically
 	rows, err := tx.Query(
 		`
 			SELECT event_type, event_timestamp
-			FROM endpoint_events
-			WHERE endpoint_id = $1
+			FROM (
+				SELECT event_type, event_timestamp, endpoint_event_id
+				FROM endpoint_events
+				WHERE endpoint_id = $1
+				ORDER BY endpoint_event_id DESC
+				LIMIT $2 OFFSET $3
+			) AS recent_events
 			ORDER BY endpoint_event_id ASC
-			LIMIT $2 OFFSET $3
 		`,
 		endpointID,
 		pageSize,
@@ -1499,7 +1506,8 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		resultID := data.id
 		// Query endpoint results for this suite result
 		epRows, err := tx.Query(`
-			SELECT 
+			SELECT
+				er.endpoint_result_id,
 				e.endpoint_name,
 				er.success,
 				er.errors,
@@ -1514,31 +1522,73 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			logr.Errorf("[sql.getSuiteResults] Failed to get endpoint results for suite_result_id=%d: %s", resultID, err.Error())
 			continue
 		}
+		// Map to store endpoint results by their ID for condition lookup
+		epResultMap := make(map[int64]*endpoint.Result)
 		epCount := 0
 		for epRows.Next() {
 			epCount++
+			var epResultID int64
 			var name string
 			var success bool
 			var joinedErrors string
 			var duration int64
 			var timestamp time.Time
-			err = epRows.Scan(&name, &success, &joinedErrors, &duration, &timestamp)
+			err = epRows.Scan(&epResultID, &name, &success, &joinedErrors, &duration, &timestamp)
 			if err != nil {
 				logr.Errorf("[sql.getSuiteResults] Failed to scan endpoint result: %s", err.Error())
 				continue
 			}
 			epResult := &endpoint.Result{
-				Name:      name,
-				Success:   success,
-				Duration:  time.Duration(duration),
-				Timestamp: timestamp,
+				Name:             name,
+				Success:          success,
+				Duration:         time.Duration(duration),
+				Timestamp:        timestamp,
+				ConditionResults: []*endpoint.ConditionResult{}, // Initialize empty slice
 			}
 			if len(joinedErrors) > 0 {
 				epResult.Errors = strings.Split(joinedErrors, arraySeparator)
 			}
+			epResultMap[epResultID] = epResult
 			result.EndpointResults = append(result.EndpointResults, epResult)
 		}
 		epRows.Close()
+		// Fetch condition results for all endpoint results in this suite result
+		if len(epResultMap) > 0 {
+			args := make([]interface{}, 0, len(epResultMap))
+			condQuery := `SELECT endpoint_result_id, condition, success
+						  FROM endpoint_result_conditions
+						  WHERE endpoint_result_id IN (`
+			index := 1
+			for epResultID := range epResultMap {
+				condQuery += "$" + strconv.Itoa(index) + ","
+				args = append(args, epResultID)
+				index++
+			}
+			condQuery = condQuery[:len(condQuery)-1] + ")"
+
+			condRows, err := tx.Query(condQuery, args...)
+			if err != nil {
+				logr.Errorf("[sql.getSuiteResults] Failed to get condition results for suite_result_id=%d: %s", resultID, err.Error())
+			} else {
+				condCount := 0
+				for condRows.Next() {
+					condCount++
+					conditionResult := &endpoint.ConditionResult{}
+					var epResultID int64
+					if err = condRows.Scan(&epResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
+						logr.Errorf("[sql.getSuiteResults] Failed to scan condition result: %s", err.Error())
+						continue
+					}
+					if epResult, exists := epResultMap[epResultID]; exists {
+						epResult.ConditionResults = append(epResult.ConditionResults, conditionResult)
+					}
+				}
+				condRows.Close()
+				if condCount > 0 {
+					logr.Debugf("[sql.getSuiteResults] Found %d condition results for suite_result_id=%d", condCount, resultID)
+				}
+			}
+		}
 		if epCount > 0 {
 			logr.Debugf("[sql.getSuiteResults] Found %d endpoint results for suite_result_id=%d", epCount, resultID)
 		}

@@ -403,10 +403,12 @@ Here are a few cases in which suites could be useful:
 
 #### Using Context in Endpoints
 Once values are stored in the context, they can be referenced in subsequent endpoints:
-- In the URL: `https://api.example.com/users/[CONTEXT].userId`
-- In headers: `Authorization: Bearer [CONTEXT].authToken`
-- In the body: `{"user_id": "[CONTEXT].userId"}`
-- In conditions: `[BODY].server_ip == [CONTEXT].serverIp`
+- In the URL: `https://api.example.com/users/[CONTEXT].user_id`
+- In headers: `Authorization: Bearer [CONTEXT].auth_token`
+- In the body: `{"user_id": "[CONTEXT].user_id"}`
+- In conditions: `[BODY].server_ip == [CONTEXT].server_ip`
+
+Note that context/store keys are limited to A-Z, a-z, 0-9, underscores (`_`), and hyphens (`-`).
 
 #### Example Suite Configuration
 ```yaml
@@ -1900,14 +1902,15 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.slack.overrides[].*`     | See `alerting.slack.*` parameters                                                          | `{}`          |
+| Parameter                          | Description                                                                                | Default                             |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`                                |
+| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""`                       |
+| `alerting.slack.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
+| `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
+| `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
+| `alerting.slack.overrides[].*`     | See `alerting.slack.*` parameters                                                          | `{}`                                |
 
 ```yaml
 alerting:
@@ -2577,6 +2580,7 @@ security:
 | `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
 
 ```yaml
 security:
@@ -2588,6 +2592,8 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
+    #session-ttl: 8h
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).

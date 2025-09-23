@@ -52,6 +52,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		},
 		ReadBufferSize: cfg.Web.ReadBufferSize,
 		Network:        fiber.NetworkTCP,
+		Immutable:      true, // If not enabled, will cause issues due to fiber's zero allocation. See #1268 and https://docs.gofiber.io/#zero-allocation
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		app.Use(cors.New(cors.Config{

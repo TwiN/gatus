@@ -282,7 +282,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if len(status.Results) != 1 {
 			t.Errorf("expected 1 suite result, got %d", len(status.Results))
 		}
-		
+
 		stored := status.Results[0]
 		if stored.Name != testSuite.Name {
 			t.Errorf("expected result name %s, got %s", testSuite.Name, stored.Name)
@@ -303,36 +303,37 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 
 	// Test 3: GetAllEndpointStatuses should only return endpoints, not suites
 	t.Run("GetAllEndpointStatuses", func(t *testing.T) {
-		store, endpoint1, endpoint2, suiteEndpoint1, suiteEndpoint2, testSuite := setupStore(t)
+		store, endpoint1, endpoint2, _, _, testSuite := setupStore(t)
 
-		// InsertEndpointResult all test data
+		// Insert standalone endpoint results only
 		store.InsertEndpointResult(endpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 100 * time.Millisecond})
 		store.InsertEndpointResult(endpoint2, &endpoint.Result{Success: false, Timestamp: time.Now(), Duration: 200 * time.Millisecond})
-		store.InsertEndpointResult(suiteEndpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 50 * time.Millisecond})
-		store.InsertEndpointResult(suiteEndpoint2, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 75 * time.Millisecond})
+		// Suite endpoints should only exist as part of suite results, not as individual endpoint results
 		store.InsertSuiteResult(testSuite, &suite.Result{
 			Name: testSuite.Name, Group: testSuite.Group, Success: true,
 			Timestamp: time.Now(), Duration: 125 * time.Millisecond,
+			EndpointResults: []*endpoint.Result{
+				{Success: true, Duration: 50 * time.Millisecond, Name: "suite-endpoint1"},
+				{Success: true, Duration: 75 * time.Millisecond, Name: "suite-endpoint2"},
+			},
 		})
 		statuses, err := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get all endpoint statuses: %v", err)
 		}
 
-		// Should have 4 endpoints (2 regular + 2 suite endpoints)
-		if len(statuses) != 4 {
-			t.Errorf("expected 4 endpoint statuses, got %d", len(statuses))
+		// Should have 2 endpoints (only standalone endpoints, not suite endpoints)
+		if len(statuses) != 2 {
+			t.Errorf("expected 2 endpoint statuses, got %d", len(statuses))
 		}
 
-		// Verify all are endpoint statuses with correct data, not suite statuses
+		// Verify all are standalone endpoint statuses with correct data, not suite endpoints
 		expectedEndpoints := map[string]struct {
 			success  bool
 			duration time.Duration
 		}{
-			"endpoint1":       {success: true, duration: 100 * time.Millisecond},
-			"endpoint2":       {success: false, duration: 200 * time.Millisecond},
-			"suite-endpoint1": {success: true, duration: 50 * time.Millisecond},
-			"suite-endpoint2": {success: true, duration: 75 * time.Millisecond},
+			"endpoint1": {success: true, duration: 100 * time.Millisecond},
+			"endpoint2": {success: false, duration: 200 * time.Millisecond},
 		}
 
 		for _, status := range statuses {
@@ -425,7 +426,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		timestamp2 := time.Now().Add(1 * time.Hour)
 		store.InsertEndpointResult(endpoint1, &endpoint.Result{Success: true, Timestamp: timestamp1, Duration: 100 * time.Millisecond})
 		store.InsertEndpointResult(suiteEndpoint1, &endpoint.Result{Success: false, Timestamp: timestamp2, Duration: 50 * time.Millisecond, Errors: []string{"suite error"}})
-		
+
 		// Test regular endpoints
 		status1, err := store.GetEndpointStatusByKey(endpoint1.Key(), &paging.EndpointStatusParams{})
 		if err != nil {
@@ -505,7 +506,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if len(suiteStatus.Results) != 1 {
 			t.Errorf("expected 1 suite result, got %d", len(suiteStatus.Results))
 		}
-		
+
 		if len(suiteStatus.Results) > 0 {
 			result := suiteStatus.Results[0]
 			if result.Success {
@@ -698,7 +699,7 @@ func TestStore_MaximumLimits(t *testing.T) {
 
 	t.Run("endpoint-result-limits", func(t *testing.T) {
 		ep := &endpoint.Endpoint{Name: "test-endpoint", Group: "test", URL: "https://example.com"}
-		
+
 		// Insert more results than the maximum
 		baseTime := time.Now().Add(-10 * time.Hour)
 		for i := 0; i < maxResults*2; i++ {
@@ -740,7 +741,7 @@ func TestStore_MaximumLimits(t *testing.T) {
 
 	t.Run("suite-result-limits", func(t *testing.T) {
 		testSuite := &suite.Suite{Name: "test-suite", Group: "test"}
-		
+
 		// Insert more results than the maximum
 		baseTime := time.Now().Add(-10 * time.Hour)
 		for i := 0; i < maxResults*2; i++ {
@@ -791,11 +792,11 @@ func TestSuiteResultOrdering(t *testing.T) {
 	defer store.Clear()
 
 	testSuite := &suite.Suite{Name: "ordering-suite", Group: "test"}
-	
+
 	// Insert results with distinct timestamps
 	baseTime := time.Now().Add(-5 * time.Hour)
 	timestamps := make([]time.Time, 5)
-	
+
 	for i := 0; i < 5; i++ {
 		timestamp := baseTime.Add(time.Duration(i) * time.Hour)
 		timestamps[i] = timestamp
@@ -817,17 +818,17 @@ func TestSuiteResultOrdering(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
-		
+
 		// Verify results are in chronological order (oldest first due to append)
 		for i := 0; i < len(status.Results)-1; i++ {
 			current := status.Results[i]
 			next := status.Results[i+1]
 			if !next.Timestamp.After(current.Timestamp) {
-				t.Errorf("result %d timestamp %v should be before result %d timestamp %v", 
+				t.Errorf("result %d timestamp %v should be before result %d timestamp %v",
 					i, current.Timestamp, i+1, next.Timestamp)
 			}
 		}
-		
+
 		// Verify specific timestamp order
 		if !status.Results[0].Timestamp.Equal(timestamps[0]) {
 			t.Errorf("first result timestamp should be %v, got %v", timestamps[0], status.Results[0].Timestamp)
@@ -852,11 +853,11 @@ func TestSuiteResultOrdering(t *testing.T) {
 			},
 			paging.NewSuiteStatusParams().WithPagination(1, 3),
 		)
-		
+
 		if len(page1.Results) != 3 {
 			t.Errorf("expected 3 results in page 1, got %d", len(page1.Results))
 		}
-		
+
 		// With reverse pagination, page 1 should have the 3 newest results
 		// That means results[2], results[3], results[4] from original array
 		if page1.Results[0].Duration != 200*time.Millisecond {
@@ -873,9 +874,9 @@ func TestSuiteResultOrdering(t *testing.T) {
 			t.Fatal("expected no error, got", err)
 		}
 		defer limitedStore.Clear()
-		
+
 		smallSuite := &suite.Suite{Name: "small-suite", Group: "test"}
-		
+
 		// Insert 6 results, should keep only the newest 3
 		for i := 0; i < 6; i++ {
 			result := &suite.Result{
@@ -890,16 +891,16 @@ func TestSuiteResultOrdering(t *testing.T) {
 				t.Fatalf("failed to insert result %d: %v", i, err)
 			}
 		}
-		
+
 		status, err := limitedStore.GetSuiteStatusByKey(smallSuite.Key(), nil)
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
-		
+
 		if len(status.Results) != 3 {
 			t.Errorf("expected 3 results after trimming, got %d", len(status.Results))
 		}
-		
+
 		// Should have results 3, 4, 5 (the newest ones)
 		expectedDurations := []time.Duration{150 * time.Millisecond, 200 * time.Millisecond, 250 * time.Millisecond}
 		for i, expectedDuration := range expectedDurations {

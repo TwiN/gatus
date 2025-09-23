@@ -74,6 +74,92 @@
             </div>
           </div>
         </div>
+
+        <!-- Condition Results -->
+        <div v-if="step.result?.conditionResults?.length" class="space-y-2">
+          <h3 class="text-sm font-medium flex items-center gap-2">
+            <CheckCircle class="w-4 h-4" />
+            Condition Results ({{ step.result.conditionResults.length }})
+          </h3>
+          <div class="space-y-2 max-h-48 overflow-y-auto">
+            <div
+              v-for="(conditionResult, index) in step.result.conditionResults"
+              :key="index"
+              class="flex items-start gap-3 p-1 rounded-lg border"
+              :class="conditionResult.success
+                ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700'"
+            >
+              <!-- Status icon -->
+              <div class="flex-shrink-0 mt-0.5">
+                <CheckCircle
+                  v-if="conditionResult.success"
+                  class="w-4 h-4 text-green-600 dark:text-green-400"
+                />
+                <XCircle
+                  v-else
+                  class="w-4 h-4 text-red-600 dark:text-red-400"
+                />
+              </div>
+
+              <!-- Condition text -->
+              <div class="flex-1 min-w-0 flex items-center justify-between gap-3">
+                <p class="text-sm font-mono break-all"
+                   :class="conditionResult.success
+                     ? 'text-green-800 dark:text-green-200'
+                     : 'text-red-800 dark:text-red-200'">
+                  {{ conditionResult.condition }}
+                </p>
+                <span class="text-xs font-medium whitespace-nowrap"
+                      :class="conditionResult.success
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'">
+                  {{ conditionResult.success ? 'Passed' : 'Failed' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Endpoint Configuration -->
+        <div v-if="step.endpoint" class="space-y-2">
+          <h3 class="text-sm font-medium flex items-center gap-2">
+            <Settings class="w-4 h-4" />
+            Endpoint Configuration
+          </h3>
+          <div class="space-y-3 text-xs">
+            <div v-if="step.endpoint.url">
+              <span class="text-muted-foreground">URL:</span>
+              <p class="font-mono mt-1 break-all">{{ step.endpoint.url }}</p>
+            </div>
+            <div v-if="step.endpoint.method">
+              <span class="text-muted-foreground">Method:</span>
+              <p class="mt-1 font-medium">{{ step.endpoint.method }}</p>
+            </div>
+            <div v-if="step.endpoint.interval">
+              <span class="text-muted-foreground">Interval:</span>
+              <p class="mt-1">{{ step.endpoint.interval }}</p>
+            </div>
+            <div v-if="step.endpoint.timeout">
+              <span class="text-muted-foreground">Timeout:</span>
+              <p class="mt-1">{{ step.endpoint.timeout }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Errors (separate from step errors) -->
+        <div v-if="step.result?.errors?.length" class="space-y-2">
+          <h3 class="text-sm font-medium flex items-center gap-2 text-red-600 dark:text-red-400">
+            <AlertCircle class="w-4 h-4" />
+            Result Errors ({{ step.result.errors.length }})
+          </h3>
+          <div class="space-y-2 max-h-32 overflow-y-auto">
+            <div v-for="(error, index) in step.result.errors" :key="index"
+                 class="p-3 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded text-sm font-mono text-red-800 dark:text-red-300 break-all">
+              {{ error }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -81,7 +167,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { X, AlertCircle, RotateCcw, Download, CheckCircle, XCircle, SkipForward, Pause, Clock } from 'lucide-vue-next'
+import { X, AlertCircle, RotateCcw, Download, CheckCircle, XCircle, SkipForward, Pause, Clock, Settings } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { formatDuration } from '@/utils/format'
 import { prettifyTimestamp } from '@/utils/time'

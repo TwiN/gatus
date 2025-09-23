@@ -214,30 +214,35 @@ func prettifyNumericalParameters(parameters []string, resolvedParameters []int64
 
 // prettify returns a string representation of a condition with its parameters resolved between parentheses
 func prettify(parameters []string, resolvedParameters []string, operator string) string {
-	// Since, in the event of an invalid path, the resolvedParameters also contain the condition itself,
-	// we'll return the resolvedParameters as-is.
-	if strings.HasSuffix(resolvedParameters[0], InvalidConditionElementSuffix) || strings.HasSuffix(resolvedParameters[1], InvalidConditionElementSuffix) {
-		return resolvedParameters[0] + " " + operator + " " + resolvedParameters[1]
-	}
-	// If using the pattern function, truncate the parameter it's being compared to if said parameter is long enough
+	// Handle pattern function truncation first
 	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
 	}
 	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
 	}
-	// First element is a placeholder
-	if parameters[0] != resolvedParameters[0] && parameters[1] == resolvedParameters[1] {
-		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1]
+	// Determine the state of each parameter
+	leftChanged := parameters[0] != resolvedParameters[0]
+	rightChanged := parameters[1] != resolvedParameters[1]
+	leftInvalid := resolvedParameters[0] == parameters[0]+" "+InvalidConditionElementSuffix
+	rightInvalid := resolvedParameters[1] == parameters[1]+" "+InvalidConditionElementSuffix
+	// Build the output based on what was resolved
+	var left, right string
+	// Format left side
+	if leftChanged && !leftInvalid {
+		left = parameters[0] + " (" + resolvedParameters[0] + ")"
+	} else if leftInvalid {
+		left = resolvedParameters[0] // Already has (INVALID)
+	} else {
+		left = parameters[0] // Unchanged
 	}
-	// Second element is a placeholder
-	if parameters[0] == resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return parameters[0] + " " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
+	// Format right side
+	if rightChanged && !rightInvalid {
+		right = parameters[1] + " (" + resolvedParameters[1] + ")"
+	} else if rightInvalid {
+		right = resolvedParameters[1] // Already has (INVALID)
+	} else {
+		right = parameters[1] // Unchanged
 	}
-	// Both elements are placeholders...?
-	if parameters[0] != resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
-	}
-	// Neither elements are placeholders
-	return parameters[0] + " " + operator + " " + parameters[1]
+	return left + " " + operator + " " + right
 }

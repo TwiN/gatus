@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -175,10 +176,12 @@ func StoreResultValues(ctx *gontext.Gontext, mappings map[string]string, result 
 		return nil, nil
 	}
 	storedValues := make(map[string]interface{})
+	var extractionErrors []string
 	for contextKey, placeholder := range mappings {
 		value, err := extractValueForStorage(placeholder, result)
 		if err != nil {
 			// Continue storing other values even if one fails
+			extractionErrors = append(extractionErrors, fmt.Sprintf("%s: %v", contextKey, err))
 			storedValues[contextKey] = fmt.Sprintf("ERROR: %v", err)
 			continue
 		}
@@ -186,6 +189,10 @@ func StoreResultValues(ctx *gontext.Gontext, mappings map[string]string, result 
 			return storedValues, fmt.Errorf("failed to store %s: %w", contextKey, err)
 		}
 		storedValues[contextKey] = value
+	}
+	// Return an error if any values failed to extract
+	if len(extractionErrors) > 0 {
+		return storedValues, fmt.Errorf("failed to extract values: %s", strings.Join(extractionErrors, "; "))
 	}
 	return storedValues, nil
 }
@@ -196,6 +203,11 @@ func extractValueForStorage(placeholder string, result *endpoint.Result) (interf
 	resolved, err := endpoint.ResolvePlaceholder(placeholder, result, nil)
 	if err != nil {
 		return nil, err
+	}
+	// Check if the resolution resulted in an INVALID placeholder
+	// This happens when a path doesn't exist (e.g., [BODY].nonexistent)
+	if strings.HasSuffix(resolved, " "+endpoint.InvalidConditionElementSuffix) {
+		return nil, fmt.Errorf("invalid path: %s", strings.TrimSuffix(resolved, " "+endpoint.InvalidConditionElementSuffix))
 	}
 	// Try to parse as number or boolean to store as proper types
 	// Try int first for whole numbers
