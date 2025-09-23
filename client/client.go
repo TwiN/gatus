@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -301,7 +302,7 @@ func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
-func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, error) {
+func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, []byte, error) {
 	type Body struct {
 		Command string `json:"command"`
 	}
@@ -309,26 +310,35 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	var b Body
 	body = parseLocalAddressPlaceholder(body, sshClient.Conn.LocalAddr())
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
 	sess, err := sshClient.NewSession()
 	if err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
+
+	// Capture stdout
+	var stdout bytes.Buffer
+	sess.Stdout = &stdout
+
 	err = sess.Start(b.Command)
 	if err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
 	defer sess.Close()
 	err = sess.Wait()
+
+	// Get the output
+	output := stdout.Bytes()
+
 	if err == nil {
-		return true, 0, nil
+		return true, 0, output, nil
 	}
 	var exitErr *ssh.ExitError
 	if ok := errors.As(err, &exitErr); !ok {
-		return false, 0, err
+		return false, 0, nil, err
 	}
-	return true, exitErr.ExitStatus(), nil
+	return true, exitErr.ExitStatus(), output, nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
