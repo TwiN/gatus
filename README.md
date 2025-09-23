@@ -270,7 +270,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.buttons[].link`          | Link to open when the button is clicked.                                                                                                 | Required `""`              |
 | `ui.custom-css`              | Custom CSS                                                                                                                               | `""`                       |
 | `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                     |
-| `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                     |
+| `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `groups`, or `health`. Note that user preferences override this.    | `name`                     |
 | `ui.default-filter-by`       | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                     |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`                       |
 
@@ -288,7 +288,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints`                                     | List of endpoints to monitor.                                                                                                               | Required `[]`              |
 | `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                            | `true`                     |
 | `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                      | Required `""`              |
-| `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `""`                       |
+| `endpoints[].groups`                             | Group names. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `[]`                       |
 | `endpoints[].url`                               | URL to send the request to.                                                                                                                 | Required `""`              |
 | `endpoints[].method`                            | Request method.                                                                                                                             | `GET`                      |
 | `endpoints[].conditions`                        | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions).                                               | `[]`                       |
@@ -318,7 +318,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 
 You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
-- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_GROUPS]` (resolved from `endpoints[].groups`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
 - `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N (max: 8192))
@@ -337,7 +337,7 @@ For instance:
 | `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
 | `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
 | `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
-| `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].groups`              | Group names. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `[]`           |
 | `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
 | `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
 | `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
@@ -347,7 +347,7 @@ Example:
 ```yaml
 external-endpoints:
   - name: ext-ep-test
-    group: core
+    groups: ["core"]
     token: "potato"
     heartbeat:
       interval: 30m  # Automatically create a failure if no update is received within 30 minutes
@@ -391,7 +391,7 @@ Here are a few cases in which suites could be useful:
 | `suites`                          | List of suites to monitor.                                                                          | `[]`          |
 | `suites[].enabled`                | Whether to monitor the suite.                                                                       | `true`        |
 | `suites[].name`                   | Name of the suite. Must be unique.                                                                  | Required `""` |
-| `suites[].group`                  | Group name. Used to group multiple suites together on the dashboard.                                | `""`          |
+| `suites[].groups`                 | Group names. Used to group multiple suites together on the dashboard.                               | `[]`          |
 | `suites[].interval`               | Duration to wait between suite executions.                                                          | `10m`         |
 | `suites[].timeout`                | Maximum duration for the entire suite execution.                                                    | `5m`          |
 | `suites[].context`                | Initial context values that can be referenced by endpoints.                                         | `{}`          |
@@ -414,7 +414,7 @@ Note that context/store keys are limited to A-Z, a-z, 0-9, underscores (`_`), an
 ```yaml
 suites:
   - name: item-crud-workflow
-    group: api-tests
+    groups: ["api-tests"]
     interval: 5m
     context:
       price: "19.99"  # Initial static value in context
@@ -950,7 +950,7 @@ endpoints:
         send-on-resolved: true
 
   - name: back-end
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -1673,7 +1673,7 @@ endpoints:
         description: "healthcheck failed"
 
   - name: back-end
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -2049,7 +2049,7 @@ endpoints:
         send-on-resolved: true
 
   - name: back-end
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -2105,7 +2105,7 @@ endpoints:
         send-on-resolved: true
 
   - name: back-end
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -2359,7 +2359,7 @@ then automatically roll it back.
 Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
 - `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
-- `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
+- `[ENDPOINT_GROUPS]` (resolved from `endpoints[].groups`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 
@@ -2634,7 +2634,7 @@ You can add custom labels to your endpoints’ Prometheus metrics by defining ke
 ```yaml
 endpoints:
   - name: front-end
-    group: core
+     groups: ["core"]
     url: "https://twin.sh/health"
     interval: 5m
     conditions:
@@ -3091,14 +3091,14 @@ Endpoint groups are used for grouping multiple endpoints together on the dashboa
 ```yaml
 endpoints:
   - name: frontend
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
       - "[STATUS] == 200"
 
   - name: backend
-    group: core
+     groups: ["core"]
     url: "https://example.org/"
     interval: 5m
     conditions:
@@ -3174,7 +3174,7 @@ If you have a large configuration file, this should help you keep things clean.
 
 ```yaml
 default-endpoint: &defaults
-  group: core
+   groups: ["core"]
   interval: 5m
   client:
     insecure: true
@@ -3189,7 +3189,7 @@ endpoints:
 
   - name: anchor-example-2
     <<: *defaults
-    group: example              # This will override the group defined in &defaults
+    groups: ["example"]              # This will override the group defined in &defaults
     url: "https://example.com"
 
   - name: anchor-example-3
