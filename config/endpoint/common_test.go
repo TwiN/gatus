@@ -42,7 +42,7 @@ func TestValidateEndpointNameGroupAndAlerts(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			err := validateEndpointNameGroupAndAlerts(scenario.name, scenario.group, scenario.alerts)
+			err := validateEndpointNameGroupAndAlerts(scenario.name, []string{scenario.group}, scenario.alerts)
 			if !errors.Is(err, scenario.expectedErr) {
 				t.Errorf("expected error to be %v but got %v", scenario.expectedErr, err)
 			}

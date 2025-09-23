@@ -2,6 +2,7 @@ package watchdog
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
@@ -21,7 +22,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", strings.Join(ep.Groups, ","), ep.Name, ep.Key())
 			return
 		case <-ticker.C:
 			executeEndpoint(ep, cfg, extraLabels)
@@ -45,16 +46,16 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 		logr.Infof("[watchdog.executeEndpoint] No connectivity; skipping execution")
 		return
 	}
-	logr.Debugf("[watchdog.executeEndpoint] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+	logr.Debugf("[watchdog.executeEndpoint] Monitoring groups=%s; endpoint=%s; key=%s", strings.Join(ep.Groups, ","), ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
 	if logr.GetThreshold() == logr.LevelDebug && !result.Success {
-		logr.Debugf("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
+		logr.Debugf("[watchdog.executeEndpoint] Monitored groups=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s; body=%s", strings.Join(ep.Groups, ","), ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
 	} else {
-		logr.Infof("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+		logr.Infof("[watchdog.executeEndpoint] Monitored groups=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", strings.Join(ep.Groups, ","), ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
@@ -69,7 +70,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	} else {
 		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")
 	}
-	logr.Debugf("[watchdog.executeEndpoint] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
+	logr.Debugf("[watchdog.executeEndpoint] Waiting for interval=%s before monitoring groups=%s endpoint=%s (key=%s) again", ep.Interval, strings.Join(ep.Groups, ","), ep.Name, ep.Key())
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage

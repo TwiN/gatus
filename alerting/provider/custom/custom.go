@@ -18,6 +18,9 @@ var (
 	ErrURLNotSet = errors.New("url not set")
 )
 
+// GroupPlaceholder is a placeholder that will be replaced by the group name.
+const GroupPlaceholder = "[ENDPOINT_GROUP]"
+
 type Config struct {
 	URL          string                       `yaml:"url"`
 	Method       string                       `yaml:"method,omitempty"`
@@ -81,7 +84,7 @@ func (provider *AlertProvider) Validate() error {
 }
 
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(ep.Group, alert)
+	cfg, err := provider.GetConfig(ep.Groups, alert)
 	if err != nil {
 		return err
 	}
@@ -104,8 +107,8 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
 	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
-	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
+	body = strings.ReplaceAll(body, GroupPlaceholder, strings.Join(ep.Groups, ","))
+	url = strings.ReplaceAll(url, GroupPlaceholder, strings.Join(ep.Groups, ","))
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
 	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
 	resultErrors := strings.ReplaceAll(strings.Join(result.Errors, ","), "\"", "\\\"")
@@ -149,14 +152,16 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(groups []string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle group overrides
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			if group == override.Group {
-				cfg.Merge(&override.Config)
-				break
+			for _, group := range groups {
+				if group == override.Group {
+					cfg.Merge(&override.Config)
+					break
+				}
 			}
 		}
 	}
@@ -174,7 +179,7 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 }
 
 // ValidateOverrides validates the alert's provider override and, if present, the group override
-func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
-	_, err := provider.GetConfig(group, alert)
+func (provider *AlertProvider) ValidateOverrides(groups []string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(groups, alert)
 	return err
 }

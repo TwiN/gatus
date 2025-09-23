@@ -199,7 +199,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -209,7 +209,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -219,7 +219,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -234,7 +234,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -249,7 +249,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://group-example.com"},
 		},
@@ -264,7 +264,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
 			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},

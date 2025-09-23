@@ -38,7 +38,7 @@ type Suite struct {
 	Name string `yaml:"name"`
 
 	// Group the suite belongs to. Used for grouping multiple suites together.
-	Group string `yaml:"group,omitempty"`
+	Groups []string `yaml:"groups,omitempty"`
 
 	// Enabled defines whether the suite is enabled
 	Enabled *bool `yaml:"enabled,omitempty"`
@@ -66,7 +66,7 @@ func (s *Suite) IsEnabled() bool {
 
 // Key returns a unique key for the suite
 func (s *Suite) Key() string {
-	return key.ConvertGroupAndNameToKey(s.Group, s.Name)
+	return key.ConvertGroupAndNameToKey(s.Groups, s.Name)
 }
 
 // ValidateAndSetDefaults validates the suite configuration and sets default values
@@ -87,7 +87,7 @@ func (s *Suite) ValidateAndSetDefaults() error {
 		}
 		endpointNames[ep.Name] = true
 		// Suite endpoints inherit the group from the suite
-		ep.Group = s.Group
+		ep.Groups = s.Groups
 		// Validate each endpoint
 		if err := ep.ValidateAndSetDefaults(); err != nil {
 			return fmt.Errorf("invalid endpoint '%s': %w", ep.Name, err)
@@ -120,7 +120,7 @@ func (s *Suite) Execute() *Result {
 	// Create suite result
 	result := &Result{
 		Name:            s.Name,
-		Group:           s.Group,
+		Groups:          s.Groups,
 		Success:         true,
 		Timestamp:       start,
 		EndpointResults: make([]*endpoint.Result, 0, len(s.Endpoints)),

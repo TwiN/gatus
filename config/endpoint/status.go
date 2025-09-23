@@ -8,8 +8,8 @@ type Status struct {
 	// Name of the endpoint
 	Name string `json:"name,omitempty"`
 
-	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
-	Group string `json:"group,omitempty"`
+	// Groups the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
+	Groups []string `json:"groups,omitempty"`
 
 	// Key of the Endpoint
 	Key string `json:"key"`
@@ -29,11 +29,11 @@ type Status struct {
 }
 
 // NewStatus creates a new Status
-func NewStatus(group, name string) *Status {
+func NewStatus(groups []string, name string) *Status {
 	return &Status{
 		Name:    name,
-		Group:   group,
-		Key:     key.ConvertGroupAndNameToKey(group, name),
+		Groups:  groups,
+		Key:     key.ConvertGroupAndNameToKey(groups, name),
 		Results: make([]*Result, 0),
 		Events:  make([]*Event, 0),
 		Uptime:  NewUptime(),

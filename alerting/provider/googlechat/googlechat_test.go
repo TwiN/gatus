@@ -116,7 +116,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}},
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
@@ -217,7 +217,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -227,7 +227,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -237,7 +237,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -252,7 +252,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
@@ -267,7 +267,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{WebhookURL: "http://group-example.com"},
 		},
@@ -282,7 +282,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
 			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},

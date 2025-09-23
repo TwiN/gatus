@@ -368,7 +368,8 @@ ui:
 
 external-endpoints:
   - name: ext-ep-test
-    group: core
+    groups:
+      - core
     token: "potato"
 
 endpoints:
@@ -420,7 +421,7 @@ endpoints:
 	if config.ExternalEndpoints[0].Name != "ext-ep-test" {
 		t.Errorf("Name should have been %s", "ext-ep-test")
 	}
-	if config.ExternalEndpoints[0].Group != "core" {
+	if config.ExternalEndpoints[0].Groups[0] != "core" {
 		t.Errorf("Group should have been %s", "core")
 	}
 	if config.ExternalEndpoints[0].Token != "potato" {
@@ -1025,7 +1026,8 @@ alerting:
 
 external-endpoints:
   - name: ext-ep-test
-    group: core
+    groups:
+      - core
     token: potato
     alerts:
       - type: discord
@@ -1578,7 +1580,7 @@ endpoints:
 	if err = config.Alerting.Custom.Validate(); err != nil {
 		t.Fatal("Custom alerting config should've been valid")
 	}
-	cfg, _ := config.Alerting.Custom.GetConfig("", &alert.Alert{ProviderOverride: map[string]any{"client": map[string]any{"insecure": true}}})
+	cfg, _ := config.Alerting.Custom.GetConfig([]string{}, &alert.Alert{ProviderOverride: map[string]any{"client": map[string]any{"insecure": true}}})
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true) != "RESOLVED" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'RESOLVED', got", config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true))
 	}
@@ -1624,7 +1626,7 @@ endpoints:
 	if err = config.Alerting.Custom.Validate(); err != nil {
 		t.Fatal("Custom alerting config should've been valid")
 	}
-	cfg, _ := config.Alerting.Custom.GetConfig("", &alert.Alert{})
+	cfg, _ := config.Alerting.Custom.GetConfig([]string{}, &alert.Alert{})
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true) != "operational" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'operational'")
 	}
@@ -1665,7 +1667,7 @@ endpoints:
 	if err := config.Alerting.Custom.Validate(); err != nil {
 		t.Fatal("Custom alerting config should've been valid")
 	}
-	cfg, _ := config.Alerting.Custom.GetConfig("", &alert.Alert{})
+	cfg, _ := config.Alerting.Custom.GetConfig([]string{}, &alert.Alert{})
 	if config.Alerting.Custom.GetAlertStatePlaceholderValue(cfg, true) != "RESOLVED" {
 		t.Fatal("ALERT_TRIGGERED_OR_RESOLVED placeholder value for RESOLVED should've been 'RESOLVED'")
 	}
@@ -1717,7 +1719,7 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
   - name: ep1
-    group: g1
+    groups: [g1]
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"`,
@@ -1728,12 +1730,12 @@ endpoints:
 			config: `
 endpoints:
   - name: ep1
-    group: g1
+    groups: [g1]
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
   - name: ep1
-    group: g1
+    groups: [g1]
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"`,
@@ -1758,7 +1760,7 @@ endpoints:
 			config: `
 external-endpoints:
   - name: ep1
-    group: gr1
+    groups: [gr1]
     token: "12345678"
 
 endpoints:
@@ -2120,14 +2122,14 @@ func TestParseAndValidateConfigBytesWithDuplicateKeysAcrossEntityTypes(t *testin
 			config: `
 endpoints:
   - name: test-api
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: test-api
-    group: backend
+    groups: [backend]
     interval: 30s
     endpoints:
       - name: step1
@@ -2141,14 +2143,14 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: integration-tests
-    group: testing
+    groups: [testing]
     interval: 30s
     endpoints:
       - name: step1
@@ -2162,21 +2164,21 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 external-endpoints:
   - name: monitoring-agent
-    group: infrastructure
+    groups: [infrastructure]
     token: "secret-token"
     heartbeat:
       interval: 5m
 
 suites:
   - name: integration-tests
-    group: testing
+    groups: [testing]
     interval: 30s
     endpoints:
       - name: step1
@@ -2197,14 +2199,14 @@ endpoints:
 
 external-endpoints:
   - name: health-check
-    group: monitoring
+    groups: [monitoring]
     token: "secret-token"
     heartbeat:
       interval: 5m
 
 suites:
   - name: health-check
-    group: monitoring
+    groups: [monitoring]
     interval: 30s
     endpoints:
       - name: step1
@@ -2218,14 +2220,14 @@ suites:
 			config: `
 endpoints:
   - name: api-health
-    group: backend
+    groups: [backend]
     url: https://example.com/health
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: integration-suite
-    group: testing
+    groups: [testing]
     interval: 30s
     endpoints:
       - name: api-health
@@ -2240,14 +2242,14 @@ suites:
 			config: `
 endpoints:
   - name: api-health
-    group: backend
+    groups: [backend]
     url: https://example.com/health
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: integration-suite
-    group: backend
+    groups: [backend]
     interval: 30s
     endpoints:
       - name: api-health
@@ -2292,7 +2294,7 @@ endpoints:
       - "[STATUS] == 200"
 
 suites:
-  - group: testing
+  - groups: [testing]
     interval: 30s
     endpoints:
       - name: step1
@@ -2313,7 +2315,7 @@ endpoints:
 
 suites:
   - name: empty-suite
-    group: testing
+    groups: [testing]
     interval: 30s
     endpoints: []`,
 		},
@@ -2330,7 +2332,7 @@ endpoints:
 
 suites:
   - name: duplicate-test
-    group: testing
+    groups: [testing]
     interval: 30s
     endpoints:
       - name: step1
@@ -2355,7 +2357,7 @@ endpoints:
 
 suites:
   - name: negative-timeout-suite
-    group: testing
+    groups: [testing]
     interval: 30s
     timeout: -5m
     endpoints:
@@ -2370,14 +2372,14 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: integration-test
-    group: testing
+    groups: [testing]
     endpoints:
       - name: step1
         url: https://example.com/test
@@ -2394,14 +2396,14 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: full-integration-test
-    group: testing
+    groups: [testing]
     enabled: true
     interval: 15m
     timeout: 10m
@@ -2425,14 +2427,14 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: inheritance-test
-    group: parent-group
+    groups: [parent-group]
     endpoints:
       - name: child-endpoint
         url: https://example.com/test
@@ -2445,14 +2447,14 @@ suites:
 			config: `
 endpoints:
   - name: api-service
-    group: backend
+    groups: [backend]
     url: https://example.com/api
     conditions:
       - "[STATUS] == 200"
 
 suites:
   - name: store-test
-    group: testing
+    groups: [testing]
     endpoints:
       - name: get-token
         url: https://example.com/auth

@@ -18,9 +18,9 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 		{
 			name: "valid-external-endpoint",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "test-group",
-				Token: "valid-token",
+				Name:   "test-endpoint",
+				Groups: []string{"test-group"},
+				Token:  "valid-token",
 			},
 			wantErr: nil,
 		},
@@ -38,8 +38,8 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 		{
 			name: "missing-token",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "test-group",
+				Name:   "test-endpoint",
+				Groups: []string{"test-group"},
 			},
 			wantErr: ErrExternalEndpointWithNoToken,
 		},
@@ -87,8 +87,8 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 		{
 			name: "missing-name",
 			endpoint: &ExternalEndpoint{
-				Group: "test-group",
-				Token: "valid-token",
+				Groups: []string{"test-group"},
+				Token:  "valid-token",
 			},
 			wantErr: ErrEndpointWithNoName,
 		},
@@ -161,24 +161,24 @@ func TestExternalEndpoint_DisplayName(t *testing.T) {
 		{
 			name: "with-group",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "test-group",
+				Name:   "test-endpoint",
+				Groups: []string{"test-group"},
 			},
 			expected: "test-group/test-endpoint",
 		},
 		{
 			name: "without-group",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "",
+				Name:   "test-endpoint",
+				Groups: []string{},
 			},
 			expected: "test-endpoint",
 		},
 		{
 			name: "empty-group-string",
 			endpoint: &ExternalEndpoint{
-				Name:  "api-health",
-				Group: "",
+				Name:   "api-health",
+				Groups: []string{},
 			},
 			expected: "api-health",
 		},
@@ -203,24 +203,24 @@ func TestExternalEndpoint_Key(t *testing.T) {
 		{
 			name: "with-group",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "test-group",
+				Name:   "test-endpoint",
+				Groups: []string{"test-group"},
 			},
 			expected: "test-group_test-endpoint",
 		},
 		{
 			name: "without-group",
 			endpoint: &ExternalEndpoint{
-				Name:  "test-endpoint",
-				Group: "",
+				Name:   "test-endpoint",
+				Groups: []string{},
 			},
 			expected: "_test-endpoint",
 		},
 		{
 			name: "special-characters-in-name",
 			endpoint: &ExternalEndpoint{
-				Name:  "test endpoint with spaces",
-				Group: "test-group",
+				Name:   "test endpoint with spaces",
+				Groups: []string{"test-group"},
 			},
 			expected: "test-group_test-endpoint-with-spaces",
 		},
@@ -245,7 +245,7 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 			externalEndpoint: &ExternalEndpoint{
 				Enabled: boolPtr(true),
 				Name:    "test-endpoint",
-				Group:   "test-group",
+				Groups:  []string{"test-group"},
 				Token:   "test-token",
 				Alerts: []*alert.Alert{
 					{
@@ -280,8 +280,8 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 		{
 			name: "original-test-case",
 			externalEndpoint: &ExternalEndpoint{
-				Name:  "name",
-				Group: "group",
+				Name:   "name",
+				Groups: []string{"group"},
 			},
 		},
 	}
@@ -295,8 +295,8 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 			if result.Name != tt.externalEndpoint.Name {
 				t.Errorf("Expected Name=%q, got %q", tt.externalEndpoint.Name, result.Name)
 			}
-			if result.Group != tt.externalEndpoint.Group {
-				t.Errorf("Expected Group=%q, got %q", tt.externalEndpoint.Group, result.Group)
+			if len(result.Groups) != len(tt.externalEndpoint.Groups) {
+				t.Fatalf("Expected Groups=%v, got %v", tt.externalEndpoint.Groups, result.Groups)
 			}
 			if len(result.Alerts) != len(tt.externalEndpoint.Alerts) {
 				t.Errorf("Expected %d alerts, got %d", len(tt.externalEndpoint.Alerts), len(result.Alerts))

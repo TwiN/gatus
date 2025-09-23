@@ -218,7 +218,7 @@ const filteredEndpoints = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(endpoint => 
       endpoint.name.toLowerCase().includes(query) ||
-      (endpoint.group && endpoint.group.toLowerCase().includes(query))
+      (endpoint.groups && endpoint.groups.some(group => group.toLowerCase().includes(query)))
     )
   }
   
@@ -262,7 +262,7 @@ const filteredSuites = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(suite => 
       suite.name.toLowerCase().includes(query) ||
-      (suite.group && suite.group.toLowerCase().includes(query))
+      (suite.groups && suite.groups.some(g => g.toLowerCase().includes(query)))
     )
   }
   
@@ -309,11 +309,20 @@ const groupedEndpoints = computed(() => {
   
   const grouped = {}
   filteredEndpoints.value.forEach(endpoint => {
-    const group = endpoint.group || 'No Group'
-    if (!grouped[group]) {
-      grouped[group] = []
+    if (endpoint.groups && endpoint.groups.length > 0) {
+      endpoint.groups.forEach(group => {
+        if (!grouped[group]) {
+          grouped[group] = []
+        }
+        grouped[group].push(endpoint)
+      });
+    } else {
+      const group = 'No Group'
+      if (!grouped[group]) {
+        grouped[group] = []
+      }
+      grouped[group].push(endpoint)
     }
-    grouped[group].push(endpoint)
   })
   
   // Sort groups alphabetically, with 'No Group' at the end
@@ -340,20 +349,38 @@ const combinedGroups = computed(() => {
   
   // Add endpoints
   filteredEndpoints.value.forEach(endpoint => {
-    const group = endpoint.group || 'No Group'
-    if (!combined[group]) {
-      combined[group] = { endpoints: [], suites: [] }
+    if (endpoint.groups && endpoint.groups.length > 0) {
+      endpoint.groups.forEach(group => {
+        if (!combined[group]) {
+          combined[group] = { endpoints: [], suites: [] }
+        }
+        combined[group].endpoints.push(endpoint)
+      });
+    } else {
+      const group = 'No Group'
+      if (!combined[group]) {
+        combined[group] = { endpoints: [], suites: [] }
+      }
+      combined[group].endpoints.push(endpoint)
     }
-    combined[group].endpoints.push(endpoint)
   })
   
   // Add suites
   filteredSuites.value.forEach(suite => {
-    const group = suite.group || 'No Group'
-    if (!combined[group]) {
-      combined[group] = { endpoints: [], suites: [] }
+    if (suite.groups && suite.groups.length > 0) {
+      suite.groups.forEach(group => {
+        if (!combined[group]) {
+          combined[group] = { endpoints: [], suites: [] }
+        }
+        combined[group].suites.push(suite)
+      });
+    } else {
+      const group = 'No Group'
+      if (!combined[group]) {
+        combined[group] = { endpoints: [], suites: [] }
+      }
+      combined[group].suites.push(suite)
     }
-    combined[group].suites.push(suite)
   })
   
   // Sort groups alphabetically, with 'No Group' at the end
@@ -424,6 +451,7 @@ const fetchData = async () => {
     if (endpointResponse.status === 200) {
       const data = await endpointResponse.json()
       endpointStatuses.value = data
+      console.log('Fetched endpoint statuses:', JSON.stringify(data, null, 2))
     } else {
       console.error('[Home][fetchData] Error fetching endpoints:', await endpointResponse.text())
     }

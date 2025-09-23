@@ -88,7 +88,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err := scenario.Provider.Send(
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}},
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
@@ -134,7 +134,7 @@ func TestAlertProvider_buildAlertBody(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig([]string{""}, &scenario.Alert)
 			if err != nil {
 				t.Error("expected no error, got", err.Error())
 			}
@@ -192,7 +192,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{""}, &scenario.InputAlert)
 			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -215,7 +215,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected Service %s, got %s", scenario.ExpectedOutput.Service, got.Service)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides([]string{""}, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

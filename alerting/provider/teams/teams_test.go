@@ -282,7 +282,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{scenario.InputGroup}, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -290,7 +290,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides([]string{scenario.InputGroup}, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

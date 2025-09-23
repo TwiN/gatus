@@ -159,7 +159,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-group",
 			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"short\":false,\"color\":\"#DD0000\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -184,7 +184,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group",
 			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"text\":\"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -192,7 +192,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group-and-custom-title",
 			Provider:     AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com", Title: "custom title"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"text\":\"\",\"attachments\":[{\"title\":\"custom title\",\"text\":\"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"short\":false,\"color\":\"#36A64F\",\"fields\":[{\"title\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n\",\"short\":false}]}]}",
@@ -207,7 +207,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 					{Condition: "[STATUS] == 200", Success: scenario.Resolved},
 				}
 			}
-			cfg, err := scenario.Provider.GetConfig(scenario.Endpoint.Group, &scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig(scenario.Endpoint.Groups, &scenario.Alert)
 			if err != nil {
 				t.Fatal("couldn't get config:", err.Error())
 			}
@@ -316,7 +316,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{scenario.InputGroup}, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -324,7 +324,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides([]string{scenario.InputGroup}, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

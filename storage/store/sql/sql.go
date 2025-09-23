@@ -140,7 +140,7 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
 func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), params)
+	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey([]string{groupName}, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
@@ -591,7 +591,7 @@ func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error)
 		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
 		ep.Key(),
 		ep.Name,
-		ep.Group,
+		strings.Join(ep.Groups, ","),
 	).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -722,7 +722,7 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	if err != nil {
 		return nil, err
 	}
-	endpointStatus := endpoint.NewStatus(group, endpointName)
+	endpointStatus := endpoint.NewStatus(strings.Split(group, ","), endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
 			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
@@ -1188,7 +1188,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 
 		status := &suite.Status{
 			Name:    name,
-			Group:   group,
+			Groups:  strings.Split(group, ","),
 			Key:     key,
 			Results: []*suite.Result{},
 		}
@@ -1212,7 +1212,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 		// Populate Name and Group fields on each result
 		for _, result := range status.Results {
 			result.Name = name
-			result.Group = group
+			result.Groups = strings.Split(group, ",")
 		}
 
 		suiteStatuses = append(suiteStatuses, status)
@@ -1248,7 +1248,7 @@ func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams
 
 	status := &suite.Status{
 		Name:    name,
-		Group:   group,
+		Groups:  strings.Split(group, ","),
 		Key:     key,
 		Results: []*suite.Result{},
 	}
@@ -1272,7 +1272,7 @@ func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams
 	// Populate Name and Group fields on each result
 	for _, result := range status.Results {
 		result.Name = name
-		result.Group = group
+		result.Groups = strings.Split(group, ",")
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -1323,8 +1323,8 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 	for _, epResult := range result.EndpointResults {
 		// Create a temporary endpoint object for storage
 		ep := &endpoint.Endpoint{
-			Name:  epResult.Name,
-			Group: su.Group,
+			Name:   epResult.Name,
+			Groups: su.Groups,
 		}
 		// Get or create the endpoint (without suite linkage in endpoints table)
 		epID, err := s.getEndpointID(tx, ep)
@@ -1441,7 +1441,7 @@ func (s *Store) insertSuite(tx *sql.Tx, su *suite.Suite) (int64, error) {
 		"INSERT INTO suites (suite_key, suite_name, suite_group) VALUES ($1, $2, $3) RETURNING suite_id",
 		su.Key(),
 		su.Name,
-		su.Group,
+		strings.Join(su.Groups, ","),
 	).Scan(&id)
 	if err != nil {
 		return 0, err

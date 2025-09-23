@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -77,7 +78,7 @@ func (provider *AlertProvider) Validate() error {
 
 // Send an alert using the provider
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(ep.Group, alert)
+	cfg, err := provider.GetConfig(ep.Groups, alert)
 	if err != nil {
 		return err
 	}
@@ -122,8 +123,8 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 	}
 	// Build additional details
 	value3 = fmt.Sprintf("Endpoint: %s", ep.DisplayName())
-	if ep.Group != "" {
-		value3 += fmt.Sprintf(" | Group: %s", ep.Group)
+	if len(ep.Groups) > 0 {
+		value3 += fmt.Sprintf(" | Group: %s", strings.Join(ep.Groups, ","))
 	}
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		value3 += fmt.Sprintf(" | Description: %s", alertDescription)
@@ -156,14 +157,16 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(groups []string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle group overrides
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			if group == override.Group {
-				cfg.Merge(&override.Config)
-				break
+			for _, group := range groups {
+				if group == override.Group {
+					cfg.Merge(&override.Config)
+					break
+				}
 			}
 		}
 	}
@@ -181,7 +184,7 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 }
 
 // ValidateOverrides validates the alert's provider override and, if present, the group override
-func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
-	_, err := provider.GetConfig(group, alert)
+func (provider *AlertProvider) ValidateOverrides(groups []string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(groups, alert)
 	return err
 }

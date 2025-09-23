@@ -86,14 +86,14 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig([]string{""}, &scenario.Alert)
 			if err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") && !strings.Contains(err.Error(), "no such host") {
 				t.Error("expected no error, got", err.Error())
 			}
 			cfg.githubClient = github.NewClient(nil)
 			client.InjectHTTPClient(&http.Client{Transport: scenario.MockRoundTripper})
 			err = scenario.Provider.Send(
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}},
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
@@ -202,7 +202,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{""}, &scenario.InputAlert)
 			if err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") && !strings.Contains(err.Error(), "no such host") {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -213,7 +213,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected token %s, got %s", scenario.ExpectedOutput.Token, got.Token)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") {
+			if err = scenario.Provider.ValidateOverrides([]string{""}, &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "failed to retrieve GitHub user") {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

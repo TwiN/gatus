@@ -21,7 +21,7 @@ var (
 
 	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
-		Group:                   "group",
+		Groups:                  []string{"group"},
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
@@ -343,16 +343,16 @@ func TestStore_Persistence(t *testing.T) {
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*30), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 30d should've been 0.5, got %f", uptime)
 	}
-	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
-	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
+	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Groups[0], testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
+	if ssFromOldStore == nil || ssFromOldStore.Groups[0] != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
 	}
 	store.Close()
 	store, _ = NewStore("sqlite", path, false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
-	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
-	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
+	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Groups[0], testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
+	if ssFromNewStore == nil || ssFromNewStore.Groups[0] != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
 	if ssFromNewStore == ssFromOldStore {
@@ -447,7 +447,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Groups[0], testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
@@ -894,9 +894,9 @@ func TestEventOrderingFix(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/test.db", false, 100, 100)
 	defer store.Close()
 	ep := &endpoint.Endpoint{
-		Name:  "ordering-test",
-		Group: "test",
-		URL:   "https://example.com",
+		Name:   "ordering-test",
+		Groups: []string{"test"},
+		URL:    "https://example.com",
 	}
 	// Create many events over time
 	baseTime := time.Now().Add(-100 * time.Hour) // Start 100 hours ago

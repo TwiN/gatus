@@ -138,16 +138,16 @@ func TestSuite_Key(t *testing.T) {
 		{
 			name: "with-group",
 			suite: &Suite{
-				Name:  "test-suite",
-				Group: "test-group",
+				Name:   "test-suite",
+				Groups: []string{"test-group"},
 			},
 			want: "test-group_test-suite",
 		},
 		{
 			name: "without-group",
 			suite: &Suite{
-				Name:  "test-suite",
-				Group: "",
+				Name:   "test-suite",
+				Groups: []string{""},
 			},
 			want: "_test-suite",
 		},

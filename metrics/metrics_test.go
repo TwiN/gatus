@@ -21,7 +21,7 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "TestEP",
-				Group: "G",
+				Groups: []string{"G"},
 				URL:   "http://x/",
 				ExtraLabels: map[string]string{
 					"foo":   "foo-val",
@@ -80,7 +80,7 @@ func TestPublishMetricsForEndpoint_withExtraLabels(t *testing.T) {
 
 	ep := &endpoint.Endpoint{
 		Name:  "ep-extra",
-		Group: "g1",
+		Groups: []string{"g1"},
 		URL:   "https://sample.com",
 		ExtraLabels: map[string]string{
 			"foo": "my-foo",
@@ -112,7 +112,7 @@ func TestPublishMetricsForEndpoint(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	InitializePrometheusMetrics(&config.Config{}, reg)
 
-	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Group: "http-ep-group", URL: "https://example.org"}
+	httpEndpoint := &endpoint.Endpoint{Name: "http-ep-name", Groups: []string{"http-ep-group"}, URL: "https://example.org"}
 	PublishMetricsForEndpoint(httpEndpoint, &endpoint.Result{
 		HTTPStatus: 200,
 		Connected:  true,
@@ -183,7 +183,7 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 		t.Errorf("Expected no errors but got: %v", err)
 	}
 	dnsEndpoint := &endpoint.Endpoint{
-		Name: "dns-ep-name", Group: "dns-ep-group", URL: "8.8.8.8", DNSConfig: &dns.Config{
+		Name: "dns-ep-name", Groups: []string{"dns-ep-group"}, URL: "8.8.8.8", DNSConfig: &dns.Config{
 			QueryType: "A",
 			QueryName: "example.com.",
 		},
@@ -233,15 +233,15 @@ func TestPublishMetricsForSuite(t *testing.T) {
 	InitializePrometheusMetrics(&config.Config{}, reg)
 
 	testSuite := &suite.Suite{
-		Name:  "test-suite",
-		Group: "test-group",
+		Name:   "test-suite",
+		Groups: []string{"test-group"},
 	}
 	// Test successful suite execution
 	successResult := &suite.Result{
 		Success:  true,
 		Duration: 5 * time.Second,
 		Name:     "test-suite",
-		Group:    "test-group",
+		Groups:   []string{"test-group"},
 	}
 	PublishMetricsForSuite(testSuite, successResult, []string{})
 
@@ -265,7 +265,7 @@ gatus_suite_results_total{group="test-group",key="test-group_test-suite",name="t
 		Success:  false,
 		Duration: 10 * time.Second,
 		Name:     "test-suite",
-		Group:    "test-group",
+		Groups:   []string{"test-group"},
 	}
 	PublishMetricsForSuite(testSuite, failureResult, []string{})
 
@@ -291,14 +291,14 @@ func TestPublishMetricsForSuite_NoGroup(t *testing.T) {
 	InitializePrometheusMetrics(&config.Config{}, reg)
 
 	testSuite := &suite.Suite{
-		Name:  "no-group-suite",
-		Group: "",
+		Name:   "no-group-suite",
+		Groups: []string{""},
 	}
 	result := &suite.Result{
 		Success:  true,
 		Duration: 3 * time.Second,
 		Name:     "no-group-suite",
-		Group:    "",
+		Groups:   []string{""},
 	}
 	PublishMetricsForSuite(testSuite, result, []string{})
 

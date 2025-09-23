@@ -20,7 +20,7 @@ var (
 
 	testSuiteEndpoint1 = endpoint.Endpoint{
 		Name:                    "endpoint1",
-		Group:                   "suite-group",
+		Groups:                  []string{"suite-group"},
 		URL:                     "https://example.org/endpoint1",
 		Method:                  "GET",
 		Interval:                30 * time.Second,
@@ -30,7 +30,7 @@ var (
 	}
 	testSuiteEndpoint2 = endpoint.Endpoint{
 		Name:                    "endpoint2",
-		Group:                   "suite-group",
+		Groups:                  []string{"suite-group"},
 		URL:                     "https://example.org/endpoint2",
 		Method:                  "GET",
 		Interval:                30 * time.Second,
@@ -40,7 +40,7 @@ var (
 	}
 	testSuite = suite.Suite{
 		Name:     "test-suite",
-		Group:    "suite-group",
+		Groups:   []string{"suite-group"},
 		Interval: 60 * time.Second,
 		Endpoints: []*endpoint.Endpoint{
 			&testSuiteEndpoint1,
@@ -48,9 +48,9 @@ var (
 		},
 	}
 	testSuccessfulSuiteResult = suite.Result{
-		Name:      "test-suite",
-		Group:     "suite-group",
-		Success:   true,
+		Name:    "test-suite",
+		Groups:  []string{"suite-group"},
+		Success: true,
 		Timestamp: suiteTimestamp,
 		Duration:  250 * time.Millisecond,
 		EndpointResults: []*endpoint.Result{
@@ -94,7 +94,7 @@ var (
 	}
 	testUnsuccessfulSuiteResult = suite.Result{
 		Name:      "test-suite",
-		Group:     "suite-group",
+		Groups:    []string{"suite-group"},
 		Success:   false,
 		Timestamp: suiteTimestamp,
 		Duration:  850 * time.Millisecond,
@@ -148,12 +148,12 @@ func TestSuiteStatus(t *testing.T) {
 		Metrics: true,
 		Suites: []*suite.Suite{
 			{
-				Name:  "frontend-suite",
-				Group: "core",
+				Name:   "frontend-suite",
+				Groups: []string{"core"},
 			},
 			{
-				Name:  "backend-suite",
-				Group: "core",
+				Name:   "backend-suite",
+				Groups: []string{"core"},
 			},
 		},
 		Storage: &storage.Config{
@@ -161,8 +161,8 @@ func TestSuiteStatus(t *testing.T) {
 			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 		},
 	}
-	watchdog.UpdateSuiteStatus(cfg.Suites[0], &suite.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now(), Name: cfg.Suites[0].Name, Group: cfg.Suites[0].Group})
-	watchdog.UpdateSuiteStatus(cfg.Suites[1], &suite.Result{Success: false, Duration: time.Second, Timestamp: time.Now(), Name: cfg.Suites[1].Name, Group: cfg.Suites[1].Group})
+	watchdog.UpdateSuiteStatus(cfg.Suites[0], &suite.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now(), Name: cfg.Suites[0].Name, Groups: cfg.Suites[0].Groups})
+	watchdog.UpdateSuiteStatus(cfg.Suites[1], &suite.Result{Success: false, Duration: time.Second, Timestamp: time.Now(), Name: cfg.Suites[1].Name, Groups: cfg.Suites[1].Groups})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
@@ -230,13 +230,13 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 				Suites: []*suite.Suite{
 					{
 						Name:    "test-suite",
-						Group:   "test-group",
+						Groups:  []string{"test-group"},
 						Enabled: boolPtr(true),
 						Endpoints: []*endpoint.Endpoint{
 							{
-								Name:  "endpoint-1",
-								Group: "test-group",
-								URL:   "https://example.com",
+								Name:   "endpoint-1",
+								Groups: []string{"test-group"},
+								URL:    "https://example.com",
 							},
 						},
 					},
@@ -257,7 +257,7 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 				Suites: []*suite.Suite{
 					{
 						Name:    "disabled-suite",
-						Group:   "test-group",
+						Groups:  []string{"test-group"},
 						Enabled: boolPtr(false),
 					},
 				},
@@ -276,8 +276,8 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 				Metrics: true,
 				Suites: []*suite.Suite{
 					{
-						Name:  "different-suite",
-						Group: "different-group",
+						Name:   "different-suite",
+						Groups: []string{"different-group"},
 					},
 				},
 				Storage: &storage.Config{
@@ -295,8 +295,8 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 				Metrics: true,
 				Suites: []*suite.Suite{
 					{
-						Name:  "empty-group-suite",
-						Group: "",
+						Name:   "empty-group-suite",
+						Groups: []string{""},
 					},
 				},
 				Storage: &storage.Config{
@@ -315,7 +315,7 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 				Suites: []*suite.Suite{
 					{
 						Name:    "enabled-suite",
-						Group:   "default",
+						Groups:  []string{"default"},
 						Enabled: nil,
 					},
 				},
@@ -398,31 +398,31 @@ func TestSuiteStatuses(t *testing.T) {
 			Name:         "no-pagination",
 			Path:         "/api/v1/suites/statuses",
 			ExpectedCode: http.StatusOK,
-			ExpectedBody: `[{"name":"test-suite","group":"suite-group","key":"suite-group_test-suite","results":[{"name":"test-suite","group":"suite-group","success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]},{"name":"test-suite","group":"suite-group","success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
+			ExpectedBody: `[{"name":"test-suite","groups":["suite-group"],"key":"suite-group_test-suite","results":[{"name":"test-suite","groups":["suite-group"],"success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]},{"name":"test-suite","groups":["suite-group"],"success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
 		},
 		{
 			Name:         "pagination-first-result",
 			Path:         "/api/v1/suites/statuses?page=1&pageSize=1",
 			ExpectedCode: http.StatusOK,
-			ExpectedBody: `[{"name":"test-suite","group":"suite-group","key":"suite-group_test-suite","results":[{"name":"test-suite","group":"suite-group","success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
+			ExpectedBody: `[{"name":"test-suite","groups":["suite-group"],"key":"suite-group_test-suite","results":[{"name":"test-suite","groups":["suite-group"],"success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
 		},
 		{
 			Name:         "pagination-second-result",
 			Path:         "/api/v1/suites/statuses?page=2&pageSize=1",
 			ExpectedCode: http.StatusOK,
-			ExpectedBody: `[{"name":"test-suite","group":"suite-group","key":"suite-group_test-suite","results":[{"name":"test-suite","group":"suite-group","success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]}]}]`,
+			ExpectedBody: `[{"name":"test-suite","groups":["suite-group"],"key":"suite-group_test-suite","results":[{"name":"test-suite","groups":["suite-group"],"success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]}]}]`,
 		},
 		{
 			Name:         "pagination-no-results",
 			Path:         "/api/v1/suites/statuses?page=5&pageSize=20",
 			ExpectedCode: http.StatusOK,
-			ExpectedBody: `[{"name":"test-suite","group":"suite-group","key":"suite-group_test-suite","results":[]}]`,
+			ExpectedBody: `[{"name":"test-suite","groups":["suite-group"],"key":"suite-group_test-suite","results":[]}]`,
 		},
 		{
 			Name:         "invalid-pagination-should-fall-back-to-default",
 			Path:         "/api/v1/suites/statuses?page=INVALID&pageSize=INVALID",
 			ExpectedCode: http.StatusOK,
-			ExpectedBody: `[{"name":"test-suite","group":"suite-group","key":"suite-group_test-suite","results":[{"name":"test-suite","group":"suite-group","success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]},{"name":"test-suite","group":"suite-group","success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
+			ExpectedBody: `[{"name":"test-suite","groups":["suite-group"],"key":"suite-group_test-suite","results":[{"name":"test-suite","groups":["suite-group"],"success":true,"timestamp":"0001-01-01T00:00:00Z","duration":250000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":200,"hostname":"example.org","duration":150000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 300","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"}]},{"name":"test-suite","groups":["suite-group"],"success":false,"timestamp":"0001-01-01T00:00:00Z","duration":850000000,"endpointResults":[{"status":200,"hostname":"example.org","duration":100000000,"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] \u003c 500","success":true}],"success":true,"timestamp":"0001-01-01T00:00:00Z"},{"status":500,"hostname":"example.org","duration":750000000,"errors":["endpoint-error-1"],"conditionResults":[{"condition":"[STATUS] == 200","success":false},{"condition":"[RESPONSE_TIME] \u003c 300","success":false}],"success":false,"timestamp":"0001-01-01T00:00:00Z"}],"errors":["suite-error-1","suite-error-2"]}]}]`,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -455,17 +455,17 @@ func TestSuiteStatuses_NoSuitesInStoreButExistInConfig(t *testing.T) {
 		Suites: []*suite.Suite{
 			{
 				Name:    "config-only-suite-1",
-				Group:   "test-group",
+				Groups:  []string{"test-group"},
 				Enabled: boolPtr(true),
 			},
 			{
 				Name:    "config-only-suite-2",
-				Group:   "test-group",
+				Groups:  []string{"test-group"},
 				Enabled: boolPtr(true),
 			},
 			{
 				Name:    "disabled-suite",
-				Group:   "test-group",
+				Groups:  []string{"test-group"},
 				Enabled: boolPtr(false),
 			},
 		},

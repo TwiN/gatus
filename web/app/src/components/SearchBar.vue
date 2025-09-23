@@ -58,7 +58,7 @@ const filterOptions = [
 
 const sortOptions = [
   { label: 'Name', value: 'name' },
-  { label: 'Group', value: 'group' },
+  { label: 'Groups', value: 'groups' },
   { label: 'Health', value: 'health' }
 ]
 
@@ -84,10 +84,10 @@ const handleSortChange = (value) => {
   sortBy.value = value
   localStorage.setItem('gatus:sort-by', value)
   emit('update:sortBy', value)
-  emit('update:groupByGroup', value === 'group')
+  emit('update:groupByGroup', value === 'groups')
   
   // When switching to group view, initialize collapsed groups
-  if (value === 'group') {
+  if (value === 'groups') {
     emit('initializeCollapsedGroups')
   }
 }

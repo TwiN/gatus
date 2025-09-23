@@ -159,7 +159,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"Title\":\"TRIGGERED: group/name\",\"Message\":\"An alert for group/name has been triggered due to having failed 3 time(s) in a row\\n\\nDescription: description-1\\n\\nCondition results:\\n✗ [CONNECTED] == true\\n✗ [STATUS] == 200\\n\",\"X-S4-Service\":\"group/name\",\"X-S4-Status\":\"new\",\"X-S4-ExternalID\":\"gatus-group_name\"}",
@@ -184,7 +184,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group",
 			Provider:     AlertProvider{},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"Title\":\"RESOLVED: group/name\",\"Message\":\"An alert for group/name has been resolved after passing successfully 5 time(s) in a row\\n\\nDescription: description-2\\n\\nCondition results:\\n✓ [CONNECTED] == true\\n✓ [STATUS] == 200\\n\",\"X-S4-Service\":\"group/name\",\"X-S4-Status\":\"resolved\",\"X-S4-ExternalID\":\"gatus-group_name\"}",
@@ -306,7 +306,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{scenario.InputGroup}, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -314,7 +314,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected team secret to be %s, got %s", scenario.ExpectedOutput.TeamSecret, got.TeamSecret)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides([]string{scenario.InputGroup}, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
@@ -329,7 +329,7 @@ func TestAlertProvider_GetConfigWithInvalidAlertOverride(t *testing.T) {
 	alertWithEmptyOverride := alert.Alert{
 		ProviderOverride: map[string]any{"team-secret": ""},
 	}
-	cfg, err := provider.GetConfig("", &alertWithEmptyOverride)
+	cfg, err := provider.GetConfig(nil, &alertWithEmptyOverride)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -344,7 +344,7 @@ func TestAlertProvider_GetConfigWithInvalidAlertOverride(t *testing.T) {
 	alertWithEmptyOverride2 := alert.Alert{
 		ProviderOverride: map[string]any{"team-secret": ""},
 	}
-	_, err = providerWithInvalidDefault.GetConfig("", &alertWithEmptyOverride2)
+	_, err = providerWithInvalidDefault.GetConfig(nil, &alertWithEmptyOverride2)
 	if err == nil {
 		t.Error("expected error due to invalid default config, got none")
 	}
@@ -382,7 +382,7 @@ func TestAlertProvider_ValidateOverridesWithInvalidAlert(t *testing.T) {
 	alertWithEmptyOverride := alert.Alert{
 		ProviderOverride: map[string]any{"team-secret": ""},
 	}
-	err := provider.ValidateOverrides("", &alertWithEmptyOverride)
+	err := provider.ValidateOverrides(nil, &alertWithEmptyOverride)
 	if err == nil {
 		t.Error("expected error due to invalid default config, got none")
 	}

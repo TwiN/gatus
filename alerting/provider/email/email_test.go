@@ -162,7 +162,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -172,7 +172,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{From: "from@example.com", To: "to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 		},
@@ -182,7 +182,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{From: "from@example.com", To: "to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 		},
@@ -197,7 +197,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 		},
@@ -212,7 +212,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "group-to@example.com", Host: "smtp.gmail.com", Port: 587, Password: "password"},
 		},
@@ -227,7 +227,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"to": "alert-to@example.com", "host": "smtp.example.com", "port": 588, "password": "hunter2"}},
 			ExpectedOutput: Config{From: "from@example.com", To: "alert-to@example.com", Host: "smtp.example.com", Port: 588, Password: "hunter2"},
 		},

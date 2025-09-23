@@ -164,7 +164,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "triggered-with-group",
 			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
@@ -180,7 +180,7 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		{
 			Name:         "resolved-with-group",
 			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
+			Endpoint:     endpoint.Endpoint{Name: "name", Groups: []string{"group"}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
@@ -224,7 +224,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -234,7 +234,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
 		},
@@ -244,7 +244,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
 		},
@@ -259,7 +259,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
 		},
@@ -274,7 +274,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{ChannelID: "group-channel", Project: "project", Token: "token"},
 		},
@@ -289,7 +289,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "alert-channel", "project": "alert-project", "token": "alert-token"}},
 			ExpectedOutput: Config{ChannelID: "alert-channel", Project: "alert-project", Token: "alert-token"},
 		},

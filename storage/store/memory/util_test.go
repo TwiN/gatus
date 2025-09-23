@@ -11,8 +11,8 @@ import (
 )
 
 func TestAddResult(t *testing.T) {
-	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := endpoint.NewStatus(ep.Group, ep.Name)
+	ep := &endpoint.Endpoint{Name: "name", Groups: []string{"group"}}
+	endpointStatus := endpoint.NewStatus(ep.Groups, ep.Name)
 	for i := 0; i < (storage.DefaultMaximumNumberOfResults+storage.DefaultMaximumNumberOfEvents)*2; i++ {
 		AddResult(endpointStatus, &endpoint.Result{Success: i%2 == 0, Timestamp: time.Now()}, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	}
@@ -27,8 +27,8 @@ func TestAddResult(t *testing.T) {
 }
 
 func TestShallowCopyEndpointStatus(t *testing.T) {
-	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
-	endpointStatus := endpoint.NewStatus(ep.Group, ep.Name)
+	ep := &endpoint.Endpoint{Name: "name", Groups: []string{"group"}}
+	endpointStatus := endpoint.NewStatus(ep.Groups, ep.Name)
 	ts := time.Now().Add(-25 * time.Hour)
 	for i := 0; i < 25; i++ {
 		AddResult(endpointStatus, &endpoint.Result{Success: i%2 == 0, Timestamp: ts}, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
@@ -67,19 +67,19 @@ func TestShallowCopyEndpointStatus(t *testing.T) {
 }
 
 func TestShallowCopySuiteStatus(t *testing.T) {
-	testSuite := &suite.Suite{Name: "test-suite", Group: "test-group"}
+	testSuite := &suite.Suite{Name: "test-suite", Groups: []string{"test-group"}}
 	suiteStatus := &suite.Status{
 		Name:    testSuite.Name,
-		Group:   testSuite.Group,
+		Groups:  testSuite.Groups,
 		Key:     testSuite.Key(),
 		Results: []*suite.Result{},
 	}
-	
+
 	ts := time.Now().Add(-25 * time.Hour)
 	for i := 0; i < 25; i++ {
 		result := &suite.Result{
 			Name:      testSuite.Name,
-			Group:     testSuite.Group,
+			Groups:    testSuite.Groups,
 			Success:   i%2 == 0,
 			Timestamp: ts,
 			Duration:  time.Duration(i*10) * time.Millisecond,

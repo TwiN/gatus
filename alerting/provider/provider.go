@@ -56,7 +56,7 @@ type AlertProvider interface {
 	GetDefaultAlert() *alert.Alert
 
 	// ValidateOverrides validates the alert's provider override and, if present, the group override
-	ValidateOverrides(group string, alert *alert.Alert) error
+	ValidateOverrides(groups []string, alert *alert.Alert) error
 }
 
 type Config[T any] interface {

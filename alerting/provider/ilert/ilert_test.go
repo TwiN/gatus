@@ -194,7 +194,7 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig("g", &scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig([]string{"g"}, &scenario.Alert)
 			if err != nil {
 				t.Error("expected no error, got", err.Error())
 			}
@@ -234,7 +234,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -244,7 +244,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
@@ -254,7 +254,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{IntegrationKey: "00000000000000000000000000000001"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
@@ -269,7 +269,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000001"},
 		},
@@ -284,7 +284,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000002"},
 		},
@@ -299,7 +299,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"integration-key": "00000000000000000000000000000003"}},
 			ExpectedOutput: Config{IntegrationKey: "00000000000000000000000000000003"},
 		},

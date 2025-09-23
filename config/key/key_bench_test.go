@@ -6,6 +6,6 @@ import (
 
 func BenchmarkConvertGroupAndNameToKey(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		ConvertGroupAndNameToKey("group", "name")
+		ConvertGroupAndNameToKey([]string{"group"}, "name")
 	}
 }

@@ -83,8 +83,8 @@ type Endpoint struct {
 	// Name of the endpoint. Can be anything.
 	Name string `yaml:"name"`
 
-	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
-	Group string `yaml:"group,omitempty"`
+	// Groups the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
+	Groups []string `yaml:"groups,omitempty"`
 
 	// URL to send the request to
 	URL string `yaml:"url"`
@@ -188,7 +188,7 @@ func (e *Endpoint) Type() Type {
 
 // ValidateAndSetDefaults validates the endpoint's configuration and sets the default value of args that have one
 func (e *Endpoint) ValidateAndSetDefaults() error {
-	if err := validateEndpointNameGroupAndAlerts(e.Name, e.Group, e.Alerts); err != nil {
+	if err := validateEndpointNameGroupAndAlerts(e.Name, e.Groups, e.Alerts); err != nil {
 		return err
 	}
 	if len(e.URL) == 0 {
@@ -261,19 +261,18 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
 func (e *Endpoint) DisplayName() string {
-	if len(e.Group) > 0 {
-		return e.Group + "/" + e.Name
+	if len(e.Groups) > 0 {
+		return strings.Join(e.Groups, "/") + "/" + e.Name
 	}
 	return e.Name
 }
 
 // Key returns the unique key for the Endpoint
 func (e *Endpoint) Key() string {
-	return key.ConvertGroupAndNameToKey(e.Group, e.Name)
+	return key.ConvertGroupAndNameToKey(e.Groups, e.Name)
 }
 
 // Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
-// on configuration reload.
 // More context on https://github.com/TwiN/gatus/issues/536
 func (e *Endpoint) Close() {
 	if e.Type() == TypeHTTP {
@@ -411,7 +410,7 @@ func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, err
 func (e *Endpoint) getParsedBody() string {
 	body := e.Body
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", e.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", e.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUPS]", strings.Join(e.Groups, ","))
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", e.URL)
 	randRegex, err := regexp.Compile(`\[RANDOM_STRING_\d+\]`)
 	if err == nil {

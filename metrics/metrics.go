@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -164,24 +165,25 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, e
 		}
 	}
 	endpointType := ep.Type()
-	resultTotal.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType), strconv.FormatBool(result.Success)}, labelValues...)...).Inc()
-	resultDurationSeconds.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(result.Duration.Seconds())
+	groups := strings.Join(ep.Groups, ",")
+	resultTotal.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType), strconv.FormatBool(result.Success)}, labelValues...)...).Inc()
+	resultDurationSeconds.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType)}, labelValues...)...).Set(result.Duration.Seconds())
 	if result.Connected {
-		resultConnectedTotal.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Inc()
+		resultConnectedTotal.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType)}, labelValues...)...).Inc()
 	}
 	if result.DNSRCode != "" {
-		resultCodeTotal.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType), result.DNSRCode}, labelValues...)...).Inc()
+		resultCodeTotal.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType), result.DNSRCode}, labelValues...)...).Inc()
 	}
 	if result.HTTPStatus != 0 {
-		resultCodeTotal.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)}, labelValues...)...).Inc()
+		resultCodeTotal.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType), strconv.Itoa(result.HTTPStatus)}, labelValues...)...).Inc()
 	}
 	if result.CertificateExpiration != 0 {
-		resultCertificateExpirationSeconds.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(result.CertificateExpiration.Seconds())
+		resultCertificateExpirationSeconds.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType)}, labelValues...)...).Set(result.CertificateExpiration.Seconds())
 	}
 	if result.Success {
-		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(1)
+		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType)}, labelValues...)...).Set(1)
 	} else {
-		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(0)
+		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), groups, ep.Name, string(endpointType)}, labelValues...)...).Set(0)
 	}
 }
 
@@ -197,22 +199,23 @@ func PublishMetricsForSuite(s *suite.Suite, result *suite.Result, extraLabels []
 	for range extraLabels {
 		labelValues = append(labelValues, "")
 	}
+	groups := strings.Join(s.Groups, ",")
 	// Publish suite execution counter
 	suiteResultTotal.WithLabelValues(
-		append([]string{s.Key(), s.Group, s.Name, strconv.FormatBool(result.Success)}, labelValues...)...,
+		append([]string{s.Key(), groups, s.Name, strconv.FormatBool(result.Success)}, labelValues...)...,
 	).Inc()
 	// Publish suite duration
 	suiteResultDurationSeconds.WithLabelValues(
-		append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+		append([]string{s.Key(), groups, s.Name}, labelValues...)...,
 	).Set(result.Duration.Seconds())
 	// Publish suite success status
 	if result.Success {
 		suiteResultSuccess.WithLabelValues(
-			append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+			append([]string{s.Key(), groups, s.Name}, labelValues...)...,
 		).Set(1)
 	} else {
 		suiteResultSuccess.WithLabelValues(
-			append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+			append([]string{s.Key(), groups, s.Name}, labelValues...)...,
 		).Set(0)
 	}
 }

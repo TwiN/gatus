@@ -23,7 +23,7 @@ var (
 
 	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
-		Group:                   "group",
+		Groups:                  []string{"group"},
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
@@ -148,8 +148,8 @@ func TestStore_GetEndpointStatusByKey(t *testing.T) {
 			if endpointStatus.Name != testEndpoint.Name {
 				t.Fatalf("endpointStatus.Name should've been %s, got %s", testEndpoint.Name, endpointStatus.Name)
 			}
-			if endpointStatus.Group != testEndpoint.Group {
-				t.Fatalf("endpointStatus.Group should've been %s, got %s", testEndpoint.Group, endpointStatus.Group)
+			if endpointStatus.Groups[0] != testEndpoint.Groups[0] {
+				t.Fatalf("endpointStatus.Group should've been %s, got %s", testEndpoint.Groups[0], endpointStatus.Groups[0])
 			}
 			if len(endpointStatus.Results) != 2 {
 				t.Fatalf("endpointStatus.Results should've had 2 entries")
@@ -181,14 +181,14 @@ func TestStore_GetEndpointStatusForMissingStatusReturnsNil(t *testing.T) {
 				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
 			if endpointStatus != nil {
-				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, testEndpoint.Name)
+				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Groups[0], testEndpoint.Name)
 			}
-			endpointStatus, err = scenario.Store.GetEndpointStatus(testEndpoint.Group, "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
+			endpointStatus, err = scenario.Store.GetEndpointStatus(testEndpoint.Groups[0], "nonexistantname", paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if !errors.Is(err, common.ErrEndpointNotFound) {
 				t.Error("should've returned ErrEndpointNotFound, got", err)
 			}
 			if endpointStatus != nil {
-				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Group, "nonexistantname")
+				t.Errorf("Returned endpoint status for group '%s' and name '%s' not nil after inserting the endpoint into the store", testEndpoint.Groups[0], "nonexistantname")
 			}
 			endpointStatus, err = scenario.Store.GetEndpointStatus("nonexistantgroup", testEndpoint.Name, paging.NewEndpointStatusParams().WithEvents(1, storage.DefaultMaximumNumberOfEvents).WithResults(1, storage.DefaultMaximumNumberOfResults))
 			if !errors.Is(err, common.ErrEndpointNotFound) {
@@ -540,8 +540,8 @@ func TestStore_Insert(t *testing.T) {
 func TestStore_DeleteAllEndpointStatusesNotInKeys(t *testing.T) {
 	scenarios := initStoresAndBaseScenarios(t, "TestStore_DeleteAllEndpointStatusesNotInKeys")
 	defer cleanUp(scenarios)
-	firstEndpoint := endpoint.Endpoint{Name: "endpoint-1", Group: "group"}
-	secondEndpoint := endpoint.Endpoint{Name: "endpoint-2", Group: "group"}
+	firstEndpoint := endpoint.Endpoint{Name: "endpoint-1", Groups: []string{"group"}}
+	secondEndpoint := endpoint.Endpoint{Name: "endpoint-2", Groups: []string{"group"}}
 	r := &testSuccessfulResult
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

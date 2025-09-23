@@ -5,8 +5,8 @@ type Status struct {
 	// Name of the suite
 	Name string `json:"name,omitempty"`
 
-	// Group the suite is a part of. Used for grouping multiple suites together on the front end.
-	Group string `json:"group,omitempty"`
+	// Groups the suite is a part of. Used for grouping multiple suites together on the front end.
+	Groups []string `json:"groups,omitempty"`
 
 	// Key of the Suite
 	Key string `json:"key"`
@@ -19,7 +19,7 @@ type Status struct {
 func NewStatus(s *Suite) *Status {
 	return &Status{
 		Name:    s.Name,
-		Group:   s.Group,
+		Groups:  s.Groups,
 		Key:     s.Key(),
 		Results: []*Result{},
 	}

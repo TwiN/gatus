@@ -502,7 +502,7 @@ func validateUniqueKeys(config *Config) error {
 		keyMap[suiteKey] = fmt.Sprintf("suite '%s'", suite.Key())
 		// Check endpoints within suites (they generate keys using suite group + endpoint name)
 		for _, ep := range suite.Endpoints {
-			epKey := key.ConvertGroupAndNameToKey(suite.Group, ep.Name)
+			epKey := key.ConvertGroupAndNameToKey(suite.Groups, ep.Name)
 			if existing, exists := keyMap[epKey]; exists {
 				return fmt.Errorf("duplicate key '%s': endpoint '%s' in suite '%s' conflicts with %s", epKey, epKey, suite.Key(), existing)
 			}
@@ -590,7 +590,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
-									if err = alertProvider.ValidateOverrides(ep.Group, endpointAlert); err != nil {
+									if err = alertProvider.ValidateOverrides(ep.Groups, endpointAlert); err != nil {
 										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
 									}
 								}
@@ -604,7 +604,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
-									if err = alertProvider.ValidateOverrides(ee.Group, endpointAlert); err != nil {
+									if err = alertProvider.ValidateOverrides(ee.Groups, endpointAlert); err != nil {
 										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
 									}
 								}

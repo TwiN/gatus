@@ -110,7 +110,7 @@ func (provider *AlertProvider) Validate() error {
 //
 // Relevant: https://docs.opsgenie.com/docs/alert-api
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(ep.Group, alert)
+	cfg, err := provider.GetConfig(ep.Groups, alert)
 	if err != nil {
 		return err
 	}
@@ -178,8 +178,8 @@ func (provider *AlertProvider) buildCreateRequestBody(cfg *Config, ep *endpoint.
 		message = fmt.Sprintf("%s - %s", ep.Name, alert.GetDescription())
 		description = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
-	if ep.Group != "" {
-		message = fmt.Sprintf("[%s] %s", ep.Group, message)
+	if len(ep.Groups) > 0 {
+		message = fmt.Sprintf("[%s] %s", strings.Join(ep.Groups, ","), message)
 	}
 	var formattedConditionResults string
 	for _, conditionResult := range result.ConditionResults {
@@ -195,7 +195,7 @@ func (provider *AlertProvider) buildCreateRequestBody(cfg *Config, ep *endpoint.
 	key := buildKey(ep)
 	details := map[string]string{
 		"endpoint:url":    ep.URL,
-		"endpoint:group":  ep.Group,
+		"endpoint:group":  strings.Join(ep.Groups, ","),
 		"result:hostname": result.Hostname,
 		"result:ip":       result.IP,
 		"result:dns_code": result.DNSRCode,
@@ -234,7 +234,7 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(groups []string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle alert overrides
 	if len(alert.ProviderOverride) != 0 {
@@ -250,17 +250,17 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 }
 
 // ValidateOverrides validates the alert's provider override and, if present, the group override
-func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
-	_, err := provider.GetConfig(group, alert)
+func (provider *AlertProvider) ValidateOverrides(groups []string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(groups, alert)
 	return err
 }
 
 func buildKey(ep *endpoint.Endpoint) string {
 	name := toKebabCase(ep.Name)
-	if ep.Group == "" {
+	if len(ep.Groups) == 0 {
 		return name
 	}
-	return toKebabCase(ep.Group) + "-" + name
+	return toKebabCase(strings.Join(ep.Groups, "-")) + "-" + name
 }
 
 func toKebabCase(val string) string {

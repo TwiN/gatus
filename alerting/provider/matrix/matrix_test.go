@@ -241,7 +241,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -255,7 +255,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 				Overrides: nil,
 			},
-			InputGroup: "",
+			InputGroup: []string{},
 			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
@@ -273,7 +273,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				},
 				Overrides: nil,
 			},
-			InputGroup: "group",
+			InputGroup: []string{"group"},
 			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
@@ -300,7 +300,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup: "",
+			InputGroup: []string{},
 			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://example.com",
@@ -327,7 +327,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup: "group",
+			InputGroup: []string{"group"},
 			InputAlert: alert.Alert{},
 			ExpectedOutput: Config{
 				ServerURL:      "https://group-example.com",
@@ -354,7 +354,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup: "group",
+			InputGroup: []string{"group"},
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{"server-url": "https://alert-example.com", "access-token": "123", "internal-room-id": "!a:alert-example.com"}},
 			ExpectedOutput: Config{
 				ServerURL:      "https://alert-example.com",

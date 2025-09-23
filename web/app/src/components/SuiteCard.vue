@@ -16,8 +16,8 @@
             </span>
           </CardTitle>
           <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <span v-if="suite.group" class="truncate" :title="suite.group">{{ suite.group }}</span>
-            <span v-if="suite.group && endpointCount">•</span>
+            <span v-if="groupsText" class="truncate" :title="groupsText">{{ groupsText }}</span>
+            <span v-if="groupsText && endpointCount">•</span>
             <span v-if="endpointCount">{{ endpointCount }} endpoint{{ endpointCount !== 1 ? 's' : '' }}</span>
           </div>
         </div>
@@ -46,8 +46,8 @@
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{{ newestResultTime }}</span>
             <span>{{ oldestResultTime }}</span>
+            <span>{{ newestResultTime }}</span>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ const oldestResultTime = computed(() => {
   }
   
   const oldestResult = props.suite.results[0]
-  return generatePrettyTimeAgo(oldestResult.timestamp)
+  return oldestResult && oldestResult.timestamp ? generatePrettyTimeAgo(oldestResult.timestamp) : 'N/A'
 })
 
 const newestResultTime = computed(() => {
@@ -135,7 +135,14 @@ const newestResultTime = computed(() => {
   }
   
   const newestResult = props.suite.results[props.suite.results.length - 1]
-  return generatePrettyTimeAgo(newestResult.timestamp)
+  return newestResult && newestResult.timestamp ? generatePrettyTimeAgo(newestResult.timestamp) : 'Now'
+})
+
+const groupsText = computed(() => {
+  if (!props.suite.groups || props.suite.groups.length === 0) {
+    return ''
+  }
+  return props.suite.groups.join(', ')
 })
 
 // Methods

@@ -11,7 +11,7 @@ import (
 func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatusParams) *endpoint.Status {
 	shallowCopy := &endpoint.Status{
 		Name:   ss.Name,
-		Group:  ss.Group,
+		Groups: ss.Groups,
 		Key:    ss.Key,
 		Uptime: endpoint.NewUptime(),
 	}
@@ -41,9 +41,9 @@ func ShallowCopyEndpointStatus(ss *endpoint.Status, params *paging.EndpointStatu
 // within the range defined by the page and pageSize parameters
 func ShallowCopySuiteStatus(ss *suite.Status, params *paging.SuiteStatusParams) *suite.Status {
 	shallowCopy := &suite.Status{
-		Name:  ss.Name,
-		Group: ss.Group,
-		Key:   ss.Key,
+		Name:   ss.Name,
+		Groups: ss.Groups,
+		Key:    ss.Key,
 	}
 	if params == nil || (params.Page == 0 && params.PageSize == 0) {
 		shallowCopy.Results = ss.Results

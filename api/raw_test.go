@@ -21,11 +21,11 @@ func TestRawDataEndpoint(t *testing.T) {
 		Endpoints: []*endpoint.Endpoint{
 			{
 				Name:  "frontend",
-				Group: "core",
+				Groups: []string{"core"},
 			},
 			{
 				Name:  "backend",
-				Group: "core",
+				Groups: []string{"core"},
 			},
 		},
 	}

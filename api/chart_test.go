@@ -19,12 +19,12 @@ func TestResponseTimeChart(t *testing.T) {
 		Metrics: true,
 		Endpoints: []*endpoint.Endpoint{
 			{
-				Name:  "frontend",
-				Group: "core",
+				Name:   "frontend",
+				Groups: []string{"core"},
 			},
 			{
-				Name:  "backend",
-				Group: "core",
+				Name:   "backend",
+				Groups: []string{"core"},
 			},
 		},
 	}

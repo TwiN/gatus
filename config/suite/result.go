@@ -11,8 +11,8 @@ type Result struct {
 	// Name of the suite
 	Name string `json:"name,omitempty"`
 
-	// Group of the suite
-	Group string `json:"group,omitempty"`
+	// Groups of the suite
+	Groups []string `json:"groups,omitempty"`
 
 	// Success indicates whether all required endpoints succeeded
 	Success bool `json:"success"`

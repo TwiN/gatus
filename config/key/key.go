@@ -3,8 +3,8 @@ package key
 import "strings"
 
 // ConvertGroupAndNameToKey converts a group and a name to a key
-func ConvertGroupAndNameToKey(groupName, name string) string {
-	return sanitize(groupName) + "_" + sanitize(name)
+func ConvertGroupAndNameToKey(groupNames []string, name string) string {
+	return sanitize(strings.Join(groupNames, "-")) + "_" + sanitize(name)
 }
 
 func sanitize(s string) string {

@@ -135,7 +135,7 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
 			request := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}, URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: []string{}},
 				scenario.Resolved,
@@ -191,7 +191,7 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
 			request := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}, URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: scenario.Errors},
 				scenario.Resolved,
@@ -245,7 +245,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
 			request := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
-				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+				&endpoint.Endpoint{Name: "endpoint-name", Groups: []string{"endpoint-group"}},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{},
 				scenario.Resolved,
@@ -289,7 +289,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -299,7 +299,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{URL: "http://example.com", Body: "default-body"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "http://example.com", Body: "default-body"},
 		},
@@ -309,7 +309,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{URL: "http://example.com"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "http://example.com"},
 		},
@@ -324,7 +324,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "http://example.com", Headers: map[string]string{"Cache": "true"}},
 		},
@@ -339,7 +339,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "http://group-example.com", Body: "group-body"},
 		},
@@ -354,7 +354,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "http://alert-example.com", "body": "alert-body"}},
 			ExpectedOutput: Config{URL: "http://alert-example.com", Body: "alert-body"},
 		},
@@ -369,7 +369,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"body": "alert-body"}},
 			ExpectedOutput: Config{URL: "http://example.com", Body: "alert-body", Method: "POST"},
 		},

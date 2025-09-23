@@ -228,9 +228,9 @@ func TestAlertProvider_buildCreateRequestBody(t *testing.T) {
 				FailureThreshold: 6,
 			},
 			Endpoint: &endpoint.Endpoint{
-				Name:  "my app",
-				Group: "end game",
-				URL:   "https://my.go/app",
+				Name:   "my app",
+				Groups: []string{"end game"},
+				URL:    "https://my.go/app",
 			},
 			Result: &endpoint.Result{
 				HTTPStatus: 400,
@@ -345,7 +345,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig(nil, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -353,7 +353,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected APIKey to be %s, got %s", scenario.ExpectedOutput.APIKey, got.APIKey)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides(nil, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

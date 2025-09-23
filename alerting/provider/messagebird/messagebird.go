@@ -69,7 +69,7 @@ func (provider *AlertProvider) Validate() error {
 // Send an alert using the provider
 // Reference doc for messagebird: https://developers.messagebird.com/api/sms-messaging/#send-outbound-sms
 func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
-	cfg, err := provider.GetConfig(ep.Group, alert)
+	cfg, err := provider.GetConfig(ep.Groups, alert)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 }
 
 // GetConfig returns the configuration for the provider with the overrides applied
-func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
+func (provider *AlertProvider) GetConfig(groups []string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
 	// Handle alert overrides
 	if len(alert.ProviderOverride) != 0 {
@@ -136,7 +136,7 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 }
 
 // ValidateOverrides validates the alert's provider override and, if present, the group override
-func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
-	_, err := provider.GetConfig(group, alert)
+func (provider *AlertProvider) ValidateOverrides(groups []string, alert *alert.Alert) error {
+	_, err := provider.GetConfig(groups, alert)
 	return err
 }

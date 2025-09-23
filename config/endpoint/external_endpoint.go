@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -28,8 +29,11 @@ type ExternalEndpoint struct {
 	// Name of the endpoint. Can be anything.
 	Name string `yaml:"name"`
 
-	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
-	Group string `yaml:"group,omitempty"`
+	// Groups the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
+	Groups []string `yaml:"groups,omitempty"`
+
+	// URL to send the request to.
+	URL string `yaml:"url"`
 
 	// Token is the bearer token that must be provided through the Authorization header to push results to the endpoint
 	Token string `yaml:"token,omitempty"`
@@ -52,7 +56,7 @@ type ExternalEndpoint struct {
 
 // ValidateAndSetDefaults validates the ExternalEndpoint and sets the default values
 func (externalEndpoint *ExternalEndpoint) ValidateAndSetDefaults() error {
-	if err := validateEndpointNameGroupAndAlerts(externalEndpoint.Name, externalEndpoint.Group, externalEndpoint.Alerts); err != nil {
+	if err := validateEndpointNameGroupAndAlerts(externalEndpoint.Name, externalEndpoint.Groups, externalEndpoint.Alerts); err != nil {
 		return err
 	}
 	if len(externalEndpoint.Token) == 0 {
@@ -75,15 +79,15 @@ func (externalEndpoint *ExternalEndpoint) IsEnabled() bool {
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
 func (externalEndpoint *ExternalEndpoint) DisplayName() string {
-	if len(externalEndpoint.Group) > 0 {
-		return externalEndpoint.Group + "/" + externalEndpoint.Name
+	if len(externalEndpoint.Groups) > 0 {
+		return strings.Join(externalEndpoint.Groups, "/") + "/" + externalEndpoint.Name
 	}
 	return externalEndpoint.Name
 }
 
 // Key returns the unique key for the Endpoint
 func (externalEndpoint *ExternalEndpoint) Key() string {
-	return key.ConvertGroupAndNameToKey(externalEndpoint.Group, externalEndpoint.Name)
+	return key.ConvertGroupAndNameToKey(externalEndpoint.Groups, externalEndpoint.Name)
 }
 
 // ToEndpoint converts the ExternalEndpoint to an Endpoint
@@ -91,7 +95,7 @@ func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 	endpoint := &Endpoint{
 		Enabled:                 externalEndpoint.Enabled,
 		Name:                    externalEndpoint.Name,
-		Group:                   externalEndpoint.Group,
+		Groups:                  externalEndpoint.Groups,
 		Alerts:                  externalEndpoint.Alerts,
 		NumberOfFailuresInARow:  externalEndpoint.NumberOfFailuresInARow,
 		NumberOfSuccessesInARow: externalEndpoint.NumberOfSuccessesInARow,

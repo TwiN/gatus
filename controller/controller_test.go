@@ -21,12 +21,12 @@ func TestHandle(t *testing.T) {
 		},
 		Endpoints: []*endpoint.Endpoint{
 			{
-				Name:  "frontend",
-				Group: "core",
+				Name:   "frontend",
+				Groups: []string{"core"},
 			},
 			{
-				Name:  "backend",
-				Group: "core",
+				Name:   "backend",
+				Groups: []string{"core"},
 			},
 		},
 	}
@@ -65,8 +65,8 @@ func TestHandleTLS(t *testing.T) {
 			cfg := &config.Config{
 				Web: &web.Config{Address: "0.0.0.0", Port: rand.Intn(65534), TLS: scenario.tls},
 				Endpoints: []*endpoint.Endpoint{
-					{Name: "frontend", Group: "core"},
-					{Name: "backend", Group: "core"},
+					{Name: "frontend", Groups: []string{"core"}},
+					{Name: "backend", Groups: []string{"core"}},
 				},
 			}
 			if err := cfg.Web.ValidateAndSetDefaults(); err != nil {

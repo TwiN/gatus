@@ -25,7 +25,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		ExternalEndpoints: []*endpoint.ExternalEndpoint{
 			{
 				Name:  "n",
-				Group: "g",
+				Groups: []string{"g"},
 				Token: "token",
 				Alerts: []*alert.Alert{
 					{

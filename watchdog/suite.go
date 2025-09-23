@@ -2,6 +2,7 @@ package watchdog
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
@@ -43,7 +44,7 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 		logr.Infof("[watchdog.executeSuite] No connectivity; skipping suite=%s", s.Name)
 		return
 	}
-	logr.Debugf("[watchdog.executeSuite] Monitoring group=%s; suite=%s; key=%s", s.Group, s.Name, s.Key())
+	logr.Debugf("[watchdog.executeSuite] Monitoring groups=%s; suite=%s; key=%s", strings.Join(s.Groups, ","), s.Name, s.Key())
 	// Execute the suite using its Execute method
 	result := s.Execute()
 	// Publish metrics for the suite execution

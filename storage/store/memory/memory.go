@@ -76,7 +76,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
 func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), params)
+	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey([]string{groupName}, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
@@ -194,7 +194,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	s.Lock()
 	status, exists := s.endpointCache.Get(endpointKey)
 	if !exists {
-		status = endpoint.NewStatus(ep.Group, ep.Name)
+		status = endpoint.NewStatus(ep.Groups, ep.Name)
 		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),
@@ -211,25 +211,20 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 	s.Lock()
 	defer s.Unlock()
 	suiteKey := su.Key()
-	suiteStatus := s.suiteCache.GetValue(suiteKey)
-	if suiteStatus == nil {
-		suiteStatus = &suite.Status{
-			Name:    su.Name,
-			Group:   su.Group,
-			Key:     su.Key(),
-			Results: []*suite.Result{},
-		}
+	status, exists := s.suiteCache.Get(suiteKey)
+	if !exists {
+		status = suite.NewStatus(su)
 		logr.Debugf("[memory.InsertSuiteResult] Created new suite status for suiteKey=%s", suiteKey)
 	}
-	status := suiteStatus.(*suite.Status)
+	suiteStatus := status.(*suite.Status)
 	// Add the new result at the end (append like endpoint implementation)
-	status.Results = append(status.Results, result)
+	suiteStatus.Results = append(suiteStatus.Results, result)
 	// Keep only the maximum number of results
-	if len(status.Results) > s.maximumNumberOfResults {
-		status.Results = status.Results[len(status.Results)-s.maximumNumberOfResults:]
+	if len(suiteStatus.Results) > s.maximumNumberOfResults {
+		suiteStatus.Results = suiteStatus.Results[len(suiteStatus.Results)-s.maximumNumberOfResults:]
 	}
-	s.suiteCache.Set(suiteKey, status)
-	logr.Debugf("[memory.InsertSuiteResult] Stored suite result for suiteKey=%s, total results=%d", suiteKey, len(status.Results))
+	s.suiteCache.Set(suiteKey, suiteStatus)
+	logr.Debugf("[memory.InsertSuiteResult] Stored suite result for suiteKey=%s, total results=%d", suiteKey, len(suiteStatus.Results))
 	return nil
 }
 

@@ -221,7 +221,7 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig("g", &scenario.Alert)
+			cfg, err := scenario.Provider.GetConfig([]string{"g"}, &scenario.Alert)
 			if err != nil {
 				t.Error("expected no error, got", err.Error())
 			}
@@ -261,7 +261,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -271,7 +271,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
@@ -281,7 +281,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				DefaultConfig: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 				Overrides:     nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
@@ -296,7 +296,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/some-id", AuthToken: "some-token"},
 		},
@@ -311,7 +311,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/diff-id", AuthToken: "some-token"},
 		},
@@ -326,7 +326,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"url": "https://api.incident.io/v2/alert_events/http/another-id"}},
 			ExpectedOutput: Config{URL: "https://api.incident.io/v2/alert_events/http/another-id", AuthToken: "some-token"},
 		},

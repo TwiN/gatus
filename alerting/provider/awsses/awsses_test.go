@@ -130,7 +130,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
-		InputGroup     string
+		InputGroup     []string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
@@ -143,7 +143,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 				},
 				Overrides: nil,
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
@@ -156,7 +156,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 				},
 				Overrides: nil,
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
@@ -174,7 +174,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "",
+			InputGroup:     []string{},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "to@example.com"},
 		},
@@ -192,7 +192,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 					},
 				},
 			},
-			InputGroup:     "group",
+			InputGroup:     []string{"group"},
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{From: "from@example.com", To: "groupto@example.com", SecretAccessKey: "wow", AccessKeyID: "noway"},
 		},
@@ -210,7 +210,7 @@ func TestAlertProvider_getConfigWithOverrides(t *testing.T) {
 					},
 				},
 			},
-			InputGroup: "group",
+			InputGroup: []string{"group"},
 			InputAlert: alert.Alert{
 				ProviderOverride: map[string]any{
 					"to":            "alertto@example.com",

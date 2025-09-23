@@ -190,7 +190,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig([]string{""}, &scenario.InputAlert)
 			if err != nil {
 				t.Error("expected no error, got:", err.Error())
 			}
@@ -204,7 +204,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected recipients to be %s, got %s", scenario.ExpectedOutput.Recipients, got.Recipients)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides([]string{""}, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})

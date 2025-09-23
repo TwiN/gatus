@@ -20,7 +20,7 @@ var (
 
 	testEndpoint = endpoint.Endpoint{
 		Name:                    "name",
-		Group:                   "group",
+		Groups:                  []string{"group"},
 		URL:                     "https://example.org/what/ever",
 		Method:                  "GET",
 		Body:                    "body",
@@ -110,7 +110,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Groups[0], testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
@@ -177,32 +177,32 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 
 		// Create regular endpoints
 		endpoint1 := &endpoint.Endpoint{
-			Name:  "endpoint1",
-			Group: "group1",
-			URL:   "https://example.com/1",
+			Name:   "endpoint1",
+			Groups: []string{"group1"},
+			URL:    "https://example.com/1",
 		}
 		endpoint2 := &endpoint.Endpoint{
-			Name:  "endpoint2",
-			Group: "group2",
-			URL:   "https://example.com/2",
+			Name:   "endpoint2",
+			Groups: []string{"group2"},
+			URL:    "https://example.com/2",
 		}
 
 		// Create suite endpoints (these would be part of a suite)
 		suiteEndpoint1 := &endpoint.Endpoint{
-			Name:  "suite-endpoint1",
-			Group: "suite-group",
-			URL:   "https://example.com/suite1",
+			Name:   "suite-endpoint1",
+			Groups: []string{"suite-group"},
+			URL:    "https://example.com/suite1",
 		}
 		suiteEndpoint2 := &endpoint.Endpoint{
-			Name:  "suite-endpoint2",
-			Group: "suite-group",
-			URL:   "https://example.com/suite2",
+			Name:   "suite-endpoint2",
+			Groups: []string{"suite-group"},
+			URL:    "https://example.com/suite2",
 		}
 
 		// Create a suite
 		testSuite := &suite.Suite{
-			Name:  "test-suite",
-			Group: "suite-group",
+			Name:   "test-suite",
+			Groups: []string{"suite-group"},
 			Endpoints: []*endpoint.Endpoint{
 				suiteEndpoint1,
 				suiteEndpoint2,
@@ -261,7 +261,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		timestamp := time.Now()
 		suiteResult := &suite.Result{
 			Name:      testSuite.Name,
-			Group:     testSuite.Group,
+			Groups:    testSuite.Groups,
 			Success:   true,
 			Timestamp: timestamp,
 			Duration:  125 * time.Millisecond,
@@ -287,8 +287,8 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if stored.Name != testSuite.Name {
 			t.Errorf("expected result name %s, got %s", testSuite.Name, stored.Name)
 		}
-		if stored.Group != testSuite.Group {
-			t.Errorf("expected result group %s, got %s", testSuite.Group, stored.Group)
+		if stored.Groups[0] != testSuite.Groups[0] {
+			t.Errorf("expected result group %s, got %s", testSuite.Groups[0], stored.Groups[0])
 		}
 		if !stored.Success {
 			t.Error("expected result to be successful")
@@ -310,7 +310,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		store.InsertEndpointResult(endpoint2, &endpoint.Result{Success: false, Timestamp: time.Now(), Duration: 200 * time.Millisecond})
 		// Suite endpoints should only exist as part of suite results, not as individual endpoint results
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: true,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: true,
 			Timestamp: time.Now(), Duration: 125 * time.Millisecond,
 			EndpointResults: []*endpoint.Result{
 				{Success: true, Duration: 50 * time.Millisecond, Name: "suite-endpoint1"},
@@ -381,7 +381,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		store.InsertEndpointResult(endpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 100 * time.Millisecond})
 		timestamp := time.Now()
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: true,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: true,
 			Timestamp: timestamp, Duration: 125 * time.Millisecond,
 		})
 		statuses, err := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
@@ -399,8 +399,8 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 			if suiteStatus.Name != "test-suite" {
 				t.Errorf("expected suite name 'test-suite', got '%s'", suiteStatus.Name)
 			}
-			if suiteStatus.Group != "suite-group" {
-				t.Errorf("expected suite group 'suite-group', got '%s'", suiteStatus.Group)
+			if suiteStatus.Groups[0] != "suite-group" {
+				t.Errorf("expected suite group 'suite-group', got '%s'", suiteStatus.Groups[0])
 			}
 			if len(suiteStatus.Results) != 1 {
 				t.Errorf("expected 1 suite result, got %d", len(suiteStatus.Results))
@@ -435,8 +435,8 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if status1.Name != "endpoint1" {
 			t.Errorf("expected endpoint1, got %s", status1.Name)
 		}
-		if status1.Group != "group1" {
-			t.Errorf("expected group1, got %s", status1.Group)
+		if status1.Groups[0] != "group1" {
+			t.Errorf("expected group1, got %s", status1.Groups[0])
 		}
 		if len(status1.Results) != 1 {
 			t.Errorf("expected 1 result for endpoint1, got %d", len(status1.Results))
@@ -459,8 +459,8 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if suiteStatus1.Name != "suite-endpoint1" {
 			t.Errorf("expected suite-endpoint1, got %s", suiteStatus1.Name)
 		}
-		if suiteStatus1.Group != "suite-group" {
-			t.Errorf("expected suite-group, got %s", suiteStatus1.Group)
+		if suiteStatus1.Groups[0] != "suite-group" {
+			t.Errorf("expected suite-group, got %s", suiteStatus1.Groups[0])
 		}
 		if len(suiteStatus1.Results) != 1 {
 			t.Errorf("expected 1 result for suite-endpoint1, got %d", len(suiteStatus1.Results))
@@ -486,7 +486,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		// InsertEndpointResult suite result with endpoint results
 		timestamp := time.Now()
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: false,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: false,
 			Timestamp: timestamp, Duration: 125 * time.Millisecond,
 			EndpointResults: []*endpoint.Result{
 				{Success: true, Duration: 50 * time.Millisecond},
@@ -500,8 +500,8 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		if suiteStatus.Name != "test-suite" {
 			t.Errorf("expected test-suite, got %s", suiteStatus.Name)
 		}
-		if suiteStatus.Group != "suite-group" {
-			t.Errorf("expected suite-group, got %s", suiteStatus.Group)
+		if suiteStatus.Groups[0] != "suite-group" {
+			t.Errorf("expected suite-group, got %s", suiteStatus.Groups[0])
 		}
 		if len(suiteStatus.Results) != 1 {
 			t.Errorf("expected 1 suite result, got %d", len(suiteStatus.Results))
@@ -542,7 +542,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		store.InsertEndpointResult(suiteEndpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 50 * time.Millisecond})
 		store.InsertEndpointResult(suiteEndpoint2, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 75 * time.Millisecond})
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: true,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: true,
 			Timestamp: time.Now(), Duration: 125 * time.Millisecond,
 		})
 		// Keep only endpoint1 and suite-endpoint1
@@ -574,17 +574,17 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		// InsertEndpointResult test data
 		store.InsertEndpointResult(endpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 100 * time.Millisecond})
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: true,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: true,
 			Timestamp: time.Now(), Duration: 125 * time.Millisecond,
 		})
 		// First, add another suite to test deletion
 		anotherSuite := &suite.Suite{
 			Name:  "another-suite",
-			Group: "another-group",
+			Groups: []string{"another-group"},
 		}
 		anotherSuiteResult := &suite.Result{
 			Name:      anotherSuite.Name,
-			Group:     anotherSuite.Group,
+			Groups:    anotherSuite.Groups,
 			Success:   true,
 			Timestamp: time.Now(),
 			Duration:  100 * time.Millisecond,
@@ -619,7 +619,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		// InsertEndpointResult test data
 		store.InsertEndpointResult(endpoint1, &endpoint.Result{Success: true, Timestamp: time.Now(), Duration: 100 * time.Millisecond})
 		store.InsertSuiteResult(testSuite, &suite.Result{
-			Name: testSuite.Name, Group: testSuite.Group, Success: true,
+			Name: testSuite.Name, Groups: testSuite.Groups, Success: true,
 			Timestamp: time.Now(), Duration: 125 * time.Millisecond,
 		})
 		store.Clear()
@@ -648,7 +648,7 @@ func TestStore_EndpointStatusCastingSafety(t *testing.T) {
 	// InsertEndpointResult an endpoint
 	ep := &endpoint.Endpoint{
 		Name:  "test-endpoint",
-		Group: "test",
+		Groups: []string{"test"},
 		URL:   "https://example.com",
 	}
 	result := &endpoint.Result{
@@ -661,11 +661,11 @@ func TestStore_EndpointStatusCastingSafety(t *testing.T) {
 	// InsertEndpointResult a suite
 	testSuite := &suite.Suite{
 		Name:  "test-suite",
-		Group: "test",
+		Groups: []string{"test"},
 	}
 	suiteResult := &suite.Result{
 		Name:      testSuite.Name,
-		Group:     testSuite.Group,
+		Groups:    testSuite.Groups,
 		Success:   true,
 		Timestamp: time.Now(),
 		Duration:  200 * time.Millisecond,
@@ -698,7 +698,7 @@ func TestStore_MaximumLimits(t *testing.T) {
 	defer store.Clear()
 
 	t.Run("endpoint-result-limits", func(t *testing.T) {
-		ep := &endpoint.Endpoint{Name: "test-endpoint", Group: "test", URL: "https://example.com"}
+		ep := &endpoint.Endpoint{Name: "test-endpoint", Groups: []string{"test"}, URL: "https://example.com"}
 
 		// Insert more results than the maximum
 		baseTime := time.Now().Add(-10 * time.Hour)
@@ -740,14 +740,14 @@ func TestStore_MaximumLimits(t *testing.T) {
 	})
 
 	t.Run("suite-result-limits", func(t *testing.T) {
-		testSuite := &suite.Suite{Name: "test-suite", Group: "test"}
+		testSuite := &suite.Suite{Name: "test-suite", Groups: []string{"test"}}
 
 		// Insert more results than the maximum
 		baseTime := time.Now().Add(-10 * time.Hour)
 		for i := 0; i < maxResults*2; i++ {
 			result := &suite.Result{
 				Name:      testSuite.Name,
-				Group:     testSuite.Group,
+				Groups:    testSuite.Groups,
 				Success:   i%2 == 0,
 				Timestamp: baseTime.Add(time.Duration(i) * time.Hour),
 				Duration:  time.Duration(i*10) * time.Millisecond,
@@ -791,7 +791,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 	}
 	defer store.Clear()
 
-	testSuite := &suite.Suite{Name: "ordering-suite", Group: "test"}
+	testSuite := &suite.Suite{Name: "ordering-suite", Groups: []string{"test"}}
 
 	// Insert results with distinct timestamps
 	baseTime := time.Now().Add(-5 * time.Hour)
@@ -802,7 +802,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 		timestamps[i] = timestamp
 		result := &suite.Result{
 			Name:      testSuite.Name,
-			Group:     testSuite.Group,
+			Groups:    testSuite.Groups,
 			Success:   true,
 			Timestamp: timestamp,
 			Duration:  time.Duration(i*100) * time.Millisecond,
@@ -842,7 +842,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 		// Test reverse pagination (newest first in paginated results)
 		page1 := ShallowCopySuiteStatus(
 			&suite.Status{
-				Name: testSuite.Name, Group: testSuite.Group, Key: testSuite.Key(),
+				Name: testSuite.Name, Groups: testSuite.Groups, Key: testSuite.Key(),
 				Results: []*suite.Result{
 					{Timestamp: timestamps[0], Duration: 0 * time.Millisecond},
 					{Timestamp: timestamps[1], Duration: 100 * time.Millisecond},
@@ -875,13 +875,13 @@ func TestSuiteResultOrdering(t *testing.T) {
 		}
 		defer limitedStore.Clear()
 
-		smallSuite := &suite.Suite{Name: "small-suite", Group: "test"}
+		smallSuite := &suite.Suite{Name: "small-suite", Groups: []string{"test"}}
 
 		// Insert 6 results, should keep only the newest 3
 		for i := 0; i < 6; i++ {
 			result := &suite.Result{
 				Name:      smallSuite.Name,
-				Group:     smallSuite.Group,
+				Groups:    smallSuite.Groups,
 				Success:   true,
 				Timestamp: baseTime.Add(time.Duration(i) * time.Hour),
 				Duration:  time.Duration(i*50) * time.Millisecond,
@@ -928,7 +928,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		for i := 0; i < numGoroutines; i++ {
 			endpoints[i] = &endpoint.Endpoint{
 				Name:  "endpoint-" + string(rune('A'+i)),
-				Group: "concurrent",
+				Groups: []string{"concurrent"},
 				URL:   "https://example.com/" + string(rune('A'+i)),
 			}
 		}
@@ -981,7 +981,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		for i := 0; i < numGoroutines; i++ {
 			suites[i] = &suite.Suite{
 				Name:  "suite-" + string(rune('A'+i)),
-				Group: "concurrent",
+				Groups: []string{"concurrent"},
 			}
 		}
 
@@ -994,7 +994,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 				for j := 0; j < resultsPerGoroutine; j++ {
 					result := &suite.Result{
 						Name:      su.Name,
-						Group:     su.Group,
+						Groups:    su.Groups,
 						Success:   j%2 == 0,
 						Timestamp: time.Now().Add(time.Duration(j) * time.Minute),
 						Duration:  time.Duration(j*50) * time.Millisecond,
@@ -1029,8 +1029,8 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		var wg sync.WaitGroup
 
 		// Setup test data
-		ep := &endpoint.Endpoint{Name: "mixed-endpoint", Group: "test", URL: "https://example.com"}
-		testSuite := &suite.Suite{Name: "mixed-suite", Group: "test"}
+		ep := &endpoint.Endpoint{Name: "mixed-endpoint", Groups: []string{"test"}, URL: "https://example.com"}
+		testSuite := &suite.Suite{Name: "mixed-suite", Groups: []string{"test"}}
 
 		// Concurrent endpoint insertions
 		wg.Add(1)
@@ -1053,7 +1053,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 			for i := 0; i < 5; i++ {
 				result := &suite.Result{
 					Name:      testSuite.Name,
-					Group:     testSuite.Group,
+					Groups:    testSuite.Groups,
 					Success:   true,
 					Timestamp: time.Now(),
 					Duration:  time.Duration(i*20) * time.Millisecond,
