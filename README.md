@@ -1837,8 +1837,6 @@ endpoints:
 
 #### Configuring SIGNL4 alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 SIGNL4 is a mobile alerting and incident management service that sends critical alerts to team members via mobile push, SMS, voice calls, and email.
 
 | Parameter                           | Description                                                                                | Default       |
