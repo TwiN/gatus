@@ -648,7 +648,7 @@ func TestHandleAlertingWithMinimumReminderInterval(t *testing.T) {
 				SuccessThreshold:        3,
 				SendOnResolved:          &enabled,
 				Triggered:               false,
-				MinimumReminderInterval: 1 * time.Second,
+				MinimumReminderInterval: 5 * time.Minute,
 			},
 		},
 	}
