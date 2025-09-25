@@ -1,6 +1,14 @@
 endpoints:
-  - name: example
-    url: https://example.org
-    interval: 30s
+  - name: OpenStack EC2 API
+    group: openstack
+    url: "https://openstack.stfc.ac.uk:8788/v2/"
+    interval: 60s
+    ui:
+      hide-hostname: true
+      hide-port: true
+      hide-conditions: true
+      hide-url: true
+      hide-errors: true
     conditions:
-      - "[STATUS] == 200"
+      # - "[STATUS] == any(200, 401, 400, 300)"
+      - "[STATUS] != 999"
