@@ -138,41 +138,60 @@ type Response struct {
 }
 
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	var message, formattedConditionResults, status string
-	if resolved {
-		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
-		status = "resolved"
-	} else {
-		message = "An alert has been triggered due to having failed " + strconv.Itoa(alert.FailureThreshold) + " time(s) in a row"
-		status = "firing"
-	}
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "🟢"
-		} else {
-			prefix = "🔴"
-		}
-		// No need for \n since incident.io trims it anyways.
-		formattedConditionResults += fmt.Sprintf(" %s %s ", prefix, conditionResult.Condition)
-	}
-	if len(alert.GetDescription()) > 0 {
-		message += " with the following description: " + alert.GetDescription()
-	}
-	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
-	var body []byte
-	alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
-	body, _ = json.Marshal(Body{
-		AlertSourceConfigID: alertSourceID,
-		Title:               "Gatus: " + ep.DisplayName(),
-		Status:              status,
-		DeduplicationKey:    alert.ResolveKey,
-		Description:         message,
-		SourceURL:           cfg.SourceURL,
-		Metadata:            cfg.Metadata,
-	})
-	fmt.Printf("%v", string(body))
-	return body
+       var message, formattedConditionResults, status string
+       if resolved {
+	       message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
+	       status = "resolved"
+       } else {
+	       message = "An alert has been triggered due to having failed " + strconv.Itoa(alert.FailureThreshold) + " time(s) in a row"
+	       status = "firing"
+       }
+       for _, conditionResult := range result.ConditionResults {
+	       var prefix string
+	       if conditionResult.Success {
+		       prefix = "🟢"
+	       } else {
+		       prefix = "🔴"
+	       }
+	       formattedConditionResults += fmt.Sprintf(" %s %s ", prefix, conditionResult.Condition)
+       }
+       if len(alert.GetDescription()) > 0 {
+	       message += " with the following description: " + alert.GetDescription()
+       }
+       message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
+
+       // DeduplicationKey generieren, falls leer (erstes Firing)
+       if alert.ResolveKey == "" {
+	       // Eindeutigen Key generieren (Endpoint-Key, Alert-Typ, Zeitstempel)
+	       alert.ResolveKey = generateDeduplicationKey(ep, alert)
+       }
+
+       alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
+
+       // Merge metadata: cfg.Metadata + ep.ExtraLabels (if present)
+       mergedMetadata := map[string]interface{}{}
+       // Copy cfg.Metadata
+       for k, v := range cfg.Metadata {
+	       mergedMetadata[k] = v
+       }
+       // Add extra labels from endpoint (if present)
+       if ep.ExtraLabels != nil && len(ep.ExtraLabels) > 0 {
+	       for k, v := range ep.ExtraLabels {
+		       mergedMetadata[k] = v
+	       }
+       }
+
+       body, _ := json.Marshal(Body{
+	       AlertSourceConfigID: alertSourceID,
+	       Title:               "Gatus: " + ep.DisplayName(),
+	       Status:              status,
+	       DeduplicationKey:    alert.ResolveKey,
+	       Description:         message,
+	       SourceURL:           cfg.SourceURL,
+	       Metadata:            mergedMetadata,
+       })
+       fmt.Printf("%v", string(body))
+       return body
 
 }
 func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
