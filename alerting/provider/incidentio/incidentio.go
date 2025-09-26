@@ -189,7 +189,6 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	       Description:         message,
 	       SourceURL:           cfg.SourceURL,
 	       Metadata:            mergedMetadata,
-	       Metadata:            mergedMetadata,
        })
        fmt.Printf("%v", string(body))
        return body
