@@ -168,13 +168,13 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 
        alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
 
-       // Metadaten zusammenführen: cfg.Metadata + ep.ExtraLabels (falls vorhanden)
+       // Merge metadata: cfg.Metadata + ep.ExtraLabels (if present)
        mergedMetadata := map[string]interface{}{}
-       // cfg.Metadata übernehmen
+       // Copy cfg.Metadata
        for k, v := range cfg.Metadata {
 	       mergedMetadata[k] = v
        }
-       // ExtraLabels aus Endpoint übernehmen (falls vorhanden)
+       // Add extra labels from endpoint (if present)
        if ep.ExtraLabels != nil && len(ep.ExtraLabels) > 0 {
 	       for k, v := range ep.ExtraLabels {
 		       mergedMetadata[k] = v
