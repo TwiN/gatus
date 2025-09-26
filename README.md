@@ -46,9 +46,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Endpoints](#endpoints)
   - [External Endpoints](#external-endpoints)
   - [Suites (ALPHA)](#suites-alpha)
+    - [Using Context in Endpoints](#using-context-in-endpoints)
+    - [Example Suite Configuration](#example-suite-configuration)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Announcements](#announcements)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Alerting](#alerting)
@@ -63,7 +66,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
     - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
-    - [Configuring Ilert alerts](#configuring-ilert-alerts)
+    - [Configuring ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Line alerts](#configuring-line-alerts)
@@ -77,9 +80,9 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
-    - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Signal alerts](#configuring-signal-alerts)
     - [Configuring SIGNL4 alerts](#configuring-signl4-alerts)
+    - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Splunk alerts](#configuring-splunk-alerts)
     - [Configuring Squadcast alerts](#configuring-squadcast-alerts)
@@ -93,7 +96,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
-  - [Announcements](#announcements)
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -310,6 +312,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname from the results.                                                                                              | `false`                    |
 | `endpoints[].ui.hide-port`                      | Whether to hide the port from the results.                                                                                                  | `false`                    |
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
+| `endpoints[].ui.hide-errors`                    | Whether to hide the list of errors from the results.                                                                                        | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |

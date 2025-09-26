@@ -16,6 +16,9 @@ type Config struct {
 	// HidePort whether to hide the port in the Result
 	HidePort bool `yaml:"hide-port"`
 
+	// HideErrors Whether to hide the list of errors in the Result
+	HideErrors bool `yaml:"hide-errors"`
+
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
 	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
 
@@ -58,6 +61,7 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		HideURL:                     false,
 		HidePort:                    false,
+		HideErrors:                  false,
 		DontResolveFailedConditions: false,
 		HideConditions:              false,
 		Badge: &Badge{
