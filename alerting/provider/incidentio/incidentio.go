@@ -167,6 +167,20 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
        }
 
        alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
+
+       // Metadaten zusammenführen: cfg.Metadata + ep.ExtraLabels (falls vorhanden)
+       mergedMetadata := map[string]interface{}{}
+       // cfg.Metadata übernehmen
+       for k, v := range cfg.Metadata {
+	       mergedMetadata[k] = v
+       }
+       // ExtraLabels aus Endpoint übernehmen (falls vorhanden)
+       if ep.ExtraLabels != nil && len(ep.ExtraLabels) > 0 {
+	       for k, v := range ep.ExtraLabels {
+		       mergedMetadata[k] = v
+	       }
+       }
+
        body, _ := json.Marshal(Body{
 	       AlertSourceConfigID: alertSourceID,
 	       Title:               "Gatus: " + ep.DisplayName(),
@@ -174,7 +188,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	       DeduplicationKey:    alert.ResolveKey,
 	       Description:         message,
 	       SourceURL:           cfg.SourceURL,
-	       Metadata:            cfg.Metadata,
+	       Metadata:            mergedMetadata,
        })
        fmt.Printf("%v", string(body))
        return body
