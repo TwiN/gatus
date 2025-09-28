@@ -1,6 +1,9 @@
 ignore:
-  - "watchdog/watchdog.go"
   - "storage/store/sql/specific_postgres.go" # Can't test for postgres
+  - "watchdog/endpoint.go"
+  - "watchdog/external_endpoint.go"
+  - "watchdog/suite.go"
+  - "watchdog/watchdog.go"
 comment: false
 coverage:
   status:

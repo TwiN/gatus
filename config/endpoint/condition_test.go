@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/TwiN/gatus/v5/config/gontext"
 )
 
 func TestCondition_Validate(t *testing.T) {
@@ -755,7 +757,7 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions)
+			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, nil)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
 			}
@@ -769,11 +771,85 @@ func TestCondition_evaluate(t *testing.T) {
 func TestCondition_evaluateWithInvalidOperator(t *testing.T) {
 	condition := Condition("[STATUS] ? 201")
 	result := &Result{HTTPStatus: 201}
-	condition.evaluate(result, false)
+	condition.evaluate(result, false, nil)
 	if result.Success {
 		t.Error("condition was invalid, result should've been a failure")
 	}
 	if len(result.Errors) != 1 {
 		t.Error("condition was invalid, result should've had an error")
+	}
+}
+
+func TestConditionEvaluateWithInvalidContextPlaceholder(t *testing.T) {
+	// Test case: Suite endpoint with invalid context placeholder
+	// This should display the original placeholder names with resolved values
+	condition := Condition("[STATUS] == [CONTEXT].expected_statusz")
+	result := &Result{HTTPStatus: 200}
+	ctx := gontext.New(map[string]interface{}{
+		// Note: expected_statusz is not in the context (typo - should be expected_status)
+		"expected_status":   200,
+		"max_response_time": 5000,
+	})
+	// Simulate suite endpoint evaluation with context
+	success := condition.evaluate(result, false, ctx) // false = don't skip resolution (default)
+	if success {
+		t.Error("Condition should have failed because [CONTEXT].expected_statusz doesn't exist")
+	}
+	if len(result.ConditionResults) == 0 {
+		t.Fatal("No condition results found")
+	}
+	actualDisplay := result.ConditionResults[0].Condition
+	// The expected format should preserve the placeholder names
+	expectedDisplay := "[STATUS] (200) == [CONTEXT].expected_statusz (INVALID)"
+	if actualDisplay != expectedDisplay {
+		t.Errorf("Incorrect condition display for failed context placeholder\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
+	}
+}
+
+func TestConditionEvaluateWithValidContextPlaceholder(t *testing.T) {
+	// Test case: Suite endpoint with valid context placeholder
+	condition := Condition("[STATUS] == [CONTEXT].expected_status")
+	result := &Result{HTTPStatus: 200}
+	ctx := gontext.New(map[string]interface{}{
+		"expected_status": 200,
+	})
+	// Simulate suite endpoint evaluation with context
+	success := condition.evaluate(result, false, ctx)
+	if !success {
+		t.Error("Condition should have succeeded")
+	}
+	if len(result.ConditionResults) == 0 {
+		t.Fatal("No condition results found")
+	}
+	actualDisplay := result.ConditionResults[0].Condition
+	// For successful conditions, just the original condition is shown
+	expectedDisplay := "[STATUS] == [CONTEXT].expected_status"
+	if actualDisplay != expectedDisplay {
+		t.Errorf("Incorrect condition display for successful context placeholder\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
+	}
+}
+
+func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
+	// Test case: One valid placeholder, one invalid
+	// Note: For numerical comparisons, invalid placeholders that can't be parsed as numbers
+	// default to 0 due to sanitizeAndResolveNumericalWithContext's behavior
+	condition := Condition("[RESPONSE_TIME] < [CONTEXT].invalid_key")
+	result := &Result{Duration: 100 * 1000000} // 100ms in nanoseconds
+	ctx := gontext.New(map[string]interface{}{
+		"valid_key": 5000,
+	})
+	// Simulate suite endpoint evaluation with context
+	success := condition.evaluate(result, false, ctx)
+	if success {
+		t.Error("Condition should have failed because [CONTEXT].invalid_key doesn't exist")
+	}
+	if len(result.ConditionResults) == 0 {
+		t.Fatal("No condition results found")
+	}
+	actualDisplay := result.ConditionResults[0].Condition
+	// For numerical comparisons, invalid context placeholders become 0
+	expectedDisplay := "[RESPONSE_TIME] (100) < [CONTEXT].invalid_key (0)"
+	if actualDisplay != expectedDisplay {
+		t.Errorf("Incorrect condition display\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
 	}
 }

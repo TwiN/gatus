@@ -1,6 +1,7 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import Home from '@/views/Home'
-import Details from "@/views/Details";
+import EndpointDetails from "@/views/EndpointDetails";
+import SuiteDetails from '@/views/SuiteDetails';
 
 const routes = [
     {
@@ -10,9 +11,14 @@ const routes = [
     },
     {
         path: '/endpoints/:key',
-        name: 'Details',
-        component: Details,
+        name: 'EndpointDetails',
+        component: EndpointDetails,
     },
+    {
+        path: '/suites/:key',
+        name: 'SuiteDetails',
+        component: SuiteDetails
+    }
 ];
 
 const router = createRouter({

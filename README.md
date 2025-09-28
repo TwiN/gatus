@@ -45,6 +45,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 - [Configuration](#configuration)
   - [Endpoints](#endpoints)
   - [External Endpoints](#external-endpoints)
+  - [Suites (ALPHA)](#suites-alpha)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
@@ -122,7 +123,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
-  - [disable-monitoring-lock](#disable-monitoring-lock)
+  - [Concurrency](#concurrency)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
@@ -233,6 +234,8 @@ subdirectories are merged like so:
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
 > See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
+>
+> When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -247,7 +250,8 @@ If you want to test it locally, see [Docker](#docker).
 | `endpoints`                  | [Endpoints configuration](#endpoints).                                                                                                   | Required `[]`              |
 | `external-endpoints`         | [External Endpoints configuration](#external-endpoints).                                                                                 | `[]`                       |
 | `security`                   | [Security configuration](#security).                                                                                                     | `{}`                       |
-| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock).                                                                      | `false`                    |
+| `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                   | `3`                        |
+| `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                        | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`                    |
 | `web`                        | Web configuration.                                                                                                                       | `{}`                       |
 | `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
@@ -309,6 +313,8 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
+| `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
+| `endpoints[].store`                             | (SUITES ONLY) Map of values to extract from the response and store in the suite context (stored even on failure).                           | `{}`                       |
 
 You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
@@ -316,7 +322,6 @@ You may use the following placeholders in the body (`endpoints[].body`):
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[LOCAL_ADDRESS]` (resolves to the local IP and port like `192.0.2.1:25` or `[2001:db8::1]:80`)
 - `[RANDOM_STRING_N]` (resolves to a random string of numbers and letters of length N (max: 8192))
-
 
 ### External Endpoints
 Unlike regular endpoints, external endpoints are not monitored by Gatus, but they are instead pushed programmatically.
@@ -352,7 +357,12 @@ external-endpoints:
         send-on-resolved: true
 ```
 
-To push the status of an external endpoint, the request would have to look like this:
+To push the status of an external endpoint, you can use [gatus-cli](https://github.com/TwiN/gatus-cli):
+```
+gatus-cli external-endpoint push --url https://status.example.org --key "core_ext-ep-test" --token "potato" --success
+```
+
+or send an HTTP request:
 ```
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
@@ -364,6 +374,101 @@ Where:
 - `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
+
+
+### Suites (ALPHA)
+Suites are collections of endpoints that are executed sequentially with a shared context. 
+This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
+
+Here are a few cases in which suites could be useful:
+- Testing multi-step authentication flows (login -> access protected resource -> logout)
+- API workflows where you need to chain requests (create resource -> update -> verify -> delete)
+- Monitoring business processes that span multiple services
+- Validating data consistency across multiple endpoints
+
+| Parameter                         | Description                                                                                         | Default       |
+|:----------------------------------|:----------------------------------------------------------------------------------------------------|:--------------|
+| `suites`                          | List of suites to monitor.                                                                          | `[]`          |
+| `suites[].enabled`                | Whether to monitor the suite.                                                                       | `true`        |
+| `suites[].name`                   | Name of the suite. Must be unique.                                                                  | Required `""` |
+| `suites[].group`                  | Group name. Used to group multiple suites together on the dashboard.                                | `""`          |
+| `suites[].interval`               | Duration to wait between suite executions.                                                          | `10m`         |
+| `suites[].timeout`                | Maximum duration for the entire suite execution.                                                    | `5m`          |
+| `suites[].context`                | Initial context values that can be referenced by endpoints.                                         | `{}`          |
+| `suites[].endpoints`              | List of endpoints to execute sequentially.                                                          | Required `[]` |
+| `suites[].endpoints[].store`      | Map of values to extract from the response and store in the suite context (stored even on failure). | `{}`          |
+| `suites[].endpoints[].always-run` | Whether to execute this endpoint even if previous endpoints in the suite failed.                    | `false`       |
+
+**Note**: Suite-level alerts are not supported yet. Configure alerts on individual endpoints within the suite instead.
+
+#### Using Context in Endpoints
+Once values are stored in the context, they can be referenced in subsequent endpoints:
+- In the URL: `https://api.example.com/users/[CONTEXT].user_id`
+- In headers: `Authorization: Bearer [CONTEXT].auth_token`
+- In the body: `{"user_id": "[CONTEXT].user_id"}`
+- In conditions: `[BODY].server_ip == [CONTEXT].server_ip`
+
+Note that context/store keys are limited to A-Z, a-z, 0-9, underscores (`_`), and hyphens (`-`).
+
+#### Example Suite Configuration
+```yaml
+suites:
+  - name: item-crud-workflow
+    group: api-tests
+    interval: 5m
+    context:
+      price: "19.99"  # Initial static value in context
+    endpoints:
+      # Step 1: Create an item and store the item ID 
+      - name: create-item
+        url: https://api.example.com/items
+        method: POST
+        body: '{"name": "Test Item", "price": "[CONTEXT].price"}'
+        conditions:
+          - "[STATUS] == 201"
+          - "len([BODY].id) > 0"
+          - "[BODY].price == [CONTEXT].price"
+        store:
+          itemId: "[BODY].id"
+        alerts:
+          - type: slack
+            description: "Failed to create item"
+            
+      # Step 2: Update the item using the stored item ID
+      - name: update-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: PUT
+        body: '{"price": "24.99"}'
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: slack
+            description: "Failed to update item"
+        
+      # Step 3: Fetch the item and validate the price
+      - name: get-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: GET
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].price == 24.99"
+        alerts:
+          - type: slack
+            description: "Item price did not update correctly"
+            
+      # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
+      - name: delete-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: DELETE
+        always-run: true
+        conditions:
+          - "[STATUS] == 204"
+        alerts:
+          - type: slack
+            description: "Failed to delete item"
+```
+
+The suite will be considered successful only if all required endpoints pass their conditions.
 
 
 ### Conditions
@@ -606,17 +711,17 @@ individual endpoints with configurable descriptions and thresholds.
 
 Alerts are configured at the endpoint level like so:
 
-| Parameter                            | Description                                                                                                                    | Default       |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------|:--------------|
-| `alerts`                             | List of all alerts for a given endpoint.                                                                                       | `[]`          |
-| `alerts[].type`                      | Type of alert. <br />See table below for all valid types.                                                                      | Required `""` |
-| `alerts[].enabled`                   | Whether to enable the alert.                                                                                                   | `true`        |
-| `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                                                                | `3`           |
-| `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved.                                                 | `2`           |
-| `alerts[].minimum-reminder-interval` | Minimum time interval between alert reminders. E.g. `"30m"`, `"1h45m30s"` or `"24h"`. If empty or `0`, reminders are disabled. | `0`           |
-| `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.                                                   | `false`       |
-| `alerts[].description`               | Description of the alert. Will be included in the alert sent.                                                                  | `""`          |
-| `alerts[].provider-override`         | Alerting provider configuration override for the given alert type                                                              | `{}`          |
+| Parameter                            | Description                                                                                                                                               | Default       |
+|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| `alerts`                             | List of all alerts for a given endpoint.                                                                                                                  | `[]`          |
+| `alerts[].type`                      | Type of alert. <br />See table below for all valid types.                                                                                                 | Required `""` |
+| `alerts[].enabled`                   | Whether to enable the alert.                                                                                                                              | `true`        |
+| `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                                                                                           | `3`           |
+| `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved.                                                                            | `2`           |
+| `alerts[].minimum-reminder-interval` | Minimum time interval between alert reminders. E.g. `"30m"`, `"1h45m30s"` or `"24h"`. If empty or `0`, reminders are disabled. Cannot be lower than `5m`. | `0`           |
+| `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.                                                                              | `false`       |
+| `alerts[].description`               | Description of the alert. Will be included in the alert sent.                                                                                             | `""`          |
+| `alerts[].provider-override`         | Alerting provider configuration override for the given alert type                                                                                         | `{}`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml
@@ -1272,13 +1377,11 @@ Here's an example of what the notifications look like:
 
 #### Configuring Line alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 | Parameter                            | Description                                                                                | Default       |
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.line`                      | Configuration for alerts of type `line`                                                    | `{}`          |
 | `alerting.line.channel-access-token` | Line Messaging API channel access token                                                    | Required `""` |
-| `alerting.line.user-ids`             | List of Line user IDs to send messages to                                                  | Required `[]` |
+| `alerting.line.user-ids`             | List of Line user IDs to send messages to (this can be user ids, room ids or group ids)    | Required `[]` |
 | `alerting.line.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.line.overrides`            | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.line.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
@@ -1289,7 +1392,7 @@ alerting:
   line:
     channel-access-token: "YOUR_CHANNEL_ACCESS_TOKEN"
     user-ids:
-      - "U1234567890abcdef"
+      - "U1234567890abcdef" # This can be a group id, room id or user id
       - "U2345678901bcdefg"
 
 endpoints:
@@ -1734,8 +1837,6 @@ endpoints:
 
 #### Configuring SIGNL4 alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 SIGNL4 is a mobile alerting and incident management service that sends critical alerts to team members via mobile push, SMS, voice calls, and email.
 
 | Parameter                           | Description                                                                                | Default       |
@@ -1799,14 +1900,15 @@ endpoints:
 
 
 #### Configuring Slack alerts
-| Parameter                          | Description                                                                                | Default       |
-|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`          |
-| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""` |
-| `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.slack.overrides[].*`     | See `alerting.slack.*` parameters                                                          | `{}`          |
+| Parameter                          | Description                                                                                | Default                             |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
+| `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`                                |
+| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""`                       |
+| `alerting.slack.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
+| `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
+| `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
+| `alerting.slack.overrides[].*`     | See `alerting.slack.*` parameters                                                          | `{}`                                |
 
 ```yaml
 alerting:
@@ -2476,6 +2578,7 @@ security:
 | `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
 
 ```yaml
 security:
@@ -2487,6 +2590,8 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
+    #session-ttl: 8h
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
@@ -2675,24 +2780,24 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-> 📝 This does not apply if `disable-monitoring-lock` is set to `true`, as the monitoring lock is what
-> tells Gatus to only evaluate one endpoint at a time.
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of 
+endpoints/suites that can be evaluated at the same time.
+In other words, even if you have multiple endpoints with the same interval, they are not guaranteed to run at the same time.
 
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus only evaluates one endpoint at a time
-In other words, even if you have multiple endpoints with the same interval, they will not execute at the same time.
+The number of concurrent evaluations is determined by the `concurrency` configuration parameter, which defaults to `3`.
 
 You can test this yourself by running Gatus with several endpoints configured with a very short, unrealistic interval,
 such as 1ms. You'll notice that the response time does not fluctuate - that is because while endpoints are evaluated on
-different goroutines, there's a global lock that prevents multiple endpoints from running at the same time.
+different goroutines, there's a semaphore that controls how many endpoints/suites from running at the same time.
 
 Unfortunately, there is a drawback. If you have a lot of endpoints, including some that are very slow or prone to timing out
-(the default timeout is 10s), then it means that for the entire duration of the request, no other endpoint can be evaluated.
+(the default timeout is 10s), those slow evaluations may prevent other endpoints/suites from being evaluated.
 
 The interval does not include the duration of the request itself, which means that if an endpoint has an interval of 30s
 and the request takes 2s to complete, the timestamp between two evaluations will be 32s, not 30s.
 
 While this does not prevent Gatus' from performing health checks on all other endpoints, it may cause Gatus to be unable
-to respect the configured interval, for instance:
+to respect the configured interval, for instance, assuming `concurrency` is set to `1`:
 - Endpoint A has an interval of 5s, and times out after 10s to complete
 - Endpoint B has an interval of 5s, and takes 1ms to complete
 - Endpoint B will be unable to run every 5s, because endpoint A's health evaluation takes longer than its interval
@@ -2864,6 +2969,8 @@ endpoints:
 The following placeholders are supported for endpoints of type SSH:
 - `[CONNECTED]` resolves to `true` if the SSH connection was successful, `false` otherwise
 - `[STATUS]` resolves the exit code of the command executed on the remote server (e.g. `0` for success)
+- `[IP]` resolves to the IP address of the server
+- `[RESPONSE_TIME]` resolves to the time it took to establish the connection and execute the command
 
 
 ### Monitoring an endpoint using STARTTLS
@@ -2915,23 +3022,40 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to send a request to the official IANA WHOIS service [through a library](https://github.com/TwiN/whois)
-> and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service 
+> [through a library](https://github.com/TwiN/whois) and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 > To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
 
 
-### disable-monitoring-lock
-Setting `disable-monitoring-lock` to `true` means that multiple endpoints could be monitored at the same time (i.e. parallel execution).
+### Concurrency
+By default, Gatus allows up to 5 endpoints/suites to be monitored concurrently. This provides a balance between performance and resource usage while maintaining accurate response time measurements.
 
-While this behavior wouldn't generally be harmful, conditions using the `[RESPONSE_TIME]` placeholder could be impacted
-by the evaluation of multiple endpoints at the same time, therefore, the default value for this parameter is `false`.
+You can configure the concurrency level using the `concurrency` parameter:
 
-There are three main reasons why you might want to disable the monitoring lock:
-- You're using Gatus for load testing (each endpoint are periodically evaluated on a different goroutine, so
-technically, if you create 100 endpoints with a 1 seconds interval, Gatus will send 100 requests per second)
-- You have a _lot_ of endpoints to monitor
-- You want to test multiple endpoints at very short intervals (< 5s)
+```yaml
+# Allow 10 endpoints/suites to be monitored concurrently
+concurrency: 10
+
+# Allow unlimited concurrent monitoring
+concurrency: 0
+
+# Use default concurrency (3)
+# concurrency: 3
+```
+
+**Important considerations:**
+- Higher concurrency can improve monitoring performance when you have many endpoints
+- Conditions using the `[RESPONSE_TIME]` placeholder may be less accurate with very high concurrency due to system resource contention
+- Set to `0` for unlimited concurrency (equivalent to the deprecated `disable-monitoring-lock: true`)
+
+**Use cases for higher concurrency:**
+- You have a large number of endpoints to monitor
+- You want to monitor endpoints at very short intervals (< 5s)  
+- You're using Gatus for load testing scenarios
+
+**Legacy configuration:**
+The `disable-monitoring-lock` parameter is deprecated but still supported for backward compatibility. It's equivalent to setting `concurrency: 0`.
 
 
 ### Reloading configuration on the fly
