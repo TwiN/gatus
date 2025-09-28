@@ -2546,7 +2546,7 @@ func TestValidateTunnelingConfig(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errMsg:  "endpoint 'test-endpoint': tunnel 'nonexistent' not found in tunneling configuration",
+			errMsg:  "endpoint '_test-endpoint': tunnel 'nonexistent' not found in tunneling configuration",
 		},
 		{
 			name: "invalid tunnel reference in suite endpoint",
@@ -2578,7 +2578,7 @@ func TestValidateTunnelingConfig(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errMsg:  "suite 'test-suite' endpoint 'suite-endpoint': tunnel 'invalid' not found in tunneling configuration",
+			errMsg:  "suite '_test-suite' endpoint '_suite-endpoint': tunnel 'invalid' not found in tunneling configuration",
 		},
 		{
 			name: "no tunneling config",
