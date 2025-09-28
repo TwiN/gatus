@@ -59,6 +59,7 @@ func stop(cfg *config.Config) {
 	watchdog.Shutdown(cfg)
 	controller.Shutdown()
 	metrics.UnregisterPrometheusMetrics()
+	closeTunnels(cfg)
 }
 
 func save() {
@@ -184,6 +185,14 @@ func initializeStorage(cfg *config.Config) {
 	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
+	}
+}
+
+func closeTunnels(cfg *config.Config) {
+	if cfg.Tunneling != nil {
+		if err := cfg.Tunneling.Close(); err != nil {
+			logr.Errorf("[main.closeTunnels] Error closing SSH tunnels: %v", err)
+		}
 	}
 }
 

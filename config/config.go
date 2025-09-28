@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -21,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
@@ -113,6 +115,9 @@ type Config struct {
 
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
+
+	// Tunneling is the configuration for SSH tunneling
+	Tunneling *tunneling.Config `yaml:"tunneling,omitempty"`
 
 	// Announcements is the list of system-wide announcements
 	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
@@ -320,6 +325,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateTunnelingConfig(config); err != nil {
+			return nil, err
+		}
 		if err := validateAnnouncementsConfig(config); err != nil {
 			return nil, err
 		}
@@ -340,6 +348,59 @@ func validateConnectivityConfig(config *Config) error {
 	if config.Connectivity != nil {
 		return config.Connectivity.ValidateAndSetDefaults()
 	}
+	return nil
+}
+
+// validateTunnelingConfig validates the tunneling configuration and resolves tunnel references
+// NOTE: This must be called after validateEndpointsConfig and validateSuitesConfig
+// because it resolves tunnel references in endpoint and suite client configurations
+func validateTunnelingConfig(config *Config) error {
+	if config.Tunneling != nil {
+		if err := config.Tunneling.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+		// Resolve tunnel references in all endpoints
+		for _, ep := range config.Endpoints {
+			if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+				return fmt.Errorf("endpoint '%s': %w", ep.Key(), err)
+			}
+		}
+		// Resolve tunnel references in suite endpoints
+		for _, s := range config.Suites {
+			for _, ep := range s.Endpoints {
+				if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+					return fmt.Errorf("suite '%s' endpoint '%s': %w", s.Key(), ep.Key(), err)
+				}
+			}
+		}
+		// TODO: Add tunnel support for alert providers when needed
+	}
+	return nil
+}
+
+// resolveTunnelForClientConfig resolves tunnel references in a client configuration
+func resolveTunnelForClientConfig(config *Config, clientConfig *client.Config) error {
+	if clientConfig == nil || clientConfig.Tunnel == "" {
+		return nil
+	}
+	// Validate tunnel name
+	tunnelName := strings.TrimSpace(clientConfig.Tunnel)
+	if tunnelName == "" {
+		return fmt.Errorf("tunnel name cannot be empty")
+	}
+	if config.Tunneling == nil {
+		return fmt.Errorf("tunnel '%s' referenced but no tunneling configuration defined", tunnelName)
+	}
+	_, exists := config.Tunneling.Tunnels[tunnelName]
+	if !exists {
+		return fmt.Errorf("tunnel '%s' not found in tunneling configuration", tunnelName)
+	}
+	// Get or create the SSH tunnel instance and store it directly in client config
+	tunnel, err := config.Tunneling.GetTunnel(tunnelName)
+	if err != nil {
+		return fmt.Errorf("failed to get tunnel '%s': %w", tunnelName, err)
+	}
+	clientConfig.ResolvedTunnel = tunnel
 	return nil
 }
 
