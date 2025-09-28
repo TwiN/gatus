@@ -471,8 +471,8 @@ const toggleShowAverageResponseTime = () => {
   showAverageResponseTime.value = !showAverageResponseTime.value
 }
 
-const showTooltip = (result, event) => {
-  emit('showTooltip', result, event)
+const showTooltip = (result, event, action = 'hover') => {
+  emit('showTooltip', result, event, action)
 }
 
 const calculateUnhealthyCount = (endpoints) => {
