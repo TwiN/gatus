@@ -61,7 +61,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { helper } from '@/mixins/helper'
+import { generatePrettyTimeAgo } from '@/utils/time'
 
 const router = useRouter()
 
@@ -145,12 +145,12 @@ const formattedResponseTime = computed(() => {
 
 const oldestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
+  return generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
 })
 
 const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
+  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
 
 const navigateToDetails = () => {

@@ -3,6 +3,7 @@ package alert
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestAlert_ValidateAndSetDefaults(t *testing.T) {
@@ -33,6 +34,61 @@ func TestAlert_ValidateAndSetDefaults(t *testing.T) {
 				SuccessThreshold: 5,
 			},
 			expectedError:            ErrAlertWithInvalidDescription,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "valid-minimum-reminder-interval-0",
+			alert: Alert{
+				MinimumReminderInterval: 0,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            nil,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "valid-minimum-reminder-interval-5m",
+			alert: Alert{
+				MinimumReminderInterval: 5 * time.Minute,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            nil,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "valid-minimum-reminder-interval-10m",
+			alert: Alert{
+				MinimumReminderInterval: 10 * time.Minute,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            nil,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "invalid-minimum-reminder-interval-1m",
+			alert: Alert{
+				MinimumReminderInterval: 1 * time.Minute,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            ErrAlertWithInvalidMinimumReminderInterval,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "invalid-minimum-reminder-interval-1s",
+			alert: Alert{
+				MinimumReminderInterval: 1 * time.Second,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            ErrAlertWithInvalidMinimumReminderInterval,
 			expectedFailureThreshold: 10,
 			expectedSuccessThreshold: 5,
 		},

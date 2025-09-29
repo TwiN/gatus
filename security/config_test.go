@@ -9,12 +9,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func TestConfig_IsValid(t *testing.T) {
+func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	c := &Config{
 		Basic: nil,
 		OIDC:  nil,
 	}
-	if c.IsValid() {
+	if c.ValidateAndSetDefaults() {
 		t.Error("expected empty config to be valid")
 	}
 }
@@ -65,6 +65,7 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 			RedirectURL:     "http://localhost:80/authorization-code/callback",
 			Scopes:          []string{"openid"},
 			AllowedSubjects: []string{"user1@example.com"},
+			SessionTTL:      DefaultOIDCSessionTTL,
 			oauth2Config:    oauth2.Config{},
 			verifier:        nil,
 		}}

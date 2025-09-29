@@ -14,11 +14,15 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
@@ -35,11 +39,14 @@ const (
 	// DefaultFallbackConfigurationFilePath is the default fallback path that will be used to search for the
 	// configuration file if DefaultConfigurationFilePath didn't work
 	DefaultFallbackConfigurationFilePath = "config/config.yml"
+
+	// DefaultConcurrency is the default number of endpoints/suites that can be monitored concurrently
+	DefaultConcurrency = 3
 )
 
 var (
-	// ErrNoEndpointInConfig is an error returned when a configuration file or directory has no endpoints configured
-	ErrNoEndpointInConfig = errors.New("configuration should contain at least 1 endpoint")
+	// ErrNoEndpointOrSuiteInConfig is an error returned when a configuration file or directory has no endpoints configured
+	ErrNoEndpointOrSuiteInConfig = errors.New("configuration should contain at least one endpoint or suite")
 
 	// ErrConfigFileNotFound is an error returned when a configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
@@ -67,7 +74,13 @@ type Config struct {
 	// DisableMonitoringLock Whether to disable the monitoring lock
 	// The monitoring lock is what prevents multiple endpoints from being processed at the same time.
 	// Disabling this may lead to inaccurate response times
+	//
+	// Deprecated: Use Concurrency instead TODO: REMOVE THIS IN v6.0.0
 	DisableMonitoringLock bool `yaml:"disable-monitoring-lock,omitempty"`
+
+	// Concurrency is the maximum number of endpoints/suites that can be monitored concurrently
+	// Defaults to DefaultConcurrency. Set to 0 for unlimited concurrency.
+	Concurrency int `yaml:"concurrency,omitempty"`
 
 	// Security is the configuration for securing access to Gatus
 	Security *security.Config `yaml:"security,omitempty"`
@@ -80,6 +93,9 @@ type Config struct {
 
 	// ExternalEndpoints is the list of all external endpoints
 	ExternalEndpoints []*endpoint.ExternalEndpoint `yaml:"external-endpoints,omitempty"`
+
+	// Suites is the list of suites to monitor
+	Suites []*suite.Suite `yaml:"suites,omitempty"`
 
 	// Storage is the configuration for how the data is stored
 	Storage *storage.Config `yaml:"storage,omitempty"`
@@ -99,6 +115,9 @@ type Config struct {
 
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
+
+	// Tunneling is the configuration for SSH tunneling
+	Tunneling *tunneling.Config `yaml:"tunneling,omitempty"`
 
 	// Announcements is the list of system-wide announcements
 	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
@@ -272,8 +291,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		return
 	}
 	// Check if the configuration file at least has endpoints configured
-	if config == nil || config.Endpoints == nil || len(config.Endpoints) == 0 {
-		err = ErrNoEndpointInConfig
+	if config == nil || (len(config.Endpoints) == 0 && len(config.Suites) == 0) {
+		err = ErrNoEndpointOrSuiteInConfig
 	} else {
 		// XXX: Remove this in v6.0.0
 		if config.Debug {
@@ -306,9 +325,19 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := validateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateTunnelingConfig(config); err != nil {
+			return nil, err
+		}
 		if err := validateAnnouncementsConfig(config); err != nil {
 			return nil, err
 		}
+		if err := validateSuitesConfig(config); err != nil {
+			return nil, err
+		}
+		if err := validateUniqueKeys(config); err != nil {
+			return nil, err
+		}
+		validateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
@@ -319,6 +348,59 @@ func validateConnectivityConfig(config *Config) error {
 	if config.Connectivity != nil {
 		return config.Connectivity.ValidateAndSetDefaults()
 	}
+	return nil
+}
+
+// validateTunnelingConfig validates the tunneling configuration and resolves tunnel references
+// NOTE: This must be called after validateEndpointsConfig and validateSuitesConfig
+// because it resolves tunnel references in endpoint and suite client configurations
+func validateTunnelingConfig(config *Config) error {
+	if config.Tunneling != nil {
+		if err := config.Tunneling.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+		// Resolve tunnel references in all endpoints
+		for _, ep := range config.Endpoints {
+			if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+				return fmt.Errorf("endpoint '%s': %w", ep.Key(), err)
+			}
+		}
+		// Resolve tunnel references in suite endpoints
+		for _, s := range config.Suites {
+			for _, ep := range s.Endpoints {
+				if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+					return fmt.Errorf("suite '%s' endpoint '%s': %w", s.Key(), ep.Key(), err)
+				}
+			}
+		}
+		// TODO: Add tunnel support for alert providers when needed
+	}
+	return nil
+}
+
+// resolveTunnelForClientConfig resolves tunnel references in a client configuration
+func resolveTunnelForClientConfig(config *Config, clientConfig *client.Config) error {
+	if clientConfig == nil || clientConfig.Tunnel == "" {
+		return nil
+	}
+	// Validate tunnel name
+	tunnelName := strings.TrimSpace(clientConfig.Tunnel)
+	if tunnelName == "" {
+		return fmt.Errorf("tunnel name cannot be empty")
+	}
+	if config.Tunneling == nil {
+		return fmt.Errorf("tunnel '%s' referenced but no tunneling configuration defined", tunnelName)
+	}
+	_, exists := config.Tunneling.Tunnels[tunnelName]
+	if !exists {
+		return fmt.Errorf("tunnel '%s' not found in tunneling configuration", tunnelName)
+	}
+	// Get or create the SSH tunnel instance and store it directly in client config
+	tunnel, err := config.Tunneling.GetTunnel(tunnelName)
+	if err != nil {
+		return fmt.Errorf("failed to get tunnel '%s': %w", tunnelName, err)
+	}
+	clientConfig.ResolvedTunnel = tunnel
 	return nil
 }
 
@@ -405,7 +487,7 @@ func validateEndpointsConfig(config *Config) error {
 	logr.Infof("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
-		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Name)
+		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
 		if endpointKey := ee.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid external endpoint %s: name and group combination must be unique", ee.Key())
 		} else {
@@ -419,9 +501,81 @@ func validateEndpointsConfig(config *Config) error {
 	return nil
 }
 
+func validateSuitesConfig(config *Config) error {
+	if config.Suites == nil || len(config.Suites) == 0 {
+		logr.Info("[config.validateSuitesConfig] No suites configured")
+		return nil
+	}
+	suiteNames := make(map[string]bool)
+	for _, suite := range config.Suites {
+		// Check for duplicate suite names
+		if suiteNames[suite.Name] {
+			return fmt.Errorf("duplicate suite name: %s", suite.Key())
+		}
+		suiteNames[suite.Name] = true
+		// Validate the suite configuration
+		if err := suite.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid suite '%s': %w", suite.Key(), err)
+		}
+		// Check that endpoints referenced in Store mappings use valid placeholders
+		for _, suiteEndpoint := range suite.Endpoints {
+			if suiteEndpoint.Store != nil {
+				for contextKey, placeholder := range suiteEndpoint.Store {
+					// Basic validation that the context key is a valid identifier
+					if len(contextKey) == 0 {
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty context key in store mapping", suite.Key(), suiteEndpoint.Key())
+					}
+					if len(placeholder) == 0 {
+						return fmt.Errorf("suite '%s' endpoint '%s' has empty placeholder in store mapping for key '%s'", suite.Key(), suiteEndpoint.Key(), contextKey)
+					}
+				}
+			}
+		}
+	}
+	logr.Infof("[config.validateSuitesConfig] Validated %d suite(s)", len(config.Suites))
+	return nil
+}
+
+func validateUniqueKeys(config *Config) error {
+	keyMap := make(map[string]string) // key -> description for error messages
+	// Check all endpoints
+	for _, ep := range config.Endpoints {
+		epKey := ep.Key()
+		if existing, exists := keyMap[epKey]; exists {
+			return fmt.Errorf("duplicate key '%s': endpoint '%s' conflicts with %s", epKey, ep.Key(), existing)
+		}
+		keyMap[epKey] = fmt.Sprintf("endpoint '%s'", ep.Key())
+	}
+	// Check all external endpoints
+	for _, ee := range config.ExternalEndpoints {
+		eeKey := ee.Key()
+		if existing, exists := keyMap[eeKey]; exists {
+			return fmt.Errorf("duplicate key '%s': external endpoint '%s' conflicts with %s", eeKey, ee.Key(), existing)
+		}
+		keyMap[eeKey] = fmt.Sprintf("external endpoint '%s'", ee.Key())
+	}
+	// Check all suites
+	for _, suite := range config.Suites {
+		suiteKey := suite.Key()
+		if existing, exists := keyMap[suiteKey]; exists {
+			return fmt.Errorf("duplicate key '%s': suite '%s' conflicts with %s", suiteKey, suite.Key(), existing)
+		}
+		keyMap[suiteKey] = fmt.Sprintf("suite '%s'", suite.Key())
+		// Check endpoints within suites (they generate keys using suite group + endpoint name)
+		for _, ep := range suite.Endpoints {
+			epKey := key.ConvertGroupAndNameToKey(suite.Group, ep.Name)
+			if existing, exists := keyMap[epKey]; exists {
+				return fmt.Errorf("duplicate key '%s': endpoint '%s' in suite '%s' conflicts with %s", epKey, epKey, suite.Key(), existing)
+			}
+			keyMap[epKey] = fmt.Sprintf("endpoint '%s' in suite '%s'", epKey, suite.Key())
+		}
+	}
+	return nil
+}
+
 func validateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if config.Security.IsValid() {
+		if config.Security.ValidateAndSetDefaults() {
 			logr.Debug("[config.validateSecurityConfig] Basic security configuration has been validated")
 		} else {
 			// If there was an attempt to configure security, then it must mean that some confidential or private
@@ -530,4 +684,18 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		}
 	}
 	logr.Infof("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+}
+
+func validateAndSetConcurrencyDefaults(config *Config) {
+	if config.DisableMonitoringLock {
+		config.Concurrency = 0
+		logr.Warn("WARNING: The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
+		logr.Warn("WARNING: Please set 'concurrency: 0' instead")
+		logr.Debug("[config.validateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
+	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
+		config.Concurrency = DefaultConcurrency
+		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
+	} else {
+		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)
+	}
 }

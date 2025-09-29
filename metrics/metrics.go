@@ -5,6 +5,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -18,6 +19,11 @@ var (
 	resultCertificateExpirationSeconds *prometheus.GaugeVec
 	resultDomainExpirationSeconds      *prometheus.GaugeVec
 	resultEndpointSuccess              *prometheus.GaugeVec
+
+	// Suite metrics
+	suiteResultTotal           *prometheus.CounterVec
+	suiteResultDurationSeconds *prometheus.GaugeVec
+	suiteResultSuccess         *prometheus.GaugeVec
 
 	// Track if metrics have been initialized to prevent duplicate registration
 	metricsInitialized bool
@@ -51,6 +57,17 @@ func UnregisterPrometheusMetrics() {
 	}
 	if resultEndpointSuccess != nil {
 		currentRegisterer.Unregister(resultEndpointSuccess)
+	}
+
+	// Unregister suite metrics
+	if suiteResultTotal != nil {
+		currentRegisterer.Unregister(suiteResultTotal)
+	}
+	if suiteResultDurationSeconds != nil {
+		currentRegisterer.Unregister(suiteResultDurationSeconds)
+	}
+	if suiteResultSuccess != nil {
+		currentRegisterer.Unregister(suiteResultSuccess)
 	}
 
 	metricsInitialized = false
@@ -120,6 +137,28 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	reg.MustRegister(resultEndpointSuccess)
 
+	// Suite metrics
+	suiteResultTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "suite_results_total",
+		Help:      "Total number of suite executions",
+	}, append([]string{"key", "group", "name", "success"}, extraLabels...))
+	reg.MustRegister(suiteResultTotal)
+
+	suiteResultDurationSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "suite_results_duration_seconds",
+		Help:      "Duration of suite execution in seconds",
+	}, append([]string{"key", "group", "name"}, extraLabels...))
+	reg.MustRegister(suiteResultDurationSeconds)
+
+	suiteResultSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "suite_results_success",
+		Help:      "Whether the suite execution was successful (1) or not (0)",
+	}, append([]string{"key", "group", "name"}, extraLabels...))
+	reg.MustRegister(suiteResultSuccess)
+
 	// Mark as initialized
 	metricsInitialized = true
 }
@@ -127,7 +166,7 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 // PublishMetricsForEndpoint publishes metrics for the given endpoint and its result.
 // These metrics will be exposed at /metrics if the metrics are enabled
 func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, extraLabels []string) {
-	labelValues := []string{}
+	var labelValues []string
 	for _, label := range extraLabels {
 		if value, ok := ep.ExtraLabels[label]; ok {
 			labelValues = append(labelValues, value)
@@ -135,7 +174,6 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, e
 			labelValues = append(labelValues, "")
 		}
 	}
-
 	endpointType := ep.Type()
 	resultTotal.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType), strconv.FormatBool(result.Success)}, labelValues...)...).Inc()
 	resultDurationSeconds.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(result.Duration.Seconds())
@@ -158,5 +196,37 @@ func PublishMetricsForEndpoint(ep *endpoint.Endpoint, result *endpoint.Result, e
 		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(1)
 	} else {
 		resultEndpointSuccess.WithLabelValues(append([]string{ep.Key(), ep.Group, ep.Name, string(endpointType)}, labelValues...)...).Set(0)
+	}
+}
+
+// PublishMetricsForSuite publishes metrics for the given suite and its result.
+// These metrics will be exposed at /metrics if the metrics are enabled
+func PublishMetricsForSuite(s *suite.Suite, result *suite.Result, extraLabels []string) {
+	if !metricsInitialized {
+		return
+	}
+	var labelValues []string
+	// For now, suites don't have ExtraLabels, so we'll use empty values
+	// This maintains consistency with endpoint metrics structure
+	for range extraLabels {
+		labelValues = append(labelValues, "")
+	}
+	// Publish suite execution counter
+	suiteResultTotal.WithLabelValues(
+		append([]string{s.Key(), s.Group, s.Name, strconv.FormatBool(result.Success)}, labelValues...)...,
+	).Inc()
+	// Publish suite duration
+	suiteResultDurationSeconds.WithLabelValues(
+		append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+	).Set(result.Duration.Seconds())
+	// Publish suite success status
+	if result.Success {
+		suiteResultSuccess.WithLabelValues(
+			append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+		).Set(1)
+	} else {
+		suiteResultSuccess.WithLabelValues(
+			append([]string{s.Key(), s.Group, s.Name}, labelValues...)...,
+		).Set(0)
 	}
 }

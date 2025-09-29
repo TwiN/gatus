@@ -53,6 +53,9 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
+	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/storage"
 	"gopkg.in/yaml.v3"
@@ -135,7 +138,7 @@ endpoints:
 			pathAndFiles: map[string]string{
 				"config.yaml": "",
 			},
-			expectedError: ErrNoEndpointInConfig,
+			expectedError: ErrNoEndpointOrSuiteInConfig,
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -737,8 +740,8 @@ badconfig:
 	if err == nil {
 		t.Error("An error should've been returned")
 	}
-	if err != ErrNoEndpointInConfig {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if err != ErrNoEndpointOrSuiteInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 
@@ -1850,7 +1853,7 @@ endpoints:
 	if config.Security == nil {
 		t.Fatal("config.Security shouldn't have been nil")
 	}
-	if !config.Security.IsValid() {
+	if !config.Security.ValidateAndSetDefaults() {
 		t.Error("Security config should've been valid")
 	}
 	if config.Security.Basic == nil {
@@ -1893,8 +1896,8 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if !errors.Is(err, ErrNoEndpointInConfig) {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 
@@ -2101,6 +2104,575 @@ func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
 				if !contains(labels, label) {
 					t.Errorf("expected label %s to be present", label)
 				}
+			}
+		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithDuplicateKeysAcrossEntityTypes(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		shouldError bool
+		expectedErr string
+		config      string
+	}{
+		{
+			name:        "endpoint-suite-same-key",
+			shouldError: true,
+			expectedErr: "duplicate key 'backend_test-api': suite 'backend_test-api' conflicts with endpoint 'backend_test-api'",
+			config: `
+endpoints:
+  - name: test-api
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: test-api
+    group: backend
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-suite-different-keys",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-tests
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-external-endpoint-suite-unique-keys",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+external-endpoints:
+  - name: monitoring-agent
+    group: infrastructure
+    token: "secret-token"
+    heartbeat:
+      interval: 5m
+
+suites:
+  - name: integration-tests
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-same-key-as-external-endpoint",
+			shouldError: true,
+			expectedErr: "duplicate key 'monitoring_health-check': suite 'monitoring_health-check' conflicts with external endpoint 'monitoring_health-check'",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+external-endpoints:
+  - name: health-check
+    group: monitoring
+    token: "secret-token"
+    heartbeat:
+      interval: 5m
+
+suites:
+  - name: health-check
+    group: monitoring
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-with-same-name-as-suite-endpoint-different-groups",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-health
+    group: backend
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-suite
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: api-health
+        url: https://example.com/api/health
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-conflicting-with-suite-endpoint",
+			shouldError: true,
+			expectedErr: "duplicate key 'backend_api-health': endpoint 'backend_api-health' in suite 'backend_integration-suite' conflicts with endpoint 'backend_api-health'",
+			config: `
+endpoints:
+  - name: api-health
+    group: backend
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-suite
+    group: backend
+    interval: 30s
+    endpoints:
+      - name: api-health
+        url: https://example.com/api/health
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if scenario.shouldError {
+				if err == nil {
+					t.Error("should've returned an error")
+				} else if scenario.expectedErr != "" && err.Error() != scenario.expectedErr {
+					t.Errorf("expected error message '%s', got '%s'", scenario.expectedErr, err.Error())
+				}
+			} else if err != nil {
+				t.Errorf("shouldn't have returned an error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithSuites(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		shouldError bool
+		expectedErr string
+		config      string
+	}{
+		{
+			name:        "suite-with-no-name",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_': suite must have a name",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-no-endpoints",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_empty-suite': suite must have at least one endpoint",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: empty-suite
+    group: testing
+    interval: 30s
+    endpoints: []`,
+		},
+		{
+			name:        "suite-with-duplicate-endpoint-names",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_duplicate-test': suite cannot have duplicate endpoint names: duplicate endpoint name 'step1'",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: duplicate-test
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test1
+        conditions:
+          - "[STATUS] == 200"
+      - name: step1
+        url: https://example.com/test2
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-invalid-negative-timeout",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_negative-timeout-suite': suite timeout must be positive",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: negative-timeout-suite
+    group: testing
+    interval: 30s
+    timeout: -5m
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-defaults",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-test
+    group: testing
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"
+      - name: step2
+        url: https://example.com/validate
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-all-fields",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: full-integration-test
+    group: testing
+    enabled: true
+    interval: 15m
+    timeout: 10m
+    context:
+      base_url: "https://example.com"
+      user_id: 12345
+    endpoints:
+      - name: authentication
+        url: https://example.com/auth
+        conditions:
+          - "[STATUS] == 200"
+      - name: user-profile
+        url: https://example.com/profile
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].user_id == 12345"`,
+		},
+		{
+			name:        "valid-suite-with-endpoint-inheritance",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: inheritance-test
+    group: parent-group
+    endpoints:
+      - name: child-endpoint
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-store-functionality",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: store-test
+    group: testing
+    endpoints:
+      - name: get-token
+        url: https://example.com/auth
+        conditions:
+          - "[STATUS] == 200"
+        store:
+          auth_token: "[BODY].token"
+      - name: use-token
+        url: https://example.com/data
+        headers:
+          Authorization: "Bearer {auth_token}"
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if scenario.shouldError {
+				if err == nil {
+					t.Error("should've returned an error")
+				} else if scenario.expectedErr != "" && err.Error() != scenario.expectedErr {
+					t.Errorf("expected error message '%s', got '%s'", scenario.expectedErr, err.Error())
+				}
+			} else if err != nil {
+				t.Errorf("shouldn't have returned an error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateTunnelingConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid tunneling config",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "test",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference in endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "nonexistent",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "endpoint '_test-endpoint': tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name: "invalid tunnel reference in suite endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Suites: []*suite.Suite{
+					{
+						Name: "test-suite",
+						Endpoints: []*endpoint.Endpoint{
+							{
+								Name: "suite-endpoint",
+								URL:  "http://example.com/health",
+								ClientConfig: &client.Config{
+									Tunnel: "invalid",
+								},
+								Conditions: []endpoint.Condition{"[STATUS] == 200"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "suite '_test-suite' endpoint '_suite-endpoint': tunnel 'invalid' not found in tunneling configuration",
+		},
+		{
+			name: "no tunneling config",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "test-endpoint",
+						URL:        "http://example.com/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTunnelingConfig(tt.config)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("validateTunnelingConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("validateTunnelingConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("validateTunnelingConfig() unexpected error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveTunnelForClientConfig(t *testing.T) {
+	config := &Config{
+		Tunneling: &tunneling.Config{
+			Tunnels: map[string]*sshtunnel.Config{
+				"test": {
+					Type:     "SSH",
+					Host:     "example.com",
+					Username: "test",
+					Password: "secret",
+				},
+			},
+		},
+	}
+	err := config.Tunneling.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatalf("Failed to validate tunnel config: %v", err)
+	}
+	tests := []struct {
+		name         string
+		clientConfig *client.Config
+		wantErr      bool
+		errMsg       string
+	}{
+		{
+			name: "valid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "test",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "nonexistent",
+			},
+			wantErr: true,
+			errMsg:  "tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name:         "no tunnel reference",
+			clientConfig: &client.Config{},
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := resolveTunnelForClientConfig(config, tt.clientConfig)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("resolveTunnelForClientConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("resolveTunnelForClientConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("resolveTunnelForClientConfig() unexpected error = %v", err)
 			}
 		})
 	}

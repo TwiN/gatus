@@ -34,8 +34,8 @@ func TestSinglePageApplication(t *testing.T) {
 			Title: "example-title",
 		},
 	}
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[1], &endpoint.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {

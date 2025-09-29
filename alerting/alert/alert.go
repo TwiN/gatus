@@ -15,6 +15,8 @@ import (
 var (
 	// ErrAlertWithInvalidDescription is the error with which Gatus will panic if an alert has an invalid character
 	ErrAlertWithInvalidDescription = errors.New("alert description must not have \" or \\")
+
+	ErrAlertWithInvalidMinimumReminderInterval = errors.New("minimum-reminder-interval must be either omitted or be at least 5m")
 )
 
 // Alert is endpoint.Endpoint's alert configuration
@@ -77,6 +79,9 @@ func (alert *Alert) ValidateAndSetDefaults() error {
 	}
 	if alert.SuccessThreshold <= 0 {
 		alert.SuccessThreshold = 2
+	}
+	if alert.MinimumReminderInterval != 0 && alert.MinimumReminderInterval < 5*time.Minute {
+		return ErrAlertWithInvalidMinimumReminderInterval
 	}
 	if strings.ContainsAny(alert.GetDescription(), "\"\\") {
 		return ErrAlertWithInvalidDescription
