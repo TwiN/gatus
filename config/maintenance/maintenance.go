@@ -31,17 +31,17 @@ var (
 //
 // Uses UTC by default.
 type Config struct {
-	Enabled  *bool         `yaml:"enabled"`  // Whether the maintenance period is enabled. Enabled by default if nil.
-	Start    string        `yaml:"start"`    // Time at which the maintenance period starts (e.g. 23:00)
-	Duration time.Duration `yaml:"duration"` // Duration of the maintenance period (e.g. 4h)
-	Timezone string        `yaml:"timezone"` // Timezone in string format which the maintenance period is configured (e.g. America/Sao_Paulo)
+	Enabled  *bool         `yaml:"enabled"`            // Whether the maintenance period is enabled. Enabled by default if nil.
+	Start    string        `yaml:"start,omitempty"`    // Time at which the maintenance period starts (e.g. 23:00)
+	Duration time.Duration `yaml:"duration,omitempty"` // Duration of the maintenance period (e.g. 4h)
+	Timezone string        `yaml:"timezone,omitempty"` // Timezone in string format which the maintenance period is configured (e.g. America/Sao_Paulo)
 
 	// Every is a list of days of the week during which maintenance period applies.
 	// See longDayNames for list of valid values.
 	// Every day if empty.
-	Every []string `yaml:"every"`
+	Every []string `yaml:"every,omitempty"`
 
-	TimezoneLocation            *time.Location // Timezone in location format which the maintenance period is configured
+	timezoneLocation            *time.Location
 	durationToStartFromMidnight time.Duration
 }
 
@@ -90,13 +90,13 @@ func (c *Config) ValidateAndSetDefaults() error {
 		return errInvalidMaintenanceDuration
 	}
 	if c.Timezone != "" {
-		c.TimezoneLocation, err = time.LoadLocation(c.Timezone)
+		c.timezoneLocation, err = time.LoadLocation(c.Timezone)
 		if err != nil {
 			return fmt.Errorf("%w: %w", errInvalidTimezone, err)
 		}
 	} else {
 		c.Timezone = "UTC"
-		c.TimezoneLocation = time.UTC
+		c.timezoneLocation = time.UTC
 	}
 	return nil
 }
@@ -107,8 +107,8 @@ func (c *Config) IsUnderMaintenance() bool {
 		return false
 	}
 	now := time.Now()
-	if c.TimezoneLocation != nil {
-		now = now.In(c.TimezoneLocation)
+	if c.timezoneLocation != nil {
+		now = now.In(c.timezoneLocation)
 	}
 	adjustedDate := now.Day()
 	if now.Hour() < int(c.durationToStartFromMidnight.Hours()) {
