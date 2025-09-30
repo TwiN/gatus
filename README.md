@@ -745,6 +745,9 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently. 
+> This may lead to inaccurate response time measurements.
+
 
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
