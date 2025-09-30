@@ -131,11 +131,11 @@ func (t *SSHTunnel) Dial(network, addr string) (net.Conn, error) {
 	}
 	// Attempt dial with exponential backoff retry
 	const maxRetries = 3
-	const baseDelay = time.Second
+	const baseDelay = 500 * time.Millisecond
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
-			// Exponential backoff: 1s, 2s, 4s
+			// Exponential backoff: 500ms, 1s, 2s
 			delay := baseDelay << (attempt - 1)
 			time.Sleep(delay)
 			// Close stale connection and reconnect

@@ -13,7 +13,7 @@ type Config struct {
 	// Tunnels is a map of SSH tunnel configurations in which the key is the name of the tunnel
 	Tunnels map[string]*sshtunnel.Config `yaml:",inline"`
 
-	mu          sync.RWMutex                  `yaml:"-"`
+	mu          sync.RWMutex                    `yaml:"-"`
 	connections map[string]*sshtunnel.SSHTunnel `yaml:"-"`
 }
 
