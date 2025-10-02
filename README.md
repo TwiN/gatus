@@ -51,6 +51,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Functions](#functions)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
+  - [Tunneling](#tunneling)
   - [Alerting](#alerting)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
@@ -597,24 +598,25 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for
 the client used to send the request.
 
-| Parameter                              | Description                                                                 | Default         |
-|:---------------------------------------|:----------------------------------------------------------------------------|:----------------|
-| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.     | `false`         |
-| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).         | `false`         |
-| `client.timeout`                       | Duration before timing out.                                                 | `10s`           |
-| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.       | `""`            |
-| `client.oauth2`                        | OAuth2 client configuration.                                                | `{}`            |
-| `client.oauth2.token-url`              | The token endpoint URL                                                      | required `""`   |
-| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`        | required `""`   |
-| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`    | required `""`   |
-| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.  | required `[""]` |
-| `client.proxy-url`                     | The URL of the proxy to use for the client                                  | `""`            |
-| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                           | `{}`            |
-| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential) | required `""`   |
-| `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.       | `""`            |
-| `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.       | `""`            |
-| `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).      | `"never"`       |
-| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).         | `"ip"`          |
+| Parameter                              | Description                                                                   | Default         |
+|:---------------------------------------|:------------------------------------------------------------------------------|:----------------|
+| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.       | `false`         |
+| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).           | `false`         |
+| `client.timeout`                       | Duration before timing out.                                                   | `10s`           |
+| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.         | `""`            |
+| `client.oauth2`                        | OAuth2 client configuration.                                                  | `{}`            |
+| `client.oauth2.token-url`              | The token endpoint URL                                                        | required `""`   |
+| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`          | required `""`   |
+| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`      | required `""`   |
+| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.    | required `[""]` |
+| `client.proxy-url`                     | The URL of the proxy to use for the client                                    | `""`            |
+| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                             | `{}`            |
+| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential)   | required `""`   |
+| `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.         | `""`            |
+| `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.         | `""`            |
+| `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
+| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
+| `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
 
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
@@ -705,23 +707,65 @@ endpoints:
 
 > 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
 
+### Tunneling
+Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers. 
+This is particularly useful for monitoring services that are not directly accessible from where Gatus is deployed.
+
+SSH tunnels are defined globally in the `tunneling` section and then referenced by name in endpoint client configurations.
+
+| Parameter                             | Description                                                 | Default       |
+|:--------------------------------------|:------------------------------------------------------------|:--------------|
+| `tunneling`                           | SSH tunnel configurations                                   | `{}`          |
+| `tunneling.<tunnel-name>`             | Configuration for a named SSH tunnel                        | `{}`          |
+| `tunneling.<tunnel-name>.type`        | Type of tunnel (currently only `SSH` is supported)          | Required `""` |
+| `tunneling.<tunnel-name>.host`        | SSH server hostname or IP address                           | Required `""` |
+| `tunneling.<tunnel-name>.port`        | SSH server port                                             | `22`          |
+| `tunneling.<tunnel-name>.username`    | SSH username                                                | Required `""` |
+| `tunneling.<tunnel-name>.password`    | SSH password (use either this or private-key)               | `""`          |
+| `tunneling.<tunnel-name>.private-key` | SSH private key in PEM format (use either this or password) | `""`          |
+| `client.tunnel`                       | Name of the tunnel to use for this endpoint                 | `""`          |
+
+```yaml
+tunneling:
+  production:
+    type: SSH
+    host: "jumphost.example.com"
+    username: "monitoring"
+    private-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEpAIBAAKCAQEA...
+      -----END RSA PRIVATE KEY-----
+
+endpoints:
+  - name: "internal-api"
+    url: "http://internal-api.example.com:8080/health"
+    client:
+      tunnel: "production"
+    conditions:
+      - "[STATUS] == 200"
+```
+
+> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently. 
+> This may lead to inaccurate response time measurements.
+
+
 ### Alerting
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual endpoints with configurable descriptions and thresholds.
 
 Alerts are configured at the endpoint level like so:
 
-| Parameter                            | Description                                                                                                                    | Default       |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------|:--------------|
-| `alerts`                             | List of all alerts for a given endpoint.                                                                                       | `[]`          |
-| `alerts[].type`                      | Type of alert. <br />See table below for all valid types.                                                                      | Required `""` |
-| `alerts[].enabled`                   | Whether to enable the alert.                                                                                                   | `true`        |
-| `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                                                                | `3`           |
-| `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved.                                                 | `2`           |
-| `alerts[].minimum-reminder-interval` | Minimum time interval between alert reminders. E.g. `"30m"`, `"1h45m30s"` or `"24h"`. If empty or `0`, reminders are disabled. | `0`           |
-| `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.                                                   | `false`       |
-| `alerts[].description`               | Description of the alert. Will be included in the alert sent.                                                                  | `""`          |
-| `alerts[].provider-override`         | Alerting provider configuration override for the given alert type                                                              | `{}`          |
+| Parameter                            | Description                                                                                                                                               | Default       |
+|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| `alerts`                             | List of all alerts for a given endpoint.                                                                                                                  | `[]`          |
+| `alerts[].type`                      | Type of alert. <br />See table below for all valid types.                                                                                                 | Required `""` |
+| `alerts[].enabled`                   | Whether to enable the alert.                                                                                                                              | `true`        |
+| `alerts[].failure-threshold`         | Number of failures in a row needed before triggering the alert.                                                                                           | `3`           |
+| `alerts[].success-threshold`         | Number of successes in a row before an ongoing incident is marked as resolved.                                                                            | `2`           |
+| `alerts[].minimum-reminder-interval` | Minimum time interval between alert reminders. E.g. `"30m"`, `"1h45m30s"` or `"24h"`. If empty or `0`, reminders are disabled. Cannot be lower than `5m`. | `0`           |
+| `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.                                                                              | `false`       |
+| `alerts[].description`               | Description of the alert. Will be included in the alert sent.                                                                                             | `""`          |
+| `alerts[].provider-override`         | Alerting provider configuration override for the given alert type                                                                                         | `{}`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml
@@ -1836,8 +1880,6 @@ endpoints:
 
 
 #### Configuring SIGNL4 alerts
-
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
 SIGNL4 is a mobile alerting and incident management service that sends critical alerts to team members via mobile push, SMS, voice calls, and email.
 

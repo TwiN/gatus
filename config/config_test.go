@@ -53,6 +53,9 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
+	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/storage"
 	"gopkg.in/yaml.v3"
@@ -2480,6 +2483,196 @@ suites:
 				}
 			} else if err != nil {
 				t.Errorf("shouldn't have returned an error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateTunnelingConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid tunneling config",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "test",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference in endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "nonexistent",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "endpoint '_test-endpoint': tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name: "invalid tunnel reference in suite endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Suites: []*suite.Suite{
+					{
+						Name: "test-suite",
+						Endpoints: []*endpoint.Endpoint{
+							{
+								Name: "suite-endpoint",
+								URL:  "http://example.com/health",
+								ClientConfig: &client.Config{
+									Tunnel: "invalid",
+								},
+								Conditions: []endpoint.Condition{"[STATUS] == 200"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "suite '_test-suite' endpoint '_suite-endpoint': tunnel 'invalid' not found in tunneling configuration",
+		},
+		{
+			name: "no tunneling config",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "test-endpoint",
+						URL:        "http://example.com/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTunnelingConfig(tt.config)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("ValidateTunnelingConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("ValidateTunnelingConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("ValidateTunnelingConfig() unexpected error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveTunnelForClientConfig(t *testing.T) {
+	config := &Config{
+		Tunneling: &tunneling.Config{
+			Tunnels: map[string]*sshtunnel.Config{
+				"test": {
+					Type:     "SSH",
+					Host:     "example.com",
+					Username: "test",
+					Password: "secret",
+				},
+			},
+		},
+	}
+	err := config.Tunneling.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatalf("Failed to validate tunnel config: %v", err)
+	}
+	tests := []struct {
+		name         string
+		clientConfig *client.Config
+		wantErr      bool
+		errMsg       string
+	}{
+		{
+			name: "valid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "test",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "nonexistent",
+			},
+			wantErr: true,
+			errMsg:  "tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name:         "no tunnel reference",
+			clientConfig: &client.Config{},
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := resolveTunnelForClientConfig(config, tt.clientConfig)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("resolveTunnelForClientConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("resolveTunnelForClientConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("resolveTunnelForClientConfig() unexpected error = %v", err)
 			}
 		})
 	}
