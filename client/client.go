@@ -325,10 +325,7 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	}
 	defer sess.Close()
 	err = sess.Wait()
-
-	// Get the output
 	output := stdout.Bytes()
-
 	if err == nil {
 		return true, 0, output, nil
 	}
