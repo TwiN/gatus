@@ -183,39 +183,63 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 	secondDescription := "description-2"
 	restAPIUrl := "https://api.incident.io/v2/alert_events/http/"
 	scenarios := []struct {
-		Name         string
-		Provider     AlertProvider
-		Alert        alert.Alert
-		Resolved     bool
-		ExpectedBody string
+		Name                     string
+		Provider                 AlertProvider
+		Alert                    alert.Alert
+		Resolved                 bool
+		ExpectedAlertSourceID    string
+		ExpectedStatus           string
+		ExpectedTitle            string
+		ExpectedDescription      string
+		ExpectedSourceURL        string
+		ExpectedMetadata         map[string]interface{}
+		ShouldHaveDeduplicationKey bool
 	}{
 		{
-			Name:         "triggered",
-			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
-			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     false,
-			ExpectedBody: `{"alert_source_config_id":"some-id","status":"firing","title":"Gatus: endpoint-name","description":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  "}`,
+			Name:                     "triggered",
+			Provider:                 AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
+			Alert:                    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:                 false,
+			ExpectedAlertSourceID:    "some-id",
+			ExpectedStatus:           "firing",
+			ExpectedTitle:            "Gatus: endpoint-name",
+			ExpectedDescription:      "An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  ",
+			ShouldHaveDeduplicationKey: true,
 		},
 		{
-			Name:         "resolved",
-			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
-			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     true,
-			ExpectedBody: `{"alert_source_config_id":"some-id","status":"resolved","title":"Gatus: endpoint-name","description":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2 and the following conditions:  🟢 [CONNECTED] == true  🟢 [STATUS] == 200  "}`,
+			Name:                     "resolved",
+			Provider:                 AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}},
+			Alert:                    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:                 true,
+			ExpectedAlertSourceID:    "some-id",
+			ExpectedStatus:           "resolved",
+			ExpectedTitle:            "Gatus: endpoint-name",
+			ExpectedDescription:      "An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2 and the following conditions:  🟢 [CONNECTED] == true  🟢 [STATUS] == 200  ",
+			ShouldHaveDeduplicationKey: true,
 		},
 		{
-			Name:         "resolved-with-metadata-source-url",
-			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token", Metadata: map[string]interface{}{"service": "some-service", "team": "very-core"}, SourceURL: "some-source-url"}},
-			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     true,
-			ExpectedBody: `{"alert_source_config_id":"some-id","status":"resolved","title":"Gatus: endpoint-name","description":"An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2 and the following conditions:  🟢 [CONNECTED] == true  🟢 [STATUS] == 200  ","source_url":"some-source-url","metadata":{"service":"some-service","team":"very-core"}}`,
+			Name:                     "resolved-with-metadata-source-url",
+			Provider:                 AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token", Metadata: map[string]interface{}{"service": "some-service", "team": "very-core"}, SourceURL: "some-source-url"}},
+			Alert:                    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:                 true,
+			ExpectedAlertSourceID:    "some-id",
+			ExpectedStatus:           "resolved",
+			ExpectedTitle:            "Gatus: endpoint-name",
+			ExpectedDescription:      "An alert has been resolved after passing successfully 5 time(s) in a row with the following description: description-2 and the following conditions:  🟢 [CONNECTED] == true  🟢 [STATUS] == 200  ",
+			ExpectedSourceURL:        "some-source-url",
+			ExpectedMetadata:         map[string]interface{}{"service": "some-service", "team": "very-core"},
+			ShouldHaveDeduplicationKey: true,
 		},
 		{
-			Name:         "group-override",
-			Provider:     AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}, Overrides: []Override{{Group: "g", Config: Config{URL: restAPIUrl + "different-id", AuthToken: "some-token"}}}},
-			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     false,
-			ExpectedBody: `{"alert_source_config_id":"different-id","status":"firing","title":"Gatus: endpoint-name","description":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  "}`,
+			Name:                     "group-override",
+			Provider:                 AlertProvider{DefaultConfig: Config{URL: restAPIUrl + "some-id", AuthToken: "some-token"}, Overrides: []Override{{Group: "g", Config: Config{URL: restAPIUrl + "different-id", AuthToken: "some-token"}}}},
+			Alert:                    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:                 false,
+			ExpectedAlertSourceID:    "different-id",
+			ExpectedStatus:           "firing",
+			ExpectedTitle:            "Gatus: endpoint-name",
+			ExpectedDescription:      "An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1 and the following conditions:  🔴 [CONNECTED] == true  🔴 [STATUS] == 200  ",
+			ShouldHaveDeduplicationKey: true,
 		},
 	}
 
@@ -237,12 +261,41 @@ func TestAlertProvider_BuildRequestBody(t *testing.T) {
 				},
 				scenario.Resolved,
 			)
-			if string(body) != scenario.ExpectedBody {
-				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
-			}
-			out := make(map[string]interface{})
-			if err := json.Unmarshal(body, &out); err != nil {
+			
+			// Parse the JSON body
+			var parsedBody Body
+			if err := json.Unmarshal(body, &parsedBody); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
+			}
+			
+			// Validate individual fields
+			if parsedBody.AlertSourceConfigID != scenario.ExpectedAlertSourceID {
+				t.Errorf("expected alert_source_config_id to be %s, got %s", scenario.ExpectedAlertSourceID, parsedBody.AlertSourceConfigID)
+			}
+			if parsedBody.Status != scenario.ExpectedStatus {
+				t.Errorf("expected status to be %s, got %s", scenario.ExpectedStatus, parsedBody.Status)
+			}
+			if parsedBody.Title != scenario.ExpectedTitle {
+				t.Errorf("expected title to be %s, got %s", scenario.ExpectedTitle, parsedBody.Title)
+			}
+			if parsedBody.Description != scenario.ExpectedDescription {
+				t.Errorf("expected description to be %s, got %s", scenario.ExpectedDescription, parsedBody.Description)
+			}
+			if scenario.ExpectedSourceURL != "" && parsedBody.SourceURL != scenario.ExpectedSourceURL {
+				t.Errorf("expected source_url to be %s, got %s", scenario.ExpectedSourceURL, parsedBody.SourceURL)
+			}
+			if scenario.ExpectedMetadata != nil {
+				metadataJSON, _ := json.Marshal(parsedBody.Metadata)
+				expectedMetadataJSON, _ := json.Marshal(scenario.ExpectedMetadata)
+				if string(metadataJSON) != string(expectedMetadataJSON) {
+					t.Errorf("expected metadata to be %s, got %s", string(expectedMetadataJSON), string(metadataJSON))
+				}
+			}
+			// Validate that deduplication_key exists and is not empty
+			if scenario.ShouldHaveDeduplicationKey {
+				if parsedBody.DeduplicationKey == "" {
+					t.Error("expected deduplication_key to be present and non-empty")
+				}
 			}
 		})
 	}
