@@ -46,8 +46,8 @@
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{{ newestResultTime }}</span>
             <span>{{ oldestResultTime }}</span>
+            <span>{{ newestResultTime }}</span>
           </div>
         </div>
       </div>
