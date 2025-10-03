@@ -21,11 +21,12 @@ _Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
   <summary><b>Quick start</b></summary>
 
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
-```
-You can also use GitHub Container Registry if you prefer:
-```console
 docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
+```
+
+You can also use Docker Hub if you prefer:
+```console
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 For more details, see [Usage](#usage)
 </details>
@@ -186,18 +187,15 @@ The main features of Gatus are:
 
 ## Usage
 
-<details>
-  <summary><b>Quick start</b></summary>
-
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
-You can also use GitHub Container Registry if you prefer:
+
+You can also use Docker Hub if you prefer:
 ```console
-docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 If you want to create your own configuration, see [Docker](#docker) for information on how to mount a configuration file.
-</details>
 
 Here's a simple example:
 ```yaml
@@ -2789,24 +2787,24 @@ Many examples can be found in the [.examples](.examples) folder, but this sectio
 ### Docker
 To run Gatus locally with Docker:
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
 
 Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by
 creating a configuration file, we'll call it `config.yaml` for this example, and running the following
 command:
 ```console
-docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus ghcr.io/twin/gatus:stable
 ```
 
 If you're on Windows, replace `"$(pwd)"` by the absolute path to your current directory, e.g.:
 ```console
-docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus ghcr.io/twin/gatus:stable
 ```
 
 To build the image locally:
 ```console
-docker build . -t twinproduction/gatus
+docker build . -t ghcr.io/twin/gatus:stable
 ```
 
 
