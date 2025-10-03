@@ -2596,19 +2596,19 @@ func TestValidateTunnelingConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTunnelingConfig(tt.config)
+			err := ValidateTunnelingConfig(tt.config)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("validateTunnelingConfig() expected error but got none")
+					t.Error("ValidateTunnelingConfig() expected error but got none")
 					return
 				}
 				if err.Error() != tt.errMsg {
-					t.Errorf("validateTunnelingConfig() error = %v, want %v", err.Error(), tt.errMsg)
+					t.Errorf("ValidateTunnelingConfig() error = %v, want %v", err.Error(), tt.errMsg)
 				}
 				return
 			}
 			if err != nil {
-				t.Errorf("validateTunnelingConfig() unexpected error = %v", err)
+				t.Errorf("ValidateTunnelingConfig() unexpected error = %v", err)
 			}
 		})
 	}
