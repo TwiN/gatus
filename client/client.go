@@ -316,11 +316,9 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	if err != nil {
 		return false, 0, nil, err
 	}
-
 	// Capture stdout
 	var stdout bytes.Buffer
 	sess.Stdout = &stdout
-
 	err = sess.Start(b.Command)
 	if err != nil {
 		return false, 0, nil, err
