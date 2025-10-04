@@ -514,10 +514,15 @@ func (e *Endpoint) call(result *Result) {
 			result.AddError(err.Error())
 			return
 		}
-		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
+		var output []byte
+		result.Success, result.HTTPStatus, output, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
+		}
+		// Only store the output in result.Body if there's a condition that uses the BodyPlaceholder
+		if e.needsToReadBody() {
+			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
 	} else {
