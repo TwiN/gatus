@@ -2985,12 +2985,13 @@ endpoints:
       password: "password"
     body: |
       {
-        "command": "uptime"
+        "command": "echo '{\"memory\": {\"used\": 512}}'"
       }
     interval: 1m
     conditions:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
+      - "[BODY].memory.used > 500"
 ```
 
 you can also use no authentication to monitor the endpoint by not specifying the username
