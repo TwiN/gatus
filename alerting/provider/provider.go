@@ -21,6 +21,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/n8n"
 	"github.com/TwiN/gatus/v5/alerting/provider/newrelic"
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
@@ -110,6 +111,7 @@ var (
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
 	_ AlertProvider = (*messagebird.AlertProvider)(nil)
+	_ AlertProvider = (*n8n.AlertProvider)(nil)
 	_ AlertProvider = (*newrelic.AlertProvider)(nil)
 	_ AlertProvider = (*ntfy.AlertProvider)(nil)
 	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
@@ -151,6 +153,7 @@ var (
 	_ Config[matrix.Config]         = (*matrix.Config)(nil)
 	_ Config[mattermost.Config]     = (*mattermost.Config)(nil)
 	_ Config[messagebird.Config]    = (*messagebird.Config)(nil)
+	_ Config[n8n.Config]            = (*n8n.Config)(nil)
 	_ Config[newrelic.Config]       = (*newrelic.Config)(nil)
 	_ Config[ntfy.Config]           = (*ntfy.Config)(nil)
 	_ Config[opsgenie.Config]       = (*opsgenie.Config)(nil)

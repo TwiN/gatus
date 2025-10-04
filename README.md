@@ -71,6 +71,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
+    - [Configuring n8n alerts](#configuring-n8n-alerts)
     - [Configuring New Relic alerts](#configuring-new-relic-alerts)
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
@@ -817,6 +818,7 @@ endpoints:
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
 | `alerting.messagebird`     | Configuration for alerts of type `messagebird`. <br />See [Configuring Messagebird alerts](#configuring-messagebird-alerts).            | `{}`    |
+| `alerting.n8n`             | Configuration for alerts of type `n8n`. <br />See [Configuring n8n alerts](#configuring-n8n-alerts).                                    | `{}`    |
 | `alerting.newrelic`        | Configuration for alerts of type `newrelic`. <br />See [Configuring New Relic alerts](#configuring-new-relic-alerts).                   | `{}`    |
 | `alerting.ntfy`            | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                 | `{}`    |
 | `alerting.opsgenie`        | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                     | `{}`    |
@@ -1579,8 +1581,8 @@ alerting:
     region: "US"  # or "EU" for European region
 
 endpoints:
-  - name: website
-    url: "https://twin.sh/health"
+  - name: example
+    url: "https://example.org"
     interval: 5m
     conditions:
       - "[STATUS] == 200"
@@ -1588,6 +1590,50 @@ endpoints:
       - type: newrelic
         send-on-resolved: true
 ```
+
+
+#### Configuring n8n alerts
+| Parameter                        | Description                                                                                | Default       |
+|:---------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.n8n`                   | Configuration for alerts of type `n8n`                                                     | `{}`          |
+| `alerting.n8n.webhook-url`       | n8n webhook URL                                                                            | Required `""` |
+| `alerting.n8n.title`             | Title of the alert sent to n8n                                                             | `""`          |
+| `alerting.n8n.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.n8n.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.n8n.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.n8n.overrides[].*`     | See `alerting.n8n.*` parameters                                                            | `{}`          |
+
+[n8n](https://n8n.io/) is a workflow automation platform that allows you to automate tasks across different applications and services using webhooks.
+
+Example:
+```yaml
+alerting:
+  n8n:
+    webhook-url: "https://your-n8n-instance.com/webhook/your-webhook-id"
+    title: "Gatus Monitoring"
+    default-alert:
+      send-on-resolved: true
+
+endpoints:
+  - name: example
+    url: "https://example.org"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: n8n
+        description: "Health check alert"
+```
+
+The JSON payload sent to the n8n webhook will include:
+- `title`: The configured title
+- `endpoint_name`: Name of the endpoint
+- `endpoint_group`: Group of the endpoint (if any)
+- `endpoint_url`: URL being monitored
+- `alert_description`: Custom alert description
+- `resolved`: Boolean indicating if the alert is resolved
+- `message`: Human-readable alert message
+- `condition_results`: Array of condition results with their success status
 
 
 #### Configuring Ntfy alerts

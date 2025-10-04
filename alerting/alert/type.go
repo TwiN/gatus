@@ -65,6 +65,9 @@ const (
 	// TypeNewRelic is the Type for the newrelic alerting provider
 	TypeNewRelic Type = "newrelic"
 
+	// TypeN8N is the Type for the n8n alerting provider
+	TypeN8N Type = "n8n"
+
 	// TypeNtfy is the Type for the ntfy alerting provider
 	TypeNtfy Type = "ntfy"
 
