@@ -29,8 +29,10 @@ type Config struct {
 	From  string `yaml:"from"`
 	To    string `yaml:"to"`
 
+	// TODO in v6.0.0: Rename this to text-triggered
 	TextTwilioTriggered string `yaml:"text-twilio-triggered,omitempty"` // String used in the SMS body and subject (optional)
-	TextTwilioResolved  string `yaml:"text-twilio-resolved,omitempty"`  // String used in the SMS body and subject (optional)
+	// TODO in v6.0.0: Rename this to text-resolved
+	TextTwilioResolved string `yaml:"text-twilio-resolved,omitempty"` // String used in the SMS body and subject (optional)
 }
 
 func (cfg *Config) Validate() error {
@@ -113,13 +115,23 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	var message string
 	if resolved {
 		if len(cfg.TextTwilioResolved) > 0 {
-			message = strings.Replace(strings.Replace(cfg.TextTwilioResolved, "{endpoint}", ep.DisplayName(), 1), "{description}", alert.GetDescription(), 1)
+			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
+			message = cfg.TextTwilioResolved
+			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
+			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
+			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
+			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
 		} else {
 			message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}
 	} else {
 		if len(cfg.TextTwilioTriggered) > 0 {
-			message = strings.Replace(strings.Replace(cfg.TextTwilioTriggered, "{endpoint}", ep.DisplayName(), 1), "{description}", alert.GetDescription(), 1)
+			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
+			message = cfg.TextTwilioTriggered
+			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
+			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
+			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
+			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
 		} else {
 			message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}

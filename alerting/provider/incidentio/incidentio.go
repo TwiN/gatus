@@ -153,27 +153,44 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		} else {
 			prefix = "🔴"
 		}
-		// No need for \n since incident.io trims it anyways.
 		formattedConditionResults += fmt.Sprintf(" %s %s ", prefix, conditionResult.Condition)
 	}
 	if len(alert.GetDescription()) > 0 {
 		message += " with the following description: " + alert.GetDescription()
 	}
 	message += fmt.Sprintf(" and the following conditions: %s ", formattedConditionResults)
-	var body []byte
+
+	// Generate deduplication key if empty (first firing)
+	if alert.ResolveKey == "" {
+		// Generate unique key (endpoint key, alert type, timestamp)
+		alert.ResolveKey = generateDeduplicationKey(ep, alert)
+	}
+	// Extract alert_source_config_id from URL
 	alertSourceID := strings.TrimPrefix(cfg.URL, restAPIUrl)
-	body, _ = json.Marshal(Body{
+	// Merge metadata: cfg.Metadata + ep.ExtraLabels (if present)
+	mergedMetadata := map[string]interface{}{}
+	// Copy cfg.Metadata
+	for k, v := range cfg.Metadata {
+		mergedMetadata[k] = v
+	}
+	// Add extra labels from endpoint (if present)
+	if ep.ExtraLabels != nil && len(ep.ExtraLabels) > 0 {
+		for k, v := range ep.ExtraLabels {
+			mergedMetadata[k] = v
+		}
+	}
+
+	body, _ := json.Marshal(Body{
 		AlertSourceConfigID: alertSourceID,
 		Title:               "Gatus: " + ep.DisplayName(),
 		Status:              status,
 		DeduplicationKey:    alert.ResolveKey,
 		Description:         message,
 		SourceURL:           cfg.SourceURL,
-		Metadata:            cfg.Metadata,
+		Metadata:            mergedMetadata,
 	})
 	fmt.Printf("%v", string(body))
 	return body
-
 }
 func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig

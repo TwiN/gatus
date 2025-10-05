@@ -1,10 +1,10 @@
-package endpoint
+package key
 
 import "strings"
 
-// ConvertGroupAndEndpointNameToKey converts a group and an endpoint to a key
-func ConvertGroupAndEndpointNameToKey(groupName, endpointName string) string {
-	return sanitize(groupName) + "_" + sanitize(endpointName)
+// ConvertGroupAndNameToKey converts a group and a name to a key
+func ConvertGroupAndNameToKey(groupName, name string) string {
+	return sanitize(groupName) + "_" + sanitize(name)
 }
 
 func sanitize(s string) string {

@@ -21,6 +21,8 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"golang.org/x/crypto/ssh"
 )
@@ -134,6 +136,18 @@ type Endpoint struct {
 
 	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
 	LastReminderSent time.Time `yaml:"-"`
+
+	///////////////////////
+	// SUITE-ONLY FIELDS //
+	///////////////////////
+
+	// Store is a map of values to extract from the result and store in the suite context
+	// This field is only used when the endpoint is part of a suite
+	Store map[string]string `yaml:"store,omitempty"`
+
+	// AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed
+	// This field is only used when the endpoint is part of a suite
+	AlwaysRun bool `yaml:"always-run,omitempty"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -255,7 +269,7 @@ func (e *Endpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (e *Endpoint) Key() string {
-	return ConvertGroupAndEndpointNameToKey(e.Group, e.Name)
+	return key.ConvertGroupAndNameToKey(e.Group, e.Name)
 }
 
 // Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
@@ -269,16 +283,26 @@ func (e *Endpoint) Close() {
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (e *Endpoint) EvaluateHealth() *Result {
+	return e.EvaluateHealthWithContext(nil)
+}
+
+// EvaluateHealthWithContext sends a request to the endpoint's URL with context support and evaluates the conditions
+func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	result := &Result{Success: true, Errors: []string{}}
+	// Preprocess the endpoint with context if provided
+	processedEndpoint := e
+	if context != nil {
+		processedEndpoint = e.preprocessWithContext(result, context)
+	}
 	// Parse or extract hostname from URL
-	if e.DNSConfig != nil {
-		result.Hostname = strings.TrimSuffix(e.URL, ":53")
-	} else if e.Type() == TypeICMP {
+	if processedEndpoint.DNSConfig != nil {
+		result.Hostname = strings.TrimSuffix(processedEndpoint.URL, ":53")
+	} else if processedEndpoint.Type() == TypeICMP {
 		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
 		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
-		result.Hostname = strings.TrimPrefix(e.URL, "icmp://")
+		result.Hostname = strings.TrimPrefix(processedEndpoint.URL, "icmp://")
 	} else {
-		urlObject, err := url.Parse(e.URL)
+		urlObject, err := url.Parse(processedEndpoint.URL)
 		if err != nil {
 			result.AddError(err.Error())
 		} else {
@@ -287,11 +311,11 @@ func (e *Endpoint) EvaluateHealth() *Result {
 		}
 	}
 	// Retrieve IP if necessary
-	if e.needsToRetrieveIP() {
-		e.getIP(result)
+	if processedEndpoint.needsToRetrieveIP() {
+		processedEndpoint.getIP(result)
 	}
 	// Retrieve domain expiration if necessary
-	if e.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+	if processedEndpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
 		var err error
 		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
 			result.AddError(err.Error())
@@ -299,40 +323,89 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
-		e.call(result)
+		processedEndpoint.call(result)
 	} else {
 		result.Success = false
 	}
 	// Evaluate the conditions
-	for _, condition := range e.Conditions {
-		success := condition.evaluate(result, e.UIConfig.DontResolveFailedConditions)
+	for _, condition := range processedEndpoint.Conditions {
+		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
 		if !success {
 			result.Success = false
 		}
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
-	if e.UIConfig.HideURL {
+	if processedEndpoint.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, e.URL, "<redacted>")
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, processedEndpoint.URL, "<redacted>")
 		}
 	}
-	if e.UIConfig.HideHostname {
+	if processedEndpoint.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
 		result.Hostname = "" // remove it from the result so it doesn't get exposed
 	}
-	if e.UIConfig.HidePort && len(result.port) > 0 {
+	if processedEndpoint.UIConfig.HidePort && len(result.port) > 0 {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
 		}
 		result.port = ""
 	}
-	if e.UIConfig.HideConditions {
+	if processedEndpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
 	return result
+}
+
+// preprocessWithContext creates a copy of the endpoint with context placeholders replaced
+func (e *Endpoint) preprocessWithContext(result *Result, context *gontext.Gontext) *Endpoint {
+	// Create a deep copy of the endpoint
+	processed := &Endpoint{}
+	*processed = *e
+	var err error
+	// Replace context placeholders in URL
+	if processed.URL, err = replaceContextPlaceholders(e.URL, context); err != nil {
+		result.AddError(err.Error())
+	}
+	// Replace context placeholders in Body
+	if processed.Body, err = replaceContextPlaceholders(e.Body, context); err != nil {
+		result.AddError(err.Error())
+	}
+	// Replace context placeholders in Headers
+	if e.Headers != nil {
+		processed.Headers = make(map[string]string)
+		for k, v := range e.Headers {
+			if processed.Headers[k], err = replaceContextPlaceholders(v, context); err != nil {
+				result.AddError(err.Error())
+			}
+		}
+	}
+	return processed
+}
+
+// replaceContextPlaceholders replaces [CONTEXT].path placeholders with actual values
+func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, error) {
+	if ctx == nil {
+		return input, nil
+	}
+	var contextErrors []string
+	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
+	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
+		// Extract the path after [CONTEXT].
+		path := strings.TrimPrefix(match, "[CONTEXT].")
+		value, err := ctx.Get(path)
+		if err != nil {
+			contextErrors = append(contextErrors, fmt.Sprintf("path '%s' not found", path))
+			return match // Keep placeholder for error reporting
+		}
+		return fmt.Sprintf("%v", value)
+	})
+	if len(contextErrors) > 0 {
+		return result, fmt.Errorf("context placeholder resolution failed: %s", strings.Join(contextErrors, ", "))
+	}
+	return result, nil
 }
 
 func (e *Endpoint) getParsedBody() string {
@@ -441,10 +514,15 @@ func (e *Endpoint) call(result *Result) {
 			result.AddError(err.Error())
 			return
 		}
-		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
+		var output []byte
+		result.Success, result.HTTPStatus, output, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
+		}
+		// Only store the output in result.Body if there's a condition that uses the BodyPlaceholder
+		if e.needsToReadBody() {
+			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
 	} else {
@@ -492,11 +570,19 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any condition that requires the response Body to be read
+// needsToReadBody checks if there's any condition or store mapping that requires the response Body to be read
 func (e *Endpoint) needsToReadBody() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasBodyPlaceholder() {
 			return true
+		}
+	}
+	// Check store values for body placeholders
+	if e.Store != nil {
+		for _, value := range e.Store {
+			if strings.Contains(value, BodyPlaceholder) {
+				return true
+			}
 		}
 	}
 	return false
