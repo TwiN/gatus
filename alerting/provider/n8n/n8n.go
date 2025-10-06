@@ -1,4 +1,4 @@
-package telegram
+package n8n
 
 import (
 	"bytes"
@@ -14,66 +14,42 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const ApiURL = "https://api.telegram.org"
-
 var (
-	ErrTokenNotSet            = errors.New("token not set")
-	ErrIDNotSet               = errors.New("id not set")
+	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	Token   string `yaml:"token"`
-	ID      string `yaml:"id"`
-	TopicID string `yaml:"topic-id,omitempty"`
-	ApiUrl  string `yaml:"api-url"`
-
-	ClientConfig *client.Config `yaml:"client,omitempty"`
+	WebhookURL string `yaml:"webhook-url"`
+	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.ApiUrl) == 0 {
-		cfg.ApiUrl = ApiURL
-	}
-	if len(cfg.Token) == 0 {
-		return ErrTokenNotSet
-	}
-	if len(cfg.ID) == 0 {
-		return ErrIDNotSet
+	if len(cfg.WebhookURL) == 0 {
+		return ErrWebhookURLNotSet
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if override.ClientConfig != nil {
-		cfg.ClientConfig = override.ClientConfig
+	if len(override.WebhookURL) > 0 {
+		cfg.WebhookURL = override.WebhookURL
 	}
-	if len(override.Token) > 0 {
-		cfg.Token = override.Token
-	}
-	if len(override.ID) > 0 {
-		cfg.ID = override.ID
-	}
-	if len(override.TopicID) > 0 {
-		cfg.TopicID = override.TopicID
-	}
-	if len(override.ApiUrl) > 0 {
-		cfg.ApiUrl = override.ApiUrl
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
 	}
 }
 
-// AlertProvider is the configuration necessary for sending an alert using Telegram
+// AlertProvider is the configuration necessary for sending an alert using n8n
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
-
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
-	// Overrides is a list of overrides that may be prioritized over the default configuration
-	Overrides []*Override `yaml:"overrides,omitempty"`
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
-// Override is a configuration that may be prioritized over the default configuration
+// Override is a case under which the default integration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
@@ -100,12 +76,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/bot%s/sendMessage", cfg.ApiUrl, cfg.Token), buffer)
+	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
+	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
 	}
@@ -118,45 +94,51 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
-	ChatID    string `json:"chat_id"`
-	Text      string `json:"text"`
-	ParseMode string `json:"parse_mode"`
-	TopicID   string `json:"message_thread_id,omitempty"`
+	Title            string            `json:"title"`
+	EndpointName     string            `json:"endpoint_name"`
+	EndpointGroup    string            `json:"endpoint_group,omitempty"`
+	EndpointURL      string            `json:"endpoint_url"`
+	AlertDescription string            `json:"alert_description,omitempty"`
+	Resolved         bool              `json:"resolved"`
+	Message          string            `json:"message"`
+	ConditionResults []ConditionResult `json:"condition_results,omitempty"`
+}
+
+type ConditionResult struct {
+	Condition string `json:"condition"`
+	Success   bool   `json:"success"`
 }
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("An alert for *%s* has been resolved:\n—\n    _healthcheck passing successfully %d time(s) in a row_\n—  ", ep.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		message = fmt.Sprintf("An alert for *%s* has been triggered:\n—\n    _healthcheck failed %d time(s) in a row_\n—  ", ep.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
-	var formattedConditionResults string
-	if len(result.ConditionResults) > 0 {
-		formattedConditionResults = "\n*Condition results*\n"
-		for _, conditionResult := range result.ConditionResults {
-			var prefix string
-			if conditionResult.Success {
-				prefix = "✅"
-			} else {
-				prefix = "❌"
-			}
-			formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
-		}
+	title := "Gatus"
+	if cfg.Title != "" {
+		title = cfg.Title
 	}
-	var text string
-	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n%s  \n%s", message, alert.GetDescription(), formattedConditionResults)
-	} else {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
+	var conditionResults []ConditionResult
+	for _, conditionResult := range result.ConditionResults {
+		conditionResults = append(conditionResults, ConditionResult{
+			Condition: conditionResult.Condition,
+			Success:   conditionResult.Success,
+		})
 	}
-	bodyAsJSON, _ := json.Marshal(Body{
-		ChatID:    cfg.ID,
-		Text:      text,
-		ParseMode: "MARKDOWN",
-		TopicID:   cfg.TopicID,
-	})
+	body := Body{
+		Title:            title,
+		EndpointName:     ep.Name,
+		EndpointGroup:    ep.Group,
+		EndpointURL:      ep.URL,
+		AlertDescription: alert.GetDescription(),
+		Resolved:         resolved,
+		Message:          message,
+		ConditionResults: conditionResults,
+	}
+	bodyAsJSON, _ := json.Marshal(body)
 	return bodyAsJSON
 }
 

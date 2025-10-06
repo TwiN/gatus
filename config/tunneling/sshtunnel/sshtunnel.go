@@ -54,7 +54,6 @@ func New(config *Config) *SSHTunnel {
 	tunnel := &SSHTunnel{
 		config: config,
 	}
-
 	// Parse authentication methods once during initialization to avoid
 	// expensive cryptographic operations on every connection attempt
 	if config.PrivateKey != "" {
@@ -66,7 +65,6 @@ func New(config *Config) *SSHTunnel {
 	} else if config.Password != "" {
 		tunnel.authMethods = []ssh.AuthMethod{ssh.Password(config.Password)}
 	}
-
 	return tunnel
 }
 
@@ -131,27 +129,34 @@ func (t *SSHTunnel) Dial(network, addr string) (net.Conn, error) {
 		client = t.client
 		t.mu.Unlock()
 	}
-	// Create connection through SSH tunnel
-	conn, err := client.Dial(network, addr)
-	if err != nil {
-		// Close stale connection before retry to prevent leak
-		t.mu.Lock()
-		if t.client != nil {
-			t.client.Close()
-			t.client = nil
+	// Attempt dial with exponential backoff retry
+	const maxRetries = 3
+	const baseDelay = 500 * time.Millisecond
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 500ms, 1s, 2s
+			delay := baseDelay << (attempt - 1)
+			time.Sleep(delay)
+			// Close stale connection and reconnect
+			t.mu.Lock()
+			if t.client != nil {
+				_ = t.client.Close()
+				t.client = nil
+			}
+			if err := t.connectUnsafe(); err != nil {
+				t.mu.Unlock()
+				lastErr = fmt.Errorf("reconnect attempt %d failed: %w", attempt, err)
+				continue
+			}
+			client = t.client
+			t.mu.Unlock()
 		}
-		t.mu.Unlock()
-		// Retry once - connection might be stale
-		if connErr := t.Connect(); connErr != nil {
-			return nil, fmt.Errorf("SSH tunnel dial failed: %w (retry failed: %v)", err, connErr)
+		conn, err := client.Dial(network, addr)
+		if err == nil {
+			return conn, nil
 		}
-		t.mu.RLock()
-		client = t.client
-		t.mu.RUnlock()
-		conn, err = client.Dial(network, addr)
-		if err != nil {
-			return nil, fmt.Errorf("SSH tunnel dial failed after retry: %w", err)
-		}
+		lastErr = err
 	}
-	return conn, nil
+	return nil, fmt.Errorf("SSH tunnel dial failed after %d attempts: %w", maxRetries, lastErr)
 }

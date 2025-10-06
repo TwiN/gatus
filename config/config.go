@@ -575,11 +575,8 @@ func ValidateUniqueKeys(config *Config) error {
 
 func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if config.Security.ValidateAndSetDefaults() {
+		if !config.Security.ValidateAndSetDefaults() {
 			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
-		} else {
-			// If there was an attempt to configure security, then it must mean that some confidential or private
-			// data are exposed. As a result, we'll force a panic because it's better to be safe than sorry.
 			return ErrInvalidSecurityConfig
 		}
 	}
@@ -615,6 +612,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeMatrix,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
+		alert.TypeN8N,
 		alert.TypeNewRelic,
 		alert.TypeNtfy,
 		alert.TypeOpsgenie,
