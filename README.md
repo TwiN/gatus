@@ -2965,20 +2965,20 @@ This works for SCTP based application.
 
 
 ### Monitoring a WebSocket endpoint
-By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints at a very basic level:
+By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints:
 ```yaml
 endpoints:
   - name: example
-    url: "wss://example.com/"
+    url: "wss://echo.websocket.org/"
     body: "status"
     conditions:
       - "[CONNECTED] == true"
-      - "[BODY].result >= 0"
+      - "[BODY] == pat(*served by*)"
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
 shows whether the connection was successfully established. You can use Go template 
-syntax. The functions LocalAddr and RandomString with a length can be used.
+syntax. 
 
 
 ### Monitoring an endpoint using ICMP
