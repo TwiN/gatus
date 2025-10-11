@@ -21,11 +21,12 @@ _Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
   <summary><b>Quick start</b></summary>
 
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
-```
-You can also use GitHub Container Registry if you prefer:
-```console
 docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
+```
+
+You can also use Docker Hub if you prefer:
+```console
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 For more details, see [Usage](#usage)
 </details>
@@ -186,18 +187,15 @@ The main features of Gatus are:
 
 ## Usage
 
-<details>
-  <summary><b>Quick start</b></summary>
-
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
-You can also use GitHub Container Registry if you prefer:
+
+You can also use Docker Hub if you prefer:
 ```console
-docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus
+docker run -p 8080:8080 --name gatus twinproduction/gatus:stable
 ```
 If you want to create your own configuration, see [Docker](#docker) for information on how to mount a configuration file.
-</details>
 
 Here's a simple example:
 ```yaml
@@ -2450,7 +2448,8 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
-
+- `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
+-
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
@@ -2789,24 +2788,24 @@ Many examples can be found in the [.examples](.examples) folder, but this sectio
 ### Docker
 To run Gatus locally with Docker:
 ```console
-docker run -p 8080:8080 --name gatus twinproduction/gatus
+docker run -p 8080:8080 --name gatus ghcr.io/twin/gatus:stable
 ```
 
 Other than using one of the examples provided in the [.examples](.examples) folder, you can also try it out locally by
 creating a configuration file, we'll call it `config.yaml` for this example, and running the following
 command:
 ```console
-docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/config.yaml,target=/config/config.yaml --name gatus ghcr.io/twin/gatus:stable
 ```
 
 If you're on Windows, replace `"$(pwd)"` by the absolute path to your current directory, e.g.:
 ```console
-docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus twinproduction/gatus
+docker run -p 8080:8080 --mount type=bind,source=C:/Users/Chris/Desktop/config.yaml,target=/config/config.yaml --name gatus ghcr.io/twin/gatus:stable
 ```
 
 To build the image locally:
 ```console
-docker build . -t twinproduction/gatus
+docker build . -t ghcr.io/twin/gatus:stable
 ```
 
 
@@ -2967,20 +2966,20 @@ This works for SCTP based application.
 
 
 ### Monitoring a WebSocket endpoint
-By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints at a very basic level:
+By prefixing `endpoints[].url` with `ws://` or `wss://`, you can monitor WebSocket endpoints:
 ```yaml
 endpoints:
   - name: example
-    url: "wss://example.com/"
+    url: "wss://echo.websocket.org/"
     body: "status"
     conditions:
       - "[CONNECTED] == true"
-      - "[BODY].result >= 0"
+      - "[BODY] == pat(*served by*)"
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
 shows whether the connection was successfully established. You can use Go template 
-syntax. The functions LocalAddr and RandomString with a length can be used.
+syntax. 
 
 
 ### Monitoring an endpoint using ICMP
