@@ -14,7 +14,7 @@
             <p class="text-muted-foreground mt-2">
               <span v-if="suite?.group">{{ suite.group }} • </span>
               <span v-if="latestResult">
-                {{ selectedResult && selectedResult !== sortedResults[0] ? 'Ran' : 'Last run' }} {{ formatRelativeTime(latestResult.timestamp) }}
+                {{ selectedResult && selectedResult.timestamp !== sortedResults[0]?.timestamp ? 'Ran' : 'Last run' }} {{ formatRelativeTime(latestResult.timestamp) }}
               </span>
             </p>
           </div>
@@ -41,7 +41,7 @@
         <!-- Latest Execution -->
         <Card v-if="latestResult">
           <CardHeader>
-            <CardTitle>Latest Execution</CardTitle>
+            <CardTitle>{{ selectedResult?.timestamp === sortedResults[0]?.timestamp ? 'Latest Execution' : `Execution at ${formatTimestamp(selectedResult.timestamp)}` }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
@@ -107,7 +107,7 @@
                 :key="index"
                 class="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
                 @click="selectedResult = result"
-                :class="{ 'bg-accent': selectedResult === result }"
+                :class="{ 'bg-accent': selectedResult && selectedResult.timestamp === result.timestamp }"
               >
                 <div class="flex items-center gap-3">
                   <StatusBadge :status="result.success ? 'healthy' : 'unhealthy'" size="sm" />
@@ -184,20 +184,30 @@ const latestResult = computed(() => {
 
 // Methods
 const fetchData = async () => {
-  loading.value = true
-  
+  // Don't show loading state on refresh to prevent UI flicker
+  const isInitialLoad = !suite.value
+  if (isInitialLoad) {
+    loading.value = true
+  }
+
   try {
     const response = await fetch(`${SERVER_URL}/api/v1/suites/${route.params.key}/statuses`, {
       credentials: 'include'
     })
-    
+
     if (response.status === 200) {
       const data = await response.json()
+      const oldSuite = suite.value
       suite.value = data
-      if (data.results && data.results.length > 0 && !selectedResult.value) {
+      if (data.results && data.results.length > 0) {
         // Sort results by timestamp to get the most recent one
         const sorted = [...data.results].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        selectedResult.value = sorted[0]
+        // Update selectedResult if: no result selected, or currently viewing the latest result
+        const wasViewingLatest = !selectedResult.value ||
+          (oldSuite?.results && selectedResult.value.timestamp === [...oldSuite.results].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp)
+        if (wasViewingLatest) {
+          selectedResult.value = sorted[0]
+        }
       }
     } else if (response.status === 404) {
       suite.value = null
@@ -207,7 +217,9 @@ const fetchData = async () => {
   } catch (error) {
     console.error('[SuiteDetails][fetchData] Error:', error)
   } finally {
-    loading.value = false
+    if (isInitialLoad) {
+      loading.value = false
+    }
   }
 }
 
