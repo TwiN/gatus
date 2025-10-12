@@ -17,7 +17,7 @@ var (
 	// ErrExternalEndpointHeartbeatIntervalTooLow is the error with which Gatus will panic if an external endpoint's heartbeat interval is less than 10 seconds.
 	ErrExternalEndpointHeartbeatIntervalTooLow = errors.New("heartbeat interval must be at least 10 seconds")
 
-	// ErrExternalEndpointGracePeriodGreaterThanInterval is the error with which Gatus will panic if an external endpoint's heartbeat interval is less than 10 seconds.
+	// ErrExternalEndpointGracePeriodGreaterThanInterval is the error with which Gatus will panic if an external endpoint's heartbeat grace period is greater than the heartbeat interval.
 	ErrExternalEndpointGracePeriodGreaterThanHeartbeatInterval = errors.New("grace-period interval must be less than or equal to heartbeat interval")
 )
 
