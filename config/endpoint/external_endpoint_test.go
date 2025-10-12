@@ -36,6 +36,42 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "valid-external-endpoint-with-heartbeat-and-grace-period",
+			endpoint: &ExternalEndpoint{
+				Name:  "test-endpoint",
+				Token: "valid-token",
+				Heartbeat: heartbeat.Config{
+					Interval:    5 * time.Minute,
+					GracePeriod: 30 * time.Second,
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "negative-grace-period-gets-reset-to-zero",
+			endpoint: &ExternalEndpoint{
+				Name:  "test-endpoint",
+				Token: "valid-token",
+				Heartbeat: heartbeat.Config{
+					Interval:    5 * time.Minute,
+					GracePeriod: -30 * time.Second,
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "grace-period-greater-than-interval",
+			endpoint: &ExternalEndpoint{
+				Name:  "test-endpoint",
+				Token: "valid-token",
+				Heartbeat: heartbeat.Config{
+					Interval:    5 * time.Minute,
+					GracePeriod: 600 * time.Second,
+				},
+			},
+			wantErr: ErrExternalEndpointGracePeriodGreaterThanHeartbeatInterval,
+		},
+		{
 			name: "missing-token",
 			endpoint: &ExternalEndpoint{
 				Name:  "test-endpoint",
@@ -109,6 +145,51 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 				if err != nil {
 					t.Errorf("Expected no error, but got %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestExternalEndpoint_HeartbeatEffectiveInterval(t *testing.T) {
+	tests := []struct {
+		name        string
+		interval    time.Duration
+		gracePeriod time.Duration
+		expected    time.Duration
+	}{
+		{
+			name:        "interval-only",
+			interval:    5 * time.Minute,
+			gracePeriod: 0,
+			expected:    5 * time.Minute,
+		},
+		{
+			name:        "interval-with-grace-period",
+			interval:    5 * time.Minute,
+			gracePeriod: 30 * time.Second,
+			expected:    5*time.Minute + 30*time.Second,
+		},
+		{
+			name:        "zero-interval-with-grace-period",
+			interval:    0,
+			gracePeriod: 30 * time.Second,
+			expected:    30 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			endpoint := &ExternalEndpoint{
+				Name:  "test-endpoint",
+				Token: "test-token",
+				Heartbeat: heartbeat.Config{
+					Interval:    tt.interval,
+					GracePeriod: tt.gracePeriod,
+				},
+			}
+			result := endpoint.Heartbeat.GetEffectiveInterval()
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
 			}
 		})
 	}

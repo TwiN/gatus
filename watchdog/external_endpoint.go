@@ -40,7 +40,9 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	}
 	logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Checking heartbeat for group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
 	convertedEndpoint := ee.ToEndpoint()
-	hasReceivedResultWithinHeartbeatInterval, err := store.Get().HasEndpointStatusNewerThan(ee.Key(), time.Now().Add(-ee.Heartbeat.Interval))
+	// Include grace period
+	effectiveInterval := ee.Heartbeat.GetEffectiveInterval()
+	hasReceivedResultWithinHeartbeatInterval, err := store.Get().HasEndpointStatusNewerThan(ee.Key(), time.Now().Add(-effectiveInterval))
 	if err != nil {
 		logr.Errorf("[watchdog.monitorExternalEndpointHeartbeat] Failed to check if endpoint has received a result within the heartbeat interval: %s", err.Error())
 		return
@@ -57,7 +59,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	result := &endpoint.Result{
 		Timestamp: time.Now(),
 		Success:   false,
-		Errors:    []string{"heartbeat: no update received within " + ee.Heartbeat.Interval.String()},
+		Errors:    []string{"heartbeat: no update received within " + effectiveInterval.String()},
 	}
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)

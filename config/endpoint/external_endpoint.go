@@ -16,6 +16,9 @@ var (
 
 	// ErrExternalEndpointHeartbeatIntervalTooLow is the error with which Gatus will panic if an external endpoint's heartbeat interval is less than 10 seconds.
 	ErrExternalEndpointHeartbeatIntervalTooLow = errors.New("heartbeat interval must be at least 10 seconds")
+
+	// ErrExternalEndpointGracePeriodGreaterThanInterval is the error with which Gatus will panic if an external endpoint's heartbeat interval is less than 10 seconds.
+	ErrExternalEndpointGracePeriodGreaterThanHeartbeatInterval = errors.New("grace-period interval must be less than or equal to heartbeat interval")
 )
 
 // ExternalEndpoint is an endpoint whose result is pushed from outside Gatus, which means that
@@ -61,6 +64,13 @@ func (externalEndpoint *ExternalEndpoint) ValidateAndSetDefaults() error {
 	if externalEndpoint.Heartbeat.Interval != 0 && externalEndpoint.Heartbeat.Interval < 10*time.Second {
 		// If the heartbeat interval is set (non-0), it must be at least 10 seconds.
 		return ErrExternalEndpointHeartbeatIntervalTooLow
+	}
+	if externalEndpoint.Heartbeat.GracePeriod < 0 {
+		externalEndpoint.Heartbeat.GracePeriod = 0
+	}
+	if externalEndpoint.Heartbeat.GracePeriod > externalEndpoint.Heartbeat.Interval {
+		// If the grace period is greater than the interval, it must less than or equal to the interval.
+		return ErrExternalEndpointGracePeriodGreaterThanHeartbeatInterval
 	}
 	return nil
 }

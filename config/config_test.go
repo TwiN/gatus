@@ -2677,3 +2677,44 @@ func TestResolveTunnelForClientConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAndValidateConfigBytesWithExternalEndpointHeartbeatGracePeriod(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+external-endpoints:
+  - name: heartbeat-endpoint
+    token: "test-token"
+    heartbeat:
+      interval: 5m
+      grace-period: 30s
+
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if len(config.ExternalEndpoints) != 1 {
+		t.Error("Should have returned one external endpoint")
+	}
+	if config.ExternalEndpoints[0].Name != "heartbeat-endpoint" {
+		t.Errorf("Name should have been %s", "heartbeat-endpoint")
+	}
+	if config.ExternalEndpoints[0].Token != "test-token" {
+		t.Errorf("Token should have been %s", "test-token")
+	}
+	if config.ExternalEndpoints[0].Heartbeat.Interval != 5*time.Minute {
+		t.Errorf("Heartbeat interval should have been %s", 5*time.Minute)
+	}
+	if config.ExternalEndpoints[0].Heartbeat.GracePeriod != 30*time.Second {
+		t.Errorf("Heartbeat grace period should have been %s", 30*time.Second)
+	}
+	if config.ExternalEndpoints[0].Heartbeat.GetEffectiveInterval() != 5*time.Minute+30*time.Second {
+		t.Errorf("Effective interval should have been %s", 5*time.Minute+30*time.Second)
+	}
+}

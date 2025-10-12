@@ -47,9 +47,12 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Endpoints](#endpoints)
   - [External Endpoints](#external-endpoints)
   - [Suites (ALPHA)](#suites-alpha)
+    - [Using Context in Endpoints](#using-context-in-endpoints)
+    - [Example Suite Configuration](#example-suite-configuration)
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Announcements](#announcements)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
@@ -65,24 +68,24 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
     - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
-    - [Configuring Ilert alerts](#configuring-ilert-alerts)
+    - [Configuring ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
     - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Line alerts](#configuring-line-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
     - [Configuring Messagebird alerts](#configuring-messagebird-alerts)
-    - [Configuring n8n alerts](#configuring-n8n-alerts)
     - [Configuring New Relic alerts](#configuring-new-relic-alerts)
+    - [Configuring n8n alerts](#configuring-n8n-alerts)
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
-    - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Signal alerts](#configuring-signal-alerts)
     - [Configuring SIGNL4 alerts](#configuring-signl4-alerts)
+    - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Splunk alerts](#configuring-splunk-alerts)
     - [Configuring Squadcast alerts](#configuring-squadcast-alerts)
@@ -96,7 +99,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
-  - [Announcements](#announcements)
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -332,16 +334,17 @@ For instance:
 - You can monitor services that are not supported by Gatus
 - You can implement your own monitoring system while using Gatus as the dashboard
 
-| Parameter                                 | Description                                                                                                                       | Default        |
-|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
-| `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
-| `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
-| `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
-| `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
-| `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
-| `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
-| `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
-| `external-endpoints[].heartbeat.interval` | Expected interval between updates. If no update is received within this interval, alerts will be triggered. Must be at least 10s. | `0` (disabled) |
+| Parameter                                     | Description                                                                                                                       | Default        |
+|:----------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
+| `external-endpoints`                          | List of endpoints to monitor.                                                                                                     | `[]`           |
+| `external-endpoints[].enabled`                | Whether to monitor the endpoint.                                                                                                  | `true`         |
+| `external-endpoints[].name`                   | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
+| `external-endpoints[].group`                  | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].token`                  | Bearer token required to push status to.                                                                                          | Required `""`  |
+| `external-endpoints[].alerts`                 | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
+| `external-endpoints[].heartbeat`              | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
+| `external-endpoints[].heartbeat.interval`     | Expected interval between updates. If no update is received within this interval, alerts will be triggered. Must be at least 10s. | `0` (disabled) |
+| `external-endpoints[].heartbeat.grace-period` | Set a grace period for the incoming request, needs to be less than or equal to the interval.                                      | `0` (disabled) |
 
 Example:
 ```yaml
@@ -351,6 +354,7 @@ external-endpoints:
     token: "potato"
     heartbeat:
       interval: 30m  # Automatically create a failure if no update is received within 30 minutes
+      grace-period: 30s  # Allow for a 30s grace period
     alerts:
       - type: discord
         description: "healthcheck failed"
@@ -371,13 +375,13 @@ Where:
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
-- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
 
 ### Suites (ALPHA)
-Suites are collections of endpoints that are executed sequentially with a shared context. 
+Suites are collections of endpoints that are executed sequentially with a shared context.
 This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
 
 Here are a few cases in which suites could be useful:
@@ -419,7 +423,7 @@ suites:
     context:
       price: "19.99"  # Initial static value in context
     endpoints:
-      # Step 1: Create an item and store the item ID 
+      # Step 1: Create an item and store the item ID
       - name: create-item
         url: https://api.example.com/items
         method: POST
@@ -433,7 +437,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to create item"
-            
+
       # Step 2: Update the item using the stored item ID
       - name: update-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -444,7 +448,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to update item"
-        
+
       # Step 3: Fetch the item and validate the price
       - name: get-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -455,7 +459,7 @@ suites:
         alerts:
           - type: slack
             description: "Item price did not update correctly"
-            
+
       # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
       - name: delete-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -534,7 +538,7 @@ System-wide announcements allow you to display important messages at the top of 
 
 Types:
 - **outage**: Indicates service disruptions or critical issues (red theme)
-- **warning**: Indicates potential issues or important notices (yellow theme)  
+- **warning**: Indicates potential issues or important notices (yellow theme)
 - **information**: General information or updates (blue theme)
 - **operational**: Indicates resolved issues or normal operations (green theme)
 - **none**: Neutral announcements with no specific severity (gray theme, default if none are specified)
@@ -546,7 +550,7 @@ announcements:
     type: outage
     message: "Scheduled maintenance on database servers from 14:00 to 16:00 UTC"
   - timestamp: 2025-08-15T16:15:00Z
-    type: operational  
+    type: operational
     message: "Database maintenance completed successfully. All systems operational."
   - timestamp: 2025-08-15T12:00:00Z
     type: information
@@ -707,7 +711,7 @@ endpoints:
 > 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
 
 ### Tunneling
-Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers. 
+Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers.
 This is particularly useful for monitoring services that are not directly accessible from where Gatus is deployed.
 
 SSH tunnels are defined globally in the `tunneling` section and then referenced by name in endpoint client configurations.
@@ -744,7 +748,7 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently. 
+> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
 
 
@@ -2214,7 +2218,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |    
+| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |
 | `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
 | `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
@@ -2869,7 +2873,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of 
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of
 endpoints/suites that can be evaluated at the same time.
 In other words, even if you have multiple endpoints with the same interval, they are not guaranteed to run at the same time.
 
@@ -2977,8 +2981,8 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established. You can use Go template 
-syntax. 
+shows whether the connection was successfully established. You can use Go template
+syntax.
 
 
 ### Monitoring an endpoint using ICMP
@@ -3113,7 +3117,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service 
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service
 > [through a library](https://github.com/TwiN/whois) and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 > To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
@@ -3142,7 +3146,7 @@ concurrency: 0
 
 **Use cases for higher concurrency:**
 - You have a large number of endpoints to monitor
-- You want to monitor endpoints at very short intervals (< 5s)  
+- You want to monitor endpoints at very short intervals (< 5s)
 - You're using Gatus for load testing scenarios
 
 **Legacy configuration:**
@@ -3226,7 +3230,7 @@ ui:
   default-sort-by: group
 ```
 Note that if a user has already sorted the dashboard by a different field, the default sort will not be applied unless the user
-clears their browser's localstorage. 
+clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path
