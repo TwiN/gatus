@@ -5,8 +5,8 @@
       <Loading size="lg" />
     </div>
 
-    <!-- Main App Container -->
-    <div v-else-if="!config || !config.oidc || config.authenticated" class="relative">
+    <!-- Main App Container (for endpoint auth or no auth) -->
+    <div v-else-if="!config || !config.oidc || config.authenticated || config.authLevel === 'endpoint'" class="relative">
       <!-- Header -->
       <header class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div class="container mx-auto px-4 py-4 max-w-7xl">
@@ -57,9 +57,50 @@
                 </a>
               </nav>
 
+              <!-- Auth Section -->
+              <div v-if="config.authLevel === 'endpoint'" class="flex items-center gap-2">
+                <!-- Sign In Button (when not authenticated) -->
+                <Button 
+                  v-if="!config.authenticated"
+                  variant="default"
+                  size="sm"
+                  @click="handleSignIn"
+                  class="hidden md:flex items-center gap-2"
+                >
+                  <LogIn class="h-4 w-4" />
+                  Sign In
+                </Button>
+
+                <!-- User Menu (when authenticated) -->
+                <div v-else class="hidden md:flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    @click="showUserMenu = !showUserMenu"
+                    class="relative"
+                  >
+                    <User class="h-4 w-4 mr-2" />
+                    <span class="text-sm">{{ username || 'User' }}</span>
+                  </Button>
+                  
+                  <!-- Dropdown Menu -->
+                  <div 
+                    v-if="showUserMenu"
+                    class="absolute right-0 top-12 mt-2 w-48 bg-card border rounded-md shadow-lg z-50"
+                  >
+                    <button
+                      @click="handleSignOut"
+                      class="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- Mobile Menu Button -->
               <Button 
-                v-if="buttons && buttons.length" 
+                v-if="buttons && buttons.length || config.authLevel === 'endpoint'" 
                 variant="ghost" 
                 size="icon" 
                 class="md:hidden"
@@ -73,7 +114,7 @@
 
           <!-- Mobile Navigation -->
           <nav 
-            v-if="buttons && buttons.length && mobileMenuOpen" 
+            v-if="mobileMenuOpen" 
             class="md:hidden mt-4 pt-4 border-t space-y-1"
           >
             <a 
@@ -86,6 +127,29 @@
             >
               {{ button.name }}
             </a>
+            
+            <!-- Mobile Auth Options -->
+            <div v-if="config.authLevel === 'endpoint'" class="pt-2 border-t mt-2">
+              <button
+                v-if="!config.authenticated"
+                @click="handleSignIn"
+                class="w-full text-left px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+              >
+                <LogIn class="h-4 w-4" />
+                Sign In
+              </button>
+              <div v-else>
+                <div class="px-3 py-2 text-sm text-muted-foreground">
+                  Signed in as {{ username || 'User' }}
+                </div>
+                <button
+                  @click="handleSignOut"
+                  class="w-full text-left px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
           </nav>
         </div>
       </header>
@@ -106,9 +170,75 @@
           </div>
         </div>
       </footer>
+
+      <!-- Basic Auth Modal -->
+      <div 
+        v-if="showBasicAuthModal" 
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        @click.self="closeAuthModal"
+      >
+        <Card class="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Sign In</CardTitle>
+            <p class="text-sm text-muted-foreground">
+              Enter your credentials to access protected endpoints
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form @submit.prevent="handleBasicAuthSubmit" class="space-y-4">
+              <div class="space-y-2">
+                <label for="username" class="text-sm font-medium">Username</label>
+                <input
+                  id="username"
+                  v-model="authForm.username"
+                  type="text"
+                  required
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  :disabled="isAuthenticating"
+                />
+              </div>
+              
+              <div class="space-y-2">
+                <label for="password" class="text-sm font-medium">Password</label>
+                <input
+                  id="password"
+                  v-model="authForm.password"
+                  type="password"
+                  required
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  :disabled="isAuthenticating"
+                />
+              </div>
+
+              <div v-if="authError" class="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                <p class="text-sm text-destructive">{{ authError }}</p>
+              </div>
+
+              <div class="flex gap-3">
+                <Button 
+                  type="submit" 
+                  class="flex-1"
+                  :disabled="isAuthenticating"
+                >
+                  <Loading v-if="isAuthenticating" size="xs" />
+                  <template v-else>Sign In</template>
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  @click="closeAuthModal"
+                  :disabled="isAuthenticating"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
 
-    <!-- OIDC Login Screen -->
+    <!-- OIDC Login Screen (for global auth) -->
     <div v-else id="login-container" class="flex items-center justify-center min-h-screen p-4">
       <Card class="w-full max-w-md">
         <CardHeader class="text-center">
@@ -139,8 +269,8 @@
           >
             <Loading v-if="isOidcLoading" size="xs" />
             <template v-else>
-              <LogIn class="mr-2 h-4 w-4" />
-              Login with OIDC
+                <LogIn class="mr-2 h-4 w-4" />
+                Login with OIDC
             </template>
           </a>
         </CardContent>
@@ -153,18 +283,19 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { Menu, X, LogIn } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import Social from './components/Social.vue'
-import Tooltip from './components/Tooltip.vue'
-import Loading from './components/Loading.vue'
-import { SERVER_URL } from '@/main'
+ /* eslint-disable no-undef */
+ import { ref, computed, onMounted, onUnmounted } from 'vue'
+ import { useRoute } from 'vue-router'
+ import { Menu, X, LogIn, User } from 'lucide-vue-next'
+ import { Button } from '@/components/ui/button'
+ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+ import Social from './components/Social.vue'
+ import Tooltip from './components/Tooltip.vue'
+ import Loading from './components/Loading.vue'
+ import { SERVER_URL } from '@/main'
+ import { authenticatedFetch, storeAuth, clearAuth, getStoredAuth } from '@/auth'
 
-const route = useRoute()
+ const route = useRoute()
 
 // State
 const retrievedConfig = ref(false)
@@ -174,92 +305,201 @@ const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
 const tooltipIsPersistent = ref(false)
+const showUserMenu = ref(false)
+const username = ref('')
+
+// Basic Auth State
+const showBasicAuthModal = ref(false)
+const isAuthenticating = ref(false)
+const authError = ref('')
+const authForm = ref({
+    username: '',
+    password: ''
+})
+
 let configInterval = null
 
 // Computed properties
 const logo = computed(() => {
-  return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
+    return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
 })
 
 const header = computed(() => {
-  return window.config && window.config.header && window.config.header !== '{{ .UI.Header }}' ? window.config.header : "Gatus"
+    return window.config && window.config.header && window.config.header !== '{{ .UI.Header }}' ? window.config.header : "Gatus"
 })
 
 const link = computed(() => {
-  return window.config && window.config.link && window.config.link !== '{{ .UI.Link }}' ? window.config.link : null
+    return window.config && window.config.link && window.config.link !== '{{ .UI.Link }}' ? window.config.link : null
 })
 
 const buttons = computed(() => {
-  return window.config && window.config.buttons ? window.config.buttons : []
+    return window.config && window.config.buttons ? window.config.buttons : []
 })
 
 // Methods
 const fetchConfig = async () => {
-  try {
-    const response = await fetch(`${SERVER_URL}/api/v1/config`, { credentials: 'include' })
-    if (response.status === 200) {
-      const data = await response.json()
-      config.value = data
-      announcements.value = data.announcements || []
+    try {
+        const response = await authenticatedFetch(`${SERVER_URL}/api/v1/config`)
+        retrievedConfig.value = true
+
+        if (response.status === 200) {
+            const data = await response.json()
+            config.value = data
+            announcements.value = data.announcements || []
+
+            // Extract username from stored credentials if authenticated
+            if (data.authenticated) {
+                const auth = getStoredAuth()
+                if (auth) {
+                    username.value = auth.username
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to fetch config:', error)
+        retrievedConfig.value = true
     }
-    retrievedConfig.value = true
-  } catch (error) {
-    console.error('Failed to fetch config:', error)
-    retrievedConfig.value = true
-  }
 }
 
 const showTooltip = (result, event, action = 'hover') => {
-  if (action === 'click') {
-    if (!result) {
-      // Deselecting
-      tooltip.value = {}
-      tooltipIsPersistent.value = false
-    } else {
-      // Selecting new data point
-      tooltip.value = { result, event }
-      tooltipIsPersistent.value = true
+    if (action === 'click') {
+        if (!result) {
+            // Deselecting
+            tooltip.value = {}
+            tooltipIsPersistent.value = false
+        } else {
+            // Selecting new data point
+            tooltip.value = { result, event }
+            tooltipIsPersistent.value = true
+        }
+    } else if (action === 'hover') {
+        // Only update tooltip on hover if not in persistent mode
+        if (!tooltipIsPersistent.value) {
+            tooltip.value = { result, event }
+        }
     }
-  } else if (action === 'hover') {
-    // Only update tooltip on hover if not in persistent mode
-    if (!tooltipIsPersistent.value) {
-      tooltip.value = { result, event }
-    }
-  }
 }
 
 const handleDocumentClick = (event) => {
-  // Close persistent tooltip when clicking outside
-  if (tooltipIsPersistent.value) {
-    const tooltipElement = document.getElementById('tooltip')
-    // Check if click is on a data point bar or inside tooltip
-    const clickedDataPoint = event.target.closest('.flex-1.h-6, .flex-1.h-8')
+    // Close persistent tooltip when clicking outside
+    if (tooltipIsPersistent.value) {
+        const tooltipElement = document.getElementById('tooltip')
+        // Check if click is on a data point bar or inside tooltip
+        const clickedDataPoint = event.target.closest('.flex-1.h-6, .flex-1.h-8')
 
-    if (tooltipElement && !tooltipElement.contains(event.target) && !clickedDataPoint) {
-      tooltip.value = {}
-      tooltipIsPersistent.value = false
-      // Emit event to clear selections in child components
-      window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+        if (tooltipElement && !tooltipElement.contains(event.target) && !clickedDataPoint) {
+            tooltip.value = {}
+            tooltipIsPersistent.value = false
+            // Emit event to clear selections in child components
+            window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+        }
     }
-  }
+
+    // Close user menu when clicking outside
+    if (!event.target.closest('.relative')) {
+        showUserMenu.value = false
+    }
+}
+
+const handleSignIn = () => {
+    if (config.value.basic) {
+        showBasicAuthModal.value = true
+        authError.value = ''
+    } else if (config.value.oidc) {
+        window.location.href = `${SERVER_URL}/oidc/login`
+    }
+}
+
+const closeAuthModal = () => {
+    showBasicAuthModal.value = false
+    authForm.value = { username: '', password: '' }
+    authError.value = ''
+    isAuthenticating.value = false
+}
+
+const handleBasicAuthSubmit = async () => {
+    isAuthenticating.value = true
+    authError.value = ''
+
+    try {
+        // Create Basic Auth header
+        const credentials = btoa(`${authForm.value.username}:${authForm.value.password}`)
+
+        // Test authentication with a protected endpoint
+        const response = await fetch(`${SERVER_URL}/api/v1/config`, {
+            headers: {
+                'Authorization': `Basic ${credentials}`
+            },
+            credentials: 'include'
+        })
+
+        if (response.status === 200) {
+            const data = await response.json()
+
+            // Check if authentication was successful
+            if (data.authenticated) {
+                // Store credentials for future requests
+                storeAuth(authForm.value.username, credentials)
+
+                // Update state
+                username.value = authForm.value.username
+                config.value.authenticated = true
+
+                // Close modal
+                closeAuthModal()
+
+                // Refresh the page to reload with authenticated status
+                window.location.reload()
+            } else {
+                authError.value = 'Invalid username or password'
+            }
+        } else if (response.status === 401) {
+            authError.value = 'Invalid username or password'
+        } else {
+            authError.value = 'Authentication failed. Please try again.'
+        }
+    } catch (error) {
+        console.error('Auth error:', error)
+        authError.value = 'Connection error. Please try again.'
+    } finally {
+        isAuthenticating.value = false
+    }
+}
+
+const handleSignOut = () => {
+    // Clear stored credentials
+    clearAuth()
+
+    // Reset state
+    config.value.authenticated = false
+    username.value = ''
+    showUserMenu.value = false
+
+    // For OIDC, might need to call logout endpoint
+    if (config.value.oidc) {
+        window.location.href = `${SERVER_URL}/oidc/logout`
+    } else {
+        // Refresh to reset the app
+        window.location.reload()
+    }
 }
 
 // Fetch config on mount and set up interval
 onMounted(() => {
-  fetchConfig()
-  // Refresh config every 10 minutes for announcements
-  configInterval = setInterval(fetchConfig, 600000)
-  // Add click listener for closing persistent tooltips
-  document.addEventListener('click', handleDocumentClick)
+    fetchConfig()
+    // Refresh config every 10 minutes for announcements
+    configInterval = setInterval(fetchConfig, 600000)
+    // Add click listener for closing persistent tooltips and menus
+    document.addEventListener('click', handleDocumentClick)
 })
 
 // Clean up interval on unmount
 onUnmounted(() => {
-  if (configInterval) {
-    clearInterval(configInterval)
-    configInterval = null
-  }
-  // Remove click listener
-  document.removeEventListener('click', handleDocumentClick)
+    if (configInterval) {
+        clearInterval(configInterval)
+        configInterval = null
+    }
+    // Remove click listener
+    document.removeEventListener('click', handleDocumentClick)
 })
 </script>
