@@ -18,19 +18,19 @@ import (
 type Store interface {
 	// GetAllEndpointStatuses returns the JSON encoding of all monitored endpoint.Status
 	// with a subset of endpoint.Result defined by the page and pageSize parameters
-	GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
+	GetAllEndpointStatuses(onlyPublic bool, params *paging.EndpointStatusParams) ([]*endpoint.Status, error)
 
 	// GetAllSuiteStatuses returns all monitored suite statuses
-	GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.Status, error)
+	GetAllSuiteStatuses(onlyPublic bool, params *paging.SuiteStatusParams) ([]*suite.Status, error)
 
 	// GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-	GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
+	GetEndpointStatus(groupName, endpointName string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetEndpointStatusByKey returns the endpoint status for a given key
-	GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error)
+	GetEndpointStatusByKey(key string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error)
 
 	// GetSuiteStatusByKey returns the suite status for a given key
-	GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams) (*suite.Status, error)
+	GetSuiteStatusByKey(key string, onlyPublic bool, params *paging.SuiteStatusParams) (*suite.Status, error)
 
 	// GetUptimeByKey returns the uptime percentage during a time range
 	GetUptimeByKey(key string, from, to time.Time) (float64, error)
@@ -54,6 +54,12 @@ type Store interface {
 
 	// DeleteAllSuiteStatusesNotInKeys removes all suite statuses that are not within the keys provided
 	DeleteAllSuiteStatusesNotInKeys(keys []string) int
+
+	// UpdateEndpointStatusVisibility udpate the status visibility based on the config
+	UpdateEndpointStatusVisibility(visibility []*endpoint.EndpointStatusVisibility)
+
+	// UpdateSuiteStatusVisibility udpate the suite status visibility based on the config
+	UpdateSuiteStatusVisibility(visibility []*suite.SuiteStatusVisibility)
 
 	// GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 	GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error)

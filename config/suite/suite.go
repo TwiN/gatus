@@ -54,6 +54,9 @@ type Suite struct {
 
 	// Endpoints in the suite (executed sequentially)
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints"`
+
+	// Public marks a suite as public, unauthenticated users will be able to see them
+	Public bool `yaml:"public,omitempty"`
 }
 
 // IsEnabled returns whether the suite is enabled
@@ -124,6 +127,7 @@ func (s *Suite) Execute() *Result {
 		Success:         true,
 		Timestamp:       start,
 		EndpointResults: make([]*endpoint.Result, 0, len(s.Endpoints)),
+		Public:          s.Public,
 	}
 	// Set up timeout for the entire suite execution
 	timeoutChan := time.After(s.Timeout)
