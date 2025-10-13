@@ -118,18 +118,33 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// PROTECTED ROUTES //
 	//////////////////////
 	// ORDER IS IMPORTANT: all routes applied AFTER the security middleware will require authn
-	protectedAPIRouter := apiRouter.Group("/")
 	if cfg.Security != nil {
 		if err := cfg.Security.RegisterHandlers(app); err != nil {
 			panic(err)
 		}
-		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
-			panic(err)
+		if cfg.Security.IsGlobal() {
+			// Global auth: protect all API routes with middleware
+			protectedAPIRouter := apiRouter.Group("/")
+			if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
+				panic(err)
+			}
+			protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+			protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
+			protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
+			protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
+		} else {
+			// Endpoint-level auth: routes are accessible but data is filtered
+			unprotectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+			unprotectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
+			unprotectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
+			unprotectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
 		}
+	} else {
+		// No security: all routes accessible
+		unprotectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+		unprotectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
+		unprotectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
+		unprotectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
 	}
-	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
-	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
-	protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
-	protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
 	return app
 }
