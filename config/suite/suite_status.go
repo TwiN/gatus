@@ -13,6 +13,9 @@ type Status struct {
 
 	// Results is the list of suite execution results
 	Results []*Result `json:"results"`
+
+	// Public marks a suite as public, unauthenticated users will be able to see them
+	Public bool `json:"public,omitempty"`
 }
 
 // NewStatus creates a new Status for a given Suite
@@ -22,5 +25,21 @@ func NewStatus(s *Suite) *Status {
 		Group:   s.Group,
 		Key:     s.Key(),
 		Results: []*Result{},
+		Public:  s.Public,
+	}
+}
+
+// SuiteStatusVisibility is a DTO used to manage a SuiteStatus visibility
+type SuiteStatusVisibility struct {
+	// Key of the Suite
+	Key string
+	// Public marks a suite as public, unauthenticated users will be able to see them
+	Public bool
+}
+
+func NewSuiteStatusVisibility(key string, public bool) *SuiteStatusVisibility {
+	return &SuiteStatusVisibility{
+		Key:    key,
+		Public: public,
 	}
 }
