@@ -21,11 +21,16 @@ import (
 // Due to how intensive this operation can be on the storage, this function leverages a cache.
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// If no security is configured, user is considered authenticated (full access)
+		// If security is configured at endpoint level, check authentication status
+		userAuthenticated := cfg.Security == nil || cfg.Security.IsAuthenticated(c)
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
-		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
+		// Include authentication status in cache key to separate public/private cached results
+		cacheKey := fmt.Sprintf("endpoint-status-%d-%d-auth-%t", page, pageSize, userAuthenticated)
+		value, exists := cache.Get(cacheKey)
 		var data []byte
 		if !exists {
-			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
+			endpointStatuses, err := store.Get().GetAllEndpointStatuses(!userAuthenticated, paging.NewEndpointStatusParams().WithResults(page, pageSize))
 			if err != nil {
 				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
@@ -42,7 +47,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
 				return c.Status(500).SendString("unable to marshal object to JSON")
 			}
-			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
+			cache.SetWithTTL(cacheKey, data, cacheTTL)
 		} else {
 			data = value.([]byte)
 		}
@@ -86,13 +91,14 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 // EndpointStatus retrieves a single endpoint.Status by group and endpoint name
 func EndpointStatus(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		userAuthenticated := cfg.Security == nil || cfg.Security.IsAuthenticated(c)
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		key, err := url.QueryUnescape(c.Params("key"))
 		if err != nil {
 			logr.Errorf("[api.EndpointStatus] Failed to decode key: %s", err.Error())
 			return c.Status(400).SendString("invalid key encoding")
 		}
-		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
+		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, !userAuthenticated, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())

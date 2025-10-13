@@ -119,7 +119,8 @@ func HealthBadge(c *fiber.Ctx) error {
 		return c.Status(400).SendString("invalid key encoding")
 	}
 	pagingConfig := paging.NewEndpointStatusParams()
-	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+	status, err := store.Get().GetEndpointStatusByKey(key, true, pagingConfig.WithResults(1, 1))
+
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
@@ -148,7 +149,7 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 		return c.Status(400).SendString("invalid key encoding")
 	}
 	pagingConfig := paging.NewEndpointStatusParams()
-	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+	status, err := store.Get().GetEndpointStatusByKey(key, true, pagingConfig.WithResults(1, 1))
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
