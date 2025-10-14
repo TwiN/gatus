@@ -67,7 +67,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
     - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
-    - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Line alerts](#configuring-line-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -811,7 +810,6 @@ endpoints:
 | `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
-| `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.line`            | Configuration for alerts of type `line`. <br />See [Configuring Line alerts](#configuring-line-alerts).                                 | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -1381,42 +1379,6 @@ endpoints:
 In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
 > **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
-
-
-#### Configuring JetBrains Space alerts
-| Parameter                                   | Description                                                                                | Default       |
-|:--------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.jetbrainsspace`                   | Configuration for alerts of type `jetbrainsspace`                                          | `{}`          |
-| `alerting.jetbrainsspace.project`           | JetBrains Space project name                                                               | Required `""` |
-| `alerting.jetbrainsspace.channel-id`        | JetBrains Space Chat Channel ID                                                            | Required `""` |
-| `alerting.jetbrainsspace.token`             | Token that is used for authentication.                                                     | Required `""` |
-| `alerting.jetbrainsspace.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.jetbrainsspace.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.jetbrainsspace.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.jetbrainsspace.overrides[].*`     | See `alerting.jetbrainsspace.*` parameters                                                 | `{}`          |
-
-```yaml
-alerting:
-  jetbrainsspace:
-    project: myproject
-    channel-id: ABCDE12345
-    token: "**************"
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: jetbrainsspace
-        description: "healthcheck failed"
-        send-on-resolved: true
-```
-
-Here's an example of what the notifications look like:
-
-![JetBrains Space notifications](.github/assets/jetbrains-space-alerts.png)
 
 
 #### Configuring Line alerts
