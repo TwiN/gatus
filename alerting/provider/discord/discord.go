@@ -20,8 +20,9 @@ var (
 )
 
 type Config struct {
-	WebhookURL string `yaml:"webhook-url"`
-	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
+	WebhookURL    string `yaml:"webhook-url"`
+	Title         string `yaml:"title,omitempty"`          // Title of the message that will be sent
+	PrefixMessage string `yaml:"prefix-message,omitempty"` // Prefix message for pinging users or groups (e.g. "<@123456789>" or "<@&987654321>")
 }
 
 func (cfg *Config) Validate() error {
@@ -37,6 +38,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Title) > 0 {
 		cfg.Title = override.Title
+	}
+	if len(override.PrefixMessage) > 0 {
+		cfg.PrefixMessage = override.PrefixMessage
 	}
 }
 
@@ -142,7 +146,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		title = cfg.Title
 	}
 	body := Body{
-		Content: "",
+		Content: cfg.PrefixMessage,
 		Embeds: []Embed{
 			{
 				Title:       title,
