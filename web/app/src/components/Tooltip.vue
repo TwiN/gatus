@@ -97,7 +97,10 @@
 <script setup>
 /* eslint-disable no-undef */
 import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { prettifyTimestamp } from '@/utils/time'
+
+const route = useRoute()
 
 const props = defineProps({
   event: {
@@ -261,5 +264,11 @@ watch(() => [props.isPersistent, props.result], ([isPersistent, result]) => {
     hidden.value = false
     nextTick(() => reposition())
   }
+})
+
+// Watch for route changes and hide tooltip
+watch(() => route.path, () => {
+  hidden.value = true
+  targetElement.value = null
 })
 </script>
