@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
@@ -115,16 +117,23 @@ func initializeStorage(cfg *config.Config) {
 	}
 	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
+	var visibility []*endpoint.EndpointStatusVisibility
 	for _, ep := range cfg.Endpoints {
-		keys = append(keys, ep.Key())
+		key := ep.Key()
+		keys = append(keys, key)
+		visibility = append(visibility, endpoint.NewEndpointStatusVisibility(key, ep.Public))
 	}
 	for _, ee := range cfg.ExternalEndpoints {
-		keys = append(keys, ee.Key())
+		key := ee.Key()
+		keys = append(keys, key)
+		visibility = append(visibility, endpoint.NewEndpointStatusVisibility(key, ee.Public))
 	}
 	// Also add endpoints that are part of suites
 	for _, suite := range cfg.Suites {
 		for _, ep := range suite.Endpoints {
-			keys = append(keys, ep.Key())
+			key := ep.Key()
+			keys = append(keys, key)
+			visibility = append(visibility, endpoint.NewEndpointStatusVisibility(key, ep.Public))
 		}
 	}
 	logr.Infof("[main.initializeStorage] Total endpoint keys to preserve: %d", len(keys))
@@ -132,6 +141,18 @@ func initializeStorage(cfg *config.Config) {
 	if numberOfEndpointStatusesDeleted > 0 {
 		logr.Infof("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
+	// Update endpoint status visibility
+	logr.Infof("[main.initializeStorage] Total endpoint to update visibility: %d", len(visibility))
+	store.Get().UpdateEndpointStatusVisibility(visibility)
+
+	// Update suite status visibility
+	var suiteVisibility []*suite.SuiteStatusVisibility
+	for _, s := range cfg.Suites {
+		suiteVisibility = append(suiteVisibility, suite.NewSuiteStatusVisibility(s.Key(), s.Public))
+	}
+	logr.Infof("[main.initializeStorage] Total suites to update visibility: %d", len(suiteVisibility))
+	store.Get().UpdateSuiteStatusVisibility(suiteVisibility)
+
 	// Clean up the triggered alerts from the storage provider and load valid triggered endpoint alerts
 	numberOfPersistedTriggeredAlertsLoaded := 0
 	for _, ep := range cfg.Endpoints {

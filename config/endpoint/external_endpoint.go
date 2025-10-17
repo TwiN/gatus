@@ -48,6 +48,9 @@ type ExternalEndpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// Public mark an endpoint as public, unauthenticated users will be able to see them
+	Public bool `yaml:"public,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the ExternalEndpoint and sets the default values
