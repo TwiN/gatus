@@ -29,6 +29,21 @@ func TestConvertGroupAndNameToKey(t *testing.T) {
 			Name:           "name",
 			ExpectedOutput: "_name",
 		},
+		{
+			GroupName:      "API (v1)",
+			Name:           "endpoint",
+			ExpectedOutput: "api--v1-_endpoint",
+		},
+		{
+			GroupName:      "website (admin)",
+			Name:           "test",
+			ExpectedOutput: "website--admin-_test",
+		},
+		{
+			GroupName:      "search",
+			Name:           "query&filter",
+			ExpectedOutput: "search_query-filter",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.ExpectedOutput, func(t *testing.T) {
