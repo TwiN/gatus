@@ -232,11 +232,11 @@ const showTooltip = (result, event, action = 'hover') => {
 const handleDocumentClick = (event) => {
   // Close persistent tooltip when clicking outside
   if (tooltipIsPersistent.value) {
-    const tooltipEl = document.getElementById('tooltip')
+    const tooltipElement = document.getElementById('tooltip')
     // Check if click is on a data point bar or inside tooltip
     const clickedDataPoint = event.target.closest('.flex-1.h-6, .flex-1.h-8')
-    
-    if (tooltipEl && !tooltipEl.contains(event.target) && !clickedDataPoint) {
+
+    if (tooltipElement && !tooltipElement.contains(event.target) && !clickedDataPoint) {
       tooltip.value = {}
       tooltipIsPersistent.value = false
       // Emit event to clear selections in child components
