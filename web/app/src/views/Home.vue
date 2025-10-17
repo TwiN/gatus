@@ -17,13 +17,16 @@
               <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
               <Timer v-else class="h-5 w-5" />
             </Button>
+
             <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
               <RefreshCw class="h-5 w-5" />
             </Button>
           </div>
         </div>
+
         <!-- Announcement Banner -->
         <AnnouncementBanner :announcements="props.announcements" />
+
         <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
@@ -178,7 +181,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import EndpointCard from '@/components/EndpointCard.vue'
@@ -210,6 +213,23 @@ const showAverageResponseTime = ref(true)
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
+
+function readBooleanFromLocalStorage(key, fallback) {
+  const v = localStorage.getItem(key)
+  if (v === null) return fallback
+  if (v === 'true' || v === '1') return true
+  if (v === 'false' || v === '0') return false
+  return fallback
+}
+
+const collapseByDefault = ref(
+  readBooleanFromLocalStorage(
+    'gatus:collapse',
+    (typeof window !== 'undefined' && typeof window.config?.defaultGroupCollapse !== 'undefined')
+      ? !!window.config.defaultGroupCollapse
+      : true
+  )
+)
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -503,19 +523,30 @@ const toggleGroupCollapse = (groupName) => {
 }
 
 const initializeCollapsedGroups = () => {
-  // Get saved uncollapsed groups from localStorage
   try {
     const saved = localStorage.getItem('gatus:uncollapsed-groups')
     if (saved) {
       uncollapsedGroups.value = new Set(JSON.parse(saved))
+      return
     }
-    // If no saved state, uncollapsedGroups stays empty (all collapsed by default)
   } catch (e) {
     console.warn('Failed to parse saved uncollapsed groups:', e)
     localStorage.removeItem('gatus:uncollapsed-groups')
-    // On error, uncollapsedGroups stays empty (all collapsed by default)
+  }
+
+  if (!collapseByDefault.value) {
+    const groups = Object.keys(combinedGroups.value || {})
+    uncollapsedGroups.value = new Set(groups) // expanded by default
+  } else {
+    uncollapsedGroups.value = new Set() // collapsed by default
   }
 }
+
+watch(() => combinedGroups.value, () => {
+  if (!localStorage.getItem('gatus:uncollapsed-groups')) {
+    initializeCollapsedGroups()
+  }
+})
 
 onMounted(() => {
   fetchData()
