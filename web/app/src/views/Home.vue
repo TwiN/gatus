@@ -21,16 +21,6 @@
             <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
               <RefreshCw class="h-5 w-5" />
             </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              @click="toggleDefaultCollapse"
-              :title="collapseByDefault ? 'Default: collapsed (click to expand by default)' : 'Default: expanded (click to collapse by default)'"
-            >
-              <ChevronUp v-if="collapseByDefault" class="h-5 w-5" />
-              <ChevronDown v-else class="h-5 w-5" />
-            </Button>
           </div>
         </div>
 
@@ -235,15 +225,11 @@ function readBooleanFromLocalStorage(key, fallback) {
 const collapseByDefault = ref(
   readBooleanFromLocalStorage(
     'gatus:collapse',
-    (typeof window !== 'undefined' && typeof window.config?.defaultCollapse !== 'undefined')
-      ? !!window.config.defaultCollapse
+    (typeof window !== 'undefined' && typeof window.config?.defaultGroupCollapse !== 'undefined')
+      ? !!window.config.defaultGroupCollapse
       : true
   )
 )
-
-function persistDefaultCollapse(val) {
-  localStorage.setItem('gatus:collapse', String(val))
-}
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -554,15 +540,6 @@ const initializeCollapsedGroups = () => {
   } else {
     uncollapsedGroups.value = new Set() // collapsed by default
   }
-}
-
-const toggleDefaultCollapse = () => {
-  const next = !collapseByDefault.value
-  collapseByDefault.value = next
-  persistDefaultCollapse(next)
-
-  localStorage.removeItem('gatus:uncollapsed-groups')
-  initializeCollapsedGroups()
 }
 
 watch(() => combinedGroups.value, () => {
