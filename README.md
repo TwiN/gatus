@@ -920,7 +920,7 @@ endpoints:
 | `alerting.discord`                   | Configuration for alerts of type `discord`                                                 | `{}`                                |
 | `alerting.discord.webhook-url`       | Discord Webhook URL                                                                        | Required `""`                       |
 | `alerting.discord.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
-| `alerting.discord.prefix-message`    | Prefix message to send before the embed (useful for pinging users/roles, e.g. `<@123>`)    | `""`                                |
+| `alerting.discord.message-content`   | Message content to send before the embed (useful for pinging users/roles, e.g. `<@123>`)   | `""`                                |
 | `alerting.discord.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.discord.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
 | `alerting.discord.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
