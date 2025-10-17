@@ -21,11 +21,13 @@ const (
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode  = true
+	defaultCollapse  = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidDefaultCollapse = errors.New("invalid default-collapse value: must be a boolean")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -40,6 +42,7 @@ type Config struct {
 	DarkMode        *bool    `yaml:"dark-mode,omitempty"`         // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy   string   `yaml:"default-sort-by,omitempty"`   // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	DefaultCollapse *bool     `yaml:"default-collapse,omitempty"`  // DefaultCollapse is a flag to enable/disable collapsing of groups by default
 
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
@@ -80,6 +83,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		DefaultCollapse:        &defaultCollapse,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
@@ -116,6 +120,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if cfg.DefaultCollapse == nil {
+	    cfg.DefaultCollapse = &defaultCollapse
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
