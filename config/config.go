@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/announcement"
 	"github.com/TwiN/gatus/v5/config/connectivity"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -21,6 +22,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/security"
@@ -113,6 +115,9 @@ type Config struct {
 
 	// Connectivity is the configuration for connectivity
 	Connectivity *connectivity.Config `yaml:"connectivity,omitempty"`
+
+	// Tunneling is the configuration for SSH tunneling
+	Tunneling *tunneling.Config `yaml:"tunneling,omitempty"`
 
 	// Announcements is the list of system-wide announcements
 	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
@@ -295,55 +300,111 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 			logr.Warn("WARNING: Please use the GATUS_LOG_LEVEL environment variable instead")
 		}
 		// XXX: End of v6.0.0 removals
-		validateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
-		if err := validateSecurityConfig(config); err != nil {
+		ValidateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
+		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateEndpointsConfig(config); err != nil {
+		if err := ValidateEndpointsConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateWebConfig(config); err != nil {
+		if err := ValidateWebConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateUIConfig(config); err != nil {
+		if err := ValidateUIConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateMaintenanceConfig(config); err != nil {
+		if err := ValidateMaintenanceConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateStorageConfig(config); err != nil {
+		if err := ValidateStorageConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateRemoteConfig(config); err != nil {
+		if err := ValidateRemoteConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateConnectivityConfig(config); err != nil {
+		if err := ValidateConnectivityConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateAnnouncementsConfig(config); err != nil {
+		if err := ValidateTunnelingConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateSuitesConfig(config); err != nil {
+		if err := ValidateAnnouncementsConfig(config); err != nil {
 			return nil, err
 		}
-		if err := validateUniqueKeys(config); err != nil {
+		if err := ValidateSuitesConfig(config); err != nil {
 			return nil, err
 		}
-		validateAndSetConcurrencyDefaults(config)
+		if err := ValidateUniqueKeys(config); err != nil {
+			return nil, err
+		}
+		ValidateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
 	return
 }
 
-func validateConnectivityConfig(config *Config) error {
+func ValidateConnectivityConfig(config *Config) error {
 	if config.Connectivity != nil {
 		return config.Connectivity.ValidateAndSetDefaults()
 	}
 	return nil
 }
 
-func validateAnnouncementsConfig(config *Config) error {
+// ValidateTunnelingConfig validates the tunneling configuration and resolves tunnel references
+// NOTE: This must be called after ValidateEndpointsConfig and ValidateSuitesConfig
+// because it resolves tunnel references in endpoint and suite client configurations
+func ValidateTunnelingConfig(config *Config) error {
+	if config.Tunneling != nil {
+		if err := config.Tunneling.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+		// Resolve tunnel references in all endpoints
+		for _, ep := range config.Endpoints {
+			if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+				return fmt.Errorf("endpoint '%s': %w", ep.Key(), err)
+			}
+		}
+		// Resolve tunnel references in suite endpoints
+		for _, s := range config.Suites {
+			for _, ep := range s.Endpoints {
+				if err := resolveTunnelForClientConfig(config, ep.ClientConfig); err != nil {
+					return fmt.Errorf("suite '%s' endpoint '%s': %w", s.Key(), ep.Key(), err)
+				}
+			}
+		}
+		// TODO: Add tunnel support for alert providers when needed
+	}
+	return nil
+}
+
+// resolveTunnelForClientConfig resolves tunnel references in a client configuration
+func resolveTunnelForClientConfig(config *Config, clientConfig *client.Config) error {
+	if clientConfig == nil || clientConfig.Tunnel == "" {
+		return nil
+	}
+	// Validate tunnel name
+	tunnelName := strings.TrimSpace(clientConfig.Tunnel)
+	if tunnelName == "" {
+		return fmt.Errorf("tunnel name cannot be empty")
+	}
+	if config.Tunneling == nil {
+		return fmt.Errorf("tunnel '%s' referenced but no tunneling configuration defined", tunnelName)
+	}
+	_, exists := config.Tunneling.Tunnels[tunnelName]
+	if !exists {
+		return fmt.Errorf("tunnel '%s' not found in tunneling configuration", tunnelName)
+	}
+	// Get or create the SSH tunnel instance and store it directly in client config
+	tunnel, err := config.Tunneling.GetTunnel(tunnelName)
+	if err != nil {
+		return fmt.Errorf("failed to get tunnel '%s': %w", tunnelName, err)
+	}
+	clientConfig.ResolvedTunnel = tunnel
+	return nil
+}
+
+func ValidateAnnouncementsConfig(config *Config) error {
 	if config.Announcements != nil {
 		if err := announcement.ValidateAndSetDefaults(config.Announcements); err != nil {
 			return err
@@ -354,7 +415,7 @@ func validateAnnouncementsConfig(config *Config) error {
 	return nil
 }
 
-func validateRemoteConfig(config *Config) error {
+func ValidateRemoteConfig(config *Config) error {
 	if config.Remote != nil {
 		if err := config.Remote.ValidateAndSetDefaults(); err != nil {
 			return err
@@ -363,7 +424,7 @@ func validateRemoteConfig(config *Config) error {
 	return nil
 }
 
-func validateStorageConfig(config *Config) error {
+func ValidateStorageConfig(config *Config) error {
 	if config.Storage == nil {
 		config.Storage = &storage.Config{
 			Type:                   storage.TypeMemory,
@@ -378,7 +439,7 @@ func validateStorageConfig(config *Config) error {
 	return nil
 }
 
-func validateMaintenanceConfig(config *Config) error {
+func ValidateMaintenanceConfig(config *Config) error {
 	if config.Maintenance == nil {
 		config.Maintenance = maintenance.GetDefaultConfig()
 	} else {
@@ -389,7 +450,7 @@ func validateMaintenanceConfig(config *Config) error {
 	return nil
 }
 
-func validateUIConfig(config *Config) error {
+func ValidateUIConfig(config *Config) error {
 	if config.UI == nil {
 		config.UI = ui.GetDefaultConfig()
 	} else {
@@ -400,7 +461,7 @@ func validateUIConfig(config *Config) error {
 	return nil
 }
 
-func validateWebConfig(config *Config) error {
+func ValidateWebConfig(config *Config) error {
 	if config.Web == nil {
 		config.Web = web.GetDefaultConfig()
 	} else {
@@ -409,11 +470,11 @@ func validateWebConfig(config *Config) error {
 	return nil
 }
 
-func validateEndpointsConfig(config *Config) error {
+func ValidateEndpointsConfig(config *Config) error {
 	duplicateValidationMap := make(map[string]bool)
 	// Validate endpoints
 	for _, ep := range config.Endpoints {
-		logr.Debugf("[config.validateEndpointsConfig] Validating endpoint with key %s", ep.Key())
+		logr.Debugf("[config.ValidateEndpointsConfig] Validating endpoint with key %s", ep.Key())
 		if endpointKey := ep.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid endpoint %s: name and group combination must be unique", ep.Key())
 		} else {
@@ -423,10 +484,10 @@ func validateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid endpoint %s: %w", ep.Key(), err)
 		}
 	}
-	logr.Infof("[config.validateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+	logr.Infof("[config.ValidateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
-		logr.Debugf("[config.validateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
+		logr.Debugf("[config.ValidateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
 		if endpointKey := ee.Key(); duplicateValidationMap[endpointKey] {
 			return fmt.Errorf("invalid external endpoint %s: name and group combination must be unique", ee.Key())
 		} else {
@@ -436,13 +497,13 @@ func validateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid external endpoint %s: %w", ee.Key(), err)
 		}
 	}
-	logr.Infof("[config.validateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
+	logr.Infof("[config.ValidateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }
 
-func validateSuitesConfig(config *Config) error {
+func ValidateSuitesConfig(config *Config) error {
 	if config.Suites == nil || len(config.Suites) == 0 {
-		logr.Info("[config.validateSuitesConfig] No suites configured")
+		logr.Info("[config.ValidateSuitesConfig] No suites configured")
 		return nil
 	}
 	suiteNames := make(map[string]bool)
@@ -471,11 +532,11 @@ func validateSuitesConfig(config *Config) error {
 			}
 		}
 	}
-	logr.Infof("[config.validateSuitesConfig] Validated %d suite(s)", len(config.Suites))
+	logr.Infof("[config.ValidateSuitesConfig] Validated %d suite(s)", len(config.Suites))
 	return nil
 }
 
-func validateUniqueKeys(config *Config) error {
+func ValidateUniqueKeys(config *Config) error {
 	keyMap := make(map[string]string) // key -> description for error messages
 	// Check all endpoints
 	for _, ep := range config.Endpoints {
@@ -512,26 +573,23 @@ func validateUniqueKeys(config *Config) error {
 	return nil
 }
 
-func validateSecurityConfig(config *Config) error {
+func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if config.Security.ValidateAndSetDefaults() {
-			logr.Debug("[config.validateSecurityConfig] Basic security configuration has been validated")
-		} else {
-			// If there was an attempt to configure security, then it must mean that some confidential or private
-			// data are exposed. As a result, we'll force a panic because it's better to be safe than sorry.
+		if !config.Security.ValidateAndSetDefaults() {
+			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
 			return ErrInvalidSecurityConfig
 		}
 	}
 	return nil
 }
 
-// validateAlertingConfig validates the alerting configuration
+// ValidateAlertingConfig validates the alerting configuration
 // Note that the alerting configuration has to be validated before the endpoint configuration, because the default alert
 // returned by provider.AlertProvider.GetDefaultAlert() must be parsed before endpoint.Endpoint.ValidateAndSetDefaults()
 // sets the default alert values when none are set.
-func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint) {
+func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint) {
 	if alertingConfig == nil {
-		logr.Info("[config.validateAlertingConfig] Alerting is not configured")
+		logr.Info("[config.ValidateAlertingConfig] Alerting is not configured")
 		return
 	}
 	alertTypes := []alert.Type{
@@ -549,11 +607,11 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeIFTTT,
 		alert.TypeIlert,
 		alert.TypeIncidentIO,
-		alert.TypeJetBrainsSpace,
 		alert.TypeLine,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
 		alert.TypeMessagebird,
+		alert.TypeN8N,
 		alert.TypeNewRelic,
 		alert.TypeNtfy,
 		alert.TypeOpsgenie,
@@ -586,12 +644,12 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 					for _, ep := range endpoints {
 						for alertIndex, endpointAlert := range ep.Alerts {
 							if alertType == endpointAlert.Type {
-								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
+								logr.Debugf("[config.ValidateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ep.Key())
 								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ep.Group, endpointAlert); err != nil {
-										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
+										logr.Warnf("[config.ValidateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ep.Key(), alertType, err.Error())
 									}
 								}
 							}
@@ -600,12 +658,12 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 					for _, ee := range externalEndpoints {
 						for alertIndex, endpointAlert := range ee.Alerts {
 							if alertType == endpointAlert.Type {
-								logr.Debugf("[config.validateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
+								logr.Debugf("[config.ValidateAlertingConfig] Parsing alert %d with default alert for provider=%s in endpoint with key=%s", alertIndex, alertType, ee.Key())
 								provider.MergeProviderDefaultAlertIntoEndpointAlert(alertProvider.GetDefaultAlert(), endpointAlert)
 								// Validate the endpoint alert's overrides, if applicable
 								if len(endpointAlert.ProviderOverride) > 0 {
 									if err = alertProvider.ValidateOverrides(ee.Group, endpointAlert); err != nil {
-										logr.Warnf("[config.validateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
+										logr.Warnf("[config.ValidateAlertingConfig] endpoint with key=%s has invalid overrides for provider=%s: %s", ee.Key(), alertType, err.Error())
 									}
 								}
 							}
@@ -614,7 +672,7 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 				}
 				validProviders = append(validProviders, alertType)
 			} else {
-				logr.Warnf("[config.validateAlertingConfig] Ignoring provider=%s due to error=%s", alertType, err.Error())
+				logr.Warnf("[config.ValidateAlertingConfig] Ignoring provider=%s due to error=%s", alertType, err.Error())
 				invalidProviders = append(invalidProviders, alertType)
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
@@ -622,19 +680,19 @@ func validateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 			invalidProviders = append(invalidProviders, alertType)
 		}
 	}
-	logr.Infof("[config.validateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+	logr.Infof("[config.ValidateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
 }
 
-func validateAndSetConcurrencyDefaults(config *Config) {
+func ValidateAndSetConcurrencyDefaults(config *Config) {
 	if config.DisableMonitoringLock {
 		config.Concurrency = 0
 		logr.Warn("WARNING: The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
 		logr.Warn("WARNING: Please set 'concurrency: 0' instead")
-		logr.Debug("[config.validateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
+		logr.Debug("[config.ValidateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
 	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
 		config.Concurrency = DefaultConcurrency
-		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
+		logr.Debugf("[config.ValidateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
 	} else {
-		logr.Debugf("[config.validateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)
+		logr.Debugf("[config.ValidateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)
 	}
 }

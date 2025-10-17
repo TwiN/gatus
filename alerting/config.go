@@ -20,11 +20,11 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
 	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
-	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/n8n"
 	"github.com/TwiN/gatus/v5/alerting/provider/newrelic"
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
@@ -66,7 +66,6 @@ type Config struct {
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
 
-
 	// GitHub is the configuration for the github alerting provider
 	GitHub *github.AlertProvider `yaml:"github,omitempty"`
 
@@ -81,21 +80,18 @@ type Config struct {
 
 	// Gotify is the configuration for the gotify alerting provider
 	Gotify *gotify.AlertProvider `yaml:"gotify,omitempty"`
-  
+
 	// HomeAssistant is the configuration for the homeassistant alerting provider
 	HomeAssistant *homeassistant.AlertProvider `yaml:"homeassistant,omitempty"`
 
 	// IFTTT is the configuration for the ifttt alerting provider
 	IFTTT *ifttt.AlertProvider `yaml:"ifttt,omitempty"`
-  
+
 	// Ilert is the configuration for the ilert alerting provider
 	Ilert *ilert.AlertProvider `yaml:"ilert,omitempty"`
 
 	// IncidentIO is the configuration for the incident-io alerting provider
 	IncidentIO *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
-
-	// JetBrainsSpace is the configuration for the jetbrains space alerting provider
-	JetBrainsSpace *jetbrainsspace.AlertProvider `yaml:"jetbrainsspace,omitempty"`
 
 	// Line is the configuration for the line alerting provider
 	Line *line.AlertProvider `yaml:"line,omitempty"`
@@ -111,6 +107,9 @@ type Config struct {
 
 	// NewRelic is the configuration for the newrelic alerting provider
 	NewRelic *newrelic.AlertProvider `yaml:"newrelic,omitempty"`
+
+	// N8N is the configuration for the n8n alerting provider
+	N8N *n8n.AlertProvider `yaml:"n8n,omitempty"`
 
 	// Ntfy is the configuration for the ntfy alerting provider
 	Ntfy *ntfy.AlertProvider `yaml:"ntfy,omitempty"`

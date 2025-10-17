@@ -47,9 +47,6 @@ const (
 	// TypeIncidentIO is the Type for the incident-io alerting provider
 	TypeIncidentIO Type = "incident-io"
 
-	// TypeJetBrainsSpace is the Type for the jetbrains alerting provider
-	TypeJetBrainsSpace Type = "jetbrainsspace"
-
 	// TypeLine is the Type for the line alerting provider
 	TypeLine Type = "line"
 
@@ -64,6 +61,9 @@ const (
 
 	// TypeNewRelic is the Type for the newrelic alerting provider
 	TypeNewRelic Type = "newrelic"
+
+	// TypeN8N is the Type for the n8n alerting provider
+	TypeN8N Type = "n8n"
 
 	// TypeNtfy is the Type for the ntfy alerting provider
 	TypeNtfy Type = "ntfy"

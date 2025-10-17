@@ -1,4 +1,4 @@
-package jetbrainsspace
+package n8n
 
 import (
 	"bytes"
@@ -15,50 +15,36 @@ import (
 )
 
 var (
-	ErrProjectNotSet          = errors.New("project not set")
-	ErrChannelIDNotSet        = errors.New("channel-id not set")
-	ErrTokenNotSet            = errors.New("token not set")
+	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	Project   string `yaml:"project"`    // Project name
-	ChannelID string `yaml:"channel-id"` // Chat Channel ID
-	Token     string `yaml:"token"`      // Bearer Token
+	WebhookURL string `yaml:"webhook-url"`
+	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.Project) == 0 {
-		return ErrProjectNotSet
-	}
-	if len(cfg.ChannelID) == 0 {
-		return ErrChannelIDNotSet
-	}
-	if len(cfg.Token) == 0 {
-		return ErrTokenNotSet
+	if len(cfg.WebhookURL) == 0 {
+		return ErrWebhookURLNotSet
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.Project) > 0 {
-		cfg.Project = override.Project
+	if len(override.WebhookURL) > 0 {
+		cfg.WebhookURL = override.WebhookURL
 	}
-	if len(override.ChannelID) > 0 {
-		cfg.ChannelID = override.ChannelID
-	}
-	if len(override.Token) > 0 {
-		cfg.Token = override.Token
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
 	}
 }
 
-// AlertProvider is the configuration necessary for sending an alert using JetBrains Space
+// AlertProvider is the configuration necessary for sending an alert using n8n
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
-
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
-
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
@@ -90,13 +76,11 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", cfg.Project)
-	request, err := http.NewRequest(http.MethodPost, url, buffer)
+	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+cfg.Token)
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -110,77 +94,49 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 type Body struct {
-	Channel string  `json:"channel"`
-	Content Content `json:"content"`
+	Title            string            `json:"title"`
+	EndpointName     string            `json:"endpoint_name"`
+	EndpointGroup    string            `json:"endpoint_group,omitempty"`
+	EndpointURL      string            `json:"endpoint_url"`
+	AlertDescription string            `json:"alert_description,omitempty"`
+	Resolved         bool              `json:"resolved"`
+	Message          string            `json:"message"`
+	ConditionResults []ConditionResult `json:"condition_results,omitempty"`
 }
 
-type Content struct {
-	ClassName string    `json:"className"`
-	Style     string    `json:"style"`
-	Sections  []Section `json:"sections,omitempty"`
-}
-
-type Section struct {
-	ClassName string    `json:"className"`
-	Elements  []Element `json:"elements"`
-	Header    string    `json:"header"`
-}
-
-type Element struct {
-	ClassName string    `json:"className"`
-	Accessory Accessory `json:"accessory"`
-	Style     string    `json:"style"`
-	Size      string    `json:"size"`
-	Content   string    `json:"content"`
-}
-
-type Accessory struct {
-	ClassName string `json:"className"`
-	Icon      Icon   `json:"icon"`
-	Style     string `json:"style"`
-}
-
-type Icon struct {
-	Icon string `json:"icon"`
+type ConditionResult struct {
+	Condition string `json:"condition"`
+	Success   bool   `json:"success"`
 }
 
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	body := Body{
-		Channel: "id:" + cfg.ChannelID,
-		Content: Content{
-			ClassName: "ChatMessage.Block",
-			Sections: []Section{{
-				ClassName: "MessageSection",
-				Elements:  []Element{},
-			}},
-		},
-	}
+	var message string
 	if resolved {
-		body.Content.Style = "SUCCESS"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		body.Content.Style = "WARNING"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
+	title := "Gatus"
+	if cfg.Title != "" {
+		title = cfg.Title
+	}
+	var conditionResults []ConditionResult
 	for _, conditionResult := range result.ConditionResults {
-		icon := "warning"
-		style := "WARNING"
-		if conditionResult.Success {
-			icon = "success"
-			style = "SUCCESS"
-		}
-		body.Content.Sections[0].Elements = append(body.Content.Sections[0].Elements, Element{
-			ClassName: "MessageText",
-			Accessory: Accessory{
-				ClassName: "MessageIcon",
-				Icon:      Icon{Icon: icon},
-				Style:     style,
-			},
-			Style:   style,
-			Size:    "REGULAR",
-			Content: conditionResult.Condition,
+		conditionResults = append(conditionResults, ConditionResult{
+			Condition: conditionResult.Condition,
+			Success:   conditionResult.Success,
 		})
+	}
+	body := Body{
+		Title:            title,
+		EndpointName:     ep.Name,
+		EndpointGroup:    ep.Group,
+		EndpointURL:      ep.URL,
+		AlertDescription: alert.GetDescription(),
+		Resolved:         resolved,
+		Message:          message,
+		ConditionResults: conditionResults,
 	}
 	bodyAsJSON, _ := json.Marshal(body)
 	return bodyAsJSON
