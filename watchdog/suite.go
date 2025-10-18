@@ -50,6 +50,8 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 	if cfg.Metrics {
 		metrics.PublishMetricsForSuite(s, result, extraLabels)
 	}
+	// Store result
+	UpdateSuiteStatus(s, result)
 	// Handle alerting for suite endpoints
 	for i, ep := range s.Endpoints {
 		if i < len(result.EndpointResults) {
@@ -72,8 +74,6 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 		}
 	}
 	logr.Infof("[watchdog.executeSuite] Completed suite=%s; success=%v; errors=%d; duration=%v; endpoints_executed=%d/%d", s.Name, result.Success, len(result.Errors), result.Duration, len(result.EndpointResults), len(s.Endpoints))
-	// Store result in database
-	UpdateSuiteStatus(s, result)
 }
 
 // UpdateSuiteStatus persists the suite result in the database
