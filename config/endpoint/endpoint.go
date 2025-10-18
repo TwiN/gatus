@@ -336,6 +336,9 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
+	if processedEndpoint.UIConfig.HideErrors {
+		result.Errors = nil
+	}
 	if processedEndpoint.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, processedEndpoint.URL, "<redacted>")
@@ -356,6 +359,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	if processedEndpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
+
 	return result
 }
 
