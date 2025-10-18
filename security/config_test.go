@@ -96,6 +96,66 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 			t.Error("expected code to be 401, but was", response.StatusCode)
 		}
 	})
+	/////////////////
+	// API TOKENS //
+	/////////////////
+	t.Run("api tokens with basic auth fallback", func(t *testing.T) {
+		c := &Config{
+			API: &APIConfig{
+				Tokens: []string{"api-token-123"},
+			},
+			Basic: &BasicConfig{
+				Username:                        "john.doe",
+				PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
+			},
+		}
+		app := fiber.New()
+		if err := c.ApplySecurityMiddleware(app); err != nil {
+			t.Error("expected no error, got", err)
+		}
+		app.Get("/test", func(c *fiber.Ctx) error {
+			return c.SendStatus(200)
+		})
+		// Try without any auth - should fail
+		request := httptest.NewRequest("GET", "/test", http.NoBody)
+		response, err := app.Test(request)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if response.StatusCode != 401 {
+			t.Error("expected code to be 401, but was", response.StatusCode)
+		}
+		// Try with valid API token - should succeed
+		request = httptest.NewRequest("GET", "/test", http.NoBody)
+		request.Header.Set("Authorization", "Bearer api-token-123")
+		response, err = app.Test(request)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if response.StatusCode != 200 {
+			t.Error("expected code to be 200 with valid API token, but was", response.StatusCode)
+		}
+		// Try with invalid API token but valid Basic auth - should succeed
+		request = httptest.NewRequest("GET", "/test", http.NoBody)
+		request.SetBasicAuth("john.doe", "hunter2")
+		response, err = app.Test(request)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if response.StatusCode != 200 {
+			t.Error("expected code to be 200 with valid Basic auth, but was", response.StatusCode)
+		}
+		// Try with invalid Bearer token format
+		request = httptest.NewRequest("GET", "/test", http.NoBody)
+		request.Header.Set("Authorization", "bearer api-token-123")
+		response, err = app.Test(request)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if response.StatusCode != 401 {
+			t.Error("expected code to be 401 with lowercase bearer, but was", response.StatusCode)
+		}
+	})
 }
 
 func TestConfig_RegisterHandlers(t *testing.T) {
