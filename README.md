@@ -2696,8 +2696,8 @@ security:
     password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
 ```
 
-With this configuration, users can authenticate using either:
-- A valid API token: `Authorization: Bearer my-api-token`
+With this configuration, users can authenticate using a valid API token:
+`Authorization: Bearer my-api-token`
 
 
 ### TLS Encryption
