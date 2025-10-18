@@ -12,6 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/storage/store/apikey"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
@@ -1624,5 +1625,76 @@ func (s *Store) deleteOldSuiteResults(tx *sql.Tx, suiteID int64) error {
 		suiteID,
 		s.maximumNumberOfResults,
 	)
+	return err
+}
+
+// GetAPIKeys returns all API keys metadata for a given user subject
+func (s *Store) GetAPIKeys(userSubject string) ([]*apikey.APIKey, error) {
+	rows, err := s.db.Query(`
+		SELECT id, name, token_hash, user_subject, created_at, last_used_at
+		FROM api_keys
+		WHERE user_subject = $1
+		ORDER BY created_at DESC
+	`, userSubject)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keys := make([]*apikey.APIKey, 0)
+	for rows.Next() {
+		key := &apikey.APIKey{}
+		err = rows.Scan(&key.ID, &key.Name, &key.TokenHash, &key.UserSubject, &key.CreatedAt, &key.LastUsedAt)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
+	}
+	return keys, nil
+}
+
+// GetAllAPIKeys returns all API keys across all users
+func (s *Store) GetAllAPIKeys() ([]*apikey.APIKey, error) {
+	rows, err := s.db.Query(`
+		SELECT id, name, token_hash, user_subject, created_at, last_used_at
+		FROM api_keys
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keys := make([]*apikey.APIKey, 0)
+	for rows.Next() {
+		key := &apikey.APIKey{}
+		err = rows.Scan(&key.ID, &key.Name, &key.TokenHash, &key.UserSubject, &key.CreatedAt, &key.LastUsedAt)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
+	}
+	return keys, nil
+}
+
+// CreateAPIKey stores a new API key
+func (s *Store) CreateAPIKey(key *apikey.APIKey) error {
+	_, err := s.db.Exec(`
+		INSERT INTO api_keys (id, name, token_hash, user_subject, created_at, last_used_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, key.ID, key.Name, key.TokenHash, key.UserSubject, key.CreatedAt.UTC(), key.LastUsedAt)
+	return err
+}
+
+// DeleteAPIKey removes an API key by its ID
+func (s *Store) DeleteAPIKey(id string) error {
+	_, err := s.db.Exec("DELETE FROM api_keys WHERE id = $1", id)
+	return err
+}
+
+// UpdateAPIKeyLastUsed updates the last used timestamp for an API key
+func (s *Store) UpdateAPIKeyLastUsed(id string) error {
+	now := time.Now().UTC()
+	_, err := s.db.Exec("UPDATE api_keys SET last_used_at = $1 WHERE id = $2", now, id)
 	return err
 }

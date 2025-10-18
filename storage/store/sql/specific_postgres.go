@@ -110,9 +110,30 @@ func (s *Store) createPostgresSchema() error {
 	if err != nil {
 		return err
 	}
+	// Create API keys table
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS api_keys (
+			id            TEXT      PRIMARY KEY,
+			name          TEXT      NOT NULL,
+			token_hash    TEXT      NOT NULL,
+			user_subject  TEXT      NOT NULL,
+			created_at    TIMESTAMP NOT NULL,
+			last_used_at  TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
 	// Create index for suite_results
 	_, err = s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS suite_results_suite_id_idx ON suite_results (suite_id);
+	`)
+	if err != nil {
+		return err
+	}
+	// Create index for api_keys user_subject
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS api_keys_user_subject_idx ON api_keys (user_subject);
 	`)
 	// Silent table modifications TODO: Remove this in v6.0.0
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0`)

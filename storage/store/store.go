@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/storage"
+	"github.com/TwiN/gatus/v5/storage/store/apikey"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
@@ -82,6 +83,21 @@ type Store interface {
 	// Close terminates every connection and closes the store, if applicable.
 	// Should only be used before stopping the application.
 	Close()
+
+	// GetAPIKeys returns all API keys metadata for a given user subject
+	GetAPIKeys(userSubject string) ([]*apikey.APIKey, error)
+
+	// GetAllAPIKeys returns all API keys across all users
+	GetAllAPIKeys() ([]*apikey.APIKey, error)
+
+	// CreateAPIKey stores a new API key
+	CreateAPIKey(key *apikey.APIKey) error
+
+	// DeleteAPIKey removes an API key by its ID
+	DeleteAPIKey(id string) error
+
+	// UpdateAPIKeyLastUsed updates the last used timestamp for an API key
+	UpdateAPIKeyLastUsed(id string) error
 }
 
 // TODO: add method to check state of store (by keeping track of silent errors)
