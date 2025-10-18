@@ -176,7 +176,17 @@
                   </div>
                   <div class="flex-1">
                     <p class="font-medium">{{ event.fancyText }}</p>
-                    <p class="text-sm text-muted-foreground">{{ prettifyTimestamp(event.timestamp) }} • {{ event.fancyTimeAgo }}</p>
+                    <div v-if="event.type === 'UNHEALTHY' && (event.errors?.length > 0 || event.failedConditions?.length > 0)" class="mt-1 ml-1 text-sm text-muted-foreground space-y-0.5">
+                      <div v-for="error in event.errors" :key="error" class="flex items-center gap-1.5">
+                        <span class="text-red-500">•</span>
+                        <span class="text-red-500">{{ error }}</span>
+                      </div>
+                      <div v-for="condition in event.failedConditions" :key="condition" class="flex items-center gap-1.5">
+                        <span class="text-red-500">•</span>
+                        <span class="text-red-500 font-mono text-xs">{{ condition }}</span>
+                      </div>
+                    </div>
+                    <p class="text-sm text-muted-foreground" :class="{ 'mt-1': event.type === 'UNHEALTHY' && (event.errors?.length > 0 || event.failedConditions?.length > 0) }">{{ prettifyTimestamp(event.timestamp) }} • {{ event.fancyTimeAgo }}</p>
                   </div>
                 </div>
               </div>

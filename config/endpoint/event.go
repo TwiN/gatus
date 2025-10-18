@@ -11,6 +11,12 @@ type Event struct {
 
 	// Timestamp is the moment at which the event happened
 	Timestamp time.Time `json:"timestamp"`
+
+	// Errors is a list of errors that occurred during the health check (for UNHEALTHY events)
+	Errors []string `json:"errors,omitempty"`
+
+	// FailedConditions is a list of condition expressions that failed (for UNHEALTHY events)
+	FailedConditions []string `json:"failedConditions,omitempty"`
 }
 
 // EventType is, uh, the types of events?
@@ -34,6 +40,20 @@ func NewEventFromResult(result *Result) *Event {
 		event.Type = EventHealthy
 	} else {
 		event.Type = EventUnhealthy
+		// Capture error messages
+		if len(result.Errors) > 0 {
+			event.Errors = make([]string, len(result.Errors))
+			copy(event.Errors, result.Errors)
+		}
+		// Capture failed conditions
+		if len(result.ConditionResults) > 0 {
+			event.FailedConditions = make([]string, 0)
+			for _, conditionResult := range result.ConditionResults {
+				if !conditionResult.Success {
+					event.FailedConditions = append(event.FailedConditions, conditionResult.Condition)
+				}
+			}
+		}
 	}
 	return event
 }
