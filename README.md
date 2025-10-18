@@ -1566,6 +1566,8 @@ endpoints:
 
 [n8n](https://n8n.io/) is a workflow automation platform that allows you to automate tasks across different applications and services using webhooks.
 
+See [n8n-nodes-gatus-trigger](https://github.com/TwiN/n8n-nodes-gatus-trigger) for a n8n community node that can be used as trigger.
+
 Example:
 ```yaml
 alerting:
