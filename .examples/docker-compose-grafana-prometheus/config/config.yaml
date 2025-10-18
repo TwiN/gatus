@@ -17,3 +17,9 @@ endpoints:
     interval: 5m
     conditions:
       - "[STATUS] == 200"
+
+  - name: check-domain-expiration
+    url: "https://example.org/"
+    interval: 1h
+    conditions:
+      - "[DOMAIN_EXPIRATION] > 720h"
