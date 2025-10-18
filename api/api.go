@@ -131,5 +131,11 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
 	protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
 	protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
+	// API Key management endpoints (only available when OIDC is enabled AND API keys are explicitly enabled)
+	if cfg.Security != nil && cfg.Security.OIDC != nil && cfg.Security.APIKeysEnabled {
+		protectedAPIRouter.Get("/v1/apikeys", ListAPIKeysHandler(cfg.Security))
+		protectedAPIRouter.Post("/v1/apikeys", CreateAPIKeyHandler(cfg.Security))
+		protectedAPIRouter.Delete("/v1/apikeys/:id", DeleteAPIKeyHandler(cfg.Security))
+	}
 	return app
 }

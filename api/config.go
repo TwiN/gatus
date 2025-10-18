@@ -16,16 +16,19 @@ type ConfigHandler struct {
 
 func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	hasOIDC := false
+	apiKeysEnabled := false
 	isAuthenticated := true // Default to true if no security config is set
 	if handler.securityConfig != nil {
 		hasOIDC = handler.securityConfig.OIDC != nil
+		apiKeysEnabled = handler.securityConfig.APIKeysEnabled
 		isAuthenticated = handler.securityConfig.IsAuthenticated(c)
 	}
 
 	// Prepare response with announcements
 	response := map[string]interface{}{
-		"oidc":          hasOIDC,
-		"authenticated": isAuthenticated,
+		"oidc":             hasOIDC,
+		"apikeys_enabled":  apiKeysEnabled,
+		"authenticated":    isAuthenticated,
 	}
 	// Add announcements if available, otherwise use empty slice
 	if handler.config != nil && handler.config.Announcements != nil && len(handler.config.Announcements) > 0 {

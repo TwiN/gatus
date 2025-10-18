@@ -46,10 +46,10 @@
             <div class="flex items-center gap-2">
               <!-- Navigation Links (Desktop) -->
               <nav v-if="buttons && buttons.length" class="hidden md:flex items-center gap-1">
-                <a 
-                  v-for="button in buttons" 
-                  :key="button.name" 
-                  :href="button.link" 
+                <a
+                  v-for="button in buttons"
+                  :key="button.name"
+                  :href="button.link"
                   target="_blank"
                   class="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
@@ -57,11 +57,23 @@
                 </a>
               </nav>
 
+              <!-- API Keys Button (only visible when OIDC is enabled AND API keys are enabled) -->
+              <Button
+                v-if="config && config.oidc && config.apikeys_enabled"
+                variant="ghost"
+                size="icon"
+                @click="apiKeyManagerOpen = true"
+                :title="'Manage API Keys'"
+                :aria-label="'Manage API Keys'"
+              >
+                <Key class="h-5 w-5" />
+              </Button>
+
               <!-- Mobile Menu Button -->
-              <Button 
-                v-if="buttons && buttons.length" 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                v-if="buttons && buttons.length"
+                variant="ghost"
+                size="icon"
                 class="md:hidden"
                 @click="mobileMenuOpen = !mobileMenuOpen"
               >
@@ -149,6 +161,13 @@
 
     <!-- Tooltip -->
     <Tooltip :result="tooltip.result" :event="tooltip.event" :isPersistent="tooltipIsPersistent" />
+
+    <!-- API Key Manager Modal -->
+    <APIKeyManager
+      :isOpen="apiKeyManagerOpen"
+      :baseUrl="SERVER_URL"
+      @close="apiKeyManagerOpen = false"
+    />
   </div>
 </template>
 
@@ -156,12 +175,13 @@
 /* eslint-disable no-undef */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Menu, X, LogIn } from 'lucide-vue-next'
+import { Menu, X, LogIn, Key } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
+import APIKeyManager from './components/APIKeyManager.vue'
 import { SERVER_URL } from '@/main'
 
 const route = useRoute()
@@ -174,6 +194,7 @@ const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
 const tooltipIsPersistent = ref(false)
+const apiKeyManagerOpen = ref(false)
 let configInterval = null
 
 // Computed properties

@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/storage/store/apikey"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
@@ -21,6 +22,7 @@ type Store struct {
 
 	endpointCache *gocache.Cache // Cache for endpoint statuses
 	suiteCache    *gocache.Cache // Cache for suite statuses
+	apiKeyCache   *gocache.Cache // Cache for API keys
 
 	maximumNumberOfResults int // maximum number of results that an endpoint can have
 	maximumNumberOfEvents  int // maximum number of events that an endpoint can have
@@ -34,6 +36,7 @@ func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error)
 	store := &Store{
 		endpointCache:          gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
 		suiteCache:             gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		apiKeyCache:            gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
 		maximumNumberOfResults: maximumNumberOfResults,
 		maximumNumberOfEvents:  maximumNumberOfEvents,
 	}
@@ -324,6 +327,7 @@ func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (boo
 func (s *Store) Clear() {
 	s.endpointCache.Clear()
 	s.suiteCache.Clear()
+	s.apiKeyCache.Clear()
 }
 
 // Save persists the cache to the store file
@@ -334,4 +338,64 @@ func (s *Store) Save() error {
 // Close does nothing, because there's nothing to close
 func (s *Store) Close() {
 	return
+}
+
+// GetAPIKeys returns all API keys metadata for a given user subject
+func (s *Store) GetAPIKeys(userSubject string) ([]*apikey.APIKey, error) {
+	s.RLock()
+	defer s.RUnlock()
+	keys := make([]*apikey.APIKey, 0)
+	for _, v := range s.apiKeyCache.GetAll() {
+		if key, ok := v.(*apikey.APIKey); ok && key.UserSubject == userSubject {
+			keys = append(keys, key)
+		}
+	}
+	// Sort by creation date (newest first)
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].CreatedAt.After(keys[j].CreatedAt)
+	})
+	return keys, nil
+}
+
+// GetAllAPIKeys returns all API keys across all users
+func (s *Store) GetAllAPIKeys() ([]*apikey.APIKey, error) {
+	s.RLock()
+	defer s.RUnlock()
+	keys := make([]*apikey.APIKey, 0)
+	for _, v := range s.apiKeyCache.GetAll() {
+		if key, ok := v.(*apikey.APIKey); ok {
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
+}
+
+// CreateAPIKey stores a new API key
+func (s *Store) CreateAPIKey(key *apikey.APIKey) error {
+	s.Lock()
+	defer s.Unlock()
+	s.apiKeyCache.Set(key.ID, key)
+	return nil
+}
+
+// DeleteAPIKey removes an API key by its ID
+func (s *Store) DeleteAPIKey(id string) error {
+	s.Lock()
+	defer s.Unlock()
+	s.apiKeyCache.Delete(id)
+	return nil
+}
+
+// UpdateAPIKeyLastUsed updates the last used timestamp for an API key
+func (s *Store) UpdateAPIKeyLastUsed(id string) error {
+	s.Lock()
+	defer s.Unlock()
+	if val := s.apiKeyCache.GetValue(id); val != nil {
+		if key, ok := val.(*apikey.APIKey); ok {
+			now := time.Now()
+			key.LastUsedAt = &now
+			s.apiKeyCache.Set(id, key)
+		}
+	}
+	return nil
 }

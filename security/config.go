@@ -3,8 +3,10 @@ package security
 import (
 	"encoding/base64"
 	"net/http"
+	"strings"
 
 	g8 "github.com/TwiN/g8/v2"
+	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
@@ -22,6 +24,11 @@ const (
 type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
 	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
+
+	// APIKeysEnabled controls whether API key generation is enabled
+	// Defaults to false for security. Requires OIDC to be enabled.
+	// Can be set via environment variable: GATUS_SECURITY_APIKEYS_ENABLED
+	APIKeysEnabled bool `yaml:"apikeys-enabled,omitempty"`
 
 	gate *g8.Gate
 }
@@ -47,14 +54,44 @@ func (c *Config) RegisterHandlers(router fiber.Router) error {
 // The router passed should be a sub-router in charge of handlers that require authentication.
 func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 	if c.OIDC != nil {
-		// We're going to use g8 for session handling
+		// We're going to use g8 for session handling and API key authentication
 		clientProvider := g8.NewClientProvider(func(token string) *g8.Client {
+			// First check if it's a session cookie
 			if _, exists := sessions.Get(token); exists {
 				return g8.NewClient(token)
+			}
+			// If not a session, check if it's an API key
+			if strings.HasPrefix(token, APIKeyPrefix) {
+				// Get all API keys and validate against them
+				allKeys, err := store.Get().GetAllAPIKeys()
+				if err != nil {
+					logr.Errorf("[security.ApplySecurityMiddleware] Failed to get API keys: %v", err)
+					return nil
+				}
+				for _, apiKey := range allKeys {
+					if ValidateAPIKey(apiKey, token) {
+						// Update last used timestamp asynchronously
+						go func(id string) {
+							if err := store.Get().UpdateAPIKeyLastUsed(id); err != nil {
+								logr.Errorf("[security.ApplySecurityMiddleware] Failed to update API key last used: %v", err)
+							}
+						}(apiKey.ID)
+						return g8.NewClient(apiKey.UserSubject)
+					}
+				}
 			}
 			return nil
 		})
 		customTokenExtractorFunc := func(request *http.Request) string {
+			// First, try to get the token from the Authorization header (Bearer token)
+			authHeader := request.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+				if len(token) > 0 {
+					return token
+				}
+			}
+			// Fall back to session cookie for browser-based auth
 			sessionCookie, err := request.Cookie(cookieNameSession)
 			if err != nil {
 				return ""
@@ -103,8 +140,26 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 			return false
 		}
 		token := c.gate.ExtractTokenFromRequest(request)
-		_, hasSession := sessions.Get(token)
-		return hasSession
+
+		// Check session first
+		if _, hasSession := sessions.Get(token); hasSession {
+			return true
+		}
+
+		// Check if it's an API key
+		if strings.HasPrefix(token, APIKeyPrefix) {
+			allKeys, err := store.Get().GetAllAPIKeys()
+			if err != nil {
+				return false
+			}
+			for _, apiKey := range allKeys {
+				if ValidateAPIKey(apiKey, token) {
+					return true
+				}
+			}
+		}
+
+		return false
 	}
 	return false
 }

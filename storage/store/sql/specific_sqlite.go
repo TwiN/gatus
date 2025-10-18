@@ -110,6 +110,20 @@ func (s *Store) createSQLiteSchema() error {
 	if err != nil {
 		return err
 	}
+	// Create API keys table
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS api_keys (
+			id            TEXT      PRIMARY KEY,
+			name          TEXT      NOT NULL,
+			token_hash    TEXT      NOT NULL,
+			user_subject  TEXT      NOT NULL,
+			created_at    TIMESTAMP NOT NULL,
+			last_used_at  TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
 	// Create indices for performance reasons
 	_, err = s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS endpoint_results_endpoint_id_idx ON endpoint_results (endpoint_id);
@@ -132,6 +146,13 @@ func (s *Store) createSQLiteSchema() error {
 	// Create index for suite_results
 	_, err = s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS suite_results_suite_id_idx ON suite_results (suite_id);
+	`)
+	if err != nil {
+		return err
+	}
+	// Create index for api_keys user_subject
+	_, err = s.db.Exec(`
+		CREATE INDEX IF NOT EXISTS api_keys_user_subject_idx ON api_keys (user_subject);
 	`)
 	if err != nil {
 		return err
