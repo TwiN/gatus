@@ -16,6 +16,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
@@ -375,9 +376,22 @@ func ShouldRunPingerAsPrivileged() bool {
 		return true
 	}
 
-	// To actually check for cap_net_raw capabilities, we would need to add "kernel.org/pub/linux/libs/security/libcap/cap" to gatus.
-	// As a backstop we can simply check the effective user id and run as privileged when running as root
-	return os.Geteuid() == 0
+	// Attempt to create a raw socket.
+	// syscall.AF_INET for IPv4, syscall.SOCK_RAW for raw socket,
+	// and syscall.IPPROTO_ICMP for the protocol.
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
+	if err != nil {
+		if err == syscall.EPERM {
+			// No permission to create raw socket, we should use unprivileged pinger
+			return false
+		}
+		// Some other error occurred, log it and fall back to checking for root user
+		logr.Warnf("unexpected error when checking for raw socket capabilities: %v", err)
+		return os.Geteuid() == 0
+	}
+	// On success, close the file descriptor like a responsible person
+	syscall.Close(fd)
+	return true
 }
 
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server
