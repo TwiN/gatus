@@ -370,13 +370,13 @@ Where:
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
-- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
 
 ### Suites (ALPHA)
-Suites are collections of endpoints that are executed sequentially with a shared context. 
+Suites are collections of endpoints that are executed sequentially with a shared context.
 This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
 
 Here are a few cases in which suites could be useful:
@@ -418,7 +418,7 @@ suites:
     context:
       price: "19.99"  # Initial static value in context
     endpoints:
-      # Step 1: Create an item and store the item ID 
+      # Step 1: Create an item and store the item ID
       - name: create-item
         url: https://api.example.com/items
         method: POST
@@ -432,7 +432,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to create item"
-            
+
       # Step 2: Update the item using the stored item ID
       - name: update-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -443,7 +443,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to update item"
-        
+
       # Step 3: Fetch the item and validate the price
       - name: get-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -454,7 +454,7 @@ suites:
         alerts:
           - type: slack
             description: "Item price did not update correctly"
-            
+
       # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
       - name: delete-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -533,7 +533,7 @@ System-wide announcements allow you to display important messages at the top of 
 
 Types:
 - **outage**: Indicates service disruptions or critical issues (red theme)
-- **warning**: Indicates potential issues or important notices (yellow theme)  
+- **warning**: Indicates potential issues or important notices (yellow theme)
 - **information**: General information or updates (blue theme)
 - **operational**: Indicates resolved issues or normal operations (green theme)
 - **none**: Neutral announcements with no specific severity (gray theme, default if none are specified)
@@ -545,7 +545,7 @@ announcements:
     type: outage
     message: "Scheduled maintenance on database servers from 14:00 to 16:00 UTC"
   - timestamp: 2025-08-15T16:15:00Z
-    type: operational  
+    type: operational
     message: "Database maintenance completed successfully. All systems operational."
   - timestamp: 2025-08-15T12:00:00Z
     type: information
@@ -706,7 +706,7 @@ endpoints:
 > 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
 
 ### Tunneling
-Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers. 
+Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers.
 This is particularly useful for monitoring services that are not directly accessible from where Gatus is deployed.
 
 SSH tunnels are defined globally in the `tunneling` section and then referenced by name in endpoint client configurations.
@@ -743,7 +743,7 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently. 
+> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
 
 
@@ -2176,7 +2176,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |    
+| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |
 | `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
 | `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
@@ -2831,7 +2831,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of 
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of
 endpoints/suites that can be evaluated at the same time.
 In other words, even if you have multiple endpoints with the same interval, they are not guaranteed to run at the same time.
 
@@ -2939,8 +2939,8 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established. You can use Go template 
-syntax. 
+shows whether the connection was successfully established. You can use Go template
+syntax.
 
 
 ### Monitoring an endpoint using ICMP
@@ -2957,7 +2957,7 @@ endpoints:
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
-If you run Gatus on Linux, please read the Linux section on https://github.com/prometheus-community/pro-bing#linux
+If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.
 
 
@@ -3075,7 +3075,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service 
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service
 > [through a library](https://github.com/TwiN/whois) and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 > To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
@@ -3104,7 +3104,7 @@ concurrency: 0
 
 **Use cases for higher concurrency:**
 - You have a large number of endpoints to monitor
-- You want to monitor endpoints at very short intervals (< 5s)  
+- You want to monitor endpoints at very short intervals (< 5s)
 - You're using Gatus for load testing scenarios
 
 **Legacy configuration:**
@@ -3188,7 +3188,7 @@ ui:
   default-sort-by: group
 ```
 Note that if a user has already sorted the dashboard by a different field, the default sort will not be applied unless the user
-clears their browser's localstorage. 
+clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path
