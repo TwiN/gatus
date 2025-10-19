@@ -16,7 +16,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
