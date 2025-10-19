@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -129,10 +131,37 @@ func TestPing(t *testing.T) {
 	}
 }
 
+func TestShouldRunPingerAsPrivileged(t *testing.T) {
+	// Don't run in parallel since we're testing system-dependent behavior
+	if runtime.GOOS == "windows" {
+		result := ShouldRunPingerAsPrivileged()
+		if !result {
+			t.Error("On Windows, ShouldRunPingerAsPrivileged() should return true")
+		}
+		return
+	}
+
+	// Non-Windows tests
+	result := ShouldRunPingerAsPrivileged()
+	isRoot := os.Geteuid() == 0
+
+	// Test cases based on current environment
+	if isRoot {
+		if !result {
+			t.Error("When running as root, ShouldRunPingerAsPrivileged() should return true")
+		}
+	} else {
+		// When not root, the result depends on raw socket creation
+		// We can at least verify the function runs without panic
+		t.Logf("Non-root privileged result: %v", result)
+	}
+}
+
+
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
-		address  string
-		insecure bool
+		address     string
+		insecure    bool
 		dnsresolver string
 	}
 	tests := []struct {
@@ -168,7 +197,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 		{
 			name: "dns resolver",
 			args: args{
-				address: "smtp.gmail.com:587",
+				address:     "smtp.gmail.com:587",
 				dnsresolver: "tcp://1.1.1.1:53",
 			},
 			wantConnected: true,
