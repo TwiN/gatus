@@ -67,7 +67,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
     - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
-    - [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts)
     - [Configuring Line alerts](#configuring-line-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -367,7 +366,7 @@ or send an HTTP request:
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
@@ -811,7 +810,6 @@ endpoints:
 | `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
-| `alerting.jetbrainsspace`  | Configuration for alerts of type `jetbrainsspace`. <br />See [Configuring JetBrains Space alerts](#configuring-jetbrains-space-alerts). | `{}`    |
 | `alerting.line`            | Configuration for alerts of type `line`. <br />See [Configuring Line alerts](#configuring-line-alerts).                                 | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -922,6 +920,7 @@ endpoints:
 | `alerting.discord`                   | Configuration for alerts of type `discord`                                                 | `{}`                                |
 | `alerting.discord.webhook-url`       | Discord Webhook URL                                                                        | Required `""`                       |
 | `alerting.discord.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.discord.message-content`   | Message content to send before the embed (useful for pinging users/roles, e.g. `<@123>`)   | `""`                                |
 | `alerting.discord.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.discord.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
 | `alerting.discord.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
@@ -1383,42 +1382,6 @@ In order to get the required alert source config id and authentication token, yo
 > **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
 
 
-#### Configuring JetBrains Space alerts
-| Parameter                                   | Description                                                                                | Default       |
-|:--------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.jetbrainsspace`                   | Configuration for alerts of type `jetbrainsspace`                                          | `{}`          |
-| `alerting.jetbrainsspace.project`           | JetBrains Space project name                                                               | Required `""` |
-| `alerting.jetbrainsspace.channel-id`        | JetBrains Space Chat Channel ID                                                            | Required `""` |
-| `alerting.jetbrainsspace.token`             | Token that is used for authentication.                                                     | Required `""` |
-| `alerting.jetbrainsspace.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.jetbrainsspace.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.jetbrainsspace.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.jetbrainsspace.overrides[].*`     | See `alerting.jetbrainsspace.*` parameters                                                 | `{}`          |
-
-```yaml
-alerting:
-  jetbrainsspace:
-    project: myproject
-    channel-id: ABCDE12345
-    token: "**************"
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: jetbrainsspace
-        description: "healthcheck failed"
-        send-on-resolved: true
-```
-
-Here's an example of what the notifications look like:
-
-![JetBrains Space notifications](.github/assets/jetbrains-space-alerts.png)
-
-
 #### Configuring Line alerts
 
 | Parameter                            | Description                                                                                | Default       |
@@ -1602,6 +1565,8 @@ endpoints:
 | `alerting.n8n.overrides[].*`     | See `alerting.n8n.*` parameters                                                            | `{}`          |
 
 [n8n](https://n8n.io/) is a workflow automation platform that allows you to automate tasks across different applications and services using webhooks.
+
+See [n8n-nodes-gatus-trigger](https://github.com/TwiN/n8n-nodes-gatus-trigger) for a n8n community node that can be used as trigger.
 
 Example:
 ```yaml
@@ -3333,7 +3298,7 @@ The path to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3359,7 +3324,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.svg
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3376,7 +3341,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.shields
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3399,7 +3364,7 @@ The endpoint to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 #### Response time (chart)
 ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/chart.svg)
@@ -3412,7 +3377,7 @@ The endpoint to generate a response time chart is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, or `24h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
@@ -3470,7 +3435,7 @@ The path to get raw uptime data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
@@ -3484,7 +3449,7 @@ The path to get raw response time data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.` and `#` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```

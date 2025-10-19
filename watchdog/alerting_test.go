@@ -12,7 +12,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
-	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -321,19 +320,6 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					DefaultConfig: ifttt.Config{
 						WebhookKey: "test-key",
 						EventName:  "test-event",
-					},
-				},
-			},
-		},
-		{
-			Name:      "jetbrainsspace",
-			AlertType: alert.TypeJetBrainsSpace,
-			AlertingConfig: &alerting.Config{
-				JetBrainsSpace: &jetbrainsspace.AlertProvider{
-					DefaultConfig: jetbrainsspace.Config{
-						Project:   "foo",
-						ChannelID: "bar",
-						Token:     "baz",
 					},
 				},
 			},

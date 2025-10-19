@@ -25,7 +25,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
 	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
-	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -775,10 +774,6 @@ alerting:
     to: "+1-234-567-8901"
   teams:
     webhook-url: "http://example.com"
-  jetbrainsspace:
-    project: "foo"
-    channel-id: "bar"
-    token: "baz"
 
 endpoints:
   - name: website
@@ -801,7 +796,6 @@ endpoints:
         success-threshold: 15
       - type: teams
       - type: pushover
-      - type: jetbrainsspace
     conditions:
       - "[STATUS] == 200"
 `))
@@ -828,8 +822,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 10 {
-		t.Fatal("There should've been 10 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -936,12 +930,6 @@ endpoints:
 	if !config.Endpoints[0].Alerts[8].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
-	}
-	if !config.Endpoints[0].Alerts[9].IsEnabled() {
-		t.Error("The alert should've been enabled")
-	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -1001,14 +989,6 @@ alerting:
     webhook-url: "http://example.com"
     default-alert:
       enabled: true
-  jetbrainsspace:
-    project: "foo"
-    channel-id: "bar"
-    token: "baz"
-    default-alert:
-      enabled: true
-      failure-threshold: 5
-      success-threshold: 3
   email:
     from: "from@example.com"
     username: "from@example.com"
@@ -1047,7 +1027,6 @@ endpoints:
       - type: twilio
       - type: teams
       - type: pushover
-      - type: jetbrainsspace
       - type: email
       - type: gotify
     conditions:
@@ -1169,22 +1148,6 @@ endpoints:
 		t.Fatal("Teams.GetDefaultAlert() shouldn't have returned nil")
 	}
 
-	if config.Alerting.JetBrainsSpace == nil || config.Alerting.JetBrainsSpace.Validate() != nil {
-		t.Fatal("JetBrainsSpace alerting config should've been valid")
-	}
-	if config.Alerting.JetBrainsSpace.GetDefaultAlert() == nil {
-		t.Fatal("JetBrainsSpace.GetDefaultAlert() shouldn't have returned nil")
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.Project != "foo" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "foo", config.Alerting.JetBrainsSpace.DefaultConfig.Project)
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.ChannelID != "bar" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "bar", config.Alerting.JetBrainsSpace.DefaultConfig.ChannelID)
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.Token != "baz" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "baz", config.Alerting.JetBrainsSpace.DefaultConfig.Token)
-	}
-
 	if config.Alerting.Email == nil || config.Alerting.Email.Validate() != nil {
 		t.Fatal("Email alerting config should've been valid")
 	}
@@ -1256,8 +1219,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 12 {
-		t.Fatalf("There should've been 12 alerts configured, got %d", len(config.Endpoints[0].Alerts))
+	if len(config.Endpoints[0].Alerts) != 11 {
+		t.Fatalf("There should've been 11 alerts configured, got %d", len(config.Endpoints[0].Alerts))
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1374,21 +1337,21 @@ endpoints:
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[8].SuccessThreshold)
 	}
 
-	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
+	if config.Endpoints[0].Alerts[9].Type != alert.TypeEmail {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeEmail, config.Endpoints[0].Alerts[9].Type)
 	}
 	if !config.Endpoints[0].Alerts[9].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Endpoints[0].Alerts[9].FailureThreshold != 5 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 5, config.Endpoints[0].Alerts[9].FailureThreshold)
+	if config.Endpoints[0].Alerts[9].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].FailureThreshold)
 	}
-	if config.Endpoints[0].Alerts[9].SuccessThreshold != 3 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].SuccessThreshold)
+	if config.Endpoints[0].Alerts[9].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[9].SuccessThreshold)
 	}
 
-	if config.Endpoints[0].Alerts[10].Type != alert.TypeEmail {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeEmail, config.Endpoints[0].Alerts[10].Type)
+	if config.Endpoints[0].Alerts[10].Type != alert.TypeGotify {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeGotify, config.Endpoints[0].Alerts[10].Type)
 	}
 	if !config.Endpoints[0].Alerts[10].IsEnabled() {
 		t.Error("The alert should've been enabled")
@@ -1398,19 +1361,6 @@ endpoints:
 	}
 	if config.Endpoints[0].Alerts[10].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[10].SuccessThreshold)
-	}
-
-	if config.Endpoints[0].Alerts[11].Type != alert.TypeGotify {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeGotify, config.Endpoints[0].Alerts[11].Type)
-	}
-	if !config.Endpoints[0].Alerts[11].IsEnabled() {
-		t.Error("The alert should've been enabled")
-	}
-	if config.Endpoints[0].Alerts[11].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[11].FailureThreshold)
-	}
-	if config.Endpoints[0].Alerts[11].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[11].SuccessThreshold)
 	}
 }
 
@@ -1917,7 +1867,6 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		IFTTT:                 &ifttt.AlertProvider{},
 		Ilert:                 &ilert.AlertProvider{},
 		IncidentIO:            &incidentio.AlertProvider{},
-		JetBrainsSpace:        &jetbrainsspace.AlertProvider{},
 		Line:                  &line.AlertProvider{},
 		Matrix:                &matrix.AlertProvider{},
 		Mattermost:            &mattermost.AlertProvider{},
@@ -1962,7 +1911,6 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeIFTTT, expected: alertingConfig.IFTTT},
 		{alertType: alert.TypeIlert, expected: alertingConfig.Ilert},
 		{alertType: alert.TypeIncidentIO, expected: alertingConfig.IncidentIO},
-		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
 		{alertType: alert.TypeLine, expected: alertingConfig.Line},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},

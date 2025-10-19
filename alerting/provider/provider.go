@@ -16,7 +16,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
 	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
-	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
 	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -106,7 +105,6 @@ var (
 	_ AlertProvider = (*ifttt.AlertProvider)(nil)
 	_ AlertProvider = (*ilert.AlertProvider)(nil)
 	_ AlertProvider = (*incidentio.AlertProvider)(nil)
-	_ AlertProvider = (*jetbrainsspace.AlertProvider)(nil)
 	_ AlertProvider = (*line.AlertProvider)(nil)
 	_ AlertProvider = (*matrix.AlertProvider)(nil)
 	_ AlertProvider = (*mattermost.AlertProvider)(nil)
@@ -148,7 +146,6 @@ var (
 	_ Config[ifttt.Config]          = (*ifttt.Config)(nil)
 	_ Config[ilert.Config]          = (*ilert.Config)(nil)
 	_ Config[incidentio.Config]     = (*incidentio.Config)(nil)
-	_ Config[jetbrainsspace.Config] = (*jetbrainsspace.Config)(nil)
 	_ Config[line.Config]           = (*line.Config)(nil)
 	_ Config[matrix.Config]         = (*matrix.Config)(nil)
 	_ Config[mattermost.Config]     = (*mattermost.Config)(nil)
