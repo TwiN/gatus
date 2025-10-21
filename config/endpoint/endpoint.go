@@ -498,7 +498,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSSH {
 		// If there's no username/password specified, attempt to validate just the SSH banner
-		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
+		if e.SSHConfig == nil || (len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0) {
 			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 			if err != nil {
 				result.AddError(err.Error())
