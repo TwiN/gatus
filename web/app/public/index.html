@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <script type="text/javascript">
-      window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", link: "{{ .UI.Link }}", buttons: [], maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}", defaultSortBy: "{{ .UI.DefaultSortBy }}", defaultFilterBy: "{{ .UI.DefaultFilterBy }}"};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+      window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", link: "{{ .UI.Link }}", buttons: [], maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}", defaultSortBy: "{{ .UI.DefaultSortBy }}", defaultFilterBy: "{{ .UI.DefaultFilterBy }}", defaultGroupCollapse: "{{ .UI.DefaultGroupCollapse }}"};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
       // Initialize theme immediately to prevent flash
       (function() {
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];

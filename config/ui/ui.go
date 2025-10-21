@@ -21,25 +21,28 @@ const (
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode  = true
+	defaultGroupCollapse  = true
 
-	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
-	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
-	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrButtonValidationFailed      = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDefaultSortBy        = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultFilterBy      = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidDefaultGroupCollapse = errors.New("invalid default-group-collapse value: must be a boolean")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title           string   `yaml:"title,omitempty"`             // Title of the page
-	Description     string   `yaml:"description,omitempty"`       // Meta description of the page
-	Header          string   `yaml:"header,omitempty"`            // Header is the text at the top of the page
-	Logo            string   `yaml:"logo,omitempty"`              // Logo to display on the page
-	Link            string   `yaml:"link,omitempty"`              // Link to open when clicking on the logo
-	Buttons         []Button `yaml:"buttons,omitempty"`           // Buttons to display below the header
-	CustomCSS       string   `yaml:"custom-css,omitempty"`        // Custom CSS to include in the page
-	DarkMode        *bool    `yaml:"dark-mode,omitempty"`         // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy   string   `yaml:"default-sort-by,omitempty"`   // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title                string   `yaml:"title,omitempty"`                   // Title of the page
+	Description          string   `yaml:"description,omitempty"`             // Meta description of the page
+	Header               string   `yaml:"header,omitempty"`                  // Header is the text at the top of the page
+	Logo                 string   `yaml:"logo,omitempty"`                    // Logo to display on the page
+	Link                 string   `yaml:"link,omitempty"`                    // Link to open when clicking on the logo
+	Buttons              []Button `yaml:"buttons,omitempty"`                 // Buttons to display below the header
+	CustomCSS            string   `yaml:"custom-css,omitempty"`              // Custom CSS to include in the page
+	DarkMode             *bool    `yaml:"dark-mode,omitempty"`               // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy        string   `yaml:"default-sort-by,omitempty"`         // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy      string   `yaml:"default-filter-by,omitempty"`       // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	DefaultGroupCollapse *bool    `yaml:"default-group-collapse,omitempty"`  // DefaultGroupCollapse is a flag to enable/disable collapsing of groups by default
 
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
@@ -80,6 +83,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		DefaultGroupCollapse:   &defaultGroupCollapse,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
@@ -116,6 +120,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if cfg.DefaultGroupCollapse == nil {
+	    cfg.DefaultGroupCollapse = &defaultGroupCollapse
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
