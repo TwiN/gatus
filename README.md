@@ -50,6 +50,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Announcements](#announcements)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
@@ -95,7 +96,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
-  - [Announcements](#announcements)
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -1300,7 +1300,7 @@ endpoints:
 ```
 
 
-#### Configuring ilert alerts
+#### Configuring Ilert alerts
 | Parameter                          | Description                                                                                | Default |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------|
 | `alerting.ilert`                   | Configuration for alerts of type `ilert`                                                   | `{}`    |
@@ -1852,6 +1852,40 @@ endpoints:
 ```
 
 
+#### Configuring SendGrid alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                             | Description                                                                                | Default       |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.sendgrid`                   | Configuration for alerts of type `sendgrid`                                                | `{}`          |
+| `alerting.sendgrid.api-key`           | SendGrid API key                                                                           | Required `""` |
+| `alerting.sendgrid.from`              | Email address to send from                                                                 | Required `""` |
+| `alerting.sendgrid.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
+| `alerting.sendgrid.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.sendgrid.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.sendgrid.overrides[].*`     | See `alerting.sendgrid.*` parameters                                                       | `{}`          |
+
+```yaml
+alerting:
+  sendgrid:
+    api-key: "SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    from: "alerts@example.com"
+    to: "admin@example.com,ops@example.com"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: sendgrid
+        send-on-resolved: true
+```
+
+
 #### Configuring Signal alerts
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
@@ -1914,40 +1948,6 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: signl4
-        send-on-resolved: true
-```
-
-
-#### Configuring SendGrid alerts
-
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
-| Parameter                             | Description                                                                                | Default       |
-|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.sendgrid`                   | Configuration for alerts of type `sendgrid`                                                | `{}`          |
-| `alerting.sendgrid.api-key`           | SendGrid API key                                                                           | Required `""` |
-| `alerting.sendgrid.from`              | Email address to send from                                                                 | Required `""` |
-| `alerting.sendgrid.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
-| `alerting.sendgrid.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.sendgrid.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.sendgrid.overrides[].*`     | See `alerting.sendgrid.*` parameters                                                       | `{}`          |
-
-```yaml
-alerting:
-  sendgrid:
-    api-key: "SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    from: "alerts@example.com"
-    to: "admin@example.com,ops@example.com"
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: sendgrid
         send-on-resolved: true
 ```
 
