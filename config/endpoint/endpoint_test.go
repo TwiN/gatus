@@ -301,110 +301,112 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 	}
 }
 
+type testEndpoint_typeArgs struct {
+	URL string
+	DNS *dns.Config
+	SSH *ssh.Config
+}
+
+var testEndpoint_typeData = []struct {
+	args testEndpoint_typeArgs
+	want Type
+}{
+	{
+		args: testEndpoint_typeArgs{
+			URL: "8.8.8.8",
+			DNS: &dns.Config{
+				QueryType: "A",
+				QueryName: "example.com",
+			},
+		},
+		want: TypeDNS,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "tcp://127.0.0.1:6379",
+		},
+		want: TypeTCP,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "icmp://example.com",
+		},
+		want: TypeICMP,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "sctp://example.com",
+		},
+		want: TypeSCTP,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "udp://example.com",
+		},
+		want: TypeUDP,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "starttls://smtp.gmail.com:587",
+		},
+		want: TypeSTARTTLS,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "tls://example.com:443",
+		},
+		want: TypeTLS,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "https://twin.sh/health",
+		},
+		want: TypeHTTP,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "wss://example.com/",
+		},
+		want: TypeWS,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "ws://example.com/",
+		},
+		want: TypeWS,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "ssh://example.com:22",
+			SSH: &ssh.Config{
+				Username: "root",
+				Password: "password",
+			},
+		},
+		want: TypeSSH,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "domain://example.org",
+		},
+		want: TypeDomain,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "invalid://example.org",
+		},
+		want: TypeUNKNOWN,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "no-scheme",
+		},
+		want: TypeUNKNOWN,
+	},
+}
+
 func TestEndpoint_Type(t *testing.T) {
-	type args struct {
-		URL string
-		DNS *dns.Config
-		SSH *ssh.Config
-	}
-	tests := []struct {
-		args args
-		want Type
-	}{
-		{
-			args: args{
-				URL: "8.8.8.8",
-				DNS: &dns.Config{
-					QueryType: "A",
-					QueryName: "example.com",
-				},
-			},
-			want: TypeDNS,
-		},
-		{
-			args: args{
-				URL: "tcp://127.0.0.1:6379",
-			},
-			want: TypeTCP,
-		},
-		{
-			args: args{
-				URL: "icmp://example.com",
-			},
-			want: TypeICMP,
-		},
-		{
-			args: args{
-				URL: "sctp://example.com",
-			},
-			want: TypeSCTP,
-		},
-		{
-			args: args{
-				URL: "udp://example.com",
-			},
-			want: TypeUDP,
-		},
-		{
-			args: args{
-				URL: "starttls://smtp.gmail.com:587",
-			},
-			want: TypeSTARTTLS,
-		},
-		{
-			args: args{
-				URL: "tls://example.com:443",
-			},
-			want: TypeTLS,
-		},
-		{
-			args: args{
-				URL: "https://twin.sh/health",
-			},
-			want: TypeHTTP,
-		},
-		{
-			args: args{
-				URL: "wss://example.com/",
-			},
-			want: TypeWS,
-		},
-		{
-			args: args{
-				URL: "ws://example.com/",
-			},
-			want: TypeWS,
-		},
-		{
-			args: args{
-				URL: "ssh://example.com:22",
-				SSH: &ssh.Config{
-					Username: "root",
-					Password: "password",
-				},
-			},
-			want: TypeSSH,
-		},
-		{
-			args: args{
-				URL: "domain://example.org",
-			},
-			want: TypeDomain,
-		},
-		{
-			args: args{
-				URL: "invalid://example.org",
-			},
-			want: TypeUNKNOWN,
-		},
-		{
-			args: args{
-				URL: "no-scheme",
-			},
-			want: TypeUNKNOWN,
-		},
-	}
-	for _, tt := range tests {
+	for _, tt := range testEndpoint_typeData {
 		t.Run(string(tt.want), func(t *testing.T) {
 			endpoint := Endpoint{
 				URL:       tt.args.URL,
@@ -414,6 +416,20 @@ func TestEndpoint_Type(t *testing.T) {
 				t.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkEndpoint_Type(b *testing.B) {
+	for b.Loop() {
+		for _, tt := range testEndpoint_typeData {
+			endpoint := Endpoint{
+				URL:       tt.args.URL,
+				DNSConfig: tt.args.DNS,
+			}
+			if got := endpoint.Type(); got != tt.want {
+				b.Errorf("Endpoint.Type() = %v, want %v", got, tt.want)
+			}
+		}
 	}
 }
 
