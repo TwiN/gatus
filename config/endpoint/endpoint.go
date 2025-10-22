@@ -353,6 +353,9 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		}
 		result.port = ""
 	}
+	if processedEndpoint.UIConfig.HideErrors {
+		result.Errors = nil
+	}
 	if processedEndpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
