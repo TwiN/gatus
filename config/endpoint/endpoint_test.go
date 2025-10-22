@@ -163,6 +163,27 @@ func TestEndpoint(t *testing.T) {
 			}),
 		},
 		{
+			Name: "domain-expiration-without-http-request",
+			Endpoint: Endpoint{
+				Name:       "domain-check",
+				URL:        "domain://twin.sh",
+				Conditions: []Condition{"[DOMAIN_EXPIRATION] > 100h"},
+				Interval:   5 * time.Minute,
+			},
+			ExpectedResult: &Result{
+				Success:   true,
+				Connected: false,
+				Hostname:  "twin.sh",
+				ConditionResults: []*ConditionResult{
+					{Condition: "[DOMAIN_EXPIRATION] > 100h", Success: true},
+				},
+				DomainExpiration: 999999 * time.Hour, // Note that this test only checks if it's non-zero.
+			},
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+		},
+		{
 			Name: "endpoint-that-will-time-out-and-hidden-hostname",
 			Endpoint: Endpoint{
 				Name:         "endpoint-that-will-time-out",
@@ -363,6 +384,12 @@ func TestEndpoint_Type(t *testing.T) {
 				},
 			},
 			want: TypeSSH,
+		},
+		{
+			args: args{
+				URL: "domain://example.org",
+			},
+			want: TypeDomain,
 		},
 		{
 			args: args{

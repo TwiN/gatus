@@ -53,6 +53,7 @@ const (
 	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
+	TypeDomain   Type = "DOMAIN"
 	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
@@ -184,6 +185,8 @@ func (e *Endpoint) Type() Type {
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
 		return TypeSSH
+	case strings.HasPrefix(e.URL, "domain://"):
+		return TypeDomain
 	default:
 		return TypeUNKNOWN
 	}
@@ -452,8 +455,12 @@ func (e *Endpoint) call(result *Result) {
 	var err error
 	var certificate *x509.Certificate
 	endpointType := e.Type()
-	if endpointType == TypeHTTP {
+	switch endpointType {
+	case TypeHTTP:
 		request = e.buildHTTPRequest()
+	case TypeDomain:
+		// domain expiration checked before call `call`
+		return
 	}
 	startTime := time.Now()
 	if endpointType == TypeDNS {
