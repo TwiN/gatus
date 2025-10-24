@@ -282,7 +282,7 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	for i := 0; i < resultsCleanUpThreshold+eventsCleanUpThreshold; i++ {
 		store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
 		store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
-		ss, _ := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults*5).WithEvents(1, storage.DefaultMaximumNumberOfEvents*5))
+		ss, _ := store.GetEndpointStatusByKey(testEndpoint.Key(), false, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults*5).WithEvents(1, storage.DefaultMaximumNumberOfEvents*5))
 		if len(ss.Results) > resultsCleanUpThreshold+1 {
 			t.Errorf("number of results shouldn't have exceeded %d, reached %d", resultsCleanUpThreshold, len(ss.Results))
 		}
@@ -299,7 +299,7 @@ func TestStore_InsertWithCaching(t *testing.T) {
 	store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
 	store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
 	// Verify that they exist
-	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	endpointStatuses, _ := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 20))
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
@@ -310,7 +310,7 @@ func TestStore_InsertWithCaching(t *testing.T) {
 	store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 	store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 	// Verify that they exist
-	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	endpointStatuses, _ = store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 20))
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
@@ -320,7 +320,7 @@ func TestStore_InsertWithCaching(t *testing.T) {
 	// Clear the store, which should also clear the cache
 	store.Clear()
 	// Verify that they no longer exist
-	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+	endpointStatuses, _ = store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 20))
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 0 {
 		t.Fatalf("expected 0 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
@@ -343,7 +343,7 @@ func TestStore_Persistence(t *testing.T) {
 	if uptime, _ := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour*24*30), time.Now()); uptime != 0.5 {
 		t.Errorf("the uptime over the past 30d should've been 0.5, got %f", uptime)
 	}
-	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
+	ssFromOldStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, false, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
 	if ssFromOldStore == nil || ssFromOldStore.Group != "group" || ssFromOldStore.Name != "name" || len(ssFromOldStore.Events) != 3 || len(ssFromOldStore.Results) != 2 {
 		store.Close()
 		t.Fatal("sanity check failed")
@@ -351,7 +351,7 @@ func TestStore_Persistence(t *testing.T) {
 	store.Close()
 	store, _ = NewStore("sqlite", path, false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
-	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
+	ssFromNewStore, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, false, paging.NewEndpointStatusParams().WithResults(1, storage.DefaultMaximumNumberOfResults).WithEvents(1, storage.DefaultMaximumNumberOfEvents))
 	if ssFromNewStore == nil || ssFromNewStore.Group != "group" || ssFromNewStore.Name != "name" || len(ssFromNewStore.Events) != 3 || len(ssFromNewStore.Results) != 2 {
 		t.Fatal("failed sanity check")
 	}
@@ -426,13 +426,13 @@ func TestStore_SanityCheck(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_SanityCheck.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
 	store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
-	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	endpointStatuses, _ := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams())
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
 	store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 	// Both results inserted are for the same endpoint, therefore, the count shouldn't have increased
-	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	endpointStatuses, _ = store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams())
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
@@ -447,7 +447,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, false, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
@@ -547,7 +547,7 @@ func TestStore_BrokenSchema(t *testing.T) {
 	if _, err := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
-	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams()); err != nil {
+	if _, err := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams()); err != nil {
 		t.Fatal("expected no error, got", err.Error())
 	}
 	// Break
@@ -562,13 +562,13 @@ func TestStore_BrokenSchema(t *testing.T) {
 	if _, err := store.GetHourlyAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams()); err == nil {
+	if _, err := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams()); err == nil {
 		t.Fatal("expected an error")
 	}
 	if _, err := store.GetUptimeByKey(testEndpoint.Key(), time.Now().Add(-time.Hour), time.Now()); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams()); err == nil {
+	if _, err := store.GetEndpointStatusByKey(testEndpoint.Key(), false, paging.NewEndpointStatusParams()); err == nil {
 		t.Fatal("expected an error")
 	}
 	// Repair
@@ -584,7 +584,7 @@ func TestStore_BrokenSchema(t *testing.T) {
 	if err := store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult); err != nil {
 		t.Fatal("expected no error, because this should silently fails, got", err.Error())
 	}
-	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
+	if _, err := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err != nil {
 		t.Fatal("expected no error, because this should silently fail, got", err.Error())
 	}
 	// Repair
@@ -600,7 +600,7 @@ func TestStore_BrokenSchema(t *testing.T) {
 	if err := store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult); err == nil {
 		t.Fatal("expected an error")
 	}
-	if _, err := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err == nil {
+	if _, err := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 1).WithEvents(1, 1)); err == nil {
 		t.Fatal("expected an error")
 	}
 	// Repair
@@ -912,7 +912,7 @@ func TestEventOrderingFix(t *testing.T) {
 	}
 	// Now retrieve events with pagination to test the ordering
 	tx, _ := store.db.Begin()
-	endpointID, _, _, _ := store.getEndpointIDGroupAndNameByKey(tx, ep.Key())
+	endpointID, _, _, _, _ := store.getEndpointIDGroupAndNameByKey(tx, ep.Key())
 	// Get the first page (should get the MOST RECENT events, but in chronological order)
 	events, err := store.getEndpointEventsByEndpointID(tx, endpointID, 1, 10)
 	tx.Commit()

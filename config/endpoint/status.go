@@ -21,7 +21,7 @@ type Status struct {
 	Events []*Event `json:"events,omitempty"`
 
 	// Public mark an endpoint as public, unauthenticated users will be able to see them
-	Public bool `yaml:"public,omitempty"`
+	Public bool `yaml:"public,omitempty" json:"public,omitempty"`
 
 	// Uptime information on the endpoint's uptime
 	//

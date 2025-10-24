@@ -56,7 +56,6 @@ import (
 	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/gatus/v5/config/web"
-	"github.com/TwiN/gatus/v5/security"
 	"github.com/TwiN/gatus/v5/storage"
 	"gopkg.in/yaml.v3"
 )

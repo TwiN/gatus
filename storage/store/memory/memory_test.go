@@ -89,13 +89,13 @@ func TestStore_SanityCheck(t *testing.T) {
 	defer store.Clear()
 	defer store.Close()
 	store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
-	endpointStatuses, _ := store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	endpointStatuses, _ := store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams())
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
 	store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 	// Both results inserted are for the same endpoint, therefore, the count shouldn't have increased
-	endpointStatuses, _ = store.GetAllEndpointStatuses(paging.NewEndpointStatusParams())
+	endpointStatuses, _ = store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams())
 	if numberOfEndpointStatuses := len(endpointStatuses); numberOfEndpointStatuses != 1 {
 		t.Fatalf("expected 1 EndpointStatus, got %d", numberOfEndpointStatuses)
 	}
@@ -110,7 +110,7 @@ func TestStore_SanityCheck(t *testing.T) {
 	if averageResponseTime, _ := store.GetAverageResponseTimeByKey(testEndpoint.Key(), time.Now().Add(-24*time.Hour), time.Now()); averageResponseTime != 450 {
 		t.Errorf("expected average response time of last 24h to be 450, got %d", averageResponseTime)
 	}
-	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
+	ss, _ := store.GetEndpointStatus(testEndpoint.Group, testEndpoint.Name, false, paging.NewEndpointStatusParams().WithResults(1, 20).WithEvents(1, 20))
 	if ss == nil {
 		t.Fatalf("Store should've had key '%s', but didn't", testEndpoint.Key())
 	}
@@ -275,7 +275,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		}
 
 		// Verify the suite result was stored correctly
-		status, err := store.GetSuiteStatusByKey(testSuite.Key(), nil)
+		status, err := store.GetSuiteStatusByKey(testSuite.Key(), false, nil)
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
@@ -317,7 +317,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 				{Success: true, Duration: 75 * time.Millisecond, Name: "suite-endpoint2"},
 			},
 		})
-		statuses, err := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		statuses, err := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get all endpoint statuses: %v", err)
 		}
@@ -384,7 +384,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 			Name: testSuite.Name, Group: testSuite.Group, Success: true,
 			Timestamp: timestamp, Duration: 125 * time.Millisecond,
 		})
-		statuses, err := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		statuses, err := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get all suite statuses: %v", err)
 		}
@@ -428,7 +428,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		store.InsertEndpointResult(suiteEndpoint1, &endpoint.Result{Success: false, Timestamp: timestamp2, Duration: 50 * time.Millisecond, Errors: []string{"suite error"}})
 
 		// Test regular endpoints
-		status1, err := store.GetEndpointStatusByKey(endpoint1.Key(), &paging.EndpointStatusParams{})
+		status1, err := store.GetEndpointStatusByKey(endpoint1.Key(), false, &paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get endpoint1 status: %v", err)
 		}
@@ -452,7 +452,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		}
 
 		// Test suite endpoints
-		suiteStatus1, err := store.GetEndpointStatusByKey(suiteEndpoint1.Key(), &paging.EndpointStatusParams{})
+		suiteStatus1, err := store.GetEndpointStatusByKey(suiteEndpoint1.Key(), false, &paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get suite endpoint1 status: %v", err)
 		}
@@ -493,7 +493,7 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 				{Success: false, Duration: 75 * time.Millisecond, Errors: []string{"endpoint failed"}},
 			},
 		})
-		suiteStatus, err := store.GetSuiteStatusByKey(testSuite.Key(), &paging.SuiteStatusParams{})
+		suiteStatus, err := store.GetSuiteStatusByKey(testSuite.Key(), false, &paging.SuiteStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
@@ -555,13 +555,13 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		}
 
 		// Verify remaining endpoints
-		statuses, _ := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		statuses, _ := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if len(statuses) != 2 {
 			t.Errorf("expected 2 remaining endpoint statuses, got %d", len(statuses))
 		}
 
 		// Suite should still exist
-		suiteStatuses, _ := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		suiteStatuses, _ := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if len(suiteStatuses) != 1 {
 			t.Errorf("suite should not be affected by DeleteAllEndpointStatusesNotInKeys")
 		}
@@ -600,13 +600,13 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		}
 
 		// Endpoints should still exist
-		endpointStatuses, _ := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		endpointStatuses, _ := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if len(endpointStatuses) != 1 {
 			t.Errorf("endpoints should not be affected by DeleteAllSuiteStatusesNotInKeys")
 		}
 
 		// Only one suite should remain
-		suiteStatuses, _ := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		suiteStatuses, _ := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if len(suiteStatuses) != 1 {
 			t.Errorf("expected 1 remaining suite, got %d", len(suiteStatuses))
 		}
@@ -625,13 +625,13 @@ func TestStore_MixedEndpointsAndSuites(t *testing.T) {
 		store.Clear()
 
 		// No endpoints should remain
-		endpointStatuses, _ := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		endpointStatuses, _ := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if len(endpointStatuses) != 0 {
 			t.Errorf("expected 0 endpoints after clear, got %d", len(endpointStatuses))
 		}
 
 		// No suites should remain
-		suiteStatuses, _ := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		suiteStatuses, _ := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if len(suiteStatuses) != 0 {
 			t.Errorf("expected 0 suites after clear, got %d", len(suiteStatuses))
 		}
@@ -673,7 +673,7 @@ func TestStore_EndpointStatusCastingSafety(t *testing.T) {
 	store.InsertSuiteResult(testSuite, suiteResult)
 
 	// This should not panic even with mixed types in cache
-	statuses, err := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+	statuses, err := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 	if err != nil {
 		t.Fatalf("failed to get all endpoint statuses: %v", err)
 	}
@@ -715,7 +715,7 @@ func TestStore_MaximumLimits(t *testing.T) {
 		}
 
 		// Verify only maxResults are kept
-		status, err := store.GetEndpointStatusByKey(ep.Key(), nil)
+		status, err := store.GetEndpointStatusByKey(ep.Key(), false, nil)
 		if err != nil {
 			t.Fatalf("failed to get endpoint status: %v", err)
 		}
@@ -759,7 +759,7 @@ func TestStore_MaximumLimits(t *testing.T) {
 		}
 
 		// Verify only maxResults are kept
-		status, err := store.GetSuiteStatusByKey(testSuite.Key(), &paging.SuiteStatusParams{})
+		status, err := store.GetSuiteStatusByKey(testSuite.Key(), false, &paging.SuiteStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
@@ -814,7 +814,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 	}
 
 	t.Run("chronological-append-order", func(t *testing.T) {
-		status, err := store.GetSuiteStatusByKey(testSuite.Key(), nil)
+		status, err := store.GetSuiteStatusByKey(testSuite.Key(), false, nil)
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
@@ -892,7 +892,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 			}
 		}
 
-		status, err := limitedStore.GetSuiteStatusByKey(smallSuite.Key(), nil)
+		status, err := limitedStore.GetSuiteStatusByKey(smallSuite.Key(), false, nil)
 		if err != nil {
 			t.Fatalf("failed to get suite status: %v", err)
 		}
@@ -955,7 +955,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Wait()
 
 		// Verify all endpoints were created and have correct result counts
-		statuses, err := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		statuses, err := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get all endpoint statuses: %v", err)
 		}
@@ -1009,7 +1009,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Wait()
 
 		// Verify all suites were created and have correct result counts
-		statuses, err := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		statuses, err := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get all suite statuses: %v", err)
 		}
@@ -1067,8 +1067,8 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 10; i++ {
-				store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
-				store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+				store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
+				store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 				time.Sleep(1 * time.Millisecond)
 			}
 		}()
@@ -1076,7 +1076,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Wait()
 
 		// Verify final state is consistent
-		endpointStatuses, err := store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
+		endpointStatuses, err := store.GetAllEndpointStatuses(false, &paging.EndpointStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get endpoint statuses after concurrent operations: %v", err)
 		}
@@ -1084,7 +1084,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 			t.Error("expected at least one endpoint status after concurrent operations")
 		}
 
-		suiteStatuses, err := store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
+		suiteStatuses, err := store.GetAllSuiteStatuses(false, &paging.SuiteStatusParams{})
 		if err != nil {
 			t.Fatalf("failed to get suite statuses after concurrent operations: %v", err)
 		}

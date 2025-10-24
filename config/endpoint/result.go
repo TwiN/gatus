@@ -63,7 +63,7 @@ type Result struct {
 	Name string `json:"name,omitempty"`
 
 	// Public mark an endpoint as public, unauthenticated users will be able to see them
-	Public bool
+	Public bool `json:"public"`
 }
 
 // AddError adds an error to the result's list of errors.
