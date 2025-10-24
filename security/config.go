@@ -19,16 +19,16 @@ const (
 )
 
 const (
-	authLevelGlobal = "global"
+	authLevelGlobal   = "global"
 	authLevelEndpoint = "endpoint"
 )
 
 // Config is the security configuration for Gatus
 type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
-	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`      
-	Level string  `yaml:"level,omitempty"`
-	
+	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
+	Level string       `yaml:"level,omitempty"`
+
 	gate *g8.Gate
 }
 
@@ -36,13 +36,14 @@ type Config struct {
 func (c *Config) ValidateAndSetDefaults() bool {
 	basicValid := c.Basic != nil && c.Basic.isValid()
 	oauthValid := c.OIDC != nil && c.OIDC.ValidateAndSetDefaults()
-	
+
 	// Set default level
 	if c.Level == "" {
 		c.Level = authLevelGlobal
 	}
 	levelValid := c.Level == authLevelGlobal || c.Level == authLevelEndpoint
 
+	logr.Infof("[security.config.ValidateAndSetDefautls] Set auth level to %s", c.Level)
 	return levelValid && (basicValid || oauthValid)
 }
 
