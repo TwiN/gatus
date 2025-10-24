@@ -299,7 +299,7 @@
 
 // State
 const retrievedConfig = ref(false)
-const config = ref({ oidc: false, authenticated: true })
+const config = ref({ oidc: false, authenticated: true, authLevel: '' })
 const announcements = ref([])
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
@@ -340,7 +340,6 @@ const buttons = computed(() => {
 const fetchConfig = async () => {
     try {
         const response = await authenticatedFetch(`${SERVER_URL}/api/v1/config`)
-        retrievedConfig.value = true
 
         if (response.status === 200) {
             const data = await response.json()
@@ -355,6 +354,7 @@ const fetchConfig = async () => {
                 }
             }
         }
+        retrievedConfig.value = true
     } catch (error) {
         console.error('Failed to fetch config:', error)
         retrievedConfig.value = true
