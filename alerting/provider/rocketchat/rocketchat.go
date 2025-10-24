@@ -1,4 +1,4 @@
-package jetbrainsspace
+package rocketchat
 
 import (
 	"bytes"
@@ -15,44 +15,32 @@ import (
 )
 
 var (
-	ErrProjectNotSet          = errors.New("project not set")
-	ErrChannelIDNotSet        = errors.New("channel-id not set")
-	ErrTokenNotSet            = errors.New("token not set")
+	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
-	Project   string `yaml:"project"`    // Project name
-	ChannelID string `yaml:"channel-id"` // Chat Channel ID
-	Token     string `yaml:"token"`      // Bearer Token
+	WebhookURL string `yaml:"webhook-url"`       // Rocket.Chat incoming webhook URL
+	Channel    string `yaml:"channel,omitempty"` // Optional channel override
 }
 
 func (cfg *Config) Validate() error {
-	if len(cfg.Project) == 0 {
-		return ErrProjectNotSet
-	}
-	if len(cfg.ChannelID) == 0 {
-		return ErrChannelIDNotSet
-	}
-	if len(cfg.Token) == 0 {
-		return ErrTokenNotSet
+	if len(cfg.WebhookURL) == 0 {
+		return ErrWebhookURLNotSet
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.Project) > 0 {
-		cfg.Project = override.Project
+	if len(override.WebhookURL) > 0 {
+		cfg.WebhookURL = override.WebhookURL
 	}
-	if len(override.ChannelID) > 0 {
-		cfg.ChannelID = override.ChannelID
-	}
-	if len(override.Token) > 0 {
-		cfg.Token = override.Token
+	if len(override.Channel) > 0 {
+		cfg.Channel = override.Channel
 	}
 }
 
-// AlertProvider is the configuration necessary for sending an alert using JetBrains Space
+// AlertProvider is the configuration necessary for sending an alert using Rocket.Chat
 type AlertProvider struct {
 	DefaultConfig Config `yaml:",inline"`
 
@@ -89,101 +77,102 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	url := fmt.Sprintf("https://%s.jetbrains.space/api/http/chats/messages/send-message", cfg.Project)
-	request, err := http.NewRequest(http.MethodPost, url, buffer)
+	body, err := provider.buildRequestBody(cfg, ep, alert, result, resolved)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(body)
+	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+cfg.Token)
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
-	if response.StatusCode > 399 {
+	if response.StatusCode >= 400 {
 		body, _ := io.ReadAll(response.Body)
-		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+		return fmt.Errorf("call to rocketchat alert returned status code %d: %s", response.StatusCode, string(body))
 	}
-	return err
+	return nil
 }
 
 type Body struct {
-	Channel string  `json:"channel"`
-	Content Content `json:"content"`
+	Text        string       `json:"text"`
+	Channel     string       `json:"channel,omitempty"`
+	Username    string       `json:"username"`
+	Attachments []Attachment `json:"attachments"`
 }
 
-type Content struct {
-	ClassName string    `json:"className"`
-	Style     string    `json:"style"`
-	Sections  []Section `json:"sections,omitempty"`
+type Attachment struct {
+	Title      string  `json:"title"`
+	Text       string  `json:"text"`
+	Color      string  `json:"color"`
+	Fields     []Field `json:"fields,omitempty"`
+	AuthorName string  `json:"author_name"`
+	AuthorIcon string  `json:"author_icon"`
 }
 
-type Section struct {
-	ClassName string    `json:"className"`
-	Elements  []Element `json:"elements"`
-	Header    string    `json:"header"`
-}
-
-type Element struct {
-	ClassName string    `json:"className"`
-	Accessory Accessory `json:"accessory"`
-	Style     string    `json:"style"`
-	Size      string    `json:"size"`
-	Content   string    `json:"content"`
-}
-
-type Accessory struct {
-	ClassName string `json:"className"`
-	Icon      Icon   `json:"icon"`
-	Style     string `json:"style"`
-}
-
-type Icon struct {
-	Icon string `json:"icon"`
+type Field struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool   `json:"short"`
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) ([]byte, error) {
+	var message, color string
+	if resolved {
+		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
+		color = "#36a64f"
+	} else {
+		message = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+		color = "#dd0000"
+	}
+	var formattedConditionResults string
+	for _, conditionResult := range result.ConditionResults {
+		var prefix string
+		if conditionResult.Success {
+			prefix = "✅"
+		} else {
+			prefix = "❌"
+		}
+		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
+	}
+	var description string
+	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
+		description = ":\n> " + alertDescription
+	}
 	body := Body{
-		Channel: "id:" + cfg.ChannelID,
-		Content: Content{
-			ClassName: "ChatMessage.Block",
-			Sections: []Section{{
-				ClassName: "MessageSection",
-				Elements:  []Element{},
-			}},
+		Text:     "",
+		Username: "Gatus",
+		Attachments: []Attachment{
+			{
+				Title:      "🚨 Gatus Alert",
+				Text:       message + description,
+				Color:      color,
+				AuthorName: "Gatus",
+				AuthorIcon: "https://raw.githubusercontent.com/TwiN/gatus/master/.github/assets/logo.png",
+			},
 		},
 	}
-	if resolved {
-		body.Content.Style = "SUCCESS"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-	} else {
-		body.Content.Style = "WARNING"
-		body.Content.Sections[0].Header = fmt.Sprintf("An alert for *%s* has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+	if cfg.Channel != "" {
+		body.Channel = cfg.Channel
 	}
-	for _, conditionResult := range result.ConditionResults {
-		icon := "warning"
-		style := "WARNING"
-		if conditionResult.Success {
-			icon = "success"
-			style = "SUCCESS"
-		}
-		body.Content.Sections[0].Elements = append(body.Content.Sections[0].Elements, Element{
-			ClassName: "MessageText",
-			Accessory: Accessory{
-				ClassName: "MessageIcon",
-				Icon:      Icon{Icon: icon},
-				Style:     style,
-			},
-			Style:   style,
-			Size:    "REGULAR",
-			Content: conditionResult.Condition,
+	if len(formattedConditionResults) > 0 {
+		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
+			Title: "Condition results",
+			Value: formattedConditionResults,
+			Short: false,
 		})
 	}
-	bodyAsJSON, _ := json.Marshal(body)
-	return bodyAsJSON
+	bodyAsJSON, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return bodyAsJSON, nil
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

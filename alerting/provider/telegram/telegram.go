@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultApiUrl = "https://api.telegram.org"
+const ApiURL = "https://api.telegram.org"
 
 var (
 	ErrTokenNotSet            = errors.New("token not set")
@@ -33,7 +33,7 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	if len(cfg.ApiUrl) == 0 {
-		cfg.ApiUrl = defaultApiUrl
+		cfg.ApiUrl = ApiURL
 	}
 	if len(cfg.Token) == 0 {
 		return ErrTokenNotSet
@@ -147,7 +147,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	}
 	var text string
 	if len(alert.GetDescription()) > 0 {
-		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n_%s_  \n%s", message, alert.GetDescription(), formattedConditionResults)
+		text = fmt.Sprintf("⛑ *Gatus* \n%s \n*Description* \n%s  \n%s", message, alert.GetDescription(), formattedConditionResults)
 	} else {
 		text = fmt.Sprintf("⛑ *Gatus* \n%s%s", message, formattedConditionResults)
 	}

@@ -59,6 +59,7 @@ func stop(cfg *config.Config) {
 	watchdog.Shutdown(cfg)
 	controller.Shutdown()
 	metrics.UnregisterPrometheusMetrics()
+	closeTunnels(cfg)
 }
 
 func save() {
@@ -103,6 +104,15 @@ func initializeStorage(cfg *config.Config) {
 	if err != nil {
 		panic(err)
 	}
+	// Remove all SuiteStatuses that represent suites which no longer exist in the configuration
+	var suiteKeys []string
+	for _, suite := range cfg.Suites {
+		suiteKeys = append(suiteKeys, suite.Key())
+	}
+	numberOfSuiteStatusesDeleted := store.Get().DeleteAllSuiteStatusesNotInKeys(suiteKeys)
+	if numberOfSuiteStatusesDeleted > 0 {
+		logr.Infof("[main.initializeStorage] Deleted %d suite statuses because their matching suites no longer existed", numberOfSuiteStatusesDeleted)
+	}
 	// Remove all EndpointStatus that represent endpoints which no longer exist in the configuration
 	var keys []string
 	for _, ep := range cfg.Endpoints {
@@ -111,6 +121,13 @@ func initializeStorage(cfg *config.Config) {
 	for _, ee := range cfg.ExternalEndpoints {
 		keys = append(keys, ee.Key())
 	}
+	// Also add endpoints that are part of suites
+	for _, suite := range cfg.Suites {
+		for _, ep := range suite.Endpoints {
+			keys = append(keys, ep.Key())
+		}
+	}
+	logr.Infof("[main.initializeStorage] Total endpoint keys to preserve: %d", len(keys))
 	numberOfEndpointStatusesDeleted := store.Get().DeleteAllEndpointStatusesNotInKeys(keys)
 	if numberOfEndpointStatusesDeleted > 0 {
 		logr.Infof("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
@@ -166,8 +183,43 @@ func initializeStorage(cfg *config.Config) {
 			}
 		}
 	}
+	// Load persisted triggered alerts for suite endpoints
+	for _, suite := range cfg.Suites {
+		for _, ep := range suite.Endpoints {
+			var checksums []string
+			for _, alert := range ep.Alerts {
+				if alert.IsEnabled() {
+					checksums = append(checksums, alert.Checksum())
+				}
+			}
+			numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep, checksums)
+			if numberOfTriggeredAlertsDeleted > 0 {
+				logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for suite endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
+			}
+			for _, alert := range ep.Alerts {
+				exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+				if err != nil {
+					logr.Errorf("[main.initializeStorage] Failed to get triggered alert for suite endpoint with key=%s: %s", ep.Key(), err.Error())
+					continue
+				}
+				if exists {
+					alert.Triggered, alert.ResolveKey = true, resolveKey
+					ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+					numberOfPersistedTriggeredAlertsLoaded++
+				}
+			}
+		}
+	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
+	}
+}
+
+func closeTunnels(cfg *config.Config) {
+	if cfg.Tunneling != nil {
+		if err := cfg.Tunneling.Close(); err != nil {
+			logr.Errorf("[main.closeTunnels] Error closing SSH tunnels: %v", err)
+		}
 	}
 }
 

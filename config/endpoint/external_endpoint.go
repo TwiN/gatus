@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint/heartbeat"
+	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 )
 
@@ -82,7 +83,7 @@ func (externalEndpoint *ExternalEndpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (externalEndpoint *ExternalEndpoint) Key() string {
-	return ConvertGroupAndEndpointNameToKey(externalEndpoint.Group, externalEndpoint.Name)
+	return key.ConvertGroupAndNameToKey(externalEndpoint.Group, externalEndpoint.Name)
 }
 
 // ToEndpoint converts the ExternalEndpoint to an Endpoint

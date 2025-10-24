@@ -7,82 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwiN/gatus/v5/jsonpath"
+	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
-// Placeholders
 const (
-	// StatusPlaceholder is a placeholder for a HTTP status.
-	//
-	// Values that could replace the placeholder: 200, 404, 500, ...
-	StatusPlaceholder = "[STATUS]"
-
-	// IPPlaceholder is a placeholder for an IP.
-	//
-	// Values that could replace the placeholder: 127.0.0.1, 10.0.0.1, ...
-	IPPlaceholder = "[IP]"
-
-	// DNSRCodePlaceholder is a placeholder for DNS_RCODE
-	//
-	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
-	DNSRCodePlaceholder = "[DNS_RCODE]"
-
-	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
-	//
-	// Values that could replace the placeholder: 1, 500, 1000, ...
-	ResponseTimePlaceholder = "[RESPONSE_TIME]"
-
-	// BodyPlaceholder is a placeholder for the Body of the response
-	//
-	// Values that could replace the placeholder: {}, {"data":{"name":"john"}}, ...
-	BodyPlaceholder = "[BODY]"
-
-	// ConnectedPlaceholder is a placeholder for whether a connection was successfully established.
-	//
-	// Values that could replace the placeholder: true, false
-	ConnectedPlaceholder = "[CONNECTED]"
-
-	// CertificateExpirationPlaceholder is a placeholder for the duration before certificate expiration, in milliseconds.
-	//
-	// Values that could replace the placeholder: 4461677039 (~52 days)
-	CertificateExpirationPlaceholder = "[CERTIFICATE_EXPIRATION]"
-
-	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
-	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
-)
-
-// Functions
-const (
-	// LengthFunctionPrefix is the prefix for the length function
-	//
-	// Usage: len([BODY].articles) == 10, len([BODY].name) > 5
-	LengthFunctionPrefix = "len("
-
-	// HasFunctionPrefix is the prefix for the has function
-	//
-	// Usage: has([BODY].errors) == true
-	HasFunctionPrefix = "has("
-
-	// PatternFunctionPrefix is the prefix for the pattern function
-	//
-	// Usage: [IP] == pat(192.168.*.*)
-	PatternFunctionPrefix = "pat("
-
-	// AnyFunctionPrefix is the prefix for the any function
-	//
-	// Usage: [IP] == any(1.1.1.1, 1.0.0.1)
-	AnyFunctionPrefix = "any("
-
-	// FunctionSuffix is the suffix for all functions
-	FunctionSuffix = ")"
-)
-
-// Other constants
-const (
-	// InvalidConditionElementSuffix is the suffix that will be appended to an invalid condition
-	InvalidConditionElementSuffix = "(INVALID)"
-
 	// maximumLengthBeforeTruncatingWhenComparedWithPattern is the maximum length an element being compared to a
 	// pattern can have.
 	//
@@ -97,50 +26,50 @@ type Condition string
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
 	r := &Result{}
-	c.evaluate(r, false)
+	c.evaluate(r, false, nil)
 	if len(r.Errors) != 0 {
 		return errors.New(r.Errors[0])
 	}
 	return nil
 }
 
-// evaluate the Condition with the Result of the health check
-func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool) bool {
+// evaluate the Condition with the Result and an optional context
+func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
 	if strings.Contains(condition, " == ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " == "), result)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " == "), result, context)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
-		parameters, resolvedParameters := sanitizeAndResolve(strings.Split(condition, " != "), result)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " != "), result, context)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " <= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " >= "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " > "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumerical(strings.Split(condition, " < "), result)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if !success && !dontResolveFailedConditions {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
@@ -235,79 +164,29 @@ func isEqual(first, second string) bool {
 	return first == second
 }
 
-// sanitizeAndResolve sanitizes and resolves a list of elements and returns the list of parameters as well as a list
-// of resolved parameters
-func sanitizeAndResolve(elements []string, result *Result) ([]string, []string) {
+// sanitizeAndResolveWithContext sanitizes and resolves a list of elements with an optional context
+func sanitizeAndResolveWithContext(elements []string, result *Result, context *gontext.Gontext) ([]string, []string) {
 	parameters := make([]string, len(elements))
 	resolvedParameters := make([]string, len(elements))
-	body := strings.TrimSpace(string(result.Body))
 	for i, element := range elements {
 		element = strings.TrimSpace(element)
 		parameters[i] = element
-		switch strings.ToUpper(element) {
-		case StatusPlaceholder:
-			element = strconv.Itoa(result.HTTPStatus)
-		case IPPlaceholder:
-			element = result.IP
-		case ResponseTimePlaceholder:
-			element = strconv.Itoa(int(result.Duration.Milliseconds()))
-		case BodyPlaceholder:
-			element = body
-		case DNSRCodePlaceholder:
-			element = result.DNSRCode
-		case ConnectedPlaceholder:
-			element = strconv.FormatBool(result.Connected)
-		case CertificateExpirationPlaceholder:
-			element = strconv.FormatInt(result.CertificateExpiration.Milliseconds(), 10)
-		case DomainExpirationPlaceholder:
-			element = strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10)
-		default:
-			// if contains the BodyPlaceholder, then evaluate json path
-			if strings.Contains(element, BodyPlaceholder) {
-				checkingForLength := false
-				checkingForExistence := false
-				if strings.HasPrefix(element, LengthFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForLength = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, LengthFunctionPrefix), FunctionSuffix)
-				}
-				if strings.HasPrefix(element, HasFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix) {
-					checkingForExistence = true
-					element = strings.TrimSuffix(strings.TrimPrefix(element, HasFunctionPrefix), FunctionSuffix)
-				}
-				resolvedElement, resolvedElementLength, err := jsonpath.Eval(strings.TrimPrefix(strings.TrimPrefix(element, BodyPlaceholder), "."), result.Body)
-				if checkingForExistence {
-					if err != nil {
-						element = "false"
-					} else {
-						element = "true"
-					}
-				} else {
-					if err != nil {
-						if err.Error() != "unexpected end of JSON input" {
-							result.AddError(err.Error())
-						}
-						if checkingForLength {
-							element = LengthFunctionPrefix + element + FunctionSuffix + " " + InvalidConditionElementSuffix
-						} else {
-							element = element + " " + InvalidConditionElementSuffix
-						}
-					} else {
-						if checkingForLength {
-							element = strconv.Itoa(resolvedElementLength)
-						} else {
-							element = resolvedElement
-						}
-					}
-				}
-			}
+
+		// Use the unified ResolvePlaceholder function
+		resolved, err := ResolvePlaceholder(element, result, context)
+		if err != nil {
+			// If there's an error, add it to the result
+			result.AddError(err.Error())
+			resolvedParameters[i] = element + " " + InvalidConditionElementSuffix
+		} else {
+			resolvedParameters[i] = resolved
 		}
-		resolvedParameters[i] = element
 	}
 	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumerical(list []string, result *Result) (parameters []string, resolvedNumericalParameters []int64) {
-	parameters, resolvedParameters := sanitizeAndResolve(list, result)
+func sanitizeAndResolveNumericalWithContext(list []string, result *Result, context *gontext.Gontext) (parameters []string, resolvedNumericalParameters []int64) {
+	parameters, resolvedParameters := sanitizeAndResolveWithContext(list, result, context)
 	for _, element := range resolvedParameters {
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds
@@ -335,30 +214,35 @@ func prettifyNumericalParameters(parameters []string, resolvedParameters []int64
 
 // prettify returns a string representation of a condition with its parameters resolved between parentheses
 func prettify(parameters []string, resolvedParameters []string, operator string) string {
-	// Since, in the event of an invalid path, the resolvedParameters also contain the condition itself,
-	// we'll return the resolvedParameters as-is.
-	if strings.HasSuffix(resolvedParameters[0], InvalidConditionElementSuffix) || strings.HasSuffix(resolvedParameters[1], InvalidConditionElementSuffix) {
-		return resolvedParameters[0] + " " + operator + " " + resolvedParameters[1]
-	}
-	// If using the pattern function, truncate the parameter it's being compared to if said parameter is long enough
+	// Handle pattern function truncation first
 	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
 	}
 	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
 		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
 	}
-	// First element is a placeholder
-	if parameters[0] != resolvedParameters[0] && parameters[1] == resolvedParameters[1] {
-		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1]
+	// Determine the state of each parameter
+	leftChanged := parameters[0] != resolvedParameters[0]
+	rightChanged := parameters[1] != resolvedParameters[1]
+	leftInvalid := resolvedParameters[0] == parameters[0]+" "+InvalidConditionElementSuffix
+	rightInvalid := resolvedParameters[1] == parameters[1]+" "+InvalidConditionElementSuffix
+	// Build the output based on what was resolved
+	var left, right string
+	// Format left side
+	if leftChanged && !leftInvalid {
+		left = parameters[0] + " (" + resolvedParameters[0] + ")"
+	} else if leftInvalid {
+		left = resolvedParameters[0] // Already has (INVALID)
+	} else {
+		left = parameters[0] // Unchanged
 	}
-	// Second element is a placeholder
-	if parameters[0] == resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return parameters[0] + " " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
+	// Format right side
+	if rightChanged && !rightInvalid {
+		right = parameters[1] + " (" + resolvedParameters[1] + ")"
+	} else if rightInvalid {
+		right = resolvedParameters[1] // Already has (INVALID)
+	} else {
+		right = parameters[1] // Unchanged
 	}
-	// Both elements are placeholders...?
-	if parameters[0] != resolvedParameters[0] && parameters[1] != resolvedParameters[1] {
-		return parameters[0] + " (" + resolvedParameters[0] + ") " + operator + " " + parameters[1] + " (" + resolvedParameters[1] + ")"
-	}
-	// Neither elements are placeholders
-	return parameters[0] + " " + operator + " " + parameters[1]
+	return left + " " + operator + " " + right
 }

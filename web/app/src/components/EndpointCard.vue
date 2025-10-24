@@ -15,7 +15,7 @@
               {{ endpoint.name }}
             </span>
           </CardTitle>
-          <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+          <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground min-h-[1.25rem]">
             <span v-if="endpoint.group" class="truncate" :title="endpoint.group">{{ endpoint.group }}</span>
             <span v-if="endpoint.group && hostname">•</span>
             <span v-if="hostname" class="truncate" :title="hostname">{{ hostname }}</span>
@@ -39,10 +39,16 @@
               :key="index"
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
-                result ? (result.success ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700') : 'bg-gray-200 dark:bg-gray-700'
+                result ? 'cursor-pointer' : '',
+                result ? (
+                  result.success 
+                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result && emit('showTooltip', result, $event)"
-              @mouseleave="result && emit('showTooltip', null, $event)"
+              @mouseenter="result && handleMouseEnter(result, $event)"
+              @mouseleave="result && handleMouseLeave(result, $event)"
+              @click.stop="result && handleClick(result, $event, index)"
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
@@ -57,11 +63,11 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { helper } from '@/mixins/helper'
+import { generatePrettyTimeAgo } from '@/utils/time'
 
 const router = useRouter()
 
@@ -81,6 +87,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['showTooltip'])
+
+// Track selected data point
+const selectedResultIndex = ref(null)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -145,15 +154,49 @@ const formattedResponseTime = computed(() => {
 
 const oldestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
+  return generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
 })
 
 const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return helper.methods.generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
+  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
 }
+
+const handleMouseEnter = (result, event) => {
+  emit('showTooltip', result, event, 'hover')
+}
+
+const handleMouseLeave = (result, event) => {
+  emit('showTooltip', null, event, 'hover')
+}
+
+const handleClick = (result, event, index) => {
+  // Clear selections in other cards first
+  window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+  // Then toggle this card's selection
+  if (selectedResultIndex.value === index) {
+    selectedResultIndex.value = null
+    emit('showTooltip', null, event, 'click')
+  } else {
+    selectedResultIndex.value = index
+    emit('showTooltip', result, event, 'click')
+  }
+}
+
+// Listen for clear selection event
+const handleClearSelection = () => {
+  selectedResultIndex.value = null
+}
+
+onMounted(() => {
+  window.addEventListener('clear-data-point-selection', handleClearSelection)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('clear-data-point-selection', handleClearSelection)
+})
 </script>

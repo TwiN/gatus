@@ -148,7 +148,7 @@
     </div>
 
     <!-- Tooltip -->
-    <Tooltip :result="tooltip.result" :event="tooltip.event" />
+    <Tooltip :result="tooltip.result" :event="tooltip.event" :isPersistent="tooltipIsPersistent" />
   </div>
 </template>
 
@@ -173,6 +173,7 @@ const announcements = ref([])
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
+const tooltipIsPersistent = ref(false)
 let configInterval = null
 
 // Computed properties
@@ -196,21 +197,51 @@ const buttons = computed(() => {
 const fetchConfig = async () => {
   try {
     const response = await fetch(`${SERVER_URL}/api/v1/config`, { credentials: 'include' })
-    retrievedConfig.value = true
-    
     if (response.status === 200) {
       const data = await response.json()
       config.value = data
       announcements.value = data.announcements || []
     }
+    retrievedConfig.value = true
   } catch (error) {
     console.error('Failed to fetch config:', error)
     retrievedConfig.value = true
   }
 }
 
-const showTooltip = (result, event) => {
-  tooltip.value = { result, event }
+const showTooltip = (result, event, action = 'hover') => {
+  if (action === 'click') {
+    if (!result) {
+      // Deselecting
+      tooltip.value = {}
+      tooltipIsPersistent.value = false
+    } else {
+      // Selecting new data point
+      tooltip.value = { result, event }
+      tooltipIsPersistent.value = true
+    }
+  } else if (action === 'hover') {
+    // Only update tooltip on hover if not in persistent mode
+    if (!tooltipIsPersistent.value) {
+      tooltip.value = { result, event }
+    }
+  }
+}
+
+const handleDocumentClick = (event) => {
+  // Close persistent tooltip when clicking outside
+  if (tooltipIsPersistent.value) {
+    const tooltipElement = document.getElementById('tooltip')
+    // Check if click is on a data point bar or inside tooltip
+    const clickedDataPoint = event.target.closest('.flex-1.h-6, .flex-1.h-8')
+
+    if (tooltipElement && !tooltipElement.contains(event.target) && !clickedDataPoint) {
+      tooltip.value = {}
+      tooltipIsPersistent.value = false
+      // Emit event to clear selections in child components
+      window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+    }
+  }
 }
 
 // Fetch config on mount and set up interval
@@ -218,6 +249,8 @@ onMounted(() => {
   fetchConfig()
   // Refresh config every 10 minutes for announcements
   configInterval = setInterval(fetchConfig, 600000)
+  // Add click listener for closing persistent tooltips
+  document.addEventListener('click', handleDocumentClick)
 })
 
 // Clean up interval on unmount
@@ -226,5 +259,7 @@ onUnmounted(() => {
     clearInterval(configInterval)
     configInterval = null
   }
+  // Remove click listener
+  document.removeEventListener('click', handleDocumentClick)
 })
 </script>

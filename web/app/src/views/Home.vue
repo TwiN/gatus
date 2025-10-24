@@ -39,20 +39,20 @@
         <Loading size="lg" />
       </div>
 
-      <div v-else-if="filteredEndpoints.length === 0" class="text-center py-20">
+      <div v-else-if="filteredEndpoints.length === 0 && filteredSuites.length === 0" class="text-center py-20">
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-semibold mb-2">No endpoints found</h3>
+        <h3 class="text-lg font-semibold mb-2">No endpoints or suites found</h3>
         <p class="text-muted-foreground">
           {{ searchQuery || showOnlyFailing || showRecentFailures 
             ? 'Try adjusting your filters' 
-            : 'No endpoints are configured' }}
+            : 'No endpoints or suites are configured' }}
         </p>
       </div>
 
       <div v-else>
         <!-- Grouped view -->
         <div v-if="groupByGroup" class="space-y-6">
-          <div v-for="(endpoints, group) in paginatedEndpoints" :key="group" class="endpoint-group border rounded-lg overflow-hidden">
+          <div v-for="(items, group) in combinedGroups" :key="group" class="endpoint-group border rounded-lg overflow-hidden">
             <!-- Group Header -->
             <div 
               @click="toggleGroupCollapse(group)"
@@ -64,9 +64,9 @@
                 <h2 class="text-xl font-semibold text-foreground">{{ group }}</h2>
               </div>
               <div class="flex items-center gap-2">
-                <span v-if="calculateUnhealthyCount(endpoints) > 0" 
+                <span v-if="calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) > 0" 
                       class="bg-red-600 text-white px-2 py-1 rounded-full text-sm font-medium">
-                  {{ calculateUnhealthyCount(endpoints) }}
+                  {{ calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) }}
                 </span>
                 <CheckCircle v-else class="h-6 w-6 text-green-600" />
               </div>
@@ -74,30 +74,68 @@
             
             <!-- Group Content -->
             <div v-if="uncollapsedGroups.has(group)" class="endpoint-group-content p-4">
-              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                <EndpointCard
-                  v-for="endpoint in endpoints"
-                  :key="endpoint.key"
-                  :endpoint="endpoint"
-                  :maxResults="50"
-                  :showAverageResponseTime="showAverageResponseTime"
-                  @showTooltip="showTooltip"
-                />
+              <!-- Suites Section -->
+              <div v-if="items.suites.length > 0" class="mb-4">
+                <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Suites</h3>
+                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  <SuiteCard
+                    v-for="suite in items.suites"
+                    :key="suite.key"
+                    :suite="suite"
+                    :maxResults="50"
+                    @showTooltip="showTooltip"
+                  />
+                </div>
+              </div>
+              
+              <!-- Endpoints Section -->
+              <div v-if="items.endpoints.length > 0">
+                <h3 v-if="items.suites.length > 0" class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Endpoints</h3>
+                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  <EndpointCard
+                    v-for="endpoint in items.endpoints"
+                    :key="endpoint.key"
+                    :endpoint="endpoint"
+                    :maxResults="50"
+                    :showAverageResponseTime="showAverageResponseTime"
+                    @showTooltip="showTooltip"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
         
         <!-- Regular view -->
-        <div v-else class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <EndpointCard
-            v-for="endpoint in paginatedEndpoints"
-            :key="endpoint.key"
-            :endpoint="endpoint"
-            :maxResults="50"
-            :showAverageResponseTime="showAverageResponseTime"
-            @showTooltip="showTooltip"
-          />
+        <div v-else>
+          <!-- Suites Section -->
+          <div v-if="filteredSuites.length > 0" class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground mb-3">Suites</h2>
+            <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <SuiteCard
+                v-for="suite in paginatedSuites"
+                :key="suite.key"
+                :suite="suite"
+                :maxResults="50"
+                @showTooltip="showTooltip"
+              />
+            </div>
+          </div>
+          
+          <!-- Endpoints Section -->
+          <div v-if="filteredEndpoints.length > 0">
+            <h2 v-if="filteredSuites.length > 0" class="text-lg font-semibold text-foreground mb-3">Endpoints</h2>
+            <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <EndpointCard
+                v-for="endpoint in paginatedEndpoints"
+                :key="endpoint.key"
+                :endpoint="endpoint"
+                :maxResults="50"
+                :showAverageResponseTime="showAverageResponseTime"
+                @showTooltip="showTooltip"
+              />
+            </div>
+          </div>
         </div>
 
         <div v-if="!groupByGroup && totalPages > 1" class="mt-8 flex items-center justify-center gap-2">
@@ -144,6 +182,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import EndpointCard from '@/components/EndpointCard.vue'
+import SuiteCard from '@/components/SuiteCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
@@ -160,6 +199,7 @@ const props = defineProps({
 const emit = defineEmits(['showTooltip'])
 
 const endpointStatuses = ref([])
+const suiteStatuses = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = 96
@@ -215,8 +255,51 @@ const filteredEndpoints = computed(() => {
   return filtered
 })
 
+const filteredSuites = computed(() => {
+  let filtered = [...(suiteStatuses.value || [])]
+  
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(suite => 
+      suite.name.toLowerCase().includes(query) ||
+      (suite.group && suite.group.toLowerCase().includes(query))
+    )
+  }
+  
+  if (showOnlyFailing.value) {
+    filtered = filtered.filter(suite => {
+      if (!suite.results || suite.results.length === 0) return false
+      return !suite.results[suite.results.length - 1].success
+    })
+  }
+  
+  if (showRecentFailures.value) {
+    filtered = filtered.filter(suite => {
+      if (!suite.results || suite.results.length === 0) return false
+      return suite.results.some(result => !result.success)
+    })
+  }
+  
+  // Sort by health if selected
+  if (sortBy.value === 'health') {
+    filtered.sort((a, b) => {
+      const aHealthy = a.results && a.results.length > 0 && a.results[a.results.length - 1].success
+      const bHealthy = b.results && b.results.length > 0 && b.results[b.results.length - 1].success
+      
+      // Unhealthy first
+      if (!aHealthy && bHealthy) return -1
+      if (aHealthy && !bHealthy) return 1
+      
+      // Then sort by name
+      return a.name.localeCompare(b.name)
+    })
+  }
+  
+  return filtered
+})
+
 const totalPages = computed(() => {
-  return Math.ceil(filteredEndpoints.value.length / itemsPerPage)
+  return Math.ceil((filteredEndpoints.value.length + filteredSuites.value.length) / itemsPerPage)
 })
 
 const groupedEndpoints = computed(() => {
@@ -248,6 +331,46 @@ const groupedEndpoints = computed(() => {
   return result
 })
 
+const combinedGroups = computed(() => {
+  if (!groupByGroup.value) {
+    return null
+  }
+  
+  const combined = {}
+  
+  // Add endpoints
+  filteredEndpoints.value.forEach(endpoint => {
+    const group = endpoint.group || 'No Group'
+    if (!combined[group]) {
+      combined[group] = { endpoints: [], suites: [] }
+    }
+    combined[group].endpoints.push(endpoint)
+  })
+  
+  // Add suites
+  filteredSuites.value.forEach(suite => {
+    const group = suite.group || 'No Group'
+    if (!combined[group]) {
+      combined[group] = { endpoints: [], suites: [] }
+    }
+    combined[group].suites.push(suite)
+  })
+  
+  // Sort groups alphabetically, with 'No Group' at the end
+  const sortedGroups = Object.keys(combined).sort((a, b) => {
+    if (a === 'No Group') return 1
+    if (b === 'No Group') return -1
+    return a.localeCompare(b)
+  })
+  
+  const result = {}
+  sortedGroups.forEach(group => {
+    result[group] = combined[group]
+  })
+  
+  return result
+})
+
 const paginatedEndpoints = computed(() => {
   if (groupByGroup.value) {
     // When grouping, we don't paginate
@@ -257,6 +380,17 @@ const paginatedEndpoints = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   const end = start + itemsPerPage
   return filteredEndpoints.value.slice(start, end)
+})
+
+const paginatedSuites = computed(() => {
+  if (groupByGroup.value) {
+    // When grouping, we don't paginate
+    return filteredSuites.value
+  }
+  
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return filteredSuites.value.slice(start, end)
 })
 
 const visiblePages = computed(() => {
@@ -278,42 +412,35 @@ const visiblePages = computed(() => {
 
 const fetchData = async () => {
   // Don't show loading state on refresh to prevent UI flicker
-  const isInitialLoad = endpointStatuses.value.length === 0
+  const isInitialLoad = endpointStatuses.value.length === 0 && suiteStatuses.value.length === 0
   if (isInitialLoad) {
     loading.value = true
   }
   try {
-    const response = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
+    // Fetch endpoints
+    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
       credentials: 'include'
     })
-    if (response.status === 200) {
-      const data = await response.json()
-      // If this is the initial load, just set the data
-      if (isInitialLoad) {
-        endpointStatuses.value = data
-      } else {
-        // Check if endpoints have been added or removed
-        const currentKeys = new Set(endpointStatuses.value.map(ep => ep.key))
-        const newKeys = new Set(data.map(ep => ep.key))
-        const hasAdditions = data.some(ep => !currentKeys.has(ep.key))
-        const hasRemovals = endpointStatuses.value.some(ep => !newKeys.has(ep.key))
-        if (hasAdditions || hasRemovals) {
-          // Endpoints have changed, reset the array to maintain proper order
-          endpointStatuses.value = data
-        } else {
-          // Only statuses/results have changed, update in place to preserve scroll
-          const endpointMap = new Map(data.map(ep => [ep.key, ep]))
-          endpointStatuses.value.forEach((endpoint, index) => {
-            const updated = endpointMap.get(endpoint.key)
-            if (updated) {
-              // Update in place to preserve Vue's reactivity and scroll position
-              Object.assign(endpointStatuses.value[index], updated)
-            }
-          })
-        }
-      }
+    if (endpointResponse.status === 200) {
+      const data = await endpointResponse.json()
+      endpointStatuses.value = data
     } else {
-      console.error('[Home][fetchData] Error:', await response.text())
+      console.error('[Home][fetchData] Error fetching endpoints:', await endpointResponse.text())
+    }
+    
+    // Fetch suites
+    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=100`, {
+      credentials: 'include'
+    })
+    if (suiteResponse.status === 200) {
+      const suiteData = await suiteResponse.json()
+      suiteStatuses.value = suiteData || []
+    } else {
+      console.error('[Home][fetchData] Error fetching suites:', await suiteResponse.text())
+      // Ensure suiteStatuses stays as empty array instead of becoming null/undefined
+      if (!suiteStatuses.value) {
+        suiteStatuses.value = []
+      }
     }
   } catch (error) {
     console.error('[Home][fetchData] Error:', error)
@@ -326,6 +453,7 @@ const fetchData = async () => {
 
 const refreshData = () => {
   endpointStatuses.value = [];
+  suiteStatuses.value = [];
   fetchData()
 }
 
@@ -343,8 +471,8 @@ const toggleShowAverageResponseTime = () => {
   showAverageResponseTime.value = !showAverageResponseTime.value
 }
 
-const showTooltip = (result, event) => {
-  emit('showTooltip', result, event)
+const showTooltip = (result, event, action = 'hover') => {
+  emit('showTooltip', result, event, action)
 }
 
 const calculateUnhealthyCount = (endpoints) => {
@@ -352,6 +480,13 @@ const calculateUnhealthyCount = (endpoints) => {
     if (!endpoint.results || endpoint.results.length === 0) return false
     const latestResult = endpoint.results[endpoint.results.length - 1]
     return !latestResult.success
+  }).length
+}
+
+const calculateFailingSuitesCount = (suites) => {
+  return suites.filter(suite => {
+    if (!suite.results || suite.results.length === 0) return false
+    return !suite.results[suite.results.length - 1].success
   }).length
 }
 

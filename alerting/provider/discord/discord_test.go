@@ -134,6 +134,16 @@ func TestAlertProvider_Send(t *testing.T) {
 			}),
 			ExpectedError: false,
 		},
+		{
+			Name:     "triggered-with-message-content",
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com", MessageContent: "<@123456789>"}},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			ExpectedError: false,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -199,6 +209,27 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     false,
 			ExpectedBody: "{\"content\":\"\",\"embeds\":[{\"title\":\"provider-title\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332}]}",
+		},
+		{
+			Name:         "triggered-with-message-content-user-mention",
+			Provider:     AlertProvider{DefaultConfig: Config{MessageContent: "<@123456789>"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"content\":\"\\u003c@123456789\\u003e\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n:x: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
+		},
+		{
+			Name:         "triggered-with-message-content-role-mention",
+			Provider:     AlertProvider{DefaultConfig: Config{MessageContent: "<@&987654321>"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"content\":\"\\u003c@\\u0026987654321\\u003e\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been triggered due to having failed 3 time(s) in a row:\\n\\u003e description-1\",\"color\":15158332,\"fields\":[{\"name\":\"Condition results\",\"value\":\":x: - `[CONNECTED] == true`\\n:x: - `[STATUS] == 200`\\n:x: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
+		},
+		{
+			Name:         "resolved-with-message-content",
+			Provider:     AlertProvider{DefaultConfig: Config{MessageContent: "<@123456789>"}},
+			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     true,
+			ExpectedBody: "{\"content\":\"\\u003c@123456789\\u003e\",\"embeds\":[{\"title\":\":helmet_with_white_cross: Gatus\",\"description\":\"An alert for **endpoint-name** has been resolved after passing successfully 5 time(s) in a row:\\n\\u003e description-2\",\"color\":3066993,\"fields\":[{\"name\":\"Condition results\",\"value\":\":white_check_mark: - `[CONNECTED] == true`\\n:white_check_mark: - `[STATUS] == 200`\\n:white_check_mark: - `[BODY] != \\\"\\\"`\\n\",\"inline\":false}]}]}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -313,6 +344,39 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
 			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},
+		{
+			Name: "provider-with-message-content-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "http://example.com", MessageContent: "<@123456789>"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://example.com", MessageContent: "<@123456789>"},
+		},
+		{
+			Name: "provider-with-message-content-group-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "http://example.com", MessageContent: "<@123456789>"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{WebhookURL: "http://group-example.com", MessageContent: "<@&987654321>"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "http://group-example.com", MessageContent: "<@&987654321>"},
+		},
+		{
+			Name: "provider-with-message-content-alert-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "http://example.com", MessageContent: "<@123456789>"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"message-content": "<@999999999>"}},
+			ExpectedOutput: Config{WebhookURL: "http://example.com", MessageContent: "<@999999999>"},
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -322,6 +386,9 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.WebhookURL != scenario.ExpectedOutput.WebhookURL {
 				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
+			}
+			if got.MessageContent != scenario.ExpectedOutput.MessageContent {
+				t.Errorf("expected message content to be %s, got %s", scenario.ExpectedOutput.MessageContent, got.MessageContent)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {

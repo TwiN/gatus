@@ -27,6 +27,11 @@ func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConf
 func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config) {
 	ep.NumberOfSuccessesInARow = 0
 	ep.NumberOfFailuresInARow++
+	// Store the current LastReminderSent time so all alert providers use the same reference time for reminder checks
+	// This is important in case there are multiple alerts: if the first one sends a reminder, it would update the value
+	// of ep.LastReminderSent (since ep is a pointer), so the second one would never send a reminder, even if it was due.
+	// By storing the value in a local variable, we ensure all alerts use the same reference
+	lastReminderSent := ep.LastReminderSent
 	for _, endpointAlert := range ep.Alerts {
 		// If the alert hasn't been triggered, move to the next one
 		if !endpointAlert.IsEnabled() || endpointAlert.FailureThreshold > ep.NumberOfFailuresInARow {
@@ -35,7 +40,7 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		// Determine if an initial alert should be sent
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent
-		sendReminder := endpointAlert.Triggered && endpointAlert.MinimumReminderInterval > 0 && time.Since(ep.LastReminderSent) >= endpointAlert.MinimumReminderInterval
+		sendReminder := endpointAlert.Triggered && endpointAlert.MinimumReminderInterval > 0 && time.Since(lastReminderSent) >= endpointAlert.MinimumReminderInterval
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {
 			logr.Debugf("[watchdog.handleAlertsToTrigger] Alert for endpoint=%s with description='%s' is not due for triggering or reminding, skipping", ep.Name, endpointAlert.GetDescription())

@@ -1,4 +1,4 @@
-package jetbrainsspace
+package n8n
 
 import (
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 )
 
 func TestAlertProvider_Validate(t *testing.T) {
-	invalidProvider := AlertProvider{DefaultConfig: Config{Project: ""}}
+	invalidProvider := AlertProvider{DefaultConfig: Config{WebhookURL: ""}}
 	if err := invalidProvider.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid")
 	}
-	validProvider := AlertProvider{DefaultConfig: Config{Project: "foo", ChannelID: "bar", Token: "baz"}}
+	validProvider := AlertProvider{DefaultConfig: Config{WebhookURL: "https://example.com"}}
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
@@ -24,10 +24,9 @@ func TestAlertProvider_Validate(t *testing.T) {
 
 func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	providerWithInvalidOverrideGroup := AlertProvider{
-		DefaultConfig: Config{Project: "foobar"},
 		Overrides: []Override{
 			{
-				Config: Config{ChannelID: "http://example.com"},
+				Config: Config{WebhookURL: "http://example.com"},
 				Group:  "",
 			},
 		},
@@ -36,26 +35,21 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 		t.Error("provider Group shouldn't have been valid")
 	}
 	providerWithInvalidOverrideTo := AlertProvider{
-		DefaultConfig: Config{Project: "foobar"},
 		Overrides: []Override{
 			{
-				Config: Config{ChannelID: ""},
+				Config: Config{WebhookURL: ""},
 				Group:  "group",
 			},
 		},
 	}
 	if err := providerWithInvalidOverrideTo.Validate(); err == nil {
-		t.Error("provider integration key shouldn't have been valid")
+		t.Error("provider webhook URL shouldn't have been valid")
 	}
 	providerWithValidOverride := AlertProvider{
-		DefaultConfig: Config{
-			Project:   "foo",
-			ChannelID: "bar",
-			Token:     "baz",
-		},
+		DefaultConfig: Config{WebhookURL: "http://example.com"},
 		Overrides: []Override{
 			{
-				Config: Config{ChannelID: "foobar"},
+				Config: Config{WebhookURL: "http://example.com"},
 				Group:  "group",
 			},
 		},
@@ -79,7 +73,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	}{
 		{
 			Name:     "triggered",
-			Provider: AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project", Token: "token"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -89,7 +83,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "triggered-error",
-			Provider: AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project", Token: "token"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -99,7 +93,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved",
-			Provider: AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project", Token: "token"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -109,7 +103,7 @@ func TestAlertProvider_Send(t *testing.T) {
 		},
 		{
 			Name:     "resolved-error",
-			Provider: AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project", Token: "token"}},
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
 			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved: true,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
@@ -151,45 +145,94 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Endpoint     endpoint.Endpoint
 		Alert        alert.Alert
 		Resolved     bool
-		ExpectedBody string
+		ExpectedBody Body
 	}{
 		{
-			Name:         "triggered",
-			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name"},
-			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     false,
-			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
+			Name:     "triggered",
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
+			Endpoint: endpoint.Endpoint{Name: "name", URL: "https://example.org"},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			ExpectedBody: Body{
+				Title:            "Gatus",
+				EndpointName:     "name",
+				EndpointURL:      "https://example.org",
+				AlertDescription: "description-1",
+				Resolved:         false,
+				Message:          "An alert for name has been triggered due to having failed 3 time(s) in a row",
+				ConditionResults: []ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: false},
+					{Condition: "[STATUS] == 200", Success: false},
+				},
+			},
 		},
 		{
-			Name:         "triggered-with-group",
-			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
-			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     false,
-			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"WARNING","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"warning"},"style":"WARNING"},"style":"WARNING","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been triggered due to having failed 3 time(s) in a row"}]}}`,
+			Name:     "triggered-with-group",
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
+			Endpoint: endpoint.Endpoint{Name: "name", Group: "group", URL: "https://example.org"},
+			Alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: false,
+			ExpectedBody: Body{
+				Title:            "Gatus",
+				EndpointName:     "name",
+				EndpointGroup:    "group",
+				EndpointURL:      "https://example.org",
+				AlertDescription: "description-1",
+				Resolved:         false,
+				Message:          "An alert for group/name has been triggered due to having failed 3 time(s) in a row",
+				ConditionResults: []ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: false},
+					{Condition: "[STATUS] == 200", Success: false},
+				},
+			},
 		},
 		{
-			Name:         "resolved",
-			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name"},
-			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     true,
-			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
+			Name:     "resolved",
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com"}},
+			Endpoint: endpoint.Endpoint{Name: "name", URL: "https://example.org"},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			ExpectedBody: Body{
+				Title:            "Gatus",
+				EndpointName:     "name",
+				EndpointURL:      "https://example.org",
+				AlertDescription: "description-2",
+				Resolved:         true,
+				Message:          "An alert for name has been resolved after passing successfully 5 time(s) in a row",
+				ConditionResults: []ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: true},
+					{Condition: "[STATUS] == 200", Success: true},
+				},
+			},
 		},
 		{
-			Name:         "resolved-with-group",
-			Provider:     AlertProvider{DefaultConfig: Config{ChannelID: "1", Project: "project"}},
-			Endpoint:     endpoint.Endpoint{Name: "name", Group: "group"},
-			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
-			Resolved:     true,
-			ExpectedBody: `{"channel":"id:1","content":{"className":"ChatMessage.Block","style":"SUCCESS","sections":[{"className":"MessageSection","elements":[{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[CONNECTED] == true"},{"className":"MessageText","accessory":{"className":"MessageIcon","icon":{"icon":"success"},"style":"SUCCESS"},"style":"SUCCESS","size":"REGULAR","content":"[STATUS] == 200"}],"header":"An alert for *group/name* has been resolved after passing successfully 5 time(s) in a row"}]}}`,
+			Name:     "resolved-with-custom-title",
+			Provider: AlertProvider{DefaultConfig: Config{WebhookURL: "http://example.com", Title: "Custom Title"}},
+			Endpoint: endpoint.Endpoint{Name: "name", URL: "https://example.org"},
+			Alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved: true,
+			ExpectedBody: Body{
+				Title:            "Custom Title",
+				EndpointName:     "name",
+				EndpointURL:      "https://example.org",
+				AlertDescription: "description-2",
+				Resolved:         true,
+				Message:          "An alert for name has been resolved after passing successfully 5 time(s) in a row",
+				ConditionResults: []ConditionResult{
+					{Condition: "[CONNECTED] == true", Success: true},
+					{Condition: "[STATUS] == 200", Success: true},
+				},
+			},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
+			cfg, err := scenario.Provider.GetConfig(scenario.Endpoint.Group, &scenario.Alert)
+			if err != nil {
+				t.Fatal("couldn't get config:", err.Error())
+			}
 			body := scenario.Provider.buildRequestBody(
-				&scenario.Provider.DefaultConfig,
+				cfg,
 				&scenario.Endpoint,
 				&scenario.Alert,
 				&endpoint.Result{
@@ -200,12 +243,21 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				},
 				scenario.Resolved,
 			)
-			if string(body) != scenario.ExpectedBody {
-				t.Errorf("expected:\n%s\ngot:\n%s", scenario.ExpectedBody, body)
-			}
-			out := make(map[string]interface{})
-			if err := json.Unmarshal(body, &out); err != nil {
+			var actualBody Body
+			if err := json.Unmarshal(body, &actualBody); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
+			}
+			if actualBody.Title != scenario.ExpectedBody.Title {
+				t.Errorf("expected title to be %s, got %s", scenario.ExpectedBody.Title, actualBody.Title)
+			}
+			if actualBody.EndpointName != scenario.ExpectedBody.EndpointName {
+				t.Errorf("expected endpoint name to be %s, got %s", scenario.ExpectedBody.EndpointName, actualBody.EndpointName)
+			}
+			if actualBody.Resolved != scenario.ExpectedBody.Resolved {
+				t.Errorf("expected resolved to be %v, got %v", scenario.ExpectedBody.Resolved, actualBody.Resolved)
+			}
+			if actualBody.Message != scenario.ExpectedBody.Message {
+				t.Errorf("expected message to be %s, got %s", scenario.ExpectedBody.Message, actualBody.Message)
 			}
 		})
 	}
@@ -231,67 +283,67 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		{
 			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides:     nil,
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-no-group-should-default",
 			Provider: AlertProvider{
-				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{ChannelID: "group-channel"},
+						Config: Config{WebhookURL: "http://example01.com"},
 					},
 				},
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ChannelID: "default", Project: "project", Token: "token"},
+			ExpectedOutput: Config{WebhookURL: "http://example.com"},
 		},
 		{
 			Name: "provider-with-override-specify-group-should-override",
 			Provider: AlertProvider{
-				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{ChannelID: "group-channel"},
+						Config: Config{WebhookURL: "http://group-example.com"},
 					},
 				},
 			},
 			InputGroup:     "group",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ChannelID: "group-channel", Project: "project", Token: "token"},
+			ExpectedOutput: Config{WebhookURL: "http://group-example.com"},
 		},
 		{
 			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
 			Provider: AlertProvider{
-				DefaultConfig: Config{ChannelID: "default", Project: "project", Token: "token"},
+				DefaultConfig: Config{WebhookURL: "http://example.com"},
 				Overrides: []Override{
 					{
 						Group:  "group",
-						Config: Config{ChannelID: "group-channel"},
+						Config: Config{WebhookURL: "http://group-example.com"},
 					},
 				},
 			},
 			InputGroup:     "group",
-			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "alert-channel", "project": "alert-project", "token": "alert-token"}},
-			ExpectedOutput: Config{ChannelID: "alert-channel", Project: "alert-project", Token: "alert-token"},
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "http://alert-example.com"}},
+			ExpectedOutput: Config{WebhookURL: "http://alert-example.com"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -300,14 +352,8 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			if got.ChannelID != scenario.ExpectedOutput.ChannelID {
-				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.ChannelID, got.ChannelID)
-			}
-			if got.Project != scenario.ExpectedOutput.Project {
-				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Project, got.Project)
-			}
-			if got.Token != scenario.ExpectedOutput.Token {
-				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Token, got.Token)
+			if got.WebhookURL != scenario.ExpectedOutput.WebhookURL {
+				t.Errorf("expected webhook URL to be %s, got %s", scenario.ExpectedOutput.WebhookURL, got.WebhookURL)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {

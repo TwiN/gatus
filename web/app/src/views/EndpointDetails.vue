@@ -207,7 +207,7 @@ import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import { SERVER_URL } from '@/main.js'
-import { helper } from '@/mixins/helper'
+import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
 const router = useRouter()
 const route = useRoute()
@@ -290,7 +290,7 @@ const lastCheckTime = computed(() => {
   if (!currentStatus.value || !currentStatus.value.results || currentStatus.value.results.length === 0) {
     return 'Never'
   }
-  return helper.methods.generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
+  return generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
 })
 
 
@@ -328,7 +328,7 @@ const fetchData = async () => {
               event.fancyText = 'Endpoint became healthy'
             } else if (event.type === 'UNHEALTHY') {
               if (nextEvent) {
-                event.fancyText = 'Endpoint was unhealthy for ' + helper.methods.generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)
+                event.fancyText = 'Endpoint was unhealthy for ' + generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)
               } else {
                 event.fancyText = 'Endpoint became unhealthy'
               }
@@ -336,7 +336,7 @@ const fetchData = async () => {
               event.fancyText = 'Monitoring started'
             }
           }
-          event.fancyTimeAgo = helper.methods.generatePrettyTimeAgo(event.timestamp)
+          event.fancyTimeAgo = generatePrettyTimeAgo(event.timestamp)
           processedEvents.push(event)
         }
       }
@@ -369,8 +369,8 @@ const changePage = (page) => {
   fetchData()
 }
 
-const showTooltip = (result, event) => {
-  emit('showTooltip', result, event)
+const showTooltip = (result, event, action = 'hover') => {
+  emit('showTooltip', result, event, action)
 }
 
 const prettifyTimestamp = (timestamp) => {
