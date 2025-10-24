@@ -25,6 +25,7 @@ type OIDCConfig struct {
 	ClientSecret    string        `yaml:"client-secret"`
 	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
 	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	ClaimToCheck    string        `yaml:"claim-to-check"`   // e.g. email. If empty, subject is used
 	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
 
 	oauth2Config oauth2.Config
@@ -125,15 +126,44 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	for _, subject := range c.AllowedSubjects {
-		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
-			c.setSessionCookie(w, idToken)
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
+
+	var claimsMap map[string]any
+	if err := idToken.Claims(&claimsMap); err != nil {
+		http.Error(w, "failed to parse claims", http.StatusBadRequest)
+		return
 	}
-	logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
+
+	if c.isAuthorized(idToken.Subject, claimsMap) {
+		c.setSessionCookie(w, idToken)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
+}
+
+func (c *OIDCConfig) isAuthorized(subject string, claimsMap map[string]any) bool {
+	claimToCheck := c.ClaimToCheck
+	if len(claimToCheck) > 0 {
+		claimValue, ok := claimsMap[claimToCheck]
+		if ok {
+			for _, subject := range c.AllowedSubjects {
+				if claimValue == subject {
+					return true
+				}
+			}
+			logr.Debugf("[security.isAuthorized] Value %s of claim %s doesn't match any element of the list of allowed subjects", claimValue, claimToCheck)
+		} else {
+			logr.Debugf("[security.isAuthorized] Claim doesn't contain the field %s", claimToCheck)
+		}
+	} else {
+		for _, allowedSubject := range c.AllowedSubjects {
+			if strings.EqualFold(allowedSubject, subject) {
+				return true
+			}
+		}
+		logr.Debugf("[security.isAuthorized] Subject %s is not in the list of allowed subjects", subject)
+	}
+	return false
 }
 
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
