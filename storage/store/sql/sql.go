@@ -114,7 +114,7 @@ func (s *Store) createSchema() error {
 
 // GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
-func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+func (s *Store) GetAllEndpointStatuses(onlyPublic bool, params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -130,7 +130,10 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 		if err != nil {
 			continue
 		}
-		endpointStatuses = append(endpointStatuses, endpointStatus)
+		if onlyPublic && !endpointStatus.Public {
+			continue
+		}
+	    endpointStatuses = append(endpointStatuses, endpointStatus)
 	}
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
@@ -139,12 +142,20 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 }
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), params)
+func (s *Store) GetEndpointStatus(groupName, endpointName string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+	endpointStatus, err := s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), onlyPublic, params)
+	if err != nil {
+		return nil, err
+	}
+	if onlyPublic && !endpointStatus.Public {
+		return nil, common.ErrEndpointNotFound
+	}
+	return endpointStatus, err
+
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
-func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+func (s *Store) GetEndpointStatusByKey(key string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -156,6 +167,9 @@ func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatus
 	}
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
+	}
+	if onlyPublic && !endpointStatus.Public {
+		return nil, err
 	}
 	return endpointStatus, err
 }
@@ -169,7 +183,7 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	if err != nil {
 		return 0, err
 	}
-	endpointID, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	endpointID, _, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		_ = tx.Rollback()
 		return 0, err
@@ -194,7 +208,7 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 	if err != nil {
 		return 0, err
 	}
-	endpointID, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	endpointID, _, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		_ = tx.Rollback()
 		return 0, err
@@ -219,7 +233,7 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	if err != nil {
 		return nil, err
 	}
-	endpointID, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	endpointID, _, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		_ = tx.Rollback()
 		return nil, err
@@ -588,10 +602,11 @@ func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error)
 	//logr.Debugf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", ep.Group, ep.Name)
 	var id int64
 	err := tx.QueryRow(
-		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
+		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group, endpoint_public) VALUES ($1, $2, $3, $4) RETURNING endpoint_id",
 		ep.Key(),
 		ep.Name,
 		ep.Group,
+		ep.Public,
 	).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -623,8 +638,8 @@ func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, re
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id, endpoint_public)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 			RETURNING endpoint_result_id
 		`,
 		endpointID,
@@ -640,6 +655,7 @@ func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, re
 		result.Duration,
 		result.Timestamp.UTC(),
 		suiteResultID,
+		result.Public,
 	).Scan(&endpointResultID)
 	if err != nil {
 		return err
@@ -718,11 +734,11 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 			}
 		}
 	}
-	endpointID, group, endpointName, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	endpointID, group, endpointName, public, err := s.getEndpointIDGroupAndNameByKey(tx, key)
 	if err != nil {
 		return nil, err
 	}
-	endpointStatus := endpoint.NewStatus(group, endpointName)
+	endpointStatus := endpoint.NewStatus(group, endpointName, public)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
 			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
@@ -739,21 +755,21 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	return endpointStatus, nil
 }
 
-func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, err error) {
+func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, public bool, err error) {
 	err = tx.QueryRow(
 		`
-			SELECT endpoint_id, endpoint_group, endpoint_name
+			SELECT endpoint_id, endpoint_group, endpoint_name, endpoint_public
 			FROM endpoints
 			WHERE endpoint_key = $1
 			LIMIT 1
 		`,
 		key,
-	).Scan(&id, &group, &name)
+	).Scan(&id, &group, &name, &public)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, "", "", common.ErrEndpointNotFound
+			return 0, "", "", false, common.ErrEndpointNotFound
 		}
-		return 0, "", "", err
+		return 0, "", "", false, err
 	}
 	return
 }
@@ -1160,7 +1176,7 @@ func extractKeyAndParamsFromCacheKey(cacheKey string) (string, *paging.EndpointS
 }
 
 // GetAllSuiteStatuses returns all monitored suite statuses
-func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.Status, error) {
+func (s *Store) GetAllSuiteStatuses(onlyPublic bool, params *paging.SuiteStatusParams) ([]*suite.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -1169,7 +1185,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 
 	// Get all suites
 	rows, err := tx.Query(`
-		SELECT suite_id, suite_key, suite_name, suite_group
+		SELECT suite_id, suite_key, suite_name, suite_group, suite_public
 		FROM suites
 		ORDER BY suite_key
 	`)
@@ -1182,8 +1198,14 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 	for rows.Next() {
 		var suiteID int64
 		var key, name, group string
-		if err = rows.Scan(&suiteID, &key, &name, &group); err != nil {
+		var public bool
+		if err = rows.Scan(&suiteID, &key, &name, &group, &public); err != nil {
 			return nil, err
+		}
+
+		// Skip private suites if onlyPublic is true
+		if onlyPublic && !public {
+			continue
 		}
 
 		status := &suite.Status{
@@ -1191,6 +1213,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 			Group:   group,
 			Key:     key,
 			Results: []*suite.Result{},
+			Public:  public,
 		}
 
 		// Get suite results with pagination
@@ -1225,7 +1248,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 }
 
 // GetSuiteStatusByKey returns the suite status for a given key
-func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams) (*suite.Status, error) {
+func (s *Store) GetSuiteStatusByKey(key string, onlyPublic bool, params *paging.SuiteStatusParams) (*suite.Status, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -1234,16 +1257,22 @@ func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams
 
 	var suiteID int64
 	var name, group string
+	var public bool
 	err = tx.QueryRow(`
-		SELECT suite_id, suite_name, suite_group
+		SELECT suite_id, suite_name, suite_group, suite_public
 		FROM suites
 		WHERE suite_key = $1
-	`, key).Scan(&suiteID, &name, &group)
+	`, key).Scan(&suiteID, &name, &group, &public)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, common.ErrSuiteNotFound
 		}
 		return nil, err
+	}
+
+	// Return 404 for private suites when onlyPublic is true
+	if onlyPublic && !public {
+		return nil, common.ErrSuiteNotFound
 	}
 
 	status := &suite.Status{
@@ -1251,6 +1280,7 @@ func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams
 		Group:   group,
 		Key:     key,
 		Results: []*suite.Result{},
+		Public:  public,
 	}
 
 	// Get suite results with pagination
@@ -1417,6 +1447,68 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 	}
 	rowsAffected, _ := result.RowsAffected()
 	return int(rowsAffected)
+}
+
+
+// UpdateEndpointStatusVisibility udpate the status visibility based on the config
+func (s *Store) UpdateEndpointStatusVisibility(visibility []*endpoint.EndpointStatusVisibility) {
+	logr.Debugf("[sql.UpdateEndpointStatusVisibility] Called for %d endpoints", len(visibility))
+	if len(visibility) == 0 {
+		// Delete everything
+		logr.Debugf("[sql.UpdateEndpointStatusVisibility] No endpoints provided, nothing to do")
+		return
+	} else {
+		tx, err := s.db.Begin()
+		if err != nil {
+			logr.Errorf("[sql.UpdateEndpointStatusVisibility] Failed to update status visibility: %s", err.Error())
+			return
+		}
+		for _, v := range visibility {
+			_, err = tx.Exec(
+				`UPDATE endpoints SET endpoint_public = $2 WHERE endpoint_key = $1`,
+				v.Key, v.Public,
+			)
+			if err != nil {
+				logr.Errorf("[sql.UpdateEndpointStatusVisibility] Failed to update status visibility: %s", err.Error())
+				_ = tx.Rollback()
+				return
+			}
+		}
+		if err = tx.Commit(); err != nil {
+			_ = tx.Rollback()
+		}
+		return
+	}
+}
+
+// UpdateSuiteStatusVisibility updates the suite status visibility based on the config
+func (s *Store) UpdateSuiteStatusVisibility(visibility []*suite.SuiteStatusVisibility) {
+	logr.Debugf("[sql.UpdateSuiteStatusVisibility] Called for %d suites", len(visibility))
+	if len(visibility) == 0 {
+		logr.Debugf("[sql.UpdateSuiteStatusVisibility] No suites provided, nothing to do")
+		return
+	} else {
+		tx, err := s.db.Begin()
+		if err != nil {
+			logr.Errorf("[sql.UpdateSuiteStatusVisibility] Failed to update suite status visibility: %s", err.Error())
+			return
+		}
+		for _, v := range visibility {
+			_, err = tx.Exec(
+				`UPDATE suites SET suite_public = $2 WHERE suite_key = $1`,
+				v.Key, v.Public,
+			)
+			if err != nil {
+				logr.Errorf("[sql.UpdateSuiteStatusVisibility] Failed to update suite status visibility: %s", err.Error())
+				_ = tx.Rollback()
+				return
+			}
+		}
+		if err = tx.Commit(); err != nil {
+			_ = tx.Rollback()
+		}
+		return
+	}
 }
 
 // Suite helper methods

@@ -42,13 +42,16 @@ func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error)
 
 // GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
-func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
+func (s *Store) GetAllEndpointStatuses(onlyPublic bool, params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
 	s.RLock()
 	defer s.RUnlock()
 	allStatuses := s.endpointCache.GetAll()
 	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(allStatuses))
 	for _, v := range allStatuses {
 		if status, ok := v.(*endpoint.Status); ok {
+			if !status.Public && onlyPublic {
+				continue;
+			}
 			pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(status, params))
 		}
 	}
@@ -59,12 +62,15 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 }
 
 // GetAllSuiteStatuses returns all monitored suite.Status
-func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.Status, error) {
+func (s *Store) GetAllSuiteStatuses(onlyPublic bool, params *paging.SuiteStatusParams) ([]*suite.Status, error) {
 	s.RLock()
 	defer s.RUnlock()
 	suiteStatuses := make([]*suite.Status, 0)
 	for _, v := range s.suiteCache.GetAll() {
 		if status, ok := v.(*suite.Status); ok {
+			if !status.Public && onlyPublic {
+				continue
+			}
 			suiteStatuses = append(suiteStatuses, ShallowCopySuiteStatus(status, params))
 		}
 	}
@@ -75,30 +81,39 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 }
 
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
-func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), params)
+func (s *Store) GetEndpointStatus(groupName, endpointName string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), onlyPublic, params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
-func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
+func (s *Store) GetEndpointStatusByKey(key string, onlyPublic bool, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
 	s.RLock()
 	defer s.RUnlock()
 	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
-	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
+	status := endpointStatus.(*endpoint.Status)
+	// Check visibility - return 404 for private endpoints when onlyPublic is true
+	if onlyPublic && !status.Public {
+		return nil, common.ErrEndpointNotFound
+	}
+	return ShallowCopyEndpointStatus(status, params), nil
 }
 
 // GetSuiteStatusByKey returns the suite status for a given key
-func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams) (*suite.Status, error) {
+func (s *Store) GetSuiteStatusByKey(key string, onlyPublic bool, params *paging.SuiteStatusParams) (*suite.Status, error) {
 	s.RLock()
 	defer s.RUnlock()
 	suiteStatus := s.suiteCache.GetValue(key)
 	if suiteStatus == nil {
 		return nil, common.ErrSuiteNotFound
 	}
-	return ShallowCopySuiteStatus(suiteStatus.(*suite.Status), params), nil
+	status := suiteStatus.(*suite.Status)
+	if onlyPublic && !status.Public {
+		return nil, common.ErrSuiteNotFound
+	}
+	return ShallowCopySuiteStatus(status, params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -194,7 +209,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	s.Lock()
 	status, exists := s.endpointCache.Get(endpointKey)
 	if !exists {
-		status = endpoint.NewStatus(ep.Group, ep.Name)
+		status = endpoint.NewStatus(ep.Group, ep.Name, ep.Public)
 		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),
@@ -249,6 +264,41 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		}
 	}
 	return s.endpointCache.DeleteAll(keysToDelete)
+}
+
+
+// UpdateEndpointStatusVisibility udpate the status visibility based on the config
+func (s *Store) UpdateEndpointStatusVisibility(visibility []*endpoint.EndpointStatusVisibility) {
+	s.Lock()
+	defer s.Unlock()
+	visibilityMap := make(map[string]bool, len(visibility))
+	for _, v := range visibility {
+		visibilityMap[v.Key] = v.Public
+	}
+	for _, existingKey := range s.endpointCache.GetKeysByPattern("*", 0) {
+		if status, ok := s.endpointCache.GetValue(existingKey).(*endpoint.Status); ok {
+			if publicValue, exists := visibilityMap[existingKey]; exists {
+				status.Public = publicValue
+			}
+		}
+	}
+}
+
+// UpdateSuiteStatusVisibility updates the suite status visibility based on the config
+func (s *Store) UpdateSuiteStatusVisibility(visibility []*suite.SuiteStatusVisibility) {
+	s.Lock()
+	defer s.Unlock()
+	visibilityMap := make(map[string]bool, len(visibility))
+	for _, v := range visibility {
+		visibilityMap[v.Key] = v.Public
+	}
+	for _, existingKey := range s.suiteCache.GetKeysByPattern("*", 0) {
+		if status, ok := s.suiteCache.GetValue(existingKey).(*suite.Status); ok {
+			if publicValue, exists := visibilityMap[existingKey]; exists {
+				status.Public = publicValue
+			}
+		}
+	}
 }
 
 // DeleteAllSuiteStatusesNotInKeys removes all suite statuses that are not within the keys provided

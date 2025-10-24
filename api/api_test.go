@@ -112,6 +112,7 @@ func TestNew(t *testing.T) {
 						Username:                        "john.doe",
 						PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
 					},
+					Level: security.authLevelGlobal,
 				}
 			}
 			api := New(cfg)
