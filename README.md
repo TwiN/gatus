@@ -50,6 +50,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Conditions](#conditions)
     - [Placeholders](#placeholders)
     - [Functions](#functions)
+  - [Announcements](#announcements)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
@@ -95,7 +96,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
-  - [Announcements](#announcements)
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -309,6 +309,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname from the results.                                                                                              | `false`                    |
 | `endpoints[].ui.hide-port`                      | Whether to hide the port from the results.                                                                                                  | `false`                    |
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
+| `endpoints[].ui.hide-errors`                    | Whether to hide errors from the results.                                                                                                    | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
@@ -366,7 +367,7 @@ or send an HTTP request:
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
@@ -1300,7 +1301,7 @@ endpoints:
 ```
 
 
-#### Configuring ilert alerts
+#### Configuring Ilert alerts
 | Parameter                          | Description                                                                                | Default |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------|
 | `alerting.ilert`                   | Configuration for alerts of type `ilert`                                                   | `{}`    |
@@ -1852,6 +1853,40 @@ endpoints:
 ```
 
 
+#### Configuring SendGrid alerts
+
+> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
+
+| Parameter                             | Description                                                                                | Default       |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.sendgrid`                   | Configuration for alerts of type `sendgrid`                                                | `{}`          |
+| `alerting.sendgrid.api-key`           | SendGrid API key                                                                           | Required `""` |
+| `alerting.sendgrid.from`              | Email address to send from                                                                 | Required `""` |
+| `alerting.sendgrid.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
+| `alerting.sendgrid.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.sendgrid.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.sendgrid.overrides[].*`     | See `alerting.sendgrid.*` parameters                                                       | `{}`          |
+
+```yaml
+alerting:
+  sendgrid:
+    api-key: "SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    from: "alerts@example.com"
+    to: "admin@example.com,ops@example.com"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: sendgrid
+        send-on-resolved: true
+```
+
+
 #### Configuring Signal alerts
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
@@ -1914,40 +1949,6 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: signl4
-        send-on-resolved: true
-```
-
-
-#### Configuring SendGrid alerts
-
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
-| Parameter                             | Description                                                                                | Default       |
-|:--------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.sendgrid`                   | Configuration for alerts of type `sendgrid`                                                | `{}`          |
-| `alerting.sendgrid.api-key`           | SendGrid API key                                                                           | Required `""` |
-| `alerting.sendgrid.from`              | Email address to send from                                                                 | Required `""` |
-| `alerting.sendgrid.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients)              | Required `""` |
-| `alerting.sendgrid.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.sendgrid.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.sendgrid.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.sendgrid.overrides[].*`     | See `alerting.sendgrid.*` parameters                                                       | `{}`          |
-
-```yaml
-alerting:
-  sendgrid:
-    api-key: "SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    from: "alerts@example.com"
-    to: "admin@example.com,ops@example.com"
-
-endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: sendgrid
         send-on-resolved: true
 ```
 
@@ -2298,14 +2299,14 @@ endpoints:
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
 
-| Parameter                      | Description                                                                                | Default       |
-|:-------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.webex`               | Configuration for alerts of type `webex`                                                   | `{}`          |
-| `alerting.webex.webhook-url`   | Webex Teams webhook URL                                                                    | Required `""` |
-| `alerting.webex.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.webex.overrides`     | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.webex.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration     | `""`          |
-| `alerting.webex.overrides[].*` | See `alerting.webex.*` parameters                                                         | `{}`          |
+| Parameter                          | Description                                                                                | Default       |
+|:-----------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.webex`                   | Configuration for alerts of type `webex`                                                   | `{}`          |
+| `alerting.webex.webhook-url`       | Webex Teams webhook URL                                                                    | Required `""` |
+| `alerting.webex.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.webex.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.webex.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.webex.overrides[].*`     | See `alerting.webex.*` parameters                                                          | `{}`          |
 
 ```yaml
 alerting:
@@ -2357,7 +2358,7 @@ endpoints:
 #### Configuring Zulip alerts
 | Parameter                          | Description                                                                         | Default       |
 |:-----------------------------------|:------------------------------------------------------------------------------------|:--------------|
-| `alerting.zulip`                   | Configuration for alerts of type `zulip`                                          | `{}`          |
+| `alerting.zulip`                   | Configuration for alerts of type `zulip`                                            | `{}`          |
 | `alerting.zulip.bot-email`         | Bot Email                                                                           | Required `""` |
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
@@ -3298,7 +3299,7 @@ The path to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3324,7 +3325,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.svg
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3341,7 +3342,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/health/badge.shields
 ```
 Where:
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the current status of the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3364,7 +3365,7 @@ The endpoint to generate a badge is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 #### Response time (chart)
 ![Response time 24h](https://status.twin.sh/api/v1/endpoints/core_blog-external/response-times/24h/chart.svg)
@@ -3377,7 +3378,7 @@ The endpoint to generate a response time chart is the following:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, or `24h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
 To change the response time badges' threshold, a corresponding configuration can be added to an endpoint.
@@ -3435,7 +3436,7 @@ The path to get raw uptime data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```
@@ -3449,7 +3450,7 @@ The path to get raw response time data for an endpoint is:
 ```
 Where:
 - `{duration}` is `30d`, `7d`, `24h` or `1h`
-- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `(`, `)`, `+` and `&` replaced by `-`.
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
 ```

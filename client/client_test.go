@@ -131,8 +131,8 @@ func TestPing(t *testing.T) {
 
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
-		address  string
-		insecure bool
+		address     string
+		insecure    bool
 		dnsresolver string
 	}
 	tests := []struct {
@@ -168,7 +168,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 		{
 			name: "dns resolver",
 			args: args{
-				address: "smtp.gmail.com:587",
+				address:     "smtp.gmail.com:587",
 				dnsresolver: "tcp://1.1.1.1:53",
 			},
 			wantConnected: true,
@@ -340,7 +340,7 @@ func TestQueryWebSocket(t *testing.T) {
 }
 
 func TestTlsRenegotiation(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name           string
 		cfg            TLSConfig
 		expectedConfig tls.RenegotiationSupport
@@ -371,12 +371,12 @@ func TestTlsRenegotiation(t *testing.T) {
 			expectedConfig: tls.RenegotiateNever,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
 			tls := &tls.Config{}
-			tlsConfig := configureTLS(tls, test.cfg)
-			if tlsConfig.Renegotiation != test.expectedConfig {
-				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			tlsConfig := configureTLS(tls, scenario.cfg)
+			if tlsConfig.Renegotiation != scenario.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", scenario.expectedConfig, tls.Renegotiation)
 			}
 		})
 	}
@@ -513,14 +513,11 @@ func TestQueryDNS(t *testing.T) {
 
 func TestCheckSSHBanner(t *testing.T) {
 	cfg := &Config{Timeout: 3}
-
 	t.Run("no-auth-ssh", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
-
 		if err != nil {
 			t.Errorf("Expected: error != nil, got: %v ", err)
 		}
-
 		if connected == false {
 			t.Errorf("Expected: connected == true, got: %v", connected)
 		}
@@ -528,14 +525,11 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 0, got: %v", status)
 		}
 	})
-
 	t.Run("invalid-address", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
-
 		if err == nil {
 			t.Errorf("Expected: error, got: %v ", err)
 		}
-
 		if connected != false {
 			t.Errorf("Expected: connected == false, got: %v", connected)
 		}
@@ -543,5 +537,4 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
-
 }
