@@ -8,13 +8,13 @@ import (
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	cfg := &Config{
-		Title:       "",
-		Description: "",
-		DashboardTitle: "",
-		DashboardDescription: "",
-		Header:      "",
-		Logo:        "",
-		Link:        "",
+		Title:                "",
+		Description:          "",
+		DashboardHeading:     "",
+		DashboardSubheading:  "",
+		Header:               "",
+		Logo:                 "",
+		Link:                 "",
 	}
 	if err := cfg.ValidateAndSetDefaults(); err != nil {
 		t.Error("expected no error, got", err.Error())
@@ -25,11 +25,11 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	if cfg.Description != defaultDescription {
 		t.Errorf("expected description to be %s, got %s", defaultDescription, cfg.Description)
 	}
-	if cfg.DashboardTitle != defaultDashboardTitle {
-		t.Errorf("expected DashboardTitle to be %s, got %s", defaultDashboardTitle, cfg.DashboardTitle)
+	if cfg.DashboardHeading != defaultDashboardHeading {
+		t.Errorf("expected DashboardHeading to be %s, got %s", defaultDashboardHeading, cfg.DashboardHeading)
 	}
-	if cfg.DashboardDescription != defaultDashboardDescription {
-		t.Errorf("expected DashboardDescription to be %s, got %s", defaultDashboardDescription, cfg.DashboardDescription)
+	if cfg.DashboardSubheading != defaultDashboardSubheading {
+		t.Errorf("expected DashboardSubheading to be %s, got %s", defaultDashboardSubheading, cfg.DashboardSubheading)
 	}
 	if cfg.Header != defaultHeader {
 		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
@@ -86,11 +86,11 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.Title != defaultTitle {
 		t.Error("expected GetDefaultConfig() to return defaultTitle, got", defaultConfig.Title)
 	}
-	if defaultConfig.DashboardTitle != defaultDashboardTitle {
-		t.Error("expected GetDefaultConfig() to return defaultDashboardTitle, got", defaultConfig.DashboardTitle)
+	if defaultConfig.DashboardHeading != defaultDashboardHeading {
+		t.Error("expected GetDefaultConfig() to return defaultDashboardHeading, got", defaultConfig.DashboardHeading)
 	}
-	if defaultConfig.DashboardDescription != defaultDashboardDescription {
-		t.Error("expected GetDefaultConfig() to return defaultDashboardDescription, got", defaultConfig.DashboardDescription)
+	if defaultConfig.DashboardSubheading != defaultDashboardSubheading {
+		t.Error("expected GetDefaultConfig() to return defaultDashboardSubheading, got", defaultConfig.DashboardSubheading)
 	}
 	if defaultConfig.Logo != defaultLogo {
 		t.Error("expected GetDefaultConfig() to return defaultLogo, got", defaultConfig.Logo)
