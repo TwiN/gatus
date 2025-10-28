@@ -1,5 +1,5 @@
 # Build the frontend assets
-FROM node:20-alpine AS frontend
+FROM node:24-alpine AS frontend
 WORKDIR /app/web/app
 COPY web/app/package*.json ./
 RUN npm install
