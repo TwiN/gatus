@@ -89,150 +89,175 @@ func TestOIDCConfig_setSessionCookieWithCustomTTL(t *testing.T) {
 	}
 }
 
-func TestOIDCConfig_isAuthorized(t *testing.T) {
+func TestOIDCConfig_getClaimToCheck(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         *OIDCConfig
-		subject        string
-		claimsMap      map[string]any
-		expectedResult bool
-		description    string
+		name         string
+		claimToCheck string
+		subject      string
+		claimsMap    map[string]any
+		expected     string
 	}{
 		{
-			name: "authorized with custom claim matching string value",
-			config: &OIDCConfig{
-				ClaimToCheck:    "groups",
-				AllowedSubjects: []string{"admin", "users"},
-			},
-			subject: "user123",
-			claimsMap: map[string]any{
-				"groups": "aadmin",
-			},
-			expectedResult: true,
-			description:    "Should authorize when custom claim value matches allowed subject",
+			name:         "returns subject when ClaimToCheck is empty",
+			claimToCheck: "",
+			subject:      "user@example.com",
+			claimsMap:    map[string]any{},
+			expected:     "user@example.com",
 		},
 		{
-			name: "not authorized with custom claim not matching",
-			config: &OIDCConfig{
-				ClaimToCheck:    "groups",
-				AllowedSubjects: []string{"admin", "users"},
-			},
-			subject: "user123",
-			claimsMap: map[string]any{
-				"groups": "guests",
-			},
-			expectedResult: false,
-			description:    "Should not authorize when custom claim value doesn't match any allowed subject",
+			name:         "returns subject when ClaimToCheck is sub",
+			claimToCheck: "sub",
+			subject:      "user@example.com",
+			claimsMap:    map[string]any{},
+			expected:     "user@example.com",
 		},
 		{
-			name: "not authorized when custom claim is missing",
-			config: &OIDCConfig{
-				ClaimToCheck:    "groups",
-				AllowedSubjects: []string{"admin", "users"},
-			},
-			subject: "user123",
+			name:         "returns claim value when ClaimToCheck exists in claims",
+			claimToCheck: "preferred_username",
+			subject:      "user@example.com",
 			claimsMap: map[string]any{
-				"email": "user@example.com",
+				"preferred_username": "john.doe",
+				"email":              "john@example.com",
 			},
-			expectedResult: false,
-			description:    "Should not authorize when custom claim is not present in claims map",
+			expected: "john.doe",
 		},
 		{
-			name: "authorized with custom claim matching second value",
-			config: &OIDCConfig{
-				ClaimToCheck:    "role",
-				AllowedSubjects: []string{"viewer", "editor", "admin"},
-			},
-			subject: "user456",
+			name:         "returns empty string when ClaimToCheck doesn't exist in claims",
+			claimToCheck: "non_existent_claim",
+			subject:      "user@example.com",
 			claimsMap: map[string]any{
-				"role": "editor",
+				"preferred_username": "john.doe",
+				"email":              "john@example.com",
 			},
-			expectedResult: true,
-			description:    "Should authorize when custom claim matches second allowed subject",
+			expected: "",
 		},
 		{
-			name: "not authorized with empty claims map",
-			config: &OIDCConfig{
-				ClaimToCheck:    "groups",
-				AllowedSubjects: []string{"admin"},
+			name:         "returns claim value when claims map has multiple fields",
+			claimToCheck: "email",
+			subject:      "sub-12345",
+			claimsMap: map[string]any{
+				"email":              "admin@example.com",
+				"preferred_username": "admin",
+				"groups":             []string{"admins", "users"},
 			},
-			subject:        "user789",
-			claimsMap:      map[string]any{},
-			expectedResult: false,
-			description:    "Should not authorize when claims map is empty",
+			expected: "admin@example.com",
 		},
 		{
-			name: "authorized with matching subject case insensitive",
-			config: &OIDCConfig{
-				ClaimToCheck:    "",
-				AllowedSubjects: []string{"user@example.com", "admin@example.com"},
-			},
-			subject: "User@Example.Com",
-			claimsMap: map[string]any{
-				"email": "user@example.com",
-			},
-			expectedResult: true,
-			description:    "Should authorize when subject matches allowed subject (case insensitive)",
+			name:         "returns empty string when claims map is nil",
+			claimToCheck: "email",
+			subject:      "user@example.com",
+			claimsMap:    nil,
+			expected:     "",
 		},
 		{
-			name: "authorized with exact subject match",
-			config: &OIDCConfig{
-				ClaimToCheck:    "",
-				AllowedSubjects: []string{"user@example.com", "admin@example.com"},
-			},
-			subject: "user@example.com",
-			claimsMap: map[string]any{
-				"email": "user@example.com",
-			},
-			expectedResult: true,
-			description:    "Should authorize when subject exactly matches allowed subject",
-		},
-		{
-			name: "not authorized with non-matching subject",
-			config: &OIDCConfig{
-				ClaimToCheck:    "",
-				AllowedSubjects: []string{"user@example.com", "admin@example.com"},
-			},
-			subject: "guest@example.com",
-			claimsMap: map[string]any{
-				"email": "guest@example.com",
-			},
-			expectedResult: false,
-			description:    "Should not authorize when subject doesn't match any allowed subject",
-		},
-		{
-			name: "authorized with subject matching last in list",
-			config: &OIDCConfig{
-				ClaimToCheck:    "",
-				AllowedSubjects: []string{"user1@example.com", "user2@example.com", "user3@example.com"},
-			},
-			subject: "user3@example.com",
-			claimsMap: map[string]any{
-				"email": "user3@example.com",
-			},
-			expectedResult: true,
-			description:    "Should authorize when subject matches last allowed subject",
-		},
-		{
-			name: "not authorized with empty allowed subjects",
-			config: &OIDCConfig{
-				ClaimToCheck:    "",
-				AllowedSubjects: []string{},
-			},
-			subject: "user@example.com",
-			claimsMap: map[string]any{
-				"email": "user@example.com",
-			},
-			expectedResult: false,
-			description:    "Should not authorize when allowed subjects list is empty",
+			name:         "returns empty string when ClaimToCheck is empty and subject is empty",
+			claimToCheck: "",
+			subject:      "",
+			claimsMap:    map[string]any{},
+			expected:     "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.config.isAuthorized(tt.subject, tt.claimsMap)
-			if result != tt.expectedResult {
-				t.Errorf("%s: expected authorization=%v, got=%v", tt.description, tt.expectedResult, result)
+			config := &OIDCConfig{
+				ClaimToCheck: tt.claimToCheck,
+			}
+
+			result := config.getClaimToCheck(tt.subject, tt.claimsMap)
+
+			if result != tt.expected {
+				t.Errorf("getClaimToCheck() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestOIDCConfig_isAuthorized(t *testing.T) {
+	tests := []struct {
+		name            string
+		allowedSubjects []string
+		claimValue      string
+		expected        bool
+	}{
+		{
+			name:            "authorized subject matches first element",
+			allowedSubjects: []string{"user1", "user2", "user3"},
+			claimValue:      "user1",
+			expected:        true,
+		},
+		{
+			name:            "authorized subject matches middle element",
+			allowedSubjects: []string{"user1", "user2", "user3"},
+			claimValue:      "user2",
+			expected:        true,
+		},
+		{
+			name:            "authorized subject matches last element",
+			allowedSubjects: []string{"user1", "user2", "user3"},
+			claimValue:      "user3",
+			expected:        true,
+		},
+		{
+			name:            "unauthorized subject not in list",
+			allowedSubjects: []string{"user1", "user2", "user3"},
+			claimValue:      "user4",
+			expected:        false,
+		},
+		{
+			name:            "empty claim value",
+			allowedSubjects: []string{"user1", "user2", "user3"},
+			claimValue:      "",
+			expected:        false,
+		},
+		{
+			name:            "empty allowed subjects list",
+			allowedSubjects: []string{},
+			claimValue:      "user1",
+			expected:        false,
+		},
+		{
+			name:            "nil allowed subjects list",
+			allowedSubjects: nil,
+			claimValue:      "user1",
+			expected:        false,
+		},
+		{
+			name:            "case sensitive match - different case",
+			allowedSubjects: []string{"User1", "user2"},
+			claimValue:      "user1",
+			expected:        false,
+		},
+		{
+			name:            "exact match with special characters",
+			allowedSubjects: []string{"user@example.com", "admin-user"},
+			claimValue:      "user@example.com",
+			expected:        true,
+		},
+		{
+			name:            "single allowed subject - match",
+			allowedSubjects: []string{"single-user"},
+			claimValue:      "single-user",
+			expected:        true,
+		},
+		{
+			name:            "single allowed subject - no match",
+			allowedSubjects: []string{"single-user"},
+			claimValue:      "other-user",
+			expected:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OIDCConfig{
+				AllowedSubjects: tt.allowedSubjects,
+			}
+
+			result := c.isAuthorized(tt.claimValue)
+
+			if result != tt.expected {
+				t.Errorf("isAuthorized() = %v, expected %v", result, tt.expected)
 			}
 		})
 	}

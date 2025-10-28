@@ -23,10 +23,10 @@ type OIDCConfig struct {
 	RedirectURL     string        `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
 	ClientID        string        `yaml:"client-id"`
 	ClientSecret    string        `yaml:"client-secret"`
-	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
-	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
-	ClaimToCheck    string        `yaml:"claim-to-check"`   // e.g. email. If empty, subject is used
-	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
+	Scopes          []string      `yaml:"scopes"`                // e.g. ["openid"]
+	AllowedSubjects []string      `yaml:"allowed-subjects"`      // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	ClaimToCheck    string        `yaml:"custom-claim-to-check"` // e.g. email. If empty, subject is used
+	SessionTTL      time.Duration `yaml:"session-ttl"`           // e.g. 8h. Defaults to 8 hours
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -133,7 +133,8 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		return
 	}
 
-	if c.isAuthorized(idToken.Subject, claimsMap) {
+	claimValue := c.getClaimToCheck(idToken.Subject, claimsMap)
+	if c.isAuthorized(claimValue) {
 		c.setSessionCookie(w, idToken)
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -141,28 +142,32 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 
-func (c *OIDCConfig) isAuthorized(subject string, claimsMap map[string]any) bool {
+func (c *OIDCConfig) getClaimToCheck(subject string, claimsMap map[string]any) string {
 	claimToCheck := c.ClaimToCheck
 	if len(claimToCheck) > 0 {
+		if claimToCheck == "sub" {
+			logr.Debugf("[security.getClaimToCheck] custom-claim-to-check set to 'sub', with value: %s", subject)
+			return subject
+		}
 		claimValue, ok := claimsMap[claimToCheck]
 		if ok {
-			for _, subject := range c.AllowedSubjects {
-				if claimValue == subject {
-					return true
-				}
-			}
-			logr.Debugf("[security.isAuthorized] Value %s of claim %s doesn't match any element of the list of allowed subjects", claimValue, claimToCheck)
+			return claimValue.(string)
 		} else {
-			logr.Debugf("[security.isAuthorized] Claim doesn't contain the field %s", claimToCheck)
+			logr.Debugf("[security.getClaimToCheck] Claim doesn't contain the field %s", claimToCheck)
+			return ""
 		}
-	} else {
-		for _, allowedSubject := range c.AllowedSubjects {
-			if strings.EqualFold(allowedSubject, subject) {
-				return true
-			}
-		}
-		logr.Debugf("[security.isAuthorized] Subject %s is not in the list of allowed subjects", subject)
 	}
+	return subject
+}
+
+func (c *OIDCConfig) isAuthorized(claimValue string) bool {
+	for _, subject := range c.AllowedSubjects {
+		if claimValue == subject {
+			logr.Debugf("[security.isAuthorized] Subject %s match the claimValue %s", subject, claimValue)
+			return true
+		}
+	}
+	logr.Debugf("[security.isAuthorized] Value %s of claim %s doesn't match any element of the list of allowed subjects", claimValue)
 	return false
 }
 
