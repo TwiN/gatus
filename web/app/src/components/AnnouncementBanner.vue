@@ -90,7 +90,10 @@
                   >
                     <div class="flex items-center justify-between gap-3">
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm leading-relaxed text-gray-900 dark:text-gray-100">{{ announcement.message }}</p>
+                        <p
+                          class="text-sm leading-relaxed text-gray-900 dark:text-gray-100"
+                          v-html="formatAnnouncementMessage(announcement.message)"
+                        ></p>
                       </div>
                       <time 
                         :class="[
@@ -115,6 +118,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { XCircle, AlertTriangle, Info, CheckCircle, Circle, ChevronDown } from 'lucide-vue-next'
 
 // Props
@@ -220,6 +225,45 @@ const getTypeClasses = (type) => {
   return typeConfigs[type] || typeConfigs.none
 }
 
+const escapeHtml = (value) => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const renderer = new marked.Renderer()
+
+renderer.link = (href, title, text) => {
+  const url = escapeHtml(href || '')
+  const titleAttribute = title ? ` title="${escapeHtml(title)}"` : ''
+  return `<a href="${url}" target="_blank" rel="noopener noreferrer"${titleAttribute}>${text}</a>`
+}
+
+marked.use({
+  renderer,
+  breaks: true,
+  gfm: true,
+  headerIds: false,
+  mangle: false
+})
+
+const formatAnnouncementMessage = (message) => {
+  if (!message) {
+    return ''
+  }
+
+  const markdown = String(message)
+  const html = marked.parse(markdown)
+  return DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] })
+}
+
 const getTimelineHeight = (group) => {
   const height = group.length === 1 ? '2rem' : `${2 + (group.length - 1) * 3.5}rem`
   return {
@@ -290,5 +334,23 @@ const formatFullTimestamp = (timestamp) => {
   .announcement-container .ml-7 {
     margin-left: 1.5rem;
   }
+}
+
+.announcement-content :deep(a) {
+  color: #1d4ed8;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.announcement-content :deep(a:hover) {
+  color: #1e40af;
+}
+
+.dark .announcement-content :deep(a) {
+  color: #60a5fa;
+}
+
+.dark .announcement-content :deep(a:hover) {
+  color: #93c5fd;
 }
 </style>
