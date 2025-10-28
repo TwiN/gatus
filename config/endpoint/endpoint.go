@@ -137,6 +137,9 @@ type Endpoint struct {
 	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
 	LastReminderSent time.Time `yaml:"-"`
 
+	// Public mark an endpoint as public, unauthenticated users will be able to see them
+	Public bool `yaml:"public,omitempty"`
+
 	///////////////////////
 	// SUITE-ONLY FIELDS //
 	///////////////////////
@@ -288,7 +291,7 @@ func (e *Endpoint) EvaluateHealth() *Result {
 
 // EvaluateHealthWithContext sends a request to the endpoint's URL with context support and evaluates the conditions
 func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
-	result := &Result{Success: true, Errors: []string{}}
+	result := &Result{Success: true, Errors: []string{}, Public: e.Public}
 	// Preprocess the endpoint with context if provided
 	processedEndpoint := e
 	if context != nil {

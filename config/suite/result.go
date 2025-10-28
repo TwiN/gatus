@@ -31,6 +31,9 @@ type Result struct {
 
 	// Errors contains any suite-level errors
 	Errors []string `json:"errors,omitempty"`
+
+	// Public marks a suite as public, unauthenticated users will be able to see them
+	Public bool `json:"public,omitempty"`
 }
 
 // AddError adds an error to the suite result

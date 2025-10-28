@@ -17,6 +17,21 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	if c.ValidateAndSetDefaults() {
 		t.Error("expected empty config to be valid")
 	}
+	if c.Level != authLevelGlobal {
+		t.Errorf("Default level should be %s", authLevelGlobal)
+	}
+}
+
+func TestConfig_ValidateLevel(t *testing.T) {
+	c := &Config{
+		Basic: nil,
+		OIDC:  nil,
+		Level: "WrongLevel",
+	}
+	valid := c.ValidateAndSetDefaults();
+	if valid {
+		t.Error("expected invalid level to mark config has invalid")
+	}
 }
 
 func TestConfig_ApplySecurityMiddleware(t *testing.T) {

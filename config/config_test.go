@@ -1814,8 +1814,8 @@ endpoints:
 	}
 	if config.Security.Basic.PasswordBcryptHashBase64Encoded != expectedPasswordHash {
 		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordBcryptHashBase64Encoded)
-	}
-}
+	}}
+
 
 func TestParseAndValidateConfigBytesWithLiteralDollarSign(t *testing.T) {
 	os.Setenv("GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign", "whatever")

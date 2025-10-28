@@ -18,17 +18,38 @@ const (
 	cookieNameSession = "gatus_session"
 )
 
+const (
+	authLevelGlobal   = "global"
+	authLevelEndpoint = "endpoint"
+)
+
 // Config is the security configuration for Gatus
 type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
 	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
+	Level string       `yaml:"level,omitempty"`
 
 	gate *g8.Gate
 }
 
 // ValidateAndSetDefaults returns whether the security configuration is valid or not and sets default values.
 func (c *Config) ValidateAndSetDefaults() bool {
-	return (c.Basic != nil && c.Basic.isValid()) || (c.OIDC != nil && c.OIDC.ValidateAndSetDefaults())
+	basicValid := c.Basic != nil && c.Basic.isValid()
+	oauthValid := c.OIDC != nil && c.OIDC.ValidateAndSetDefaults()
+
+	// Set default level
+	if c.Level == "" {
+		c.Level = authLevelGlobal
+	}
+	levelValid := c.Level == authLevelGlobal || c.Level == authLevelEndpoint
+
+	logr.Infof("[security.config.ValidateAndSetDefautls] Set auth level to %s", c.Level)
+	return levelValid && (basicValid || oauthValid)
+}
+
+// IsGlobal tells wether the auth is global or at endpoint level
+func (c *Config) IsGlobal() bool {
+	return c.Level == authLevelGlobal
 }
 
 // RegisterHandlers registers all handlers required based on the security configuration
@@ -96,7 +117,7 @@ func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 // If the Config does not warrant authentication, it will always return true.
 func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 	if c.gate != nil {
-		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
+		// OIDC authentication check
 		request, err := adaptor.ConvertRequest(ctx, false)
 		if err != nil {
 			logr.Errorf("[security.IsAuthenticated] Unexpected error converting request: %v", err)
@@ -105,6 +126,53 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 		token := c.gate.ExtractTokenFromRequest(request)
 		_, hasSession := sessions.Get(token)
 		return hasSession
+	} else if c.Basic != nil {
+		// Basic Auth authentication check
+		authHeader := ctx.Get("Authorization")
+		if authHeader == "" {
+			return false
+		}
+		// Parse the Basic Auth header manually (fasthttp doesn't have BasicAuth() helper)
+		// Format: "Basic base64(username:password)"
+		const prefix = "Basic "
+		if len(authHeader) < len(prefix) {
+			return false
+		}
+		if authHeader[:len(prefix)] != prefix {
+			return false
+		}
+		// Decode the base64 credentials
+		decoded, err := base64.StdEncoding.DecodeString(authHeader[len(prefix):])
+		if err != nil {
+			return false
+		}
+		// Split username:password
+		credentials := string(decoded)
+		colonIndex := -1
+		for i := 0; i < len(credentials); i++ {
+			if credentials[i] == ':' {
+				colonIndex = i
+				break
+			}
+		}
+		if colonIndex == -1 {
+			return false
+		}
+		username := credentials[:colonIndex]
+		password := credentials[colonIndex+1:]
+
+		// Validate credentials
+		var decodedBcryptHash []byte
+		if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
+			decodedBcryptHash, err = base64.URLEncoding.DecodeString(c.Basic.PasswordBcryptHashBase64Encoded)
+			if err != nil {
+				return false
+			}
+			if username != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(password)) != nil {
+				return false
+			}
+			return true
+		}
 	}
 	return false
 }
