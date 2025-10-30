@@ -182,7 +182,38 @@
                   </div>
                   <div class="flex-1">
                     <p class="font-medium">{{ event.fancyText }}</p>
-                    <p class="text-sm text-muted-foreground">{{ prettifyTimestamp(event.timestamp) }} • {{ event.fancyTimeAgo }}</p>
+                    <div v-if="event.type === 'UNHEALTHY' && (event.errorReasons?.length > 0 || event.failedConditionReasons?.length > 0 || event.errors?.length > 0 || event.failedConditions?.length > 0)" class="mt-1 ml-1 text-sm text-muted-foreground space-y-0.5">
+                      <!-- New format with timestamps -->
+                      <div v-for="errorReason in event.errorReasons" :key="errorReason.description + errorReason.timestamp" class="flex items-start gap-1.5">
+                        <span class="text-red-500 mt-0.5">•</span>
+                        <div class="flex-1">
+                          <span class="text-red-500">{{ errorReason.description }}</span>
+                          <span class="text-xs text-muted-foreground ml-2">{{ generatePrettyTimeAgo(errorReason.timestamp) }}</span>
+                        </div>
+                      </div>
+                      <div v-for="conditionReason in event.failedConditionReasons" :key="conditionReason.description + conditionReason.timestamp" class="flex items-start gap-1.5">
+                        <span class="text-red-500 mt-0.5">•</span>
+                        <div class="flex-1">
+                          <span class="text-red-500 font-mono text-xs">{{ conditionReason.description }}</span>
+                          <span class="text-xs text-muted-foreground ml-2">{{ generatePrettyTimeAgo(conditionReason.timestamp) }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Fallback to old format for backwards compatibility -->
+                      <template v-if="!event.errorReasons && event.errors">
+                        <div v-for="error in event.errors" :key="error" class="flex items-center gap-1.5">
+                          <span class="text-red-500">•</span>
+                          <span class="text-red-500">{{ error }}</span>
+                        </div>
+                      </template>
+                      <template v-if="!event.failedConditionReasons && event.failedConditions">
+                        <div v-for="condition in event.failedConditions" :key="condition" class="flex items-center gap-1.5">
+                          <span class="text-red-500">•</span>
+                          <span class="text-red-500 font-mono text-xs">{{ condition }}</span>
+                        </div>
+                      </template>
+                    </div>
+                    <p class="text-sm text-muted-foreground" :class="{ 'mt-1': event.type === 'UNHEALTHY' && (event.errors?.length > 0 || event.failedConditions?.length > 0) }">{{ prettifyTimestamp(event.timestamp) }} • {{ event.fancyTimeAgo }}</p>
                   </div>
                 </div>
               </div>
