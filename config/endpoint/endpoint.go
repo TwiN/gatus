@@ -50,6 +50,7 @@ const (
 	TypeSTARTTLS Type = "STARTTLS"
 	TypeTLS      Type = "TLS"
 	TypeHTTP     Type = "HTTP"
+	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
 	TypeUNKNOWN  Type = "UNKNOWN"
@@ -177,6 +178,8 @@ func (e *Endpoint) Type() Type {
 		return TypeTLS
 	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
 		return TypeHTTP
+	case strings.HasPrefix(e.URL, "grpc://") || strings.HasPrefix(e.URL, "grpcs://"):
+		return TypeGRPC
 	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
@@ -528,6 +531,19 @@ func (e *Endpoint) call(result *Result) {
 			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeGRPC {
+		useTLS := strings.HasPrefix(e.URL, "grpcs://")
+		address := strings.TrimPrefix(strings.TrimPrefix(e.URL, "grpcs://"), "grpc://")
+		connected, status, err, duration := client.PerformGRPCHealthCheck(address, useTLS, e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Connected = connected
+		result.Duration = duration
+		if e.needsToReadBody() {
+			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
+		}
 	} else {
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
