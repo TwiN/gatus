@@ -109,6 +109,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
+    - [Kubernetes](#kubernetes)
+    - [ECS Fargate](#ecs-fargate)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -2790,8 +2792,14 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 
 
 ### Terraform
-Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
+#### Kubernetes
+
+Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
+
+#### ECS Fargate
+
+Gatus can be deployed on ECS Fargate using Terraform by using the following module: [terraform-aws-gatus-ecs](https://github.com/GiamPy5/terraform-aws-gatus-ecs).
 
 ## Running the tests
 ```console
