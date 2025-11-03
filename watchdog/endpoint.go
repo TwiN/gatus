@@ -64,7 +64,6 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 		}
 	}
 	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
-		// TODO: Consider moving this after the monitoring lock is unlocked? I mean, how much noise can a single alerting provider cause...
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
 		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")

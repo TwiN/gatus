@@ -1448,3 +1448,168 @@ func TestEndpoint_preprocessWithContext(t *testing.T) {
 		})
 	}
 }
+
+func TestEndpoint_HideUIFeatures(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	tests := []struct {
+		name              string
+		endpoint          Endpoint
+		mockResponse      test.MockRoundTripper
+		checkHostname     bool
+		expectHostname    string
+		checkErrors       bool
+		expectErrors      bool
+		checkConditions   bool
+		expectConditions  bool
+		checkErrorContent string
+	}{
+		{
+			name: "hide-conditions",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
+				UIConfig:   &ui.Config{HideConditions: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status": "UP"}`))}
+			}),
+			checkConditions:  true,
+			expectConditions: false,
+		},
+		{
+			name: "hide-hostname",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{HideHostname: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			checkHostname:  true,
+			expectHostname: "",
+		},
+		{
+			name: "hide-url-in-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideURL: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse:      nil,
+			checkErrors:       true,
+			expectErrors:      true,
+			checkErrorContent: "<redacted>",
+		},
+		{
+			name: "hide-port-in-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com:9999/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HidePort: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse:      nil,
+			checkErrors:       true,
+			expectErrors:      true,
+			checkErrorContent: "<redacted>",
+		},
+		{
+			name: "hide-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideErrors: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse: nil,
+			checkErrors:  true,
+			expectErrors: false,
+		},
+		{
+			name: "dont-resolve-failed-conditions",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
+			}),
+			checkConditions:  true,
+			expectConditions: true,
+		},
+		{
+			name: "multiple-hide-features",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{HideConditions: true, HideHostname: true, HideErrors: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			checkConditions:  true,
+			expectConditions: false,
+			checkHostname:    true,
+			expectHostname:   "",
+			checkErrors:      true,
+			expectErrors:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.mockResponse != nil {
+				mockClient := &http.Client{Transport: tt.mockResponse}
+				if tt.endpoint.ClientConfig != nil && tt.endpoint.ClientConfig.Timeout > 0 {
+					mockClient.Timeout = tt.endpoint.ClientConfig.Timeout
+				}
+				client.InjectHTTPClient(mockClient)
+			} else {
+				client.InjectHTTPClient(nil)
+			}
+			err := tt.endpoint.ValidateAndSetDefaults()
+			if err != nil {
+				t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+			}
+			result := tt.endpoint.EvaluateHealth()
+			if tt.checkHostname {
+				if result.Hostname != tt.expectHostname {
+					t.Errorf("Expected hostname '%s', got '%s'", tt.expectHostname, result.Hostname)
+				}
+			}
+			if tt.checkErrors {
+				hasErrors := len(result.Errors) > 0
+				if hasErrors != tt.expectErrors {
+					t.Errorf("Expected errors=%v, got errors=%v (actual errors: %v)", tt.expectErrors, hasErrors, result.Errors)
+				}
+				if tt.checkErrorContent != "" && len(result.Errors) > 0 {
+					found := false
+					for _, err := range result.Errors {
+						if strings.Contains(err, tt.checkErrorContent) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("Expected error to contain '%s', but got: %v", tt.checkErrorContent, result.Errors)
+					}
+				}
+			}
+			if tt.checkConditions {
+				hasConditions := result.ConditionResults != nil && len(result.ConditionResults) > 0
+				if hasConditions != tt.expectConditions {
+					t.Errorf("Expected conditions=%v, got conditions=%v (actual: %v)", tt.expectConditions, hasConditions, result.ConditionResults)
+				}
+			}
+		})
+	}
+}

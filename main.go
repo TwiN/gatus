@@ -183,6 +183,33 @@ func initializeStorage(cfg *config.Config) {
 			}
 		}
 	}
+	// Load persisted triggered alerts for suite endpoints
+	for _, suite := range cfg.Suites {
+		for _, ep := range suite.Endpoints {
+			var checksums []string
+			for _, alert := range ep.Alerts {
+				if alert.IsEnabled() {
+					checksums = append(checksums, alert.Checksum())
+				}
+			}
+			numberOfTriggeredAlertsDeleted := store.Get().DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep, checksums)
+			if numberOfTriggeredAlertsDeleted > 0 {
+				logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for suite endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
+			}
+			for _, alert := range ep.Alerts {
+				exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+				if err != nil {
+					logr.Errorf("[main.initializeStorage] Failed to get triggered alert for suite endpoint with key=%s: %s", ep.Key(), err.Error())
+					continue
+				}
+				if exists {
+					alert.Triggered, alert.ResolveKey = true, resolveKey
+					ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+					numberOfPersistedTriggeredAlertsLoaded++
+				}
+			}
+		}
+	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
 	}

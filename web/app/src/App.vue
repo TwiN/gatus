@@ -197,13 +197,12 @@ const buttons = computed(() => {
 const fetchConfig = async () => {
   try {
     const response = await fetch(`${SERVER_URL}/api/v1/config`, { credentials: 'include' })
-    retrievedConfig.value = true
-    
     if (response.status === 200) {
       const data = await response.json()
       config.value = data
       announcements.value = data.announcements || []
     }
+    retrievedConfig.value = true
   } catch (error) {
     console.error('Failed to fetch config:', error)
     retrievedConfig.value = true

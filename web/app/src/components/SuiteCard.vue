@@ -39,10 +39,16 @@
               :key="index"
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
-                result ? (result.success ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700') : 'bg-gray-200 dark:bg-gray-700'
+                result ? 'cursor-pointer' : '',
+                result ? (
+                  result.success
+                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result && showTooltip(result, $event)"
-              @mouseleave="hideTooltip($event)"
+              @mouseenter="result && handleMouseEnter(result, $event)"
+              @mouseleave="result && handleMouseLeave(result, $event)"
+              @click.stop="result && handleClick(result, $event, index)"
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
@@ -56,7 +62,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -76,6 +82,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['showTooltip'])
+
+// Track selected data point
+const selectedResultIndex = ref(null)
 
 // Computed properties
 const displayResults = computed(() => {
@@ -143,13 +152,39 @@ const navigateToDetails = () => {
   router.push(`/suites/${props.suite.key}`)
 }
 
-const showTooltip = (result, event) => {
-  emit('showTooltip', result, event)
+const handleMouseEnter = (result, event) => {
+  emit('showTooltip', result, event, 'hover')
 }
 
-const hideTooltip = (event) => {
-  emit('showTooltip', null, event)
+const handleMouseLeave = (result, event) => {
+  emit('showTooltip', null, event, 'hover')
 }
+
+const handleClick = (result, event, index) => {
+  // Clear selections in other cards first
+  window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+  // Then toggle this card's selection
+  if (selectedResultIndex.value === index) {
+    selectedResultIndex.value = null
+    emit('showTooltip', null, event, 'click')
+  } else {
+    selectedResultIndex.value = index
+    emit('showTooltip', result, event, 'click')
+  }
+}
+
+// Listen for clear selection event
+const handleClearSelection = () => {
+  selectedResultIndex.value = null
+}
+
+onMounted(() => {
+  window.addEventListener('clear-data-point-selection', handleClearSelection)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('clear-data-point-selection', handleClearSelection)
+})
 </script>
 
 <style scoped>

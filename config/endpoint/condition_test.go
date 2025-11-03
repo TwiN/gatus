@@ -476,7 +476,7 @@ func TestCondition_evaluate(t *testing.T) {
 			Condition:       Condition("[CERTIFICATE_EXPIRATION] > " + strconv.FormatInt((time.Hour*24*28).Milliseconds(), 10)),
 			Result:          &Result{CertificateExpiration: time.Hour * 24 * 14},
 			ExpectedSuccess: false,
-			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (1209600000) > 2419200000",
+			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (336h) > 2419200000",
 		},
 		{
 			Name:            "certificate-expiration-greater-than-duration",
@@ -490,7 +490,7 @@ func TestCondition_evaluate(t *testing.T) {
 			Condition:       Condition("[CERTIFICATE_EXPIRATION] > 48h"),
 			Result:          &Result{CertificateExpiration: 24 * time.Hour},
 			ExpectedSuccess: false,
-			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (86400000) > 48h (172800000)",
+			ExpectedOutput:  "[CERTIFICATE_EXPIRATION] (24h) > 48h",
 		},
 		{
 			Name:            "no-placeholders",
