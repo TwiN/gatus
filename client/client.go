@@ -360,7 +360,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	return true, 0
 }
 
-// ShouldUsePrivilegedPinger will determine whether or not to run pinger in privileged mode.
+// ShouldRunPingerAsPrivileged will determine whether or not to run pinger in privileged mode.
 // It should be set to privileged when running as root, and always on windows. See https://pkg.go.dev/github.com/macrat/go-parallel-pinger#Pinger.SetPrivileged
 func ShouldRunPingerAsPrivileged() bool {
 	// Set the pinger's privileged mode to false for darwin
