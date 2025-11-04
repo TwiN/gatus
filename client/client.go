@@ -344,7 +344,6 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
-
 	pinger.SetPrivileged(ShouldRunPingerAsPrivileged())
 	pinger.SetNetwork(config.Network)
 	err := pinger.Run()
