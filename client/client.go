@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -343,12 +344,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
-	// Set the pinger's privileged mode to true for every GOOS except darwin
-	// See https://github.com/TwiN/gatus/issues/132
-	//
-	// Note that for this to work on Linux, Gatus must run with sudo privileges.
-	// See https://github.com/prometheus-community/pro-bing#linux
-	pinger.SetPrivileged(runtime.GOOS != "darwin")
+	pinger.SetPrivileged(ShouldRunPingerAsPrivileged())
 	pinger.SetNetwork(config.Network)
 	err := pinger.Run()
 	if err != nil {
@@ -362,6 +358,25 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 		return true, pinger.Statistics().MaxRtt
 	}
 	return true, 0
+}
+
+// ShouldRunPingerAsPrivileged will determine whether or not to run pinger in privileged mode.
+// It should be set to privileged when running as root, and always on windows. See https://pkg.go.dev/github.com/macrat/go-parallel-pinger#Pinger.SetPrivileged
+func ShouldRunPingerAsPrivileged() bool {
+	// Set the pinger's privileged mode to false for darwin
+	// See https://github.com/TwiN/gatus/issues/132
+	// linux should also be set to false, but there are potential complications
+	// See https://github.com/TwiN/gatus/pull/748 and https://github.com/TwiN/gatus/issues/697#issuecomment-2081700989
+	//
+	// Note that for this to work on Linux, Gatus must run with sudo privileges. (in certain cases)
+	// See https://github.com/prometheus-community/pro-bing#linux
+	if runtime.GOOS == "windows" {
+		return true
+	}
+	// To actually check for cap_net_raw capabilities, we would need to add "kernel.org/pub/linux/libs/security/libcap/cap" to gatus.
+	// Or use a syscall and check for permission errors, but this requires platform specific compilation
+	// As a backstop we can simply check the effective user id and run as privileged when running as root
+	return os.Geteuid() == 0
 }
 
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server
