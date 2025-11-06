@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -129,10 +131,37 @@ func TestPing(t *testing.T) {
 	}
 }
 
+func TestShouldRunPingerAsPrivileged(t *testing.T) {
+	// Don't run in parallel since we're testing system-dependent behavior
+	if runtime.GOOS == "windows" {
+		result := ShouldRunPingerAsPrivileged()
+		if !result {
+			t.Error("On Windows, ShouldRunPingerAsPrivileged() should return true")
+		}
+		return
+	}
+
+	// Non-Windows tests
+	result := ShouldRunPingerAsPrivileged()
+	isRoot := os.Geteuid() == 0
+
+	// Test cases based on current environment
+	if isRoot {
+		if !result {
+			t.Error("When running as root, ShouldRunPingerAsPrivileged() should return true")
+		}
+	} else {
+		// When not root, the result depends on raw socket creation
+		// We can at least verify the function runs without panic
+		t.Logf("Non-root privileged result: %v", result)
+	}
+}
+
+
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
-		address  string
-		insecure bool
+		address     string
+		insecure    bool
 		dnsresolver string
 	}
 	tests := []struct {
@@ -168,7 +197,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 		{
 			name: "dns resolver",
 			args: args{
-				address: "smtp.gmail.com:587",
+				address:     "smtp.gmail.com:587",
 				dnsresolver: "tcp://1.1.1.1:53",
 			},
 			wantConnected: true,
@@ -340,7 +369,7 @@ func TestQueryWebSocket(t *testing.T) {
 }
 
 func TestTlsRenegotiation(t *testing.T) {
-	tests := []struct {
+	scenarios := []struct {
 		name           string
 		cfg            TLSConfig
 		expectedConfig tls.RenegotiationSupport
@@ -371,12 +400,12 @@ func TestTlsRenegotiation(t *testing.T) {
 			expectedConfig: tls.RenegotiateNever,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
 			tls := &tls.Config{}
-			tlsConfig := configureTLS(tls, test.cfg)
-			if tlsConfig.Renegotiation != test.expectedConfig {
-				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			tlsConfig := configureTLS(tls, scenario.cfg)
+			if tlsConfig.Renegotiation != scenario.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", scenario.expectedConfig, tls.Renegotiation)
 			}
 		})
 	}
@@ -513,14 +542,11 @@ func TestQueryDNS(t *testing.T) {
 
 func TestCheckSSHBanner(t *testing.T) {
 	cfg := &Config{Timeout: 3}
-
 	t.Run("no-auth-ssh", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
-
 		if err != nil {
 			t.Errorf("Expected: error != nil, got: %v ", err)
 		}
-
 		if connected == false {
 			t.Errorf("Expected: connected == true, got: %v", connected)
 		}
@@ -528,14 +554,11 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 0, got: %v", status)
 		}
 	})
-
 	t.Run("invalid-address", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
-
 		if err == nil {
 			t.Errorf("Expected: error, got: %v ", err)
 		}
-
 		if connected != false {
 			t.Errorf("Expected: connected == false, got: %v", connected)
 		}
@@ -543,5 +566,4 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
-
 }

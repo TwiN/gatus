@@ -117,7 +117,13 @@
                 </div>
               </CardHeader>
               <CardContent>
-                <img :src="generateResponseTimeChartImageURL(selectedChartDuration)" alt="Response time chart" class="w-full" />
+                <ResponseTimeChart
+                  v-if="endpointStatus && endpointStatus.key"
+                  :endpointKey="endpointStatus.key"
+                  :duration="selectedChartDuration"
+                  :serverUrl="serverUrl"
+                  :events="endpointStatus.events || []"
+                />
               </CardContent>
             </Card>
 
@@ -206,6 +212,7 @@ import EndpointCard from '@/components/EndpointCard.vue'
 import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
+import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { SERVER_URL } from '@/main.js'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
@@ -387,10 +394,6 @@ const generateUptimeBadgeImageURL = (duration) => {
 
 const generateResponseTimeBadgeImageURL = (duration) => {
   return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
-}
-
-const generateResponseTimeChartImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/chart.svg`
 }
 
 onMounted(() => {

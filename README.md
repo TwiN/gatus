@@ -109,6 +109,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
+    - [Kubernetes](#kubernetes)
+    - [ECS Fargate](#ecs-fargate)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -309,6 +311,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-hostname`                  | Whether to hide the hostname from the results.                                                                                              | `false`                    |
 | `endpoints[].ui.hide-port`                      | Whether to hide the port from the results.                                                                                                  | `false`                    |
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
+| `endpoints[].ui.hide-errors`                    | Whether to hide errors from the results.                                                                                                    | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
@@ -2675,6 +2678,7 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
+| gatus_results_domain_expiration_seconds      | gauge   | Number of seconds until the domains expires                                | key, group, name, type          | HTTP, STARTTLS          |
 | gatus_results_endpoint_success               | gauge   | Displays whether or not the endpoint was a success (0 failure, 1 success)  | key, group, name, type          | All                     |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
@@ -2789,8 +2793,14 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 
 
 ### Terraform
-Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
+#### Kubernetes
+
+Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
+
+#### ECS Fargate
+
+Gatus can be deployed on ECS Fargate using Terraform by using the following module: [terraform-aws-gatus-ecs](https://github.com/GiamPy5/terraform-aws-gatus-ecs).
 
 ## Running the tests
 ```console
@@ -2960,7 +2970,7 @@ endpoints:
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
-If you run Gatus on Linux, please read the Linux section on https://github.com/prometheus-community/pro-bing#linux
+If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.
 
 

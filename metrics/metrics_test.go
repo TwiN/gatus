@@ -48,6 +48,9 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 	if resultCertificateExpirationSeconds == nil {
 		t.Error("resultCertificateExpirationSeconds metric not initialized")
 	}
+	if resultDomainExpirationSeconds == nil {
+		t.Error("resultDomainExpirationSeconds metric not initialized")
+	}
 	if resultEndpointSuccess == nil {
 		t.Error("resultEndpointSuccess metric not initialized")
 	}
@@ -120,9 +123,11 @@ func TestPublishMetricsForEndpoint(t *testing.T) {
 		ConditionResults: []*endpoint.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 48h", Success: true},
+			{Condition: "[DOMAIN_EXPIRATION] > 24h", Success: true},
 		},
 		Success:               true,
 		CertificateExpiration: 49 * time.Hour,
+		DomainExpiration:      25 * time.Hour,
 	}, []string{})
 	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
@@ -140,6 +145,9 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
 gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 176400
+# HELP gatus_results_domain_expiration_seconds Number of seconds until the domain expires
+# TYPE gatus_results_domain_expiration_seconds gauge
+gatus_results_domain_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 90000
 # HELP gatus_results_endpoint_success Displays whether or not the endpoint was a success
 # TYPE gatus_results_endpoint_success gauge
 gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 1
@@ -154,9 +162,11 @@ gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-
 		ConditionResults: []*endpoint.ConditionResult{
 			{Condition: "[STATUS] == 200", Success: true},
 			{Condition: "[CERTIFICATE_EXPIRATION] > 47h", Success: false},
+			{Condition: "[DOMAIN_EXPIRATION] > 24h", Success: true},
 		},
 		Success:               false,
 		CertificateExpiration: 47 * time.Hour,
+		DomainExpiration:      24 * time.Hour,
 	}, []string{})
 	err = testutil.GatherAndCompare(reg, bytes.NewBufferString(`
 # HELP gatus_results_code_total Total number of results by code
@@ -175,6 +185,9 @@ gatus_results_total{group="http-ep-group",key="http-ep-group_http-ep-name",name=
 # HELP gatus_results_certificate_expiration_seconds Number of seconds until the certificate expires
 # TYPE gatus_results_certificate_expiration_seconds gauge
 gatus_results_certificate_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 169200
+# HELP gatus_results_domain_expiration_seconds Number of seconds until the domain expires
+# TYPE gatus_results_domain_expiration_seconds gauge
+gatus_results_domain_expiration_seconds{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 86400
 # HELP gatus_results_endpoint_success Displays whether or not the endpoint was a success
 # TYPE gatus_results_endpoint_success gauge
 gatus_results_endpoint_success{group="http-ep-group",key="http-ep-group_http-ep-name",name="http-ep-name",type="HTTP"} 0

@@ -44,13 +44,6 @@
               :key="date"
               class="relative"
             >
-              <!-- Vertical line from date to last icon -->
-              <div 
-                v-if="group.length > 0"
-                class="absolute left-3 w-0.5 bg-gray-300 dark:bg-gray-600 pointer-events-none"
-                :style="getTimelineHeight(group)"
-              ></div>
-
               <!-- Date Header -->
               <div class="flex items-center gap-3 mb-2 relative">
                 <div class="relative z-10 bg-white dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
@@ -69,17 +62,36 @@
                   class="relative"
                 >
                   <!-- Timeline Icon -->
-                  <div 
+                  <div
                     :class="[
-                      'absolute -left-[26px] top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border bg-white dark:bg-gray-800 flex items-center justify-center z-10',
+                      'absolute -left-[26px] w-5 h-5 rounded-full border bg-white dark:bg-gray-800 flex items-center justify-center z-10',
+                      index === group.length - 1 ? 'top-3' : 'top-1/2 -translate-y-1/2',
                       getTypeClasses(announcement.type).border
                     ]"
                   >
-                    <component 
-                      :is="getTypeIcon(announcement.type)" 
+                    <component
+                      :is="getTypeIcon(announcement.type)"
                       :class="['w-3 h-3', getTypeClasses(announcement.type).iconColor]"
                     />
                   </div>
+
+                  <!-- Vertical line segment connecting upward from first icon to date -->
+                  <div
+                    v-if="index === 0"
+                    class="absolute w-0.5 bg-gray-300 dark:bg-gray-600 pointer-events-none"
+                    style="left: -16px; top: -2.5rem; height: calc(50% + 2.5rem);"
+                  ></div>
+
+                  <!-- Vertical line segment connecting downward to next icon -->
+                  <div
+                    v-if="index < group.length - 1"
+                    class="absolute w-0.5 bg-gray-300 dark:bg-gray-600 pointer-events-none"
+                    :style="{
+                      left: '-16px',
+                      top: '50%',
+                      height: index === group.length - 2 ? 'calc(50% + 1.25rem)' : 'calc(50% + 2rem)'
+                    }"
+                  ></div>
 
                   <!-- Announcement Card -->
                   <div 
@@ -218,14 +230,6 @@ const getTypeIcon = (type) => {
 
 const getTypeClasses = (type) => {
   return typeConfigs[type] || typeConfigs.none
-}
-
-const getTimelineHeight = (group) => {
-  const height = group.length === 1 ? '2rem' : `${2 + (group.length - 1) * 3.5}rem`
-  return {
-    top: '1.5rem',
-    height
-  }
 }
 
 const formatDate = (dateString) => {
