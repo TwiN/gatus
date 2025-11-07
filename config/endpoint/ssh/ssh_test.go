@@ -13,8 +13,8 @@ func TestSSH_validate(t *testing.T) {
 	cfg.Username = "username"
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected an error")
-	} else if !errors.Is(err, ErrEndpointWithoutSSHPassword) {
-		t.Errorf("expected error to be '%v', got '%v'", ErrEndpointWithoutSSHPassword, err)
+	} else if !errors.Is(err, ErrEndpointWithoutSSHAuth) {
+		t.Errorf("expected error to be '%v', got '%v'", ErrEndpointWithoutSSHAuth, err)
 	}
 	cfg.Password = "password"
 	if err := cfg.Validate(); err != nil {

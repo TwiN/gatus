@@ -523,7 +523,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			name:        "fail when has no password",
 			username:    "username",
 			password:    "",
-			expectedErr: ssh.ErrEndpointWithoutSSHPassword,
+			expectedErr: ssh.ErrEndpointWithoutSSHAuth,
 		},
 		{
 			name:        "success when all fields are set",
@@ -1605,7 +1605,7 @@ func TestEndpoint_HideUIFeatures(t *testing.T) {
 				}
 			}
 			if tt.checkConditions {
-				hasConditions := result.ConditionResults != nil && len(result.ConditionResults) > 0
+				hasConditions := len(result.ConditionResults) > 0
 				if hasConditions != tt.expectConditions {
 					t.Errorf("Expected conditions=%v, got conditions=%v (actual: %v)", tt.expectConditions, hasConditions, result.ConditionResults)
 				}

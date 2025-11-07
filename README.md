@@ -3046,7 +3046,8 @@ There are two placeholders that can be used in the conditions for endpoints of t
 You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh://`:
 ```yaml
 endpoints:
-  - name: ssh-example
+  # Password-based SSH example
+  - name: ssh-example-password
     url: "ssh://example.com:22" # port is optional. Default is 22.
     ssh:
       username: "username"
@@ -3060,10 +3061,24 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
       - "[BODY].memory.used > 500"
+
+  # Key-based SSH example
+  - name: ssh-example-key
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: "username"
+      private-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        TESTRSAKEY...
+        -----END RSA PRIVATE KEY-----
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
 ```
 
-you can also use no authentication to monitor the endpoint by not specifying the username
-and password fields.
+you can also use no authentication to monitor the endpoint by not specifying the username,
+password and private key fields.
 
 ```yaml
 endpoints:
@@ -3072,6 +3087,7 @@ endpoints:
     ssh:
       username: ""
       password: ""
+      private-key: ""
 
     interval: 1m
     conditions:
