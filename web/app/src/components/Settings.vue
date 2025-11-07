@@ -146,11 +146,18 @@ const applyTheme = () => {
   document.documentElement.classList.toggle('dark', isDark)
 }
 
+const handleKeyDown = (event) => {
+  if (event.key === 'r' || event.key === 'R') {
+    refreshData()
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   setRefreshInterval(refreshIntervalValue.value)
   applyTheme()
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
@@ -158,6 +165,7 @@ onUnmounted(() => {
     clearInterval(refreshIntervalHandler)
   }
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeyDown)
 })
 </script>
 
