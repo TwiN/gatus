@@ -47,7 +47,7 @@
               <!-- Date Header -->
               <div class="flex items-center gap-3 mb-2 relative">
                 <div class="relative z-10 bg-white dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
-                  <time class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  <time class="text-sm font-medium text-gray-600 dark:text-gray-300">
                     {{ formatDate(date) }}
                   </time>
                 </div>
@@ -94,25 +94,25 @@
                   ></div>
 
                   <!-- Announcement Card -->
-                  <div 
+                  <div
                     :class="[
                       'rounded-md border p-3 transition-all duration-200 hover:shadow-sm',
                       getTypeClasses(announcement.type).background
                     ]"
                   >
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm leading-relaxed text-gray-900 dark:text-gray-100">{{ announcement.message }}</p>
-                      </div>
-                      <time 
+                    <div class="flex items-center gap-3">
+                      <time
                         :class="[
-                          'text-xs font-mono whitespace-nowrap',
+                          'text-sm font-mono whitespace-nowrap flex-shrink-0',
                           getTypeClasses(announcement.type).text
                         ]"
                         :title="formatFullTimestamp(announcement.timestamp)"
                       >
                         {{ formatTime(announcement.timestamp) }}
                       </time>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm leading-relaxed text-gray-900 dark:text-gray-100">{{ announcement.message }}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
