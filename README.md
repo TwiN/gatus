@@ -528,12 +528,15 @@ Here are some examples of conditions you can use:
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information.
 
-| Parameter                   | Description                                                                                   | Default  |
-|:----------------------------|:----------------------------------------------------------------------------------------------|:---------|
-| `announcements`             | List of announcements to display                                                              | `[]`     |
-| `announcements[].timestamp` | UTC timestamp when the announcement was made (RFC3339 format)                                 | Required |
-| `announcements[].type`      | Type of announcement. Valid values: `outage`, `warning`, `information`, `operational`, `none` | `"none"` |
-| `announcements[].message`   | The message to display to users                                                               | Required |
+This is essentially what some status page calls "incident communications".
+
+| Parameter                   | Description                                                                                                              | Default  |
+|:----------------------------|:-------------------------------------------------------------------------------------------------------------------------|:---------|
+| `announcements`             | List of announcements to display                                                                                         | `[]`     |
+| `announcements[].timestamp` | UTC timestamp when the announcement was made (RFC3339 format)                                                            | Required |
+| `announcements[].type`      | Type of announcement. Valid values: `outage`, `warning`, `information`, `operational`, `none`                            | `"none"` |
+| `announcements[].message`   | The message to display to users                                                                                          | Required |
+| `announcements[].archived`  | Whether to archive the announcement. Archived announcements show at the bottom of the status page instead of at the top. | `false`  |
 
 Types:
 - **outage**: Indicates service disruptions or critical issues (red theme)
@@ -545,16 +548,23 @@ Types:
 Example Configuration:
 ```yaml
 announcements:
-  - timestamp: 2025-08-15T14:00:00Z
+  - timestamp: 2025-11-07T14:00:00Z
     type: outage
     message: "Scheduled maintenance on database servers from 14:00 to 16:00 UTC"
-  - timestamp: 2025-08-15T16:15:00Z
+  - timestamp: 2025-11-07T16:15:00Z
     type: operational
     message: "Database maintenance completed successfully. All systems operational."
-  - timestamp: 2025-08-15T12:00:00Z
+  - timestamp: 2025-11-07T12:00:00Z
     type: information
     message: "New monitoring dashboard features will be deployed next week"
+  - timestamp: 2025-11-06T09:00:00Z
+    type: warning
+    message: "Elevated API response times observed for US customers"
+    archived: true
 ```
+
+If at least one announcement is archived, a **Past Announcements** section will be rendered at the bottom of the status page:
+![Gatus past announcements section](.github/assets/past-announcements.jpg)
 
 
 ### Storage
