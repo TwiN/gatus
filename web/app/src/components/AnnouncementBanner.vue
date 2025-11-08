@@ -100,13 +100,7 @@
                       getTypeClasses(announcement.type).background
                     ]"
                   >
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="flex-1 min-w-0">
-                        <p
-                          class="text-sm leading-relaxed text-gray-900 dark:text-gray-100"
-                          v-html="formatAnnouncementMessage(announcement.message)"
-                        ></p>
-                      </div>
+                    <div class="flex items-center gap-3">
                       <time
                         :class="[
                           'text-sm font-mono whitespace-nowrap flex-shrink-0',
@@ -116,6 +110,12 @@
                       >
                         {{ formatTime(announcement.timestamp) }}
                       </time>
+                      <div class="flex-1 min-w-0">
+                        <p
+                          class="text-sm leading-relaxed text-gray-900 dark:text-gray-100"
+                          v-html="formatAnnouncementMessage(announcement.message)"
+                        ></p>
+                      </div>
                     </div>
                   </div>
                 </div>
