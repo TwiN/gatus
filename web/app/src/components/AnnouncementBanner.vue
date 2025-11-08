@@ -252,10 +252,20 @@ const escapeHtml = (value) => {
 
 const renderer = new marked.Renderer()
 
-renderer.link = (href, title, text) => {
+renderer.link = (tokenOrHref, title, text) => {
+  const tokenObject = typeof tokenOrHref === 'object' && tokenOrHref !== null
+    ? tokenOrHref
+    : null
+
+  const href = tokenObject ? tokenObject.href : tokenOrHref
+  const resolvedTitle = tokenObject ? tokenObject.title : title
+  const resolvedText = tokenObject ? tokenObject.text : text
+
   const url = escapeHtml(href || '')
-  const titleAttribute = title ? ` title="${escapeHtml(title)}"` : ''
-  return `<a href="${url}" target="_blank" rel="noopener noreferrer"${titleAttribute}>${text}</a>`
+  const titleAttribute = resolvedTitle ? ` title="${escapeHtml(resolvedTitle)}"` : ''
+  const linkText = resolvedText || ''
+
+  return `<a href="${url}" target="_blank" rel="noopener noreferrer"${titleAttribute}>${linkText}</a>`
 }
 
 marked.use({
