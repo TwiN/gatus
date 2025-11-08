@@ -70,9 +70,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import { XCircle, AlertTriangle, Info, CheckCircle, Circle, ChevronDown } from 'lucide-vue-next'
+import { formatAnnouncementMessage } from '@/utils/markdown'
 
 // Props
 const props = defineProps({
@@ -181,55 +180,6 @@ const getTypeClasses = (type) => {
   return typeConfigs[type] || typeConfigs.none
 }
 
-const escapeHtml = (value) => {
-  if (value === null || value === undefined) {
-    return ''
-  }
-
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-const renderer = new marked.Renderer()
-
-renderer.link = (tokenOrHref, title, text) => {
-  const tokenObject = typeof tokenOrHref === 'object' && tokenOrHref !== null
-    ? tokenOrHref
-    : null
-
-  const href = tokenObject ? tokenObject.href : tokenOrHref
-  const resolvedTitle = tokenObject ? tokenObject.title : title
-  const resolvedText = tokenObject ? tokenObject.text : text
-
-  const url = escapeHtml(href || '')
-  const titleAttribute = resolvedTitle ? ` title="${escapeHtml(resolvedTitle)}"` : ''
-  const linkText = resolvedText || ''
-
-  return `<a href="${url}" target="_blank" rel="noopener noreferrer"${titleAttribute}>${linkText}</a>`
-}
-
-marked.use({
-  renderer,
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-  mangle: false
-})
-
-const formatAnnouncementMessage = (message) => {
-  if (!message) {
-    return ''
-  }
-
-  const markdown = String(message)
-  const html = marked.parse(markdown)
-  return DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] })
-}
-
 const formatDate = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -260,23 +210,3 @@ const formatFullTimestamp = (timestamp) => {
   })
 }
 </script>
-
-<style scoped>
-.past-announcements :deep(a) {
-  color: #1d4ed8;
-  text-decoration: underline;
-  font-weight: 500;
-}
-
-.past-announcements :deep(a:hover) {
-  color: #1e40af;
-}
-
-.dark .past-announcements :deep(a) {
-  color: #60a5fa;
-}
-
-.dark .past-announcements :deep(a:hover) {
-  color: #93c5fd;
-}
-</style>
