@@ -526,7 +526,7 @@ Here are some examples of conditions you can use:
 
 
 ### Announcements
-System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information.
+System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
 
 This is essentially what some status page calls "incident communications".
 
