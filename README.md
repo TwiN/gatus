@@ -3023,6 +3023,9 @@ You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `ic
 If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.
 
+Prior to `v5.31.0`, some environment setups required adding `CAP_NET_RAW` capabilities to allow pings to work.
+As of v5.31.0, this is no longer necessary, and ICMP checks will work with unprivileged pings unless running as root. See #1346 for details.
+
 
 ### Monitoring an endpoint using DNS queries
 Defining a `dns` configuration in an endpoint will automatically mark said endpoint as an endpoint of type DNS:
