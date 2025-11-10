@@ -11,7 +11,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { combineClasses } from '@/lib/utils'
+import { combineClasses } from '@/utils/misc'
 
 defineProps({
   modelValue: {

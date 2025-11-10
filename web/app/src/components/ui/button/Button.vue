@@ -10,7 +10,7 @@
 <script setup>
 /* eslint-disable no-undef */
 import { cva } from 'class-variance-authority'
-import { combineClasses } from '@/lib/utils'
+import { combineClasses } from '@/utils/misc'
 
 defineProps({
   variant: {

@@ -22,8 +22,8 @@
             </Button>
           </div>
         </div>
-        <!-- Announcement Banner -->
-        <AnnouncementBanner :announcements="props.announcements" />
+        <!-- Announcement Banner (Active Announcements) -->
+        <AnnouncementBanner :announcements="activeAnnouncements" />
         <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
@@ -170,6 +170,11 @@
           </Button>
         </div>
       </div>
+
+      <!-- Past Announcements Section -->
+      <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
+        <PastAnnouncements :announcements="archivedAnnouncements" />
+      </div>
     </div>
 
     <Settings @refreshData="fetchData" />
@@ -187,6 +192,7 @@ import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
+import PastAnnouncements from '@/components/PastAnnouncements.vue'
 import { SERVER_URL } from '@/main.js'
 
 const props = defineProps({
@@ -194,6 +200,15 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
+})
+
+// Computed properties for active and archived announcements
+const activeAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => !a.archived) : []
+})
+
+const archivedAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => a.archived) : []
 })
 
 const emit = defineEmits(['showTooltip'])
