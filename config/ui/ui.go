@@ -18,6 +18,9 @@ const (
 	defaultCustomCSS   = ""
 	defaultSortBy      = "name"
 	defaultFilterBy    = "none"
+	defaultFavicon     = "/favicon.ico"
+	defaultFavicon16   = "/favicon-16x16.png"
+	defaultFavicon32   = "/favicon-32x32.png"
 )
 
 var (
@@ -40,6 +43,7 @@ type Config struct {
 	DarkMode        *bool    `yaml:"dark-mode,omitempty"`         // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy   string   `yaml:"default-sort-by,omitempty"`   // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy string   `yaml:"default-filter-by,omitempty"` // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Favicon         Favicon  `yaml:"favicon,omitempty"`           // Favourite icon to display in web browser tab or address bar
 
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
@@ -68,6 +72,12 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
+type Favicon struct {
+	Default   string `yaml:"default,omitempty"`   // URL or path to default favourite icon.
+	Size16x16 string `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
+	Size32x32 string `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
+}
+
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
@@ -81,6 +91,11 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		Favicon: Favicon{
+			Default:   defaultFavicon,
+			Size16x16: defaultFavicon16,
+			Size32x32: defaultFavicon32,
+		},
 	}
 }
 
@@ -116,6 +131,15 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if len(cfg.Favicon.Default) == 0 {
+		cfg.Favicon.Default = defaultFavicon
+	}
+	if len(cfg.Favicon.Size16x16) == 0 {
+		cfg.Favicon.Size16x16 = defaultFavicon16
+	}
+	if len(cfg.Favicon.Size32x32) == 0 {
+		cfg.Favicon.Size32x32 = defaultFavicon32
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
