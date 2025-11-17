@@ -511,24 +511,38 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 		name        string
 		username    string
 		password    string
+		privateKey  string
 		expectedErr error
 	}{
 		{
-			name:        "fail when has no user",
+			name:        "fail when has no user but has password",
 			username:    "",
 			password:    "password",
 			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
 		},
 		{
-			name:        "fail when has no password",
+			name:        "fail when has no user but has private key",
+			username:    "",
+			privateKey:  "-----BEGIN",
+			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
+		},
+		{
+			name:        "fail when has no password or private key",
 			username:    "username",
 			password:    "",
+			privateKey:  "",
 			expectedErr: ssh.ErrEndpointWithoutSSHAuth,
 		},
 		{
-			name:        "success when all fields are set",
+			name:        "success when username and password are set",
 			username:    "username",
 			password:    "password",
+			expectedErr: nil,
+		},
+		{
+			name:        "success when username and private key are set",
+			username:    "username",
+			privateKey:  "-----BEGIN",
 			expectedErr: nil,
 		},
 	}
@@ -539,8 +553,9 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSHConfig: &ssh.Config{
-					Username: scenario.username,
-					Password: scenario.password,
+					Username:   scenario.username,
+					Password:   scenario.password,
+					PrivateKey: scenario.privateKey,
 				},
 				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}

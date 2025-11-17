@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSSH_validate(t *testing.T) {
+func TestSSH_validatePasswordCfg(t *testing.T) {
 	cfg := &Config{}
 	if err := cfg.Validate(); err != nil {
 		t.Error("didn't expect an error")
@@ -20,4 +20,19 @@ func TestSSH_validate(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("expected no error, got '%v'", err)
 	}
+}
+
+func TestSSH_validatePrivateKeyCfg(t *testing.T) {
+	t.Run("fail when username missing but private key provided", func(t *testing.T) {
+		cfg := &Config{PrivateKey: "-----BEGIN"}
+		if err := cfg.Validate(); !errors.Is(err, ErrEndpointWithoutSSHUsername) {
+			t.Fatalf("expected ErrEndpointWithoutSSHUsername, got %v", err)
+		}
+	})
+	t.Run("success when username with private key", func(t *testing.T) {
+		cfg := &Config{Username: "user", PrivateKey: "-----BEGIN"}
+		if err := cfg.Validate(); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+	})
 }
