@@ -714,7 +714,7 @@ endpoints:
       tls:
         certificate-file: /path/to/user_cert.pem
         private-key-file: /path/to/user_key.pem
-        ca-file: /path/to/root-ca.pem
+        ca-file: /path/to/root-ca.pem # Not required for non-self-signed certificate authorities
         renegotiation: once
     conditions:
       - "[STATUS] == 200"
