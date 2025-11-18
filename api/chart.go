@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -45,7 +46,11 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	default:
 		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
 	}
-	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(c.Params("key"), from, time.Now())
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
@@ -120,4 +125,64 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 		return c.Status(500).SendString(err.Error())
 	}
 	return nil
+}
+
+func ResponseTimeHistory(c *fiber.Ctx) error {
+	duration := c.Params("duration")
+	var from time.Time
+	switch duration {
+	case "30d":
+		from = time.Now().Truncate(time.Hour).Add(-30 * 24 * time.Hour)
+	case "7d":
+		from = time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour)
+	case "24h":
+		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
+	default:
+		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
+	}
+	endpointKey, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(endpointKey, from, time.Now())
+	if err != nil {
+		if errors.Is(err, common.ErrEndpointNotFound) {
+			return c.Status(404).SendString(err.Error())
+		}
+		if errors.Is(err, common.ErrInvalidTimeRange) {
+			return c.Status(400).SendString(err.Error())
+		}
+		return c.Status(500).SendString(err.Error())
+	}
+	if len(hourlyAverageResponseTime) == 0 {
+		return c.Status(200).JSON(map[string]interface{}{
+			"timestamps": []int64{},
+			"values":     []int{},
+		})
+	}
+	hourlyTimestamps := make([]int, 0, len(hourlyAverageResponseTime))
+	earliestTimestamp := int64(0)
+	for hourlyTimestamp := range hourlyAverageResponseTime {
+		hourlyTimestamps = append(hourlyTimestamps, int(hourlyTimestamp))
+		if earliestTimestamp == 0 || hourlyTimestamp < earliestTimestamp {
+			earliestTimestamp = hourlyTimestamp
+		}
+	}
+	for earliestTimestamp > from.Unix() {
+		earliestTimestamp -= int64(time.Hour.Seconds())
+		hourlyTimestamps = append(hourlyTimestamps, int(earliestTimestamp))
+	}
+	sort.Ints(hourlyTimestamps)
+	timestamps := make([]int64, 0, len(hourlyTimestamps))
+	values := make([]int, 0, len(hourlyTimestamps))
+	for _, hourlyTimestamp := range hourlyTimestamps {
+		timestamp := int64(hourlyTimestamp)
+		averageResponseTime := hourlyAverageResponseTime[timestamp]
+		timestamps = append(timestamps, timestamp*1000)
+		values = append(values, averageResponseTime)
+	}
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"timestamps": timestamps,
+		"values":     values,
+	})
 }

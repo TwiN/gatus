@@ -8,13 +8,8 @@
   </div>
 </template>
 
-
-<script>
-export default {
-  name: 'Social'
-}
+<script setup>
 </script>
-
 
 <style scoped>
 #social {

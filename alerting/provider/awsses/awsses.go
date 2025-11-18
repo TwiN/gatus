@@ -1,18 +1,18 @@
 package awsses
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/logr"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ses"
+	"github.com/aws/aws-sdk-go-v2/service/ses/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -102,63 +102,50 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	awsSession, err := provider.createSession(cfg)
+	ctx := context.Background()
+	svc, err := provider.createClient(ctx, cfg)
 	if err != nil {
 		return err
 	}
-	svc := ses.New(awsSession)
 	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
 	emails := strings.Split(cfg.To, ",")
-
 	input := &ses.SendEmailInput{
-		Destination: &ses.Destination{
-			ToAddresses: aws.StringSlice(emails),
+		Destination: &types.Destination{
+			ToAddresses: emails,
 		},
-		Message: &ses.Message{
-			Body: &ses.Body{
-				Text: &ses.Content{
+		Message: &types.Message{
+			Body: &types.Body{
+				Text: &types.Content{
 					Charset: aws.String(CharSet),
 					Data:    aws.String(body),
 				},
 			},
-			Subject: &ses.Content{
+			Subject: &types.Content{
 				Charset: aws.String(CharSet),
 				Data:    aws.String(subject),
 			},
 		},
 		Source: aws.String(cfg.From),
 	}
-	if _, err = svc.SendEmail(input); err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ses.ErrCodeMessageRejected:
-				logr.Error(ses.ErrCodeMessageRejected + ": " + aerr.Error())
-			case ses.ErrCodeMailFromDomainNotVerifiedException:
-				logr.Error(ses.ErrCodeMailFromDomainNotVerifiedException + ": " + aerr.Error())
-			case ses.ErrCodeConfigurationSetDoesNotExistException:
-				logr.Error(ses.ErrCodeConfigurationSetDoesNotExistException + ": " + aerr.Error())
-			default:
-				logr.Error(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			logr.Error(err.Error())
-		}
-
+	if _, err = svc.SendEmail(ctx, input); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (provider *AlertProvider) createSession(cfg *Config) (*session.Session, error) {
-	awsConfig := &aws.Config{
-		Region: aws.String(cfg.Region),
+func (provider *AlertProvider) createClient(ctx context.Context, cfg *Config) (*ses.Client, error) {
+	var opts []func(*config.LoadOptions) error
+	if len(cfg.Region) > 0 {
+		opts = append(opts, config.WithRegion(cfg.Region))
 	}
 	if len(cfg.AccessKeyID) > 0 && len(cfg.SecretAccessKey) > 0 {
-		awsConfig.Credentials = credentials.NewStaticCredentials(cfg.AccessKeyID, cfg.SecretAccessKey, "")
+		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKeyID, cfg.SecretAccessKey, "")))
 	}
-	return session.NewSession(awsConfig)
+	awsConfig, err := config.LoadDefaultConfig(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return ses.NewFromConfig(awsConfig), nil
 }
 
 // buildMessageSubjectAndBody builds the message subject and body

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/logr"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -71,13 +72,19 @@ type Config struct {
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
-	httpClient *http.Client
-
 	// Network (ip, ip4 or ip6) for the ICMP client
 	Network string `yaml:"network"`
 
 	// TLS configuration (optional)
 	TLS *TLSConfig `yaml:"tls,omitempty"`
+
+	// Tunnel is the name of the SSH tunnel to use for the client
+	Tunnel string `yaml:"tunnel,omitempty"`
+
+	// ResolvedTunnel is the resolved SSH tunnel for this specific Config
+	ResolvedTunnel *sshtunnel.SSHTunnel `yaml:"-"`
+
+	httpClient *http.Client
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -275,6 +282,14 @@ func (c *Config) getHTTPClient() *http.Client {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		} else if c.HasIAPConfig() {
 			c.httpClient = configureIAP(c.httpClient, *c.IAPConfig)
+		}
+		if c.ResolvedTunnel != nil {
+			// Use SSH tunnel dialer
+			if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
+				transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return c.ResolvedTunnel.Dial(network, addr)
+				}
+			}
 		}
 	}
 	return c.httpClient

@@ -1,8 +1,11 @@
 package client
 
 import (
+	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -20,6 +24,8 @@ import (
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
 	ping "github.com/prometheus-community/pro-bing"
+	"github.com/registrobr/rdap"
+	"github.com/registrobr/rdap/protocol"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
 )
@@ -34,6 +40,7 @@ var (
 
 	whoisClient              = whois.NewClient().WithReferralCache(true)
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
+	rdapClient               = rdap.NewClient(nil)
 )
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
@@ -61,7 +68,12 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 			return domainExpiration, nil
 		}
 	}
-	if whoisResponse, err := whoisClient.QueryAndParse(hostname); err != nil {
+	whoisResponse, err := rdapQuery(hostname)
+	if err != nil {
+		// fallback to WHOIS protocol
+		whoisResponse, err = whoisClient.QueryAndParse(hostname)
+	}
+	if err != nil {
 		if !retrievedCachedValue { // Add an error unless we already retrieved a cached value
 			return 0, fmt.Errorf("error querying and parsing hostname using whois client: %w", err)
 		}
@@ -76,24 +88,37 @@ func GetDomainExpiration(hostname string) (domainExpiration time.Duration, err e
 	return domainExpiration, nil
 }
 
-// CanCreateTCPConnection checks whether a connection can be established with a TCP endpoint
-func CanCreateTCPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return false
-	}
-	_ = conn.Close()
-	return true
+// parseLocalAddressPlaceholder returns a string with the local address replaced
+func parseLocalAddressPlaceholder(item string, localAddr net.Addr) string {
+	item = strings.ReplaceAll(item, "[LOCAL_ADDRESS]", localAddr.String())
+	return item
 }
 
-// CanCreateUDPConnection checks whether a connection can be established with a UDP endpoint
-func CanCreateUDPConnection(address string, config *Config) bool {
-	conn, err := net.DialTimeout("udp", address, config.Timeout)
+// CanCreateNetworkConnection checks whether a connection can be established with a TCP or UDP endpoint
+func CanCreateNetworkConnection(netType string, address string, body string, config *Config) (bool, []byte) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
+	connection, err := net.DialTimeout(netType, address, config.Timeout)
 	if err != nil {
-		return false
+		return false, nil
 	}
-	_ = conn.Close()
-	return true
+	defer connection.Close()
+	if body != "" {
+		body = parseLocalAddressPlaceholder(body, connection.LocalAddr())
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return false, nil
+		}
+		buf := make([]byte, MaximumMessageSize)
+		n, err := connection.Read(buf)
+		if err != nil {
+			return false, nil
+		}
+		return true, buf[:n]
+	}
+	return true, nil
 }
 
 // CanCreateSCTPConnection checks whether a connection can be established with a SCTP endpoint
@@ -128,10 +153,39 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if len(hostAndPort) != 2 {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
-	connection, err := net.DialTimeout("tcp", address, config.Timeout)
-	if err != nil {
-		return
+
+	var connection net.Conn
+	var dnsResolver *DNSResolverConfig
+
+	if config.HasCustomDNSResolver() {
+		dnsResolver, err = config.parseDNSResolver()
+
+		if err != nil {
+			// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
+			// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
+			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+		} else {
+			dialer := &net.Dialer{
+				Resolver: &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+						d := net.Dialer{}
+						return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+					},
+				},
+			}
+			connection, err = dialer.DialContext(context.Background(), "tcp", address)
+			if err != nil {
+				return
+			}
+		}
+	} else {
+		connection, err = net.DialTimeout("tcp", address, config.Timeout)
+		if err != nil {
+			return
+		}
 	}
+
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
@@ -152,7 +206,10 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
-func CanPerformTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+func CanPerformTLS(address string, body string, config *Config) (connected bool, response []byte, certificate *x509.Certificate, err error) {
+	const (
+		MaximumMessageSize = 1024 // in bytes
+	)
 	connection, err := tls.DialWithDialer(&net.Dialer{Timeout: config.Timeout}, "tcp", address, &tls.Config{
 		InsecureSkipVerify: config.Insecure,
 	})
@@ -166,9 +223,27 @@ func CanPerformTLS(address string, config *Config) (connected bool, certificate 
 	// Reference: https://pkg.go.dev/crypto/tls#PeerCertificates
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
 		peerCertificates := connection.ConnectionState().PeerCertificates
-		return true, peerCertificates[0], nil
+		certificate = peerCertificates[0]
+	} else {
+		certificate = verifiedChains[0][0]
 	}
-	return true, verifiedChains[0][0], nil
+	connected = true
+	if body != "" {
+		body = parseLocalAddressPlaceholder(body, connection.LocalAddr())
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		_, err = connection.Write([]byte(body))
+		if err != nil {
+			return
+		}
+		buf := make([]byte, MaximumMessageSize)
+		var n int
+		n, err = connection.Read(buf)
+		if err != nil {
+			return
+		}
+		response = buf[:n]
+	}
+	return
 }
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
@@ -228,33 +303,38 @@ func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
 }
 
 // ExecuteSSHCommand executes a command to an address using the SSH protocol.
-func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, error) {
+func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool, int, []byte, error) {
 	type Body struct {
 		Command string `json:"command"`
 	}
 	defer sshClient.Close()
 	var b Body
+	body = parseLocalAddressPlaceholder(body, sshClient.Conn.LocalAddr())
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
 	sess, err := sshClient.NewSession()
 	if err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
+	// Capture stdout
+	var stdout bytes.Buffer
+	sess.Stdout = &stdout
 	err = sess.Start(b.Command)
 	if err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
 	defer sess.Close()
 	err = sess.Wait()
+	output := stdout.Bytes()
 	if err == nil {
-		return true, 0, nil
+		return true, 0, output, nil
 	}
 	var exitErr *ssh.ExitError
 	if ok := errors.As(err, &exitErr); !ok {
-		return false, 0, err
+		return false, 0, nil, err
 	}
-	return true, exitErr.ExitStatus(), nil
+	return true, exitErr.ExitStatus(), output, nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
@@ -264,12 +344,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
-	// Set the pinger's privileged mode to true for every GOOS except darwin
-	// See https://github.com/TwiN/gatus/issues/132
-	//
-	// Note that for this to work on Linux, Gatus must run with sudo privileges.
-	// See https://github.com/prometheus-community/pro-bing#linux
-	pinger.SetPrivileged(runtime.GOOS != "darwin")
+	pinger.SetPrivileged(ShouldRunPingerAsPrivileged())
 	pinger.SetNetwork(config.Network)
 	err := pinger.Run()
 	if err != nil {
@@ -285,8 +360,27 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	return true, 0
 }
 
+// ShouldRunPingerAsPrivileged will determine whether or not to run pinger in privileged mode.
+// It should be set to privileged when running as root, and always on windows. See https://pkg.go.dev/github.com/macrat/go-parallel-pinger#Pinger.SetPrivileged
+func ShouldRunPingerAsPrivileged() bool {
+	// Set the pinger's privileged mode to false for darwin
+	// See https://github.com/TwiN/gatus/issues/132
+	// linux should also be set to false, but there are potential complications
+	// See https://github.com/TwiN/gatus/pull/748 and https://github.com/TwiN/gatus/issues/697#issuecomment-2081700989
+	//
+	// Note that for this to work on Linux, Gatus must run with sudo privileges. (in certain cases)
+	// See https://github.com/prometheus-community/pro-bing#linux
+	if runtime.GOOS == "windows" {
+		return true
+	}
+	// To actually check for cap_net_raw capabilities, we would need to add "kernel.org/pub/linux/libs/security/libcap/cap" to gatus.
+	// Or use a syscall and check for permission errors, but this requires platform specific compilation
+	// As a backstop we can simply check the effective user id and run as privileged when running as root
+	return os.Geteuid() == 0
+}
+
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server
-func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) {
+func QueryWebSocket(address, body string, headers map[string]string, config *Config) (bool, []byte, error) {
 	const (
 		Origin             = "http://localhost/"
 		MaximumMessageSize = 1024 // in bytes
@@ -295,8 +389,22 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 	if err != nil {
 		return false, nil, fmt.Errorf("error configuring websocket connection: %w", err)
 	}
+	if headers != nil {
+		if wsConfig.Header == nil {
+			wsConfig.Header = make(http.Header)
+		}
+		for name, value := range headers {
+			wsConfig.Header.Set(name, value)
+		}
+	}
 	if config != nil {
 		wsConfig.Dialer = &net.Dialer{Timeout: config.Timeout}
+		wsConfig.TlsConfig = &tls.Config{
+			InsecureSkipVerify: config.Insecure,
+		}
+		if config.HasTLSConfig() && config.TLS.isValid() == nil {
+			wsConfig.TlsConfig = configureTLS(wsConfig.TlsConfig, *config.TLS)
+		}
 	}
 	// Dial URL
 	ws, err := websocket.DialConfig(wsConfig)
@@ -304,6 +412,7 @@ func QueryWebSocket(address, body string, config *Config) (bool, []byte, error) 
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if _, err := ws.Write([]byte(body)); err != nil {
 		return false, nil, fmt.Errorf("error writing websocket body: %w", err)
@@ -322,6 +431,17 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		url = fmt.Sprintf("%s:%d", url, dnsPort)
 	}
 	queryTypeAsUint16 := dns.StringToType[queryType]
+	// Special handling: if this is a PTR query and queryName looks like a plain IP,
+	// convert it to the proper reverse lookup domain automatically.
+	if queryTypeAsUint16 == dns.TypePTR &&
+		!strings.HasSuffix(queryName, ".in-addr.arpa.") &&
+		!strings.HasSuffix(queryName, ".ip6.arpa.") {
+		if rev, convErr := reverseNameForIP(queryName); convErr == nil {
+			queryName = rev
+		} else {
+			return false, "", nil, convErr
+		}
+	}
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(queryName, queryTypeAsUint16)
@@ -372,4 +492,48 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
 func InjectHTTPClient(httpClient *http.Client) {
 	injectedHTTPClient = httpClient
+}
+
+// rdapQuery returns domain expiration via RDAP protocol
+func rdapQuery(hostname string) (*whois.Response, error) {
+	data, _, err := rdapClient.Query(hostname, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	domain, ok := data.(*protocol.Domain)
+	if !ok {
+		return nil, errors.New("invalid domain type")
+	}
+	response := whois.Response{}
+	for _, e := range domain.Events {
+		if e.Action == "expiration" {
+			response.ExpirationDate = e.Date.Time
+			break
+		}
+	}
+	return &response, nil
+}
+
+// helper to reverse IP and add in-addr.arpa. IPv4 and IPv6
+func reverseNameForIP(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP: %s", ipStr)
+	}
+
+	if ipv4 := ip.To4(); ipv4 != nil {
+		parts := strings.Split(ipv4.String(), ".")
+		for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+			parts[i], parts[j] = parts[j], parts[i]
+		}
+		return strings.Join(parts, ".") + ".in-addr.arpa.", nil
+	}
+
+	ip = ip.To16()
+	hexStr := hex.EncodeToString(ip)
+	nibbles := strings.Split(hexStr, "")
+	for i, j := 0, len(nibbles)-1; i < j; i, j = i+1, j-1 {
+		nibbles[i], nibbles[j] = nibbles[j], nibbles[i]
+	}
+	return strings.Join(nibbles, ".") + ".ip6.arpa.", nil
 }

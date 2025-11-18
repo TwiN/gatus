@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -86,7 +87,12 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 func EndpointStatus(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
-		endpointStatus, err := store.Get().GetEndpointStatusByKey(c.Params("key"), paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
+		key, err := url.QueryUnescape(c.Params("key"))
+		if err != nil {
+			logr.Errorf("[api.EndpointStatus] Failed to decode key: %s", err.Error())
+			return c.Status(400).SendString("invalid key encoding")
+		}
+		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
@@ -95,7 +101,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 			return c.Status(500).SendString(err.Error())
 		}
 		if endpointStatus == nil { // XXX: is this check necessary?
-			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", c.Params("key"))
+			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
 		output, err := json.Marshal(endpointStatus)
