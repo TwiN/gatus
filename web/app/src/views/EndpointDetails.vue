@@ -35,7 +35,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}ms</div>
+                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}</div>
               </CardContent>
             </Card>
 
@@ -261,7 +261,7 @@ const pageAverageResponseTime = computed(() => {
     }
   }
   if (count === 0) return 'N/A'
-  return Math.round(total / count / 1000000)
+  return `${Math.round(total / count / 1000000)}ms`
 })
 
 const pageResponseTimeRange = computed(() => {
