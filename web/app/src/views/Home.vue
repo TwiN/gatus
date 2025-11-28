@@ -538,7 +538,7 @@ const dashboardHeading = computed(() => {
 })
 
 const dashboardSubheading = computed(() => {
-  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.dashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
+  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
 })
 
 onMounted(() => {
