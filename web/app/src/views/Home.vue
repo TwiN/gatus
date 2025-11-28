@@ -82,7 +82,7 @@
                     v-for="suite in items.suites"
                     :key="suite.key"
                     :suite="suite"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     @showTooltip="showTooltip"
                   />
                 </div>
@@ -96,7 +96,7 @@
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     :showAverageResponseTime="showAverageResponseTime"
                     @showTooltip="showTooltip"
                   />
@@ -116,7 +116,7 @@
                 v-for="suite in paginatedSuites"
                 :key="suite.key"
                 :suite="suite"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -130,7 +130,7 @@
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
                 @showTooltip="showTooltip"
               />
@@ -225,6 +225,7 @@ const showAverageResponseTime = ref(true)
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
+const resultPageSize = 50
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -433,7 +434,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
+    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -444,7 +445,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=100`, {
+    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
