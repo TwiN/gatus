@@ -35,7 +35,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}ms</div>
+                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}</div>
               </CardContent>
             </Card>
 
@@ -262,7 +262,7 @@ const pageAverageResponseTime = computed(() => {
     }
   }
   if (count === 0) return 'N/A'
-  return Math.round(total / count / 1000000)
+  return `${Math.round(total / count / 1000000)}ms`
 })
 
 const pageResponseTimeRange = computed(() => {
@@ -275,17 +275,17 @@ const pageResponseTimeRange = computed(() => {
   let hasData = false
   
   for (const result of endpointStatus.value.results) {
-    if (result.duration) {
-      const durationMs = result.duration / 1000000
-      min = Math.min(min, durationMs)
-      max = Math.max(max, durationMs)
+    const duration = result.duration
+    if (duration) {
+      min = Math.min(min, duration)
+      max = Math.max(max, duration)
       hasData = true
     }
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.round(min)
-  const maxMs = Math.round(max)
+  const minMs = Math.round(min / 1000000)
+  const maxMs = Math.round(max / 1000000) 
   // If min and max are the same, show single value
   if (minMs === maxMs) {
     return `${minMs}ms`
