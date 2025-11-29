@@ -1,8 +1,17 @@
+# Build the static web assets
+FROM node:alpine AS web-builder
+WORKDIR /app
+COPY ./web/app/package.json ./web/app/package-lock.json ./
+RUN npm install
+COPY ./web/app/ ./
+RUN npm run build
+
 # Build the go application into a binary
 FROM golang:alpine AS builder
 RUN apk --update add ca-certificates
 WORKDIR /app
-COPY . ./
+COPY --exclude=web/app . ./
+COPY --from=web-builder /static/ ./web/static/
 RUN go mod tidy -diff
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
 
