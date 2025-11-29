@@ -89,13 +89,13 @@
                 <EndpointCard 
                   v-if="endpointStatus"
                   :endpoint="endpointStatus"
-                  :maxResults="50"
+                  :maxResults="resultPageSize"
                   :showAverageResponseTime="showAverageResponseTime"
                   @showTooltip="showTooltip"
                   class="border-0 shadow-none bg-transparent p-0"
                 />
                 <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
-                  <Pagination @page="changePage" :numberOfResultsPerPage="50" :currentPageProp="currentPage" />
+                  <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
                 </div>
               </div>
             </CardContent>
@@ -224,6 +224,7 @@ const endpointStatus = ref(null) // For paginated historical data
 const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
 const currentPage = ref(1)
+const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(false)
 const selectedChartDuration = ref('24h')
@@ -304,7 +305,7 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=50`, {
+    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     
