@@ -109,6 +109,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Docker](#docker)
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
+    - [Kubernetes](#kubernetes)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -119,6 +120,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring a UDP endpoint](#monitoring-a-udp-endpoint)
   - [Monitoring a SCTP endpoint](#monitoring-a-sctp-endpoint)
   - [Monitoring a WebSocket endpoint](#monitoring-a-websocket-endpoint)
+  - [Monitoring an endpoint using gRPC](#monitoring-an-endpoint-using-grpc)
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh)
@@ -261,6 +263,8 @@ If you want to test it locally, see [Docker](#docker).
 | `ui`                         | UI configuration.                                                                                                                        | `{}`                       |
 | `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                | `Health Dashboard ǀ Gatus` |
 | `ui.description`             | Meta description for the page.                                                                                                           | `Gatus is an advanced...`. |
+| `ui.dashboard-heading`       | Dashboard title between header and endpoints                                                                                             | `Health Dashboard` |
+| `ui.dashboard-subheading`    | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
 | `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
@@ -370,14 +374,14 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
-- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s). 
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, this will be ignored.
+- `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
 
 ### Suites (ALPHA)
-Suites are collections of endpoints that are executed sequentially with a shared context. 
+Suites are collections of endpoints that are executed sequentially with a shared context.
 This allows you to create complex monitoring scenarios where the result from one endpoint can be used in subsequent endpoints, enabling workflow-style monitoring.
 
 Here are a few cases in which suites could be useful:
@@ -419,7 +423,7 @@ suites:
     context:
       price: "19.99"  # Initial static value in context
     endpoints:
-      # Step 1: Create an item and store the item ID 
+      # Step 1: Create an item and store the item ID
       - name: create-item
         url: https://api.example.com/items
         method: POST
@@ -433,7 +437,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to create item"
-            
+
       # Step 2: Update the item using the stored item ID
       - name: update-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -444,7 +448,7 @@ suites:
         alerts:
           - type: slack
             description: "Failed to update item"
-        
+
       # Step 3: Fetch the item and validate the price
       - name: get-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -455,7 +459,7 @@ suites:
         alerts:
           - type: slack
             description: "Item price did not update correctly"
-            
+
       # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
       - name: delete-item
         url: https://api.example.com/items/[CONTEXT].itemId
@@ -523,18 +527,21 @@ Here are some examples of conditions you can use:
 
 
 ### Announcements
-System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information.
+System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
 
-| Parameter                   | Description                                                                                   | Default  |
-|:----------------------------|:----------------------------------------------------------------------------------------------|:---------|
-| `announcements`             | List of announcements to display                                                              | `[]`     |
-| `announcements[].timestamp` | UTC timestamp when the announcement was made (RFC3339 format)                                 | Required |
-| `announcements[].type`      | Type of announcement. Valid values: `outage`, `warning`, `information`, `operational`, `none` | `"none"` |
-| `announcements[].message`   | The message to display to users                                                               | Required |
+This is essentially what some status page calls "incident communications".
+
+| Parameter                   | Description                                                                                                              | Default  |
+|:----------------------------|:-------------------------------------------------------------------------------------------------------------------------|:---------|
+| `announcements`             | List of announcements to display                                                                                         | `[]`     |
+| `announcements[].timestamp` | UTC timestamp when the announcement was made (RFC3339 format)                                                            | Required |
+| `announcements[].type`      | Type of announcement. Valid values: `outage`, `warning`, `information`, `operational`, `none`                            | `"none"` |
+| `announcements[].message`   | The message to display to users                                                                                          | Required |
+| `announcements[].archived`  | Whether to archive the announcement. Archived announcements show at the bottom of the status page instead of at the top. | `false`  |
 
 Types:
 - **outage**: Indicates service disruptions or critical issues (red theme)
-- **warning**: Indicates potential issues or important notices (yellow theme)  
+- **warning**: Indicates potential issues or important notices (yellow theme)
 - **information**: General information or updates (blue theme)
 - **operational**: Indicates resolved issues or normal operations (green theme)
 - **none**: Neutral announcements with no specific severity (gray theme, default if none are specified)
@@ -542,16 +549,23 @@ Types:
 Example Configuration:
 ```yaml
 announcements:
-  - timestamp: 2025-08-15T14:00:00Z
+  - timestamp: 2025-11-07T14:00:00Z
     type: outage
     message: "Scheduled maintenance on database servers from 14:00 to 16:00 UTC"
-  - timestamp: 2025-08-15T16:15:00Z
-    type: operational  
+  - timestamp: 2025-11-07T16:15:00Z
+    type: operational
     message: "Database maintenance completed successfully. All systems operational."
-  - timestamp: 2025-08-15T12:00:00Z
+  - timestamp: 2025-11-07T12:00:00Z
     type: information
     message: "New monitoring dashboard features will be deployed next week"
+  - timestamp: 2025-11-06T09:00:00Z
+    type: warning
+    message: "Elevated API response times observed for US customers"
+    archived: true
 ```
+
+If at least one announcement is archived, a **Past Announcements** section will be rendered at the bottom of the status page:
+![Gatus past announcements section](.github/assets/past-announcements.jpg)
 
 
 ### Storage
@@ -707,7 +721,7 @@ endpoints:
 > 📝 Note that if running in a container, you must volume mount the certificate and key into the container.
 
 ### Tunneling
-Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers. 
+Gatus supports SSH tunneling to monitor internal services through jump hosts or bastion servers.
 This is particularly useful for monitoring services that are not directly accessible from where Gatus is deployed.
 
 SSH tunnels are defined globally in the `tunneling` section and then referenced by name in endpoint client configurations.
@@ -744,7 +758,7 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
-> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently. 
+> ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
 
 
@@ -2180,7 +2194,7 @@ Here's an example of what the notifications look like:
 | `alerting.telegram`                   | Configuration for alerts of type `telegram`                                                | `{}`                       |
 | `alerting.telegram.token`             | Telegram Bot Token                                                                         | Required `""`              |
 | `alerting.telegram.id`                | Telegram User ID                                                                           | Required `""`              |
-| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |    
+| `alerting.telegram.topic-id`          | Telegram Topic ID in a group corresponds to `message_thread_id` in the Telegram API        | `""`                       |
 | `alerting.telegram.api-url`           | Telegram API URL                                                                           | `https://api.telegram.org` |
 | `alerting.telegram.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                       |
 | `alerting.telegram.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                        |
@@ -2676,6 +2690,7 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |
 | gatus_results_duration_seconds               | gauge   | Duration of the request in seconds                                         | key, group, name, type          | All                     |
 | gatus_results_certificate_expiration_seconds | gauge   | Number of seconds until the certificate expires                            | key, group, name, type          | HTTP, STARTTLS          |
+| gatus_results_domain_expiration_seconds      | gauge   | Number of seconds until the domains expires                                | key, group, name, type          | HTTP, STARTTLS          |
 | gatus_results_endpoint_success               | gauge   | Displays whether or not the endpoint was a success (0 failure, 1 success)  | key, group, name, type          | All                     |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
@@ -2790,8 +2805,10 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 
 
 ### Terraform
-Gatus can be deployed on Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
+#### Kubernetes
+
+Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
 ## Running the tests
 ```console
@@ -2835,7 +2852,7 @@ will send a `POST` request to `http://localhost:8080/playground` with the follow
 
 
 ### Recommended interval
-To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of 
+To ensure that Gatus provides reliable and accurate results (i.e. response time), Gatus limits the number of
 endpoints/suites that can be evaluated at the same time.
 In other words, even if you have multiple endpoints with the same interval, they are not guaranteed to run at the same time.
 
@@ -2943,8 +2960,47 @@ endpoints:
 ```
 
 The `[BODY]` placeholder contains the output of the query, and `[CONNECTED]`
-shows whether the connection was successfully established. You can use Go template 
-syntax. 
+shows whether the connection was successfully established. You can use Go template
+syntax.
+
+
+### Monitoring an endpoint using gRPC
+You can monitor gRPC services by prefixing `endpoints[].url` with `grpc://` or `grpcs://`.
+Gatus executes the standard `grpc.health.v1.Health/Check` RPC against the target.
+
+```yaml
+endpoints:
+  - name: my-grpc
+    url: grpc://localhost:50051
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[BODY].status == SERVING"  # BODY is read only when referenced
+    client:
+      timeout: 5s
+```
+
+For TLS-enabled servers, use `grpcs://` and configure client TLS if necessary:
+
+```yaml
+endpoints:
+  - name: my-grpcs
+    url: grpcs://example.com:443
+    conditions:
+      - "[CONNECTED] == true"
+      - "[BODY].status == SERVING"
+    client:
+      timeout: 5s
+      insecure: false          # set true to skip cert verification (not recommended)
+      tls:
+        certificate-file: /path/to/cert.pem      # optional mTLS client cert
+        private-key-file: /path/to/key.pem       # optional mTLS client key
+```
+
+Notes:
+- The health check targets the default service (`service: ""`). Support for a custom service name can be added later if needed.
+- The response body is exposed as a minimal JSON object like `{"status":"SERVING"}` only when required by conditions or suite store mappings.
+- Timeouts, custom DNS resolvers and SSH tunnels are honored via the existing [`client` configuration](#client-configuration).
 
 
 ### Monitoring an endpoint using ICMP
@@ -2961,8 +3017,11 @@ endpoints:
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
-If you run Gatus on Linux, please read the Linux section on https://github.com/prometheus-community/pro-bing#linux
+If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.
+
+Prior to `v5.31.0`, some environment setups required adding `CAP_NET_RAW` capabilities to allow pings to work.
+As of `v5.31.0`, this is no longer necessary, and ICMP checks will work with unprivileged pings unless running as root. See #1346 for details.
 
 
 ### Monitoring an endpoint using DNS queries
@@ -2989,7 +3048,8 @@ There are two placeholders that can be used in the conditions for endpoints of t
 You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh://`:
 ```yaml
 endpoints:
-  - name: ssh-example
+  # Password-based SSH example
+  - name: ssh-example-password
     url: "ssh://example.com:22" # port is optional. Default is 22.
     ssh:
       username: "username"
@@ -3003,10 +3063,24 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
       - "[BODY].memory.used > 500"
+
+  # Key-based SSH example
+  - name: ssh-example-key
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: "username"
+      private-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        TESTRSAKEY...
+        -----END RSA PRIVATE KEY-----
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
 ```
 
-you can also use no authentication to monitor the endpoint by not specifying the username
-and password fields.
+you can also use no authentication to monitor the endpoint by not specifying the username,
+password and private key fields.
 
 ```yaml
 endpoints:
@@ -3015,6 +3089,7 @@ endpoints:
     ssh:
       username: ""
       password: ""
+      private-key: ""
 
     interval: 1m
     conditions:
@@ -3079,7 +3154,7 @@ endpoints:
       - "[CERTIFICATE_EXPIRATION] > 240h"
 ```
 
-> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service 
+> ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service
 > [through a library](https://github.com/TwiN/whois) and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 > To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
@@ -3108,7 +3183,7 @@ concurrency: 0
 
 **Use cases for higher concurrency:**
 - You have a large number of endpoints to monitor
-- You want to monitor endpoints at very short intervals (< 5s)  
+- You want to monitor endpoints at very short intervals (< 5s)
 - You're using Gatus for load testing scenarios
 
 **Legacy configuration:**
@@ -3192,7 +3267,7 @@ ui:
   default-sort-by: group
 ```
 Note that if a user has already sorted the dashboard by a different field, the default sort will not be applied unless the user
-clears their browser's localstorage. 
+clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path

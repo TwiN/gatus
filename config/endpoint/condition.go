@@ -209,7 +209,44 @@ func sanitizeAndResolveNumericalWithContext(list []string, result *Result, conte
 }
 
 func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
-	return prettify(parameters, []string{strconv.Itoa(int(resolvedParameters[0])), strconv.Itoa(int(resolvedParameters[1]))}, operator)
+	resolvedStrings := make([]string, 2)
+	for i := 0; i < 2; i++ {
+		// Check if the parameter is a certificate or domain expiration placeholder
+		if parameters[i] == CertificateExpirationPlaceholder || parameters[i] == DomainExpirationPlaceholder {
+			// Format as duration string (convert milliseconds back to duration)
+			duration := time.Duration(resolvedParameters[i]) * time.Millisecond
+			resolvedStrings[i] = formatDuration(duration)
+		} else if _, err := time.ParseDuration(parameters[i]); err == nil {
+			// If the original parameter was a duration string (like "48h"), format the resolved value
+			// as a duration string too so it matches and doesn't show in parentheses
+			duration := time.Duration(resolvedParameters[i]) * time.Millisecond
+			resolvedStrings[i] = formatDuration(duration)
+		} else {
+			// Format as integer
+			resolvedStrings[i] = strconv.Itoa(int(resolvedParameters[i]))
+		}
+	}
+	return prettify(parameters, resolvedStrings, operator)
+}
+
+// formatDuration formats a duration in a clean, human-readable way by removing unnecessary zero components.
+// For example: 336h0m0s becomes 336h, 1h30m0s becomes 1h30m, but 1h0m15s stays as 1h0m15s.
+// Truncates to whole seconds to avoid decimal values like 7353h5m54.67s.
+func formatDuration(d time.Duration) string {
+	// Truncate to whole seconds to avoid decimal seconds
+	d = d.Truncate(time.Second)
+	s := d.String()
+	// Special case: if duration is zero, return "0s"
+	if s == "0s" {
+		return "0s"
+	}
+	// Remove trailing "0s" if present
+	if strings.HasSuffix(s, "0s") {
+		s = strings.TrimSuffix(s, "0s")
+		// Remove trailing "0m" if present after removing "0s"
+		s = strings.TrimSuffix(s, "0m")
+	}
+	return s
 }
 
 // prettify returns a string representation of a condition with its parameters resolved between parentheses

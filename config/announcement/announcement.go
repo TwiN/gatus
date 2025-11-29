@@ -53,6 +53,10 @@ type Announcement struct {
 
 	// Message is the user-facing text describing the announcement
 	Message string `yaml:"message" json:"message"`
+
+	// Archived indicates whether the announcement should be displayed in the historical section
+	// instead of at the top of the status page
+	Archived bool `yaml:"archived,omitempty" json:"archived,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the announcement and sets default values if necessary

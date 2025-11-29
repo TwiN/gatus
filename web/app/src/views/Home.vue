@@ -4,8 +4,8 @@
       <div class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-4xl font-bold tracking-tight">Health Dashboard</h1>
-            <p class="text-muted-foreground mt-2">Monitor the health of your endpoints in real-time</p>
+            <h1 class="text-4xl font-bold tracking-tight">{{ dashboardHeading }}</h1>
+            <p class="text-muted-foreground mt-2">{{ dashboardSubheading }}</p>
           </div>
           <div class="flex items-center gap-4">
             <Button 
@@ -22,8 +22,8 @@
             </Button>
           </div>
         </div>
-        <!-- Announcement Banner -->
-        <AnnouncementBanner :announcements="props.announcements" />
+        <!-- Announcement Banner (Active Announcements) -->
+        <AnnouncementBanner :announcements="activeAnnouncements" />
         <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
@@ -82,7 +82,7 @@
                     v-for="suite in items.suites"
                     :key="suite.key"
                     :suite="suite"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     @showTooltip="showTooltip"
                   />
                 </div>
@@ -96,7 +96,7 @@
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     :showAverageResponseTime="showAverageResponseTime"
                     @showTooltip="showTooltip"
                   />
@@ -116,7 +116,7 @@
                 v-for="suite in paginatedSuites"
                 :key="suite.key"
                 :suite="suite"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -130,7 +130,7 @@
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
                 @showTooltip="showTooltip"
               />
@@ -170,6 +170,11 @@
           </Button>
         </div>
       </div>
+
+      <!-- Past Announcements Section -->
+      <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
+        <PastAnnouncements :announcements="archivedAnnouncements" />
+      </div>
     </div>
 
     <Settings @refreshData="fetchData" />
@@ -187,6 +192,7 @@ import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
+import PastAnnouncements from '@/components/PastAnnouncements.vue'
 import { SERVER_URL } from '@/main.js'
 
 const props = defineProps({
@@ -194,6 +200,15 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
+})
+
+// Computed properties for active and archived announcements
+const activeAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => !a.archived) : []
+})
+
+const archivedAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => a.archived) : []
 })
 
 const emit = defineEmits(['showTooltip'])
@@ -210,6 +225,7 @@ const showAverageResponseTime = ref(true)
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
+const resultPageSize = 50
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -418,7 +434,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
+    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -429,7 +445,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=100`, {
+    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
@@ -516,6 +532,14 @@ const initializeCollapsedGroups = () => {
     // On error, uncollapsedGroups stays empty (all collapsed by default)
   }
 }
+
+const dashboardHeading = computed(() => {
+  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
+})
+
+const dashboardSubheading = computed(() => {
+  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
+})
 
 onMounted(() => {
   fetchData()

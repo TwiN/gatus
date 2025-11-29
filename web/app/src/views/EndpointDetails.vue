@@ -35,7 +35,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}ms</div>
+                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}</div>
               </CardContent>
             </Card>
 
@@ -89,13 +89,13 @@
                 <EndpointCard 
                   v-if="endpointStatus"
                   :endpoint="endpointStatus"
-                  :maxResults="50"
+                  :maxResults="resultPageSize"
                   :showAverageResponseTime="showAverageResponseTime"
                   @showTooltip="showTooltip"
                   class="border-0 shadow-none bg-transparent p-0"
                 />
                 <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
-                  <Pagination @page="changePage" :numberOfResultsPerPage="50" :currentPageProp="currentPage" />
+                  <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
                 </div>
               </div>
             </CardContent>
@@ -117,7 +117,13 @@
                 </div>
               </CardHeader>
               <CardContent>
-                <img :src="generateResponseTimeChartImageURL(selectedChartDuration)" alt="Response time chart" class="w-full" />
+                <ResponseTimeChart
+                  v-if="endpointStatus && endpointStatus.key"
+                  :endpointKey="endpointStatus.key"
+                  :duration="selectedChartDuration"
+                  :serverUrl="serverUrl"
+                  :events="endpointStatus.events || []"
+                />
               </CardContent>
             </Card>
 
@@ -206,6 +212,7 @@ import EndpointCard from '@/components/EndpointCard.vue'
 import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
+import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { SERVER_URL } from '@/main.js'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
@@ -217,6 +224,7 @@ const endpointStatus = ref(null) // For paginated historical data
 const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
 const currentPage = ref(1)
+const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(false)
 const selectedChartDuration = ref('24h')
@@ -254,7 +262,7 @@ const pageAverageResponseTime = computed(() => {
     }
   }
   if (count === 0) return 'N/A'
-  return Math.round(total / count / 1000000)
+  return `${Math.round(total / count / 1000000)}ms`
 })
 
 const pageResponseTimeRange = computed(() => {
@@ -267,17 +275,17 @@ const pageResponseTimeRange = computed(() => {
   let hasData = false
   
   for (const result of endpointStatus.value.results) {
-    if (result.duration) {
-      const durationMs = result.duration / 1000000
-      min = Math.min(min, durationMs)
-      max = Math.max(max, durationMs)
+    const duration = result.duration
+    if (duration) {
+      min = Math.min(min, duration)
+      max = Math.max(max, duration)
       hasData = true
     }
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.round(min)
-  const maxMs = Math.round(max)
+  const minMs = Math.round(min / 1000000)
+  const maxMs = Math.round(max / 1000000) 
   // If min and max are the same, show single value
   if (minMs === maxMs) {
     return `${minMs}ms`
@@ -297,7 +305,7 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=50`, {
+    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     
@@ -387,10 +395,6 @@ const generateUptimeBadgeImageURL = (duration) => {
 
 const generateResponseTimeBadgeImageURL = (duration) => {
   return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
-}
-
-const generateResponseTimeChartImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/chart.svg`
 }
 
 onMounted(() => {

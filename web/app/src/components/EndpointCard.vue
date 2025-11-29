@@ -154,7 +154,8 @@ const formattedResponseTime = computed(() => {
 
 const oldestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
+  const oldestResultIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
+  return generatePrettyTimeAgo(props.endpoint.results[oldestResultIndex].timestamp)
 })
 
 const newestResultTime = computed(() => {
