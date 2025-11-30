@@ -7,25 +7,35 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/key"
+	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
+	"github.com/TwiN/logr"
 )
 
 // Store that leverages gocache
 type Store struct {
 	sync.RWMutex
 
-	cache *gocache.Cache
+	endpointCache *gocache.Cache // Cache for endpoint statuses
+	suiteCache    *gocache.Cache // Cache for suite statuses
+
+	maximumNumberOfResults int // maximum number of results that an endpoint can have
+	maximumNumberOfEvents  int // maximum number of events that an endpoint can have
 }
 
 // NewStore creates a new store using gocache.Cache
 //
 // This store holds everything in memory, and if the file parameter is not blank,
 // supports eventual persistence.
-func NewStore() (*Store, error) {
+func NewStore(maximumNumberOfResults, maximumNumberOfEvents int) (*Store, error) {
 	store := &Store{
-		cache: gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		endpointCache:          gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		suiteCache:             gocache.NewCache().WithMaxSize(gocache.NoMaxSize),
+		maximumNumberOfResults: maximumNumberOfResults,
+		maximumNumberOfEvents:  maximumNumberOfEvents,
 	}
 	return store, nil
 }
@@ -33,10 +43,14 @@ func NewStore() (*Store, error) {
 // GetAllEndpointStatuses returns all monitored endpoint.Status
 // with a subset of endpoint.Result defined by the page and pageSize parameters
 func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*endpoint.Status, error) {
-	endpointStatuses := s.cache.GetAll()
-	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(endpointStatuses))
-	for _, v := range endpointStatuses {
-		pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(v.(*endpoint.Status), params))
+	s.RLock()
+	defer s.RUnlock()
+	allStatuses := s.endpointCache.GetAll()
+	pagedEndpointStatuses := make([]*endpoint.Status, 0, len(allStatuses))
+	for _, v := range allStatuses {
+		if status, ok := v.(*endpoint.Status); ok {
+			pagedEndpointStatuses = append(pagedEndpointStatuses, ShallowCopyEndpointStatus(status, params))
+		}
 	}
 	sort.Slice(pagedEndpointStatuses, func(i, j int) bool {
 		return pagedEndpointStatuses[i].Key < pagedEndpointStatuses[j].Key
@@ -44,18 +58,47 @@ func (s *Store) GetAllEndpointStatuses(params *paging.EndpointStatusParams) ([]*
 	return pagedEndpointStatuses, nil
 }
 
+// GetAllSuiteStatuses returns all monitored suite.Status
+func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
+	suiteStatuses := make([]*suite.Status, 0)
+	for _, v := range s.suiteCache.GetAll() {
+		if status, ok := v.(*suite.Status); ok {
+			suiteStatuses = append(suiteStatuses, ShallowCopySuiteStatus(status, params))
+		}
+	}
+	sort.Slice(suiteStatuses, func(i, j int) bool {
+		return suiteStatuses[i].Key < suiteStatuses[j].Key
+	})
+	return suiteStatuses, nil
+}
+
 // GetEndpointStatus returns the endpoint status for a given endpoint name in the given group
 func (s *Store) GetEndpointStatus(groupName, endpointName string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	return s.GetEndpointStatusByKey(endpoint.ConvertGroupAndEndpointNameToKey(groupName, endpointName), params)
+	return s.GetEndpointStatusByKey(key.ConvertGroupAndNameToKey(groupName, endpointName), params)
 }
 
 // GetEndpointStatusByKey returns the endpoint status for a given key
 func (s *Store) GetEndpointStatusByKey(key string, params *paging.EndpointStatusParams) (*endpoint.Status, error) {
-	endpointStatus := s.cache.GetValue(key)
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil {
 		return nil, common.ErrEndpointNotFound
 	}
 	return ShallowCopyEndpointStatus(endpointStatus.(*endpoint.Status), params), nil
+}
+
+// GetSuiteStatusByKey returns the suite status for a given key
+func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams) (*suite.Status, error) {
+	s.RLock()
+	defer s.RUnlock()
+	suiteStatus := s.suiteCache.GetValue(key)
+	if suiteStatus == nil {
+		return nil, common.ErrSuiteNotFound
+	}
+	return ShallowCopySuiteStatus(suiteStatus.(*suite.Status), params), nil
 }
 
 // GetUptimeByKey returns the uptime percentage during a time range
@@ -63,7 +106,9 @@ func (s *Store) GetUptimeByKey(key string, from, to time.Time) (float64, error) 
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
-	endpointStatus := s.cache.GetValue(key)
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
@@ -92,7 +137,9 @@ func (s *Store) GetAverageResponseTimeByKey(key string, from, to time.Time) (int
 	if from.After(to) {
 		return 0, common.ErrInvalidTimeRange
 	}
-	endpointStatus := s.cache.GetValue(key)
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return 0, common.ErrEndpointNotFound
 	}
@@ -120,7 +167,9 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	if from.After(to) {
 		return nil, common.ErrInvalidTimeRange
 	}
-	endpointStatus := s.cache.GetValue(key)
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
 	if endpointStatus == nil || endpointStatus.(*endpoint.Status).Uptime == nil {
 		return nil, common.ErrEndpointNotFound
 	}
@@ -139,11 +188,11 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	return hourlyAverageResponseTimes, nil
 }
 
-// Insert adds the observed result for the specified endpoint into the store
-func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
-	key := ep.Key()
+// InsertEndpointResult adds the observed result for the specified endpoint into the store
+func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error {
+	endpointKey := ep.Key()
 	s.Lock()
-	status, exists := s.cache.Get(key)
+	status, exists := s.endpointCache.Get(endpointKey)
 	if !exists {
 		status = endpoint.NewStatus(ep.Group, ep.Name)
 		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
@@ -151,19 +200,46 @@ func (s *Store) Insert(ep *endpoint.Endpoint, result *endpoint.Result) error {
 			Timestamp: time.Now(),
 		})
 	}
-	AddResult(status.(*endpoint.Status), result)
-	s.cache.Set(key, status)
+	AddResult(status.(*endpoint.Status), result, s.maximumNumberOfResults, s.maximumNumberOfEvents)
+	s.endpointCache.Set(endpointKey, status)
 	s.Unlock()
+	return nil
+}
+
+// InsertSuiteResult adds the observed result for the specified suite into the store
+func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
+	s.Lock()
+	defer s.Unlock()
+	suiteKey := su.Key()
+	suiteStatus := s.suiteCache.GetValue(suiteKey)
+	if suiteStatus == nil {
+		suiteStatus = &suite.Status{
+			Name:    su.Name,
+			Group:   su.Group,
+			Key:     su.Key(),
+			Results: []*suite.Result{},
+		}
+		logr.Debugf("[memory.InsertSuiteResult] Created new suite status for suiteKey=%s", suiteKey)
+	}
+	status := suiteStatus.(*suite.Status)
+	// Add the new result at the end (append like endpoint implementation)
+	status.Results = append(status.Results, result)
+	// Keep only the maximum number of results
+	if len(status.Results) > s.maximumNumberOfResults {
+		status.Results = status.Results[len(status.Results)-s.maximumNumberOfResults:]
+	}
+	s.suiteCache.Set(suiteKey, status)
+	logr.Debugf("[memory.InsertSuiteResult] Stored suite result for suiteKey=%s, total results=%d", suiteKey, len(status.Results))
 	return nil
 }
 
 // DeleteAllEndpointStatusesNotInKeys removes all Status that are not within the keys provided
 func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 	var keysToDelete []string
-	for _, existingKey := range s.cache.GetKeysByPattern("*", 0) {
+	for _, existingKey := range s.endpointCache.GetKeysByPattern("*", 0) {
 		shouldDelete := true
-		for _, key := range keys {
-			if existingKey == key {
+		for _, k := range keys {
+			if existingKey == k {
 				shouldDelete = false
 				break
 			}
@@ -172,7 +248,24 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 			keysToDelete = append(keysToDelete, existingKey)
 		}
 	}
-	return s.cache.DeleteAll(keysToDelete)
+	return s.endpointCache.DeleteAll(keysToDelete)
+}
+
+// DeleteAllSuiteStatusesNotInKeys removes all suite statuses that are not within the keys provided
+func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
+	s.Lock()
+	defer s.Unlock()
+	keysToKeep := make(map[string]bool, len(keys))
+	for _, k := range keys {
+		keysToKeep[k] = true
+	}
+	var keysToDelete []string
+	for existingKey := range s.suiteCache.GetAll() {
+		if !keysToKeep[existingKey] {
+			keysToDelete = append(keysToDelete, existingKey)
+		}
+	}
+	return s.suiteCache.DeleteAll(keysToDelete)
 }
 
 // GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
@@ -206,9 +299,31 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 	return 0
 }
 
+// HasEndpointStatusNewerThan checks whether an endpoint has a status newer than the provided timestamp
+func (s *Store) HasEndpointStatusNewerThan(key string, timestamp time.Time) (bool, error) {
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
+	if endpointStatus == nil {
+		// If no endpoint exists, there's no newer status, so return false instead of an error
+		return false, nil
+	}
+	status, ok := endpointStatus.(*endpoint.Status)
+	if !ok {
+		return false, nil
+	}
+	for _, result := range status.Results {
+		if result.Timestamp.After(timestamp) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // Clear deletes everything from the store
 func (s *Store) Clear() {
-	s.cache.Clear()
+	s.endpointCache.Clear()
+	s.suiteCache.Clear()
 }
 
 // Save persists the cache to the store file

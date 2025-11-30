@@ -166,7 +166,14 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
 		description = "\n\nAlert description: " + alertDescription
 	}
-	return subject, message + description + formattedConditionResults
+	var extraLabels string
+	if len(ep.ExtraLabels) > 0 {
+		extraLabels = "\n\nExtra labels:\n"
+		for key, value := range ep.ExtraLabels {
+			extraLabels += fmt.Sprintf("  %s: %s\n", key, value)
+		}
+	}
+	return subject, message + description + extraLabels + formattedConditionResults
 }
 
 // GetDefaultAlert returns the provider's default alert configuration

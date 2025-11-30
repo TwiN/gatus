@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -15,6 +16,7 @@ import (
 )
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
+	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	return func(c *fiber.Ctx) error {
 		// Check if the success query parameter is present
 		success, exists := c.Queries()["success"]
@@ -46,11 +48,19 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			Success:   c.QueryBool("success"),
 			Errors:    []string{},
 		}
-		if !result.Success && c.Query("error") != "" {
-			result.Errors = append(result.Errors, c.Query("error"))
+		if len(c.Query("duration")) > 0 {
+			parsedDuration, err := time.ParseDuration(c.Query("duration"))
+			if err != nil {
+				logr.Errorf("[api.CreateExternalEndpointResult] Invalid duration from string=%s with error: %s", c.Query("duration"), err.Error())
+				return c.Status(400).SendString("invalid duration: " + err.Error())
+			}
+			result.Duration = parsedDuration
+		}
+		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
+			result.AddError(errorFromQuery)
 		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
-		if err := store.Get().Insert(convertedEndpoint, result); err != nil {
+		if err := store.Get().InsertEndpointResult(convertedEndpoint, result); err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
 			}
@@ -58,11 +68,23 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			return c.Status(500).SendString(err.Error())
 		}
 		logr.Infof("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
+		inEndpointMaintenanceWindow := false
+		for _, maintenanceWindow := range externalEndpoint.MaintenanceWindows {
+			if maintenanceWindow.IsUnderMaintenance() {
+				logr.Debug("[api.CreateExternalEndpointResult] Under endpoint maintenance window")
+				inEndpointMaintenanceWindow = true
+			}
+		}
 		// Check if an alert should be triggered or resolved
-		if !cfg.Maintenance.IsUnderMaintenance() {
+		if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+		} else {
+			logr.Debug("[api.CreateExternalEndpointResult] Not handling alerting because currently in the maintenance window")
+		}
+		if cfg.Metrics {
+			metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 		}
 		// Return the result
 		return c.Status(200).SendString("")

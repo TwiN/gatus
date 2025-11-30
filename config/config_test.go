@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
+	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -20,22 +21,40 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
 	"github.com/TwiN/gatus/v5/alerting/provider/googlechat"
 	"github.com/TwiN/gatus/v5/alerting/provider/gotify"
-	"github.com/TwiN/gatus/v5/alerting/provider/jetbrainsspace"
+	"github.com/TwiN/gatus/v5/alerting/provider/homeassistant"
+	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
+	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
+	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
+	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
 	"github.com/TwiN/gatus/v5/alerting/provider/messagebird"
+	"github.com/TwiN/gatus/v5/alerting/provider/newrelic"
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
+	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
+	"github.com/TwiN/gatus/v5/alerting/provider/signal"
+	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
+	"github.com/TwiN/gatus/v5/alerting/provider/squadcast"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
+	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
+	"github.com/TwiN/gatus/v5/alerting/provider/webex"
+	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
+	"github.com/TwiN/gatus/v5/config/tunneling"
+	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/gatus/v5/config/web"
 	"github.com/TwiN/gatus/v5/storage"
 	"gopkg.in/yaml.v3"
@@ -118,13 +137,13 @@ endpoints:
 			pathAndFiles: map[string]string{
 				"config.yaml": "",
 			},
-			expectedError: ErrNoEndpointInConfig,
+			expectedError: ErrNoEndpointOrSuiteInConfig,
 		},
 		{
 			name:       "dir-with-two-config-files",
 			configPath: dir,
 			pathAndFiles: map[string]string{
-				"config.yaml": `endpoints: 
+				"config.yaml": `endpoints:
   - name: one
     url: https://example.com
     conditions:
@@ -135,7 +154,7 @@ endpoints:
     url: https://example.org
     conditions:
       - "len([BODY]) > 0"`,
-				"config.yml": `endpoints: 
+				"config.yml": `endpoints:
   - name: three
     url: https://twin.sh/health
     conditions:
@@ -237,7 +256,7 @@ endpoints:
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			for path, content := range scenario.pathAndFiles {
-				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0644); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(content), 0o644); err != nil {
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
@@ -282,7 +301,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
-`), 0644)
+`), 0o644)
 
 	t.Run("config-file-as-config-path", func(t *testing.T) {
 		config, err := LoadConfiguration(configFilePath)
@@ -298,7 +317,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
   - name: website
     url: https://twin.sh/health
     conditions:
-      - "[STATUS] == 200"`), 0644); err != nil {
+      - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -315,7 +334,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		}
 		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
 		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
@@ -330,6 +349,8 @@ func TestParseAndValidateConfigBytes(t *testing.T) {
 storage:
   type: sqlite
   path: %s
+  maximum-number-of-results: 10
+  maximum-number-of-events: 5
 
 maintenance:
   enabled: true
@@ -385,6 +406,9 @@ endpoints:
 	}
 	if config.Storage == nil || config.Storage.Path != file || config.Storage.Type != storage.TypeSQLite {
 		t.Error("expected storage to be set to sqlite, got", config.Storage)
+	}
+	if config.Storage == nil || config.Storage.MaximumNumberOfResults != 10 || config.Storage.MaximumNumberOfEvents != 5 {
+		t.Error("expected MaximumNumberOfResults and MaximumNumberOfEvents to be set to 10 and 5, got", config.Storage.MaximumNumberOfResults, config.Storage.MaximumNumberOfEvents)
 	}
 	if config.UI == nil || config.UI.Title != "T" || config.UI.Header != "H" || config.UI.Link != "https://example.org" || len(config.UI.Buttons) != 2 || config.UI.Buttons[0].Name != "Home" || config.UI.Buttons[0].Link != "https://example.org" || config.UI.Buttons[1].Name != "Status page" || config.UI.Buttons[1].Link != "https://status.example.org" {
 		t.Error("expected ui to be set to T, H, https://example.org, 2 buttons, Home and Status page, got", config.UI)
@@ -708,15 +732,15 @@ func TestParseAndValidateBadConfigBytes(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 badconfig:
   - asdsa: w0w
-    usadasdrl: asdxzczxc	
+    usadasdrl: asdxzczxc
     asdas:
       - soup
 `))
 	if err == nil {
 		t.Error("An error should've been returned")
 	}
-	if err != ErrNoEndpointInConfig {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if err != ErrNoEndpointOrSuiteInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 
@@ -750,10 +774,6 @@ alerting:
     to: "+1-234-567-8901"
   teams:
     webhook-url: "http://example.com"
-  jetbrainsspace:
-    project: "foo"
-    channel-id: "bar"
-    token: "baz"
 
 endpoints:
   - name: website
@@ -776,7 +796,6 @@ endpoints:
         success-threshold: 15
       - type: teams
       - type: pushover
-      - type: jetbrainsspace
     conditions:
       - "[STATUS] == 200"
 `))
@@ -803,8 +822,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 10 {
-		t.Fatal("There should've been 10 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 9 {
+		t.Fatal("There should've been 9 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -911,12 +930,6 @@ endpoints:
 	if !config.Endpoints[0].Alerts[8].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
-	}
-	if !config.Endpoints[0].Alerts[9].IsEnabled() {
-		t.Error("The alert should've been enabled")
-	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -976,14 +989,6 @@ alerting:
     webhook-url: "http://example.com"
     default-alert:
       enabled: true
-  jetbrainsspace:
-    project: "foo"
-    channel-id: "bar"
-    token: "baz"
-    default-alert:
-      enabled: true
-      failure-threshold: 5
-      success-threshold: 3
   email:
     from: "from@example.com"
     username: "from@example.com"
@@ -1022,7 +1027,6 @@ endpoints:
       - type: twilio
       - type: teams
       - type: pushover
-      - type: jetbrainsspace
       - type: email
       - type: gotify
     conditions:
@@ -1144,22 +1148,6 @@ endpoints:
 		t.Fatal("Teams.GetDefaultAlert() shouldn't have returned nil")
 	}
 
-	if config.Alerting.JetBrainsSpace == nil || config.Alerting.JetBrainsSpace.Validate() != nil {
-		t.Fatal("JetBrainsSpace alerting config should've been valid")
-	}
-	if config.Alerting.JetBrainsSpace.GetDefaultAlert() == nil {
-		t.Fatal("JetBrainsSpace.GetDefaultAlert() shouldn't have returned nil")
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.Project != "foo" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "foo", config.Alerting.JetBrainsSpace.DefaultConfig.Project)
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.ChannelID != "bar" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "bar", config.Alerting.JetBrainsSpace.DefaultConfig.ChannelID)
-	}
-	if config.Alerting.JetBrainsSpace.DefaultConfig.Token != "baz" {
-		t.Errorf("JetBrainsSpace webhook should've been %s, but was %s", "baz", config.Alerting.JetBrainsSpace.DefaultConfig.Token)
-	}
-
 	if config.Alerting.Email == nil || config.Alerting.Email.Validate() != nil {
 		t.Fatal("Email alerting config should've been valid")
 	}
@@ -1231,8 +1219,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 12 {
-		t.Fatalf("There should've been 12 alerts configured, got %d", len(config.Endpoints[0].Alerts))
+	if len(config.Endpoints[0].Alerts) != 11 {
+		t.Fatalf("There should've been 11 alerts configured, got %d", len(config.Endpoints[0].Alerts))
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1349,21 +1337,21 @@ endpoints:
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[8].SuccessThreshold)
 	}
 
-	if config.Endpoints[0].Alerts[9].Type != alert.TypeJetBrainsSpace {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeJetBrainsSpace, config.Endpoints[0].Alerts[9].Type)
+	if config.Endpoints[0].Alerts[9].Type != alert.TypeEmail {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeEmail, config.Endpoints[0].Alerts[9].Type)
 	}
 	if !config.Endpoints[0].Alerts[9].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
-	if config.Endpoints[0].Alerts[9].FailureThreshold != 5 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 5, config.Endpoints[0].Alerts[9].FailureThreshold)
+	if config.Endpoints[0].Alerts[9].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].FailureThreshold)
 	}
-	if config.Endpoints[0].Alerts[9].SuccessThreshold != 3 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[9].SuccessThreshold)
+	if config.Endpoints[0].Alerts[9].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[9].SuccessThreshold)
 	}
 
-	if config.Endpoints[0].Alerts[10].Type != alert.TypeEmail {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeEmail, config.Endpoints[0].Alerts[10].Type)
+	if config.Endpoints[0].Alerts[10].Type != alert.TypeGotify {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeGotify, config.Endpoints[0].Alerts[10].Type)
 	}
 	if !config.Endpoints[0].Alerts[10].IsEnabled() {
 		t.Error("The alert should've been enabled")
@@ -1373,19 +1361,6 @@ endpoints:
 	}
 	if config.Endpoints[0].Alerts[10].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[10].SuccessThreshold)
-	}
-
-	if config.Endpoints[0].Alerts[11].Type != alert.TypeGotify {
-		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeGotify, config.Endpoints[0].Alerts[11].Type)
-	}
-	if !config.Endpoints[0].Alerts[11].IsEnabled() {
-		t.Error("The alert should've been enabled")
-	}
-	if config.Endpoints[0].Alerts[11].FailureThreshold != 3 {
-		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[11].FailureThreshold)
-	}
-	if config.Endpoints[0].Alerts[11].SuccessThreshold != 2 {
-		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[11].SuccessThreshold)
 	}
 }
 
@@ -1828,7 +1803,7 @@ endpoints:
 	if config.Security == nil {
 		t.Fatal("config.Security shouldn't have been nil")
 	}
-	if !config.Security.IsValid() {
+	if !config.Security.ValidateAndSetDefaults() {
 		t.Error("Security config should've been valid")
 	}
 	if config.Security.Basic == nil {
@@ -1871,8 +1846,8 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if !errors.Is(err, ErrNoEndpointInConfig) {
-		t.Error("The error returned should have been of type ErrNoEndpointInConfig")
+	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
 	}
 }
 
@@ -1880,6 +1855,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		AWSSimpleEmailService: &awsses.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
+		Datadog:               &datadog.AlertProvider{},
 		Discord:               &discord.AlertProvider{},
 		Email:                 &email.AlertProvider{},
 		Gitea:                 &gitea.AlertProvider{},
@@ -1887,19 +1863,34 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		GitLab:                &gitlab.AlertProvider{},
 		GoogleChat:            &googlechat.AlertProvider{},
 		Gotify:                &gotify.AlertProvider{},
-		JetBrainsSpace:        &jetbrainsspace.AlertProvider{},
+		HomeAssistant:         &homeassistant.AlertProvider{},
+		IFTTT:                 &ifttt.AlertProvider{},
+		Ilert:                 &ilert.AlertProvider{},
+		IncidentIO:            &incidentio.AlertProvider{},
+		Line:                  &line.AlertProvider{},
 		Matrix:                &matrix.AlertProvider{},
 		Mattermost:            &mattermost.AlertProvider{},
 		Messagebird:           &messagebird.AlertProvider{},
+		NewRelic:              &newrelic.AlertProvider{},
 		Ntfy:                  &ntfy.AlertProvider{},
 		Opsgenie:              &opsgenie.AlertProvider{},
 		PagerDuty:             &pagerduty.AlertProvider{},
+		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		RocketChat:            &rocketchat.AlertProvider{},
+		SendGrid:              &sendgrid.AlertProvider{},
+		Signal:                &signal.AlertProvider{},
+		SIGNL4:                &signl4.AlertProvider{},
 		Slack:                 &slack.AlertProvider{},
+		Splunk:                &splunk.AlertProvider{},
+		Squadcast:             &squadcast.AlertProvider{},
 		Telegram:              &telegram.AlertProvider{},
 		Teams:                 &teams.AlertProvider{},
 		TeamsWorkflows:        &teamsworkflows.AlertProvider{},
 		Twilio:                &twilio.AlertProvider{},
+		Vonage:                &vonage.AlertProvider{},
+		Webex:                 &webex.AlertProvider{},
+		Zapier:                &zapier.AlertProvider{},
 		Zulip:                 &zulip.AlertProvider{},
 	}
 	scenarios := []struct {
@@ -1908,6 +1899,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 	}{
 		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
+		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitea, expected: alertingConfig.Gitea},
@@ -1915,25 +1907,720 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeGitLab, expected: alertingConfig.GitLab},
 		{alertType: alert.TypeGoogleChat, expected: alertingConfig.GoogleChat},
 		{alertType: alert.TypeGotify, expected: alertingConfig.Gotify},
-		{alertType: alert.TypeJetBrainsSpace, expected: alertingConfig.JetBrainsSpace},
+		{alertType: alert.TypeHomeAssistant, expected: alertingConfig.HomeAssistant},
+		{alertType: alert.TypeIFTTT, expected: alertingConfig.IFTTT},
+		{alertType: alert.TypeIlert, expected: alertingConfig.Ilert},
+		{alertType: alert.TypeIncidentIO, expected: alertingConfig.IncidentIO},
+		{alertType: alert.TypeLine, expected: alertingConfig.Line},
 		{alertType: alert.TypeMatrix, expected: alertingConfig.Matrix},
 		{alertType: alert.TypeMattermost, expected: alertingConfig.Mattermost},
 		{alertType: alert.TypeMessagebird, expected: alertingConfig.Messagebird},
+		{alertType: alert.TypeNewRelic, expected: alertingConfig.NewRelic},
 		{alertType: alert.TypeNtfy, expected: alertingConfig.Ntfy},
 		{alertType: alert.TypeOpsgenie, expected: alertingConfig.Opsgenie},
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
+		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
+		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
+		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
+		{alertType: alert.TypeSIGNL4, expected: alertingConfig.SIGNL4},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
+		{alertType: alert.TypeSplunk, expected: alertingConfig.Splunk},
+		{alertType: alert.TypeSquadcast, expected: alertingConfig.Squadcast},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
 		{alertType: alert.TypeTeamsWorkflows, expected: alertingConfig.TeamsWorkflows},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
+		{alertType: alert.TypeVonage, expected: alertingConfig.Vonage},
+		{alertType: alert.TypeWebex, expected: alertingConfig.Webex},
+		{alertType: alert.TypeZapier, expected: alertingConfig.Zapier},
 		{alertType: alert.TypeZulip, expected: alertingConfig.Zulip},
 	}
 	for _, scenario := range scenarios {
 		t.Run(string(scenario.alertType), func(t *testing.T) {
 			if alertingConfig.GetAlertingProviderByAlertType(scenario.alertType) != scenario.expected {
 				t.Errorf("expected %s configuration", scenario.alertType)
+			}
+		})
+	}
+}
+
+func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *Config
+		expected []string
+	}{
+		{
+			name: "no-endpoints",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-no-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "endpoint1",
+						URL:  "https://example.com",
+					},
+				},
+			},
+			expected: []string{},
+		},
+		{
+			name: "single-endpoint-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+		{
+			name: "multiple-endpoints-with-labels",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":    "production",
+							"team":   "backend",
+							"module": "auth",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "staging",
+							"team": "frontend",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team", "module"},
+		},
+		{
+			name: "multiple-endpoints-with-some-disabled",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:    "endpoint1",
+						URL:     "https://example.com",
+						Enabled: toPtr(true),
+						ExtraLabels: map[string]string{
+							"env":  "production",
+							"team": "backend",
+						},
+					},
+					{
+						Name:    "endpoint2",
+						URL:     "https://example.org",
+						Enabled: toPtr(false),
+						ExtraLabels: map[string]string{
+							"module": "auth",
+						},
+					},
+				},
+			},
+			expected: []string{"env", "team"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := tt.config.GetUniqueExtraMetricLabels()
+			if len(labels) != len(tt.expected) {
+				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
+			}
+			for _, label := range tt.expected {
+				if !contains(labels, label) {
+					t.Errorf("expected label %s to be present", label)
+				}
+			}
+		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithDuplicateKeysAcrossEntityTypes(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		shouldError bool
+		expectedErr string
+		config      string
+	}{
+		{
+			name:        "endpoint-suite-same-key",
+			shouldError: true,
+			expectedErr: "duplicate key 'backend_test-api': suite 'backend_test-api' conflicts with endpoint 'backend_test-api'",
+			config: `
+endpoints:
+  - name: test-api
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: test-api
+    group: backend
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-suite-different-keys",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-tests
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-external-endpoint-suite-unique-keys",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+external-endpoints:
+  - name: monitoring-agent
+    group: infrastructure
+    token: "secret-token"
+    heartbeat:
+      interval: 5m
+
+suites:
+  - name: integration-tests
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-same-key-as-external-endpoint",
+			shouldError: true,
+			expectedErr: "duplicate key 'monitoring_health-check': suite 'monitoring_health-check' conflicts with external endpoint 'monitoring_health-check'",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+external-endpoints:
+  - name: health-check
+    group: monitoring
+    token: "secret-token"
+    heartbeat:
+      interval: 5m
+
+suites:
+  - name: health-check
+    group: monitoring
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-with-same-name-as-suite-endpoint-different-groups",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-health
+    group: backend
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-suite
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: api-health
+        url: https://example.com/api/health
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "endpoint-conflicting-with-suite-endpoint",
+			shouldError: true,
+			expectedErr: "duplicate key 'backend_api-health': endpoint 'backend_api-health' in suite 'backend_integration-suite' conflicts with endpoint 'backend_api-health'",
+			config: `
+endpoints:
+  - name: api-health
+    group: backend
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-suite
+    group: backend
+    interval: 30s
+    endpoints:
+      - name: api-health
+        url: https://example.com/api/health
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if scenario.shouldError {
+				if err == nil {
+					t.Error("should've returned an error")
+				} else if scenario.expectedErr != "" && err.Error() != scenario.expectedErr {
+					t.Errorf("expected error message '%s', got '%s'", scenario.expectedErr, err.Error())
+				}
+			} else if err != nil {
+				t.Errorf("shouldn't have returned an error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithSuites(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		shouldError bool
+		expectedErr string
+		config      string
+	}{
+		{
+			name:        "suite-with-no-name",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_': suite must have a name",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-no-endpoints",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_empty-suite': suite must have at least one endpoint",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: empty-suite
+    group: testing
+    interval: 30s
+    endpoints: []`,
+		},
+		{
+			name:        "suite-with-duplicate-endpoint-names",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_duplicate-test': suite cannot have duplicate endpoint names: duplicate endpoint name 'step1'",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: duplicate-test
+    group: testing
+    interval: 30s
+    endpoints:
+      - name: step1
+        url: https://example.com/test1
+        conditions:
+          - "[STATUS] == 200"
+      - name: step1
+        url: https://example.com/test2
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "suite-with-invalid-negative-timeout",
+			shouldError: true,
+			expectedErr: "invalid suite 'testing_negative-timeout-suite': suite timeout must be positive",
+			config: `
+endpoints:
+  - name: dummy
+    url: https://example.com/dummy
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: negative-timeout-suite
+    group: testing
+    interval: 30s
+    timeout: -5m
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-defaults",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: integration-test
+    group: testing
+    endpoints:
+      - name: step1
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"
+      - name: step2
+        url: https://example.com/validate
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-all-fields",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: full-integration-test
+    group: testing
+    enabled: true
+    interval: 15m
+    timeout: 10m
+    context:
+      base_url: "https://example.com"
+      user_id: 12345
+    endpoints:
+      - name: authentication
+        url: https://example.com/auth
+        conditions:
+          - "[STATUS] == 200"
+      - name: user-profile
+        url: https://example.com/profile
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].user_id == 12345"`,
+		},
+		{
+			name:        "valid-suite-with-endpoint-inheritance",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: inheritance-test
+    group: parent-group
+    endpoints:
+      - name: child-endpoint
+        url: https://example.com/test
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+		{
+			name:        "valid-suite-with-store-functionality",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api-service
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+
+suites:
+  - name: store-test
+    group: testing
+    endpoints:
+      - name: get-token
+        url: https://example.com/auth
+        conditions:
+          - "[STATUS] == 200"
+        store:
+          auth_token: "[BODY].token"
+      - name: use-token
+        url: https://example.com/data
+        headers:
+          Authorization: "Bearer {auth_token}"
+        conditions:
+          - "[STATUS] == 200"`,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			_, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if scenario.shouldError {
+				if err == nil {
+					t.Error("should've returned an error")
+				} else if scenario.expectedErr != "" && err.Error() != scenario.expectedErr {
+					t.Errorf("expected error message '%s', got '%s'", scenario.expectedErr, err.Error())
+				}
+			} else if err != nil {
+				t.Errorf("shouldn't have returned an error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateTunnelingConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid tunneling config",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "test",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference in endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "test-endpoint",
+						URL:  "http://example.com/health",
+						ClientConfig: &client.Config{
+							Tunnel: "nonexistent",
+						},
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "endpoint '_test-endpoint': tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name: "invalid tunnel reference in suite endpoint",
+			config: &Config{
+				Tunneling: &tunneling.Config{
+					Tunnels: map[string]*sshtunnel.Config{
+						"test": {
+							Type:     "SSH",
+							Host:     "example.com",
+							Username: "test",
+							Password: "secret",
+						},
+					},
+				},
+				Suites: []*suite.Suite{
+					{
+						Name: "test-suite",
+						Endpoints: []*endpoint.Endpoint{
+							{
+								Name: "suite-endpoint",
+								URL:  "http://example.com/health",
+								ClientConfig: &client.Config{
+									Tunnel: "invalid",
+								},
+								Conditions: []endpoint.Condition{"[STATUS] == 200"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "suite '_test-suite' endpoint '_suite-endpoint': tunnel 'invalid' not found in tunneling configuration",
+		},
+		{
+			name: "no tunneling config",
+			config: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "test-endpoint",
+						URL:        "http://example.com/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTunnelingConfig(tt.config)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("ValidateTunnelingConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("ValidateTunnelingConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("ValidateTunnelingConfig() unexpected error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveTunnelForClientConfig(t *testing.T) {
+	config := &Config{
+		Tunneling: &tunneling.Config{
+			Tunnels: map[string]*sshtunnel.Config{
+				"test": {
+					Type:     "SSH",
+					Host:     "example.com",
+					Username: "test",
+					Password: "secret",
+				},
+			},
+		},
+	}
+	err := config.Tunneling.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatalf("Failed to validate tunnel config: %v", err)
+	}
+	tests := []struct {
+		name         string
+		clientConfig *client.Config
+		wantErr      bool
+		errMsg       string
+	}{
+		{
+			name: "valid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "test",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid tunnel reference",
+			clientConfig: &client.Config{
+				Tunnel: "nonexistent",
+			},
+			wantErr: true,
+			errMsg:  "tunnel 'nonexistent' not found in tunneling configuration",
+		},
+		{
+			name:         "no tunnel reference",
+			clientConfig: &client.Config{},
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := resolveTunnelForClientConfig(config, tt.clientConfig)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("resolveTunnelForClientConfig() expected error but got none")
+					return
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("resolveTunnelForClientConfig() error = %v, want %v", err.Error(), tt.errMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("resolveTunnelForClientConfig() unexpected error = %v", err)
 			}
 		})
 	}

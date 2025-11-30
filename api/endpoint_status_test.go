@@ -9,6 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
 )
@@ -95,9 +96,13 @@ func TestEndpointStatus(t *testing.T) {
 				Group: "core",
 			},
 		},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
 	}
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
-	watchdog.UpdateEndpointStatuses(cfg.Endpoints[1], &endpoint.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[1], &endpoint.Result{Success: false, Duration: time.Second, Timestamp: time.Now()})
 	api := New(cfg)
 	router := api.Router()
 	type Scenario struct {
@@ -151,12 +156,18 @@ func TestEndpointStatuses(t *testing.T) {
 	defer cache.Clear()
 	firstResult := &testSuccessfulResult
 	secondResult := &testUnsuccessfulResult
-	store.Get().Insert(&testEndpoint, firstResult)
-	store.Get().Insert(&testEndpoint, secondResult)
+	store.Get().InsertEndpointResult(&testEndpoint, firstResult)
+	store.Get().InsertEndpointResult(&testEndpoint, secondResult)
 	// Can't be bothered dealing with timezone issues on the worker that runs the automated tests
 	firstResult.Timestamp = time.Time{}
 	secondResult.Timestamp = time.Time{}
-	api := New(&config.Config{Metrics: true})
+	api := New(&config.Config{
+		Metrics: true,
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	})
 	router := api.Router()
 	type Scenario struct {
 		Name         string

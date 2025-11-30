@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +21,8 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"golang.org/x/crypto/ssh"
 )
@@ -45,6 +50,7 @@ const (
 	TypeSTARTTLS Type = "STARTTLS"
 	TypeTLS      Type = "TLS"
 	TypeHTTP     Type = "HTTP"
+	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
 	TypeUNKNOWN  Type = "UNKNOWN"
@@ -96,6 +102,9 @@ type Endpoint struct {
 	// Headers of the request
 	Headers map[string]string `yaml:"headers,omitempty"`
 
+	// ExtraLabels are key-value pairs that can be used to metric the endpoint
+	ExtraLabels map[string]string `yaml:"extra-labels,omitempty"`
+
 	// Interval is the duration to wait between every status check
 	Interval time.Duration `yaml:"interval,omitempty"`
 
@@ -125,6 +134,21 @@ type Endpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	LastReminderSent time.Time `yaml:"-"`
+
+	///////////////////////
+	// SUITE-ONLY FIELDS //
+	///////////////////////
+
+	// Store is a map of values to extract from the result and store in the suite context
+	// This field is only used when the endpoint is part of a suite
+	Store map[string]string `yaml:"store,omitempty"`
+
+	// AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed
+	// This field is only used when the endpoint is part of a suite
+	AlwaysRun bool `yaml:"always-run,omitempty"`
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -154,6 +178,8 @@ func (e *Endpoint) Type() Type {
 		return TypeTLS
 	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
 		return TypeHTTP
+	case strings.HasPrefix(e.URL, "grpc://") || strings.HasPrefix(e.URL, "grpcs://"):
+		return TypeGRPC
 	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
@@ -229,7 +255,7 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 		}
 	}
 	// Make sure that the request can be created
-	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.Body)))
+	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
 	if err != nil {
 		return err
 	}
@@ -246,7 +272,7 @@ func (e *Endpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (e *Endpoint) Key() string {
-	return ConvertGroupAndEndpointNameToKey(e.Group, e.Name)
+	return key.ConvertGroupAndNameToKey(e.Group, e.Name)
 }
 
 // Close HTTP connections between watchdog and endpoints to avoid dangling socket file descriptors
@@ -260,16 +286,26 @@ func (e *Endpoint) Close() {
 
 // EvaluateHealth sends a request to the endpoint's URL and evaluates the conditions of the endpoint.
 func (e *Endpoint) EvaluateHealth() *Result {
+	return e.EvaluateHealthWithContext(nil)
+}
+
+// EvaluateHealthWithContext sends a request to the endpoint's URL with context support and evaluates the conditions
+func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	result := &Result{Success: true, Errors: []string{}}
+	// Preprocess the endpoint with context if provided
+	processedEndpoint := e
+	if context != nil {
+		processedEndpoint = e.preprocessWithContext(result, context)
+	}
 	// Parse or extract hostname from URL
-	if e.DNSConfig != nil {
-		result.Hostname = strings.TrimSuffix(e.URL, ":53")
-	} else if e.Type() == TypeICMP {
+	if processedEndpoint.DNSConfig != nil {
+		result.Hostname = strings.TrimSuffix(processedEndpoint.URL, ":53")
+	} else if processedEndpoint.Type() == TypeICMP {
 		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
 		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
-		result.Hostname = strings.TrimPrefix(e.URL, "icmp://")
+		result.Hostname = strings.TrimPrefix(processedEndpoint.URL, "icmp://")
 	} else {
-		urlObject, err := url.Parse(e.URL)
+		urlObject, err := url.Parse(processedEndpoint.URL)
 		if err != nil {
 			result.AddError(err.Error())
 		} else {
@@ -278,11 +314,11 @@ func (e *Endpoint) EvaluateHealth() *Result {
 		}
 	}
 	// Retrieve IP if necessary
-	if e.needsToRetrieveIP() {
-		e.getIP(result)
+	if processedEndpoint.needsToRetrieveIP() {
+		processedEndpoint.getIP(result)
 	}
 	// Retrieve domain expiration if necessary
-	if e.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
+	if processedEndpoint.needsToRetrieveDomainExpiration() && len(result.Hostname) > 0 {
 		var err error
 		if result.DomainExpiration, err = client.GetDomainExpiration(result.Hostname); err != nil {
 			result.AddError(err.Error())
@@ -290,40 +326,115 @@ func (e *Endpoint) EvaluateHealth() *Result {
 	}
 	// Call the endpoint (if there's no errors)
 	if len(result.Errors) == 0 {
-		e.call(result)
+		processedEndpoint.call(result)
 	} else {
 		result.Success = false
 	}
 	// Evaluate the conditions
-	for _, condition := range e.Conditions {
-		success := condition.evaluate(result, e.UIConfig.DontResolveFailedConditions)
+	for _, condition := range processedEndpoint.Conditions {
+		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
 		if !success {
 			result.Success = false
 		}
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
-	if e.UIConfig.HideURL {
+	if processedEndpoint.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, e.URL, "<redacted>")
+			result.Errors[errIdx] = strings.ReplaceAll(errorString, processedEndpoint.URL, "<redacted>")
 		}
 	}
-	if e.UIConfig.HideHostname {
+	if processedEndpoint.UIConfig.HideHostname {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.Hostname, "<redacted>")
 		}
 		result.Hostname = "" // remove it from the result so it doesn't get exposed
 	}
-	if e.UIConfig.HidePort && len(result.port) > 0 {
+	if processedEndpoint.UIConfig.HidePort && len(result.port) > 0 {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
 		}
 		result.port = ""
 	}
-	if e.UIConfig.HideConditions {
+	if processedEndpoint.UIConfig.HideErrors {
+		result.Errors = nil
+	}
+	if processedEndpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
 	}
 	return result
+}
+
+// preprocessWithContext creates a copy of the endpoint with context placeholders replaced
+func (e *Endpoint) preprocessWithContext(result *Result, context *gontext.Gontext) *Endpoint {
+	// Create a deep copy of the endpoint
+	processed := &Endpoint{}
+	*processed = *e
+	var err error
+	// Replace context placeholders in URL
+	if processed.URL, err = replaceContextPlaceholders(e.URL, context); err != nil {
+		result.AddError(err.Error())
+	}
+	// Replace context placeholders in Body
+	if processed.Body, err = replaceContextPlaceholders(e.Body, context); err != nil {
+		result.AddError(err.Error())
+	}
+	// Replace context placeholders in Headers
+	if e.Headers != nil {
+		processed.Headers = make(map[string]string)
+		for k, v := range e.Headers {
+			if processed.Headers[k], err = replaceContextPlaceholders(v, context); err != nil {
+				result.AddError(err.Error())
+			}
+		}
+	}
+	return processed
+}
+
+// replaceContextPlaceholders replaces [CONTEXT].path placeholders with actual values
+func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, error) {
+	if ctx == nil {
+		return input, nil
+	}
+	var contextErrors []string
+	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
+	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
+		// Extract the path after [CONTEXT].
+		path := strings.TrimPrefix(match, "[CONTEXT].")
+		value, err := ctx.Get(path)
+		if err != nil {
+			contextErrors = append(contextErrors, fmt.Sprintf("path '%s' not found", path))
+			return match // Keep placeholder for error reporting
+		}
+		return fmt.Sprintf("%v", value)
+	})
+	if len(contextErrors) > 0 {
+		return result, fmt.Errorf("context placeholder resolution failed: %s", strings.Join(contextErrors, ", "))
+	}
+	return result, nil
+}
+
+func (e *Endpoint) getParsedBody() string {
+	body := e.Body
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", e.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", e.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", e.URL)
+	randRegex, err := regexp.Compile(`\[RANDOM_STRING_\d+\]`)
+	if err == nil {
+		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
+			n, _ := strconv.Atoi(match[15 : len(match)-1])
+			if n > 8192 {
+				n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
+			}
+			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			b := make([]byte, n)
+			for i := range b {
+				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
+			}
+			return string(b)
+		})
+	}
+	return body
 }
 
 func (e *Endpoint) getIP(result *Result) {
@@ -356,7 +467,7 @@ func (e *Endpoint) call(result *Result) {
 		if endpointType == TypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 		} else {
-			result.Connected, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.ClientConfig)
+			result.Connected, result.Body, certificate, err = client.CanPerformTLS(strings.TrimPrefix(e.URL, "tls://"), e.getParsedBody(), e.ClientConfig)
 		}
 		if err != nil {
 			result.AddError(err.Error())
@@ -365,10 +476,10 @@ func (e *Endpoint) call(result *Result) {
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
 	} else if endpointType == TypeTCP {
-		result.Connected = client.CanCreateTCPConnection(strings.TrimPrefix(e.URL, "tcp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeUDP {
-		result.Connected = client.CanCreateUDPConnection(strings.TrimPrefix(e.URL, "udp://"), e.ClientConfig)
+		result.Connected, result.Body = client.CanCreateNetworkConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSCTP {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
@@ -376,17 +487,25 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeICMP {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	} else if endpointType == TypeWS {
-		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.Body, e.ClientConfig)
+		wsHeaders := map[string]string{}
+		if e.Headers != nil {
+			for k, v := range e.Headers {
+				wsHeaders[k] = v
+			}
+		}
+		if _, exists := wsHeaders["User-Agent"]; !exists {
+			wsHeaders["User-Agent"] = GatusUserAgent
+		}
+		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), wsHeaders, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSSH {
-		// If there's no username/password specified, attempt to validate just the SSH banner
-		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
-			result.Connected, result.HTTPStatus, err =
-				client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
+		// If there's no username, password or private key specified, attempt to validate just the SSH banner
+		if e.SSHConfig == nil || (len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 && len(e.SSHConfig.PrivateKey) == 0) {
+			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 			if err != nil {
 				result.AddError(err.Error())
 				return
@@ -396,17 +515,35 @@ func (e *Endpoint) call(result *Result) {
 			return
 		}
 		var cli *ssh.Client
-		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.ClientConfig)
+		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.SSHConfig.PrivateKey, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
-		result.Success, result.HTTPStatus, err = client.ExecuteSSHCommand(cli, e.Body, e.ClientConfig)
+		var output []byte
+		result.Success, result.HTTPStatus, output, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
+		}
+		// Only store the output in result.Body if there's a condition that uses the BodyPlaceholder
+		if e.needsToReadBody() {
+			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeGRPC {
+		useTLS := strings.HasPrefix(e.URL, "grpcs://")
+		address := strings.TrimPrefix(strings.TrimPrefix(e.URL, "grpcs://"), "grpc://")
+		connected, status, err, duration := client.PerformGRPCHealthCheck(address, useTLS, e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Connected = connected
+		result.Duration = duration
+		if e.needsToReadBody() {
+			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
+		}
 	} else {
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
@@ -435,12 +572,12 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	var bodyBuffer *bytes.Buffer
 	if e.GraphQL {
 		graphQlBody := map[string]string{
-			"query": e.Body,
+			"query": e.getParsedBody(),
 		}
 		body, _ := json.Marshal(graphQlBody)
 		bodyBuffer = bytes.NewBuffer(body)
 	} else {
-		bodyBuffer = bytes.NewBuffer([]byte(e.Body))
+		bodyBuffer = bytes.NewBuffer([]byte(e.getParsedBody()))
 	}
 	request, _ := http.NewRequest(e.Method, e.URL, bodyBuffer)
 	for k, v := range e.Headers {
@@ -452,11 +589,19 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	return request
 }
 
-// needsToReadBody checks if there's any condition that requires the response Body to be read
+// needsToReadBody checks if there's any condition or store mapping that requires the response Body to be read
 func (e *Endpoint) needsToReadBody() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasBodyPlaceholder() {
 			return true
+		}
+	}
+	// Check store values for body placeholders
+	if e.Store != nil {
+		for _, value := range e.Store {
+			if strings.Contains(value, BodyPlaceholder) {
+				return true
+			}
 		}
 	}
 	return false

@@ -20,7 +20,8 @@ var (
 )
 
 type Config struct {
-	WebhookURL string `yaml:"webhook-url"` // Slack webhook URL
+	WebhookURL string `yaml:"webhook-url"`     // Slack webhook URL
+	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
 }
 
 func (cfg *Config) Validate() error {
@@ -33,6 +34,9 @@ func (cfg *Config) Validate() error {
 func (cfg *Config) Merge(override *Config) {
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
+	}
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
 	}
 }
 
@@ -73,7 +77,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
 	if err != nil {
 		return err
@@ -111,7 +115,7 @@ type Field struct {
 }
 
 // buildRequestBody builds the request body for the provider
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, color string
 	if resolved {
 		message = fmt.Sprintf("An alert for *%s* has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
@@ -138,12 +142,15 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 		Text: "",
 		Attachments: []Attachment{
 			{
-				Title: ":helmet_with_white_cross: Gatus",
+				Title: cfg.Title,
 				Text:  message + description,
 				Short: false,
 				Color: color,
 			},
 		},
+	}
+	if len(body.Attachments[0].Title) == 0 {
+		body.Attachments[0].Title = ":helmet_with_white_cross: Gatus"
 	}
 	if len(formattedConditionResults) > 0 {
 		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{

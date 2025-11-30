@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Result of the evaluation of a Endpoint
+// Result of the evaluation of an Endpoint
 type Result struct {
 	// HTTPStatus is the HTTP response status code
 	HTTPStatus int `json:"status,omitempty"`
@@ -54,6 +54,13 @@ type Result struct {
 	// Below is used only for the UI and is not persisted in the storage //
 	///////////////////////////////////////////////////////////////////////
 	port string `yaml:"-"` // used for endpoints[].ui.hide-port
+
+	///////////////////////////////////
+	// BELOW IS ONLY USED FOR SUITES //
+	///////////////////////////////////
+	// Name of the endpoint (ONLY USED FOR SUITES)
+	// Group is not needed because it's inherited from the suite
+	Name string `json:"name,omitempty"`
 }
 
 // AddError adds an error to the result's list of errors.
@@ -65,5 +72,5 @@ func (r *Result) AddError(error string) {
 			return
 		}
 	}
-	r.Errors = append(r.Errors, error)
+	r.Errors = append(r.Errors, error+"")
 }

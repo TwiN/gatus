@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -27,6 +28,11 @@ type Config struct {
 	Token string `yaml:"token"`
 	From  string `yaml:"from"`
 	To    string `yaml:"to"`
+
+	// TODO in v6.0.0: Rename this to text-triggered
+	TextTwilioTriggered string `yaml:"text-twilio-triggered,omitempty"` // String used in the SMS body and subject (optional)
+	// TODO in v6.0.0: Rename this to text-resolved
+	TextTwilioResolved string `yaml:"text-twilio-resolved,omitempty"` // String used in the SMS body and subject (optional)
 }
 
 func (cfg *Config) Validate() error {
@@ -57,6 +63,12 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.To) > 0 {
 		cfg.To = override.To
+	}
+	if len(override.TextTwilioTriggered) > 0 {
+		cfg.TextTwilioTriggered = override.TextTwilioTriggered
+	}
+	if len(override.TextTwilioResolved) > 0 {
+		cfg.TextTwilioResolved = override.TextTwilioResolved
 	}
 }
 
@@ -102,9 +114,27 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
 	var message string
 	if resolved {
-		message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		if len(cfg.TextTwilioResolved) > 0 {
+			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
+			message = cfg.TextTwilioResolved
+			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
+			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
+			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
+			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
+		} else {
+			message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		}
 	} else {
-		message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		if len(cfg.TextTwilioTriggered) > 0 {
+			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
+			message = cfg.TextTwilioTriggered
+			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
+			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
+			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
+			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
+		} else {
+			message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
+		}
 	}
 	return url.Values{
 		"To":   {cfg.To},
