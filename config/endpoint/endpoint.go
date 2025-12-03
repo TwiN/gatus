@@ -53,6 +53,7 @@ const (
 	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
+	TypeDomain   Type = "DOMAIN"
 	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
@@ -161,29 +162,36 @@ func (e *Endpoint) IsEnabled() bool {
 
 // Type returns the endpoint type
 func (e *Endpoint) Type() Type {
-	switch {
-	case e.DNSConfig != nil:
+	if e.DNSConfig != nil {
 		return TypeDNS
-	case strings.HasPrefix(e.URL, "tcp://"):
+	}
+	before, _, ok := strings.Cut(e.URL, ":")
+	if !ok {
+		return TypeUNKNOWN
+	}
+	switch before {
+	case "tcp":
 		return TypeTCP
-	case strings.HasPrefix(e.URL, "sctp://"):
+	case "sctp":
 		return TypeSCTP
-	case strings.HasPrefix(e.URL, "udp://"):
+	case "udp":
 		return TypeUDP
-	case strings.HasPrefix(e.URL, "icmp://"):
+	case "icmp":
 		return TypeICMP
-	case strings.HasPrefix(e.URL, "starttls://"):
+	case "starttls":
 		return TypeSTARTTLS
-	case strings.HasPrefix(e.URL, "tls://"):
+	case "tls":
 		return TypeTLS
-	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
+	case "http", "https":
 		return TypeHTTP
-	case strings.HasPrefix(e.URL, "grpc://") || strings.HasPrefix(e.URL, "grpcs://"):
+	case "grpc", "grpcs":
 		return TypeGRPC
-	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
+	case "ws", "wss":
 		return TypeWS
-	case strings.HasPrefix(e.URL, "ssh://"):
+	case "ssh":
 		return TypeSSH
+	case "domain":
+		return TypeDomain
 	default:
 		return TypeUNKNOWN
 	}
@@ -452,8 +460,12 @@ func (e *Endpoint) call(result *Result) {
 	var err error
 	var certificate *x509.Certificate
 	endpointType := e.Type()
-	if endpointType == TypeHTTP {
+	switch endpointType {
+	case TypeHTTP:
 		request = e.buildHTTPRequest()
+	case TypeDomain:
+		// domain expiration checked before call `call`
+		return
 	}
 	startTime := time.Now()
 	if endpointType == TypeDNS {
