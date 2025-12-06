@@ -244,9 +244,7 @@ func formatDuration(d time.Duration) string {
 	if strings.HasSuffix(s, "0s") {
 		s = strings.TrimSuffix(s, "0s")
 		// Remove trailing "0m" if present after removing "0s"
-		if strings.HasSuffix(s, "0m") {
-			s = strings.TrimSuffix(s, "0m")
-		}
+		s = strings.TrimSuffix(s, "0m")
 	}
 	return s
 }

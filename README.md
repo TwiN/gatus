@@ -110,7 +110,6 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
     - [Kubernetes](#kubernetes)
-    - [ECS Fargate](#ecs-fargate)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -264,6 +263,8 @@ If you want to test it locally, see [Docker](#docker).
 | `ui`                         | UI configuration.                                                                                                                        | `{}`                       |
 | `ui.title`                   | [Title of the document](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title).                                                | `Health Dashboard ǀ Gatus` |
 | `ui.description`             | Meta description for the page.                                                                                                           | `Gatus is an advanced...`. |
+| `ui.dashboard-heading`       | Dashboard title between header and endpoints                                                                                             | `Health Dashboard` |
+| `ui.dashboard-subheading`    | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
 | `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
@@ -373,7 +374,7 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful.
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, this will be ignored.
 - `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
@@ -2812,10 +2813,6 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 
 Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
-#### ECS Fargate
-
-Gatus can be deployed on ECS Fargate using Terraform by using the following module: [terraform-aws-gatus-ecs](https://github.com/GiamPy5/terraform-aws-gatus-ecs).
-
 ## Running the tests
 ```console
 go test -v ./...
@@ -3054,7 +3051,8 @@ There are two placeholders that can be used in the conditions for endpoints of t
 You can monitor endpoints using SSH by prefixing `endpoints[].url` with `ssh://`:
 ```yaml
 endpoints:
-  - name: ssh-example
+  # Password-based SSH example
+  - name: ssh-example-password
     url: "ssh://example.com:22" # port is optional. Default is 22.
     ssh:
       username: "username"
@@ -3068,10 +3066,24 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
       - "[BODY].memory.used > 500"
+
+  # Key-based SSH example
+  - name: ssh-example-key
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: "username"
+      private-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        TESTRSAKEY...
+        -----END RSA PRIVATE KEY-----
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
 ```
 
-you can also use no authentication to monitor the endpoint by not specifying the username
-and password fields.
+you can also use no authentication to monitor the endpoint by not specifying the username,
+password and private key fields.
 
 ```yaml
 endpoints:
@@ -3080,6 +3092,7 @@ endpoints:
     ssh:
       username: ""
       password: ""
+      private-key: ""
 
     interval: 1m
     conditions:
