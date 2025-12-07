@@ -8,7 +8,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { cva } from 'class-variance-authority'
 import { combineClasses } from '@/utils/misc'
 
