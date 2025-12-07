@@ -17,7 +17,8 @@
                 :is="link ? 'a' : 'div'" 
                 :href="link" 
                 target="_blank"
-                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                :class="link ? 'flex items-center gap-3 hover:opacity-80 transition-opacity'
+                             : 'flex items-center gap-3'"
               >
                 <div class="w-12 h-12 flex items-center justify-center">
                   <img 
