@@ -20,6 +20,8 @@ jobs:
         with:
           go-version: 1.24.4
       - uses: actions/checkout@v5
+      - name: Build frontend
+        run: make frontend-install-dependencies frontend-build
       - name: Build binary to make sure it works
         run: go build
       - name: Test
