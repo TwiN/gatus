@@ -11,3 +11,9 @@ updates:
     labels: ["dependencies"]
     schedule:
       interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/web/app"
+    open-pull-requests-limit: 3
+    labels: ["dependencies"]
+    schedule:
+      interval: "daily"
