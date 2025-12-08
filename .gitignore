@@ -6,6 +6,9 @@
 # OS
 .DS_Store
 
+# Web
+web/static/
+
 # JS
 node_modules
 
