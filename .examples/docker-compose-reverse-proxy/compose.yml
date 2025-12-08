@@ -20,7 +20,7 @@ services:
     container_name: gatus_behind_proxy
 
     volumes:
-      - ./config.yml:/config/02_config.yaml
+      - ../../config.yml:/config/02_config.yaml
     environment:
       - GATUS_CONFIG_PATH=/config
     configs:
