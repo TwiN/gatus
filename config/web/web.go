@@ -20,6 +20,8 @@ const (
 	// MinimumReadBufferSize is the minimum value for ReadBufferSize, and also the default value set
 	// for fiber.Config.ReadBufferSize
 	MinimumReadBufferSize = 4096
+	
+	DefaultBasePath = "/"
 )
 
 // Config is the structure which supports the configuration of the server listening to requests
@@ -37,7 +39,14 @@ type Config struct {
 	//
 	// Defaults to DefaultReadBufferSize
 	ReadBufferSize int `yaml:"read-buffer-size,omitempty"`
-
+	
+	// Controls the base path where the application will be 'seen'.
+	// Does not change actual base path of the application, but controls
+	// Things like base href in the HTML and paths for auth cookies.
+	// Matters only when application is deployed behind a reverse proxy at a subpath.	
+	// Needs to start and end with a slash (/), if not, it will be added automatically.
+	// Defaults to DefaultBasePath.
+	BasePath string `yaml:"base-path,omitempty"`
 	// TLS configuration (optional)
 	TLS *TLSConfig `yaml:"tls,omitempty"`
 }
@@ -56,6 +65,7 @@ func GetDefaultConfig() *Config {
 		Address:        DefaultAddress,
 		Port:           DefaultPort,
 		ReadBufferSize: DefaultReadBufferSize,
+		BasePath:       DefaultBasePath,
 	}
 }
 
@@ -77,6 +87,20 @@ func (web *Config) ValidateAndSetDefaults() error {
 	} else if web.ReadBufferSize < MinimumReadBufferSize {
 		web.ReadBufferSize = MinimumReadBufferSize // Below the minimum? Use the minimum value.
 	}
+	// Validate BasePath
+	if len(web.BasePath) == 0 {
+		web.BasePath = DefaultBasePath
+	}
+	
+	// should start and end with a slash
+	if web.BasePath[0] != '/' {
+		web.BasePath = "/" + web.BasePath
+	}
+	if web.BasePath[len(web.BasePath)-1] != '/' {
+		web.BasePath = web.BasePath + "/"
+	}
+	
+	
 	// Try to load the TLS certificates
 	if web.TLS != nil {
 		if err := web.TLS.isValid(); err != nil {

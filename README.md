@@ -257,6 +257,7 @@ If you want to test it locally, see [Docker](#docker).
 | `web`                        | Web configuration.                                                                                                                       | `{}`                       |
 | `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
 | `web.port`                   | Port to listen on.                                                                                                                       | `8080`                     |
+| `web.base-path`              | `href` attribute of the HTML `<base>` tag. Use this if you want to host Gatus on a subpath (e.g. `/status/`). Has to end with '/'.       | `/`                        |
 | `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                              | `8192`                     |
 | `web.tls.certificate-file`   | Optional public certificate file for TLS in PEM format.                                                                                  | `""`                       |
 | `web.tls.private-key-file`   | Optional private key file for TLS in PEM format.                                                                                         | `""`                       |
@@ -267,7 +268,6 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.dashboard-subheading`    | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
 | `ui.header`                  | Header at the top of the dashboard.                                                                                                      | `Gatus`                    |
 | `ui.logo`                    | URL to the logo to display.                                                                                                              | `""`                       |
-| `ui.base`                    | `href` attribute of the HTML `<base>` tag. Use this if you want to host Gatus on a subpath (e.g. `/status/`). Has to end with '/'.       | `/`                        |
 | `ui.link`                    | Link to open when the logo is clicked.                                                                                                   | `""`                       |
 | `ui.buttons`                 | List of buttons to display below the header.                                                                                             | `[]`                       |
 | `ui.buttons[].name`          | Text to display on the button.                                                                                                           | Required `""`              |

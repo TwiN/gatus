@@ -301,13 +301,13 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		}
 		// XXX: End of v6.0.0 removals
 		ValidateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
+		if err := ValidateWebConfig(config); err != nil {
+			return nil, err
+		}
 		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
 		if err := ValidateEndpointsConfig(config); err != nil {
-			return nil, err
-		}
-		if err := ValidateWebConfig(config); err != nil {
 			return nil, err
 		}
 		if err := ValidateUIConfig(config); err != nil {
@@ -452,9 +452,9 @@ func ValidateMaintenanceConfig(config *Config) error {
 
 func ValidateUIConfig(config *Config) error {
 	if config.UI == nil {
-		config.UI = ui.GetDefaultConfig()
+		config.UI = ui.GetDefaultConfig(config.Web.BasePath)
 	} else {
-		if err := config.UI.ValidateAndSetDefaults(); err != nil {
+		if err := config.UI.ValidateAndSetDefaults(config.Web.BasePath); err != nil {
 			return err
 		}
 	}
@@ -575,7 +575,7 @@ func ValidateUniqueKeys(config *Config) error {
 
 func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if !config.Security.ValidateAndSetDefaults() {
+		if !config.Security.ValidateAndSetDefaults(config.Web.BasePath) {
 			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
 			return ErrInvalidSecurityConfig
 		}

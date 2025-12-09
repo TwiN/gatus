@@ -17,7 +17,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Logo:                "",
 			Link:                "",
 		}
-		if err := cfg.ValidateAndSetDefaults(); err != nil {
+		if err := cfg.ValidateAndSetDefaults("/"); err != nil {
 			t.Error("expected no error, got", err.Error())
 		}
 		if cfg.Title != defaultTitle {
@@ -54,7 +54,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
 		}
-		if err := cfg.ValidateAndSetDefaults(); err != nil {
+		if err := cfg.ValidateAndSetDefaults("/"); err != nil {
 			t.Error("expected no error, got", err.Error())
 		}
 		if cfg.Title != "Custom Title" {
@@ -92,7 +92,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Header:              "",
 			DashboardSubheading: "",
 		}
-		if err := cfg.ValidateAndSetDefaults(); err != nil {
+		if err := cfg.ValidateAndSetDefaults("/"); err != nil {
 			t.Error("expected no error, got", err.Error())
 		}
 		if cfg.Title != "Custom Title" {
@@ -215,7 +215,7 @@ func TestConfig_ValidateAndSetDefaults_DefaultSortBy(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			cfg := &Config{DefaultSortBy: scenario.DefaultSortBy}
-			err := cfg.ValidateAndSetDefaults()
+			err := cfg.ValidateAndSetDefaults("/")
 			if !errors.Is(err, scenario.ExpectedError) {
 				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
 			}
@@ -267,7 +267,7 @@ func TestConfig_ValidateAndSetDefaults_DefaultFilterBy(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			cfg := &Config{DefaultFilterBy: scenario.DefaultFilterBy}
-			err := cfg.ValidateAndSetDefaults()
+			err := cfg.ValidateAndSetDefaults("/")
 			if !errors.Is(err, scenario.ExpectedError) {
 				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
 			}

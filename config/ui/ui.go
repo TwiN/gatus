@@ -20,7 +20,6 @@ const (
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
-	defaultBase                 = "/"
 )
 
 var (
@@ -45,11 +44,11 @@ type Config struct {
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	Base                    string   `yaml:"base,omitempty"`        // href attribute for HTML base tag
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
 	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	BasePath 			   string `yaml:"-"` // basePath is from Web.BasePath
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -74,7 +73,7 @@ func (btn *Button) Validate() error {
 }
 
 // GetDefaultConfig returns a Config struct with the default values
-func GetDefaultConfig() *Config {
+func GetDefaultConfig(basePath string) *Config {
 	return &Config{
 		Title:                  defaultTitle,
 		Description:            defaultDescription,
@@ -88,12 +87,12 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
-		Base:                   defaultBase,
+		BasePath:               basePath,
 	}
 }
 
 // ValidateAndSetDefaults validates the UI configuration and sets the default values if necessary.
-func (cfg *Config) ValidateAndSetDefaults() error {
+func (cfg *Config) ValidateAndSetDefaults(basePath string) error {
 	if len(cfg.Title) == 0 {
 		cfg.Title = defaultTitle
 	}
@@ -118,9 +117,6 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.CustomCSS) == 0 {
 		cfg.CustomCSS = defaultCustomCSS
 	}
-    if len(cfg.Base) == 0 {
-        cfg.Base = defaultBase
-    }
 	if cfg.DarkMode == nil {
 		cfg.DarkMode = &defaultDarkMode
 	}
@@ -139,6 +135,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return err
 		}
 	}
+	cfg.BasePath = basePath
+	if len(cfg.BasePath) == 0 {
+		return errors.New("basePath cannot be empty")
+	} 
 	// Validate that the template works
 	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
 	if err != nil {

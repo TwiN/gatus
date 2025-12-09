@@ -1,4 +1,4 @@
-<!doctype html><html lang="en" class="{{ .Theme }}"><head><meta charset="utf-8"/><title>{{ .UI.Title }}</title><base id="app-base" href="{{ .UI.Base }}"/><script>(function() {
+<!doctype html><html lang="en" class="{{ .Theme }}"><head><meta charset="utf-8"/><title>{{ .UI.Title }}</title><base id="base-path" href="{{ .UI.BasePath }}"/><script>(function() {
         window.config = {
           logo: "{{ .UI.Logo }}",
           header: "{{ .UI.Header }}",
@@ -10,10 +10,10 @@
           defaultSortBy: "{{ .UI.DefaultSortBy }}",
           defaultFilterBy: "{{ .UI.DefaultFilterBy }}"
         };
-        if (document.getElementById('app-base').href.endsWith('%7B%7B%20.UI.Base%20%7D%7D')) {
+        if (document.getElementById('base-path').href.endsWith('%7B%7B%20.UI.BasePath%20%7D%7D')) {
           // This will happen when UI is served outside of go server, eg, during development
           console.warn('Go template placeholder detected in base href. Setting to default.');
-          document.getElementById('app-base').setAttribute('href', '/');
+          document.getElementById('base-path').setAttribute('href', '/');
           document.title = 'Gatus'
         } else {
           // keeping it in else prevents console errors.

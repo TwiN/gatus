@@ -40,7 +40,7 @@ configs:
       }
       
       http://localhost:8080 {
-        handle_path /gatus* {
+        handle_path /gatus/* {
             reverse_proxy http://gatus_behind_proxy:8080
         }
       }
