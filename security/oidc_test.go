@@ -19,7 +19,7 @@ func TestOIDCConfig_ValidateAndSetDefaults(t *testing.T) {
 		AllowedSubjects: []string{"user1@example.com"},
 		SessionTTL:      0, // Not set! ValidateAndSetDefaults should set it to DefaultOIDCSessionTTL
 	}
-	if !c.ValidateAndSetDefaults("/") {
+	if !c.ValidateAndSetDefaults() {
 		t.Error("OIDCConfig should be valid")
 	}
 	if c.SessionTTL != DefaultOIDCSessionTTL {
