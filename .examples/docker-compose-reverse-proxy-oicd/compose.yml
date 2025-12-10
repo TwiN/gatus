@@ -1,4 +1,8 @@
-
+# Note that this example is using network_mode: host, which may have security implications.
+# It is done this way for simplicity, to avoid complications that come from the fact that 
+# Gatus NEEDS to see authentication provider under same address as the one used by the end-user.
+# This way both Gatus and the end-user see the authentication provider under "localhost", what 
+# is convenient for local testing.
 services:
   dex:
     network_mode: host
