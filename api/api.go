@@ -34,7 +34,7 @@ func New(cfg *config.Config) *API {
 	}
 	if cfg.UI == nil {
 		logr.Warnf("[api.New] nil ui config passed as parameter. This should only happen in tests. Using default ui configuration")
-		cfg.UI = ui.GetDefaultConfig("/")
+		cfg.UI = ui.GetDefaultConfig()
 	}
 	api.router = api.createRouter(cfg)
 	return api

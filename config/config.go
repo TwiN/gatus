@@ -340,6 +340,10 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		ValidateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
+		config.UI.BasePath = config.Web.BasePath
+		if config.Security != nil && config.Security.OIDC != nil {
+			config.Security.OIDC.BasePath = config.Web.BasePath
+		}
 	}
 	return
 }
@@ -452,9 +456,9 @@ func ValidateMaintenanceConfig(config *Config) error {
 
 func ValidateUIConfig(config *Config) error {
 	if config.UI == nil {
-		config.UI = ui.GetDefaultConfig(config.Web.BasePath)
+		config.UI = ui.GetDefaultConfig()
 	} else {
-		if err := config.UI.ValidateAndSetDefaults(config.Web.BasePath); err != nil {
+		if err := config.UI.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
 	}
@@ -575,7 +579,7 @@ func ValidateUniqueKeys(config *Config) error {
 
 func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
-		if !config.Security.ValidateAndSetDefaults(config.Web.BasePath) {
+		if !config.Security.ValidateAndSetDefaults() {
 			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
 			return ErrInvalidSecurityConfig
 		}
