@@ -2,10 +2,31 @@
 <html lang="en" class="{{ .Theme }}">
   <head>
     <meta charset="utf-8" />
+    <title>{{ .UI.Title }}</title>
+    <base id='base-path' href="{{ .UI.BasePath }}" />
     <script type="text/javascript">
-      window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", dashboardHeading: "{{ .UI.DashboardHeading }}", dashboardSubheading: "{{ .UI.DashboardSubheading }}", link: "{{ .UI.Link }}", buttons: [], maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}", defaultSortBy: "{{ .UI.DefaultSortBy }}", defaultFilterBy: "{{ .UI.DefaultFilterBy }}"};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
-      // Initialize theme immediately to prevent flash
       (function() {
+        window.config = {
+          logo: "{{ .UI.Logo }}",
+          header: "{{ .UI.Header }}",
+          dashboardHeading: "{{ .UI.DashboardHeading }}",
+          dashboardSubheading: "{{ .UI.DashboardSubheading }}",
+          link: "{{ .UI.Link }}",
+          buttons: [],
+          maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}",
+          defaultSortBy: "{{ .UI.DefaultSortBy }}",
+          defaultFilterBy: "{{ .UI.DefaultFilterBy }}"
+        };
+        if (document.getElementById('base-path').href.endsWith('%7B%7B%20.UI.BasePath%20%7D%7D')) {
+          // This will happen when UI is served outside of go server, eg, during development
+          console.warn('Go template placeholder detected in base href. Setting to default.');
+          document.getElementById('base-path').setAttribute('href', '/');
+          document.title = 'Gatus'
+        } else {
+          // keeping it in else prevents console errors.
+          {{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+        }
+        // Initialize theme immediately to prevent flash
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (themeFromCookie === 'dark' || (!themeFromCookie && prefersDark)) {
@@ -15,15 +36,14 @@
         }
       })();
     </script>
-    <title>{{ .UI.Title }}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="stylesheet" href="/css/custom.css" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="stylesheet" href="css/custom.css" />
     <meta name="description" content="{{ .UI.Description }}" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="{{ .UI.Title }}" />

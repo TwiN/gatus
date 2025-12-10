@@ -15,6 +15,7 @@ import (
 
 const (
 	DefaultOIDCSessionTTL = 8 * time.Hour
+	DefaultBasePath       = "/"
 )
 
 // OIDCConfig is the configuration for OIDC authentication
@@ -27,6 +28,12 @@ type OIDCConfig struct {
 	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
 	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
 
+	/////////////////////////////////////////////////////////
+	// Non-configurable - config passed by config packages //
+	/////////////////////////////////////////////////////////
+
+	BasePath string `yaml:"-"` // Reverse proxy base path, it's not configurable because we're passing it from the web config
+
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
 }
@@ -35,6 +42,9 @@ type OIDCConfig struct {
 func (c *OIDCConfig) ValidateAndSetDefaults() bool {
 	if c.SessionTTL <= 0 {
 		c.SessionTTL = DefaultOIDCSessionTTL
+	}
+	if len(c.BasePath) == 0 {
+		c.BasePath = DefaultBasePath
 	}
 	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
@@ -57,11 +67,12 @@ func (c *OIDCConfig) initialize() error {
 }
 
 func (c *OIDCConfig) loginHandler(ctx *fiber.Ctx) error {
+	// ??? state and nonce are not 'secure random'
 	state, nonce := uuid.NewString(), uuid.NewString()
 	ctx.Cookie(&fiber.Cookie{
 		Name:     cookieNameState,
 		Value:    state,
-		Path:     "/",
+		Path:     c.BasePath,
 		MaxAge:   int(time.Hour.Seconds()),
 		SameSite: "lax",
 		HTTPOnly: true,
@@ -69,7 +80,7 @@ func (c *OIDCConfig) loginHandler(ctx *fiber.Ctx) error {
 	ctx.Cookie(&fiber.Cookie{
 		Name:     cookieNameNonce,
 		Value:    nonce,
-		Path:     "/",
+		Path:     c.BasePath,
 		MaxAge:   int(time.Hour.Seconds()),
 		SameSite: "lax",
 		HTTPOnly: true,
@@ -122,18 +133,18 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 	if len(c.AllowedSubjects) == 0 {
 		// If there's no allowed subjects, all subjects are allowed.
 		c.setSessionCookie(w, idToken)
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, c.BasePath, http.StatusFound)
 		return
 	}
 	for _, subject := range c.AllowedSubjects {
 		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
 			c.setSessionCookie(w, idToken)
-			http.Redirect(w, r, "/", http.StatusFound)
+			http.Redirect(w, r, c.BasePath, http.StatusFound)
 			return
 		}
 	}
 	logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
-	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
+	http.Redirect(w, r, c.BasePath+"?error=access_denied", http.StatusFound)
 }
 
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
@@ -143,7 +154,7 @@ func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDTok
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieNameSession,
 		Value:    sessionID,
-		Path:     "/",
+		Path:     c.BasePath,
 		MaxAge:   int(c.SessionTTL.Seconds()),
 		SameSite: http.SameSiteStrictMode,
 	})

@@ -134,4 +134,33 @@ func TestConfig_RegisterHandlers(t *testing.T) {
 	if response.StatusCode != 302 {
 		t.Error("expected code to be 302, but was", response.StatusCode)
 	}
+	// check cookies are set
+	get_cookie := func(name string) *http.Cookie {
+		for _, cookie := range response.Cookies() {
+			if cookie.Name == name {
+				return cookie
+			}
+		}
+		return nil
+	}
+	if get_cookie(cookieNameState) == nil {
+		t.Error("expected state cookie to be set")
+	}
+	if get_cookie(cookieNameNonce) == nil {
+		t.Error("expected nonce cookie to be set")
+	}
+	// if BasePath is set cookies should have Path set accordingly
+	c.OIDC.BasePath = "/gatus/"
+	request = httptest.NewRequest("GET", "/oidc/login", http.NoBody)
+	response, err = app.Test(request)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if get_cookie(cookieNameState).Path != "/gatus/" {
+		t.Error("expected state cookie Path to be /gatus/, but was", get_cookie(cookieNameState).Path)
+	}
+	if get_cookie(cookieNameNonce).Path != "/gatus/" {
+		t.Error("expected nonce cookie Path to be /gatus/, but was", get_cookie(cookieNameNonce).Path)
+	}
+	
 }

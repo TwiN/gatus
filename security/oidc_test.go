@@ -25,6 +25,9 @@ func TestOIDCConfig_ValidateAndSetDefaults(t *testing.T) {
 	if c.SessionTTL != DefaultOIDCSessionTTL {
 		t.Error("expected SessionTTL to be set to DefaultOIDCSessionTTL")
 	}
+	if c.BasePath != DefaultBasePath {
+		t.Error("expected BasePath to be set to DefaultBasePath")
+	}
 }
 
 func TestOIDCConfig_callbackHandler(t *testing.T) {
@@ -36,6 +39,7 @@ func TestOIDCConfig_callbackHandler(t *testing.T) {
 		Scopes:          []string{"openid"},
 		AllowedSubjects: []string{"user1@example.com"},
 	}
+	c.ValidateAndSetDefaults()
 	if err := c.initialize(); err != nil {
 		t.Fatal("expected no error, but got", err)
 	}
@@ -67,16 +71,40 @@ func TestOIDCConfig_callbackHandler(t *testing.T) {
 
 func TestOIDCConfig_setSessionCookie(t *testing.T) {
 	c := &OIDCConfig{}
+	c.ValidateAndSetDefaults()
 	responseRecorder := httptest.NewRecorder()
 	c.setSessionCookie(responseRecorder, &oidc.IDToken{Subject: "test@example.com"})
-	if len(responseRecorder.Result().Cookies()) == 0 {
+	cookies := responseRecorder.Result().Cookies()
+	if len(cookies) == 0 {
 		t.Error("expected cookie to be set")
 	}
+	sessionCookie := cookies[0]
+	if sessionCookie.Path != DefaultBasePath {
+		t.Errorf("expected cookie Path to be %s, but was %s", DefaultBasePath, sessionCookie.Path)
+	}
 }
+
+func TestOIDCConfig_setSessionCookieWithCustomBasePath(t *testing.T) {
+	customBasePath := "/custom/path/"
+	c := &OIDCConfig{BasePath: customBasePath}
+	c.ValidateAndSetDefaults()
+	responseRecorder := httptest.NewRecorder()
+	c.setSessionCookie(responseRecorder, &oidc.IDToken{Subject: "test@example.com"})
+	cookies := responseRecorder.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Error("expected cookie to be set")
+	}
+	sessionCookie := cookies[0]
+	if sessionCookie.Path != customBasePath {
+		t.Errorf("expected cookie Path to be %s, but was %s", customBasePath, sessionCookie.Path)
+	}
+}
+		
 
 func TestOIDCConfig_setSessionCookieWithCustomTTL(t *testing.T) {
 	customTTL := 30 * time.Minute
 	c := &OIDCConfig{SessionTTL: customTTL}
+	c.ValidateAndSetDefaults()
 	responseRecorder := httptest.NewRecorder()
 	c.setSessionCookie(responseRecorder, &oidc.IDToken{Subject: "test@example.com"})
 	cookies := responseRecorder.Result().Cookies()

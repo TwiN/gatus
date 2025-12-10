@@ -1,0 +1,69 @@
+# Note that this example is using network_mode: host, which may have security implications.
+# It is done this way for simplicity, to avoid complications that come from the fact that 
+# Gatus NEEDS to see authentication provider under same address as the one used by the end-user.
+# This way both Gatus and the end-user see the authentication provider under "localhost", what 
+# is convenient for local testing.
+services:
+  dex:
+    network_mode: host
+    image: ghcr.io/dexidp/dex:latest
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    configs:
+      - source: dex_config_yaml
+        target: /etc/dex/config.yaml
+    healthcheck: 
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5556/healthz"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+      start_period: 1s 
+      
+  gatus:
+    network_mode: host
+    image: twinproduction/gatus:latest
+    volumes:
+      - ../../config.yml:/config/02_config.yaml
+    environment:
+      - GATUS_CONFIG_PATH=/config
+    configs:
+      - source: gatus_config_ext
+        target: /config/01_config.yaml
+    depends_on:
+      dex:
+        condition: service_healthy 
+
+configs:
+  dex_config_yaml:
+    content: |
+      issuer: http://localhost:5556/
+      storage:
+        type: sqlite3
+        config:
+          file: /var/dex/dex.db
+      web:
+        http: 0.0.0.0:5556
+      enablePasswordDB: true
+      staticClients:
+        - id: gatus
+          name: 'Gatus'
+          secret: gatus-client-secret
+          redirectURIs:
+            - 'http://localhost:8080/authorization-code/callback'
+      staticPasswords:
+        - email: "admin@example.com"
+          # bcrypt hash of the string "password": $(echo password | htpasswd -BinC 10 admin | cut -d: -f2)
+          hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+          username: "admin"
+          userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+          
+  gatus_config_ext:
+    content: |
+      security:
+        oidc:
+          issuer-url: "http://localhost:5556/"
+          redirect-url: "http://localhost:8080/authorization-code/callback"
+          client-id: "gatus"
+          client-secret: "gatus-client-secret"
+          scopes:
+            - openid
+    

@@ -301,13 +301,13 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		}
 		// XXX: End of v6.0.0 removals
 		ValidateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
+		if err := ValidateWebConfig(config); err != nil {
+			return nil, err
+		}
 		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
 		if err := ValidateEndpointsConfig(config); err != nil {
-			return nil, err
-		}
-		if err := ValidateWebConfig(config); err != nil {
 			return nil, err
 		}
 		if err := ValidateUIConfig(config); err != nil {
@@ -340,6 +340,10 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		ValidateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
+		config.UI.BasePath = config.Web.BasePath
+		if config.Security != nil && config.Security.OIDC != nil {
+			config.Security.OIDC.BasePath = config.Web.BasePath
+		}
 	}
 	return
 }

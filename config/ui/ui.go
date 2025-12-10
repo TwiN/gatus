@@ -20,6 +20,7 @@ const (
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
+	defaultBasePath             = "/"
 )
 
 var (
@@ -44,10 +45,13 @@ type Config struct {
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+
+	MaximumNumberOfResults int    `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	BasePath               string `yaml:"-"` // basePath is from Web.BasePath
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -86,6 +90,7 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		BasePath:               defaultBasePath,
 	}
 }
 
@@ -132,6 +137,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		if err := btn.Validate(); err != nil {
 			return err
 		}
+	}
+	if len(cfg.BasePath) == 0 {
+		cfg.BasePath = defaultBasePath
 	}
 	// Validate that the template works
 	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
