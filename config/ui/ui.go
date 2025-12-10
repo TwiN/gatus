@@ -138,6 +138,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return err
 		}
 	}
+	if len(cfg.BasePath) == 0 {
+		cfg.BasePath = defaultBasePath
+	}
 	// Validate that the template works
 	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
 	if err != nil {

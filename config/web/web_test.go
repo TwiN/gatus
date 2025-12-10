@@ -18,6 +18,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.TLS != nil {
 		t.Error("expected default config to have TLS disabled")
 	}
+	if defaultConfig.BasePath != DefaultBasePath {
+		t.Error("expected default config to have the default base path")
+	}
 }
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
@@ -89,6 +92,24 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedPort:           443,
 			expectedReadBufferSize: 8192,
 			expectedErr:            true,
+		},
+		{
+			name: "custom-base-path",
+			cfg:  &Config{BasePath: "/custom/"},
+			expectedAddress:        "0.0.0.0",
+			expectedPort:           8080,
+			expectedReadBufferSize: 8192,
+			expectedErr:            false,
+		},
+		{
+			name: 	  				"invalid-base-path-no-slash",
+			cfg:       				&Config{BasePath: "noslash/"},
+			expectedErr: 			true,
+		},
+		{
+			name: 					"invalid-base-path-no-trailing-slash",
+			cfg:  					&Config{BasePath: "/noslash"},
+			expectedErr: 			true,
 		},
 	}
 	for _, scenario := range scenarios {

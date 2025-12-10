@@ -30,8 +30,8 @@ services:
 configs:
   gatus_config_ext:
     content: |
-      ui:
-        base: /gatus/
+      web:
+        base-path: /gatus/
   caddyfile:
     content: |
       {

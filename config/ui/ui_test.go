@@ -41,6 +41,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != defaultFilterBy {
 			t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
 		}
+		if cfg.BasePath != defaultBasePath {
+			t.Errorf("expected BasePath to be %s, got %s", defaultBasePath, cfg.BasePath)
+		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -53,6 +56,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Link:                "https://example.com",
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
+			BasePath:            "/custom-base-path/",
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -84,6 +88,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != "failing" {
 			t.Errorf("expected defaultFilterBy to be preserved, got %s", cfg.DefaultFilterBy)
 		}
+		if cfg.BasePath != "/custom-base-path/" {
+			t.Errorf("expected BasePath to be /custom-base-path/, got %s", cfg.BasePath)
+		}
 	})
 	t.Run("partial-custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -109,6 +116,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 		if cfg.Description != defaultDescription {
 			t.Errorf("expected description to use default, got %s", cfg.Description)
+		}
+		if cfg.BasePath != defaultBasePath {
+			t.Errorf("expected BasePath to be %s, got %s", defaultBasePath, cfg.BasePath)
 		}
 	})
 }
@@ -171,6 +181,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 	if defaultConfig.DefaultFilterBy != defaultFilterBy {
 		t.Error("expected GetDefaultConfig() to return defaultFilterBy, got", defaultConfig.DefaultFilterBy)
+	}
+	if defaultConfig.BasePath != defaultBasePath {
+		t.Error("expected GetDefaultConfig() to return defaultBasePath, got", defaultConfig.BasePath)
 	}
 }
 

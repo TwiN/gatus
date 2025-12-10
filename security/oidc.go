@@ -67,6 +67,7 @@ func (c *OIDCConfig) initialize() error {
 }
 
 func (c *OIDCConfig) loginHandler(ctx *fiber.Ctx) error {
+	// ??? state and nonce are not 'secure random'
 	state, nonce := uuid.NewString(), uuid.NewString()
 	ctx.Cookie(&fiber.Cookie{
 		Name:     cookieNameState,
