@@ -533,13 +533,9 @@ const initializeCollapsedGroups = () => {
   }
 }
 
-const dashboardHeading = computed(() => {
-  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
-})
+const dashboardHeading = computed(() => window.config?.dashboardHeading ?? "Health Dashboard")
 
-const dashboardSubheading = computed(() => {
-  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
-})
+const dashboardSubheading = computed(() => window.config?.dashboardSubheading ?? "Monitor the health of your endpoints in real-time")
 
 onMounted(() => {
   fetchData()
