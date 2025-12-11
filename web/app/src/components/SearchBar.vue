@@ -11,6 +11,7 @@
           placeholder="Search endpoints..."
           class="pl-10 text-sm sm:text-base"
           @input="$emit('search', searchQuery)"
+          @blur="pushSearchToRouter"
         />
       </div>
     </div>
@@ -82,6 +83,17 @@ const sortOptions = [
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
+const pushSearchToRouter = () => {
+  const query = { ...route.query }
+  if (searchQuery.value && searchQuery.value.length > 0) {
+    query.search = searchQuery.value
+  } else {
+    delete query.search
+  }
+  router.push({ query })
+  emit('search', searchQuery.value)
+}
+
 const handleFilterChange = (value, store = true) => {
   filterBy.value = value
   router.push({
@@ -118,7 +130,7 @@ const handleSortChange = (value, store = true) => {
 }
 
 onMounted(() => {
-  // Apply query search state on load
+  // Apply search state on load
   if (searchQuery.value !== '')
     emit ('search', searchQuery.value)
 
