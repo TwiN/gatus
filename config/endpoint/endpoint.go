@@ -19,11 +19,13 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	sftpconfig "github.com/TwiN/gatus/v5/config/endpoint/sftp"
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -53,6 +55,7 @@ const (
 	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
+	TypeSFTP     Type = "SFTP"
 	TypeUNKNOWN  Type = "UNKNOWN"
 )
 
@@ -123,6 +126,9 @@ type Endpoint struct {
 	// SSH is the configuration for SSH monitoring
 	SSHConfig *sshconfig.Config `yaml:"ssh,omitempty"`
 
+	// SFTP is the configuration for SFTP monitoring
+	SFTPConfig *sftpconfig.Config `yaml:"sftp,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the endpoint's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 
@@ -184,6 +190,8 @@ func (e *Endpoint) Type() Type {
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
 		return TypeSSH
+	case strings.HasPrefix(e.URL, "sftp://"):
+		return TypeSFTP
 	default:
 		return TypeUNKNOWN
 	}
@@ -245,6 +253,9 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.SSHConfig != nil {
 		return e.SSHConfig.Validate()
+	}
+	if e.SFTPConfig != nil {
+		return e.SFTPConfig.Validate()
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
@@ -522,6 +533,46 @@ func (e *Endpoint) call(result *Result) {
 		}
 		var output []byte
 		result.Success, result.HTTPStatus, output, err = client.ExecuteSSHCommand(cli, e.getParsedBody(), e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		// Only store the output in result.Body if there's a condition that uses the BodyPlaceholder
+		if e.needsToReadBody() {
+			result.Body = output
+		}
+		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeSFTP {
+		// If there's no username, password or private key specified, attempt to validate just the SFTP connection
+		if e.SFTPConfig == nil || (len(e.SFTPConfig.Username) == 0 && len(e.SFTPConfig.Password) == 0 && len(e.SFTPConfig.PrivateKey) == 0) {
+			result.Connected, err = client.CheckSFTPConnection(strings.TrimPrefix(e.URL, "sftp://"), e.ClientConfig)
+			if err != nil {
+				result.AddError(err.Error())
+				return
+			}
+			result.Success = result.Connected
+			result.Duration = time.Since(startTime)
+			return
+		}
+		fullURL := strings.TrimPrefix(e.URL, "sftp://")
+		var address string
+		if idx := strings.Index(fullURL, "/"); idx != -1 {
+			address = fullURL[:idx]
+		} else {
+			address = fullURL
+		}
+		path := e.SFTPConfig.Path
+		if path == "" {
+			path = "."
+		}
+		var sftpCli *sftp.Client
+		result.Connected, sftpCli, err = client.CanCreateSFTPConnection(address, e.SFTPConfig.Username, e.SFTPConfig.Password, e.SFTPConfig.PrivateKey, e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		var output []byte
+		result.Success, result.HTTPStatus, output, err = client.ExecuteSFTPCommand(sftpCli, path, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return

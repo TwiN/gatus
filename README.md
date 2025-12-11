@@ -124,6 +124,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using ICMP](#monitoring-an-endpoint-using-icmp)
   - [Monitoring an endpoint using DNS queries](#monitoring-an-endpoint-using-dns-queries)
   - [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh)
+  - [Monitoring an endpoint using SFTP](#monitoring-an-endpoint-using-sftp)
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
@@ -254,7 +255,7 @@ If you want to test it locally, see [Docker](#docker).
 | `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                   | `3`                        |
 | `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                        | `false`                    |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`                    |
-| `web`                        | Web configuration.                                                                                                                       | `{}`                       |
+| `web`                        | Web configuration.                                                                                                                       | `{}`                       |/monitoring-an-endpoint-using-ssh
 | `web.address`                | Address to listen on.                                                                                                                    | `0.0.0.0`                  |
 | `web.port`                   | Port to listen on.                                                                                                                       | `8080`                     |
 | `web.read-buffer-size`       | Buffer size for reading requests from a connection. Also limit for the maximum header size.                                              | `8192`                     |
@@ -305,6 +306,10 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh).                 | `""`                       |
 | `endpoints[].ssh.username`                      | SSH username (e.g. example).                                                                                                                | Required `""`              |
 | `endpoints[].ssh.password`                      | SSH password (e.g. password).                                                                                                               | Required `""`              |
+| `endpoints[].sftp`                              | Configuration for an endpoint of type SFTP. <br />See [Monitoring an endpoint using SFTP](#monitoring-an-endpoint-using-sftp).              | `""`                       |
+| `endpoints[].sftp.username`                     | SFTP username (e.g. example).                                                                                                               | Required `""`              |
+| `endpoints[].sftp.password`                     | SFTP password (e.g. password).                                                                                                              | Required `""`              |
+| `endpoints[].sftp.path`                         | SFTP path (e.g. /).                                                                                                                         | `false`                    |
 | `endpoints[].alerts`                            | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                                   | `[]`                       |
 | `endpoints[].maintenance-windows`               | List of all maintenance windows for a given endpoint. <br />See [Maintenance](#maintenance).                                                | `[]`                       |
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
@@ -3103,6 +3108,67 @@ The following placeholders are supported for endpoints of type SSH:
 - `[BODY]` resolves to the stdout output of the command executed on the remote server
 - `[IP]` resolves to the IP address of the server
 - `[RESPONSE_TIME]` resolves to the time it took to establish the connection and execute the command
+
+
+### Monitoring an endpoint using SFTP
+You can monitor endpoints using SFTP by prefixing `endpoints[].url` with `sftp://`:
+```yaml
+endpoints:
+  # Password-based SFTP example
+  - name: sftp-example-password
+    url: "sftp://example.com:22" # port is optional. Default is 22.
+    sftp:
+      username: "username"
+      password: "password"
+      path: "/test"  # Optional. Defaults to "." if not specified.
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+      - "[BODY].files[0] == file1"
+
+  # Key-based SFTP example
+  - name: sftp-example-key
+    url: "sftp://example.com:22" # port is optional. Default is 22.
+    sftp:
+      username: "username"
+      private-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        TESTRSAKEY...
+        -----END RSA PRIVATE KEY-----
+      path: "/test"  # Optional. Defaults to "." if not specified.
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+      - "len([BODY].files) > 0"
+```
+
+you can also use no authentication to monitor the endpoint by not specifying the username,
+password and private key fields.
+
+```yaml
+endpoints:
+  - name: sftp-example
+    url: "sftp://example.com:22" # port is optional. Default is 22.
+    sftp:
+      username: ""
+      password: ""
+      private-key: ""
+      path: "/test"  # Optional. Defaults to "." if not specified.
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
+      - "len([BODY].files) > 0"
+```
+
+The following placeholders are supported for endpoints of type SFTP:
+- `[CONNECTED]` resolves to `true` if the SFTP connection was successful, `false` otherwise
+- `[STATUS]` resolves to `0` for success (since directory listing doesn't have an exit code like commands)
+- `[BODY]` resolves to a JSON object like {"files": ["file1", "file2", "file3"]}
+- `[IP]` resolves to the IP address of the server
+- `[RESPONSE_TIME]` resolves to the time it took to establish the connection and list the directory
 
 
 ### Monitoring an endpoint using STARTTLS
