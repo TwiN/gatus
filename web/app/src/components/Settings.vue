@@ -73,7 +73,7 @@ const DEFAULT_REFRESH_INTERVAL = '300'
 const THEME_COOKIE_NAME = 'theme'
 const THEME_COOKIE_MAX_AGE = 31536000 // 1 year
 const STORAGE_KEYS = {
-  REFRESH_INTERVAL: 'gatus:refresh-interval'
+  REFRESH_INTERVAL: 'gatus:refresh-interval',
 }
 
 // Helper functions

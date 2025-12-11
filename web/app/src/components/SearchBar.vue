@@ -49,6 +49,11 @@ import { Search } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 
+const STORAGE_KEYS = {
+  FILTER_BY: 'endpointFilterBy',
+  SORT_BY: 'endpointSortBy',
+}
+
 const router = useRouter()
 const route = useRoute()
 
@@ -67,8 +72,8 @@ const [defaultFilterBy, defaultSortBy] = (() => {
 })()
 
 const searchQuery = ref(route.query.search || '')
-const filterBy = ref(route.query.filter || localStorage.getItem('gatus:filter-by') || defaultFilterBy)
-const sortBy = ref(route.query.sort || localStorage.getItem('gatus:sort-by') || defaultSortBy)
+const filterBy = ref(route.query.filter || localStorage.getItem(STORAGE_KEYS.FILTER_BY) || defaultFilterBy)
+const sortBy = ref(route.query.sort || localStorage.getItem(STORAGE_KEYS.SORT_BY) || defaultSortBy)
 
 const filterOptions = [
   { label: 'None', value: 'none' },
@@ -99,7 +104,7 @@ const handleFilterChange = (value, store = true) => {
     const query = { ...route.query }
     query.filter = value
     router.push({ query })
-    localStorage.setItem('gatus:filter-by', value)
+    localStorage.setItem(STORAGE_KEYS.FILTER_BY, value)
   }
 
   emit('update:showOnlyFailing', value === 'failing')
@@ -112,7 +117,7 @@ const handleSortChange = (value, store = true) => {
     const query = { ...route.query }
     query.sort = value
     router.push({ query })
-    localStorage.setItem('gatus:sort-by', value)
+    localStorage.setItem(STORAGE_KEYS.SORT_BY, value)
   }
 
   emit('update:sortBy', value)
@@ -144,14 +149,14 @@ watch(
 watch(
   () => route.query.filter,
   (value) => {
-    handleFilterChange(value || localStorage.getItem('gatus:filter-by') || defaultFilterBy, false)
+    handleFilterChange(value || localStorage.getItem(STORAGE_KEYS.FILTER_BY) || defaultFilterBy, false)
   }
 )
 
 watch(
   () => route.query.sort,
   (value) => {
-    handleSortChange(value || localStorage.getItem('gatus:sort-by') || defaultSortBy, false)
+    handleSortChange(value || localStorage.getItem(STORAGE_KEYS.SORT_BY) || defaultSortBy, false)
   }
 )
 </script>
