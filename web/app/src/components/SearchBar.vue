@@ -82,7 +82,7 @@ const sortOptions = [
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
-const handleFilterChange = (value, updateLocalStorage = true) => {
+const handleFilterChange = (value, store = true) => {
   filterBy.value = value
   router.push({
     query: {
@@ -90,14 +90,14 @@ const handleFilterChange = (value, updateLocalStorage = true) => {
       filter: value
     }
   });
-  if (updateLocalStorage)
+  if (store)
     localStorage.setItem('gatus:filter-by', value)
   
   emit('update:showOnlyFailing', value === 'failing')
   emit('update:showRecentFailures', value === 'unstable')
 }
 
-const handleSortChange = (value, updateLocalStorage = true) => {
+const handleSortChange = (value, store = true) => {
   sortBy.value = value
   router.push({
     query: {
@@ -105,7 +105,7 @@ const handleSortChange = (value, updateLocalStorage = true) => {
       sort: value
     }
   });
-  if (updateLocalStorage)
+  if (store)
     localStorage.setItem('gatus:sort-by', value)
 
   emit('update:sortBy', value)
@@ -122,7 +122,7 @@ onMounted(() => {
   if (searchQuery.value !== '')
     emit ('search', searchQuery.value)
 
-  // Apply saved or query filter/sort state on load
+  // Apply saved or application wide filter/sort state on load but do not store it in localstorage
   handleFilterChange(filterBy.value, false)
   handleSortChange(sortBy.value, false)
 })
