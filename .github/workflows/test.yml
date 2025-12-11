@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.24.4
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build binary to make sure it works
         run: go build
       - name: Test
