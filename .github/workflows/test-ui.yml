@@ -21,6 +21,10 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             echo "Error: There are uncommitted changes after running 'make frontend-build'"
             echo "Please run 'make frontend-build' locally and commit the changes"
+            echo ""
+            echo "Changed files:"
+            git diff --name-only
+            echo ""
             git status
             git diff
             exit 1
