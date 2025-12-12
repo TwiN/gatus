@@ -176,6 +176,10 @@ const tooltipIsPersistent = ref(false)
 let fetchConfigTimerId = null
 
 // Computed properties
+const configRefreshInterval = computed(() => {
+  return window.config.configRefreshInterval != '{{ .UI.ConfigRefreshIntervalMs }}' ? window.config.configRefreshInterval : 600000
+})
+
 const logo = computed(() => {
   return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
 })
@@ -247,7 +251,7 @@ const handleDocumentClick = (event) => {
 onMounted(() => {
   fetchConfig()
   // Refresh config every 10 minutes for announcements
-  fetchConfigTimerId = setInterval(fetchConfig, 600000)
+  fetchConfigTimerId = setInterval(fetchConfig, configRefreshInterval.value)
   // Add click listener for closing persistent tooltips
   document.addEventListener('click', handleDocumentClick)
 })

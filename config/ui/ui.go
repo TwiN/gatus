@@ -4,50 +4,55 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"time"
 
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
 const (
-	defaultTitle                = "Health Dashboard | Gatus"
-	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader               = "Gatus"
-	defaultDashboardHeading     = "Health Dashboard"
-	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
-	defaultLogo                 = ""
-	defaultLink                 = ""
-	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
-	defaultFilterBy             = "none"
+	defaultTitle                 = "Health Dashboard | Gatus"
+	defaultDescription           = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader                = "Gatus"
+	defaultDashboardHeading      = "Health Dashboard"
+	defaultDashboardSubheading   = "Monitor the health of your endpoints in real-time"
+	defaultLogo                  = ""
+	defaultLink                  = ""
+	defaultCustomCSS             = ""
+	defaultSortBy                = "name"
+	defaultFilterBy              = "none"
+	defaultConfigRefreshInterval = 10 * time.Minute
 )
 
 var (
 	defaultDarkMode = true
 
-	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
-	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
-	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrButtonValidationFailed       = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDefaultSortBy         = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultFilterBy       = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidConfigRefreshInterval = errors.New("invalid config refresh interval: must be bigger than 0 (e.g. 30m)")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title                 string        `yaml:"title,omitempty"`                   // Title of the page
+	Description           string        `yaml:"description,omitempty"`             // Meta description of the page
+	DashboardHeading      string        `yaml:"dashboard-heading,omitempty"`       // Dashboard Title between header and endpoints
+	DashboardSubheading   string        `yaml:"dashboard-subheading,omitempty"`    // Dashboard Description between header and endpoints
+	Header                string        `yaml:"header,omitempty"`                  // Header is the text at the top of the page
+	Logo                  string        `yaml:"logo,omitempty"`                    // Logo to display on the page
+	Link                  string        `yaml:"link,omitempty"`                    // Link to open when clicking on the logo
+	Buttons               []Button      `yaml:"buttons,omitempty"`                 // Buttons to display below the header
+	CustomCSS             string        `yaml:"custom-css,omitempty"`              // Custom CSS to include in the page
+	DarkMode              *bool         `yaml:"dark-mode,omitempty"`               // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy         string        `yaml:"default-sort-by,omitempty"`         // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy       string        `yaml:"default-filter-by,omitempty"`       // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	ConfigRefreshInterval time.Duration `yaml:"config-refresh-interval,omitempty"` // ConfigRefreshInterval is the interval at which to refresh the UI configuration via the API
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	MaximumNumberOfResults  int   `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	ConfigRefreshIntervalMs int64 `yaml:"-"` // ConfigRefreshIntervalMs Internal interval to be able to convert to milliseconds for the frontend before templating
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -74,18 +79,20 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
-		Title:                  defaultTitle,
-		Description:            defaultDescription,
-		DashboardHeading:       defaultDashboardHeading,
-		DashboardSubheading:    defaultDashboardSubheading,
-		Header:                 defaultHeader,
-		Logo:                   defaultLogo,
-		Link:                   defaultLink,
-		CustomCSS:              defaultCustomCSS,
-		DarkMode:               &defaultDarkMode,
-		DefaultSortBy:          defaultSortBy,
-		DefaultFilterBy:        defaultFilterBy,
-		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		Title:                   defaultTitle,
+		Description:             defaultDescription,
+		DashboardHeading:        defaultDashboardHeading,
+		DashboardSubheading:     defaultDashboardSubheading,
+		Header:                  defaultHeader,
+		Logo:                    defaultLogo,
+		Link:                    defaultLink,
+		CustomCSS:               defaultCustomCSS,
+		DarkMode:                &defaultDarkMode,
+		DefaultSortBy:           defaultSortBy,
+		DefaultFilterBy:         defaultFilterBy,
+		ConfigRefreshInterval:   defaultConfigRefreshInterval,
+		MaximumNumberOfResults:  storage.DefaultMaximumNumberOfResults,
+		ConfigRefreshIntervalMs: int64(defaultConfigRefreshInterval / time.Millisecond),
 	}
 }
 
@@ -128,6 +135,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
 	}
+	if cfg.ConfigRefreshInterval == 0 {
+		cfg.ConfigRefreshInterval = defaultConfigRefreshInterval
+	} else if cfg.ConfigRefreshInterval <= 0 {
+		return ErrInvalidConfigRefreshInterval
+	}
+	cfg.ConfigRefreshIntervalMs = int64(cfg.ConfigRefreshInterval / time.Millisecond)
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
 			return err
