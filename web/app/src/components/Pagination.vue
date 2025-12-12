@@ -29,7 +29,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
