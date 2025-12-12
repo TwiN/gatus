@@ -46,7 +46,7 @@
                     : (highlightedIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result ? handleMouseEnter(result, $event) : handleMouseLeave(null, $event)"
+              @mouseenter="result ? handleMouseEnter(result, $event, index) : handleMouseLeave(null, $event)"
               @click.stop="handleClick(result, $event, index)"
             />
           </div>
@@ -170,8 +170,8 @@ const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
 }
 
-const handleMouseEnter = (result, event) => {
-  lastHoverIndex.value = displayResults.value.indexOf(result)
+const handleMouseEnter = (result, event, index) => {
+  lastHoverIndex.value = index
   emit('showTooltip', result, event, 'hover')
 }
 
