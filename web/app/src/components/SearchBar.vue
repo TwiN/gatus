@@ -50,8 +50,8 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 
 const STORAGE_KEYS = {
-  FILTER_BY: 'endpointFilterBy',
-  SORT_BY: 'endpointSortBy',
+  FILTER_BY: 'gatus:filter-by',
+  SORT_BY: 'gatus:sort-by',
 }
 
 const router = useRouter()
