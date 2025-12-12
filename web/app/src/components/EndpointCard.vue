@@ -34,7 +34,7 @@
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
           <div :class="['flex gap-0.5', lastHoverIndex ? 'cursor-pointer' : '']"
-               @mouseleave="handleMouseLeave(null, $event)">
+               @mouseleave="clearTooltip()">
             <div
               v-for="(result, index) in displayResults"
               :key="index"
@@ -46,8 +46,8 @@
                     : (highlightedIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result ? handleMouseEnter(result, $event, index) : handleMouseLeave(null, $event)"
-              @click.stop="handleClick(result, $event, index)"
+              @mouseenter="result ? handleMouseEnter(result, $event, index) : clearTooltip()"
+              @click="handleClick(result, $event, index)"
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
@@ -175,9 +175,9 @@ const handleMouseEnter = (result, event, index) => {
   emit('showTooltip', result, event, 'hover')
 }
 
-const handleMouseLeave = (result, event) => {
+const clearTooltip = () => {
   lastHoverIndex.value = null
-  emit('showTooltip', null, event, 'hover')
+  emit('showTooltip', null, null, 'hover')
 }
 
 const handleClick = (result, event, index) => {
@@ -187,7 +187,7 @@ const handleClick = (result, event, index) => {
   // Then toggle this card's selection
   if (selectedResultIndex.value === index) {
     selectedResultIndex.value = null
-    emit('showTooltip', null, event, 'click')
+    emit('showTooltip', null, null, 'click')
   } else {
     selectedResultIndex.value = index
     emit('showTooltip', result, event, 'click')
