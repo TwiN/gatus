@@ -194,6 +194,11 @@ import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
 
+const STORAGE_KEYS = {
+  COLLAPSED_GROUPS: 'gatus:collapsed-groups',
+  UNCOLLAPSED_GROUPS: 'gatus:uncollapsed-groups',
+}
+
 const props = defineProps({
   announcements: {
     type: Array,
@@ -222,7 +227,7 @@ const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
 const showAverageResponseTime = ref(true)
 const groupByGroup = ref(false)
-const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
+const sortBy = ref(undefined)
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
 
@@ -513,21 +518,21 @@ const toggleGroupCollapse = (groupName) => {
   }
   // Save to localStorage
   const uncollapsed = Array.from(uncollapsedGroups.value)
-  localStorage.setItem('gatus:uncollapsed-groups', JSON.stringify(uncollapsed))
-  localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
+  localStorage.setItem(STORAGE_KEYS.UNCOLLAPSED_GROUPS, JSON.stringify(uncollapsed))
+  localStorage.removeItem(STORAGE_KEYS.COLLAPSED_GROUPS) // Remove old key if it exists
 }
 
 const initializeCollapsedGroups = () => {
   // Get saved uncollapsed groups from localStorage
   try {
-    const saved = localStorage.getItem('gatus:uncollapsed-groups')
+    const saved = localStorage.getItem(STORAGE_KEYS.UNCOLLAPSED_GROUPS)
     if (saved) {
       uncollapsedGroups.value = new Set(JSON.parse(saved))
     }
     // If no saved state, uncollapsedGroups stays empty (all collapsed by default)
   } catch (e) {
     console.warn('Failed to parse saved uncollapsed groups:', e)
-    localStorage.removeItem('gatus:uncollapsed-groups')
+    localStorage.removeItem(STORAGE_KEYS.UNCOLLAPSED_GROUPS)
     // On error, uncollapsedGroups stays empty (all collapsed by default)
   }
 }
