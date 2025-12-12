@@ -11,7 +11,7 @@ import (
 
 var (
 	errInvalidMaintenanceStartFormat = errors.New("invalid maintenance start format: must be hh:mm, between 00:00 and 23:59 inclusively (e.g. 23:00)")
-	errInvalidMaintenanceDuration    = errors.New("invalid maintenance duration: must be bigger than 0 (e.g. 30m)")
+	errInvalidMaintenanceDuration    = errors.New("invalid maintenance duration: must be bigger than 0 and smaller than 24h (e.g. 30m)")
 	errInvalidDayName                = fmt.Errorf("invalid value specified for 'on'. supported values are %s", longDayNames)
 	errInvalidTimezone               = errors.New("invalid timezone specified or format not supported. Use IANA timezone format (e.g. America/Sao_Paulo)")
 
