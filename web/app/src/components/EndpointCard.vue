@@ -33,7 +33,7 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex gap-0.5">
+          <div class="flex gap-0.5" @mouseleave="handleMouseLeave(null, $event)">
             <div
               v-for="(result, index) in displayResults"
               :key="index"
@@ -46,8 +46,7 @@
                     : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result && handleMouseEnter(result, $event)"
-              @mouseleave="result && handleMouseLeave(result, $event)"
+              @mouseenter="result ? handleMouseEnter(result, $event) : handleMouseLeave(null, $event)"
               @click.stop="result && handleClick(result, $event, index)"
             />
           </div>
