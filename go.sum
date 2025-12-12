@@ -4,8 +4,8 @@ cloud.google.com/go/auth/oauth2adapt v0.2.8 h1:keo8NaayQZ6wimpNSmW5OPc283g65QNIi
 cloud.google.com/go/auth/oauth2adapt v0.2.8/go.mod h1:XQ9y31RkqZCcwJWNSx2Xvric3RrU88hAYYbjDWYDL+c=
 cloud.google.com/go/compute/metadata v0.9.0 h1:pDUj4QMoPejqq20dK0Pg2N4yG9zIkYGdBtwLoEkH9Zs=
 cloud.google.com/go/compute/metadata v0.9.0/go.mod h1:E0bWwX5wTnLPedCKqk3pJmVgCBSM6qQI1yTBdEb3C10=
-code.gitea.io/sdk/gitea v0.22.0 h1:HCKq7bX/HQ85Nw7c/HAhWgRye+vBp5nQOE8Md1+9Ef0=
-code.gitea.io/sdk/gitea v0.22.0/go.mod h1:yyF5+GhljqvA30sRDreoyHILruNiy4ASufugzYg0VHM=
+code.gitea.io/sdk/gitea v0.22.1 h1:7K05KjRORyTcTYULQ/AwvlVS6pawLcWyXZcTr7gHFyA=
+code.gitea.io/sdk/gitea v0.22.1/go.mod h1:yyF5+GhljqvA30sRDreoyHILruNiy4ASufugzYg0VHM=
 github.com/42wim/httpsig v1.2.3 h1:xb0YyWhkYj57SPtfSttIobJUPJZB9as1nsfo7KWVcEs=
 github.com/42wim/httpsig v1.2.3/go.mod h1:nZq9OlYKDrUBhptd77IHx4/sZZD+IxTBADvAPI9G/EM=
 github.com/TwiN/deepmerge v0.2.2 h1:FUG9QMIYg/j2aQyPPhA3XTFJwXSNHI/swaR4Lbyxwg4=
