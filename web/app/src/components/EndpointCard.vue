@@ -42,8 +42,8 @@
                 result ? 'cursor-pointer' : '',
                 result ? (
                   result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                    ? (highlightedIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                    : (highlightedIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result ? handleMouseEnter(result, $event) : handleMouseLeave(null, $event)"
@@ -89,6 +89,10 @@ const emit = defineEmits(['showTooltip'])
 
 // Track selected data point
 const selectedResultIndex = ref(null)
+
+const lastHoverIndex = ref(null)
+
+const highlightedIndex = computed(() => selectedResultIndex.value ?? lastHoverIndex.value)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -167,16 +171,19 @@ const navigateToDetails = () => {
 }
 
 const handleMouseEnter = (result, event) => {
+  lastHoverIndex.value = displayResults.value.indexOf(result)
   emit('showTooltip', result, event, 'hover')
 }
 
 const handleMouseLeave = (result, event) => {
+  lastHoverIndex.value = null
   emit('showTooltip', null, event, 'hover')
 }
 
 const handleClick = (result, event, index) => {
   // Clear selections in other cards first
   window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
+
   // Then toggle this card's selection
   if (selectedResultIndex.value === index) {
     selectedResultIndex.value = null
