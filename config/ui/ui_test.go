@@ -308,8 +308,8 @@ func TestConfig_ValidateAndSetDefaults_ConfigRefreshInterval(t *testing.T) {
 		{
 			Name:                  "ZeroConfigRefreshInterval",
 			ConfigRefreshInterval: 0,
-			ExpectedError:         ErrInvalidConfigRefreshInterval,
-			ExpectedValue:         0,
+			ExpectedError:         nil,
+			ExpectedValue:         defaultConfigRefreshInterval,
 		},
 		{
 			Name:                  "ValidConfigRefreshInterval",

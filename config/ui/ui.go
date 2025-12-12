@@ -27,10 +27,9 @@ const (
 var (
 	defaultDarkMode = true
 
-	ErrButtonValidationFailed       = errors.New("invalid button configuration: missing required name or link")
-	ErrInvalidDefaultSortBy         = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
-	ErrInvalidDefaultFilterBy       = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
-	ErrInvalidConfigRefreshInterval = errors.New("invalid config refresh interval: must be bigger than 0 (e.g. 30m)")
+	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -137,8 +136,6 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if cfg.ConfigRefreshInterval == 0 {
 		cfg.ConfigRefreshInterval = defaultConfigRefreshInterval
-	} else if cfg.ConfigRefreshInterval <= 0 {
-		return ErrInvalidConfigRefreshInterval
 	}
 	cfg.ConfigRefreshIntervalMs = int64(cfg.ConfigRefreshInterval / time.Millisecond)
 	for _, btn := range cfg.Buttons {
