@@ -173,7 +173,7 @@ const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
 const tooltipIsPersistent = ref(false)
-let configInterval = null
+let fetchConfigTimerId = null
 
 // Computed properties
 const logo = computed(() => {
@@ -247,15 +247,15 @@ const handleDocumentClick = (event) => {
 onMounted(() => {
   fetchConfig()
   // Refresh config every 10 minutes for announcements
-  configInterval = setInterval(fetchConfig, 600000)
+  fetchConfigTimerId = setInterval(fetchConfig, 600000)
   // Add click listener for closing persistent tooltips
   document.addEventListener('click', handleDocumentClick)
 })
 
 // Clean up interval on unmount
 onUnmounted(() => {
-  if (configInterval) {
-    clearInterval(configInterval)
+  if (fetchConfigTimerId) {
+    clearInterval(fetchConfigTimerId)
     configInterval = null
   }
   // Remove click listener
