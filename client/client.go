@@ -248,7 +248,7 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
 // using the SSH protocol.
-func CanCreateSSHConnection(address, username, password string, config *Config) (bool, *ssh.Client, error) {
+func CanCreateSSHConnection(address, username, password, privateKey string, config *Config) (bool, *ssh.Client, error) {
 	var port string
 	if strings.Contains(address, ":") {
 		addressAndPort := strings.Split(address, ":")
@@ -260,13 +260,25 @@ func CanCreateSSHConnection(address, username, password string, config *Config) 
 	} else {
 		port = "22"
 	}
-	cli, err := ssh.Dial("tcp", strings.Join([]string{address, port}, ":"), &ssh.ClientConfig{
+
+	// Build auth methods: prefer parsed private key if provided, fall back to password.
+	var authMethods []ssh.AuthMethod
+	if len(privateKey) > 0 {
+		if signer, err := ssh.ParsePrivateKey([]byte(privateKey)); err == nil {
+			authMethods = append(authMethods, ssh.PublicKeys(signer))
+		} else {
+			return false, nil, fmt.Errorf("invalid private key: %w", err)
+		}
+	}
+	if len(password) > 0 {
+		authMethods = append(authMethods, ssh.Password(password))
+	}
+
+	cli, err := ssh.Dial("tcp", net.JoinHostPort(address, port), &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            username,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		Timeout: config.Timeout,
+		Auth:            authMethods,
+		Timeout:         config.Timeout,
 	})
 	if err != nil {
 		return false, nil, err
