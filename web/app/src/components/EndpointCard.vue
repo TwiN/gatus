@@ -62,7 +62,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, watch, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -198,6 +198,14 @@ const handleClick = (result, event, index) => {
 const handleClearSelection = () => {
   selectedResultIndex.value = null
 }
+
+watch(latestResult, () => {
+  // Update tooltip if a data point is selected
+  if (selectedResultIndex.value !== null) {
+    const result = displayResults.value[selectedResultIndex.value]
+    emit('showTooltip', result, null, 'click')
+  }
+})
 
 onMounted(() => {
   window.addEventListener('clear-data-point-selection', handleClearSelection)
