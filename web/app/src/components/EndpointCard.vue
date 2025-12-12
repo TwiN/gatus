@@ -47,7 +47,7 @@
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result ? handleMouseEnter(result, $event) : handleMouseLeave(null, $event)"
-              @click.stop="result && handleClick(result, $event, index)"
+              @click.stop="handleClick(result, $event, index)"
             />
           </div>
           <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">

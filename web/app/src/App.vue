@@ -220,12 +220,8 @@ const showTooltip = (result, event, action = 'hover') => {
       tooltipIsPersistent.value = true
     }
   } else if (action === 'hover') {
-    if (tooltipIsPersistent.value) return // Do not change tooltip if it's persistent
-    if (!result) {
-      tooltip.value = {}
-    } else {
-      tooltip.value = { result, event }
-    }
+    if (tooltipIsPersistent.value) return
+    tooltip.value = result ? { result, event } : {}
   }
 }
 
