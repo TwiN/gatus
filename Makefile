@@ -1,13 +1,13 @@
 BINARY=gatus
 VERSION=$(shell git describe --tags --exact-match || echo "dev")
 COMMIT_HASH=$(shell git rev-parse HEAD)
-BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 .PHONY: install
 install:
 	go build -v -ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=$(VERSION) \
 		-X github.com/TwiN/gatus/v5/buildinfo.commitHash=$(COMMIT_HASH) \
-		-X github.com/TwiN/gatus/v5/buildinfo.time=$(BUILD_TIME)" -o $(BINARY) .
+		-X github.com/TwiN/gatus/v5/buildinfo.date=$(BUILD_DATE)" -o $(BINARY) .
 
 .PHONY: run
 run:
