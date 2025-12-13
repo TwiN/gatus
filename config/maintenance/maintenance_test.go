@@ -83,10 +83,18 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedError: strconv.ErrSyntax,
 		},
 		{
-			name: "invalid-duration",
+			name: "invalid-duration-zero",
 			cfg: &Config{
 				Start:    "23:00",
 				Duration: 0,
+			},
+			expectedError: errInvalidMaintenanceDuration,
+		},
+		{
+			name: "invalid-duration-too-long",
+			cfg: &Config{
+				Start:    "23:00",
+				Duration: 25 * time.Hour,
 			},
 			expectedError: errInvalidMaintenanceDuration,
 		},
