@@ -78,6 +78,10 @@ func (btn *Button) Validate() error {
 
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
+	buildversion := ""
+	if defaultShowBuildInfo {
+		buildversion = buildinfo.Get().Version
+	}
 	return &Config{
 		Title:                  defaultTitle,
 		Description:            defaultDescription,
@@ -92,7 +96,7 @@ func GetDefaultConfig() *Config {
 		DefaultFilterBy:        defaultFilterBy,
 		ShowBuildInfo:          &defaultShowBuildInfo,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
-		BuildVersion:           buildinfo.Get().Version,
+		BuildVersion:           buildversion,
 	}
 }
 
@@ -137,6 +141,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if cfg.ShowBuildInfo == nil {
 		cfg.ShowBuildInfo = &defaultShowBuildInfo
+	}
+	if *cfg.ShowBuildInfo { // Only send version to frontend if showing the version in the UI is enabled
 		cfg.BuildVersion = buildinfo.Get().Version
 	}
 	for _, btn := range cfg.Buttons {
