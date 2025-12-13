@@ -204,6 +204,9 @@ watch(latestResult, () => {
   if (selectedResultIndex.value !== null) {
     const result = displayResults.value[selectedResultIndex.value]
     emit('showTooltip', result, null, 'click')
+  } else if (lastHoverIndex.value !== null) {
+    const result = displayResults.value[lastHoverIndex.value]
+    emit('showTooltip', result, null, 'hover')
   }
 })
 
