@@ -225,7 +225,7 @@ const events = ref([])
 const currentPage = ref(1)
 const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
-const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') === 'true' || false)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
 const isRefreshing = ref(false)
 
