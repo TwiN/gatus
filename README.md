@@ -275,6 +275,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                     |
 | `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                     |
 | `ui.default-filter-by`       | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                     |
+| `ui.show-build-info`         | Whether to show build information (version in footer).                                                                                   | `true`                      |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
@@ -2685,6 +2686,7 @@ endpoint on the same port your application is configured to run on (`web.port`).
 
 | Metric name                                  | Type    | Description                                                                | Labels                          | Relevant endpoint types |
 |:---------------------------------------------|:--------|:---------------------------------------------------------------------------|:--------------------------------|:------------------------|
+| gatus_build_info                             | gauge   | Build information about the instance                                       | version, revision, build_date   | None                    |
 | gatus_results_total                          | counter | Number of results per endpoint per success state                           | key, group, name, type, success | All                     |
 | gatus_results_code_total                     | counter | Total number of results by code                                            | key, group, name, type, code    | DNS, HTTP               |
 | gatus_results_connected_total                | counter | Total number of results in which a connection was successfully established | key, group, name, type          | All                     |

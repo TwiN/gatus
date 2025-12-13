@@ -5,6 +5,7 @@ on:
     inputs:
       tag:
         description: Custom tag to publish
+        default: custom
       platforms:
         description: Platforms to publish to (comma separated list)
         default: linux/amd64
@@ -47,3 +48,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.tag }}
+            COMMIT_HASH=${{ github.sha }}
