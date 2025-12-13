@@ -1,5 +1,5 @@
 BINARY=gatus
-VERSION=$(shell git describe --tags --exact-match || echo "dev")
+VERSION=$(shell git describe --tags --exact-match 2> /dev/null || echo "dev")
 COMMIT_HASH=$(shell git rev-parse HEAD)
 BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
