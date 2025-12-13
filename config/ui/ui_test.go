@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/TwiN/gatus/v5/build"
+	"github.com/TwiN/gatus/v5/buildinfo"
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
@@ -185,7 +185,7 @@ func TestGetDefaultConfig(t *testing.T) {
 	if *defaultConfig.ShowBuildInfo != defaultShowBuildInfo {
 		t.Error("expected GetDefaultConfig() to return defaultShowBuildInfo, got", *defaultConfig.ShowBuildInfo)
 	}
-	var expectedBuildVersion = build.GetBuildInfo().Version
+	var expectedBuildVersion = buildinfo.Get().Version
 	if defaultConfig.BuildVersion != expectedBuildVersion {
 		t.Errorf("expected BuildVersion to be %s, got %s", expectedBuildVersion, defaultConfig.BuildVersion)
 	}

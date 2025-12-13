@@ -5,9 +5,9 @@ BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 .PHONY: install
 install:
-	go build -v -ldflags "-X github.com/TwiN/gatus/v5/build.version=$(VERSION) \
-		-X github.com/TwiN/gatus/v5/build.commitHash=$(COMMIT_HASH) \
-		-X github.com/TwiN/gatus/v5/build.time=$(BUILD_TIME)" -o $(BINARY) .
+	go build -v -ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=$(VERSION) \
+		-X github.com/TwiN/gatus/v5/buildinfo.commitHash=$(COMMIT_HASH) \
+		-X github.com/TwiN/gatus/v5/buildinfo.time=$(BUILD_TIME)" -o $(BINARY) .
 
 .PHONY: run
 run:

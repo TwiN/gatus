@@ -5,7 +5,7 @@ import (
 	"errors"
 	"html/template"
 
-	"github.com/TwiN/gatus/v5/build"
+	"github.com/TwiN/gatus/v5/buildinfo"
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
@@ -92,7 +92,7 @@ func GetDefaultConfig() *Config {
 		DefaultFilterBy:        defaultFilterBy,
 		ShowBuildInfo:          &defaultShowBuildInfo,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
-		BuildVersion:           build.GetBuildInfo().Version,
+		BuildVersion:           buildinfo.Get().Version,
 	}
 }
 
@@ -137,7 +137,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if cfg.ShowBuildInfo == nil {
 		cfg.ShowBuildInfo = &defaultShowBuildInfo
-		cfg.BuildVersion = build.GetBuildInfo().Version
+		cfg.BuildVersion = buildinfo.Get().Version
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {

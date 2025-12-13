@@ -9,9 +9,9 @@ WORKDIR /app
 COPY . ./
 RUN go mod tidy -diff
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
--ldflags "-X github.com/TwiN/gatus/v5/build.version=${VERSION} \
--X github.com/TwiN/gatus/v5/build.commitHash=${COMMIT_HASH} \
--X github.com/TwiN/gatus/v5/build.time=$(date -u +'%Y-%m-%dT%H:%M:%SZ' || echo 'unknown')" \
+-ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=${VERSION} \
+-X github.com/TwiN/gatus/v5/buildinfo.commitHash=${COMMIT_HASH} \
+-X github.com/TwiN/gatus/v5/buildinfo.time=$(date -u +'%Y-%m-%dT%H:%M:%SZ' || echo 'unknown')" \
 -o gatus .
 
 # Run Tests inside docker image if you don't have a configured go environment

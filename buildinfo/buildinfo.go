@@ -1,4 +1,4 @@
-package build
+package buildinfo
 
 var version = "dev"
 var commitHash = "unknown"
@@ -10,7 +10,7 @@ type BuildInfo struct {
 	Time       string
 }
 
-func GetBuildInfo() BuildInfo {
+func Get() BuildInfo {
 	return BuildInfo{
 		Version:    version,
 		CommitHash: commitHash,
