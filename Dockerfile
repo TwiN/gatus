@@ -1,10 +1,18 @@
 # Build the go application into a binary
 FROM golang:alpine AS builder
+
+ARG VERSION=dev
+ARG COMMIT_HASH=unknown
+
 RUN apk --update add ca-certificates
 WORKDIR /app
 COPY . ./
 RUN go mod tidy -diff
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+-ldflags "-X github.com/TwiN/gatus/v5/build.version=${VERSION} \
+-X github.com/TwiN/gatus/v5/build.commitHash=${COMMIT_HASH} \
+-X github.com/TwiN/gatus/v5/build.time=$(date -u +'%Y-%m-%dT%H:%M:%SZ' || echo 'unknown')" \
+-o gatus .
 
 # Run Tests inside docker image if you don't have a configured go environment
 #RUN apk update && apk add --virtual build-dependencies build-base gcc

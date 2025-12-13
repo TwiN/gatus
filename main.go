@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/TwiN/gatus/v5/build"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/metrics"
@@ -26,6 +27,8 @@ func main() {
 		logr.Infof("Delaying start by %d seconds", delayInSeconds)
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)
 	}
+	buildInfo := build.GetBuildInfo()
+	logr.Infof("Starting Gatus (version: %s, commit: %s, built at: %s)", buildInfo.Version, buildInfo.CommitHash, buildInfo.Time)
 	configureLogging()
 	cfg, err := loadConfiguration()
 	if err != nil {

@@ -1,8 +1,13 @@
 BINARY=gatus
+VERSION=$(shell git describe --tags --exact-match || echo "dev")
+COMMIT_HASH=$(shell git rev-parse HEAD)
+BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 .PHONY: install
 install:
-	go build -v -o $(BINARY) .
+	go build -v -ldflags "-X github.com/TwiN/gatus/v5/build.version=$(VERSION) \
+		-X github.com/TwiN/gatus/v5/build.commitHash=$(COMMIT_HASH) \
+		-X github.com/TwiN/gatus/v5/build.time=$(BUILD_TIME)" -o $(BINARY) .
 
 .PHONY: run
 run:
@@ -26,7 +31,9 @@ test:
 ##########
 
 docker-build:
-	docker build -t twinproduction/gatus:latest .
+	docker build --build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT_HASH=$(COMMIT_HASH) \
+		-t twinproduction/gatus:latest .
 
 docker-run:
 	docker run -p 8080:8080 --name gatus twinproduction/gatus:latest

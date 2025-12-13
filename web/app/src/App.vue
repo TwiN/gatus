@@ -101,6 +101,9 @@
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
               Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
+              <a v-if="buildVersion" :href="releaseLink" target="_blank">
+                &nbsp;{{ buildVersion }}
+              </a>
             </div>
             <Social />
           </div>
@@ -165,6 +168,9 @@ import Loading from './components/Loading.vue'
 
 const route = useRoute()
 
+// Build info
+const buildVersion = ref(window.config && window.config.buildVersion != '{{ .UI.BuildVersion }}' ? window.config.buildVersion : "")
+
 // State
 const retrievedConfig = ref(false)
 const config = ref({ oidc: false, authenticated: true })
@@ -176,6 +182,10 @@ const tooltipIsPersistent = ref(false)
 let configInterval = null
 
 // Computed properties
+const releaseLink = computed(() => {
+  return 'https://github.com/TwiN/gatus/releases/' + (buildVersion.value ? `tag/${buildVersion.value}` : '')
+})
+
 const logo = computed(() => {
   return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
 })

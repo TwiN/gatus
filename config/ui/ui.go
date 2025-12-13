@@ -5,49 +5,54 @@ import (
 	"errors"
 	"html/template"
 
+	"github.com/TwiN/gatus/v5/build"
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
 const (
-	defaultTitle                = "Health Dashboard | Gatus"
-	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader               = "Gatus"
-	defaultDashboardHeading     = "Health Dashboard"
-	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
-	defaultLogo                 = ""
-	defaultLink                 = ""
-	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
-	defaultFilterBy             = "none"
+	defaultTitle               = "Health Dashboard | Gatus"
+	defaultDescription         = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader              = "Gatus"
+	defaultDashboardHeading    = "Health Dashboard"
+	defaultDashboardSubheading = "Monitor the health of your endpoints in real-time"
+	defaultLogo                = ""
+	defaultLink                = ""
+	defaultCustomCSS           = ""
+	defaultSortBy              = "name"
+	defaultFilterBy            = "none"
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode      = true
+	defaultShowBuildInfo = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrEmptyBuildVersion      = errors.New("build version cannot be empty: This should never happen")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title               string   `yaml:"title,omitempty"`                // Title of the page
+	Description         string   `yaml:"description,omitempty"`          // Meta description of the page
+	DashboardHeading    string   `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
+	DashboardSubheading string   `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string   `yaml:"header,omitempty"`               // Header is the text at the top of the page
+	Logo                string   `yaml:"logo,omitempty"`                 // Logo to display on the page
+	Link                string   `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
+	Buttons             []Button `yaml:"buttons,omitempty"`              // Buttons to display below the header
+	CustomCSS           string   `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
+	DarkMode            *bool    `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string   `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string   `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	ShowBuildInfo       *bool    `yaml:"show-build-info,omitempty"`      // ShowBuildInfo is a flag to show build information in the footer
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	MaximumNumberOfResults int    `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	BuildVersion           string `yaml:"-"` // BuildVersion of Gatus, it's not configurable because it is set at build time
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -85,7 +90,9 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		ShowBuildInfo:          &defaultShowBuildInfo,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		BuildVersion:           build.GetBuildInfo().Version,
 	}
 }
 
@@ -127,6 +134,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if cfg.ShowBuildInfo == nil {
+		cfg.ShowBuildInfo = &defaultShowBuildInfo
+		cfg.BuildVersion = build.GetBuildInfo().Version
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
