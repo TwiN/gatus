@@ -21,6 +21,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/ui"
@@ -87,6 +88,9 @@ type Config struct {
 
 	// Alerting is the configuration for alerting providers
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
+
+	// States is the list of custom states
+	States []*state.State `yaml:"states,omitempty"`
 
 	// Endpoints is the list of endpoints to monitor
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints,omitempty"`
@@ -304,6 +308,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
+		if er := ValidateStatesConfig(config); er != nil {
+			return nil, er
+		}
 		if err := ValidateEndpointsConfig(config); err != nil {
 			return nil, err
 		}
@@ -467,6 +474,47 @@ func ValidateWebConfig(config *Config) error {
 	} else {
 		return config.Web.ValidateAndSetDefaults()
 	}
+	return nil
+}
+
+func ValidateStatesConfig(config *Config) error { // TODO#227 Add tests
+	if config.States == nil {
+		logr.Info("[config.ValidateStatesConfig] No custom states configured, using defaults")
+		config.States = state.GetDefaultConfig()
+		logr.Debugf("[config.ValidateStatesConfig] Inserted %d default state(s)", len(config.States))
+		return nil
+	}
+
+	// Insert default states if they are missing
+	defaultStates := state.GetDefaultConfig()
+	for _, defaultState := range defaultStates {
+		found := false
+		for _, customState := range config.States {
+			if customState.Name == defaultState.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			logr.Debugf("[config.ValidateStatesConfig] Inserting default state into config: %s", defaultState.Name)
+			config.States = append(config.States, defaultState)
+		}
+	}
+
+	// Validate custom states TODO#227 Validate that priorities don't
+	stateNames := make(map[string]bool)
+	for _, state := range config.States {
+		// Check for duplicate state names
+		if stateNames[state.Name] {
+			return fmt.Errorf("duplicate state name: %s", state.Name)
+		}
+		stateNames[state.Name] = true
+		// Validate the state configuration
+		if err := state.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid state '%s': %w", state.Name, err)
+		}
+	}
+	logr.Infof("[config.ValidateStatesConfig] Validated %d state(s)", len(config.States))
 	return nil
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gatus/v5/config/state"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -336,6 +337,11 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		if !success {
 			result.Success = false
 		}
+	}
+	if result.Success { // TODO#227 Make dynymic and also check conditions e.g. method somewhere at the end that evaluates the state (conditions and condition results + is maintenance needs to be available)
+		result.State = state.DefaultHealthyStateName
+	} else {
+		result.State = state.DefaultUnhealthyStateName
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results

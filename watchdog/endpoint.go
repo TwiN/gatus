@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
@@ -47,6 +48,10 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	}
 	logr.Debugf("[watchdog.executeEndpoint] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
+	inMaintenanceWindow := InMaintenanceWindow(ep, cfg)
+	if inMaintenanceWindow && !result.Success {
+		result.State = state.DefaultMaintenanceStateName
+	}
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
@@ -56,19 +61,25 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	} else {
 		logr.Infof("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
-	inEndpointMaintenanceWindow := false
-	for _, maintenanceWindow := range ep.MaintenanceWindows {
-		if maintenanceWindow.IsUnderMaintenance() {
-			logr.Debug("[watchdog.executeEndpoint] Under endpoint maintenance window")
-			inEndpointMaintenanceWindow = true
-		}
-	}
-	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
+	if !inMaintenanceWindow {
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
 		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")
 	}
 	logr.Debugf("[watchdog.executeEndpoint] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
+}
+
+func InMaintenanceWindow(ep *endpoint.Endpoint, cfg *config.Config) bool {
+	if cfg.Maintenance.IsUnderMaintenance() {
+		return true
+	}
+	for _, maintenanceWindow := range ep.MaintenanceWindows {
+		if maintenanceWindow.IsUnderMaintenance() {
+			logr.Debug("[watchdog.executeEndpoint] Under endpoint maintenance window") // TODO#227 Handle changed log order? Is now before MonitoredGroup
+			return true
+		}
+	}
+	return false
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage

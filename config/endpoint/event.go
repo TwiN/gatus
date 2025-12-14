@@ -28,7 +28,7 @@ var (
 )
 
 // NewEventFromResult creates an Event from a Result
-func NewEventFromResult(result *Result) *Event {
+func NewEventFromResult(result *Result) *Event { // TODO#227 Handle states
 	event := &Event{Timestamp: result.Timestamp}
 	if result.Success {
 		event.Type = EventHealthy
