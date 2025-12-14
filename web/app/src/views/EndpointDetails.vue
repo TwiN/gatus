@@ -239,7 +239,7 @@ const latestResult = computed(() => {
 
 const currentHealthStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
-  return latestResult.value.success ? 'healthy' : 'unhealthy'
+  return latestResult.value.state || (latestResult.value.success ? 'healthy' : 'unhealthy') // TODO#227 Fallback to hardcoded in case api new api field is missing. Might not be needed.
 })
 
 const hostname = computed(() => {

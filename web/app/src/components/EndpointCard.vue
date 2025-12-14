@@ -102,7 +102,7 @@ const latestResult = computed(() => {
 
 const currentStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
-  return latestResult.value.success ? 'healthy' : 'unhealthy'
+  return latestResult.value.state ?? (latestResult.value.success ? 'healthy' : 'unhealthy')
 })
 
 const hostname = computed(() => {

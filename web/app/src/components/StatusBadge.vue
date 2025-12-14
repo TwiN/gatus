@@ -25,22 +25,15 @@ const variant = computed(() => {
       return 'destructive'
     case 'degraded':
       return 'warning'
+    case 'maintenance':
+      return 'maintenance'
     default:
       return 'secondary'
   }
 })
 
 const label = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'Healthy'
-    case 'unhealthy':
-      return 'Unhealthy'
-    case 'degraded':
-      return 'Degraded'
-    default:
-      return 'Unknown'
-  }
+  return props.status.charAt(0).toUpperCase() + props.status.slice(1).replace(/_/g, ' ')
 })
 
 const dotClass = computed(() => {
@@ -51,6 +44,8 @@ const dotClass = computed(() => {
       return 'bg-red-400'
     case 'degraded':
       return 'bg-yellow-400'
+    case 'maintenance':
+      return 'bg-blue-400'
     default:
       return 'bg-gray-400'
   }
