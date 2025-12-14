@@ -43,7 +43,9 @@
                 result ? (
                   result.success 
                     ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                    : result.state === 'maintenance'
+                      ? (selectedResultIndex === index ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-700')
+                      : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result && handleMouseEnter(result, $event)"
