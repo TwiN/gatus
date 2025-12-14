@@ -5,21 +5,22 @@ import (
 	"errors"
 	"html/template"
 
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
 const (
-	defaultTitle                = "Health Dashboard | Gatus"
-	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader               = "Gatus"
-	defaultDashboardHeading     = "Health Dashboard"
-	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
-	defaultLogo                 = ""
-	defaultLink                 = ""
-	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
-	defaultFilterBy             = "none"
+	defaultTitle               = "Health Dashboard | Gatus"
+	defaultDescription         = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader              = "Gatus"
+	defaultDashboardHeading    = "Health Dashboard"
+	defaultDashboardSubheading = "Monitor the health of your endpoints in real-time"
+	defaultLogo                = ""
+	defaultLink                = ""
+	defaultCustomCSS           = ""
+	defaultSortBy              = "name"
+	defaultFilterBy            = "none"
 )
 
 var (
@@ -32,18 +33,19 @@ var (
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title               string            `yaml:"title,omitempty"`                // Title of the page
+	Description         string            `yaml:"description,omitempty"`          // Meta description of the page
+	DashboardHeading    string            `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
+	DashboardSubheading string            `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string            `yaml:"header,omitempty"`               // Header is the text at the top of the page
+	Logo                string            `yaml:"logo,omitempty"`                 // Logo to display on the page
+	Link                string            `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
+	Buttons             []Button          `yaml:"buttons,omitempty"`              // Buttons to display below the header
+	CustomCSS           string            `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
+	DarkMode            *bool             `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string            `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string            `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	StateColors         map[string]string `yaml:"state-colors,omitempty"`         // StateColors is a map of state to color hex code // TODO#227 Add tests
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -71,6 +73,14 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
+func GetDefaultStateColors() map[string]string {
+	return map[string]string{
+		state.DefaultHealthyStateName:     "#22C55E", // Green
+		state.DefaultUnhealthyStateName:   "#EF4444", // Red
+		state.DefaultMaintenanceStateName: "#3B82F6", // Blue
+	}
+}
+
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
@@ -85,6 +95,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		StateColors:            GetDefaultStateColors(),
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
@@ -127,6 +138,17 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if len(cfg.StateColors) == 0 {
+		cfg.StateColors = GetDefaultStateColors()
+	} else {
+		// TODO#227 Validate correct format of color hex codes
+		defaultColors := GetDefaultStateColors()
+		for stateName, defaultColor := range defaultColors {
+			if _, exists := cfg.StateColors[stateName]; !exists {
+				cfg.StateColors[stateName] = defaultColor
+			}
+		}
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {

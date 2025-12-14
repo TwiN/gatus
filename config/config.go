@@ -89,7 +89,7 @@ type Config struct {
 	// Alerting is the configuration for alerting providers
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
 
-	// States is the list of custom states
+	// States is the list of configured states
 	States []*state.State `yaml:"states,omitempty"`
 
 	// Endpoints is the list of endpoints to monitor
@@ -457,6 +457,7 @@ func ValidateMaintenanceConfig(config *Config) error {
 	return nil
 }
 
+// Must be called after ValidateStatesConfig to ensure all states are available for validation
 func ValidateUIConfig(config *Config) error {
 	if config.UI == nil {
 		config.UI = ui.GetDefaultConfig()
@@ -465,6 +466,21 @@ func ValidateUIConfig(config *Config) error {
 			return err
 		}
 	}
+
+	// Validate all states configured have a corresponding UI color configured TODO#227 Add tests
+	stateColorMap := config.UI.StateColors
+	colorsMissing := []string{}
+	for _, state := range config.States {
+		if _, exists := stateColorMap[state.Name]; !exists {
+			colorsMissing = append(colorsMissing, state.Name)
+		}
+	}
+	if len(colorsMissing) > 0 {
+		return fmt.Errorf("no colors configured for states: %s", strings.Join(colorsMissing, ", "))
+	} else {
+		logr.Debugf("[config.ValidateUIConfig] Configured colors for all %d state(s)", len(config.States))
+	}
+
 	return nil
 }
 
