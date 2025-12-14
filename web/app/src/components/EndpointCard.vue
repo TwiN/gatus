@@ -33,7 +33,7 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div :class="['flex gap-0.5', lastHoverIndex ? 'cursor-pointer' : '']"
+          <div :class="['flex gap-0.5', lastHoverIndex && 'cursor-pointer']"
                @mouseleave="clearTooltip()">
             <div
               v-for="(result, index) in displayResults"
@@ -42,8 +42,8 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? (
                   result.success 
-                    ? (highlightedIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (highlightedIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                    ? (isHighlighted(index) ? 'bg-green-700' : 'bg-green-500')
+                    : (isHighlighted(index) ? 'bg-red-700' : 'bg-red-500')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result ? handleMouseEnter(result, $event, index) : clearTooltip()"
@@ -91,8 +91,6 @@ const emit = defineEmits(['showTooltip'])
 const selectedResultIndex = ref(null)
 
 const lastHoverIndex = ref(null)
-
-const highlightedIndex = computed(() => selectedResultIndex.value ?? lastHoverIndex.value)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -165,6 +163,10 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
+
+const isHighlighted = (index) => {
+  return selectedResultIndex.value === index || lastHoverIndex.value === index
+}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
