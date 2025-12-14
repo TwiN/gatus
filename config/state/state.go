@@ -14,9 +14,6 @@ const (
 )
 
 var (
-	defaultHealthy   = true
-	defaultUnhealthy = false
-
 	ErrInvalidName     = errors.New("invalid name: must be non-empty")
 	ErrInvalidPriority = errors.New("invalid priority: must be non-negative")
 )
@@ -24,7 +21,6 @@ var (
 type State struct { // TODO#227 Add label or description fields? Derive label in frontend from name and only set desciption?
 	Name     string `yaml:"name"`
 	Priority int    `yaml:"priority"`
-	Success  *bool  `yaml:"success,omitempty"`
 }
 
 func GetDefaultConfig() []*State {
@@ -32,17 +28,14 @@ func GetDefaultConfig() []*State {
 		{
 			Name:     DefaultHealthyStateName,
 			Priority: 0,
-			Success:  &defaultHealthy,
 		},
 		{
 			Name:     DefaultUnhealthyStateName,
 			Priority: math.MaxInt - 1,
-			Success:  &defaultUnhealthy,
 		},
 		{
 			Name:     DefaultMaintenanceStateName,
 			Priority: math.MaxInt,
-			Success:  &defaultUnhealthy, // TODO#227 Maybe make maintenance success configurable?
 		},
 	}
 }
@@ -53,9 +46,6 @@ func (cfg *State) ValidateAndSetDefaults() error {
 	}
 	if cfg.Priority < 0 {
 		return ErrInvalidPriority
-	}
-	if cfg.Success == nil {
-		cfg.Success = &defaultUnhealthy
 	}
 	return nil
 }
