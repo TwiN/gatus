@@ -1,8 +1,8 @@
 <template>
-  <Badge :variant="variant" class="flex items-center gap-1">
-    <span :class="['w-2 h-2 rounded-full', dotClass]"></span>
-    {{ label }}
-  </Badge>
+    <Badge :style="`background-color: ${primaryColor};`" class="flex items-center gap-1 text-white">
+      <span :style="`background-color: ${primaryColor}; filter: brightness(115%)`" class="w-2 h-2 rounded-full"></span>
+      {{ label }}
+    </Badge>
 </template>
 
 <script setup>
@@ -13,41 +13,18 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['healthy', 'unhealthy', 'degraded', 'unknown'].includes(value)
-  }
-})
-
-const variant = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'success'
-    case 'unhealthy':
-      return 'destructive'
-    case 'degraded':
-      return 'warning'
-    case 'maintenance':
-      return 'maintenance'
-    default:
-      return 'secondary'
-  }
+  },
+  color: {
+    type: String,
+    default: null,
+  },
 })
 
 const label = computed(() => {
   return props.status.charAt(0).toUpperCase() + props.status.slice(1).replace(/_/g, ' ')
 })
 
-const dotClass = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'bg-green-400'
-    case 'unhealthy':
-      return 'bg-red-400'
-    case 'degraded':
-      return 'bg-yellow-400'
-    case 'maintenance':
-      return 'bg-blue-400'
-    default:
-      return 'bg-gray-400'
-  }
+const primaryColor = computed(() => {
+  return props.color ?? '#374151'
 })
 </script>

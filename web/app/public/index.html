@@ -16,9 +16,11 @@
             buttons: [],
             maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}",
             defaultSortBy: "{{ .UI.DefaultSortBy }}",
-            defaultFilterBy: "{{ .UI.DefaultFilterBy }}"
+            defaultFilterBy: "{{ .UI.DefaultFilterBy }}",
+            stateColors: {},
           };
           {{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+          {{- range $state, $color := .UI.StateColors }}window.config.stateColors["{{ $state }}"] = "{{ $color }}";{{end}}
         } else {
           console.warn('Running in development mode; UI configuration is not injected.');
           document.title= 'Gatus (Development)';

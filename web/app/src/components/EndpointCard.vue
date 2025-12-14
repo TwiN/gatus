@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="flex-shrink-0 ml-2">
-          <StatusBadge :status="currentStatus" />
+          <StatusBadge :status="currentStatus" :color="getStateColor(latestResult)" />
         </div>
       </div>
     </CardHeader>
@@ -39,15 +39,9 @@
               :key="index"
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
-                result ? 'cursor-pointer' : '',
-                result ? (
-                  result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : result.state === 'maintenance'
-                      ? (selectedResultIndex === index ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-700')
-                      : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
-                ) : 'bg-gray-200 dark:bg-gray-700'
+                result ? 'cursor-pointer' : ''
               ]"
+              :style="`background-color: ${getStateColor(result)};`"
               @mouseenter="result && handleMouseEnter(result, $event)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
@@ -164,6 +158,11 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
+
+const getStateColor = (result) => {
+  if (!result) return '#374151' // TODO#227 Make no data configurable or just leave it hardcoded in frontend?
+  return window.config?.stateColors[result.state] ?? '#374151'
+}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)

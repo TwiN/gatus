@@ -17,7 +17,7 @@
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
             </div>
-            <StatusBadge :status="currentHealthStatus" />
+            <StatusBadge :status="currentHealthStatus" :color="getStateColor(latestResult)" />
           </div>
 
           <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -299,6 +299,10 @@ const lastCheckTime = computed(() => {
   return generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
 })
 
+const getStateColor = (result) => { // TODO#227 Prevent duplication with EndpointCard.vue
+  if (!result) return '#374151' // TODO#227 Make no data configurable or just leave it hardcoded in frontend?
+  return window.config?.stateColors[result.state] ?? '#374151'
+}
 
 const fetchData = async () => {
   isRefreshing.value = true
