@@ -100,10 +100,7 @@
         <div class="container mx-auto px-4 py-6 max-w-7xl">
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
-              Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
-              <a v-if="buildVersion" :href="releaseLink" target="_blank">
-                &nbsp;{{ buildVersion }}
-              </a>
+              Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus </a> {{ buildVersion ? ` ${buildVersion} ` : '' }}
             </div>
             <Social />
           </div>
@@ -182,10 +179,6 @@ const tooltipIsPersistent = ref(false)
 let configInterval = null
 
 // Computed properties
-const releaseLink = computed(() => {
-  return 'https://github.com/TwiN/gatus/releases/' + (buildVersion.value ? `tag/${buildVersion.value}` : '')
-})
-
 const logo = computed(() => {
   return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
 })
