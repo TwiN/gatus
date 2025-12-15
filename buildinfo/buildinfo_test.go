@@ -13,8 +13,8 @@ func TestBuildInfo_GetDefaults(t *testing.T) {
 	if info.Revision != defaultRevision {
 		t.Errorf("Expected default Revision '%s', got '%s'", defaultRevision, info.Revision)
 	}
-	if info.Date != defaultDate {
-		t.Errorf("Expected default Date '%s', got '%s'", defaultDate, info.Date)
+	if info.RevisionDate != defaultRevisionDate {
+		t.Errorf("Expected default RevisionDate '%s', got '%s'", defaultRevisionDate, info.RevisionDate)
 	}
 	if info.GoVersion != runtime.Version() {
 		t.Errorf("Expected GoVersion '%s', got '%s'", runtime.Version(), info.GoVersion)
@@ -36,8 +36,8 @@ func TestBuildInfo_SetLdflags(t *testing.T) {
 		if info.Revision != defaultRevision {
 			t.Errorf("Expected Revision '%s', got '%s'", defaultRevision, info.Revision)
 		}
-		if info.Date != defaultDate {
-			t.Errorf("Expected Date '%s', got '%s'", defaultDate, info.Date)
+		if info.RevisionDate != defaultRevisionDate {
+			t.Errorf("Expected RevisionDate '%s', got '%s'", defaultRevisionDate, info.RevisionDate)
 		}
 		if info.GoVersion != runtime.Version() {
 			t.Errorf("Expected GoVersion '%s', got '%s'", runtime.Version(), info.GoVersion)
@@ -50,15 +50,15 @@ func TestBuildInfo_SetLdflags(t *testing.T) {
 		// Simulate ldflags being set
 		originalVersion := version
 		originalRevision := revision
-		originalDate := date
+		originalRevisionDate := revisionDate
 		defer func() {
 			version = originalVersion
 			revision = originalRevision
-			date = originalDate
+			revisionDate = originalRevisionDate
 		}()
 		version = "test-version"
 		revision = "test-revision"
-		date = "test-date"
+		revisionDate = "test-date"
 
 		info := GetDefault()
 		SetLdflags(&info)
@@ -69,8 +69,8 @@ func TestBuildInfo_SetLdflags(t *testing.T) {
 		if info.Revision != "test-revision" {
 			t.Errorf("Expected Revision 'test-revision', got '%s'", info.Revision)
 		}
-		if info.Date != "test-date" {
-			t.Errorf("Expected Date ''test-date', got '%s'", info.Date)
+		if info.RevisionDate != "test-date" {
+			t.Errorf("Expected RevisionDate ''test-date', got '%s'", info.RevisionDate)
 		}
 		if info.GoVersion != runtime.Version() {
 			t.Errorf("Expected GoVersion '%s', got '%s'", runtime.Version(), info.GoVersion)
@@ -91,8 +91,8 @@ func TestBuildInfo_SetEmbedded(t *testing.T) {
 	if info.Revision != defaultRevision {
 		t.Errorf("Expected Revision '%s', got '%s'", defaultRevision, info.Revision)
 	}
-	if info.Date != defaultDate {
-		t.Errorf("Expected Date '%s', got '%s'", defaultDate, info.Date)
+	if info.RevisionDate != defaultRevisionDate {
+		t.Errorf("Expected RevisionDate '%s', got '%s'", defaultRevisionDate, info.RevisionDate)
 	}
 	if info.GoVersion != runtime.Version() {
 		t.Errorf("Expected GoVersion '%s', got '%s'", runtime.Version(), info.GoVersion)
@@ -119,8 +119,8 @@ func TestBuildInfo_SetBuildInfo(t *testing.T) {
 		if info.Revision != defaultRevision {
 			t.Errorf("Expected Revision '%s', got '%s'", defaultRevision, info.Revision)
 		}
-		if info.Date != defaultDate {
-			t.Errorf("Expected Date '%s', got '%s'", defaultDate, info.Date)
+		if info.RevisionDate != defaultRevisionDate {
+			t.Errorf("Expected RevisionDate '%s', got '%s'", defaultRevisionDate, info.RevisionDate)
 		}
 		if info.GoVersion != runtime.Version() {
 			t.Errorf("Expected GoVersion '%s', got '%s'", runtime.Version(), info.GoVersion)
@@ -142,15 +142,15 @@ func TestBuildInfo_SetBuildInfo(t *testing.T) {
 		}
 
 		// Change the last ldflag
-		originalDate := date
+		originalRevisionDate := revisionDate
 		defer func() {
-			date = originalDate
+			revisionDate = originalRevisionDate
 		}()
-		date = "test-date"
+		revisionDate = "test-date"
 
 		info = SetBuildInfo(defaultInfo)
-		if info.Date != "test-date" {
-			t.Errorf("Expected Date 'test-date', got '%s'", info.Date)
+		if info.RevisionDate != "test-date" {
+			t.Errorf("Expected RevisionDate 'test-date', got '%s'", info.RevisionDate)
 		}
 	})
 	t.Run("TestDirtyFlag", func(t *testing.T) {

@@ -97,11 +97,11 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 		Namespace: namespace,
 		Name:      "build_info",
 		Help:      "Build information about this instance",
-	}, []string{"version", "revision", "build_date", "go_version"})
+	}, []string{"version", "revision", "revision_date", "go_version"})
 	reg.MustRegister(staticBuildInfo)
 
 	info := buildinfo.Get()
-	staticBuildInfo.WithLabelValues(info.Version, info.Revision, info.Date, info.GoVersion).Set(1)
+	staticBuildInfo.WithLabelValues(info.Version, info.Revision, info.RevisionDate, info.GoVersion).Set(1)
 	resultTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_total",

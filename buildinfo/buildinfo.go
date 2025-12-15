@@ -6,25 +6,25 @@ import (
 )
 
 const (
-	defaultVersion  = "development"
-	defaultRevision = "unknown"
-	defaultDate     = "unknown"
+	defaultVersion      = "development"
+	defaultRevision     = "unknown"
+	defaultRevisionDate = "unknown"
 )
 
 var (
-	version  string
-	revision string
-	date     string
+	version      string
+	revision     string
+	revisionDate string
 
 	buildInfo = SetBuildInfo(GetDefault())
 )
 
 type BuildInfo struct {
-	Version   string
-	Revision  string
-	Date      string
-	GoVersion string
-	Dirty     bool
+	Version      string
+	Revision     string
+	RevisionDate string
+	GoVersion    string
+	Dirty        bool
 }
 
 func SetEmbedded(info *BuildInfo) {
@@ -37,7 +37,7 @@ func SetEmbedded(info *BuildInfo) {
 		case "vcs.revision":
 			info.Revision = s.Value
 		case "vcs.time":
-			info.Date = s.Value
+			info.RevisionDate = s.Value
 		case "vcs.modified":
 			info.Dirty = s.Value == "true"
 		}
@@ -51,8 +51,8 @@ func SetLdflags(info *BuildInfo) {
 	if len(revision) > 0 {
 		info.Revision = revision
 	}
-	if len(date) > 0 {
-		info.Date = date
+	if len(revisionDate) > 0 {
+		info.RevisionDate = revisionDate
 	}
 	if len(info.GoVersion) == 0 {
 		info.GoVersion = runtime.Version()
@@ -61,11 +61,11 @@ func SetLdflags(info *BuildInfo) {
 
 func GetDefault() BuildInfo {
 	return BuildInfo{
-		Version:   defaultVersion,
-		Revision:  defaultRevision,
-		Date:      defaultDate,
-		GoVersion: runtime.Version(),
-		Dirty:     false,
+		Version:      defaultVersion,
+		Revision:     defaultRevision,
+		RevisionDate: defaultRevisionDate,
+		GoVersion:    runtime.Version(),
+		Dirty:        false,
 	}
 }
 

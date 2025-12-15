@@ -74,7 +74,7 @@ func TestStaticBuildInfoMetric(t *testing.T) {
 	expected := `
 # HELP gatus_build_info Build information about this instance
 # TYPE gatus_build_info gauge
-gatus_build_info{build_date="unknown",go_version="` + goVersion + `",revision="unknown",version="development"} 1
+gatus_build_info{go_version="` + goVersion + `",revision="unknown",revision_date="unknown",version="development"} 1
 `
 	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(expected), "gatus_build_info")
 	if err != nil {
