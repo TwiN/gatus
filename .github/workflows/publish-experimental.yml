@@ -34,4 +34,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=experimental
-            COMMIT_HASH=${{ github.sha }}
+            REVISION=${{ github.sha }}
+            REVISION_DATE=${{ github.event.head_commit.timestamp }}

@@ -28,7 +28,7 @@ func main() {
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)
 	}
 	buildInfo := buildinfo.Get()
-	logr.Infof("Starting Gatus (version: %s, revision: %s, build-date: %s)", buildInfo.Version, buildInfo.CommitHash, buildInfo.Date)
+	logr.Infof("Starting Gatus (version: %s, revision: %s, build-date: %s)", buildInfo.Version, buildInfo.Revision, buildInfo.Date)
 	configureLogging()
 	cfg, err := loadConfiguration()
 	if err != nil {

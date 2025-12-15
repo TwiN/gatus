@@ -1,13 +1,9 @@
 BINARY=gatus
-VERSION=$(shell git describe --tags --exact-match 2> /dev/null || echo "dev")
-COMMIT_HASH=$(shell git rev-parse HEAD)
-BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+VERSION=$(shell git describe --tags --exact-match 2> /dev/null)
 
 .PHONY: install
 install:
-	go build -v -ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=$(VERSION) \
-		-X github.com/TwiN/gatus/v5/buildinfo.commitHash=$(COMMIT_HASH) \
-		-X github.com/TwiN/gatus/v5/buildinfo.date=$(BUILD_DATE)" -o $(BINARY) .
+	go build -v -ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=$(VERSION)" -o $(BINARY) .
 
 .PHONY: run
 run:
@@ -30,9 +26,11 @@ test:
 # Docker #
 ##########
 
+DIRTY=$(shell test -n "$$(git status --porcelain)" && echo "-dirty")
 docker-build:
 	docker build --build-arg VERSION=$(VERSION) \
-		--build-arg COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg REVISION=$(shell git rev-parse HEAD)$(DIRTY) \
+		--build-arg REVISION_DATE=$(shell TZ=UTC git show -s --format=%cd --date=iso-strict-local) \
 		-t twinproduction/gatus:latest .
 
 docker-run:
