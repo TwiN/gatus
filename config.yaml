@@ -1,53 +1,109 @@
+storage:
+  type: sqlite
+  path: ./gatus.db
+
+states:
+  - name: degraded
+    priority: 1
+
+ui:
+  state-colors:
+    degraded: "#FFA500"  # Orange color for degraded state
+
 endpoints:
-  - name: front-end
+  - name: healthy-test
     group: core
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 150"
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
-
-  - name: monitoring
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-
-  - name: nas
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-
-  - name: example-dns-query
-    url: "8.8.8.8" # Address of the DNS server to use
-    interval: 5m
-    dns:
-      query-name: "example.com"
-      query-type: "A"
-    conditions:
-      - "[BODY] == pat(*.*.*.*)"  # Matches any IPv4 address
-      - "[DNS_RCODE] == NOERROR"
-
-  - name: icmp-ping
-    url: "icmp://example.org"
-    interval: 1m
+    url: "icmp://9.9.9.9"
+    interval: 10s
     conditions:
       - "[CONNECTED] == true"
 
-  - name: check-domain-expiration
-    url: "https://example.org/"
-    interval: 1h
+  - name: maintenance-test
+    group: core
+    url: "http://localhost:8088/"
+    interval: 10s
     conditions:
-      - "[DOMAIN_EXPIRATION] > 720h"
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 150"
+    maintenance-windows:
+      - start: "12:00"
+        duration: "23h59m"
+
+  - name: degraded-test
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "degraded::[RESPONSE_TIME] < 22"
+
+  - name: unhealthy-test (error)
+    group: core
+    url: "http://doesnotexist.local/"
+    interval: 10s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: unhealthy-test (condition)
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[RESPONSE_TIME] < 1"
+
+
+suites:
+  - name: item-crud-workflow
+    group: api-tests
+    interval: 10s
+    context:
+      price: "19.99"  # Initial static value in context
+    endpoints:
+      # Step 1: Create an item and store the item ID
+      - name: create-item
+        url: https://api.example.com/items
+        method: POST
+        body: '{"name": "Test Item", "price": "[CONTEXT].price"}'
+        conditions:
+          - "[STATUS] == 201"
+          - "len([BODY].id) > 0"
+          - "[BODY].price == [CONTEXT].price"
+        store:
+          itemId: "[BODY].id"
+        alerts:
+          - type: slack
+            description: "Failed to create item"
+
+      # Step 2: Update the item using the stored item ID
+      - name: update-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: PUT
+        body: '{"price": "24.99"}'
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: slack
+            description: "Failed to update item"
+
+      # Step 3: Fetch the item and validate the price
+      - name: get-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: GET
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].price == 24.99"
+        alerts:
+          - type: slack
+            description: "Item price did not update correctly"
+
+      # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
+      - name: delete-item
+        url: https://api.example.com/items/[CONTEXT].itemId
+        method: DELETE
+        always-run: true
+        conditions:
+          - "[STATUS] == 204"
+        alerts:
+          - type: slack
+            description: "Failed to delete item"
