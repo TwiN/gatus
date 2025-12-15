@@ -41,6 +41,8 @@ jobs:
             type=raw,value=${{ env.RELEASE }}
             type=raw,value=stable
             type=raw,value=latest
+      - name: Get commit timestamp
+        run: echo "COMMIT_TIMESTAMP=$(TZ=UTC git show -s --format=%cd --date=iso-strict-local)" >> $GITHUB_ENV
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -52,4 +54,4 @@ jobs:
           build-args: |
             VERSION=${{ env.RELEASE }}
             REVISION=${{ github.sha }}
-            REVISION_DATE=${{ github.event.head_commit.timestamp }}
+            REVISION_DATE=${{ env.COMMIT_TIMESTAMP }}
