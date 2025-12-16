@@ -10,7 +10,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { combineClasses } from '@/utils/misc'
 
 defineProps({
