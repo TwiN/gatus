@@ -90,7 +90,7 @@ type Config struct {
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
 
 	// States is the list of configured states
-	States []*state.State `yaml:"states,omitempty"`
+	States []*state.State `yaml:"states,omitempty"` // TODO#227 Make this a map since state names should always be unique?
 
 	// Endpoints is the list of endpoints to monitor
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints,omitempty"`

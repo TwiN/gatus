@@ -76,7 +76,7 @@ func (btn *Button) Validate() error {
 func GetDefaultStateColors() map[string]string {
 	return map[string]string{
 		state.DefaultHealthyStateName:     "#22C55E", // Green
-		state.DefaultUnhealthyStateName:   "#AD0116", // Red (Default for result bar before was "#EF4444" TODO#227 Change to darker red for better visibility good?)
+		state.DefaultUnhealthyStateName:   "#CE292C", // Red (Default for result bar before was "#EF4444 saw #AD0116 on GitHub (was too dark) so I used https://colordesigner.io/gradient-generator to use some color in between TODO#227 Change to darker red for better visibility good?)
 		state.DefaultMaintenanceStateName: "#3B82F6", // Blue
 	}
 }
