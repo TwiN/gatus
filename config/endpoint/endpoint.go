@@ -68,7 +68,7 @@ var (
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 
 	// ErrInvalidConditionFormat is the error with which Gatus will panic if a condition has an invalid format
-	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '<VALUE> <COMPARATOR> <VALUE>'")
+	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '[STATE::]<VALUE> <COMPARATOR> <VALUE>'")
 
 	// ErrInvalidEndpointIntervalForDomainExpirationPlaceholder is the error with which Gatus will panic if an endpoint
 	// has both an interval smaller than 5 minutes and a condition with DomainExpirationPlaceholder.
@@ -338,10 +338,18 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 			result.Success = false
 		}
 	}
-	if result.Success { // TODO#227 Make dynymic and also check conditions e.g. method somewhere at the end that evaluates the state (conditions and condition results + is maintenance needs to be available)
+	if result.Success {
 		result.State = state.DefaultHealthyStateName
-	} else {
-		result.State = state.DefaultUnhealthyStateName
+	} else { // Go over condition results to see if any of them has a specific state to set
+		for _, conditionResult := range result.ConditionResults {
+			if !conditionResult.Success && len(conditionResult.LinkedState) > 0 {
+				result.State = conditionResult.LinkedState // TODO#227 Only set if no other state with h
+				break
+			}
+		}
+		if len(result.State) == 0 {
+			result.State = state.DefaultUnhealthyStateName
+		}
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results

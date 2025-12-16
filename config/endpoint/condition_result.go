@@ -7,4 +7,7 @@ type ConditionResult struct {
 
 	// Success whether the condition was met (successful) or not (failed)
 	Success bool `json:"success"`
+
+	// The state the condition is linked to
+	LinkedState string `json:"-"`
 }
