@@ -52,6 +52,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	if inMaintenanceWindow && !result.Success {
 		result.State = state.DefaultMaintenanceStateName
 	}
+	// TODO#227 Evaluate result.Success based on set states' healthiness configuration once that config option is implemented
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}

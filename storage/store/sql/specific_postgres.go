@@ -56,6 +56,7 @@ func (s *Store) createPostgresSchema() error {
 			endpoint_result_id     BIGSERIAL PRIMARY KEY,
 			endpoint_id            BIGINT    NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
 			success                BOOLEAN   NOT NULL,
+			state                  TEXT      NOT NULL,
 			errors                 TEXT      NOT NULL,
 			connected              BOOLEAN   NOT NULL,
 			status                 BIGINT    NOT NULL,

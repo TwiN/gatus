@@ -56,6 +56,7 @@ func (s *Store) createSQLiteSchema() error {
 			endpoint_result_id     INTEGER PRIMARY KEY,
 			endpoint_id            INTEGER   NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
 			success                INTEGER   NOT NULL,
+			state                  TEXT      NOT NULL,
 			errors                 TEXT      NOT NULL,
 			connected              INTEGER   NOT NULL,
 			status                 INTEGER   NOT NULL,

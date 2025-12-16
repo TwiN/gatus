@@ -343,7 +343,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	} else { // Go over condition results to see if any of them has a specific state to set
 		for _, conditionResult := range result.ConditionResults {
 			if !conditionResult.Success && len(conditionResult.LinkedState) > 0 {
-				result.State = conditionResult.LinkedState // TODO#227 Only set if no other state with h
+				result.State = conditionResult.LinkedState // TODO#227 Only set if no other state with higher priority has been set
 				break
 			}
 		}

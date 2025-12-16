@@ -44,6 +44,7 @@ func TestCondition_Validate(t *testing.T) {
 		{condition: "[STATUS] = = 201", expectedErr: errors.New("invalid condition: [STATUS] = = 201")},
 		{condition: "[STATUS] ==", expectedErr: errors.New("invalid condition: [STATUS] ==")},
 		{condition: "[STATUS]", expectedErr: errors.New("invalid condition: [STATUS]")},
+		// TODO#227 Test linked state conditions
 		// FIXME: Should return an error, but doesn't because jsonpath isn't evaluated due to body being empty in Condition.Validate()
 		//{condition: "len([BODY].users == 100", expectedErr: nil},
 	}
