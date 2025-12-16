@@ -33,7 +33,7 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div :class="['flex gap-0.5', lastHoverIndex && 'cursor-pointer']"
+          <div :class="['flex gap-0.5', lastHoverIndex !== null && 'cursor-pointer']"
                @mouseleave="clearTooltip()">
             <div
               v-for="(result, index) in displayResults"

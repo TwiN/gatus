@@ -33,7 +33,7 @@
             <p class="text-xs text-muted-foreground">Success Rate: {{ successRate }}%</p>
             <p class="text-xs text-muted-foreground" v-if="averageDuration">{{ averageDuration }}ms avg</p>
           </div>
-          <div :class="['flex gap-0.5', lastHoverIndex && 'cursor-pointer']"
+          <div :class="['flex gap-0.5', lastHoverIndex !== null && 'cursor-pointer']"
                @mouseleave="clearTooltip()">
             <div
               v-for="(result, index) in displayResults"
