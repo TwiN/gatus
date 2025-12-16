@@ -95,7 +95,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { prettifyTimestamp } from '@/utils/time'

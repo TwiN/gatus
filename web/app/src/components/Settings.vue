@@ -54,7 +54,6 @@
 
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
 
