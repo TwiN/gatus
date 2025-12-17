@@ -18,7 +18,7 @@ var (
 	ErrInvalidPriority = errors.New("invalid priority: must be non-negative")
 )
 
-type State struct { // TODO#227 Add label or description fields? Derive label in frontend from name and only set desciption?
+type State struct {
 	Name     string `yaml:"name"`
 	Priority int    `yaml:"priority"`
 }
@@ -41,7 +41,7 @@ func GetDefaultConfig() []*State {
 }
 
 func (cfg *State) ValidateAndSetDefaults() error {
-	if len(cfg.Name) == 0 { // TODO#227 more robust name validation
+	if len(cfg.Name) == 0 { // TODO#227 more robust name validation or us map in root config?
 		return ErrInvalidName
 	}
 	if cfg.Priority < 0 {

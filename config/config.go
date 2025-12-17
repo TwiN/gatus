@@ -467,7 +467,8 @@ func ValidateUIConfig(config *Config) error {
 		}
 	}
 
-	// Validate all states configured have a corresponding UI color configured TODO#227 Add tests
+	// Validate all states configured have a corresponding UI color configured
+	// TODO#227 Add tests
 	stateColorMap := config.UI.StateColors
 	colorsMissing := []string{}
 	for _, state := range config.States {
@@ -480,7 +481,6 @@ func ValidateUIConfig(config *Config) error {
 	} else {
 		logr.Debugf("[config.ValidateUIConfig] Configured colors for all %d state(s)", len(config.States))
 	}
-
 	return nil
 }
 
