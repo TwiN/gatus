@@ -58,7 +58,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'

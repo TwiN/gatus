@@ -202,7 +202,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowRightCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
