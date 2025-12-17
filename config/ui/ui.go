@@ -78,8 +78,8 @@ func (btn *Button) Validate() error {
 
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
-	buildversion := ""
-	if defaultShowBuildInfo {
+	var buildversion string
+	if defaultShowBuildInfo { // Only set version if exposing buildinfo to the frontend is enabled
 		buildversion = buildinfo.Get().Version
 	}
 	return &Config{
@@ -142,7 +142,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.ShowBuildInfo == nil {
 		cfg.ShowBuildInfo = &defaultShowBuildInfo
 	}
-	if *cfg.ShowBuildInfo { // Only send version to frontend if showing the version in the UI is enabled
+	if *cfg.ShowBuildInfo { // Only set version if exposing buildinfo to the frontend is enabled
 		cfg.BuildVersion = buildinfo.Get().Version
 	}
 	for _, btn := range cfg.Buttons {
