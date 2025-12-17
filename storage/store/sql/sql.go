@@ -602,9 +602,10 @@ func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error)
 // insertEndpointEvent inserts en event in the store
 func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *endpoint.Event) error {
 	_, err := tx.Exec(
-		"INSERT INTO endpoint_events (endpoint_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
+		"INSERT INTO endpoint_events (endpoint_id, event_type, event_state, event_timestamp) VALUES ($1, $2, $3, $4)",
 		endpointID,
 		event.Type,
+		event.State,
 		event.Timestamp.UTC(),
 	)
 	if err != nil {
@@ -766,7 +767,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 		`
 			SELECT event_type, event_timestamp
 			FROM (
-				SELECT event_type, event_timestamp, endpoint_event_id
+				SELECT event_type, event_state, event_timestamp, endpoint_event_id
 				FROM endpoint_events
 				WHERE endpoint_id = $1
 				ORDER BY endpoint_event_id DESC
@@ -783,7 +784,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	}
 	for rows.Next() {
 		event := &endpoint.Event{}
-		_ = rows.Scan(&event.Type, &event.Timestamp)
+		_ = rows.Scan(&event.Type, &event.State, &event.Timestamp)
 		events = append(events, event)
 	}
 	return
