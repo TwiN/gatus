@@ -328,6 +328,7 @@ const fetchData = async () => {
             if (i === data.events.length - 1) {
               event.fancyText += `state is ${stateName}`
             } else {
+              var nextEvent = data.events[i + 1]
               event.fancyText += `state was ${stateName} for ${generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)}`
             }
           }
