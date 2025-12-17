@@ -41,8 +41,8 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : ''
               ]"
-              :style="`background-color: ${getResultColor(result)};`"
-              @mouseenter="result && handleMouseEnter(result, $event)"
+              :style="`background-color: ${getResultColor(result)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
+              @mouseenter="result && handleMouseEnter(result, $event, index)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
             />
@@ -87,6 +87,8 @@ const emit = defineEmits(['showTooltip'])
 
 // Track selected data point
 const selectedResultIndex = ref(null)
+
+const lastHoverIndex = ref(null)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -160,15 +162,21 @@ const newestResultTime = computed(() => {
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
 
+const isHighlighted = (index) => {
+  return selectedResultIndex.value === index || lastHoverIndex.value === index
+}
+
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
 }
 
-const handleMouseEnter = (result, event) => {
+const handleMouseEnter = (result, event, index) => {
+  lastHoverIndex.value = index
   emit('showTooltip', result, event, 'hover')
 }
 
 const handleMouseLeave = (result, event) => {
+  lastHoverIndex.value = null
   emit('showTooltip', null, event, 'hover')
 }
 
