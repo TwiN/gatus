@@ -145,8 +145,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.StateColors) == 0 {
 		cfg.StateColors = GetDefaultStateColors()
 	} else {
-		for stateName := range cfg.StateColors {
-			if err := cfg.StateColors[stateName].Validate(); err != nil {
+		for _, color := range cfg.StateColors {
+			if err := color.Validate(); err != nil {
 				return err
 			}
 		}
