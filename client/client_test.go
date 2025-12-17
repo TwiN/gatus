@@ -474,7 +474,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "*.iana-servers.net.",
+			expectedBody:    "*.ns.cloudflare.com.",
 		},
 		{
 			name: "test Config with type PTR",
