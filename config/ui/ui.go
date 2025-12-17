@@ -29,6 +29,7 @@ var (
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidColorHexCode    = errors.New("invalid color hex code: must be in the format #RRGGBB")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -142,11 +143,14 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.StateColors) == 0 {
 		cfg.StateColors = GetDefaultStateColors()
 	} else {
-		// TODO#227 Validate correct format of color hex codes
-		defaultColors := GetDefaultStateColors()
-		for stateName, defaultColor := range defaultColors {
+		for stateName, defaultColor := range GetDefaultStateColors() {
 			if _, exists := cfg.StateColors[stateName]; !exists {
 				cfg.StateColors[stateName] = defaultColor
+			}
+		}
+		for stateName := range cfg.StateColors {
+			if !IsValidColorHexCode(cfg.StateColors[stateName]) {
+				return ErrInvalidColorHexCode
 			}
 		}
 	}
@@ -167,4 +171,16 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 type ViewData struct {
 	UI    *Config
 	Theme string
+}
+
+func IsValidColorHexCode(color string) bool {
+	if len(color) != 7 || color[0] != '#' {
+		return false
+	}
+	for _, char := range color[1:] {
+		if (char < '0' || char > '9') && (char < 'A' || char > 'F') && (char < 'a' || char > 'f') {
+			return false
+		}
+	}
+	return true
 }
