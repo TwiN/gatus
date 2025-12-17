@@ -9,7 +9,7 @@ type Event struct {
 	// Type is the kind of event
 	Type EventType `json:"type"`
 
-	State string `json:"state,omitempty"` // TODO#227 omitempty?
+	State string `json:"state"` // TODO#227 omitempty?
 
 	// Timestamp is the moment at which the event happened
 	Timestamp time.Time `json:"timestamp"`
@@ -31,12 +31,11 @@ var (
 
 // NewEventFromResult creates an Event from a Result
 func NewEventFromResult(result *Result) *Event { // TODO#227 Handle states
-	event := &Event{Timestamp: result.Timestamp}
+	event := &Event{Timestamp: result.Timestamp, State: result.State}
 	if result.Success {
 		event.Type = EventHealthy
 	} else {
 		event.Type = EventUnhealthy
 	}
-	event.State = result.State
 	return event
 }
