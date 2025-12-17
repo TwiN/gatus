@@ -222,6 +222,9 @@ This example would look similar to this:
 
 ![Simple example](.github/assets/example.jpg)
 
+If you want to test it locally, see [Docker](#docker).
+
+## Configuration
 By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
@@ -235,14 +238,11 @@ subdirectories are merged like so:
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
-> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
+> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) or  for an example.
 >
 > When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
-If you want to test it locally, see [Docker](#docker).
 
-
-## Configuration
 | Parameter                    | Description                                                                                                                              | Default                    |
 |:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                                 | `false`                    |
