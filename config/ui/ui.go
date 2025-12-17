@@ -32,21 +32,23 @@ var (
 	ErrInvalidColorHexCode    = errors.New("invalid color hex code: must be in the format #RRGGBB")
 )
 
+type Color string
+
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title               string            `yaml:"title,omitempty"`                // Title of the page
-	Description         string            `yaml:"description,omitempty"`          // Meta description of the page
-	DashboardHeading    string            `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
-	DashboardSubheading string            `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
-	Header              string            `yaml:"header,omitempty"`               // Header is the text at the top of the page
-	Logo                string            `yaml:"logo,omitempty"`                 // Logo to display on the page
-	Link                string            `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
-	Buttons             []Button          `yaml:"buttons,omitempty"`              // Buttons to display below the header
-	CustomCSS           string            `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
-	DarkMode            *bool             `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy       string            `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy     string            `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	StateColors         map[string]string `yaml:"state-colors,omitempty"`         // StateColors is a map of state to color hex code // TODO#227 Add tests
+	Title               string           `yaml:"title,omitempty"`                // Title of the page
+	Description         string           `yaml:"description,omitempty"`          // Meta description of the page
+	DashboardHeading    string           `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
+	DashboardSubheading string           `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string           `yaml:"header,omitempty"`               // Header is the text at the top of the page
+	Logo                string           `yaml:"logo,omitempty"`                 // Logo to display on the page
+	Link                string           `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
+	Buttons             []Button         `yaml:"buttons,omitempty"`              // Buttons to display below the header
+	CustomCSS           string           `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
+	DarkMode            *bool            `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string           `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string           `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	StateColors         map[string]Color `yaml:"state-colors,omitempty"`         // StateColors is a map of state to color hex code // TODO#227 Add tests
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -74,8 +76,8 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
-func GetDefaultStateColors() map[string]string {
-	return map[string]string{
+func GetDefaultStateColors() map[string]Color {
+	return map[string]Color{
 		state.DefaultHealthyStateName:     "#22C55E", // Green
 		state.DefaultUnhealthyStateName:   "#E43B3C", // Red (Default for result bar before was "#EF4444 saw #AD0116 on GitHub (was too dark) so I used https://colordesigner.io/gradient-generator to use some color in between TODO#227 Change to darker red for better visibility good?)
 		state.DefaultMaintenanceStateName: "#3B82F6", // Blue
@@ -144,8 +146,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.StateColors = GetDefaultStateColors()
 	} else {
 		for stateName := range cfg.StateColors {
-			if !IsValidColorHexCode(cfg.StateColors[stateName]) {
-				return ErrInvalidColorHexCode
+			if err := cfg.StateColors[stateName].Validate(); err != nil {
+				return err
 			}
 		}
 		for stateName, defaultColor := range GetDefaultStateColors() {
@@ -173,7 +175,14 @@ type ViewData struct {
 	Theme string
 }
 
-func IsValidColorHexCode(color string) bool {
+func (color Color) Validate() error {
+	if !IsValidColorHexCode(color) {
+		return ErrInvalidColorHexCode
+	}
+	return nil
+}
+
+func IsValidColorHexCode(color Color) bool {
 	if len(color) != 7 || color[0] != '#' {
 		return false
 	}
