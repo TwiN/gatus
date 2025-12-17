@@ -42,7 +42,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, co
 	if strings.Contains(condition, "::") {
 		conditionParts := strings.Split(condition, "::")
 		if len(conditionParts) != 2 { // TODO#227 Not sure if this makes sense. Checking that it is 2 or more should be enough. Then there is no character restriction in the remaining condition.
-			result.AddError(fmt.Sprintf("invalid linked state syntax: %s", condition))
+			result.AddError(fmt.Sprintf("invalid condition: %s", condition))
 			return false
 		}
 		linkedStateName = conditionParts[0]
