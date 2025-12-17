@@ -17,7 +17,7 @@
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
             </div>
-            <StatusBadge :status="currentHealthStatus" :color="getResultColor(latestResult)" />
+            <StatusBadge :status="currentHealthStatus" />
           </div>
 
           <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -215,7 +215,7 @@ import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
-import { getResultColor, getStateColor } from '@/utils/color'
+import { getStateColor } from '@/utils/color'
 
 const router = useRouter()
 const route = useRoute()
@@ -241,7 +241,7 @@ const latestResult = computed(() => {
 
 const currentHealthStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
-  return latestResult.value.state || (latestResult.value.success ? 'healthy' : 'unhealthy') // TODO#227 Fallback to hardcoded in case api new api field is missing. Might not be needed.
+  return latestResult.value.state
 })
 
 const hostname = computed(() => {

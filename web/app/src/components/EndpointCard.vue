@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="flex-shrink-0 ml-2">
-          <StatusBadge :status="currentStatus" :color="getResultColor(latestResult)" />
+          <StatusBadge :status="currentStatus" />
         </div>
       </div>
     </CardHeader>
