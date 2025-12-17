@@ -24,7 +24,7 @@ const (
 type Condition string
 
 // Validate checks if the Condition is valid
-func (c Condition) Validate() error { // TODO#227 Validate conditions with linked states have valid states
+func (c Condition) Validate() error { // TODO#227 Validate conditions with linked states have valid states or just default to error state then?
 	r := &Result{}
 	c.evaluate(r, false, nil)
 	if len(r.Errors) != 0 {

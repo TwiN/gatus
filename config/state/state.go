@@ -5,8 +5,6 @@ import (
 	"math"
 )
 
-// TODO#227 Add tests
-
 const (
 	DefaultHealthyStateName     = "healthy"
 	DefaultUnhealthyStateName   = "unhealthy"
