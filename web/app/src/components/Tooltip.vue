@@ -60,7 +60,7 @@
           {{ isSuiteResult ? 'Total Duration' : 'Response Time' }}
         </div>
         <div class="font-mono text-xs">
-          {{ isSuiteResult ? (result.duration / 1000000).toFixed(0) : (result.duration / 1000000).toFixed(0) }}ms
+          {{ Math.trunc(result.duration / 1000000) }}ms
         </div>
       </div>
       
