@@ -98,7 +98,7 @@ const latestResult = computed(() => {
 })
 
 const currentStatus = computed(() => {
-  if (!latestResult.value) return 'unknown'
+  if (!latestResult.value) return null
   return latestResult.value.state ?? (latestResult.value.success ? 'healthy' : 'unhealthy')
 })
 

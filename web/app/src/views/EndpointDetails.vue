@@ -240,7 +240,7 @@ const latestResult = computed(() => {
 })
 
 const currentHealthStatus = computed(() => {
-  if (!latestResult.value) return 'unknown'
+  if (!latestResult.value) return null
   return latestResult.value.state
 })
 

@@ -96,7 +96,7 @@ const displayResults = computed(() => {
 
 const currentStatus = computed(() => {
   if (!props.suite.results || props.suite.results.length === 0) {
-    return 'unknown'
+    return null
   }
   return props.suite.results[props.suite.results.length - 1].success ? 'healthy' : 'unhealthy'
 })
