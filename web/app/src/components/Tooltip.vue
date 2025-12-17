@@ -46,7 +46,7 @@
               {{ endpoint.success ? '✓' : '✗' }}
             </span>
             <span class="truncate">{{ endpoint.name }}</span>
-            <span class="text-muted-foreground">({{ (endpoint.duration / 1000000).toFixed(0) }}ms)</span>
+            <span class="text-muted-foreground">({{ Math.trunc(endpoint.duration / 1000000) }}ms)</span>
           </div>
           <div v-if="result.endpointResults.length > 5" class="text-xs text-muted-foreground">
             ... and {{ result.endpointResults.length - 5 }} more
