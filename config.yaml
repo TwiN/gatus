@@ -44,13 +44,21 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 
-  - name: unhealthy-test (condition)
+  - name: unhealthy-test (failing condition)
     group: core
     url: "icmp://9.9.9.9"
     interval: 10s
     conditions:
       - "[CONNECTED] == true"
       - "[RESPONSE_TIME] < 1"
+
+  - name: unhealthy-test (invalid linked condition state)
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "invalid::[RESPONSE_TIME] < 1"
 
 
 suites:
