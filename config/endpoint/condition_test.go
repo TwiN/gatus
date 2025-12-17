@@ -38,13 +38,20 @@ func TestCondition_Validate(t *testing.T) {
 		{condition: "[BODY].name == pat(john*)", expectedErr: nil},
 		{condition: "[CERTIFICATE_EXPIRATION] > 48h", expectedErr: nil},
 		{condition: "[DOMAIN_EXPIRATION] > 720h", expectedErr: nil},
+		{condition: "state::[STATUS] == 200", expectedErr: nil},
+		{condition: "state::[RESPONSE_TIME] < 500", expectedErr: nil},
 		{condition: "raw == raw", expectedErr: nil},
 		{condition: "[STATUS] ? 201", expectedErr: errors.New("invalid condition: [STATUS] ? 201")},
 		{condition: "[STATUS]==201", expectedErr: errors.New("invalid condition: [STATUS]==201")},
 		{condition: "[STATUS] = = 201", expectedErr: errors.New("invalid condition: [STATUS] = = 201")},
 		{condition: "[STATUS] ==", expectedErr: errors.New("invalid condition: [STATUS] ==")},
 		{condition: "[STATUS]", expectedErr: errors.New("invalid condition: [STATUS]")},
-		// TODO#227 Test linked state conditions
+		{condition: "state::", expectedErr: errors.New("invalid condition: state::")},
+		{condition: "state::    ", expectedErr: errors.New("invalid condition: state::    ")},
+		{condition: "::[RESPONSE_TIME] < 500", expectedErr: errors.New("invalid condition: ::[RESPONSE_TIME] < 500")},
+		{condition: "    ::[RESPONSE_TIME] < 500", expectedErr: errors.New("invalid condition:     ::[RESPONSE_TIME] < 500")},
+		{condition: "state::another::[STATUS] == 200", expectedErr: errors.New("invalid condition: state::another::[STATUS] == 200")},
+		{condition: "[STATUS] != 200::[RESPONSE_TIME] < 500", expectedErr: errors.New("invalid condition: [STATUS] != 200::[RESPONSE_TIME] < 500")},
 		// FIXME: Should return an error, but doesn't because jsonpath isn't evaluated due to body being empty in Condition.Validate()
 		//{condition: "len([BODY].users == 100", expectedErr: nil},
 	}
