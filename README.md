@@ -238,10 +238,9 @@ subdirectories are merged like so:
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
-> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) or  for an example.
+> ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 >
-> When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
-
+> See [Use environment variables in config files](#use-environment-variables-in-config-files) or [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for examples.
 
 | Parameter                    | Description                                                                                                                              | Default                    |
 |:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:---------------------------|
@@ -3295,8 +3294,9 @@ web:
   port: ${PORT}
 
 ui:
-  title: ${CUSTOM_TITLE}
+  title: $TITLE $$ Gatus Monitoring # With env var set to "Example" this will expand to "Example $ Gatus Monitoring"
 ```
+⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 ### Configuring a startup delay
 If, for any reason, you need Gatus to wait for a given amount of time before monitoring the endpoints on application start, you can use the `GATUS_DELAY_START_SECONDS` environment variable to make Gatus sleep on startup.
