@@ -765,7 +765,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	// First, get the most recent events using a subquery, then order them chronologically
 	rows, err := tx.Query(
 		`
-			SELECT event_type, event_timestamp
+			SELECT event_type, event_state, event_timestamp
 			FROM (
 				SELECT event_type, event_state, event_timestamp, endpoint_event_id
 				FROM endpoint_events
