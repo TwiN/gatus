@@ -177,7 +177,7 @@
                 <div v-for="event in events" :key="event.timestamp" class="flex items-start gap-4 pb-4 border-b last:border-0">
                   <div class="mt-1">
                     <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
-                    <ArrowRightCircle v-else-if="event.type === 'UNHEALTHY' && event.state != 'unhealty'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
+                    <ArrowRightCircle v-else-if="event.type === 'UNHEALTHY' && event.state != 'unhealthy'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
                     <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
                     <PlayCircle v-else class="h-5 w-5 text-muted-foreground" />
                   </div>
