@@ -142,7 +142,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, AlertCircle, ChevronRight } from 'lucide-vue-next'
@@ -154,7 +153,6 @@ import StepDetailsModal from '@/components/StepDetailsModal.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
-import { SERVER_URL } from '@/main'
 
 const router = useRouter()
 const route = useRoute()
@@ -191,7 +189,7 @@ const fetchData = async () => {
   }
 
   try {
-    const response = await fetch(`${SERVER_URL}/api/v1/suites/${route.params.key}/statuses`, {
+    const response = await fetch(`/api/v1/suites/${route.params.key}/statuses`, {
       credentials: 'include'
     })
 

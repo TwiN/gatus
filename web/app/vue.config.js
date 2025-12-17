@@ -6,5 +6,19 @@ module.exports = {
 	filenameHashing: false,
 	productionSourceMap: false,
 	outputDir: '../static',
-	publicPath: '/'
+	publicPath: '/',
+	devServer: {
+		port: 8081,
+		https: false,
+		client: {
+			webSocketURL:'auto://0.0.0.0/ws'
+		},
+		proxy: {
+			'^/api|^/css|^/oicd': {
+				target: "http://localhost:8080",
+				changeOrigin: true,
+				secure: false,
+			}
+		}
+	}
 }

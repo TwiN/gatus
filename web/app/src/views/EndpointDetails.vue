@@ -201,7 +201,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
@@ -213,7 +212,6 @@ import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
-import { SERVER_URL } from '@/main.js'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
 const router = useRouter()
@@ -228,7 +226,6 @@ const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(false)
 const selectedChartDuration = ref('24h')
-const serverUrl = SERVER_URL === '.' ? '..' : SERVER_URL
 const isRefreshing = ref(false)
 
 const latestResult = computed(() => {
@@ -305,7 +302,7 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
+    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     
@@ -386,15 +383,15 @@ const prettifyTimestamp = (timestamp) => {
 }
 
 const generateHealthBadgeImageURL = () => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
 }
 
 const generateUptimeBadgeImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
 }
 
 const generateResponseTimeBadgeImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
 }
 
 onMounted(() => {
