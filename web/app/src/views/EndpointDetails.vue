@@ -327,14 +327,9 @@ const fetchData = async () => {
             event.fancyText = 'Endpoint '
             let stateName = event.state ?? (event.type === 'HEALTHY' ? 'healthy' : 'unhealthy')
             if (i === data.events.length - 1) {
-              event.fancyText = `Endpoint state is ${stateName}`
+              event.fancyText += `state is ${stateName}`
             } else {
-              let nextEvent = data.events[i + 1]
-              if (nextEvent) {
-                event.fancyText += `was ` + generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp) + ` in state ${stateName}`
-              } else {
-                event.fancyText += `became ${event.state}`
-              }
+              event.fancyText += `state was ${stateName} for ${generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)}`
             }
           }
           event.fancyTimeAgo = generatePrettyTimeAgo(event.timestamp)
