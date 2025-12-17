@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="flex-shrink-0 ml-2">
-          <StatusBadge :status="currentStatus" :color="getStateColor(latestResult)" />
+          <StatusBadge :status="currentStatus" :color="getResultColor(latestResult)" />
         </div>
       </div>
     </CardHeader>
@@ -41,7 +41,7 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : ''
               ]"
-              :style="`background-color: ${getStateColor(result)};`"
+              :style="`background-color: ${getResultColor(result)};`"
               @mouseenter="result && handleMouseEnter(result, $event)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
@@ -64,6 +64,7 @@ import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
+import { getResultColor } from '@/utils/color'
 
 const router = useRouter()
 
@@ -158,11 +159,6 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
-
-const getStateColor = (result) => {
-  if (!result) return '#374151' // TODO#227 Make no data configurable or just leave it hardcoded in frontend?
-  return window.config?.stateColors[result.state] ?? '#374151'
-}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
