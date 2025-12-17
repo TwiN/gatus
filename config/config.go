@@ -517,26 +517,37 @@ func ValidateStatesConfig(config *Config) error { // TODO#227 Add tests
 		}
 	}
 
-	// Validate custom states TODO#227 Validate that priorities don't
+	// Validate custom states
 	stateNames := make(map[string]bool)
+	statePriorities := make(map[int]string)
 	for _, state := range config.States {
 		// Check for duplicate state names
 		if stateNames[state.Name] {
 			return fmt.Errorf("duplicate state name: %s", state.Name)
 		}
 		stateNames[state.Name] = true
+
+		// Check for duplicate state priorities
+		if existingState, exists := statePriorities[state.Priority]; exists {
+			return fmt.Errorf("priority of state '%s' (%d) conflicts with state '%s'", state.Name, state.Priority, existingState)
+		}
+		statePriorities[state.Priority] = state.Name
+
 		// Validate the state configuration
 		if err := state.ValidateAndSetDefaults(); err != nil {
 			return fmt.Errorf("invalid state '%s': %w", state.Name, err)
 		}
 	}
-	logr.Infof("[config.ValidateStatesConfig] Validated %d state(s)", len(config.States))
+	logr.Infof("[config.ValidateStatesConfig] Validated %d state(s) (%d custom)", len(config.States), len(config.States)-len(defaultStates))
 	return nil
 }
 
 func ValidateEndpointsConfig(config *Config) error {
-	duplicateValidationMap := make(map[string]bool)
+	// Set state configuration for all endpoints
+	endpoint.SetStateConfig(config.States)
+
 	// Validate endpoints
+	duplicateValidationMap := make(map[string]bool)
 	for _, ep := range config.Endpoints {
 		logr.Debugf("[config.ValidateEndpointsConfig] Validating endpoint with key %s", ep.Key())
 		if endpointKey := ep.Key(); duplicateValidationMap[endpointKey] {
@@ -549,6 +560,7 @@ func ValidateEndpointsConfig(config *Config) error {
 		}
 	}
 	logr.Infof("[config.ValidateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
 		logr.Debugf("[config.ValidateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
@@ -561,6 +573,7 @@ func ValidateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid external endpoint %s: %w", ee.Key(), err)
 		}
 	}
+
 	logr.Infof("[config.ValidateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }

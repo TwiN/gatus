@@ -75,6 +75,9 @@ var (
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+
+	// State config
+	states []*state.State
 )
 
 // Endpoint is the configuration of a service to be monitored
@@ -150,6 +153,19 @@ type Endpoint struct {
 	// AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed
 	// This field is only used when the endpoint is part of a suite
 	AlwaysRun bool `yaml:"always-run,omitempty"`
+}
+
+func SetStateConfig(cfg []*state.State) {
+	states = cfg
+}
+
+func FindStateByName(name string) *state.State {
+	for _, state := range states {
+		if state.Name == name {
+			return state
+		}
+	}
+	return nil
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -341,10 +357,14 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	if result.Success {
 		result.State = state.DefaultHealthyStateName
 	} else { // Go over condition results to see if any of them has a specific state to set
+		highestPrioritySeen := 0
 		for _, conditionResult := range result.ConditionResults {
-			if !conditionResult.Success && len(conditionResult.LinkedState) > 0 {
-				result.State = conditionResult.LinkedState // TODO#227 Only set if no other state with higher priority has been set
-				break
+			if !conditionResult.Success && len(conditionResult.LinkedStateName) > 0 {
+				linkedState := FindStateByName(conditionResult.LinkedStateName)
+				if linkedState != nil && (linkedState.Priority > highestPrioritySeen) {
+					highestPrioritySeen = linkedState.Priority
+					result.State = conditionResult.LinkedStateName
+				}
 			}
 		}
 		if len(result.State) == 0 {
