@@ -19,12 +19,16 @@
             defaultFilterBy: "{{ .UI.DefaultFilterBy }}",
             stateColors: {},
           };
-          {{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
-          {{- range $state, $color := .UI.StateColors }}window.config.stateColors["{{ $state }}"] = "{{ $color }}";{{end}}
+          Function(`{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}`)();
+          Function(`{{- range $state, $color := .UI.StateColors }}window.config.stateColors["{{ $state }}"] = "{{ $color }}";{{end}}`)();
         } else {
           console.warn('Running in development mode; UI configuration is not injected.');
-          document.title= 'Gatus (Development)';
+          document.title = 'Gatus (Development)';
+          window.config = {
+            stateColors: {"healthy": "#22C55E","maintenance": "#3B82F6","unhealthy": "#CE292C"},
+          };
         }
+
         // Initialize theme immediately to prevent flash
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
