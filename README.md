@@ -133,6 +133,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Use environment variables in config files](#use-environment-variables-in-config-files)
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
@@ -3284,12 +3285,18 @@ web:
 ```
 
 If you're using a PaaS like Heroku that doesn't let you set a custom port and exposes it through an environment
-variable instead, you can use that environment variable directly in the configuration file:
+variable instead see [Use environment variables in config files](#use-environment-variables-in-config-files).
+
+### Use environment variables in config files
+
+You can use environment variables directly in the configuration file which will be substituted from the environment:
 ```yaml
 web:
   port: ${PORT}
-```
 
+ui:
+  title: ${CUSTOM_TITLE}
+```
 
 ### Configuring a startup delay
 If, for any reason, you need Gatus to wait for a given amount of time before monitoring the endpoints on application start, you can use the `GATUS_DELAY_START_SECONDS` environment variable to make Gatus sleep on startup.
