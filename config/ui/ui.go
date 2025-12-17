@@ -143,14 +143,14 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.StateColors) == 0 {
 		cfg.StateColors = GetDefaultStateColors()
 	} else {
-		for stateName, defaultColor := range GetDefaultStateColors() {
-			if _, exists := cfg.StateColors[stateName]; !exists {
-				cfg.StateColors[stateName] = defaultColor
-			}
-		}
 		for stateName := range cfg.StateColors {
 			if !IsValidColorHexCode(cfg.StateColors[stateName]) {
 				return ErrInvalidColorHexCode
+			}
+		}
+		for stateName, defaultColor := range GetDefaultStateColors() {
+			if _, exists := cfg.StateColors[stateName]; !exists {
+				cfg.StateColors[stateName] = defaultColor
 			}
 		}
 	}
