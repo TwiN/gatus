@@ -25,7 +25,7 @@ const (
 
 var (
 	defaultDarkMode    = true
-	defaultShowVersion = true
+	defaultShowVersion = false
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
