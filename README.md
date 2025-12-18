@@ -275,7 +275,7 @@ If you want to test it locally, see [Docker](#docker).
 | `ui.dark-mode`               | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                     |
 | `ui.default-sort-by`         | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                     |
 | `ui.default-filter-by`       | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                     |
-| `ui.show-build-info`         | Whether to show build information (version in footer).                                                                                   | `true`                      |
+| `ui.show-version`            | Show version in footer                                                                                                                   | `false`                    |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`                       |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.

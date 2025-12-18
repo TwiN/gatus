@@ -24,8 +24,8 @@ const (
 )
 
 var (
-	defaultDarkMode      = true
-	defaultShowBuildInfo = true
+	defaultDarkMode    = true
+	defaultShowVersion = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
@@ -47,7 +47,7 @@ type Config struct {
 	DarkMode            *bool    `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy       string   `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy     string   `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	ShowBuildInfo       *bool    `yaml:"show-build-info,omitempty"`      // ShowBuildInfo is a flag to show build information in the footer
+	ShowVersion         *bool    `yaml:"show-version,omitempty"`         // ShowVersion is a flag to show build information in the footer
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -79,7 +79,7 @@ func (btn *Button) Validate() error {
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	var buildversion string
-	if defaultShowBuildInfo { // Only set version if exposing buildinfo to the frontend is enabled
+	if defaultShowVersion { // Only set version if exposing it to the frontend is enabled
 		buildversion = buildinfo.Get().Version
 	}
 	return &Config{
@@ -94,7 +94,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
-		ShowBuildInfo:          &defaultShowBuildInfo,
+		ShowVersion:            &defaultShowVersion,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		BuildVersion:           buildversion,
 	}
@@ -139,10 +139,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
 	}
-	if cfg.ShowBuildInfo == nil {
-		cfg.ShowBuildInfo = &defaultShowBuildInfo
+	if cfg.ShowVersion == nil {
+		cfg.ShowVersion = &defaultShowVersion
 	}
-	if *cfg.ShowBuildInfo { // Only set version if exposing buildinfo to the frontend is enabled
+	if *cfg.ShowVersion { // Only set version if exposing it to the frontend is enabled
 		cfg.BuildVersion = buildinfo.Get().Version
 	}
 	for _, btn := range cfg.Buttons {

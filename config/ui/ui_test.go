@@ -45,7 +45,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
-		var showBuildInfo = false
+		var showVersion = false
 		cfg := &Config{
 			Title:               "Custom Title",
 			Description:         "Custom Description",
@@ -56,7 +56,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Link:                "https://example.com",
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
-			ShowBuildInfo:       &showBuildInfo,
+			ShowVersion:         &showVersion,
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -88,8 +88,8 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != "failing" {
 			t.Errorf("expected defaultFilterBy to be preserved, got %s", cfg.DefaultFilterBy)
 		}
-		if *cfg.ShowBuildInfo != showBuildInfo {
-			t.Errorf("expected ShowBuildInfo to be preserved, got %v", *cfg.ShowBuildInfo)
+		if *cfg.ShowVersion != showVersion {
+			t.Errorf("expected ShowVersion to be preserved, got %v", *cfg.ShowVersion)
 		}
 		if cfg.BuildVersion != "" {
 			t.Errorf("expected BuildVersion to be empty, got %s", cfg.BuildVersion)
@@ -182,8 +182,8 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.DefaultFilterBy != defaultFilterBy {
 		t.Error("expected GetDefaultConfig() to return defaultFilterBy, got", defaultConfig.DefaultFilterBy)
 	}
-	if *defaultConfig.ShowBuildInfo != defaultShowBuildInfo {
-		t.Error("expected GetDefaultConfig() to return defaultShowBuildInfo, got", *defaultConfig.ShowBuildInfo)
+	if *defaultConfig.ShowVersion != defaultShowVersion {
+		t.Error("expected GetDefaultConfig() to return defaultShowVersion, got", *defaultConfig.ShowVersion)
 	}
 	var expectedBuildVersion = buildinfo.Get().Version
 	if defaultConfig.BuildVersion != expectedBuildVersion {
