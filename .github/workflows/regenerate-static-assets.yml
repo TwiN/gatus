@@ -1,0 +1,43 @@
+name: regenerate-static-assets
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  regenerate-static--assets:
+    if: ${{ github.event.issue.pull_request && (contains(github.event.comment.body, '/regenerate-static-assets') || contains(github.event.comment.body, '/rsa')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Get PR branch
+        id: pr
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('ref', pr.data.head.ref);
+            core.setOutput('repo', pr.data.head.repo.full_name);
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.pr.outputs.repo }}
+          ref: ${{ steps.pr.outputs.ref }}
+
+      - name: Regenerate static assets
+        run: |
+          make frontend-install-dependencies
+          make frontend-build
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add . 
+          git commit -m "chore(ui): Regenerate static assets" || echo "No changes to commit"
+          git push origin ${{ steps.pr.outputs.ref }}
