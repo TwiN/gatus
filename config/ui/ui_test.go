@@ -18,6 +18,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Header:              "",
 			Logo:                "",
 			Link:                "",
+			DefaultSortBy:       "",
+			DefaultFilterBy:     "",
+			ShowVersion:         nil,
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -42,6 +45,12 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 		if cfg.DefaultFilterBy != defaultFilterBy {
 			t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
+		}
+		if *cfg.ShowVersion != defaultShowVersion {
+			t.Errorf("expected ShowVersion to be %v, got %v", defaultShowVersion, *cfg.ShowVersion)
+		}
+		if len(cfg.BuildVersion) > 0 {
+			t.Errorf("expected BuildVersion to be empty, got %s", cfg.BuildVersion)
 		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
