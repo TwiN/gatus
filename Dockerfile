@@ -12,7 +12,7 @@ RUN go mod tidy -diff
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
 -ldflags "-X github.com/TwiN/gatus/v5/buildinfo.version=${VERSION} \
 -X github.com/TwiN/gatus/v5/buildinfo.revision=${REVISION} \
--X github.com/TwiN/gatus/v5/buildinfo.date=${REVISION_DATE}" \
+-X github.com/TwiN/gatus/v5/buildinfo.revisionDate=${REVISION_DATE}" \
 -o gatus .
 
 # Run Tests inside docker image if you don't have a configured go environment
