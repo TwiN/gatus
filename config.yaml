@@ -1,3 +1,9 @@
+maintenance:
+  enabled: true
+  start: "01:25"
+  duration: "5m"
+  timezone: "Europe/Berlin"
+
 storage:
   type: sqlite
   path: ./gatus.db
@@ -60,58 +66,32 @@ endpoints:
       - "[CONNECTED] == true"
       - "invalid::[RESPONSE_TIME] < 1"
 
-
 suites:
-  - name: item-crud-workflow
+  - name: custom-state-test
     group: api-tests
     interval: 10s
-    context:
-      price: "19.99"  # Initial static value in context
     endpoints:
-      # Step 1: Create an item and store the item ID
       - name: create-item
-        url: https://api.example.com/items
-        method: POST
-        body: '{"name": "Test Item", "price": "[CONTEXT].price"}'
+        url: icmp://9.9.9.9
         conditions:
-          - "[STATUS] == 201"
-          - "len([BODY].id) > 0"
-          - "[BODY].price == [CONTEXT].price"
-        store:
-          itemId: "[BODY].id"
-        alerts:
-          - type: slack
-            description: "Failed to create item"
+          - "[CONNECTED] == true"
+          - "[RESPONSE_TIME] < 23"
 
-      # Step 2: Update the item using the stored item ID
       - name: update-item
-        url: https://api.example.com/items/[CONTEXT].itemId
-        method: PUT
-        body: '{"price": "24.99"}'
+        url: icmp://9.9.9.9
         conditions:
-          - "[STATUS] == 200"
-        alerts:
-          - type: slack
-            description: "Failed to update item"
+          - "[CONNECTED] == true"
+          - "degraded::[RESPONSE_TIME] < 24"
 
-      # Step 3: Fetch the item and validate the price
       - name: get-item
-        url: https://api.example.com/items/[CONTEXT].itemId
-        method: GET
+        url: icmp://9.9.9.9
         conditions:
-          - "[STATUS] == 200"
-          - "[BODY].price == 24.99"
-        alerts:
-          - type: slack
-            description: "Item price did not update correctly"
+          - "[CONNECTED] == true"
+          - "[RESPONSE_TIME] < 23"
 
-      # Step 4: Delete the item (always-run: true to ensure cleanup even if step 2 or 3 fails)
       - name: delete-item
-        url: https://api.example.com/items/[CONTEXT].itemId
-        method: DELETE
+        url: icmp://9.9.9.9
         always-run: true
         conditions:
-          - "[STATUS] == 204"
-        alerts:
-          - type: slack
-            description: "Failed to delete item"
+          - "[CONNECTED] == true"
+          - "degraded::[RESPONSE_TIME] < 23"
