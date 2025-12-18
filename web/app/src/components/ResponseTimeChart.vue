@@ -17,6 +17,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import { generatePrettyTimeDifference } from '@/utils/time'
+import { getStateColor } from '@/utils/color'
 import Loading from './Loading.vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
@@ -49,9 +50,8 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 const hoveredEventIndex = ref(null)
 
 // Helper function to get color for unhealthy events
-const getEventColor = () => {
-  // Only UNHEALTHY events are displayed on the chart
-  return 'rgba(239, 68, 68, 0.8)' // Red
+const getEventColor = (state) => {
+  return getStateColor(state) + 'CC' // Append 'CC' for 80% opacity
 }
 
 // Filter events based on selected duration and calculate durations
@@ -196,7 +196,7 @@ const chartOptions = computed(() => {
             type: 'line',
             xMin: new Date(event.timestamp),
             xMax: new Date(event.timestamp),
-            borderColor: getEventColor(),
+            borderColor: getEventColor(event.state),
             borderWidth: 1,
             borderDash: [5, 5],
             enter() {
@@ -207,8 +207,8 @@ const chartOptions = computed(() => {
             },
             label: {
               display: () => hoveredEventIndex.value === index,
-              content: [event.isOngoing ? `Status: ONGOING` : `Status: RESOLVED`, `Unhealthy for ${event.duration}`, `Started at ${new Date(event.timestamp).toLocaleString()}`],
-              backgroundColor: getEventColor(),
+              content: [event.isOngoing ? `Status: ONGOING` : `Status: RESOLVED`, `In state ${event.state} for ${event.duration}`, `Started at ${new Date(event.timestamp).toLocaleString()}`],
+              backgroundColor: getEventColor(event.state),
               color: '#ffffff',
               font: {
                 size: 11
