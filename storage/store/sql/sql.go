@@ -287,8 +287,8 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		}
 	} else {
 		// Get the success value of the previous result
-		var lastResultSuccess bool
-		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+		var lastResultState string
+		if lastResultState, err = s.getLastEndpointResultStateValue(tx, endpointID); err != nil {
 			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
@@ -296,7 +296,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
 			// that the endpoint either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
 			// an event to mark the change in state
-			if lastResultSuccess != result.Success {
+			if lastResultState != result.State {
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
@@ -992,16 +992,16 @@ func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) 
 	return time.Since(time.Unix(oldestEndpointUptimeUnixTimestamp, 0)), nil
 }
 
-func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) (bool, error) {
-	var success bool
-	err := tx.QueryRow("SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&success)
+func (s *Store) getLastEndpointResultStateValue(tx *sql.Tx, endpointID int64) (string, error) {
+	var state string
+	err := tx.QueryRow("SELECT state FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&state)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, errNoRowsReturned
+			return "", errNoRowsReturned
 		}
-		return false, err
+		return "", err
 	}
-	return success, nil
+	return state, nil
 }
 
 // deleteOldEndpointEvents deletes endpoint events that are no longer needed
