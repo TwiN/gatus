@@ -9,7 +9,7 @@ type Event struct {
 	// Type is the kind of event
 	Type EventType `json:"type"`
 
-	State string `json:"state"` // TODO#227 omitempty?
+	State string `json:"state,omitempty"`
 
 	// Timestamp is the moment at which the event happened
 	Timestamp time.Time `json:"timestamp"`
