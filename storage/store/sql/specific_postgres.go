@@ -41,7 +41,6 @@ func (s *Store) createPostgresSchema() error {
 		return err
 	}
 
-	// TODO#227 event state not null?
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS endpoint_events (
 			endpoint_event_id  BIGSERIAL PRIMARY KEY,
@@ -55,7 +54,6 @@ func (s *Store) createPostgresSchema() error {
 		return err
 	}
 
-	// TODO#227 result state not null?
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS endpoint_results (
 			endpoint_result_id     BIGSERIAL PRIMARY KEY,
