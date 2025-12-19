@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	ErrInvalidName     = errors.New("invalid name: must be non-empty")
+	ErrInvalidName     = errors.New("invalid name: must be non-empty and contain only lowercase letters, digits, hyphens, or underscores")
 	ErrInvalidPriority = errors.New("invalid priority: must be non-negative")
 )
 
@@ -39,11 +39,23 @@ func GetDefaultConfig() []*State {
 }
 
 func (cfg *State) ValidateAndSetDefaults() error {
-	if len(cfg.Name) == 0 { // TODO#227 more robust name validation or us map in root config?
-		return ErrInvalidName
+	if err := ValidateName(cfg.Name); err != nil {
+		return err
 	}
 	if cfg.Priority < 0 {
 		return ErrInvalidPriority
+	}
+	return nil
+}
+
+func ValidateName(name string) error {
+	if len(name) == 0 {
+		return ErrInvalidName
+	}
+	for _, r := range name {
+		if !(r >= 'a' && r <= 'z') && !(r >= '0' && r <= '9') && r != '-' && r != '_' {
+			return ErrInvalidName
+		}
 	}
 	return nil
 }

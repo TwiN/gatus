@@ -46,7 +46,17 @@ func TestState_ValidateAndSetDefaults(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid name", func(t *testing.T) {
+	t.Run("valid name", func(t *testing.T) {
+		state := &State{
+			Name:     "valid-name_123",
+			Priority: 5,
+		}
+		if err := state.ValidateAndSetDefaults(); err != nil {
+			t.Errorf("expected valid state, got error: %v", err)
+		}
+	})
+
+	t.Run("empty name", func(t *testing.T) {
 		state := &State{
 			Name:     "",
 			Priority: 10,
@@ -57,7 +67,54 @@ func TestState_ValidateAndSetDefaults(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid priority", func(t *testing.T) {
+	t.Run("whitespace name", func(t *testing.T) {
+		state := &State{
+			Name:     "   ",
+			Priority: 10,
+		}
+		err := state.ValidateAndSetDefaults()
+		if err != ErrInvalidName {
+			t.Errorf("expected ErrInvalidName, got %v", err)
+		}
+	})
+
+	t.Run("special character name", func(t *testing.T) {
+		state := &State{
+			Name:     "custom@state",
+			Priority: 10,
+		}
+		err := state.ValidateAndSetDefaults()
+		if err != ErrInvalidName {
+			t.Errorf("expected ErrInvalidName, got %v", err)
+		}
+	})
+
+	t.Run("uppercase name", func(t *testing.T) {
+		state := &State{
+			Name:     "CustomState",
+			Priority: 10,
+		}
+		err := state.ValidateAndSetDefaults()
+		if err != ErrInvalidName {
+			t.Errorf("expected ErrInvalidName, got %v", err)
+		}
+	})
+
+	t.Run("zero priority", func(t *testing.T) {
+		state := &State{
+			Name:     "custom",
+			Priority: 0,
+		}
+		err := state.ValidateAndSetDefaults()
+		if err == ErrInvalidPriority {
+			t.Errorf("did not expect ErrInvalidPriority for zero priority, got %v", err)
+		}
+		if state.Priority != 0 {
+			t.Errorf("expected priority to be set to 0, got %d", state.Priority)
+		}
+	})
+
+	t.Run("negative priority", func(t *testing.T) {
 		state := &State{
 			Name:     "custom",
 			Priority: -1,
