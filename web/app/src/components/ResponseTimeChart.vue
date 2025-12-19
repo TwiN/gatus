@@ -49,7 +49,6 @@ const values = ref([])
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const hoveredEventIndex = ref(null)
 
-// Helper function to get color for unhealthy events
 const getEventColor = (state) => {
   return getStateColor(state) + 'CC' // Append 'CC' for 80% opacity
 }
@@ -76,8 +75,8 @@ const filteredEvents = computed(() => {
       return []
   }
 
-  // Only include UNHEALTHY events and calculate their duration
-  const unhealthyEvents = []
+  // Only include non healthy events and calculate their duration
+  const nonHealthyEvents = []
   for (let i = 0; i < props.events.length; i++) {
     const event = props.events[i]
     if (event.type !== 'UNHEALTHY') continue
@@ -97,14 +96,14 @@ const filteredEvents = computed(() => {
       isOngoing = true
     }
 
-    unhealthyEvents.push({
+    nonHealthyEvents.push({
       ...event,
       duration,
       isOngoing
     })
   }
 
-  return unhealthyEvents
+  return nonHealthyEvents
 })
 
 const chartData = computed(() => {
