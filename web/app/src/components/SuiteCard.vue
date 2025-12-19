@@ -40,7 +40,7 @@
               :key="index"
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
-                result ? 'cursor-pointer' : '',
+                result && 'cursor-pointer',
                 result ? (
                   result.success
                     ? (isHighlighted(index) ? 'bg-green-700' : 'bg-green-500')
