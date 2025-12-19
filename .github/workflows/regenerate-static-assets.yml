@@ -6,6 +6,7 @@ on:
 jobs:
   check-command:
     runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request }}
     permissions:
       pull-requests: write # required for adding reactions to command comments on PRs
       checks: read
