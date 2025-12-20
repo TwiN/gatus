@@ -17,7 +17,7 @@ jobs:
         id: command
         uses: github/command@v2
         with:
-          command: .regen-static-assets
+          command: "/regenerate-static-assets"
           allow_forks: true
           skip_ci: true
           skip_completing: true
