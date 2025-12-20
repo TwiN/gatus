@@ -2,10 +2,8 @@ package api
 
 import (
 	_ "embed"
-	"html/template"
 
 	"github.com/TwiN/gatus/v5/config/ui"
-	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +21,7 @@ func SinglePageApplication(uiConfig *ui.Config) fiber.Handler {
 				vd.Theme = "dark"
 			}
 		}
-		t, err := template.ParseFS(static.FileSystem, static.IndexPath)
+		t, err := ui.GetTemplate()
 		if err != nil {
 			// This should never happen, because ui.ValidateAndSetDefaults validates that the template works.
 			logr.Errorf("[api.SinglePageApplication] Failed to parse template. This should never happen, because the template is validated on start. Error: %s", err.Error())

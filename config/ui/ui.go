@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"html/template"
 
@@ -10,16 +11,16 @@ import (
 )
 
 const (
-	defaultTitle                = "Health Dashboard | Gatus"
-	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader               = "Gatus"
-	defaultDashboardHeading     = "Health Dashboard"
-	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
-	defaultLogo                 = ""
-	defaultLink                 = ""
-	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
-	defaultFilterBy             = "none"
+	defaultTitle               = "Health Dashboard | Gatus"
+	defaultDescription         = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader              = "Gatus"
+	defaultDashboardHeading    = "Health Dashboard"
+	defaultDashboardSubheading = "Monitor the health of your endpoints in real-time"
+	defaultLogo                = ""
+	defaultLink                = ""
+	defaultCustomCSS           = ""
+	defaultSortBy              = "name"
+	defaultFilterBy            = "none"
 )
 
 var (
@@ -28,26 +29,28 @@ var (
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+
+	uiTemplate *template.Template = nil
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title               string   `yaml:"title,omitempty" json:"-"`                                            // Title of the page
+	Description         string   `yaml:"description,omitempty" json:"-"`                                      // Meta description of the page
+	DashboardHeading    string   `yaml:"dashboard-heading,omitempty" json:"dashboardHeading,omitempty"`       // Dashboard Title between header and endpoints
+	DashboardSubheading string   `yaml:"dashboard-subheading,omitempty" json:"dashboardSubheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string   `yaml:"header,omitempty" json:"header,omitempty"`                            // Header is the text at the top of the page
+	Logo                string   `yaml:"logo,omitempty" json:"logo,omitempty"`                                // Logo to display on the page
+	Link                string   `yaml:"link,omitempty" json:"link,omitempty"`                                // Link to open when clicking on the logo
+	Buttons             []Button `yaml:"buttons,omitempty" json:"buttons,omitempty"`                          // Buttons to display below the header
+	CustomCSS           string   `yaml:"custom-css,omitempty" json:"-"`                                       // Custom CSS to include in the page
+	DarkMode            *bool    `yaml:"dark-mode,omitempty" json:"-"`                                        // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string   `yaml:"default-sort-by,omitempty" json:"defaultSortBy,omitempty"`            // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string   `yaml:"default-filter-by,omitempty" json:"defaultFilterBy,omitempty"`        // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	MaximumNumberOfResults int `yaml:"-" json:"maximumNumberOfResults,omitempty"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -59,8 +62,8 @@ func (cfg *Config) IsDarkMode() bool {
 
 // Button is the configuration for a button on the UI
 type Button struct {
-	Name string `yaml:"name,omitempty"` // Name is the text to display on the button
-	Link string `yaml:"link,omitempty"` // Link to open when the button is clicked.
+	Name string `yaml:"name,omitempty" json:"name,omitempty"` // Name is the text to display on the button
+	Link string `yaml:"link,omitempty" json:"link,omitempty"` // Link to open when the button is clicked.
 }
 
 // Validate validates the button configuration
@@ -134,7 +137,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	// Validate that the template works
-	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
+	t, err := GetTemplate()
 	if err != nil {
 		return err
 	}
@@ -145,4 +148,23 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 type ViewData struct {
 	UI    *Config
 	Theme string
+}
+
+func toJSON(v any) template.JS {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
+	}
+	return template.JS(b)
+}
+
+func GetTemplate() (*template.Template, error) {
+	if uiTemplate != nil {
+		return uiTemplate, nil
+	}
+	var err error
+	uiTemplate, err = template.New("index.html").Funcs(template.FuncMap{
+		"toJSON": toJSON,
+	}).ParseFS(static.FileSystem, static.IndexPath)
+	return uiTemplate, err
 }
