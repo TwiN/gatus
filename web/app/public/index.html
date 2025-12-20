@@ -17,15 +17,18 @@
             maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}",
             defaultSortBy: "{{ .UI.DefaultSortBy }}",
             defaultFilterBy: "{{ .UI.DefaultFilterBy }}",
-            stateColors: {},
           };
+          Function(`window.config.themes = {{ toJSON .UI.Themes }}`)();
           Function(`{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}`)();
-          Function(`{{- range $state, $color := .UI.StateColors }}window.config.stateColors["{{ $state }}"] = "{{ $color }}";{{end}}`)();
         } else {
           console.warn('Running in development mode; UI configuration is not injected.');
           document.title = 'Gatus (Development)';
           window.config = {
-            stateColors: {"healthy": "#22C55E","maintenance": "#3B82F6","unhealthy": "#E43B3C"},
+            themes: {
+              "default": {
+                "stateColors": {"healthy": "#22C55E","maintenance": "#3B82F6","unhealthy": "#E43B3C"}
+              }
+            },
           };
         }
 

@@ -465,21 +465,14 @@ func ValidateUIConfig(config *Config) error {
 		if err := config.UI.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
-	}
-
-	// Validate all states configured have a corresponding UI color configured
-	// TODO#227 Add tests
-	stateColorMap := config.UI.StateColors
-	colorsMissing := []string{}
-	for _, state := range config.States {
-		if _, exists := stateColorMap[state.Name]; !exists {
-			colorsMissing = append(colorsMissing, state.Name)
+		for themeName, themeConfig := range config.UI.Themes {
+			for _, stateConfig := range config.States {
+				stateName := stateConfig.Name
+				if _, exists := themeConfig.StateColors[stateName]; !exists {
+					return fmt.Errorf("theme '%s' is missing color configuration for state '%s'", themeName, stateName)
+				}
+			}
 		}
-	}
-	if len(colorsMissing) > 0 {
-		return fmt.Errorf("no colors configured for states: %s", strings.Join(colorsMissing, ", "))
-	} else {
-		logr.Debugf("[config.ValidateUIConfig] Configured colors for all %d state(s)", len(config.States))
 	}
 	return nil
 }

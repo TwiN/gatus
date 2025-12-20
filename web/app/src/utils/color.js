@@ -12,6 +12,17 @@ export const getResultColor = (result) => {
 }
 
 /**
+ * Check if a given theme exists in the configuration.
+ *
+ * @param {string} theme - The name of the theme to check.
+ * @returns {boolean} - True if the theme exists, false otherwise.
+ */
+export const themeExists = (theme) => {
+  var themes = window.config?.themes || {}
+  return Object.hasOwn(themes, theme)
+}
+
+/**
  * Get the color associated with a given state.
  * If the state is not found in the configuration, return the 'unknown' color.
  *
@@ -19,5 +30,17 @@ export const getResultColor = (result) => {
  * @returns {string} - The color associated with the given state.
  */
 export const getStateColor = (state) => {
-  return window.config?.stateColors[state] ?? window.config?.localStateColors.invalid
+  var theme = localStorage.getItem('gatus:theme') || 'default'
+  themeExists(theme) || (theme = 'default')
+  return window.config?.themes[theme]['stateColors'][state] ?? window.config?.localStateColors.invalid
+}
+
+/**
+ * Get the list of available themes from the configuration.
+ *
+ * @returns {Array<string>} - An array of available theme names.
+ */
+export const getAvailableThemes = () => {
+  var themes = window.config?.themes || {}
+  return Object.keys(themes)
 }

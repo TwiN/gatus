@@ -6,7 +6,7 @@ import (
 	"errors"
 	"html/template"
 
-	"github.com/TwiN/gatus/v5/config/state"
+	"github.com/TwiN/gatus/v5/config/ui/theme"
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
@@ -22,6 +22,7 @@ const (
 	defaultCustomCSS           = ""
 	defaultSortBy              = "name"
 	defaultFilterBy            = "none"
+	defaultThemeName           = "default"
 )
 
 var (
@@ -39,19 +40,19 @@ type Color string
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title               string           `yaml:"title,omitempty"`                // Title of the page
-	Description         string           `yaml:"description,omitempty"`          // Meta description of the page
-	DashboardHeading    string           `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
-	DashboardSubheading string           `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
-	Header              string           `yaml:"header,omitempty"`               // Header is the text at the top of the page
-	Logo                string           `yaml:"logo,omitempty"`                 // Logo to display on the page
-	Link                string           `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
-	Buttons             []Button         `yaml:"buttons,omitempty"`              // Buttons to display below the header
-	CustomCSS           string           `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
-	DarkMode            *bool            `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy       string           `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy     string           `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	StateColors         map[string]Color `yaml:"state-colors,omitempty"`         // StateColors is a map of state to color hex code // TODO#227 Add tests
+	Title               string                  `yaml:"title,omitempty"`                // Title of the page
+	Description         string                  `yaml:"description,omitempty"`          // Meta description of the page
+	DashboardHeading    string                  `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
+	DashboardSubheading string                  `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string                  `yaml:"header,omitempty"`               // Header is the text at the top of the page
+	Logo                string                  `yaml:"logo,omitempty"`                 // Logo to display on the page
+	Link                string                  `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
+	Buttons             []Button                `yaml:"buttons,omitempty"`              // Buttons to display below the header
+	CustomCSS           string                  `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
+	DarkMode            *bool                   `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string                  `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string                  `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Themes              map[string]theme.Config `yaml:"themes,omitempty"`               // Themes is a map of themes available for the UI
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -79,11 +80,11 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
-func GetDefaultStateColors() map[string]Color {
-	return map[string]Color{
-		state.DefaultHealthyStateName:     "#22C55E", // Green
-		state.DefaultUnhealthyStateName:   "#E43B3C", // Red (Default for result bar before was "#EF4444 saw #AD0116 on GitHub (was too dark) so I used https://colordesigner.io/gradient-generator to use some color in between TODO#227 Change to darker red for better visibility good?)
-		state.DefaultMaintenanceStateName: "#3B82F6", // Blue
+func GetDefaultThemes() map[string]theme.Config {
+	{
+		return map[string]theme.Config{
+			defaultThemeName: *theme.GetDefaultConfig(),
+		}
 	}
 }
 
@@ -101,7 +102,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
-		StateColors:            GetDefaultStateColors(),
+		Themes:                 GetDefaultThemes(),
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 	}
 }
@@ -145,18 +146,34 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
 	}
-	if len(cfg.StateColors) == 0 {
-		cfg.StateColors = GetDefaultStateColors()
+	if len(cfg.Themes) == 0 {
+		cfg.Themes = GetDefaultThemes()
 	} else {
-		for _, color := range cfg.StateColors {
-			if err := color.Validate(); err != nil {
-				return err
+		// Validate provided themes
+		for themeName, themeConfig := range cfg.Themes {
+			if err := themeConfig.ValidateAndSetDefaults(); err != nil {
+				return errors.New("invalid theme configuration for theme '" + themeName + "': " + err.Error())
 			}
 		}
-		for stateName, defaultColor := range GetDefaultStateColors() {
-			if _, exists := cfg.StateColors[stateName]; !exists {
-				cfg.StateColors[stateName] = defaultColor
+		// Add missing default themes
+		defaultThemes := GetDefaultThemes()
+		for themeName, defaultThemeConfig := range defaultThemes {
+			if _, exists := cfg.Themes[themeName]; !exists {
+				cfg.Themes[themeName] = defaultThemeConfig
 			}
+		}
+		// Apply custom states configuread in default theme to other themes
+		defaultThemeConfig := cfg.Themes[defaultThemeName]
+		for themeName, themeConfig := range cfg.Themes {
+			if themeName == defaultThemeName {
+				continue
+			}
+			for stateName, color := range defaultThemeConfig.StateColors {
+				if _, exists := themeConfig.StateColors[stateName]; !exists {
+					themeConfig.StateColors[stateName] = color
+				}
+			}
+			cfg.Themes[themeName] = themeConfig
 		}
 	}
 	for _, btn := range cfg.Buttons {
@@ -178,23 +195,23 @@ type ViewData struct {
 	Theme string
 }
 
-func (color Color) Validate() error {
-	if !IsValidColorHexCode(color) {
-		return ErrInvalidColorHexCode
+func toJSON(v any) template.JS {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
 	}
-	return nil
+	return template.JS(b)
 }
 
-func IsValidColorHexCode(color Color) bool {
-	if len(color) != 7 || color[0] != '#' {
-		return false
+func GetTemplate() (*template.Template, error) {
+	if uiTemplate != nil {
+		return uiTemplate, nil
 	}
-	for _, char := range color[1:] {
-		if (char < '0' || char > '9') && (char < 'A' || char > 'F') && (char < 'a' || char > 'f') {
-			return false
-		}
-	}
-	return true
+	var err error
+	uiTemplate, err = template.New("index.html").Funcs(template.FuncMap{
+		"toJSON": toJSON,
+	}).ParseFS(static.FileSystem, static.IndexPath)
+	return uiTemplate, err
 }
 
 func toJSON(v any) template.JS {

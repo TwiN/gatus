@@ -3,7 +3,7 @@
     <div class="flex items-center gap-1 bg-background/95 backdrop-blur-sm border rounded-full shadow-md p-1">
       <!-- Refresh Rate -->
       <button 
-        @click="showRefreshMenu = !showRefreshMenu"
+        @click="showRefreshMenu = !showRefreshMenu; showThemeMenu = false"
         :aria-label="`Refresh interval: ${formatRefreshInterval(refreshIntervalValue)}`"
         :aria-expanded="showRefreshMenu"
         class="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent transition-colors relative"
@@ -31,6 +31,37 @@
         </div>
       </button>
 
+      <div v-if="AVAILABLE_THEMES.length > 1" class="flex items-center">
+        <!-- Divider -->
+        <div class="h-5 w-px bg-border/50" />
+
+        <button
+          @click="showThemeMenu = !showThemeMenu; showRefreshMenu = false"
+          :aria-expanded="showThemeMenu"
+          class="p-1.5 rounded-full hover:bg-accent transition-colors group relative"
+        >
+          <Palette class="h-3.5 w-3.5 transition-all" />
+
+          <div
+            v-if="showThemeMenu"
+            @click.stop
+            class="absolute bottom-full left-0 mb-2 bg-popover border rounded-lg shadow-lg overflow-hidden"
+          >
+            <button
+              v-for="theme in AVAILABLE_THEMES"
+              :key="theme"
+              @click="selectTheme(theme)"
+              :class="[
+                'block w-full px-4 py-2 text-xs text-left hover:bg-accent transition-colors',
+                themeValue === theme && 'bg-accent'
+              ]"
+            >
+              {{ theme }}
+            </button>
+        </div>
+      </button>
+      </div>
+
       <!-- Divider -->
       <div class="h-5 w-px bg-border/50" />
 
@@ -52,10 +83,10 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
+import { Sun, Moon, Palette, RefreshCw } from 'lucide-vue-next'
+import { getAvailableThemes, themeExists } from '@/utils/color'
 
 const emit = defineEmits(['refreshData'])
 
@@ -68,12 +99,16 @@ const REFRESH_INTERVALS = [
   { value: '300', label: '5m' },
   { value: '600', label: '10m' }
 ]
+const AVAILABLE_THEMES = getAvailableThemes()
 const DEFAULT_REFRESH_INTERVAL = '300'
+const DEFAULT_THEME = 'default'
 const THEME_COOKIE_NAME = 'theme'
 const THEME_COOKIE_MAX_AGE = 31536000 // 1 year
 const STORAGE_KEYS = {
-  REFRESH_INTERVAL: 'gatus:refresh-interval'
+  REFRESH_INTERVAL: 'gatus:refresh-interval',
+  THEME: 'gatus:theme'
 }
+
 
 // Helper functions
 function wantsDarkMode() {
@@ -88,10 +123,17 @@ function getStoredRefreshInterval() {
   return isValid ? stored : DEFAULT_REFRESH_INTERVAL
 }
 
+function getStoredTheme() {
+  const stored = localStorage.getItem(STORAGE_KEYS.THEME)
+  return stored && themeExists(stored) ? stored : DEFAULT_THEME
+}
+
 // State
 const refreshIntervalValue = ref(getStoredRefreshInterval())
+const themeValue = ref(getStoredTheme())
 const darkMode = ref(wantsDarkMode())
 const showRefreshMenu = ref(false)
+const showThemeMenu = ref(false)
 let refreshIntervalHandler = null
 
 // Methods
@@ -121,11 +163,17 @@ const selectRefreshInterval = (value) => {
   setRefreshInterval(value)
 }
 
+const selectTheme = (theme) => {
+  localStorage.setItem(STORAGE_KEYS.THEME, theme)
+  showThemeMenu.value = false
+}
+
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
   const settings = document.getElementById('settings')
   if (settings && !settings.contains(event.target)) {
     showRefreshMenu.value = false
+    showThemeMenu.value = false
   }
 }
 
