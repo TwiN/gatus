@@ -356,12 +356,12 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	if result.Success {
 		result.State = state.DefaultHealthyStateName
-	} else { // Go over condition results to see if any of them has a specific state to set
+	} else {
 		highestPrioritySeen := 0
 		for _, conditionResult := range result.ConditionResults {
-			if !conditionResult.Success && len(conditionResult.LinkedStateName) > 0 {
+			if !conditionResult.Success {
 				linkedState := FindStateByName(conditionResult.LinkedStateName)
-				if linkedState != nil && (linkedState.Priority > highestPrioritySeen) {
+				if linkedState != nil && linkedState.Priority > highestPrioritySeen {
 					highestPrioritySeen = linkedState.Priority
 					result.State = conditionResult.LinkedStateName
 				}
