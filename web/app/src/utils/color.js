@@ -7,7 +7,7 @@
  * @returns {string} - The color associated with the result's state.
  */
 export const getResultColor = (result) => {
-  if (!result) return window.config?.localStateColors.nodata
+  if (!result) return window.config?.localStateColors.unkown
   return getStateColor(result.state)
 }
 
@@ -19,5 +19,5 @@ export const getResultColor = (result) => {
  * @returns {string} - The color associated with the given state.
  */
 export const getStateColor = (state) => {
-  return window.config?.stateColors[state] ?? window.config?.localStateColors.unknown
+  return window.config?.stateColors[state] ?? window.config?.localStateColors.invalid
 }
