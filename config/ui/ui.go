@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"html/template"
 
@@ -30,6 +31,8 @@ var (
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
 	ErrInvalidColorHexCode    = errors.New("invalid color hex code: must be in the format #RRGGBB")
+
+	uiTemplate *template.Template = nil
 )
 
 type Color string
@@ -162,7 +165,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	// Validate that the template works
-	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
+	t, err := GetTemplate()
 	if err != nil {
 		return err
 	}
@@ -192,4 +195,23 @@ func IsValidColorHexCode(color Color) bool {
 		}
 	}
 	return true
+}
+
+func toJSON(v any) template.JS {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
+	}
+	return template.JS(b)
+}
+
+func GetTemplate() (*template.Template, error) {
+	if uiTemplate != nil {
+		return uiTemplate, nil
+	}
+	var err error
+	uiTemplate, err = template.New("index.html").Funcs(template.FuncMap{
+		"toJSON": toJSON,
+	}).ParseFS(static.FileSystem, static.IndexPath)
+	return uiTemplate, err
 }
