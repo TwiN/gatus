@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
 )
@@ -130,8 +130,8 @@ func (provider *AlertProvider) CreateTask(cfg *Config, body map[string]interface
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", cfg.Token)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	httpClient := client.GetHTTPClient(nil)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -153,8 +153,8 @@ func (provider *AlertProvider) CloseTask(cfg *Config, ep *endpoint.Endpoint) err
 	}
 	req.Header.Set("Authorization", cfg.Token)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	httpClient := client.GetHTTPClient(nil)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -210,8 +210,8 @@ func (provider *AlertProvider) UpdateTaskStatus(cfg *Config, taskID, status stri
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", cfg.Token)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	httpClient := client.GetHTTPClient(nil)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}

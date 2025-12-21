@@ -58,6 +58,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
+    - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
@@ -827,6 +828,7 @@ endpoints:
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
+| `alerting.clickup`         | Configuration for alerts of type `clickup`. <br />See [Configuring ClickUp alerts](#configuring-clickup-alerts).                        | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
 | `alerting.datadog`         | Configuration for alerts of type `datadog`. <br />See [Configuring Datadog alerts](#configuring-datadog-alerts).                        | `{}`    |
 | `alerting.discord`         | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                        | `{}`    |
@@ -906,6 +908,68 @@ endpoints:
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
+
+
+#### Configuring ClickUp alerts
+| Parameter                            | Description                                                                                | Default       |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.clickup`                   | Configuration for alerts of type `clickup`                                                 | `{}`          |
+| `alerting.clickup.list-id`           | ClickUp List ID where tasks will be created                                                | Required `""` |
+| `alerting.clickup.token`             | ClickUp API token                                                                          | Required `""` |
+| `alerting.clickup.api-url`           | Custom API URL (optional, defaults to `https://api.clickup.com/api/v2/list/{list-id}/task`) | `""`          |
+| `alerting.clickup.assignees`         | List of user IDs to assign tasks to                                                        | `[]`          |
+| `alerting.clickup.status`            | Initial status for created tasks                                                           | `""`          |
+| `alerting.clickup.priority`          | Priority level for created tasks (1-4)                                                     | `0`           |
+| `alerting.clickup.name`              | Custom task name template (supports placeholders)                                          | `""`          |
+| `alerting.clickup.content`           | Custom task content template (supports placeholders)                                       | `""`          |
+| `alerting.clickup.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+The ClickUp alerting provider creates tasks in a ClickUp list when alerts are triggered. If `send-on-resolved` is set to `true` on the endpoint alert, the task will be automatically closed when the alert is resolved.
+
+The following placeholders are supported in `name` and `content`:
+- `[ENDPOINT_GROUP]` - Resolved from `endpoints[].group`
+- `[ENDPOINT_NAME]` - Resolved from `endpoints[].name`
+- `[ALERT_DESCRIPTION]` - Resolved from `endpoints[].alerts[].description`
+- `[RESULT_ERRORS]` - Resolved from the health evaluation errors
+
+```yaml
+alerting:
+  clickup:
+    list-id: "123456789"
+    token: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    assignees:
+      - "12345"
+      - "67890"
+    status: "in progress"
+    priority: 2
+    name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
+    content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME]\n\nDescription: [ALERT_DESCRIPTION]\n\nErrors: [RESULT_ERRORS]"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: clickup
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+To get your ClickUp API token:
+1. Go to ClickUp Settings
+2. Click on "Apps" in the left sidebar
+3. Click on "API" 
+4. Generate a new API token or copy an existing one
+
+To find your List ID:
+1. Open the ClickUp list where you want tasks to be created
+2. The List ID is in the URL: `https://app.clickup.com/{workspace_id}/v/li/{list_id}`
 
 
 #### Configuring Datadog alerts
