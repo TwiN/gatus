@@ -19,7 +19,7 @@ ui:
         degraded: "#FF8C00" # Dark orange for degraded state
     colorblind:
       state-colors:
-        healthy: "#0000FF"   # Blue color for healthy state
+        healthy: "#3B82F6"   # Blue color for healthy state
         maintenance: "#8A2BE2" # Violet color for maintenance state
 
 endpoints:

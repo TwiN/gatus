@@ -17,7 +17,7 @@
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
             </div>
-            <StatusBadge :status="currentHealthStatus" />
+            <StatusBadge :status="currentHealthStatus" :theme="currentTheme" />
           </div>
 
           <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -91,6 +91,7 @@
                   :endpoint="endpointStatus"
                   :maxResults="resultPageSize"
                   :showAverageResponseTime="showAverageResponseTime"
+                  :theme="currentTheme"
                   @showTooltip="showTooltip"
                   class="border-0 shadow-none bg-transparent p-0"
                 />
@@ -176,9 +177,9 @@
               <div class="space-y-4">
                 <div v-for="event in events" :key="event.timestamp" class="flex items-start gap-4 pb-4 border-b last:border-0">
                   <div class="mt-1">
-                    <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
-                    <ArrowRightCircle v-else-if="event.type === 'UNHEALTHY' && event.state != 'unhealthy'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
-                    <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
+                    <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state, currentTheme) }" />
+                    <ArrowRightCircle v-else-if="event.type === 'UNHEALTHY' && event.state != 'unhealthy'" class="h-5 w-5" :style="{ color: getStateColor(event.state, currentTheme) }" />
+                    <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state, currentTheme) }" />
                     <PlayCircle v-else class="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div class="flex-1">
@@ -197,7 +198,7 @@
       </div>
     </div>
 
-    <Settings @refreshData="fetchData" />
+    <Settings @refreshData="fetchData" @setColorTheme="theme => currentTheme = theme" />
   </div>
 </template>
 
@@ -224,6 +225,7 @@ const endpointStatus = ref(null) // For paginated historical data
 const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
 const currentPage = ref(1)
+const currentTheme = ref(localStorage.getItem('gatus:color-theme') || 'default')
 const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(false)

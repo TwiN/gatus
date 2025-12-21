@@ -17,6 +17,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  theme: {
+    type: String,
+    default: 'default',
+  },
 })
 
 const label = computed(() => {
@@ -26,6 +30,6 @@ const label = computed(() => {
 
 const color = computed(() => {
   if (!props.status) return window.config?.localStateColors.unknown
-  return getStateColor(props.status)
+  return getStateColor(props.status, props.theme)
 })
 </script>

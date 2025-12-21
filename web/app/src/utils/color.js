@@ -6,9 +6,9 @@
  * @param {Object} result - The result object containing state information.
  * @returns {string} - The color associated with the result's state.
  */
-export const getResultColor = (result) => {
+export const getResultColor = (result, theme) => {
   if (!result) return window.config?.localStateColors.unkown
-  return getStateColor(result.state)
+  return getStateColor(result.state, theme)
 }
 
 /**
@@ -29,8 +29,7 @@ export const themeExists = (theme) => {
  * @param {string} state - The state for which to get the color.
  * @returns {string} - The color associated with the given state.
  */
-export const getStateColor = (state) => {
-  var theme = localStorage.getItem('gatus:theme') || 'default'
+export const getStateColor = (state, theme) => {
   themeExists(theme) || (theme = 'default')
   return window.config?.themes[theme]['stateColors'][state] ?? window.config?.localStateColors.invalid
 }

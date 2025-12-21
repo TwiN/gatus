@@ -39,6 +39,10 @@ const props = defineProps({
   events: {
     type: Array,
     default: () => []
+  },
+  theme: {
+    type: String,
+    default: 'default'
   }
 })
 
@@ -50,7 +54,7 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 const hoveredEventIndex = ref(null)
 
 const getEventColor = (state) => {
-  return getStateColor(state) + 'CC' // Append 'CC' for 80% opacity
+  return getStateColor(state, props.theme) + 'CC' // Append 'CC' for 80% opacity
 }
 
 // Filter events based on selected duration and calculate durations

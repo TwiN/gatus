@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="flex-shrink-0 ml-2">
-          <StatusBadge :status="currentStatus" />
+          <StatusBadge :status="currentStatus" :theme="theme" />
         </div>
       </div>
     </CardHeader>
@@ -41,7 +41,7 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : ''
               ]"
-              :style="`background-color: ${getResultColor(result)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
+              :style="`background-color: ${getResultColor(result, props.theme)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
               @mouseenter="result && handleMouseEnter(result, $event, index)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
@@ -79,6 +79,10 @@ const props = defineProps({
   showAverageResponseTime: {
     type: Boolean,
     default: true
+  },
+  theme: {
+    type: String,
+    default: 'default'
   }
 })
 

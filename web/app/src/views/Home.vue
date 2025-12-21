@@ -132,6 +132,7 @@
                 :endpoint="endpoint"
                 :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
+                :theme="currentTheme"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -177,7 +178,7 @@
       </div>
     </div>
 
-    <Settings @refreshData="fetchData" />
+    <Settings @refreshData="fetchData" @setColorTheme="theme => currentTheme = theme" />
   </div>
 </template>
 
@@ -220,6 +221,7 @@ const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
 const showAverageResponseTime = ref(true)
+const currentTheme = ref(localStorage.getItem('gatus:color-theme') || 'default')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
