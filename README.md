@@ -936,31 +936,31 @@ The following placeholders are supported in `name` and `content`:
 
 ```yaml
 alerting:
-    clickup:
-        list-id: "123456789"
-        token: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        assignees:
-            - "12345"
-            - "67890"
-        status: "in progress"
-        priority: 2
-        name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
-        content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME]\n\nDescription: [ALERT_DESCRIPTION]\n\nErrors: [RESULT_ERRORS]"
+  clickup:
+    list-id: "123456789"
+    token: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    assignees:
+      - "12345"
+      - "67890"
+    status: "in progress"
+    priority: 2
+    name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
+    content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
 
 endpoints:
-    - name: website
-      url: "https://twin.sh/health"
-      interval: 5m
-      conditions:
-          - "[STATUS] == 200"
-          - "[BODY].status == UP"
-          - "[RESPONSE_TIME] < 300"
-      alerts:
-          - type: clickup
-            failure-threshold: 2
-            success-threshold: 3
-            send-on-resolved: true
-            description: "healthcheck failed"
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: clickup
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed"
 ```
 
 To get your ClickUp API token follow: [Generate or regenerate a Personal API Token](https://developer.clickup.com/docs/authentication#:~:text=the%20API%20docs.-,Generate%20or%20regenerate%20a%20Personal%20API%20Token,-Log%20in%20to)
