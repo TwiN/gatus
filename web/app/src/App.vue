@@ -176,13 +176,13 @@ const tooltipIsPersistent = ref(false)
 let configInterval = null
 
 // Computed properties
-const logo = computed(() => window.config?.logo ?? "")
+const logo = computed(() => globalThis.config?.logo ?? "")
 
-const header = computed(() => window.config?.header ?? "Gatus")
+const header = computed(() => globalThis.config?.header ?? "Gatus")
 
-const link = computed(() => window.config?.link ?? null)
+const link = computed(() => globalThis.config?.link ?? null)
 
-const buttons = computed(() => window.config?.buttons ?? [])
+const buttons = computed(() => globalThis.config?.buttons ?? [])
 
 // Methods
 const fetchConfig = async () => {

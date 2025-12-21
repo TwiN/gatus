@@ -7,7 +7,7 @@
       (function() {
         // String is percent-encoded to prevent it from being replaced when ui config is injected
         if (document.title !== decodeURIComponent("%7B%7B%20.UI.Title%20%7D%7D")) { 
-          window.config = {
+          globalThis.config = {
             logo: "{{ .UI.Logo }}",
             header: "{{ .UI.Header }}",
             dashboardHeading: "{{ .UI.DashboardHeading }}",
@@ -18,14 +18,14 @@
             defaultSortBy: "{{ .UI.DefaultSortBy }}",
             defaultFilterBy: "{{ .UI.DefaultFilterBy }}"
           };
-          {{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
+          {{- range .UI.Buttons}}globalThis.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
         } else {
           console.warn('Running in development mode; UI configuration is not injected.');
           document.title= 'Gatus (Development)';
         }
         // Initialize theme immediately to prevent flash
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
         if (themeFromCookie === 'dark' || (!themeFromCookie && prefersDark)) {
           document.documentElement.classList.add('dark');
         } else {
