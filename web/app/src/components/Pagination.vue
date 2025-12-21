@@ -48,9 +48,8 @@ const currentPage = ref(props.currentPageProp)
 
 const maxPages = computed(() => {
   // Use maximumNumberOfResults from config if available, otherwise default to 100
-  let maxResults = 100 // Default value
-  // Check if globalThis.config exists and has maximumNumberOfResults
-  if (typeof window !== 'undefined' && globalThis.config && globalThis.config.maximumNumberOfResults) {
+  let maxResults = 100
+  if (globalThis.config?.maximumNumberOfResults) {
     const parsed = parseInt(globalThis.config.maximumNumberOfResults)
     if (!isNaN(parsed)) {
       maxResults = parsed
