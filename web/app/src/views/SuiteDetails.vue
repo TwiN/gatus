@@ -142,7 +142,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, AlertCircle, ChevronRight } from 'lucide-vue-next'
@@ -154,6 +153,7 @@ import StepDetailsModal from '@/components/StepDetailsModal.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
+import { formatDuration } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()
@@ -237,19 +237,6 @@ const formatRelativeTime = (timestamp) => {
 const formatTimestamp = (timestamp) => {
   const date = new Date(timestamp)
   return date.toLocaleString()
-}
-
-const formatDuration = (duration) => {
-  if (!duration && duration !== 0) return 'N/A'
-  
-  // Convert nanoseconds to milliseconds
-  const durationMs = duration / 1000000
-  
-  if (durationMs < 1000) {
-    return `${durationMs.toFixed(0)}ms`
-  } else {
-    return `${(durationMs / 1000).toFixed(2)}s`
-  }
 }
 
 const calculateSuccessRate = (result) => {
