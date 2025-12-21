@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
@@ -38,7 +39,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, co
 	condition := string(c)
 	success := false
 
-	var linkedStateName string
+	var linkedStateName = state.DefaultUnhealthyStateName
 	if strings.Contains(condition, "::") {
 		conditionParts := strings.Split(condition, "::")
 		if len(conditionParts) != 2 { // TODO#227 Not sure if this makes sense. Checking that it is 2 or more should be enough. Then there is no character restriction in the remaining condition.
