@@ -961,15 +961,11 @@ endpoints:
         description: "healthcheck failed"
 ```
 
-To get your ClickUp API token:
-1. Go to ClickUp Settings
-2. Click on "Apps" in the left sidebar
-3. Click on "API" 
-4. Generate a new API token or copy an existing one
+To get your ClickUp API token follow: [Generate or regenerate a Personal API Token](https://developer.clickup.com/docs/authentication#:~:text=the%20API%20docs.-,Generate%20or%20regenerate%20a%20Personal%20API%20Token,-Log%20in%20to)
 
 To find your List ID:
 1. Open the ClickUp list where you want tasks to be created
-2. The List ID is in the URL: `https://app.clickup.com/{workspace_id}/v/li/{list_id}`
+2. The List ID is in the URL: `https://app.clickup.com/{workspace_id}/v/l/li/{list_id}`
 
 
 #### Configuring Datadog alerts
