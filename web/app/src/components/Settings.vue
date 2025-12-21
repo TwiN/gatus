@@ -31,10 +31,10 @@
         </div>
       </button>
 
-      <div v-if="AVAILABLE_THEMES.length > 1" class="flex items-center">
-        <!-- Divider -->
-        <div class="h-5 w-px bg-border/50" />
+      <!-- Divider -->
+      <div v-if="AVAILABLE_THEMES.length > 1" class="h-5 w-px bg-border/50" />
 
+      <div v-if="AVAILABLE_THEMES.length > 1" class="flex items-center">
         <button
           @click="showThemeMenu = !showThemeMenu; showRefreshMenu = false"
           :aria-expanded="showThemeMenu"
