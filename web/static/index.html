@@ -2,8 +2,21 @@
         Function(`window.config = {{ toJSON .UI }};`)(); // Wrapped in Function to prevent error in development mode
       }
       else {
+        console.warn('Running in development mode; UI configuration is not injected.');
         document.title = "Gatus (Development)";
+        window.config = {
+          themes: {
+            "default": {
+              "stateColors": {"healthy": "#22C55E","maintenance": "#3B82F6","unhealthy": "#E43B3C"}
+            }
+          },
+        };
       }
+      window.config.localStateColors = {
+        unknown: "#374151",
+        invalid: "#8B5CF6"
+      };
+
       (function() {
         // Initialize theme immediately to prevent flash
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
