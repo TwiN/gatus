@@ -26,7 +26,7 @@ func TestAlertProvider_Validate(t *testing.T) {
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithAPIURL := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", APIURL: "https://api.clickup.com/api/v2/list/test-list-id/task"}}
+	validProviderWithAPIURL := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", APIURL: "https://api.clickup.com/api/v2"}}
 	if err := validProviderWithAPIURL.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
@@ -37,7 +37,7 @@ func TestAlertProvider_ValidateSetsDefaultAPIURL(t *testing.T) {
 	if err := provider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
-	if provider.DefaultConfig.APIURL != "https://api.clickup.com/api/v2/list/test-list-id/task" {
+	if provider.DefaultConfig.APIURL != "https://api.clickup.com/api/v2" {
 		t.Errorf("expected APIURL to be set to default, got %s", provider.DefaultConfig.APIURL)
 	}
 }

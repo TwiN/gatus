@@ -911,62 +911,64 @@ Make sure you have the ability to use `ses:SendEmail`.
 
 
 #### Configuring ClickUp alerts
-| Parameter                            | Description                                                                                | Default       |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.clickup`                   | Configuration for alerts of type `clickup`                                                 | `{}`          |
-| `alerting.clickup.list-id`           | ClickUp List ID where tasks will be created                                                | Required `""` |
-| `alerting.clickup.token`             | ClickUp API token                                                                          | Required `""` |
-| `alerting.clickup.api-url`           | Custom API URL (optional, defaults to `https://api.clickup.com/api/v2/list/{list-id}/task`) | `""`          |
-| `alerting.clickup.assignees`         | List of user IDs to assign tasks to                                                        | `[]`          |
-| `alerting.clickup.status`            | Initial status for created tasks                                                           | `""`          |
-| `alerting.clickup.priority`          | Priority level for created tasks (1-4)                                                     | `0`           |
-| `alerting.clickup.name`              | Custom task name template (supports placeholders)                                          | `""`          |
-| `alerting.clickup.content`           | Custom task content template (supports placeholders)                                       | `""`          |
-| `alerting.clickup.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+
+| Parameter                        | Description                                                                                | Default       |
+| :------------------------------- | :----------------------------------------------------------------------------------------- | :------------ |
+| `alerting.clickup`               | Configuration for alerts of type `clickup`                                                 | `{}`          |
+| `alerting.clickup.list-id`       | ClickUp List ID where tasks will be created                                                | Required `""` |
+| `alerting.clickup.token`         | ClickUp API token                                                                          | Required `""` |
+| `alerting.clickup.api-url`       | Custom API URL                   | `https://api.clickup.com/api/v2`          |
+| `alerting.clickup.assignees`     | List of user IDs to assign tasks to                                                        | `[]`          |
+| `alerting.clickup.status`        | Initial status for created tasks                                                           | `""`          |
+| `alerting.clickup.priority`      | Priority level for created tasks (1-4)                                                     | `0`           |
+| `alerting.clickup.name`          | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
+| `alerting.clickup.content`       | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
+| `alerting.clickup.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 
 The ClickUp alerting provider creates tasks in a ClickUp list when alerts are triggered. If `send-on-resolved` is set to `true` on the endpoint alert, the task will be automatically closed when the alert is resolved.
 
 The following placeholders are supported in `name` and `content`:
-- `[ENDPOINT_GROUP]` - Resolved from `endpoints[].group`
-- `[ENDPOINT_NAME]` - Resolved from `endpoints[].name`
-- `[ALERT_DESCRIPTION]` - Resolved from `endpoints[].alerts[].description`
-- `[RESULT_ERRORS]` - Resolved from the health evaluation errors
+
+-   `[ENDPOINT_GROUP]` - Resolved from `endpoints[].group`
+-   `[ENDPOINT_NAME]` - Resolved from `endpoints[].name`
+-   `[ALERT_DESCRIPTION]` - Resolved from `endpoints[].alerts[].description`
+-   `[RESULT_ERRORS]` - Resolved from the health evaluation errors
 
 ```yaml
 alerting:
-  clickup:
-    list-id: "123456789"
-    token: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    assignees:
-      - "12345"
-      - "67890"
-    status: "in progress"
-    priority: 2
-    name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
-    content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME]\n\nDescription: [ALERT_DESCRIPTION]\n\nErrors: [RESULT_ERRORS]"
+    clickup:
+        list-id: "123456789"
+        token: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        assignees:
+            - "12345"
+            - "67890"
+        status: "in progress"
+        priority: 2
+        name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
+        content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME]\n\nDescription: [ALERT_DESCRIPTION]\n\nErrors: [RESULT_ERRORS]"
 
 endpoints:
-  - name: website
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
-    alerts:
-      - type: clickup
-        failure-threshold: 2
-        success-threshold: 3
-        send-on-resolved: true
-        description: "healthcheck failed"
+    - name: website
+      url: "https://twin.sh/health"
+      interval: 5m
+      conditions:
+          - "[STATUS] == 200"
+          - "[BODY].status == UP"
+          - "[RESPONSE_TIME] < 300"
+      alerts:
+          - type: clickup
+            failure-threshold: 2
+            success-threshold: 3
+            send-on-resolved: true
+            description: "healthcheck failed"
 ```
 
 To get your ClickUp API token follow: [Generate or regenerate a Personal API Token](https://developer.clickup.com/docs/authentication#:~:text=the%20API%20docs.-,Generate%20or%20regenerate%20a%20Personal%20API%20Token,-Log%20in%20to)
 
 To find your List ID:
+
 1. Open the ClickUp list where you want tasks to be created
 2. The List ID is in the URL: `https://app.clickup.com/{workspace_id}/v/l/li/{list_id}`
-
 
 #### Configuring Datadog alerts
 

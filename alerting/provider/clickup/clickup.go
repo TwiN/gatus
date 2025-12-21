@@ -38,7 +38,13 @@ func (cfg *Config) Validate() error {
 		return ErrTokenNotSet
 	}
 	if cfg.APIURL == "" {
-		cfg.APIURL = "https://api.clickup.com/api/v2/list/" + cfg.ListID + "/task"
+		cfg.APIURL = "https://api.clickup.com/api/v2"
+	}
+	if cfg.Name == "" {
+		cfg.Name = "Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]"
+	}
+	if cfg.MarkdownContent == "" {
+		cfg.MarkdownContent = "Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
 	}
 	return nil
 }
@@ -86,21 +92,11 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return provider.CloseTask(cfg, ep)
 	}
 
-	name := cfg.Name
-	if name == "" {
-		name = "Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]"
-	}
-
-	markdownContent := cfg.MarkdownContent
-	if markdownContent == "" {
-		markdownContent = "Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
-	}
-
 	// Replace placeholders
-	name = strings.ReplaceAll(name, "[ENDPOINT_GROUP]", ep.Group)
+	name := strings.ReplaceAll(cfg.Name, "[ENDPOINT_GROUP]", ep.Group)
 	name = strings.ReplaceAll(name, "[ENDPOINT_NAME]", ep.Name)
 
-	markdownContent = strings.ReplaceAll(markdownContent, "[ENDPOINT_GROUP]", ep.Group)
+	markdownContent := strings.ReplaceAll(cfg.MarkdownContent, "[ENDPOINT_GROUP]", ep.Group)
 	markdownContent = strings.ReplaceAll(markdownContent, "[ENDPOINT_NAME]", ep.Name)
 	markdownContent = strings.ReplaceAll(markdownContent, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	markdownContent = strings.ReplaceAll(markdownContent, "[RESULT_ERRORS]", strings.Join(result.Errors, ", "))
@@ -123,7 +119,8 @@ func (provider *AlertProvider) CreateTask(cfg *Config, body map[string]interface
 		return err
 	}
 
-	req, err := http.NewRequest("POST", cfg.APIURL, bytes.NewBuffer(jsonBody))
+	createURL := fmt.Sprintf("%s/list/%s/task", cfg.APIURL, cfg.ListID)
+	req, err := http.NewRequest("POST", createURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}
@@ -145,7 +142,7 @@ func (provider *AlertProvider) CreateTask(cfg *Config, body map[string]interface
 }
 
 func (provider *AlertProvider) CloseTask(cfg *Config, ep *endpoint.Endpoint) error {
-	fetchURL := fmt.Sprintf("https://api.clickup.com/api/v2/list/%s/task?include_closed=false", cfg.ListID)
+	fetchURL := fmt.Sprintf("%s/list/%s/task?include_closed=false", cfg.APIURL, cfg.ListID)
 
 	req, err := http.NewRequest("GET", fetchURL, nil)
 	if err != nil {
@@ -195,7 +192,7 @@ func (provider *AlertProvider) CloseTask(cfg *Config, ep *endpoint.Endpoint) err
 }
 
 func (provider *AlertProvider) UpdateTaskStatus(cfg *Config, taskID, status string) error {
-	updateURL := fmt.Sprintf("https://api.clickup.com/api/v2/task/%s", taskID)
+	updateURL := fmt.Sprintf("%s/task/%s", cfg.APIURL, taskID)
 	body := map[string]interface{}{"status": status}
 
 	jsonBody, err := json.Marshal(body)
