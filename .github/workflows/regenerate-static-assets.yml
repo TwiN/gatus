@@ -20,6 +20,7 @@ jobs:
           command: "/regenerate-static-assets"
           permissions: "write,admin" # The allowed permission levels to invoke this command
           allow_forks: true
+          allow_drafts: true
           skip_ci: true
           skip_completing: true
 
