@@ -283,8 +283,8 @@ const pageResponseTimeRange = computed(() => {
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.round(min / 1000000)
-  const maxMs = Math.round(max / 1000000) 
+  const minMs = Math.trunc(min / 1000000)
+  const maxMs = Math.trunc(max / 1000000)
   // If min and max are the same, show single value
   if (minMs === maxMs) {
     return `${minMs}ms`

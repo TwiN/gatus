@@ -17,6 +17,7 @@ import (
 )
 
 func TestGetHTTPClient(t *testing.T) {
+	t.Parallel()
 	cfg := &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
@@ -42,6 +43,7 @@ func TestGetHTTPClient(t *testing.T) {
 }
 
 func TestRdapQuery(t *testing.T) {
+	t.Parallel()
 	if _, err := rdapQuery("1.1.1.1"); err == nil {
 		t.Error("expected an error due to the invalid domain type")
 	}
@@ -156,7 +158,6 @@ func TestShouldRunPingerAsPrivileged(t *testing.T) {
 		t.Logf("Non-root privileged result: %v", result)
 	}
 }
-
 
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
@@ -289,6 +290,7 @@ func TestCanPerformTLS(t *testing.T) {
 }
 
 func TestCanCreateConnection(t *testing.T) {
+	t.Parallel()
 	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
 	if connected {
 		t.Error("should've failed, because there's no port in the address")
@@ -303,6 +305,7 @@ func TestCanCreateConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
+	t.Parallel()
 	defer InjectHTTPClient(nil)
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
@@ -358,6 +361,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 }
 
 func TestQueryWebSocket(t *testing.T) {
+	t.Parallel()
 	_, _, err := QueryWebSocket("", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the address being invalid")
@@ -369,6 +373,7 @@ func TestQueryWebSocket(t *testing.T) {
 }
 
 func TestTlsRenegotiation(t *testing.T) {
+	t.Parallel()
 	scenarios := []struct {
 		name           string
 		cfg            TLSConfig
@@ -412,6 +417,7 @@ func TestTlsRenegotiation(t *testing.T) {
 }
 
 func TestQueryDNS(t *testing.T) {
+	t.Parallel()
 	scenarios := []struct {
 		name            string
 		inputDNS        dns.Config
@@ -468,7 +474,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "*.iana-servers.net.",
+			expectedBody:    "*.ns.cloudflare.com.",
 		},
 		{
 			name: "test Config with type PTR",
@@ -541,6 +547,7 @@ func TestQueryDNS(t *testing.T) {
 }
 
 func TestCheckSSHBanner(t *testing.T) {
+	t.Parallel()
 	cfg := &Config{Timeout: 3}
 	t.Run("no-auth-ssh", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
