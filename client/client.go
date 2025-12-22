@@ -24,6 +24,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ishidawataru/sctp"
 	"github.com/miekg/dns"
+	"github.com/pkg/sftp"
 	ping "github.com/prometheus-community/pro-bing"
 	"github.com/registrobr/rdap"
 	"github.com/registrobr/rdap/protocol"
@@ -347,6 +348,98 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 		return false, 0, nil, err
 	}
 	return true, exitErr.ExitStatus(), output, nil
+}
+
+// CanCreateSFTPConnection checks whether a connection can be established and a command can be executed to an address
+// using the SFTP protocol.
+func CanCreateSFTPConnection(address, username, password, privateKey string, config *Config) (bool, *sftp.Client, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, nil, errors.New("invalid address for sftp, format must be host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+
+	// Build auth methods: prefer parsed private key if provided, fall back to password.
+	var authMethods []ssh.AuthMethod
+	if len(privateKey) > 0 {
+		if signer, err := ssh.ParsePrivateKey([]byte(privateKey)); err == nil {
+			authMethods = append(authMethods, ssh.PublicKeys(signer))
+		} else {
+			return false, nil, fmt.Errorf("invalid private key: %w", err)
+		}
+	}
+	if len(password) > 0 {
+		authMethods = append(authMethods, ssh.Password(password))
+	}
+
+	sshClient, err := ssh.Dial("tcp", net.JoinHostPort(address, port), &ssh.ClientConfig{
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:            username,
+		Auth:            authMethods,
+		Timeout:         config.Timeout,
+	})
+	if err != nil {
+		return false, nil, err
+	}
+
+	sftpClient, err := sftp.NewClient(sshClient)
+	if err != nil {
+		sshClient.Close()
+		return false, nil, err
+	}
+	return true, sftpClient, nil
+}
+
+func CheckSFTPConnection(address string, config *Config) (bool, error) {
+	var port string
+	if strings.Contains(address, ":") {
+		addressAndPort := strings.Split(address, ":")
+		if len(addressAndPort) != 2 {
+			return false, errors.New("invalid address for sftp, format must be host:port")
+		}
+		address = addressAndPort[0]
+		port = addressAndPort[1]
+	} else {
+		port = "22"
+	}
+	dialer := net.Dialer{}
+	connStr := net.JoinHostPort(address, port)
+	conn, err := dialer.Dial("tcp", connStr)
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	buf := make([]byte, 256)
+	_, err = io.ReadAtLeast(conn, buf, 1)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ExecuteSFTPCommand executes a command to an address using the SFTP protocol.
+func ExecuteSFTPCommand(sftpClient *sftp.Client, path string, config *Config) (bool, int, []byte, error) {
+	defer sftpClient.Close()
+	files, err := sftpClient.ReadDir(path)
+	if err != nil {
+		return false, 0, nil, err
+	}
+	var fileNames []string
+	for _, file := range files {
+		fileNames = append(fileNames, file.Name())
+	}
+	output, err := json.Marshal(map[string][]string{"files": fileNames})
+	if err != nil {
+		return false, 0, nil, err
+	}
+	return true, 0, output, nil
 }
 
 // Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged

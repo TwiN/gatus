@@ -24,6 +24,7 @@ require (
 	github.com/ishidawataru/sctp v0.0.0-20230406120618-7ff4192f6ff2
 	github.com/lib/pq v1.10.9
 	github.com/miekg/dns v1.1.68
+	github.com/pkg/sftp v1.13.10
 	github.com/prometheus-community/pro-bing v0.7.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/registrobr/rdap v1.1.8
@@ -72,6 +73,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
