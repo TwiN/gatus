@@ -912,18 +912,21 @@ Make sure you have the ability to use `ses:SendEmail`.
 
 #### Configuring ClickUp alerts
 
-| Parameter                        | Description                                                                                | Default       |
-| :------------------------------- | :----------------------------------------------------------------------------------------- | :------------ |
-| `alerting.clickup`               | Configuration for alerts of type `clickup`                                                 | `{}`          |
-| `alerting.clickup.list-id`       | ClickUp List ID where tasks will be created                                                | Required `""` |
-| `alerting.clickup.token`         | ClickUp API token                                                                          | Required `""` |
-| `alerting.clickup.api-url`       | Custom API URL                   | `https://api.clickup.com/api/v2`          |
-| `alerting.clickup.assignees`     | List of user IDs to assign tasks to                                                        | `[]`          |
-| `alerting.clickup.status`        | Initial status for created tasks                                                           | `""`          |
-| `alerting.clickup.priority`      | Priority level for created tasks (1-4)                                                     | `0`           |
-| `alerting.clickup.name`          | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
-| `alerting.clickup.content`       | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
-| `alerting.clickup.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| Parameter                          | Description                                                                                | Default       |
+| :--------------------------------- | :----------------------------------------------------------------------------------------- | :------------ |
+| `alerting.clickup`                 | Configuration for alerts of type `clickup`                                                 | `{}`          |
+| `alerting.clickup.list-id`         | ClickUp List ID where tasks will be created                                                | Required `""` |
+| `alerting.clickup.token`           | ClickUp API token                                                                          | Required `""` |
+| `alerting.clickup.api-url`         | Custom API URL                   | `https://api.clickup.com/api/v2`          |
+| `alerting.clickup.assignees`       | List of user IDs to assign tasks to                                                        | `[]`          |
+| `alerting.clickup.status`          | Initial status for created tasks                                                           | `""`          |
+| `alerting.clickup.priority`        | Priority level for created tasks (1-4)                                                     | `0`           |
+| `alerting.clickup.name`            | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
+| `alerting.clickup.content`         | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
+| `alerting.clickup.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.clickup.overrides`       | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.clickup.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration      | `""`          |
+| `alerting.clickup.overrides[].*`   | See `alerting.clickup.*` parameters                                                        | `{}`          |
 
 The ClickUp alerting provider creates tasks in a ClickUp list when alerts are triggered. If `send-on-resolved` is set to `true` on the endpoint alert, the task will be automatically closed when the alert is resolved.
 
@@ -946,6 +949,12 @@ alerting:
     priority: 2
     name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
     content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
+    # You can also add group-specific configurations, which will
+    # override the default configuration for the specified groups
+    overrides:
+      - group: "core"
+        list-id: "987654321"
+        priority: 1
 
 endpoints:
   - name: website
@@ -955,6 +964,20 @@ endpoints:
       - "[STATUS] == 200"
       - "[BODY].status == UP"
       - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: clickup
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed"
+
+  - name: back-end
+    group: core
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
     alerts:
       - type: clickup
         failure-threshold: 2
