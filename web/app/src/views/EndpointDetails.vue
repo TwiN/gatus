@@ -201,7 +201,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
@@ -282,8 +281,8 @@ const pageResponseTimeRange = computed(() => {
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.round(min / 1000000)
-  const maxMs = Math.round(max / 1000000) 
+  const minMs = Math.trunc(min / 1000000)
+  const maxMs = Math.trunc(max / 1000000)
   // If min and max are the same, show single value
   if (minMs === maxMs) {
     return `${minMs}ms`
