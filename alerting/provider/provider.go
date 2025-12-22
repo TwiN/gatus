@@ -37,6 +37,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/threemagateway"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/webex"
 	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
@@ -126,6 +127,7 @@ var (
 	_ AlertProvider = (*teams.AlertProvider)(nil)
 	_ AlertProvider = (*teamsworkflows.AlertProvider)(nil)
 	_ AlertProvider = (*telegram.AlertProvider)(nil)
+	_ AlertProvider = (*threemagateway.AlertProvider)(nil)
 	_ AlertProvider = (*twilio.AlertProvider)(nil)
 	_ AlertProvider = (*webex.AlertProvider)(nil)
 	_ AlertProvider = (*zapier.AlertProvider)(nil)
@@ -167,6 +169,7 @@ var (
 	_ Config[teams.Config]          = (*teams.Config)(nil)
 	_ Config[teamsworkflows.Config] = (*teamsworkflows.Config)(nil)
 	_ Config[telegram.Config]       = (*telegram.Config)(nil)
+	_ Config[threemagateway.Config] = (*threemagateway.Config)(nil)
 	_ Config[twilio.Config]         = (*twilio.Config)(nil)
 	_ Config[webex.Config]          = (*webex.Config)(nil)
 	_ Config[zapier.Config]         = (*zapier.Config)(nil)

@@ -41,6 +41,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/threemagateway"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
 	"github.com/TwiN/gatus/v5/alerting/provider/webex"
@@ -155,6 +156,9 @@ type Config struct {
 
 	// Telegram is the configuration for the telegram alerting provider
 	Telegram *telegram.AlertProvider `yaml:"telegram,omitempty"`
+
+	// ThreemaGateway is the configuration for the threema-gatway alerting provider
+	ThreemaGateway *threemagateway.AlertProvider `yaml:"threema-gateway,omitempty"`
 
 	// Twilio is the configuration for the twilio alerting provider
 	Twilio *twilio.AlertProvider `yaml:"twilio,omitempty"`

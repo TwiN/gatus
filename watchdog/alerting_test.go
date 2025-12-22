@@ -24,6 +24,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/threemagateway"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
 	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
@@ -450,6 +451,21 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 					DefaultConfig: telegram.Config{
 						Token: "1",
 						ID:    "2",
+					},
+				},
+			},
+		},
+		{
+			Name:      "threemagateway",
+			AlertType: alert.TypeThreemaGateway,
+			AlertingConfig: &alerting.Config{
+				ThreemaGateway: &threemagateway.AlertProvider{
+					DefaultConfig: threemagateway.Config{
+						ApiUrl:        "test-url",
+						Mode:          "test-mode",
+						SenderID:      "test-sender",
+						Recipient:     "test-recipient",
+						ApiAuthSecret: "test-secret",
 					},
 				},
 			},
