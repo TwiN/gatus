@@ -174,11 +174,16 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 }
 
 func (provider *AlertProvider) buildMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
+	group := ep.Group
+	if len(group) > 0 {
+		group += "/"
+	}
+
 	var body string
 	if resolved {
-		body = fmt.Sprintf("✅ *Gatus: %s/%s*\nAlert resolved after passing %d checks.", ep.Group, ep.Name, alert.SuccessThreshold)
+		body = fmt.Sprintf("✅ *Gatus: %s%s*\nAlert resolved after passing %d checks.", group, ep.Name, alert.SuccessThreshold)
 	} else {
-		body = fmt.Sprintf("🚨 *Gatus: %s/%s*\nAlert triggered after failing %d checks.", ep.Group, ep.Name, alert.FailureThreshold)
+		body = fmt.Sprintf("🚨 *Gatus: %s%s*\nAlert triggered after failing %d checks.", group, ep.Name, alert.FailureThreshold)
 		for _, conditionResult := range result.ConditionResults {
 			var icon rune
 			if conditionResult.Success {
