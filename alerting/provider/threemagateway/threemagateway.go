@@ -33,7 +33,7 @@ type Config struct {
 }
 
 func (cfg *Config) Validate() error {
-	// Validate API URL
+	// Validate API Base URL
 	if len(cfg.ApiBaseUrl) == 0 {
 		cfg.ApiBaseUrl = defaultApiBaseUrl
 	}
@@ -138,20 +138,18 @@ func (provider *AlertProvider) buildMessageBody(ep *endpoint.Endpoint, alert *al
 	if resolved {
 		body = fmt.Sprintf("✅ *Gatus: %s%s*\nAlert resolved after passing %d checks.", group, ep.Name, alert.SuccessThreshold)
 	} else {
-		body = fmt.Sprintf("🚨 *Gatus: %s%s*\nAlert triggered after failing %d checks.", group, ep.Name, alert.FailureThreshold)
+		body = fmt.Sprintf("🚨 *Gatus: %s%s*\nAlert triggered after failing %d checks.\nConditions:", group, ep.Name, alert.FailureThreshold)
 		for _, conditionResult := range result.ConditionResults {
-			var icon rune
+			icon := "❌"
 			if conditionResult.Success {
-				icon = '✓'
-			} else {
-				icon = '✗'
+				icon = "✅"
 			}
-			body += fmt.Sprintf("\n- %c %s", icon, conditionResult.Condition)
+			body += fmt.Sprintf("\n  %s %s", icon, conditionResult.Condition)
 		}
 		if len(result.Errors) > 0 {
 			body += "\nErrors:"
 			for _, err := range result.Errors {
-				body += fmt.Sprintf("\n- ✗ %s", err)
+				body += fmt.Sprintf("\n  ❌ %s", err)
 			}
 		}
 	}
