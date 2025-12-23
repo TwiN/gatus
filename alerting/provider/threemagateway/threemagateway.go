@@ -65,8 +65,8 @@ func (cfg *Config) Validate() error {
 		if err := recipient.Validate(); err != nil {
 			return fmt.Errorf("recipients: %s: %w", recipient.Value, err)
 		}
-		if modeType != ModeTypeBasic && recipient.Type == RecipientTypeId {
-			return errors.New("recipient type 'id' is only supported in 'basic' mode") // TODO#1464: Maybe add support to fetch and cache IDs in other modes
+		if modeType != ModeTypeBasic && recipient.Type != RecipientTypeId {
+			return fmt.Errorf("recipients: only 'id' recipient type is supported in '%s' mode", cfg.Mode.Value)
 		}
 	}
 
