@@ -24,6 +24,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gatus/v5/config/state"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -67,13 +68,16 @@ var (
 	ErrUnknownEndpointType = errors.New("unknown endpoint type")
 
 	// ErrInvalidConditionFormat is the error with which Gatus will panic if a condition has an invalid format
-	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '<VALUE> <COMPARATOR> <VALUE>'")
+	ErrInvalidConditionFormat = errors.New("invalid condition format: does not match '[STATE::]<VALUE> <COMPARATOR> <VALUE>'")
 
 	// ErrInvalidEndpointIntervalForDomainExpirationPlaceholder is the error with which Gatus will panic if an endpoint
 	// has both an interval smaller than 5 minutes and a condition with DomainExpirationPlaceholder.
 	// This is because the free whois service we are using should not be abused, especially considering the fact that
 	// the data takes a while to be updated.
 	ErrInvalidEndpointIntervalForDomainExpirationPlaceholder = errors.New("the minimum interval for an endpoint with a condition using the " + DomainExpirationPlaceholder + " placeholder is 300s (5m)")
+
+	// State config
+	states []*state.State
 )
 
 // Endpoint is the configuration of a service to be monitored
@@ -149,6 +153,19 @@ type Endpoint struct {
 	// AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed
 	// This field is only used when the endpoint is part of a suite
 	AlwaysRun bool `yaml:"always-run,omitempty"`
+}
+
+func SetStateConfig(cfg []*state.State) {
+	states = cfg
+}
+
+func FindStateByName(name string) *state.State {
+	for _, state := range states {
+		if state.Name == name {
+			return state
+		}
+	}
+	return nil
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
@@ -335,6 +352,23 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
 		if !success {
 			result.Success = false
+		}
+	}
+	if result.Success {
+		result.State = state.DefaultHealthyStateName
+	} else {
+		highestPrioritySeen := 0
+		for _, conditionResult := range result.ConditionResults {
+			if !conditionResult.Success {
+				linkedState := FindStateByName(conditionResult.LinkedStateName)
+				if linkedState != nil && linkedState.Priority > highestPrioritySeen {
+					highestPrioritySeen = linkedState.Priority
+					result.State = conditionResult.LinkedStateName
+				}
+			}
+		}
+		if len(result.State) == 0 {
+			result.State = state.DefaultUnhealthyStateName
 		}
 	}
 	result.Timestamp = time.Now()
