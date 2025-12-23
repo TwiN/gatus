@@ -2247,7 +2247,7 @@ Here's an example of what the notifications look like:
 | Parameter                                    | Description                                                                                                 | Default                     |
 |:---------------------------------------------|:------------------------------------------------------------------------------------------------------------|:----------------------------|
 | `alerting.threema-gateway`                   | Configuration for alerts of type `threema-gateway`                                                          | `{}`                        |
-| `alerting.threema-gateway.api-url`           | Threema Gateway API URL                                                                                     | `https://msgapi.threema.ch` |
+| `alerting.threema-gateway.api-base-url`      | Threema Gateway API Base URL                                                                                | `https://msgapi.threema.ch` |
 | `alerting.threema-gateway.send-mode`         | Mode used to send the alert, currently only `basic` is supported                                            | `"basic"`                   |
 | `alerting.threema-gateway.api-identity`      | Personal Threema API Identity                                                                               | Required `""`               |
 | `alerting.threema-gateway.recipients`        | Recipients in format `[<type>:]<identifier>`, where type is `id`, `phone` or `email`. Type defaults to `id` | Required `""`               |

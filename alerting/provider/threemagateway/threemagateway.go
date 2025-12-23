@@ -17,8 +17,8 @@ import (
 // TODO#1464: Add tests
 
 const (
-	defaultApiUrl = "https://msgapi.threema.ch"
-	defaultMode   = "basic"
+	defaultApiBaseUrl = "https://msgapi.threema.ch"
+	defaultMode       = "basic"
 )
 
 var (
@@ -70,7 +70,7 @@ func (m SendMode) MarshalText() ([]byte, error) {
 }
 
 type Config struct {
-	ApiUrl        string      `yaml:"api-url"`
+	ApiBaseUrl    string      `yaml:"api-base-url"`
 	Mode          *SendMode   `yaml:"send-mode"`
 	ApiIdentity   string      `yaml:"api-identity"`
 	Recipients    []Recipient `yaml:"recipients"`
@@ -79,8 +79,8 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	// Validate API URL
-	if len(cfg.ApiUrl) == 0 {
-		cfg.ApiUrl = defaultApiUrl
+	if len(cfg.ApiBaseUrl) == 0 {
+		cfg.ApiBaseUrl = defaultApiBaseUrl
 	}
 
 	// Validate Mode
@@ -123,8 +123,8 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.ApiUrl) > 0 {
-		cfg.ApiUrl = override.ApiUrl
+	if len(override.ApiBaseUrl) > 0 {
+		cfg.ApiBaseUrl = override.ApiBaseUrl
 	}
 	if override.Mode != nil {
 		cfg.Mode = override.Mode
@@ -152,6 +152,7 @@ type Override struct {
 }
 
 func (provider *AlertProvider) Validate() error {
+	// TODO#1464 Validate overrides?
 	return provider.DefaultConfig.Validate()
 }
 
@@ -198,7 +199,7 @@ func (provider *AlertProvider) buildMessageBody(ep *endpoint.Endpoint, alert *al
 }
 
 func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.Request, error) {
-	requestUrl := cfg.ApiUrl
+	requestUrl := cfg.ApiBaseUrl
 	switch cfg.Mode.Type {
 	case ModeTypeBasic:
 		requestUrl += "/send_simple"
@@ -285,7 +286,8 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 		}
 		cfg.Merge(&overrideConfig)
 	}
-	return &cfg, cfg.Validate()
+	err := cfg.Validate()
+	return &cfg, err
 }
 
 func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
