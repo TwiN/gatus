@@ -66,7 +66,7 @@
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    @click="showAverageResponseTime = !showAverageResponseTime"
+                    @click="toggleShowAverageResponseTime"
                     :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
                   >
                     <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
@@ -224,7 +224,7 @@ const events = ref([])
 const currentPage = ref(1)
 const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
-const showAverageResponseTime = ref(false)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
 const isRefreshing = ref(false)
 
@@ -244,6 +244,11 @@ const currentHealthStatus = computed(() => {
 const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
+
+const toggleShowAverageResponseTime = () => {
+  showAverageResponseTime.value = !showAverageResponseTime.value
+  localStorage.setItem('gatus:show-average-response-time', showAverageResponseTime.value ? 'true' : 'false')
+}
 
 const pageAverageResponseTime = computed(() => {
   // Use endpointStatus for current page's average response time
