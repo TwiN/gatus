@@ -920,7 +920,7 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.clickup.api-url`         | Custom API URL                   | `https://api.clickup.com/api/v2`          |
 | `alerting.clickup.assignees`       | List of user IDs to assign tasks to                                                        | `[]`          |
 | `alerting.clickup.status`          | Initial status for created tasks                                                           | `""`          |
-| `alerting.clickup.priority`        | Priority level for created tasks (1-4)                                                     | `0`           |
+| `alerting.clickup.priority`        | Priority level for created tasks (1=Urgent, 2=High, 3=Normal, 4=Low)                       | `0` (none)    |
 | `alerting.clickup.name`            | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
 | `alerting.clickup.content`         | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
 | `alerting.clickup.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |

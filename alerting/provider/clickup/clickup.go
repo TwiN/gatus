@@ -18,6 +18,7 @@ var (
 	ErrListIDNotSet           = errors.New("list-id not set")
 	ErrTokenNotSet            = errors.New("token not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
+	ErrInvalidPriority        = errors.New("priority must be between 1 and 4")
 )
 
 type Config struct {
@@ -37,6 +38,9 @@ func (cfg *Config) Validate() error {
 	}
 	if cfg.Token == "" {
 		return ErrTokenNotSet
+	}
+	if cfg.Priority != 0 && (cfg.Priority < 1 || cfg.Priority > 4) {
+		return ErrInvalidPriority
 	}
 	if cfg.APIURL == "" {
 		cfg.APIURL = "https://api.clickup.com/api/v2"
