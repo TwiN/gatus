@@ -920,7 +920,7 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.clickup.api-url`         | Custom API URL                   | `https://api.clickup.com/api/v2`          |
 | `alerting.clickup.assignees`       | List of user IDs to assign tasks to                                                        | `[]`          |
 | `alerting.clickup.status`          | Initial status for created tasks                                                           | `""`          |
-| `alerting.clickup.priority`        | Priority level for created tasks (1=Urgent, 2=High, 3=Normal, 4=Low)                       | `3`           |
+| `alerting.clickup.priority`        | Priority level: `urgent`, `high`, `normal`, `low`, or `none`                               | `normal`      |
 | `alerting.clickup.name`            | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
 | `alerting.clickup.content`         | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
 | `alerting.clickup.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
@@ -946,7 +946,7 @@ alerting:
       - "12345"
       - "67890"
     status: "in progress"
-    priority: 2
+    priority: high
     name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
     content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
     # You can also add group-specific configurations, which will
@@ -954,7 +954,7 @@ alerting:
     overrides:
       - group: "core"
         list-id: "987654321"
-        priority: 1
+        priority: urgent
 
 endpoints:
   - name: website

@@ -18,8 +18,16 @@ var (
 	ErrListIDNotSet           = errors.New("list-id not set")
 	ErrTokenNotSet            = errors.New("token not set")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
-	ErrInvalidPriority        = errors.New("priority must be between 1 and 4")
+	ErrInvalidPriority        = errors.New("priority must be one of: urgent, high, normal, low, none")
 )
+
+var priorityMap = map[string]int{
+	"urgent": 1,
+	"high":   2,
+	"normal": 3,
+	"low":    4,
+	"none":   0,
+}
 
 type Config struct {
 	APIURL          string   `yaml:"api-url"`
@@ -27,7 +35,7 @@ type Config struct {
 	Token           string   `yaml:"token"`
 	Assignees       []string `yaml:"assignees"`
 	Status          string   `yaml:"status"`
-	Priority        int      `yaml:"priority"`
+	Priority        string   `yaml:"priority"`
 	Name            string   `yaml:"name,omitempty"`
 	MarkdownContent string   `yaml:"content,omitempty"`
 }
@@ -39,10 +47,10 @@ func (cfg *Config) Validate() error {
 	if cfg.Token == "" {
 		return ErrTokenNotSet
 	}
-	if cfg.Priority == 0 {
-		cfg.Priority = 3
+	if cfg.Priority == "" {
+		cfg.Priority = "normal"
 	}
-	if cfg.Priority < 1 || cfg.Priority > 4 {
+	if _, ok := priorityMap[cfg.Priority]; !ok {
 		return ErrInvalidPriority
 	}
 	if cfg.APIURL == "" {
@@ -70,7 +78,7 @@ func (cfg *Config) Merge(override *Config) {
 	if override.Status != "" {
 		cfg.Status = override.Status
 	}
-	if override.Priority != 0 {
+	if override.Priority != "" {
 		cfg.Priority = override.Priority
 	}
 	if len(override.Assignees) > 0 {
@@ -139,8 +147,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		"markdown_content": markdownContent,
 		"assignees":        cfg.Assignees,
 		"status":           cfg.Status,
-		"priority":         cfg.Priority,
 		"notify_all":       true,
+	}
+	if cfg.Priority != "none" {
+		body["priority"] = priorityMap[cfg.Priority]
 	}
 
 	return provider.CreateTask(cfg, body)

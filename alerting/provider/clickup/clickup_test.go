@@ -22,25 +22,28 @@ func TestAlertProvider_Validate(t *testing.T) {
 	if err := invalidProviderNoToken.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid without token")
 	}
-	invalidProviderBadPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: 5}}
+	invalidProviderBadPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: "invalid"}}
 	if err := invalidProviderBadPriority.Validate(); err == nil {
-		t.Error("provider shouldn't have been valid with priority 5")
-	}
-	invalidProviderNegativePriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: -1}}
-	if err := invalidProviderNegativePriority.Validate(); err == nil {
-		t.Error("provider shouldn't have been valid with negative priority")
+		t.Error("provider shouldn't have been valid with invalid priority")
 	}
 	validProvider := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token"}}
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
+	if validProvider.DefaultConfig.Priority != "normal" {
+		t.Errorf("expected default priority to be 'normal', got '%s'", validProvider.DefaultConfig.Priority)
+	}
 	validProviderWithAPIURL := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", APIURL: "https://api.clickup.com/api/v2"}}
 	if err := validProviderWithAPIURL.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
-	validProviderWithPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: 2}}
+	validProviderWithPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: "urgent"}}
 	if err := validProviderWithPriority.Validate(); err != nil {
-		t.Error("provider should've been valid with priority 2")
+		t.Error("provider should've been valid with priority 'urgent'")
+	}
+	validProviderWithNone := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: "none"}}
+	if err := validProviderWithNone.Validate(); err != nil {
+		t.Error("provider should've been valid with priority 'none'")
 	}
 }
 
@@ -206,7 +209,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: 3},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: "normal"},
 		},
 		{
 			Name: "provider-with-alert-override-should-override",
@@ -218,7 +221,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				"list-id": "override-list-id",
 				"token":   "override-token",
 			}},
-			ExpectedOutput: Config{ListID: "override-list-id", Token: "override-token", Priority: 3},
+			ExpectedOutput: Config{ListID: "override-list-id", Token: "override-token", Priority: "normal"},
 		},
 		{
 			Name: "provider-with-partial-alert-override-should-merge",
@@ -229,7 +232,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
 				"status": "closed",
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Status: "closed", Priority: 3},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Status: "closed", Priority: "normal"},
 		},
 		{
 			Name: "provider-with-assignees-override",
@@ -240,7 +243,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
 				"assignees": []string{"user1", "user2"},
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Assignees: []string{"user1", "user2"}, Priority: 3},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Assignees: []string{"user1", "user2"}, Priority: "normal"},
 		},
 		{
 			Name: "provider-with-priority-override",
@@ -249,9 +252,32 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			},
 			InputGroup: "",
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
-				"priority": 1,
+				"priority": "urgent",
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: 1},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: "urgent"},
+		},
+		{
+			Name: "provider-with-none-priority",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ListID: "test-list-id", Token: "test-token"},
+			},
+			InputGroup: "",
+			InputAlert: alert.Alert{ProviderOverride: map[string]any{
+				"priority": "none",
+			}},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: "none"},
+		},
+		{
+			Name: "provider-with-group-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{ListID: "test-list-id", Token: "test-token"},
+				Overrides: []Override{
+					{Group: "core", Config: Config{ListID: "core-list-id", Priority: "urgent"}},
+				},
+			},
+			InputGroup:     "core",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{ListID: "core-list-id", Token: "test-token", Priority: "urgent"},
 		},
 	}
 	for _, scenario := range scenarios {
@@ -270,7 +296,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected Status to be %s, got %s", scenario.ExpectedOutput.Status, got.Status)
 			}
 			if got.Priority != scenario.ExpectedOutput.Priority {
-				t.Errorf("expected Priority to be %d, got %d", scenario.ExpectedOutput.Priority, got.Priority)
+				t.Errorf("expected Priority to be %s, got %s", scenario.ExpectedOutput.Priority, got.Priority)
 			}
 			if len(got.Assignees) != len(scenario.ExpectedOutput.Assignees) {
 				t.Errorf("expected Assignees length to be %d, got %d", len(scenario.ExpectedOutput.Assignees), len(got.Assignees))
