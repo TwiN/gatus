@@ -39,7 +39,10 @@ func (cfg *Config) Validate() error {
 	if cfg.Token == "" {
 		return ErrTokenNotSet
 	}
-	if cfg.Priority != 0 && (cfg.Priority < 1 || cfg.Priority > 4) {
+	if cfg.Priority == 0 {
+		cfg.Priority = 3
+	}
+	if cfg.Priority < 1 || cfg.Priority > 4 {
 		return ErrInvalidPriority
 	}
 	if cfg.APIURL == "" {

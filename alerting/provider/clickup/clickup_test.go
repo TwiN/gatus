@@ -22,6 +22,14 @@ func TestAlertProvider_Validate(t *testing.T) {
 	if err := invalidProviderNoToken.Validate(); err == nil {
 		t.Error("provider shouldn't have been valid without token")
 	}
+	invalidProviderBadPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: 5}}
+	if err := invalidProviderBadPriority.Validate(); err == nil {
+		t.Error("provider shouldn't have been valid with priority 5")
+	}
+	invalidProviderNegativePriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: -1}}
+	if err := invalidProviderNegativePriority.Validate(); err == nil {
+		t.Error("provider shouldn't have been valid with negative priority")
+	}
 	validProvider := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token"}}
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
@@ -29,6 +37,10 @@ func TestAlertProvider_Validate(t *testing.T) {
 	validProviderWithAPIURL := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", APIURL: "https://api.clickup.com/api/v2"}}
 	if err := validProviderWithAPIURL.Validate(); err != nil {
 		t.Error("provider should've been valid")
+	}
+	validProviderWithPriority := AlertProvider{DefaultConfig: Config{ListID: "test-list-id", Token: "test-token", Priority: 2}}
+	if err := validProviderWithPriority.Validate(); err != nil {
+		t.Error("provider should've been valid with priority 2")
 	}
 }
 
@@ -194,7 +206,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			},
 			InputGroup:     "",
 			InputAlert:     alert.Alert{},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token"},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: 3},
 		},
 		{
 			Name: "provider-with-alert-override-should-override",
@@ -206,7 +218,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				"list-id": "override-list-id",
 				"token":   "override-token",
 			}},
-			ExpectedOutput: Config{ListID: "override-list-id", Token: "override-token"},
+			ExpectedOutput: Config{ListID: "override-list-id", Token: "override-token", Priority: 3},
 		},
 		{
 			Name: "provider-with-partial-alert-override-should-merge",
@@ -217,7 +229,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
 				"status": "closed",
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Status: "closed"},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Status: "closed", Priority: 3},
 		},
 		{
 			Name: "provider-with-assignees-override",
@@ -228,7 +240,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
 				"assignees": []string{"user1", "user2"},
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Assignees: []string{"user1", "user2"}},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Assignees: []string{"user1", "user2"}, Priority: 3},
 		},
 		{
 			Name: "provider-with-priority-override",
@@ -237,9 +249,9 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			},
 			InputGroup: "",
 			InputAlert: alert.Alert{ProviderOverride: map[string]any{
-				"priority": 3,
+				"priority": 1,
 			}},
-			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: 3},
+			ExpectedOutput: Config{ListID: "test-list-id", Token: "test-token", Priority: 1},
 		},
 	}
 	for _, scenario := range scenarios {
