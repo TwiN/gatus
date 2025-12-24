@@ -921,6 +921,7 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.clickup.assignees`       | List of user IDs to assign tasks to                                                        | `[]`          |
 | `alerting.clickup.status`          | Initial status for created tasks                                                           | `""`          |
 | `alerting.clickup.priority`        | Priority level: `urgent`, `high`, `normal`, `low`, or `none`                               | `normal`      |
+| `alerting.clickup.notify-all`      | Whether to notify all assignees when task is created                                       | `true`        |
 | `alerting.clickup.name`            | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
 | `alerting.clickup.content`         | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
 | `alerting.clickup.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |

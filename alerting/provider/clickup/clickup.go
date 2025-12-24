@@ -36,6 +36,7 @@ type Config struct {
 	Assignees       []string `yaml:"assignees"`
 	Status          string   `yaml:"status"`
 	Priority        string   `yaml:"priority"`
+	NotifyAll       *bool    `yaml:"notify-all,omitempty"`
 	Name            string   `yaml:"name,omitempty"`
 	MarkdownContent string   `yaml:"content,omitempty"`
 }
@@ -52,6 +53,10 @@ func (cfg *Config) Validate() error {
 	}
 	if _, ok := priorityMap[cfg.Priority]; !ok {
 		return ErrInvalidPriority
+	}
+	if cfg.NotifyAll == nil {
+		defaultNotifyAll := true
+		cfg.NotifyAll = &defaultNotifyAll
 	}
 	if cfg.APIURL == "" {
 		cfg.APIURL = "https://api.clickup.com/api/v2"
@@ -80,6 +85,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if override.Priority != "" {
 		cfg.Priority = override.Priority
+	}
+	if override.NotifyAll != nil {
+		cfg.NotifyAll = override.NotifyAll
 	}
 	if len(override.Assignees) > 0 {
 		cfg.Assignees = override.Assignees
@@ -147,7 +155,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		"markdown_content": markdownContent,
 		"assignees":        cfg.Assignees,
 		"status":           cfg.Status,
-		"notify_all":       true,
+		"notify_all":       *cfg.NotifyAll,
 	}
 	if cfg.Priority != "none" {
 		body["priority"] = priorityMap[cfg.Priority]
