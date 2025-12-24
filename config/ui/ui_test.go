@@ -42,7 +42,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != defaultFilterBy {
 			t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
 		}
-		if cfg.ConfigRefreshInterval != defaultConfigRefreshInterval {
+		if *cfg.ConfigRefreshInterval != defaultConfigRefreshInterval {
 			t.Errorf("expected ConfigRefreshInterval to be %s, got %s", defaultConfigRefreshInterval, cfg.ConfigRefreshInterval)
 		}
 		var expectedInterval = int64(defaultConfigRefreshInterval.Milliseconds())
@@ -51,6 +51,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
+		customConfigRefreshInterval := time.Hour * 2
 		cfg := &Config{
 			Title:                 "Custom Title",
 			Description:           "Custom Description",
@@ -61,7 +62,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Link:                  "https://example.com",
 			DefaultSortBy:         "health",
 			DefaultFilterBy:       "failing",
-			ConfigRefreshInterval: time.Hour * 2,
+			ConfigRefreshInterval: &customConfigRefreshInterval,
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -93,10 +94,10 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != "failing" {
 			t.Errorf("expected defaultFilterBy to be preserved, got %s", cfg.DefaultFilterBy)
 		}
-		if cfg.ConfigRefreshInterval != time.Hour*2 {
+		if *cfg.ConfigRefreshInterval != customConfigRefreshInterval {
 			t.Errorf("expected ConfigRefreshInterval to be preserved, got %s", cfg.ConfigRefreshInterval)
 		}
-		var expectedIntervalMs = int64((time.Hour * 2).Milliseconds())
+		var expectedIntervalMs = int64(customConfigRefreshInterval.Milliseconds())
 		if cfg.ConfigRefreshIntervalMs != expectedIntervalMs {
 			t.Errorf("expected ConfigRefreshIntervalMs to be %d, got %d", expectedIntervalMs, cfg.ConfigRefreshIntervalMs)
 		}
@@ -308,8 +309,8 @@ func TestConfig_ValidateAndSetDefaults_ConfigRefreshInterval(t *testing.T) {
 		{
 			Name:                  "ZeroConfigRefreshInterval",
 			ConfigRefreshInterval: 0,
-			ExpectedError:         nil,
-			ExpectedValue:         defaultConfigRefreshInterval,
+			ExpectedError:         ErrInvalidConfigRefreshInterval,
+			ExpectedValue:         0,
 		},
 		{
 			Name:                  "ValidConfigRefreshInterval",
@@ -320,12 +321,12 @@ func TestConfig_ValidateAndSetDefaults_ConfigRefreshInterval(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg := &Config{ConfigRefreshInterval: scenario.ConfigRefreshInterval}
+			cfg := &Config{ConfigRefreshInterval: &scenario.ConfigRefreshInterval}
 			err := cfg.ValidateAndSetDefaults()
 			if !errors.Is(err, scenario.ExpectedError) {
 				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
 			}
-			if cfg.ConfigRefreshInterval != scenario.ExpectedValue {
+			if *cfg.ConfigRefreshInterval != scenario.ExpectedValue {
 				t.Errorf("expected ConfigRefreshInterval to be %s, got %s", scenario.ExpectedValue, cfg.ConfigRefreshInterval)
 			}
 			var expectedIntervalMs = int64(scenario.ExpectedValue.Milliseconds())
