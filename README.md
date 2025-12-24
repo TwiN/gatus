@@ -878,6 +878,9 @@ endpoints:
 | `alerting.aws-ses.from`              | The Email address to send the emails from (should be registered in SES)                    | Required `""` |
 | `alerting.aws-ses.to`                | Comma separated list of email address to notify                                            | Required `""` |
 | `alerting.aws-ses.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.aws-ses.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.aws-ses.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.aws-ses.overrides[].*`     | See `alerting.aws-ses.*` parameters                                                        | `{}`          |
 
 ```yaml
 alerting:
@@ -2420,15 +2423,18 @@ endpoints:
 
 
 #### Configuring custom alerts
-| Parameter                       | Description                                                                                | Default       |
-|:--------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.custom`               | Configuration for custom actions on failure or alerts                                      | `{}`          |
-| `alerting.custom.url`           | Custom alerting request url                                                                | Required `""` |
-| `alerting.custom.method`        | Request method                                                                             | `GET`         |
-| `alerting.custom.body`          | Custom alerting request body.                                                              | `""`          |
-| `alerting.custom.headers`       | Custom alerting request headers                                                            | `{}`          |
-| `alerting.custom.client`        | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`          |
-| `alerting.custom.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| Parameter                           | Description                                                                                | Default       |
+|:------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.custom`                   | Configuration for custom actions on failure or alerts                                      | `{}`          |
+| `alerting.custom.url`               | Custom alerting request url                                                                | Required `""` |
+| `alerting.custom.method`            | Request method                                                                             | `GET`         |
+| `alerting.custom.body`              | Custom alerting request body.                                                              | `""`          |
+| `alerting.custom.headers`           | Custom alerting request headers                                                            | `{}`          |
+| `alerting.custom.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`          |
+| `alerting.custom.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.custom.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.custom.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.custom.overrides[].*`     | See `alerting.custom.*` parameters                                                         | `{}`          |
 
 While they're called alerts, you can use this feature to call anything.
 
