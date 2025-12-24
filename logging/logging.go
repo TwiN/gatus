@@ -1,17 +1,60 @@
 package logging
 
 import (
+	"errors"
+	"log/slog"
 	"os"
 
 	"github.com/TwiN/logr"
 )
 
 const (
-	GatusLogLevelEnvVar = "GATUS_LOG_LEVEL"
+	GatusConfigLogTypeEnvVar = "GATUS_LOG_TYPE"
+	GatusLogLevelEnvVar      = "GATUS_LOG_LEVEL"
 )
 
+var (
+	ErrInvalidLevelString = errors.New("invalid log level string, must be one of: DEBUG, INFO, WARN, ERROR, FATAL")
+	logLevels             = map[string]slog.Level{
+		"DEBUG": slog.LevelDebug,
+		"INFO":  slog.LevelInfo,
+		"WARN":  slog.LevelWarn,
+		"ERROR": slog.LevelError,
+		"FATAL": slog.LevelError, // slog does not have Fatal level, using Error instead TODO#1185: Check feasibility adding custom level FATAL to log handler or deprecate since its only used twice?
+	}
+
+	logLevel = new(slog.LevelVar)
+)
+
+func Level() slog.Level {
+	return logLevel.Level()
+}
+
+func levelFromString(level string) (slog.Level, error) {
+	if slogLevel, exists := logLevels[level]; exists {
+		return slogLevel, nil
+	}
+	return slog.LevelDebug, ErrInvalidLevelString
+}
+
 func Configure() {
+	logHandlerOptions := &slog.HandlerOptions{Level: logLevel, AddSource: false}
+
+	logTypeAsString := os.Getenv(GatusConfigLogTypeEnvVar)
+	switch logTypeAsString {
+	case "", "TEXT":
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, logHandlerOptions)))
+		slog.Info("Log type set", "type", logTypeAsString)
+	case "JSON":
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, logHandlerOptions)))
+		slog.Info("Log type set", "type", logTypeAsString)
+	default:
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, logHandlerOptions)))
+		slog.Warn("Invalid log type", "provided", logTypeAsString, "default", "TEXT")
+	}
+
 	logLevelAsString := os.Getenv(GatusLogLevelEnvVar)
+	// TODO#1185: Remove below once slog is fully adopted
 	if logLevel, err := logr.LevelFromString(logLevelAsString); err != nil {
 		logr.SetThreshold(logr.LevelInfo)
 		if len(logLevelAsString) == 0 {
@@ -22,5 +65,21 @@ func Configure() {
 	} else {
 		logr.SetThreshold(logLevel)
 		logr.Infof("[main.configureLogging] Log Level is set to %s", logr.GetThreshold())
+	}
+	// TODO#1185: Remove above once slog is fully adopted
+
+	if slogLevel, err := levelFromString(logLevelAsString); err != nil {
+		logLevel.Set(slog.LevelInfo)
+		if len(logLevelAsString) == 0 {
+			slog.Info("Defaulting log level", "level", slog.LevelInfo)
+		} else {
+			slog.Warn("Invalid log level", "provided", logLevelAsString, "default", slog.LevelInfo)
+		}
+	} else {
+		if logLevelAsString == "FATAL" {
+			slog.Warn("FATAL log level deprecated, using ERROR level instead")
+		}
+		logLevel.Set(slogLevel)
+		slog.Info("Log level set", "level", slogLevel)
 	}
 }

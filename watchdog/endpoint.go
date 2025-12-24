@@ -2,13 +2,14 @@ package watchdog
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/logging"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
-	"github.com/TwiN/logr"
 )
 
 // monitorEndpoint a single endpoint in a loop
@@ -21,7 +22,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			slog.Warn("Canceling current execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
 			return
 		case <-ticker.C:
 			executeEndpoint(ep, cfg, extraLabels)
@@ -36,44 +37,44 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	// Acquire semaphore to limit concurrent endpoint monitoring
 	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
 		// Only fails if context is cancelled (during shutdown)
-		logr.Debugf("[watchdog.executeEndpoint] Context cancelled, skipping execution: %s", err.Error())
+		slog.Debug("Context cancelled, skipping execution", "error", err.Error())
 		return
 	}
 	defer monitoringSemaphore.Release(1)
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
-		logr.Infof("[watchdog.executeEndpoint] No connectivity; skipping execution")
+		slog.Info("No connectivity; skipping execution")
 		return
 	}
-	logr.Debugf("[watchdog.executeEndpoint] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+	slog.Debug("Monitoring", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
 	result := ep.EvaluateHealth()
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
-	if logr.GetThreshold() == logr.LevelDebug && !result.Success {
-		logr.Debugf("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s; body=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond), result.Body)
+	if logging.Level() == slog.LevelDebug && !result.Success { // TODO: Check if it is possible to get the configured level directly from slog
+		slog.Debug("Monitored", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
 	} else {
-		logr.Infof("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+		slog.Info("Monitored", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
 	}
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
 		if maintenanceWindow.IsUnderMaintenance() {
-			logr.Debug("[watchdog.executeEndpoint] Under endpoint maintenance window")
+			slog.Debug("Under endpoint maintenance window")
 			inEndpointMaintenanceWindow = true
 		}
 	}
 	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
-		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")
+		slog.Debug("Not handling alerting because currently in the maintenance window")
 	}
-	logr.Debugf("[watchdog.executeEndpoint] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
+	slog.Debug("Waiting for next execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "interval", ep.Interval.String())
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage
 func UpdateEndpointStatus(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if err := store.Get().InsertEndpointResult(ep, result); err != nil {
-		logr.Errorf("[watchdog.UpdateEndpointStatus] Failed to insert result in storage: %s", err.Error())
+		slog.Error("Failed to insert result in storage", "error", err.Error())
 	}
 }
