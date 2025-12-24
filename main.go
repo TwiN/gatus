@@ -9,6 +9,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/controller"
+	"github.com/TwiN/gatus/v5/logging"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -18,7 +19,6 @@ import (
 const (
 	GatusConfigPathEnvVar = "GATUS_CONFIG_PATH"
 	GatusConfigFileEnvVar = "GATUS_CONFIG_FILE" // Deprecated in favor of GatusConfigPathEnvVar
-	GatusLogLevelEnvVar   = "GATUS_LOG_LEVEL"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 		logr.Infof("Delaying start by %d seconds", delayInSeconds)
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)
 	}
-	configureLogging()
+	logging.Configure()
 	cfg, err := loadConfiguration()
 	if err != nil {
 		panic(err)
@@ -65,21 +65,6 @@ func stop(cfg *config.Config) {
 func save() {
 	if err := store.Get().Save(); err != nil {
 		logr.Errorf("Failed to save storage provider: %s", err.Error())
-	}
-}
-
-func configureLogging() {
-	logLevelAsString := os.Getenv(GatusLogLevelEnvVar)
-	if logLevel, err := logr.LevelFromString(logLevelAsString); err != nil {
-		logr.SetThreshold(logr.LevelInfo)
-		if len(logLevelAsString) == 0 {
-			logr.Infof("[main.configureLogging] Defaulting log level to %s", logr.LevelInfo)
-		} else {
-			logr.Warnf("[main.configureLogging] Invalid log level '%s', defaulting to %s", logLevelAsString, logr.LevelInfo)
-		}
-	} else {
-		logr.SetThreshold(logLevel)
-		logr.Infof("[main.configureLogging] Log Level is set to %s", logr.GetThreshold())
 	}
 }
 
