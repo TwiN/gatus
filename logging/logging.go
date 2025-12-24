@@ -54,6 +54,12 @@ func Configure() {
 	logTypeAsString := os.Getenv(GatusConfigLogTypeEnvVar)
 	switch logTypeAsString {
 	case "", "TEXT":
+		logHandlerOptions.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == "time" {
+				a.Value = slog.StringValue(a.Value.Time().Format("2006-01-02|15:04:05"))
+			}
+			return a
+		}
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, logHandlerOptions)))
 		slog.Info("Log type set", "type", logTypeAsString)
 	case "JSON":
