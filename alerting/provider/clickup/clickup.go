@@ -88,7 +88,7 @@ type AlertProvider struct {
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
 
-// Override is a case under which the default integration is overridden
+// Override is a case under which the default configuration is overridden
 type Override struct {
 	Group  string `yaml:"group"`
 	Config `yaml:",inline"`
