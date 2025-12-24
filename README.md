@@ -994,6 +994,13 @@ To find your List ID:
 1. Open the ClickUp list where you want tasks to be created
 2. The List ID is in the URL: `https://app.clickup.com/{workspace_id}/v/l/li/{list_id}`
 
+To find Assignee IDs:
+
+1. Go to `https://app.clickup.com/{workspace_id}/teams-pulse/teams/people`
+2. Hover over a team member
+3. Click the 3 dots (overflow menu)
+3. Click `Copy member ID`
+
 #### Configuring Datadog alerts
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
