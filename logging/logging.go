@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	GatusLogSourceEnvVar     = "GATUS_LOG_SOURCE"
 	GatusConfigLogTypeEnvVar = "GATUS_LOG_TYPE"
 	GatusLogLevelEnvVar      = "GATUS_LOG_LEVEL"
 )
@@ -39,6 +40,16 @@ func levelFromString(level string) (slog.Level, error) {
 
 func Configure() {
 	logHandlerOptions := &slog.HandlerOptions{Level: logLevel, AddSource: false}
+
+	logSourceAsString := os.Getenv(GatusLogSourceEnvVar)
+	switch logSourceAsString {
+	case "", "FALSE":
+		break
+	case "TRUE":
+		logHandlerOptions.AddSource = true
+	default:
+		slog.Warn("Invalid log source value, defaulting to false", "provided", logSourceAsString)
+	}
 
 	logTypeAsString := os.Getenv(GatusConfigLogTypeEnvVar)
 	switch logTypeAsString {
