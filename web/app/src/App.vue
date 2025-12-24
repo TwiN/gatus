@@ -172,9 +172,13 @@ const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
 const tooltipIsPersistent = ref(false)
-let configInterval = null
+let fetchConfigTimerId = null
 
 // Computed properties
+const configRefreshInterval = computed(() => {
+  return window.config.configRefreshInterval != '{{ .UI.ConfigRefreshIntervalMs }}' ? window.config.configRefreshInterval : 600000
+})
+
 const logo = computed(() => {
   return window.config && window.config.logo && window.config.logo !== '{{ .UI.Logo }}' ? window.config.logo : ""
 })
@@ -246,16 +250,16 @@ const handleDocumentClick = (event) => {
 onMounted(() => {
   fetchConfig()
   // Refresh config every 10 minutes for announcements
-  configInterval = setInterval(fetchConfig, 600000)
+  fetchConfigTimerId = setInterval(fetchConfig, configRefreshInterval.value)
   // Add click listener for closing persistent tooltips
   document.addEventListener('click', handleDocumentClick)
 })
 
 // Clean up interval on unmount
 onUnmounted(() => {
-  if (configInterval) {
-    clearInterval(configInterval)
-    configInterval = null
+  if (fetchConfigTimerId) {
+    clearInterval(fetchConfigTimerId)
+    fetchConfigTimerId = null
   }
   // Remove click listener
   document.removeEventListener('click', handleDocumentClick)
