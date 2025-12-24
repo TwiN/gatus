@@ -4,8 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"os"
-
-	"github.com/TwiN/logr"
 )
 
 const (
@@ -71,20 +69,6 @@ func Configure() {
 	}
 
 	logLevelAsString := os.Getenv(GatusLogLevelEnvVar)
-	// TODO#1185: Remove below once slog is fully adopted
-	if logLevel, err := logr.LevelFromString(logLevelAsString); err != nil {
-		logr.SetThreshold(logr.LevelInfo)
-		if len(logLevelAsString) == 0 {
-			logr.Infof("[main.configureLogging] Defaulting log level to %s", logr.LevelInfo)
-		} else {
-			logr.Warnf("[main.configureLogging] Invalid log level '%s', defaulting to %s", logLevelAsString, logr.LevelInfo)
-		}
-	} else {
-		logr.SetThreshold(logLevel)
-		logr.Infof("[main.configureLogging] Log Level is set to %s", logr.GetThreshold())
-	}
-	// TODO#1185: Remove above once slog is fully adopted
-
 	if slogLevel, err := levelFromString(logLevelAsString); err != nil {
 		logLevel.Set(slog.LevelInfo)
 		if len(logLevelAsString) == 0 {

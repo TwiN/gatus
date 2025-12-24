@@ -46,16 +46,18 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 		slog.Info("No connectivity; skipping execution")
 		return
 	}
-	slog.Debug("Monitoring", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
+
+	// TODO#1185 This might be a good method to create a logger with added fields for group, endpoint, key, etc. and use that logger throughout the method.
+	slog.Debug("Monitoring endpoint", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
 	result := ep.EvaluateHealth()
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
 	if logging.Level() == slog.LevelDebug && !result.Success { // TODO: Check if it is possible to get the configured level directly from slog
-		slog.Debug("Monitored", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
+		slog.Debug("Monitored endpoint", "group", ep.Group, "name", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
 	} else {
-		slog.Info("Monitored", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
+		slog.Info("Monitored endpoint", "group", ep.Group, "name", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
 	}
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
@@ -69,7 +71,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	} else {
 		slog.Debug("Not handling alerting because currently in the maintenance window")
 	}
-	slog.Debug("Waiting for next execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "interval", ep.Interval.String())
+	slog.Debug("Waiting for next execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "interval", ep.Interval)
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage
