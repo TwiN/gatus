@@ -2257,7 +2257,22 @@ Here's an example of what the notifications look like:
 | `alerting.threema-gateway.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration                         | `""`                        |
 | `alerting.threema-gateway.overrides[].*`     | See `alerting.threema-gateway.*` parameters                                                                 | `{}`                        |
 
-[comment]: TODO#1464 Add yaml config example
+```yaml
+alerting:
+  threema-gateway:
+    api-identity: "*ABCDEFG"
+    auth-secret: "secret"
+    recipients:
+      - "THREEMA_ID"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: threema-gateway
+```
 
 
 #### Configuring Twilio alerts
