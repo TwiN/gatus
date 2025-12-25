@@ -9,7 +9,7 @@ import (
 // TODO#1464: Add tests
 
 const (
-	defaultMode = "basic"
+	defaultMode = "basic" // TODO#1464: Should the default be e2ee event though it is not implemented yet to avoid future breaking or bad default behavior?
 )
 
 var (

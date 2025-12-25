@@ -21,6 +21,9 @@ var (
 		"phone": RecipientTypePhone,
 		"email": RecipientTypeEmail,
 	}
+
+	ErrInvalidPhoneNumberFormat  = errors.New("invalid phone number: must contain only digits and may start with '+'")
+	ErrInvalidEmailAddressFormat = errors.New("invalid email address: must contain '@'")
 )
 
 type RecipientType int
@@ -80,12 +83,12 @@ func (r *Recipient) Validate() error {
 	case RecipientTypePhone:
 		strings.TrimPrefix(r.Value, "+")
 		if !isValidPhoneNumber(r.Value) {
-			return errors.New("invalid E.164 phone number format")
+			return ErrInvalidPhoneNumberFormat
 		}
 	case RecipientTypeEmail:
 		// Basic validation for email address // TODO#1464: improve email validation
 		if !strings.Contains(r.Value, "@") {
-			return errors.New("invalid email address format")
+			return ErrInvalidEmailAddressFormat
 		}
 	default:
 		return ErrInvalidRecipientType

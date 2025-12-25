@@ -22,13 +22,16 @@ const (
 var (
 	ErrApiIdentityMissing   = errors.New("api-identity is required")
 	ErrApiAuthSecretMissing = errors.New("auth-secret is required")
+	ErrRecipientsMissing    = errors.New("at least one recipient is required")
+
+	ErrRecipientsTooMany = errors.New("too many recipients for the selected mode")
 )
 
 type Config struct {
 	ApiBaseUrl    string      `yaml:"api-base-url"`
 	Mode          *SendMode   `yaml:"send-mode"`
 	ApiIdentity   string      `yaml:"api-identity"`
-	Recipients    []Recipient `yaml:"recipients"`
+	Recipients    []Recipient `yaml:"recipients"` // TODO#1470: Remove comment: This is an array to support bulk sending in e2ee-bulk mode once implemented
 	ApiAuthSecret string      `yaml:"auth-secret"`
 }
 
@@ -43,7 +46,7 @@ func (cfg *Config) Validate() error {
 	case ModeTypeInvalid:
 		return ErrModeTypeInvalid
 	case ModeTypeE2EE, ModeTypeE2EEBulk:
-		return ErrNotImplementedMode // TODO#1464: implement E2EE and E2EE-Bulk modes
+		return ErrNotImplementedMode // TODO#1470: implement E2EE and E2EE-Bulk modes
 	}
 
 	// Validate API Identity
@@ -56,18 +59,16 @@ func (cfg *Config) Validate() error {
 
 	// Validate Recipients
 	var modeType = cfg.Mode.Type
-	if (modeType == ModeTypeBasic || modeType == ModeTypeE2EE) && len(cfg.Recipients) > 1 {
-		return fmt.Errorf("only one recipient is supported in '%s' mode", cfg.Mode.Value)
+	if modeType == ModeTypeBasic && len(cfg.Recipients) > 1 { // TODO#1470 Handle non bulk e2ee modes properly once implemented
+		return ErrRecipientsTooMany
 	} else if len(cfg.Recipients) == 0 {
-		return errors.New("at least one recipient is required")
+		return ErrRecipientsMissing
 	}
 	for _, recipient := range cfg.Recipients {
 		if err := recipient.Validate(); err != nil {
 			return fmt.Errorf("recipients: %s: %w", recipient.Value, err)
 		}
-		if modeType != ModeTypeBasic && recipient.Type != RecipientTypeId {
-			return fmt.Errorf("recipients: only 'id' recipient type is supported in '%s' mode", cfg.Mode.Value)
-		}
+		// TODO#1470: Either support recipient types other than id in e2ee modes or handle the error properly once those modes are implemented
 	}
 
 	// Validate API Key
@@ -162,7 +163,7 @@ func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.R
 	case ModeTypeBasic:
 		requestUrl += "/send_simple"
 	case ModeTypeE2EE, ModeTypeE2EEBulk:
-		return nil, ErrNotImplementedMode // TODO#1464: implement E2EE and E2EE-Bulk modes
+		return nil, ErrNotImplementedMode // TODO#1470: implement E2EE and E2EE-Bulk modes
 	default:
 		return nil, ErrNotImplementedMode
 	}
@@ -199,14 +200,14 @@ func handleResponse(cfg *Config, response *http.Response) error {
 		case ModeTypeBasic, ModeTypeE2EE:
 			return nil
 		case ModeTypeE2EEBulk:
-			return nil // TODO#1464: Add correct handling once mode is implemented (check success fields in response body)
+			return nil // TODO#1470: Add correct handling once mode is implemented (check success fields in response body)
 		}
 	case http.StatusBadRequest:
 		switch cfg.Mode.Type {
 		case ModeTypeBasic, ModeTypeE2EE:
 			return fmt.Errorf("%s: Invalid recipient or Threema Account not set up for %s mode", response.Status, cfg.Mode.Value)
 		case ModeTypeE2EEBulk:
-			// TODO#1464: Add correct error info once mode is implemented
+			// TODO#1470: Add correct error info once mode is implemented
 		}
 	case http.StatusUnauthorized:
 		return fmt.Errorf("%s: Invalid auth-secret or api-identity", response.Status)
