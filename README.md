@@ -950,12 +950,6 @@ alerting:
     priority: high
     name: "Health Check Alert: [ENDPOINT_GROUP] - [ENDPOINT_NAME]"
     content: "Alert triggered for [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]"
-    # You can also add group-specific configurations, which will
-    # override the default configuration for the specified groups
-    overrides:
-      - group: "core"
-        list-id: "987654321"
-        priority: urgent
 
 endpoints:
   - name: website
@@ -963,28 +957,9 @@ endpoints:
     interval: 5m
     conditions:
       - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 300"
     alerts:
       - type: clickup
-        failure-threshold: 2
-        success-threshold: 3
         send-on-resolved: true
-        description: "healthcheck failed"
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
-    alerts:
-      - type: clickup
-        failure-threshold: 2
-        success-threshold: 3
-        send-on-resolved: true
-        description: "healthcheck failed"
 ```
 
 To get your ClickUp API token follow: [Generate or regenerate a Personal API Token](https://developer.clickup.com/docs/authentication#:~:text=the%20API%20docs.-,Generate%20or%20regenerate%20a%20Personal%20API%20Token,-Log%20in%20to)
