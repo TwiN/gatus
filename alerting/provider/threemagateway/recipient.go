@@ -68,7 +68,15 @@ func (r *Recipient) UnmarshalText(text []byte) error {
 }
 
 func (r Recipient) MarshalText() ([]byte, error) {
-	return []byte(r.Value), nil
+	if r.Type == RecipientTypeInvalid {
+		return []byte("invalid" + ":" + r.Value), nil
+	}
+	for key, val := range validRecipientTypes {
+		if val == r.Type {
+			return []byte(key + ":" + r.Value), nil
+		}
+	}
+	return nil, ErrInvalidRecipientType
 }
 
 func (r *Recipient) Validate() error {
@@ -81,7 +89,7 @@ func (r *Recipient) Validate() error {
 			return err
 		}
 	case RecipientTypePhone:
-		strings.TrimPrefix(r.Value, "+")
+		r.Value = strings.TrimPrefix(r.Value, "+")
 		if !isValidPhoneNumber(r.Value) {
 			return ErrInvalidPhoneNumberFormat
 		}
@@ -94,4 +102,16 @@ func (r *Recipient) Validate() error {
 		return ErrInvalidRecipientType
 	}
 	return nil
+}
+
+func isValidPhoneNumber(number string) bool {
+	if len(number) == 0 {
+		return false
+	}
+	for _, ch := range number {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }

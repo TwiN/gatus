@@ -21,15 +21,3 @@ func validateThreemaId(id string) error {
 	}
 	return nil
 }
-
-func isValidPhoneNumber(number string) bool {
-	if len(number) == 0 {
-		return false
-	}
-	for _, ch := range number {
-		if ch < '0' || ch > '9' {
-			return false
-		}
-	}
-	return true
-}
