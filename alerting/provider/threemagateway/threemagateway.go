@@ -42,6 +42,10 @@ func (cfg *Config) Validate() error {
 	}
 
 	// Validate Mode
+	if cfg.Mode == nil {
+		cfg.Mode = &SendMode{}
+		cfg.Mode.UnmarshalText([]byte{})
+	}
 	switch cfg.Mode.Type {
 	case ModeTypeInvalid:
 		return ErrModeTypeInvalid
