@@ -3,6 +3,7 @@ package suite
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +55,16 @@ type Suite struct {
 
 	// Endpoints in the suite (executed sequentially)
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints"`
+}
+
+func (s *Suite) GetLogAttribute() slog.Attr {
+	return slog.Attr{
+		Key: "suite",
+		Value: slog.GroupValue(
+			slog.String("name", s.Name),
+			slog.String("group", s.Group),
+		),
+	}
 }
 
 // IsEnabled returns whether the suite is enabled

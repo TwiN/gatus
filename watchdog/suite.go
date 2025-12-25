@@ -31,19 +31,21 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 
 // executeSuite executes a suite with proper concurrency control
 func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
+	logger := slog.With(s.GetLogAttribute())
+
 	// Acquire semaphore to limit concurrent suite monitoring
 	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
 		// Only fails if context is cancelled (during shutdown)
-		slog.Debug("Context cancelled, skipping execution", "suite", s.Name, "error", err.Error())
+		logger.Debug("Context cancelled; skipping execution", "error", err.Error())
 		return
 	}
 	defer monitoringSemaphore.Release(1)
 	// Check connectivity if configured
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
-		slog.Info("No connectivity; skipping suite execution", "name", s.Name)
+		logger.Info("No connectivity, skipping execution")
 		return
 	}
-	slog.Debug("Monitoring suite", "group", s.Group, "name", s.Name, "key", s.Key())
+	logger.Debug("Monitoring start")
 	// Execute the suite using its Execute method
 	result := s.Execute()
 	// Publish metrics for the suite execution
@@ -62,7 +64,7 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 				inEndpointMaintenanceWindow := false
 				for _, maintenanceWindow := range ep.MaintenanceWindows {
 					if maintenanceWindow.IsUnderMaintenance() {
-						slog.Debug("Endpoint under maintenance window", "suite", s.Name, "endpoint", ep.Name)
+						logger.Debug("Under endpoint maintenance window", ep.GetLogAttribute())
 						inEndpointMaintenanceWindow = true
 						break
 					}
@@ -73,14 +75,13 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 			}
 		}
 	}
-	slog.Info("Completed suite execution", slog.Group("details",
-		slog.String("name", s.Name),
+	logger.Info("Completed suite execution",
 		slog.Bool("success", result.Success),
 		slog.Int("errors", len(result.Errors)),
 		slog.Duration("duration", result.Duration),
 		slog.Int("endpoints_executed", len(result.EndpointResults)),
 		slog.Int("total_endpoints", len(s.Endpoints)),
-	))
+	)
 }
 
 // UpdateSuiteStatus persists the suite result in the database

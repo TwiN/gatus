@@ -34,44 +34,45 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 }
 
 func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []string) {
+	logger := slog.With(ep.GetLogAttribute())
+
 	// Acquire semaphore to limit concurrent endpoint monitoring
 	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
 		// Only fails if context is cancelled (during shutdown)
-		slog.Debug("Context cancelled, skipping execution", "error", err.Error())
+		logger.Debug("Context cancelled; skipping execution", "error", err.Error())
 		return
 	}
 	defer monitoringSemaphore.Release(1)
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
-		slog.Info("No connectivity; skipping execution")
+		logger.Info("No connectivity, skipping execution")
 		return
 	}
 
-	// TODO#1185 This might be a good method to create a logger with added fields for group, endpoint, key, etc. and use that logger throughout the method.
-	slog.Debug("Monitoring endpoint", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
+	logger.Debug("Monitoring start")
 	result := ep.EvaluateHealth()
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
-	if logging.Level() == slog.LevelDebug && !result.Success { // TODO: Check if it is possible to get the configured level directly from slog
-		slog.Debug("Monitored endpoint", "group", ep.Group, "name", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
+	if logging.Level() == slog.LevelDebug && !result.Success { // TODO#1185 Check if it is possible to get the configured level directly from slog
+		logger.Debug("Monitoring done with errors", "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
 	} else {
-		slog.Info("Monitored endpoint", "group", ep.Group, "name", ep.Name, "key", ep.Key(), "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
+		logger.Info("Monitoring done", "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
 	}
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
 		if maintenanceWindow.IsUnderMaintenance() {
-			slog.Debug("Under endpoint maintenance window")
+			logger.Debug("Under endpoint maintenance window")
 			inEndpointMaintenanceWindow = true
 		}
 	}
 	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
-		slog.Debug("Not handling alerting because currently in the maintenance window")
+		logger.Debug("Not handling alerting due to maintenance window")
 	}
-	slog.Debug("Waiting for next execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key(), "interval", ep.Interval)
+	logger.Debug("Wait for next monitoring", "interval", ep.Interval)
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage
