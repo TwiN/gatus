@@ -13,8 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TODO#1464: Add tests
-
 const (
 	defaultApiBaseUrl = "https://msgapi.threema.ch"
 )

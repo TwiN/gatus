@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// TODO#1464: Add tests
-
 const (
 	defaultRecipientType = RecipientTypeId
 )
