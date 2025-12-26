@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"os"
-	"time"
 )
 
 const (
@@ -23,68 +22,61 @@ var (
 		"FATAL": slog.LevelError, // TODO in v6.0.0: Remove FATAL level support
 	}
 
-	logLevel = new(slog.LevelVar)
+	logLevel slog.Level
 )
 
 func Level() slog.Level {
-	return logLevel.Level()
+	return logLevel
 }
 
 func levelFromString(level string) (slog.Level, error) {
 	if slogLevel, exists := logLevels[level]; exists {
 		return slogLevel, nil
 	}
-	return slog.LevelDebug, ErrInvalidLevelString
+	return logLevel, ErrInvalidLevelString
+}
+
+func getConfiguredLogLevel() slog.Level {
+	levelAsString := os.Getenv(GatusLogLevelEnvVar)
+	if len(levelAsString) == 0 {
+		slog.Info("Defaulting log level", "level", "INFO")
+		return slog.LevelInfo
+	} else if level, err := levelFromString(levelAsString); err != nil {
+		slog.Warn("Invalid log level, using default", "provided", level, "default", "INFO")
+		return slog.LevelInfo
+	} else {
+		if levelAsString == "FATAL" {
+			slog.Warn("WARNING: FATAL log level has been deprecated and will be removed in v6.0.0")
+			slog.Warn("WARNING: Please use the ERROR log level instead")
+		}
+		return level
+	}
+}
+
+func getConfiguredLogSource() bool {
+	logSourceAsString := os.Getenv(GatusLogSourceEnvVar)
+	if len(logSourceAsString) == 0 {
+		slog.Info("Defaulting log source to false")
+		return false
+	} else if logSourceAsString != "TRUE" && logSourceAsString != "FALSE" {
+		slog.Warn("Invalid log source", "provided", logSourceAsString, "default", "FALSE")
+		return false
+	}
+	return logSourceAsString == "TRUE"
 }
 
 func Configure() {
-	logHandlerOptions := &slog.HandlerOptions{Level: logLevel, AddSource: false}
-
-	logSourceAsString := os.Getenv(GatusLogSourceEnvVar)
-	switch logSourceAsString {
-	case "", "FALSE":
-		break
-	case "TRUE":
-		logHandlerOptions.AddSource = true
-	default:
-		slog.Warn("Invalid log source value, defaulting to false", "provided", logSourceAsString)
-	}
-
 	logTypeAsString := os.Getenv(GatusConfigLogTypeEnvVar)
 	switch logTypeAsString {
 	case "", "TEXT":
-		logHandlerOptions.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == "time" {
-				a.Value = slog.StringValue(a.Value.Time().Format("2006-01-02|15:04:05"))
-			}
-			if a.Value.Kind() == slog.KindDuration {
-				a.Value = slog.DurationValue(a.Value.Duration().Round(time.Millisecond))
-			}
-			return a
-		}
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, logHandlerOptions)))
-		slog.Info("Log type set", "type", logTypeAsString)
+		break
 	case "JSON":
-		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, logHandlerOptions)))
-		slog.Info("Log type set", "type", logTypeAsString)
+		logSource := getConfiguredLogSource()
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: logSource})))
 	default:
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, logHandlerOptions)))
 		slog.Warn("Invalid log type", "provided", logTypeAsString, "default", "TEXT")
 	}
 
-	logLevelAsString := os.Getenv(GatusLogLevelEnvVar)
-	if slogLevel, err := levelFromString(logLevelAsString); err != nil {
-		logLevel.Set(slog.LevelInfo)
-		if len(logLevelAsString) == 0 {
-			slog.Info("Defaulting log level", "level", slog.LevelInfo)
-		} else {
-			slog.Warn("Invalid log level", "provided", logLevelAsString, "default", slog.LevelInfo)
-		}
-	} else {
-		if logLevelAsString == "FATAL" {
-			slog.Warn("FATAL log level deprecated, using ERROR level instead")
-		}
-		logLevel.Set(slogLevel)
-		slog.Info("Log level set", "level", slogLevel)
-	}
+	logLevel = getConfiguredLogLevel()
+	slog.SetLogLoggerLevel(logLevel)
 }
