@@ -10,6 +10,9 @@ const (
 	GatusLogSourceEnvVar     = "GATUS_LOG_SOURCE"
 	GatusConfigLogTypeEnvVar = "GATUS_LOG_TYPE"
 	GatusLogLevelEnvVar      = "GATUS_LOG_LEVEL"
+
+	DefaultLogType  = "TEXT"
+	DefaultLogLevel = "INFO"
 )
 
 var (
@@ -39,11 +42,10 @@ func levelFromString(level string) (slog.Level, error) {
 func getConfiguredLogLevel() slog.Level {
 	levelAsString := os.Getenv(GatusLogLevelEnvVar)
 	if len(levelAsString) == 0 {
-		slog.Info("Defaulting log level", "level", "INFO")
-		return slog.LevelInfo
+		return logLevels[DefaultLogLevel]
 	} else if level, err := levelFromString(levelAsString); err != nil {
-		slog.Warn("Invalid log level, using default", "provided", level, "default", "INFO")
-		return slog.LevelInfo
+		slog.Warn("Invalid log level, using default", "provided", level, "default", DefaultLogLevel)
+		return logLevels[DefaultLogLevel]
 	} else {
 		if levelAsString == "FATAL" {
 			slog.Warn("WARNING: FATAL log level has been deprecated and will be removed in v6.0.0")
@@ -56,7 +58,6 @@ func getConfiguredLogLevel() slog.Level {
 func getConfiguredLogSource() bool {
 	logSourceAsString := os.Getenv(GatusLogSourceEnvVar)
 	if len(logSourceAsString) == 0 {
-		slog.Info("Defaulting log source to false")
 		return false
 	} else if logSourceAsString != "TRUE" && logSourceAsString != "FALSE" {
 		slog.Warn("Invalid log source", "provided", logSourceAsString, "default", "FALSE")
@@ -74,7 +75,7 @@ func Configure() {
 		logSource := getConfiguredLogSource()
 		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: logSource})))
 	default:
-		slog.Warn("Invalid log type", "provided", logTypeAsString, "default", "TEXT")
+		slog.Warn("Invalid log type", "provided", logTypeAsString, "default", DefaultLogType)
 	}
 
 	logLevel = getConfiguredLogLevel()
