@@ -75,13 +75,7 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 			}
 		}
 	}
-	logger.Info("Completed suite execution",
-		slog.Bool("success", result.Success),
-		slog.Int("errors", len(result.Errors)),
-		slog.Duration("duration", result.Duration),
-		slog.Int("endpoints_executed", len(result.EndpointResults)),
-		slog.Int("total_endpoints", len(s.Endpoints)),
-	)
+	logger.Info("Monitoring complete", result.GetLogAttribute())
 }
 
 // UpdateSuiteStatus persists the suite result in the database

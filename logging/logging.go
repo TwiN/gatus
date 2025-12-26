@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"time"
 )
 
 const (
@@ -55,6 +56,9 @@ func Configure() {
 		logHandlerOptions.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == "time" {
 				a.Value = slog.StringValue(a.Value.Time().Format("2006-01-02|15:04:05"))
+			}
+			if a.Value.Kind() == slog.KindDuration {
+				a.Value = slog.DurationValue(a.Value.Duration().Round(time.Millisecond))
 			}
 			return a
 		}

@@ -56,9 +56,9 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	}
 	UpdateEndpointStatus(ep, result)
 	if logging.Level() == slog.LevelDebug && !result.Success { // TODO#1185 Check if it is possible to get the configured level directly from slog
-		logger.Debug("Monitoring done with errors", "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond), "body", result.Body)
+		logger.Debug("Monitoring done with errors", result.GetLogAttribute(), "body", result.Body)
 	} else {
-		logger.Info("Monitoring done", "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
+		logger.Info("Monitoring done", result.GetLogAttribute())
 	}
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ep.MaintenanceWindows {
