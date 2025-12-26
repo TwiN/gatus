@@ -75,7 +75,7 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 			}
 		}
 	}
-	logger.Info("Monitoring complete", result.GetLogAttribute())
+	logger.Info("Monitoring done", result.GetLogAttribute())
 }
 
 // UpdateSuiteStatus persists the suite result in the database

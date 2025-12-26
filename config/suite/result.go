@@ -40,7 +40,7 @@ func (r *Result) GetLogAttribute() slog.Attr {
 		Value: slog.GroupValue(
 			slog.Bool("success", r.Success),
 			slog.Duration("duration", r.Duration),
-			slog.Int("endpoint_result_count", len(r.EndpointResults)),
+			slog.Int("endpoints", len(r.EndpointResults)),
 			slog.Int("error_count", len(r.Errors)),
 		),
 	}
