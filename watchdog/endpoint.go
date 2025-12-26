@@ -22,7 +22,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Warn("Canceling current execution", "group", ep.Group, "endpoint", ep.Name, "key", ep.Key())
+			slog.Warn("Canceling current execution", ep.GetLogAttribute())
 			return
 		case <-ticker.C:
 			executeEndpoint(ep, cfg, extraLabels)

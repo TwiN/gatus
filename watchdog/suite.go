@@ -21,7 +21,7 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Warn("Canceling monitoring for suite", "name", s.Name)
+			slog.Warn("Canceling current execution", s.GetLogAttribute())
 			return
 		case <-ticker.C:
 			executeSuite(s, cfg, extraLabels)
