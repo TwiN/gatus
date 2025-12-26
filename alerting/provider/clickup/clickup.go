@@ -136,20 +136,16 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-
 	if resolved {
 		return provider.CloseTask(cfg, ep)
 	}
-
 	// Replace placeholders
 	name := strings.ReplaceAll(cfg.Name, "[ENDPOINT_GROUP]", ep.Group)
 	name = strings.ReplaceAll(name, "[ENDPOINT_NAME]", ep.Name)
-
 	markdownContent := strings.ReplaceAll(cfg.MarkdownContent, "[ENDPOINT_GROUP]", ep.Group)
 	markdownContent = strings.ReplaceAll(markdownContent, "[ENDPOINT_NAME]", ep.Name)
 	markdownContent = strings.ReplaceAll(markdownContent, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	markdownContent = strings.ReplaceAll(markdownContent, "[RESULT_ERRORS]", strings.Join(result.Errors, ", "))
-
 	body := map[string]interface{}{
 		"name":             name,
 		"markdown_content": markdownContent,
@@ -160,7 +156,6 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if cfg.Priority != "none" {
 		body["priority"] = priorityMap[cfg.Priority]
 	}
-
 	return provider.CreateTask(cfg, body)
 }
 
@@ -169,7 +164,6 @@ func (provider *AlertProvider) CreateTask(cfg *Config, body map[string]interface
 	if err != nil {
 		return err
 	}
-
 	createURL := fmt.Sprintf("%s/list/%s/task", cfg.APIURL, cfg.ListID)
 	req, err := http.NewRequest("POST", createURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
@@ -177,41 +171,34 @@ func (provider *AlertProvider) CreateTask(cfg *Config, body map[string]interface
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", cfg.Token)
-
 	httpClient := client.GetHTTPClient(nil)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("failed to create task, status: %d", resp.StatusCode)
 	}
-
 	return nil
 }
 
 func (provider *AlertProvider) CloseTask(cfg *Config, ep *endpoint.Endpoint) error {
 	fetchURL := fmt.Sprintf("%s/list/%s/task?include_closed=false", cfg.APIURL, cfg.ListID)
-
 	req, err := http.NewRequest("GET", fetchURL, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Authorization", cfg.Token)
-
 	httpClient := client.GetHTTPClient(nil)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("failed to fetch tasks, status: %d", resp.StatusCode)
 	}
-
 	var fetchResponse struct {
 		Tasks []struct {
 			ID   string `json:"id"`
@@ -221,54 +208,45 @@ func (provider *AlertProvider) CloseTask(cfg *Config, ep *endpoint.Endpoint) err
 	if err := json.NewDecoder(resp.Body).Decode(&fetchResponse); err != nil {
 		return err
 	}
-
 	var matchingTaskIDs []string
 	for _, task := range fetchResponse.Tasks {
 		if strings.Contains(task.Name, ep.Group) && strings.Contains(task.Name, ep.Name) {
 			matchingTaskIDs = append(matchingTaskIDs, task.ID)
 		}
 	}
-
 	if len(matchingTaskIDs) == 0 {
 		return fmt.Errorf("no matching tasks found for %s:%s", ep.Group, ep.Name)
 	}
-
 	for _, taskID := range matchingTaskIDs {
 		if err := provider.UpdateTaskStatus(cfg, taskID, "closed"); err != nil {
 			return fmt.Errorf("failed to close task %s: %v", taskID, err)
 		}
 	}
-
 	return nil
 }
 
 func (provider *AlertProvider) UpdateTaskStatus(cfg *Config, taskID, status string) error {
 	updateURL := fmt.Sprintf("%s/task/%s", cfg.APIURL, taskID)
 	body := map[string]interface{}{"status": status}
-
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-
 	req, err := http.NewRequest("PUT", updateURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", cfg.Token)
-
 	httpClient := client.GetHTTPClient(nil)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("failed to update task %s, status: %d", taskID, resp.StatusCode)
 	}
-
 	return nil
 }
 
