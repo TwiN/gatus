@@ -156,8 +156,8 @@ func (e *Endpoint) GetLogAttribute() slog.Attr {
 	return slog.Attr{
 		Key: "endpoint",
 		Value: slog.GroupValue(
-			slog.String("name", e.Name),
 			slog.String("group", e.Group),
+			slog.String("name", e.Name),
 		),
 	}
 }

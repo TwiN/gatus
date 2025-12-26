@@ -61,8 +61,8 @@ func (s *Suite) GetLogAttribute() slog.Attr {
 	return slog.Attr{
 		Key: "suite",
 		Value: slog.GroupValue(
-			slog.String("name", s.Name),
 			slog.String("group", s.Group),
+			slog.String("name", s.Name),
 		),
 	}
 }
