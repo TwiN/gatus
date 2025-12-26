@@ -29,12 +29,12 @@ func Handle(cfg *config.Config) {
 	if cfg.Web.HasTLS() {
 		err := app.ListenTLS(cfg.Web.SocketAddress(), cfg.Web.TLS.CertificateFile, cfg.Web.TLS.PrivateKeyFile)
 		if err != nil {
-			slog.Error("Failed to start server with TLS", "error", err.Error()) // TODO#1185 Verify change from fatal to error is acceptable here
+			slog.Error("Failed to start server with TLS", "error", err.Error())
 		}
 	} else {
 		err := app.Listen(cfg.Web.SocketAddress())
 		if err != nil {
-			slog.Error("Failed to start server", "error", err.Error()) // TODO#1185 Verify change from fatal to error is acceptable here
+			slog.Error("Failed to start server", "error", err.Error())
 		}
 	}
 	slog.Info("Server has shut down successfully")

@@ -20,7 +20,7 @@ var (
 		"INFO":  slog.LevelInfo,
 		"WARN":  slog.LevelWarn,
 		"ERROR": slog.LevelError,
-		"FATAL": slog.LevelError, // slog does not have Fatal level, using Error instead TODO#1185: Check feasibility adding custom level FATAL to log handler or deprecate since its only used twice?
+		"FATAL": slog.LevelError, // TODO in v6.0.0: Remove FATAL level support
 	}
 
 	logLevel = new(slog.LevelVar)
