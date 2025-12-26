@@ -3313,7 +3313,7 @@ web:
   port: ${PORT}
 
 ui:
-  title: $TITLE $$ Gatus Monitoring # With env var set to "Example" this will expand to "Example $ Gatus Monitoring"
+  title: $TITLE
 ```
 ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
