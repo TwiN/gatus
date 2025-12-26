@@ -55,7 +55,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
 	UpdateEndpointStatus(ep, result)
-	if logging.Level() == slog.LevelDebug && !result.Success { // TODO#1185 Check if it is possible to get the configured level directly from slog
+	if logging.Level() <= slog.LevelDebug && !result.Success { // TODO#1185 Check if it is possible to get the configured level directly from slog
 		logger.Debug("Monitoring done with errors", result.GetLogAttribute(), "body", result.Body)
 	} else {
 		logger.Info("Monitoring done", result.GetLogAttribute())
