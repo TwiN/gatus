@@ -107,7 +107,7 @@ var (
 func Get() Store {
 	if !initialized {
 		// This only happens in tests
-		slog.Info("Provider requested before it was initialized, automatically initializing") // TODO#1185 Why was/is this not warn level?
+		slog.Warn("Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
 			panic("failed to automatically initialize store: " + err.Error())

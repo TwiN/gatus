@@ -342,7 +342,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	} else {
 		// Merge older hourly uptime entries into daily uptime entries if we have more than uptimeTotalEntriesMergeThreshold
 		if numberOfUptimeEntries >= uptimeTotalEntriesMergeThreshold {
-			slog.Info("Merging hourly uptime entries; This is a lot of work, it shouldn't happen too often", "endpoint", ep.Key()) // TODO#1185 Make warning since it shouldn't happen often?
+			slog.Warn("Merging hourly uptime entries; This is a lot of work, it shouldn't happen too often", "endpoint", ep.Key())
 			if err = s.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, endpointID); err != nil {
 				slog.Error("Failed to merge hourly uptime entries", "endpoint", ep.Key(), "error", err.Error())
 			}
