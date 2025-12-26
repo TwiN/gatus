@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"log/slog"
 	"time"
 )
 
@@ -61,6 +62,17 @@ type Result struct {
 	// Name of the endpoint (ONLY USED FOR SUITES)
 	// Group is not needed because it's inherited from the suite
 	Name string `json:"name,omitempty"`
+}
+
+func (r *Result) GetLogAttribute() slog.Attr {
+	return slog.Attr{
+		Key: "result",
+		Value: slog.GroupValue(
+			slog.Bool("success", r.Success),
+			slog.Duration("duration", r.Duration),
+			slog.Int("error_count", len(r.Errors)),
+		),
+	}
 }
 
 // AddError adds an error to the result's list of errors.

@@ -1,8 +1,9 @@
 package remote
 
 import (
+	"log/slog"
+
 	"github.com/TwiN/gatus/v5/client"
-	"github.com/TwiN/logr"
 )
 
 // NOTICE: This is an experimental alpha feature and may be updated/removed in future versions.
@@ -30,8 +31,8 @@ func (c *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	if len(c.Instances) > 0 {
-		logr.Warn("WARNING: Your configuration is using 'remote', which is in alpha and may be updated/removed in future versions.")
-		logr.Warn("WARNING: See https://github.com/TwiN/gatus/issues/64 for more information")
+		slog.Warn("WARNING: Your configuration is using 'remote', which is in alpha and may be updated/removed in future versions.")
+		slog.Warn("WARNING: See https://github.com/TwiN/gatus/issues/64 for more information")
 	}
 	return nil
 }

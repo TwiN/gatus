@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
-	"github.com/TwiN/logr"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/api/idtoken"
@@ -239,7 +239,7 @@ func (c *Config) getHTTPClient() *http.Client {
 		if c.ProxyURL != "" {
 			proxyURL, err := url.Parse(c.ProxyURL)
 			if err != nil {
-				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring custom proxy due to error: %s", err.Error())
+				slog.Error("Should never happen: Silently ignoring custom proxy", "error", err.Error())
 			} else {
 				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
@@ -249,7 +249,7 @@ func (c *Config) getHTTPClient() *http.Client {
 			if err != nil {
 				// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
 				// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
-				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+				slog.Error("Should never happen: Silently ignoring invalid DNS resolver", "error", err.Error())
 			} else {
 				dialer := &net.Dialer{
 					Resolver: &net.Resolver{
@@ -266,7 +266,7 @@ func (c *Config) getHTTPClient() *http.Client {
 			}
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {
-			logr.Errorf("[client.getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
+			slog.Error("Both Identity-Aware-Proxy and Oauth2 configuration are present. Only one can be present at a time")
 		} else if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		} else if c.HasIAPConfig() {
@@ -289,17 +289,17 @@ func (c *Config) getHTTPClient() *http.Client {
 func validateIAPToken(ctx context.Context, c IAPConfig) bool {
 	ts, err := idtoken.NewTokenSource(ctx, c.Audience)
 	if err != nil {
-		logr.Errorf("[client.ValidateIAPToken] Claiming Identity token failed: %s", err.Error())
+		slog.Error("Claiming Identity token failed", "error", err.Error())
 		return false
 	}
 	tok, err := ts.Token()
 	if err != nil {
-		logr.Errorf("[client.ValidateIAPToken] Get Identity-Aware-Proxy token failed: %s", err.Error())
+		slog.Error("Getting Identity-Aware-Proxy token failed", "error", err.Error())
 		return false
 	}
 	_, err = idtoken.Validate(ctx, tok.AccessToken, c.Audience)
 	if err != nil {
-		logr.Errorf("[client.ValidateIAPToken] Token Validation failed: %s", err.Error())
+		slog.Error("Token Validation failed", "error", err.Error())
 		return false
 	}
 	return true
@@ -312,7 +312,7 @@ func configureIAP(httpClient *http.Client, c IAPConfig) *http.Client {
 	if validateIAPToken(ctx, c) {
 		ts, err := idtoken.NewTokenSource(ctx, c.Audience)
 		if err != nil {
-			logr.Errorf("[client.configureIAP] Claiming Token Source failed: %s", err.Error())
+			slog.Error("Claiming Token Source failed", "error", err.Error())
 			return httpClient
 		}
 		client := oauth2.NewClient(ctx, ts)
@@ -341,7 +341,7 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
 	clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
 	if err != nil {
-		logr.Errorf("[client.configureTLS] Failed to load certificate: %s", err.Error())
+		slog.Error("Failed to load client TLS certificate", "error", err.Error())
 		return nil
 	}
 	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}

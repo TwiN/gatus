@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand"
 	"net"
 	"net/http"
@@ -149,6 +150,16 @@ type Endpoint struct {
 	// AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed
 	// This field is only used when the endpoint is part of a suite
 	AlwaysRun bool `yaml:"always-run,omitempty"`
+}
+
+func (e *Endpoint) GetLogAttribute() slog.Attr {
+	return slog.Attr{
+		Key: "endpoint",
+		Value: slog.GroupValue(
+			slog.String("group", e.Group),
+			slog.String("name", e.Name),
+		),
+	}
 }
 
 // IsEnabled returns whether the endpoint is enabled or not
