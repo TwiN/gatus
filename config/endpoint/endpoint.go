@@ -468,14 +468,15 @@ func (e *Endpoint) call(result *Result) {
 		return
 	}
 	startTime := time.Now()
-	if endpointType == TypeDNS {
+	switch endpointType {
+	case TypeDNS:
 		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(e.DNSConfig.QueryType, e.DNSConfig.QueryName, e.URL)
 		if err != nil {
 			result.AddError(err.Error())
 			return
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeSTARTTLS || endpointType == TypeTLS {
+	case TypeSTARTTLS, TypeTLS:
 		if endpointType == TypeSTARTTLS {
 			result.Connected, certificate, err = client.CanPerformStartTLS(strings.TrimPrefix(e.URL, "starttls://"), e.ClientConfig)
 		} else {
@@ -487,18 +488,18 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 		result.CertificateExpiration = time.Until(certificate.NotAfter)
-	} else if endpointType == TypeTCP {
+	case TypeTCP:
 		result.Connected, result.Body = client.CanCreateNetworkConnection("tcp", strings.TrimPrefix(e.URL, "tcp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeUDP {
+	case TypeUDP:
 		result.Connected, result.Body = client.CanCreateNetworkConnection("udp", strings.TrimPrefix(e.URL, "udp://"), e.getParsedBody(), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeSCTP {
+	case TypeSCTP:
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeICMP {
+	case TypeICMP:
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
-	} else if endpointType == TypeWS {
+	case TypeWS:
 		wsHeaders := map[string]string{}
 		if e.Headers != nil {
 			for k, v := range e.Headers {
@@ -514,7 +515,7 @@ func (e *Endpoint) call(result *Result) {
 			return
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeSSH {
+	case TypeSSH:
 		// If there's no username, password or private key specified, attempt to validate just the SSH banner
 		if e.SSHConfig == nil || (len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 && len(e.SSHConfig.PrivateKey) == 0) {
 			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
@@ -543,7 +544,7 @@ func (e *Endpoint) call(result *Result) {
 			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
-	} else if endpointType == TypeGRPC {
+	case TypeGRPC:
 		useTLS := strings.HasPrefix(e.URL, "grpcs://")
 		address := strings.TrimPrefix(strings.TrimPrefix(e.URL, "grpcs://"), "grpc://")
 		connected, status, err, duration := client.PerformGRPCHealthCheck(address, useTLS, e.ClientConfig)
@@ -556,7 +557,7 @@ func (e *Endpoint) call(result *Result) {
 		if e.needsToReadBody() {
 			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
 		}
-	} else {
+	default:
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
