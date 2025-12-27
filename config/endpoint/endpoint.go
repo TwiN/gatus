@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net"
 	"net/http"
@@ -501,11 +502,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	case TypeWS:
 		wsHeaders := map[string]string{}
-		if e.Headers != nil {
-			for k, v := range e.Headers {
-				wsHeaders[k] = v
-			}
-		}
+		maps.Copy(wsHeaders, e.Headers)
 		if _, exists := wsHeaders["User-Agent"]; !exists {
 			wsHeaders["User-Agent"] = GatusUserAgent
 		}
