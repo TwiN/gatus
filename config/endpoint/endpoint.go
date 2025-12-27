@@ -461,13 +461,6 @@ func (e *Endpoint) call(result *Result) {
 	var err error
 	var certificate *x509.Certificate
 	endpointType := e.Type()
-	switch endpointType {
-	case TypeHTTP:
-		request = e.buildHTTPRequest()
-	case TypeDomain:
-		// domain expiration checked before call `call`
-		return
-	}
 	startTime := time.Now()
 	switch endpointType {
 	case TypeDNS:
@@ -554,6 +547,12 @@ func (e *Endpoint) call(result *Result) {
 		if e.needsToReadBody() {
 			result.Body = fmt.Appendf(nil, "{\"status\":\"%s\"}", status)
 		}
+	case TypeDomain:
+		// domain expiration checked before call `call`
+		return
+	case TypeHTTP:
+		request = e.buildHTTPRequest()
+		fallthrough
 	default:
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
