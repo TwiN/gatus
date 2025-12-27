@@ -365,6 +365,18 @@ var testEndpoint_typeData = []struct {
 	},
 	{
 		args: testEndpoint_typeArgs{
+			URL: "grpc://localhost:50051",
+		},
+		want: TypeGRPC,
+	},
+	{
+		args: testEndpoint_typeArgs{
+			URL: "grpcs://example.com:443",
+		},
+		want: TypeGRPC,
+	},
+	{
+		args: testEndpoint_typeArgs{
 			URL: "wss://example.com/",
 		},
 		want: TypeWS,
