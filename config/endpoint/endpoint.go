@@ -552,7 +552,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Connected = connected
 		result.Duration = duration
 		if e.needsToReadBody() {
-			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
+			result.Body = fmt.Appendf(nil, "{\"status\":\"%s\"}", status)
 		}
 	default:
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
