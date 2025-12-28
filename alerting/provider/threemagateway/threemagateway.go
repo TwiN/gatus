@@ -110,7 +110,13 @@ type Override struct {
 }
 
 func (provider *AlertProvider) Validate() error {
-	// TODO#1464 Validate overrides?
+	groupOverrideConfigured := map[string]bool{}
+	for _, override := range provider.Overrides {
+		if _, exists := groupOverrideConfigured[override.Group]; exists {
+			return fmt.Errorf("duplicate override for group: %s", override.Group)
+		}
+		groupOverrideConfigured[override.Group] = true
+	}
 	return provider.DefaultConfig.Validate()
 }
 
