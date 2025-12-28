@@ -2249,7 +2249,7 @@ Here's an example of what the notifications look like:
 | `alerting.threema-gateway`                   | Configuration for alerts of type `threema-gateway`                                                          | `{}`                        |
 | `alerting.threema-gateway.api-base-url`      | Threema Gateway API Base URL                                                                                | `https://msgapi.threema.ch` |
 | `alerting.threema-gateway.api-identity`      | Personal Threema API Identity                                                                               | Required `""`               |
-| `alerting.threema-gateway.recipients`        | Recipients in format `[<type>:]<identifier>`, where type is `id`, `phone` or `email`. Type defaults to `id` | Required `""`               |
+| `alerting.threema-gateway.recipients`        | Recipients in format `[<type>:]<identifier>`, where type is `id`, `phone` or `email`. Type defaults to `id` | Required `[]`               |
 | `alerting.threema-gateway.auth-secret`       | Threema Gateway API authentication secret                                                                   | Required `""`               |
 | `alerting.threema-gateway.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                  | N/A                         |
 | `alerting.threema-gateway.overrides`         | List of overrides that may be prioritized over the default configuration                                    | `[]`                        |
