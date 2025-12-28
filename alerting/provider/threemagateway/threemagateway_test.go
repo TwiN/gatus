@@ -49,16 +49,6 @@ func TestConfig_Validate(t *testing.T) {
 			expected: ErrRecipientsMissing,
 		},
 		{
-			name: "invalid Mode",
-			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Mode:          &SendMode{Value: "invalid-mode", Type: ModeTypeInvalid},
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
-			},
-			expected: ErrModeTypeInvalid,
-		},
-		{
 			name: "invalid ApiIdentity",
 			input: Config{
 				ApiIdentity:   "invalid-id",
@@ -99,20 +89,29 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				ApiIdentity:   "12345678",
 				ApiAuthSecret: "authsecret",
-				Mode:          &SendMode{Value: "basic", Type: ModeTypeBasic},
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
 			},
 			expected: ErrRecipientsTooMany,
 		},
 		{
-			name: "not implemented mode",
+			name: "not implemented E2EE mode",
 			input: Config{
 				ApiIdentity:   "12345678",
 				ApiAuthSecret: "authsecret",
-				Mode:          &SendMode{Value: "e2ee", Type: ModeTypeE2EE},
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				PrivateKey:    "someprivatekey",
 			},
-			expected: ErrNotImplementedMode,
+			expected: ErrE2EENotImplemented,
+		},
+		{
+			name: "not implemented E2EE bulk mode",
+			input: Config{
+				ApiIdentity:   "12345678",
+				ApiAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
+				PrivateKey:    "someprivatekey",
+			},
+			expected: ErrE2EENotImplemented,
 		},
 	}
 
@@ -120,7 +119,7 @@ func TestConfig_Validate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.input.Validate()
 			if errors.Is(err, test.expected) == false {
-				t.Errorf("expected %v, got %v", test.expected, err)
+				t.Errorf("expected '%v', got '%v'", test.expected, err)
 			}
 		})
 	}
@@ -129,14 +128,12 @@ func TestConfig_Validate(t *testing.T) {
 func TestConfig_Merge(t *testing.T) {
 	original := Config{
 		ApiBaseUrl:    "https://api.threema.ch",
-		Mode:          &SendMode{Value: "basic", Type: ModeTypeBasic},
 		ApiIdentity:   "12345678",
 		Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 		ApiAuthSecret: "authsecret",
 	}
 	override := Config{
 		ApiBaseUrl:    "https://custom.api.threema.ch",
-		Mode:          &SendMode{Value: "e2ee", Type: ModeTypeE2EE},
 		ApiIdentity:   "ABCDEFGH",
 		Recipients:    []Recipient{{Value: "HGFEDCBA", Type: RecipientTypeId}},
 		ApiAuthSecret: "newauthsecret",
@@ -164,9 +161,6 @@ func TestConfig_Merge(t *testing.T) {
 	change.Merge(&override)
 	if change.ApiBaseUrl != override.ApiBaseUrl {
 		t.Errorf("expected ApiBaseUrl to be %s, got %s", override.ApiBaseUrl, change.ApiBaseUrl)
-	}
-	if change.Mode.Value != override.Mode.Value || change.Mode.Type != override.Mode.Type {
-		t.Errorf("expected Mode to be %v, got %v", override.Mode, change.Mode)
 	}
 	if change.ApiIdentity != override.ApiIdentity {
 		t.Errorf("expected ApiIdentity to be %s, got %s", override.ApiIdentity, change.ApiIdentity)

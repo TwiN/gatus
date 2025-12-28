@@ -22,33 +22,46 @@ var (
 	ErrApiAuthSecretMissing = errors.New("auth-secret is required")
 	ErrRecipientsMissing    = errors.New("at least one recipient is required")
 
-	ErrRecipientsTooMany = errors.New("too many recipients for the selected mode")
+	ErrRecipientsTooMany           = errors.New("too many recipients for the selected mode")
+	ErrInvalidRecipientTypeForE2EE = errors.New("only recipient type 'id' is supported in e2ee modes")
+
+	ErrE2EENotImplemented = errors.New("e2ee mode is not implemented yet")
+)
+
+type SendMode int
+
+const (
+	SendModeBasic SendMode = iota
+	SendModeE2EE
+	SendModeE2EEBulk
 )
 
 type Config struct {
 	ApiBaseUrl    string      `yaml:"api-base-url"`
-	Mode          *SendMode   `yaml:"send-mode"`
 	ApiIdentity   string      `yaml:"api-identity"`
-	Recipients    []Recipient `yaml:"recipients"` // TODO#1470: Remove comment: This is an array to support bulk sending in e2ee-bulk mode once implemented
+	Recipients    []Recipient `yaml:"recipients"` // TODO#1470: Remove comment: This is a list to support bulk sending in e2ee-bulk mode once implemented
 	ApiAuthSecret string      `yaml:"auth-secret"`
+	PrivateKey    string      `yaml:"-,omitempty"` // TODO#1470: Enable in yaml once e2ee modes are implemented
+
+	Mode SendMode `yaml:"-"`
 }
 
 func (cfg *Config) Validate() error {
+	// Determine and validate mode
+	switch {
+	case len(cfg.PrivateKey) > 0 && len(cfg.Recipients) <= 1:
+		cfg.Mode = SendModeE2EE
+		return ErrE2EENotImplemented
+	case len(cfg.PrivateKey) > 0 && len(cfg.Recipients) > 1:
+		cfg.Mode = SendModeE2EEBulk
+		return ErrE2EENotImplemented
+	default:
+		cfg.Mode = SendModeBasic
+	}
+
 	// Validate API Base URL
 	if len(cfg.ApiBaseUrl) == 0 {
 		cfg.ApiBaseUrl = defaultApiBaseUrl
-	}
-
-	// Validate Mode
-	if cfg.Mode == nil {
-		cfg.Mode = &SendMode{}
-		cfg.Mode.UnmarshalText([]byte{})
-	}
-	switch cfg.Mode.Type {
-	case ModeTypeInvalid:
-		return ErrModeTypeInvalid
-	case ModeTypeE2EE, ModeTypeE2EEBulk:
-		return ErrNotImplementedMode // TODO#1470: implement E2EE and E2EE-Bulk modes
 	}
 
 	// Validate API Identity
@@ -60,17 +73,16 @@ func (cfg *Config) Validate() error {
 	}
 
 	// Validate Recipients
-	var modeType = cfg.Mode.Type
-	if modeType == ModeTypeBasic && len(cfg.Recipients) > 1 { // TODO#1470 Handle non bulk e2ee modes properly once implemented
-		return ErrRecipientsTooMany
-	} else if len(cfg.Recipients) == 0 {
+	if len(cfg.Recipients) == 0 {
 		return ErrRecipientsMissing
+	}
+	if cfg.Mode != SendModeE2EEBulk && len(cfg.Recipients) > 1 {
+		return ErrRecipientsTooMany
 	}
 	for _, recipient := range cfg.Recipients {
 		if err := recipient.Validate(); err != nil {
 			return fmt.Errorf("recipients: %s: %w", recipient.Value, err)
 		}
-		// TODO#1470: Either support recipient types other than id in e2ee modes or handle the error properly once those modes are implemented
 	}
 
 	// Validate API Key
@@ -83,9 +95,6 @@ func (cfg *Config) Validate() error {
 func (cfg *Config) Merge(override *Config) {
 	if len(override.ApiBaseUrl) > 0 {
 		cfg.ApiBaseUrl = override.ApiBaseUrl
-	}
-	if override.Mode != nil {
-		cfg.Mode = override.Mode
 	}
 	if len(override.ApiIdentity) > 0 {
 		cfg.ApiIdentity = override.ApiIdentity
@@ -167,13 +176,11 @@ func (provider *AlertProvider) buildMessageBody(ep *endpoint.Endpoint, alert *al
 
 func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.Request, error) {
 	requestUrl := cfg.ApiBaseUrl
-	switch cfg.Mode.Type {
-	case ModeTypeBasic:
+	switch cfg.Mode {
+	case SendModeBasic:
 		requestUrl += "/send_simple"
-	case ModeTypeE2EE, ModeTypeE2EEBulk:
-		return nil, ErrNotImplementedMode // TODO#1470: implement E2EE and E2EE-Bulk modes
 	default:
-		return nil, ErrNotImplementedMode
+		return nil, ErrE2EENotImplemented
 	}
 
 	data := url.Values{}
@@ -204,17 +211,17 @@ func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.R
 func handleResponse(cfg *Config, response *http.Response) error {
 	switch response.StatusCode {
 	case http.StatusOK:
-		switch cfg.Mode.Type {
-		case ModeTypeBasic, ModeTypeE2EE:
+		switch cfg.Mode {
+		case SendModeBasic, SendModeE2EE:
 			return nil
-		case ModeTypeE2EEBulk:
+		case SendModeE2EEBulk:
 			return nil // TODO#1470: Add correct handling once mode is implemented (check success fields in response body)
 		}
 	case http.StatusBadRequest:
-		switch cfg.Mode.Type {
-		case ModeTypeBasic, ModeTypeE2EE:
-			return fmt.Errorf("%s: Invalid recipient or Threema Account not set up for %s mode", response.Status, cfg.Mode.Value)
-		case ModeTypeE2EEBulk:
+		switch cfg.Mode {
+		case SendModeBasic, SendModeE2EE:
+			return fmt.Errorf("%s: Invalid recipient(s) or Threema Account not set up for configured mode", response.Status)
+		case SendModeE2EEBulk:
 			// TODO#1470: Add correct error info once mode is implemented
 		}
 	case http.StatusUnauthorized:
@@ -222,7 +229,7 @@ func handleResponse(cfg *Config, response *http.Response) error {
 	case http.StatusPaymentRequired:
 		return fmt.Errorf("%s: Insufficient credits to send message", response.Status)
 	case http.StatusNotFound:
-		if cfg.Mode.Type == ModeTypeBasic {
+		if cfg.Mode == SendModeBasic {
 			return fmt.Errorf("%s: Recipient could not be found", response.Status)
 		}
 	}

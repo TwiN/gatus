@@ -462,7 +462,6 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 				ThreemaGateway: &threemagateway.AlertProvider{
 					DefaultConfig: threemagateway.Config{
 						ApiBaseUrl:    "test-url",
-						Mode:          nil,
 						ApiIdentity:   "87654321",
 						Recipients:    []threemagateway.Recipient{{Value: "12345678", Type: threemagateway.RecipientTypeId}},
 						ApiAuthSecret: "test-secret",
