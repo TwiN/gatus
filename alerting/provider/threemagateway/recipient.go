@@ -92,7 +92,6 @@ func (r *Recipient) Validate() error {
 			return ErrInvalidPhoneNumberFormat
 		}
 	case RecipientTypeEmail:
-		// Basic validation for email address // TODO#1464: improve email validation
 		if !strings.Contains(r.Value, "@") {
 			return ErrInvalidEmailAddressFormat
 		}
