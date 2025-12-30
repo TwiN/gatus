@@ -136,6 +136,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Use environment variables in config files](#use-environment-variables-in-config-files)
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
@@ -224,6 +225,9 @@ This example would look similar to this:
 
 ![Simple example](.github/assets/example.jpg)
 
+If you want to test it locally, see [Docker](#docker).
+
+## Configuration
 By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
@@ -237,9 +241,9 @@ subdirectories are merged like so:
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
-> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
+> ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 >
-> When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
+> See [Use environment variables in config files](#use-environment-variables-in-config-files) or [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for examples.
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -3373,12 +3377,19 @@ web:
 ```
 
 If you're using a PaaS like Heroku that doesn't let you set a custom port and exposes it through an environment
-variable instead, you can use that environment variable directly in the configuration file:
+variable instead see [Use environment variables in config files](#use-environment-variables-in-config-files).
+
+### Use environment variables in config files
+
+You can use environment variables directly in the configuration file which will be substituted from the environment:
 ```yaml
 web:
   port: ${PORT}
-```
 
+ui:
+  title: $TITLE
+```
+⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 ### Configuring a startup delay
 If, for any reason, you need Gatus to wait for a given amount of time before monitoring the endpoints on application start, you can use the `GATUS_DELAY_START_SECONDS` environment variable to make Gatus sleep on startup.
