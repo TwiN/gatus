@@ -2,10 +2,29 @@
 <html lang="en" class="{{ .Theme }}">
   <head>
     <meta charset="utf-8" />
+    <title>{{ .UI.Title }}</title>
     <script type="text/javascript">
-      window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", dashboardHeading: "{{ .UI.DashboardHeading }}", dashboardSubheading: "{{ .UI.DashboardSubheading }}", link: "{{ .UI.Link }}", buttons: [], maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}", defaultSortBy: "{{ .UI.DefaultSortBy }}", defaultFilterBy: "{{ .UI.DefaultFilterBy }}"};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
-      // Initialize theme immediately to prevent flash
+      if (document.title !== decodeURIComponent("%7B%7B%20.UI.Title%20%7D%7D")) {
+        Function(`window.config = {{ toJSON .UI }};`)(); // Wrapped in Function to prevent error in development mode
+      }
+      else {
+        console.warn('Running in development mode; UI configuration is not injected.');
+        document.title = "Gatus (Development)";
+        window.config = {
+          themes: {
+            "default": {
+              "stateColors": {"healthy": "#22C55E","maintenance": "#3B82F6","unhealthy": "#E43B3C"}
+            }
+          },
+        };
+      }
+      window.config.localStateColors = {
+        unknown: "#374151",
+        invalid: "#8B5CF6"
+      };
+
       (function() {
+        // Initialize theme immediately to prevent flash
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (themeFromCookie === 'dark' || (!themeFromCookie && prefersDark)) {
@@ -15,7 +34,6 @@
         }
       })();
     </script>
-    <title>{{ .UI.Title }}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

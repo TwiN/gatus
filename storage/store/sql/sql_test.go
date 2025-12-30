@@ -38,6 +38,7 @@ var (
 		Errors:                nil,
 		Connected:             true,
 		Success:               true,
+		State:                 "healthy",
 		Timestamp:             now,
 		Duration:              150 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
@@ -63,6 +64,7 @@ var (
 		Errors:                []string{"error-1", "error-2"},
 		Connected:             true,
 		Success:               false,
+		State:                 "unhealthy",
 		Timestamp:             now,
 		Duration:              750 * time.Millisecond,
 		CertificateExpiration: 10 * time.Hour,
@@ -519,7 +521,7 @@ func TestStore_InvalidTransaction(t *testing.T) {
 	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
-	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); err == nil {
+	if _, err := store.getLastEndpointResultStateValue(tx, 1); err == nil {
 		t.Error("should've returned an error, because the transaction was already committed")
 	}
 }
@@ -529,7 +531,7 @@ func TestStore_NoRows(t *testing.T) {
 	defer store.Close()
 	tx, _ := store.db.Begin()
 	defer tx.Rollback()
-	if _, err := store.getLastEndpointResultSuccessValue(tx, 1); !errors.Is(err, errNoRowsReturned) {
+	if _, err := store.getLastEndpointResultStateValue(tx, 1); !errors.Is(err, errNoRowsReturned) {
 		t.Errorf("should've %v, got %v", errNoRowsReturned, err)
 	}
 	if _, err := store.getAgeOfOldestEndpointUptimeEntry(tx, 1); !errors.Is(err, errNoRowsReturned) {
@@ -900,9 +902,14 @@ func TestEventOrderingFix(t *testing.T) {
 	}
 	// Create many events over time
 	baseTime := time.Now().Add(-100 * time.Hour) // Start 100 hours ago
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
+		state := "healthy"
+		if i%2 != 0 {
+			state = "unhealthy"
+		}
 		result := &endpoint.Result{
 			Success:   i%2 == 0, // Alternate between true/false to create events
+			State:     state,
 			Timestamp: baseTime.Add(time.Duration(i) * time.Hour),
 		}
 		err := store.InsertEndpointResult(ep, result)

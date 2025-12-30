@@ -132,6 +132,7 @@
                 :endpoint="endpoint"
                 :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
+                :theme="currentTheme"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -177,7 +178,7 @@
       </div>
     </div>
 
-    <Settings @refreshData="fetchData" />
+    <Settings @refreshData="fetchData" @setColorTheme="theme => currentTheme = theme" />
   </div>
 </template>
 
@@ -220,6 +221,7 @@ const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
 const showAverageResponseTime = ref(true)
+const currentTheme = ref(localStorage.getItem('gatus:color-theme') || 'default')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
@@ -531,13 +533,9 @@ const initializeCollapsedGroups = () => {
   }
 }
 
-const dashboardHeading = computed(() => {
-  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
-})
+const dashboardHeading = computed(() => window.config?.dashboardHeading ?? "Health Dashboard")
 
-const dashboardSubheading = computed(() => {
-  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
-})
+const dashboardSubheading = computed(() => window.config?.dashboardSubheading ?? "Monitor the health of your endpoints in real-time")
 
 onMounted(() => {
   fetchData()

@@ -287,8 +287,8 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		}
 	} else {
 		// Get the success value of the previous result
-		var lastResultSuccess bool
-		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
+		var lastResultState string
+		if lastResultState, err = s.getLastEndpointResultStateValue(tx, endpointID); err != nil {
 			// Silently fail
 			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
 		} else {
@@ -296,7 +296,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
 			// that the endpoint either went from Healthy to Unhealthy or Unhealthy -> Healthy, therefore, we'll add
 			// an event to mark the change in state
-			if lastResultSuccess != result.Success {
+			if lastResultState != result.State {
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
@@ -602,9 +602,10 @@ func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error)
 // insertEndpointEvent inserts en event in the store
 func (s *Store) insertEndpointEvent(tx *sql.Tx, endpointID int64, event *endpoint.Event) error {
 	_, err := tx.Exec(
-		"INSERT INTO endpoint_events (endpoint_id, event_type, event_timestamp) VALUES ($1, $2, $3)",
+		"INSERT INTO endpoint_events (endpoint_id, event_type, event_state, event_timestamp) VALUES ($1, $2, $3, $4)",
 		endpointID,
 		event.Type,
+		event.State,
 		event.Timestamp.UTC(),
 	)
 	if err != nil {
@@ -623,12 +624,13 @@ func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, re
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			INSERT INTO endpoint_results (endpoint_id, success, state, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 			RETURNING endpoint_result_id
 		`,
 		endpointID,
 		result.Success,
+		result.State,
 		strings.Join(result.Errors, arraySeparator),
 		result.Connected,
 		result.HTTPStatus,
@@ -763,9 +765,9 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	// First, get the most recent events using a subquery, then order them chronologically
 	rows, err := tx.Query(
 		`
-			SELECT event_type, event_timestamp
+			SELECT event_type, event_state, event_timestamp
 			FROM (
-				SELECT event_type, event_timestamp, endpoint_event_id
+				SELECT event_type, event_state, event_timestamp, endpoint_event_id
 				FROM endpoint_events
 				WHERE endpoint_id = $1
 				ORDER BY endpoint_event_id DESC
@@ -782,7 +784,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 	}
 	for rows.Next() {
 		event := &endpoint.Event{}
-		_ = rows.Scan(&event.Type, &event.Timestamp)
+		_ = rows.Scan(&event.Type, &event.State, &event.Timestamp)
 		events = append(events, event)
 	}
 	return
@@ -791,7 +793,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*endpoint.Result, err error) {
 	rows, err := tx.Query(
 		`
-			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
+			SELECT endpoint_result_id, success, state, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
 			FROM endpoint_results
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
@@ -809,7 +811,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		result := &endpoint.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
+		err = rows.Scan(&id, &result.Success, &result.State, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
 			logr.Errorf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
@@ -990,16 +992,16 @@ func (s *Store) getAgeOfOldestEndpointUptimeEntry(tx *sql.Tx, endpointID int64) 
 	return time.Since(time.Unix(oldestEndpointUptimeUnixTimestamp, 0)), nil
 }
 
-func (s *Store) getLastEndpointResultSuccessValue(tx *sql.Tx, endpointID int64) (bool, error) {
-	var success bool
-	err := tx.QueryRow("SELECT success FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&success)
+func (s *Store) getLastEndpointResultStateValue(tx *sql.Tx, endpointID int64) (string, error) {
+	var state string
+	err := tx.QueryRow("SELECT state FROM endpoint_results WHERE endpoint_id = $1 ORDER BY endpoint_result_id DESC LIMIT 1", endpointID).Scan(&state)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, errNoRowsReturned
+			return "", errNoRowsReturned
 		}
-		return false, err
+		return "", err
 	}
-	return success, nil
+	return state, nil
 }
 
 // deleteOldEndpointEvents deletes endpoint events that are no longer needed

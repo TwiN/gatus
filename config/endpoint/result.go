@@ -35,6 +35,9 @@ type Result struct {
 	// Success whether the result signifies a success or not
 	Success bool `json:"success"`
 
+	// State of the endpoint after evaluating the result
+	State string `json:"state,omitempty"`
+
 	// Timestamp when the request was sent
 	Timestamp time.Time `json:"timestamp"`
 
