@@ -31,8 +31,8 @@ func (c *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	if len(c.Instances) > 0 {
-		slog.Warn("WARNING: Your configuration is using 'remote', which is in alpha and may be updated/removed in future versions.")
-		slog.Warn("WARNING: See https://github.com/TwiN/gatus/issues/64 for more information")
+		slog.Warn("Your configuration is using 'remote', which is in alpha and may be updated/removed in future versions.")
+		slog.Warn("See https://github.com/TwiN/gatus/issues/64 for more information")
 	}
 	return nil
 }

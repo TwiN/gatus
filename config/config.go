@@ -296,8 +296,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	} else {
 		// XXX: Remove this in v6.0.0
 		if config.Debug {
-			slog.Warn("WARNING: The 'debug' configuration has been deprecated and will be removed in v6.0.0")
-			slog.Warn("WARNING: Please use the GATUS_LOG_LEVEL environment variable instead")
+			slog.Warn("The 'debug' configuration has been deprecated and will be removed in v6.0.0")
+			slog.Warn("Please use the GATUS_LOG_LEVEL environment variable instead")
 		}
 		// XXX: End of v6.0.0 removals
 		ValidateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
@@ -686,8 +686,8 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 func ValidateAndSetConcurrencyDefaults(config *Config) {
 	if config.DisableMonitoringLock {
 		config.Concurrency = 0
-		slog.Warn("WARNING: The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
-		slog.Warn("WARNING: Please set 'concurrency: 0' instead")
+		slog.Warn("The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
+		slog.Warn("Please set 'concurrency: 0' instead")
 		slog.Debug("DisableMonitoringLock is true, setting unlimited (0) concurrency")
 	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
 		config.Concurrency = DefaultConcurrency

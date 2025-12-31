@@ -48,8 +48,8 @@ func getConfiguredLogLevel() slog.Level {
 		return logLevels[DefaultLogLevel]
 	} else {
 		if levelAsString == "FATAL" {
-			slog.Warn("WARNING: FATAL log level has been deprecated and will be removed in v6.0.0")
-			slog.Warn("WARNING: Please use the ERROR log level instead")
+			slog.Warn("FATAL log level has been deprecated and will be removed in v6.0.0")
+			slog.Warn("Please use the ERROR log level instead")
 		}
 		return level
 	}
