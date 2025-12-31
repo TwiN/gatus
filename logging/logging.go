@@ -22,7 +22,9 @@ var (
 		"INFO":  slog.LevelInfo,
 		"WARN":  slog.LevelWarn,
 		"ERROR": slog.LevelError,
-		"FATAL": slog.LevelError, // TODO in v6.0.0: Remove FATAL level support
+		// XXX: Remove this in v6.0.0
+		"FATAL": slog.LevelError,
+		// XXX: End of v6.0.0 removals
 	}
 
 	logLevel slog.Level
@@ -47,10 +49,12 @@ func getConfiguredLogLevel() slog.Level {
 		slog.Warn("Invalid log level, using default", "provided", level, "default", DefaultLogLevel)
 		return logLevels[DefaultLogLevel]
 	} else {
+		// XXX: Remove this in v6.0.0
 		if levelAsString == "FATAL" {
 			slog.Warn("FATAL log level has been deprecated and will be removed in v6.0.0")
 			slog.Warn("Please use the ERROR log level instead")
 		}
+		// XXX: End of v6.0.0 removals
 		return level
 	}
 }

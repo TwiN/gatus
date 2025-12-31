@@ -70,12 +70,13 @@ func save() {
 
 func loadConfiguration() (*config.Config, error) {
 	configPath := os.Getenv(GatusConfigPathEnvVar)
-	// Backwards compatibility
+	// XXX: Remove this in v6.0.0
 	if len(configPath) == 0 {
 		if configPath = os.Getenv(GatusConfigFileEnvVar); len(configPath) > 0 {
 			slog.Warn("Deprecated environment variable used", "old", GatusConfigFileEnvVar, "preferred", GatusConfigPathEnvVar)
 		}
 	}
+	// XXX: End of v6.0.0 removals
 	return config.LoadConfiguration(configPath)
 }
 

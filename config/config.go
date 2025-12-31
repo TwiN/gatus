@@ -684,12 +684,14 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 }
 
 func ValidateAndSetConcurrencyDefaults(config *Config) {
+	// XXX: Remove deprecated part in v6.0.0
 	if config.DisableMonitoringLock {
 		config.Concurrency = 0
 		slog.Warn("The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
 		slog.Warn("Please set 'concurrency: 0' instead")
 		slog.Debug("DisableMonitoringLock is true, setting unlimited (0) concurrency")
 	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
+		// XXX: End of v6.0.0 removals
 		config.Concurrency = DefaultConcurrency
 		slog.Debug("Setting default concurrency", "value", config.Concurrency)
 	} else {
