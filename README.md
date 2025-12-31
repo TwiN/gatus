@@ -2098,8 +2098,6 @@ Here's an example of what the notifications look like:
 
 #### Configuring Splunk alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 | Parameter                           | Description                                                                                | Default         |
 |:------------------------------------|:-------------------------------------------------------------------------------------------|:----------------|
 | `alerting.splunk`                   | Configuration for alerts of type `splunk`                                                  | `{}`            |
