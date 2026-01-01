@@ -70,7 +70,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
-		logger.Debug("Not handling alerting due to maintenance window")
+		logger.Debug("Not handling alerting due to active maintenance window")
 	}
 	logger.Debug("Wait for next monitoring", "interval", ep.Interval)
 }
@@ -78,6 +78,6 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 // UpdateEndpointStatus persists the endpoint result in the storage
 func UpdateEndpointStatus(ep *endpoint.Endpoint, result *endpoint.Result) {
 	if err := store.Get().InsertEndpointResult(ep, result); err != nil {
-		slog.Error("Failed to insert result in storage", "error", err.Error())
+		slog.Error("Failed to insert result", ep.GetLogAttribute(), "error", err.Error())
 	}
 }

@@ -44,7 +44,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	convertedEndpoint := ee.ToEndpoint()
 	hasReceivedResultWithinHeartbeatInterval, err := store.Get().HasEndpointStatusNewerThan(ee.Key(), time.Now().Add(-ee.Heartbeat.Interval))
 	if err != nil {
-		slog.Error("Failed to check if external endpoint has received a result within the heartbeat interval", "group", ee.Group, "name", ee.Name, "key", ee.Key(), "error", err.Error())
+		logger.Error("Failed to check if external endpoint has received a result within the heartbeat interval", "error", err.Error())
 		logger.Error("Monitoring error", "error", err.Error())
 		return
 	}
@@ -53,7 +53,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		// skip the rest. We don't have to worry about alerting or metrics, because if the previous heartbeat failed
 		// while this one succeeds, it implies that there was a new result pushed, and that result being pushed
 		// should've resolved the alert.
-		logger.Info("Monitoring success, heartbeat received within interval", "success", hasReceivedResultWithinHeartbeatInterval, "errors", 0)
+		logger.Info("Monitoring success, heartbeat received within interval", "success", true, "error_count", 0)
 		return
 	}
 	// All code after this point assumes the heartbeat failed
@@ -66,11 +66,11 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 	}
 	UpdateEndpointStatus(convertedEndpoint, result)
-	logger.Info("Monitoring done", "success", result.Success, "errors", len(result.Errors), "duration", result.Duration.Round(time.Millisecond))
+	logger.Info("Monitoring done", result.GetLogAttribute())
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ee.MaintenanceWindows {
 		if maintenanceWindow.IsUnderMaintenance() {
-			slog.Debug("Under external endpoint maintenance window")
+			logger.Debug("Under external endpoint maintenance window")
 			inEndpointMaintenanceWindow = true
 		}
 	}
@@ -80,6 +80,6 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		ee.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 		ee.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
 	} else {
-		logger.Debug("Not handling alerting due to maintenance window")
+		logger.Debug("Not handling alerting due to active maintenance window")
 	}
 }

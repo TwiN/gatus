@@ -81,6 +81,6 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 // UpdateSuiteStatus persists the suite result in the database
 func UpdateSuiteStatus(s *suite.Suite, result *suite.Result) {
 	if err := store.Get().InsertSuiteResult(s, result); err != nil {
-		slog.Error("Failed to insert suite result", "suite", s.Name, "error", err.Error())
+		slog.Error("Failed to insert suite result", s.GetLogAttribute(), "error", err.Error())
 	}
 }
