@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -171,6 +172,10 @@ func (config *Config) GetExternalEndpointByKey(key string) *endpoint.ExternalEnd
 // HasLoadedConfigurationBeenModified returns whether one of the file that the
 // configuration has been loaded from has been modified since it was last read
 func (config *Config) HasLoadedConfigurationBeenModified() bool {
+	// If config was loaded from env var, it cannot be modified at runtime
+	if len(config.configPath) == 0 {
+		return false
+	}
 	lastMod := config.lastFileModTime.Unix()
 	fileInfo, err := os.Stat(config.configPath)
 	if err != nil {
@@ -253,6 +258,25 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
+	return config, nil
+}
+
+// LoadConfigurationFromBase64 loads configuration from base64-encoded YAML.
+// This is used when configuration is provided via environment variable.
+// Note: Configuration reloading is not supported when using this method.
+func LoadConfigurationFromBase64(base64Config string) (*Config, error) {
+	if len(base64Config) == 0 {
+		return nil, ErrConfigFileNotFound
+	}
+	yamlBytes, err := base64.StdEncoding.DecodeString(base64Config)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding base64 config from environment variable: %w", err)
+	}
+	config, err := parseAndValidateConfigBytes(yamlBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing config from environment variable: %w", err)
+	}
+	config.configPath = "" // Empty indicates env var source
 	return config, nil
 }
 

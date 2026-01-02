@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	GatusConfigEnvVar     = "GATUS_CONFIG"      // YAML configuration content
 	GatusConfigPathEnvVar = "GATUS_CONFIG_PATH"
 	GatusConfigFileEnvVar = "GATUS_CONFIG_FILE" // Deprecated in favor of GatusConfigPathEnvVar
 	GatusLogLevelEnvVar   = "GATUS_LOG_LEVEL"
@@ -84,6 +85,12 @@ func configureLogging() {
 }
 
 func loadConfiguration() (*config.Config, error) {
+	// Check for base64-encoded YAML content first (takes precedence)
+	if configBase64 := os.Getenv(GatusConfigEnvVar); len(configBase64) > 0 {
+		logr.Info("[main.loadConfiguration] Loading configuration from GATUS_CONFIG environment variable")
+		return config.LoadConfigurationFromBase64(configBase64)
+	}
+	// Fall back to file-based configuration
 	configPath := os.Getenv(GatusConfigPathEnvVar)
 	// Backwards compatibility
 	if len(configPath) == 0 {
