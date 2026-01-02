@@ -31,12 +31,12 @@ func TestRecipient_UnmarshalText_And_MarshalText(t *testing.T) {
 		{
 			name:        "invalid format",
 			input:       "type:value:extra",
-			expectError: ErrInvalidRecipientFormat,
+			expectError: errInvalidRecipientFormat,
 		},
 		{
 			name:        "invalid recipient type",
 			input:       "unknown:value",
-			expectError: ErrInvalidRecipientType,
+			expectError: errInvalidRecipientType,
 		},
 		{
 			name:        "valid phone recipient",
@@ -91,7 +91,7 @@ func TestRecipient_Validate(t *testing.T) {
 		{
 			name:        "empty recipient",
 			input:       Recipient{Type: defaultRecipientType, Value: ""},
-			expectError: ErrInvalidRecipientFormat,
+			expectError: errInvalidRecipientFormat,
 		},
 		{
 			name:        "valid id recipient",
@@ -106,7 +106,7 @@ func TestRecipient_Validate(t *testing.T) {
 		{
 			name:        "invalid phone recipient",
 			input:       Recipient{Type: RecipientTypePhone, Value: "123-456-7890"},
-			expectError: ErrInvalidPhoneNumberFormat,
+			expectError: errInvalidPhoneNumberFormat,
 		},
 		{
 			name:        "valid email recipient",
@@ -116,12 +116,12 @@ func TestRecipient_Validate(t *testing.T) {
 		{
 			name:        "invalid email recipient",
 			input:       Recipient{Type: RecipientTypeEmail, Value: "mailtest.com"},
-			expectError: ErrInvalidEmailAddressFormat,
+			expectError: errInvalidEmailAddressFormat,
 		},
 		{
 			name:        "invalid recipient type",
 			input:       Recipient{Type: RecipientTypeInvalid, Value: "value"},
-			expectError: ErrInvalidRecipientType,
+			expectError: errInvalidRecipientType,
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 			},
-			expected: ErrApiIdentityMissing,
+			expected: errApiIdentityMissing,
 		},
 		{
 			name: "missing ApiAuthSecret",
@@ -165,7 +165,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiIdentity: "12345678",
 				Recipients:  []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 			},
-			expected: ErrApiAuthSecretMissing,
+			expected: rrrApiAuthSecretMissing,
 		},
 		{
 			name: "missing Recipients",
@@ -173,7 +173,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiIdentity:   "12345678",
 				ApiAuthSecret: "authsecret",
 			},
-			expected: ErrRecipientsMissing,
+			expected: errRecipientsMissing,
 		},
 		{
 			name: "invalid ApiIdentity",
@@ -182,7 +182,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 			},
-			expected: ErrInvalidThreemaId,
+			expected: errInvalidThreemaId,
 		},
 		{
 			name: "invalid ID Recipient",
@@ -191,7 +191,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "invalid-id", Type: RecipientTypeId}},
 			},
-			expected: ErrInvalidThreemaId,
+			expected: errInvalidThreemaId,
 		},
 		{
 			name: "invalid Phone Recipient",
@@ -200,7 +200,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "a12345", Type: RecipientTypePhone}},
 			},
-			expected: ErrInvalidPhoneNumberFormat,
+			expected: errInvalidPhoneNumberFormat,
 		},
 		{
 			name: "invalid Email Recipient",
@@ -209,7 +209,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "invalid-email", Type: RecipientTypeEmail}},
 			},
-			expected: ErrInvalidEmailAddressFormat,
+			expected: errInvalidEmailAddressFormat,
 		},
 		{
 			name: "too many Recipients in basic mode",
@@ -218,7 +218,7 @@ func TestConfig_Validate(t *testing.T) {
 				ApiAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
 			},
-			expected: ErrRecipientsTooMany,
+			expected: errRecipientsTooMany,
 		},
 		{
 			name: "not implemented E2EE mode",
@@ -228,7 +228,7 @@ func TestConfig_Validate(t *testing.T) {
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 				PrivateKey:    "someprivatekey",
 			},
-			expected: ErrE2EENotImplemented,
+			expected: errE2EENotImplemented,
 		},
 		{
 			name: "not implemented E2EE bulk mode",
@@ -238,7 +238,7 @@ func TestConfig_Validate(t *testing.T) {
 				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
 				PrivateKey:    "someprivatekey",
 			},
-			expected: ErrE2EENotImplemented,
+			expected: errE2EENotImplemented,
 		},
 	}
 
@@ -317,8 +317,8 @@ func TestAlertProvider_Validate(t *testing.T) {
 			ApiAuthSecret: "authsecret",
 			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
 		},
-	}).Validate(); !errors.Is(err, ErrApiIdentityMissing) {
-		t.Errorf("expected missing ApiIdentity to return %v, got %v", ErrApiIdentityMissing, err)
+	}).Validate(); !errors.Is(err, errApiIdentityMissing) {
+		t.Errorf("expected missing ApiIdentity to return %v, got %v", errApiIdentityMissing, err)
 	}
 }
 

@@ -23,26 +23,26 @@ const (
 )
 
 var (
-	ErrApiIdentityMissing   = errors.New("api-identity is required")
-	ErrApiAuthSecretMissing = errors.New("auth-secret is required")
-	ErrRecipientsMissing    = errors.New("at least one recipient is required")
+	errApiIdentityMissing   = errors.New("api-identity is required")
+	errApiAuthSecretMissing = errors.New("auth-secret is required")
+	errRecipientsMissing    = errors.New("at least one recipient is required")
 
-	ErrRecipientsTooMany           = errors.New("too many recipients for the selected mode")
-	ErrInvalidRecipientTypeForE2EE = errors.New("only recipient type 'id' is supported in e2ee modes")
+	errRecipientsTooMany           = errors.New("too many recipients for the selected mode")
+	errInvalidRecipientTypeForE2EE = errors.New("only recipient type 'id' is supported in e2ee modes")
 
-	ErrE2EENotImplemented = errors.New("e2ee mode is not implemented yet")
+	errE2EENotImplemented = errors.New("e2ee mode is not implemented yet")
 
-	ErrInvalidRecipientFormat = errors.New("recipient must be in the format '[<type>:]<value>'")
-	ErrInvalidRecipientType   = fmt.Errorf("invalid recipient type, must be one of: %v", joinKeys(validRecipientTypes, ", "))
+	errInvalidRecipientFormat = errors.New("recipient must be in the format '[<type>:]<value>'")
+	errInvalidRecipientType   = fmt.Errorf("invalid recipient type, must be one of: %v", joinKeys(validRecipientTypes, ", "))
 	validRecipientTypes       = map[string]RecipientType{
 		"id":    RecipientTypeId,
 		"phone": RecipientTypePhone,
 		"email": RecipientTypeEmail,
 	}
 
-	ErrInvalidThreemaId          = errors.New("Must be 8 characters long and alphabetic characters must be uppercase")
-	ErrInvalidPhoneNumberFormat  = errors.New("invalid phone number: must contain only digits and may start with '+'")
-	ErrInvalidEmailAddressFormat = errors.New("invalid email address: must contain '@'")
+	errInvalidThreemaId          = errors.New("invalid id: must be 8 characters long and alphabetic characters must be uppercase")
+	errInvalidPhoneNumberFormat  = errors.New("invalid phone number: must contain only digits and may start with '+'")
+	errInvalidEmailAddressFormat = errors.New("invalid email address: must contain '@'")
 )
 
 func joinKeys[V any](m map[string]V, separator string) string {
@@ -85,10 +85,10 @@ func (r *Recipient) UnmarshalText(text []byte) error {
 	parts := strings.Split(string(text), ":")
 	switch {
 	case len(parts) > 2:
-		return ErrInvalidRecipientFormat
+		return errInvalidRecipientFormat
 	case len(parts) == 2:
 		if r.Type = parseRecipientType(parts[0]); r.Type == RecipientTypeInvalid {
-			return ErrInvalidRecipientType
+			return errInvalidRecipientType
 		}
 		r.Value = parts[1]
 	default:
@@ -107,12 +107,12 @@ func (r Recipient) MarshalText() ([]byte, error) {
 			return []byte(key + ":" + r.Value), nil
 		}
 	}
-	return nil, ErrInvalidRecipientType
+	return nil, errInvalidRecipientType
 }
 
 func (r *Recipient) Validate() error {
 	if len(r.Value) == 0 {
-		return ErrInvalidRecipientFormat
+		return errInvalidRecipientFormat
 	}
 	switch r.Type {
 	case RecipientTypeId:
@@ -122,21 +122,21 @@ func (r *Recipient) Validate() error {
 	case RecipientTypePhone:
 		r.Value = strings.TrimPrefix(r.Value, "+")
 		if !isValidPhoneNumber(r.Value) {
-			return ErrInvalidPhoneNumberFormat
+			return errInvalidPhoneNumberFormat
 		}
 	case RecipientTypeEmail:
 		if !strings.Contains(r.Value, "@") {
-			return ErrInvalidEmailAddressFormat
+			return errInvalidEmailAddressFormat
 		}
 	default:
-		return ErrInvalidRecipientType
+		return errInvalidRecipientType
 	}
 	return nil
 }
 
 func validateThreemaId(id string) error {
 	if len(id) != 8 || strings.ToUpper(id) != id {
-		return ErrInvalidThreemaId
+		return errInvalidThreemaId
 	}
 	return nil
 }
@@ -168,10 +168,10 @@ func (cfg *Config) Validate() error {
 	switch {
 	case len(cfg.PrivateKey) > 0 && len(cfg.Recipients) <= 1:
 		cfg.Mode = SendModeE2EE
-		return ErrE2EENotImplemented
+		return errE2EENotImplemented
 	case len(cfg.PrivateKey) > 0 && len(cfg.Recipients) > 1:
 		cfg.Mode = SendModeE2EEBulk
-		return ErrE2EENotImplemented
+		return errE2EENotImplemented
 	default:
 		cfg.Mode = SendModeBasic
 	}
@@ -183,7 +183,7 @@ func (cfg *Config) Validate() error {
 
 	// Validate API Identity
 	if len(cfg.ApiIdentity) == 0 {
-		return ErrApiIdentityMissing
+		return errApiIdentityMissing
 	}
 	if err := validateThreemaId(cfg.ApiIdentity); err != nil {
 		return fmt.Errorf("api-identity: %w", err)
@@ -191,10 +191,10 @@ func (cfg *Config) Validate() error {
 
 	// Validate Recipients
 	if len(cfg.Recipients) == 0 {
-		return ErrRecipientsMissing
+		return errRecipientsMissing
 	}
 	if cfg.Mode != SendModeE2EEBulk && len(cfg.Recipients) > 1 {
-		return ErrRecipientsTooMany
+		return errRecipientsTooMany
 	}
 	for _, recipient := range cfg.Recipients {
 		if err := recipient.Validate(); err != nil {
@@ -204,7 +204,7 @@ func (cfg *Config) Validate() error {
 
 	// Validate API Key
 	if len(cfg.ApiAuthSecret) == 0 {
-		return ErrApiAuthSecretMissing
+		return errApiAuthSecretMissing
 	}
 	return nil
 }
@@ -297,7 +297,7 @@ func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.R
 	case SendModeBasic:
 		requestUrl += "/send_simple"
 	default:
-		return nil, ErrE2EENotImplemented
+		return nil, errE2EENotImplemented
 	}
 
 	data := url.Values{}
@@ -311,7 +311,7 @@ func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.R
 	case RecipientTypeEmail:
 		toKey = "email"
 	default:
-		return nil, ErrInvalidRecipientType
+		return nil, errInvalidRecipientType
 	}
 	data.Add(toKey, cfg.Recipients[0].Value)
 	data.Add("text", body)
