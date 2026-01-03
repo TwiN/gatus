@@ -61,7 +61,7 @@
           <Card>
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle>Recent Checks</CardTitle>
+                <CardTitle><a id="recent-checks" href="#recent-checks" class="anchor-link">Recent Checks</a></CardTitle>
                 <div class="flex items-center gap-2">
                   <Button 
                     variant="ghost" 
@@ -105,7 +105,7 @@
             <Card>
               <CardHeader>
                 <div class="flex items-center justify-between">
-                  <CardTitle>Response Time Trend</CardTitle>
+                  <CardTitle><a id="response-time-trend" href="#response-time-trend" class="anchor-link">Response Time Trend</a></CardTitle>
                   <select 
                     v-model="selectedChartDuration"
                     class="text-sm bg-background border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -143,7 +143,7 @@
 
           <Card>
             <CardHeader>
-              <CardTitle>Uptime Statistics</CardTitle>
+              <CardTitle><a id="uptime-statistics" href="#uptime-statistics" class="anchor-link">Uptime Statistics</a></CardTitle>
             </CardHeader>
             <CardContent>
               <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -159,7 +159,7 @@
 
           <Card>
             <CardHeader>
-              <CardTitle>Current Health</CardTitle>
+              <CardTitle><a id="current-health" href="#current-health" class="anchor-link">Current Health</a></CardTitle>
             </CardHeader>
             <CardContent>
               <div class="text-center">
@@ -170,7 +170,7 @@
 
           <Card v-if="events && events.length > 0">
             <CardHeader>
-              <CardTitle>Events</CardTitle>
+              <CardTitle><a id="events" href="#events" class="anchor-link">Events</a></CardTitle>
             </CardHeader>
             <CardContent>
               <div class="space-y-4">
@@ -199,6 +199,17 @@
     <Settings @refreshData="fetchData" />
   </div>
 </template>
+
+<style scoped>
+.anchor-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.anchor-link:hover {
+  text-decoration: underline;
+}
+</style>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
