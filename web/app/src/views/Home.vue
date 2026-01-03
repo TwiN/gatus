@@ -82,7 +82,7 @@
                     v-for="suite in items.suites"
                     :key="suite.key"
                     :suite="suite"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     @showTooltip="showTooltip"
                   />
                 </div>
@@ -96,7 +96,7 @@
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     :showAverageResponseTime="showAverageResponseTime"
                     @showTooltip="showTooltip"
                   />
@@ -116,7 +116,7 @@
                 v-for="suite in paginatedSuites"
                 :key="suite.key"
                 :suite="suite"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -130,7 +130,7 @@
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
                 @showTooltip="showTooltip"
               />
@@ -182,7 +182,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -193,7 +192,6 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
-import { SERVER_URL } from '@/main.js'
 
 const props = defineProps({
   announcements: {
@@ -225,6 +223,7 @@ const showAverageResponseTime = ref(true)
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
+const resultPageSize = 50
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -433,7 +432,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
+    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -444,7 +443,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=100`, {
+    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
@@ -537,7 +536,7 @@ const dashboardHeading = computed(() => {
 })
 
 const dashboardSubheading = computed(() => {
-  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.dashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
+  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
 })
 
 onMounted(() => {

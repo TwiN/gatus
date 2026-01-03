@@ -62,7 +62,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -142,8 +141,8 @@ const formattedResponseTime = computed(() => {
     return `~${avgMs}ms`
   } else {
     // Show min-max range
-    const minMs = Math.round(min)
-    const maxMs = Math.round(max)
+    const minMs = Math.trunc(min)
+    const maxMs = Math.trunc(max)
     // If min and max are the same, show single value
     if (minMs === maxMs) {
       return `${minMs}ms`
@@ -154,7 +153,8 @@ const formattedResponseTime = computed(() => {
 
 const oldestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return generatePrettyTimeAgo(props.endpoint.results[0].timestamp)
+  const oldestResultIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
+  return generatePrettyTimeAgo(props.endpoint.results[oldestResultIndex].timestamp)
 })
 
 const newestResultTime = computed(() => {
