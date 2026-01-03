@@ -17,7 +17,7 @@
                 :is="link ? 'a' : 'div'" 
                 :href="link" 
                 target="_blank"
-                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                :class="['flex items-center gap-3', link && 'hover:opacity-80 transition-opacity']"
               >
                 <div class="w-12 h-12 flex items-center justify-center">
                   <img 
@@ -133,7 +133,7 @@
           </div>
           
           <a
-            :href="`${SERVER_URL}/oidc/login`"
+            :href="`/oidc/login`"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 w-full"
             @click="isOidcLoading = true"
           >
@@ -153,7 +153,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu, X, LogIn } from 'lucide-vue-next'
@@ -162,7 +161,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
-import { SERVER_URL } from '@/main'
 
 const route = useRoute()
 
@@ -196,7 +194,7 @@ const buttons = computed(() => {
 // Methods
 const fetchConfig = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/v1/config`, { credentials: 'include' })
+    const response = await fetch(`/api/v1/config`, { credentials: 'include' })
     if (response.status === 200) {
       const data = await response.json()
       config.value = data
