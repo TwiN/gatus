@@ -143,10 +143,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (string, string) {
 	var subject, message string
 	if resolved {
-		subject = fmt.Sprintf("🟢 Alert resolved for [%s] ", ep.DisplayName())
+		subject = fmt.Sprintf("🟢 [%s] Alert resolved", ep.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 	} else {
-		subject = fmt.Sprintf("🔴 Alert triggered for [%s] ", ep.DisplayName())
+		subject = fmt.Sprintf("🔴 [%s] Alert triggered", ep.DisplayName())
 		message = fmt.Sprintf("An alert for %s has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
 	}
 	var formattedConditionResults string
