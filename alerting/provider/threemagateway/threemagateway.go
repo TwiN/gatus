@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	defaultApiBaseUrl = "https://msgapi.threema.ch"
+	defaultAPIBaseURL = "https://msgapi.threema.ch"
 
-	defaultRecipientType = RecipientTypeId
+	defaultRecipientType = RecipientTypeID
 )
 
 var (
-	errApiIdentityMissing   = errors.New("api-identity is required")
-	errApiAuthSecretMissing = errors.New("auth-secret is required")
+	errAPIIdentityMissing   = errors.New("api-identity is required")
+	errAPIAuthSecretMissing = errors.New("auth-secret is required")
 	errRecipientsMissing    = errors.New("at least one recipient is required")
 
 	errRecipientsTooMany           = errors.New("too many recipients for the selected mode")
@@ -35,12 +35,12 @@ var (
 	errInvalidRecipientFormat = errors.New("recipient must be in the format '[<type>:]<value>'")
 	errInvalidRecipientType   = fmt.Errorf("invalid recipient type, must be one of: %v", joinKeys(validRecipientTypes, ", "))
 	validRecipientTypes       = map[string]RecipientType{
-		"id":    RecipientTypeId,
+		"id":    RecipientTypeID,
 		"phone": RecipientTypePhone,
 		"email": RecipientTypeEmail,
 	}
 
-	errInvalidThreemaId          = errors.New("invalid id: must be 8 characters long and alphabetic characters must be uppercase")
+	errInvalidThreemaID          = errors.New("invalid id: must be 8 characters long and alphabetic characters must be uppercase")
 	errInvalidPhoneNumberFormat  = errors.New("invalid phone number: must contain only digits and may start with '+'")
 	errInvalidEmailAddressFormat = errors.New("invalid email address: must contain '@'")
 )
@@ -61,7 +61,7 @@ type RecipientType int
 
 const (
 	RecipientTypeInvalid RecipientType = iota
-	RecipientTypeId
+	RecipientTypeID
 	RecipientTypePhone
 	RecipientTypeEmail
 )
@@ -115,7 +115,7 @@ func (r *Recipient) Validate() error {
 		return errInvalidRecipientFormat
 	}
 	switch r.Type {
-	case RecipientTypeId:
+	case RecipientTypeID:
 		if err := validateThreemaId(r.Value); err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (r *Recipient) Validate() error {
 
 func validateThreemaId(id string) error {
 	if len(id) != 8 || strings.ToUpper(id) != id {
-		return errInvalidThreemaId
+		return errInvalidThreemaID
 	}
 	return nil
 }
@@ -154,10 +154,10 @@ func isValidPhoneNumber(number string) bool {
 }
 
 type Config struct {
-	ApiBaseUrl    string      `yaml:"api-base-url"`
-	ApiIdentity   string      `yaml:"api-identity"`
+	APIBaseURL    string      `yaml:"api-base-url"`
+	APIIdentity   string      `yaml:"api-identity"`
 	Recipients    []Recipient `yaml:"recipients"` // TODO#1470: Remove comment: This is a list to support bulk sending in e2ee-bulk mode once implemented
-	ApiAuthSecret string      `yaml:"auth-secret"`
+	APIAuthSecret string      `yaml:"auth-secret"`
 	PrivateKey    string      `yaml:"-,omitempty"` // TODO#1470: Enable in yaml once e2ee modes are implemented
 
 	Mode SendMode `yaml:"-"`
@@ -177,15 +177,15 @@ func (cfg *Config) Validate() error {
 	}
 
 	// Validate API Base URL
-	if len(cfg.ApiBaseUrl) == 0 {
-		cfg.ApiBaseUrl = defaultApiBaseUrl
+	if len(cfg.APIBaseURL) == 0 {
+		cfg.APIBaseURL = defaultAPIBaseURL
 	}
 
 	// Validate API Identity
-	if len(cfg.ApiIdentity) == 0 {
-		return errApiIdentityMissing
+	if len(cfg.APIIdentity) == 0 {
+		return errAPIIdentityMissing
 	}
-	if err := validateThreemaId(cfg.ApiIdentity); err != nil {
+	if err := validateThreemaId(cfg.APIIdentity); err != nil {
 		return fmt.Errorf("api-identity: %w", err)
 	}
 
@@ -203,24 +203,24 @@ func (cfg *Config) Validate() error {
 	}
 
 	// Validate API Key
-	if len(cfg.ApiAuthSecret) == 0 {
-		return errApiAuthSecretMissing
+	if len(cfg.APIAuthSecret) == 0 {
+		return errAPIAuthSecretMissing
 	}
 	return nil
 }
 
 func (cfg *Config) Merge(override *Config) {
-	if len(override.ApiBaseUrl) > 0 {
-		cfg.ApiBaseUrl = override.ApiBaseUrl
+	if len(override.APIBaseURL) > 0 {
+		cfg.APIBaseURL = override.APIBaseURL
 	}
-	if len(override.ApiIdentity) > 0 {
-		cfg.ApiIdentity = override.ApiIdentity
+	if len(override.APIIdentity) > 0 {
+		cfg.APIIdentity = override.APIIdentity
 	}
 	if len(override.Recipients) > 0 {
 		cfg.Recipients = override.Recipients
 	}
-	if len(override.ApiAuthSecret) > 0 {
-		cfg.ApiAuthSecret = override.ApiAuthSecret
+	if len(override.APIAuthSecret) > 0 {
+		cfg.APIAuthSecret = override.APIAuthSecret
 	}
 }
 
@@ -292,19 +292,19 @@ func (provider *AlertProvider) buildMessageBody(ep *endpoint.Endpoint, alert *al
 }
 
 func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.Request, error) {
-	requestUrl := cfg.ApiBaseUrl
+	requestURL := cfg.APIBaseURL
 	switch cfg.Mode {
 	case SendModeBasic:
-		requestUrl += "/send_simple"
+		requestURL += "/send_simple"
 	default:
 		return nil, errE2EENotImplemented
 	}
 
 	data := url.Values{}
-	data.Add("from", cfg.ApiIdentity)
+	data.Add("from", cfg.APIIdentity)
 	var toKey string
 	switch cfg.Recipients[0].Type {
-	case RecipientTypeId:
+	case RecipientTypeID:
 		toKey = "to"
 	case RecipientTypePhone:
 		toKey = "phone"
@@ -315,9 +315,9 @@ func (provider *AlertProvider) prepareRequest(cfg *Config, body string) (*http.R
 	}
 	data.Add(toKey, cfg.Recipients[0].Value)
 	data.Add("text", body)
-	data.Add("secret", cfg.ApiAuthSecret)
+	data.Add("secret", cfg.APIAuthSecret)
 
-	request, err := http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(data.Encode()))
+	request, err := http.NewRequest(http.MethodPost, requestURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}

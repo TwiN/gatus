@@ -95,7 +95,7 @@ func TestRecipient_Validate(t *testing.T) {
 		},
 		{
 			name:        "valid id recipient",
-			input:       Recipient{Type: RecipientTypeId, Value: "ABCDEFGH"},
+			input:       Recipient{Type: RecipientTypeID, Value: "ABCDEFGH"},
 			expectError: nil,
 		},
 		{
@@ -145,59 +145,59 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid config",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 			},
 			expected: nil,
 		},
 		{
 			name: "missing ApiIdentity",
 			input: Config{
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 			},
-			expected: errApiIdentityMissing,
+			expected: errAPIIdentityMissing,
 		},
 		{
 			name: "missing ApiAuthSecret",
 			input: Config{
-				ApiIdentity: "12345678",
-				Recipients:  []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				APIIdentity: "12345678",
+				Recipients:  []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 			},
 			expected: rrrApiAuthSecretMissing,
 		},
 		{
 			name: "missing Recipients",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
 			},
 			expected: errRecipientsMissing,
 		},
 		{
 			name: "invalid ApiIdentity",
 			input: Config{
-				ApiIdentity:   "invalid-id",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				APIIdentity:   "invalid-id",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 			},
-			expected: errInvalidThreemaId,
+			expected: errInvalidThreemaID,
 		},
 		{
 			name: "invalid ID Recipient",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "invalid-id", Type: RecipientTypeId}},
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "invalid-id", Type: RecipientTypeID}},
 			},
-			expected: errInvalidThreemaId,
+			expected: errInvalidThreemaID,
 		},
 		{
 			name: "invalid Phone Recipient",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "a12345", Type: RecipientTypePhone}},
 			},
 			expected: errInvalidPhoneNumberFormat,
@@ -205,8 +205,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid Email Recipient",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
 				Recipients:    []Recipient{{Value: "invalid-email", Type: RecipientTypeEmail}},
 			},
 			expected: errInvalidEmailAddressFormat,
@@ -214,18 +214,18 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "too many Recipients in basic mode",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}, {Value: "ABCDEFGH", Type: RecipientTypeID}},
 			},
 			expected: errRecipientsTooMany,
 		},
 		{
 			name: "not implemented E2EE mode",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 				PrivateKey:    "someprivatekey",
 			},
 			expected: errE2EENotImplemented,
@@ -233,9 +233,9 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "not implemented E2EE bulk mode",
 			input: Config{
-				ApiIdentity:   "12345678",
-				ApiAuthSecret: "authsecret",
-				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}, {Value: "ABCDEFGH", Type: RecipientTypeId}},
+				APIIdentity:   "12345678",
+				APIAuthSecret: "authsecret",
+				Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}, {Value: "ABCDEFGH", Type: RecipientTypeID}},
 				PrivateKey:    "someprivatekey",
 			},
 			expected: errE2EENotImplemented,
@@ -254,58 +254,58 @@ func TestConfig_Validate(t *testing.T) {
 
 func TestConfig_Merge(t *testing.T) {
 	original := Config{
-		ApiBaseUrl:    "https://api.threema.ch",
-		ApiIdentity:   "12345678",
-		Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
-		ApiAuthSecret: "authsecret",
+		APIBaseURL:    "https://api.threema.ch",
+		APIIdentity:   "12345678",
+		Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
+		APIAuthSecret: "authsecret",
 	}
 	override := Config{
-		ApiBaseUrl:    "https://custom.api.threema.ch",
-		ApiIdentity:   "ABCDEFGH",
-		Recipients:    []Recipient{{Value: "HGFEDCBA", Type: RecipientTypeId}},
-		ApiAuthSecret: "newauthsecret",
+		APIBaseURL:    "https://custom.api.threema.ch",
+		APIIdentity:   "ABCDEFGH",
+		Recipients:    []Recipient{{Value: "HGFEDCBA", Type: RecipientTypeID}},
+		APIAuthSecret: "newauthsecret",
 	}
 
 	change := original
 	change.Merge(&Config{}) // Merging with empty config should not change anything
-	if change.ApiBaseUrl != original.ApiBaseUrl {
-		t.Errorf("expected ApiBaseUrl to remain %s, got %s", original.ApiBaseUrl, change.ApiBaseUrl)
+	if change.APIBaseURL != original.APIBaseURL {
+		t.Errorf("expected ApiBaseUrl to remain %s, got %s", original.APIBaseURL, change.APIBaseURL)
 	}
 	if change.Mode != original.Mode {
 		t.Errorf("expected Mode to remain %v, got %v", original.Mode, change.Mode)
 	}
-	if change.ApiIdentity != original.ApiIdentity {
-		t.Errorf("expected ApiIdentity to remain %s, got %s", original.ApiIdentity, change.ApiIdentity)
+	if change.APIIdentity != original.APIIdentity {
+		t.Errorf("expected ApiIdentity to remain %s, got %s", original.APIIdentity, change.APIIdentity)
 	}
 	if len(change.Recipients) != len(original.Recipients) || change.Recipients[0] != original.Recipients[0] {
 		t.Errorf("expected Recipients to remain %v, got %v", original.Recipients, change.Recipients)
 	}
-	if change.ApiAuthSecret != original.ApiAuthSecret {
-		t.Errorf("expected ApiAuthSecret to remain %s, got %s", original.ApiAuthSecret, change.ApiAuthSecret)
+	if change.APIAuthSecret != original.APIAuthSecret {
+		t.Errorf("expected ApiAuthSecret to remain %s, got %s", original.APIAuthSecret, change.APIAuthSecret)
 	}
 
 	change = original
 	change.Merge(&override)
-	if change.ApiBaseUrl != override.ApiBaseUrl {
-		t.Errorf("expected ApiBaseUrl to be %s, got %s", override.ApiBaseUrl, change.ApiBaseUrl)
+	if change.APIBaseURL != override.APIBaseURL {
+		t.Errorf("expected ApiBaseUrl to be %s, got %s", override.APIBaseURL, change.APIBaseURL)
 	}
-	if change.ApiIdentity != override.ApiIdentity {
-		t.Errorf("expected ApiIdentity to be %s, got %s", override.ApiIdentity, change.ApiIdentity)
+	if change.APIIdentity != override.APIIdentity {
+		t.Errorf("expected ApiIdentity to be %s, got %s", override.APIIdentity, change.APIIdentity)
 	}
 	if len(change.Recipients) != len(override.Recipients) || change.Recipients[0] != override.Recipients[0] {
 		t.Errorf("expected Recipients to be %v, got %v", override.Recipients, change.Recipients)
 	}
-	if change.ApiAuthSecret != override.ApiAuthSecret {
-		t.Errorf("expected ApiAuthSecret to be %s, got %s", override.ApiAuthSecret, change.ApiAuthSecret)
+	if change.APIAuthSecret != override.APIAuthSecret {
+		t.Errorf("expected ApiAuthSecret to be %s, got %s", override.APIAuthSecret, change.APIAuthSecret)
 	}
 }
 
 func TestAlertProvider_Validate(t *testing.T) {
 	if err := (&AlertProvider{
 		DefaultConfig: Config{
-			ApiIdentity:   "12345678",
-			ApiAuthSecret: "authsecret",
-			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+			APIIdentity:   "12345678",
+			APIAuthSecret: "authsecret",
+			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 		},
 	}).Validate(); err != nil {
 		t.Errorf("expected valid config to not return an error, got %v", err)
@@ -313,12 +313,12 @@ func TestAlertProvider_Validate(t *testing.T) {
 
 	if err := (&AlertProvider{
 		DefaultConfig: Config{
-			ApiIdentity:   "",
-			ApiAuthSecret: "authsecret",
-			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+			APIIdentity:   "",
+			APIAuthSecret: "authsecret",
+			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 		},
-	}).Validate(); !errors.Is(err, errApiIdentityMissing) {
-		t.Errorf("expected missing ApiIdentity to return %v, got %v", errApiIdentityMissing, err)
+	}).Validate(); !errors.Is(err, errAPIIdentityMissing) {
+		t.Errorf("expected missing ApiIdentity to return %v, got %v", errAPIIdentityMissing, err)
 	}
 }
 
@@ -326,12 +326,12 @@ func TestAlertProvider_Send(t *testing.T) {
 	testAlertDescription := "Test alert"
 	provider := &AlertProvider{
 		DefaultConfig: Config{
-			ApiIdentity:   "12345678",
-			ApiAuthSecret: "authsecret",
-			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeId}},
+			APIIdentity:   "12345678",
+			APIAuthSecret: "authsecret",
+			Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypeID}},
 		},
 		Overrides: []Override{{Group: "default", Config: Config{
-			ApiIdentity: "HGFEDCBA",
+			APIIdentity: "HGFEDCBA",
 		}}},
 	}
 	ep := &endpoint.Endpoint{Group: "default"}
@@ -389,8 +389,8 @@ func TestAlertProvider_buildMessageBody(t *testing.T) {
 func TestAlertProvider_prepareRequest(t *testing.T) {
 	provider := &AlertProvider{}
 	cfg := Config{
-		ApiIdentity:   "12345678",
-		ApiAuthSecret: "authsecret",
+		APIIdentity:   "12345678",
+		APIAuthSecret: "authsecret",
 		Recipients:    []Recipient{{Value: "87654321", Type: RecipientTypePhone}},
 	}
 	cfg.Validate()
@@ -403,7 +403,7 @@ func TestAlertProvider_prepareRequest(t *testing.T) {
 	if request.Method != "POST" {
 		t.Errorf("expected request method to be POST, got %s", request.Method)
 	}
-	expectedUrl := cfg.ApiBaseUrl + "/send_simple"
+	expectedUrl := cfg.APIBaseURL + "/send_simple"
 	if request.URL.String() != expectedUrl {
 		t.Errorf("expected request URL to be %s, got %s", expectedUrl, request.URL.String())
 	}
@@ -411,8 +411,8 @@ func TestAlertProvider_prepareRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error parsing form, got %v", err)
 	}
-	if request.PostForm.Get("from") != cfg.ApiIdentity {
-		t.Errorf("expected 'from' to be %s, got %s", cfg.ApiIdentity, request.PostForm.Get("from"))
+	if request.PostForm.Get("from") != cfg.APIIdentity {
+		t.Errorf("expected 'from' to be %s, got %s", cfg.APIIdentity, request.PostForm.Get("from"))
 	}
 	if request.PostForm.Get("phone") != cfg.Recipients[0].Value {
 		t.Errorf("expected 'phone' to be %s, got %s", cfg.Recipients[0].Value, request.PostForm.Get("to"))
@@ -420,8 +420,8 @@ func TestAlertProvider_prepareRequest(t *testing.T) {
 	if request.PostForm.Get("text") != body {
 		t.Errorf("expected 'text' to be %s, got %s", body, request.PostForm.Get("text"))
 	}
-	if request.PostForm.Get("secret") != cfg.ApiAuthSecret {
-		t.Errorf("expected 'secret' to be %s, got %s", cfg.ApiAuthSecret, request.PostForm.Get("secret"))
+	if request.PostForm.Get("secret") != cfg.APIAuthSecret {
+		t.Errorf("expected 'secret' to be %s, got %s", cfg.APIAuthSecret, request.PostForm.Get("secret"))
 	}
 
 	cfg.Recipients[0] = Recipient{Value: "test@mail.com", Type: RecipientTypeEmail}
