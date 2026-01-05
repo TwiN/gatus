@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
@@ -502,6 +503,18 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 						ServerURL:      "https://example.com",
 						AccessToken:    "1",
 						InternalRoomID: "!a:example.com",
+					},
+				},
+			},
+		},
+		{
+			Name:      "clickup",
+			AlertType: alert.TypeClickUp,
+			AlertingConfig: &alerting.Config{
+				ClickUp: &clickup.AlertProvider{
+					DefaultConfig: clickup.Config{
+						ListID: "test-list-id",
+						Token:  "test-token",
 					},
 				},
 			},
