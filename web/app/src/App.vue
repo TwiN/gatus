@@ -17,7 +17,7 @@
                 :is="link ? 'a' : 'div'" 
                 :href="link" 
                 target="_blank"
-                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                :class="['flex items-center gap-3', link && 'hover:opacity-80 transition-opacity']"
               >
                 <div class="w-12 h-12 flex items-center justify-center">
                   <img 
@@ -153,7 +153,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu, X, LogIn } from 'lucide-vue-next'
