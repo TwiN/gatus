@@ -345,29 +345,23 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 	})
 }
 
-func TestLoadConfigurationFromBase64(t *testing.T) {
+func TestLoadConfigurationFromEnv(t *testing.T) {
 	t.Parallel()
-	t.Run("empty-input", func(t *testing.T) {
-		_, err := LoadConfigurationFromBase64("")
-		if !errors.Is(err, ErrConfigFileNotFound) {
-			t.Errorf("expected ErrConfigFileNotFound, got %v", err)
-		}
-	})
-	t.Run("invalid-base64", func(t *testing.T) {
-		_, err := LoadConfigurationFromBase64("not-valid-base64!!!")
-		if err == nil {
-			t.Error("expected error for invalid base64")
-		}
-	})
-	t.Run("valid-base64-with-endpoint", func(t *testing.T) {
-		yamlConfig := `
+	yamlConfig := `
 endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"
 `
-		cfg, err := LoadConfigurationFromBase64(base64.StdEncoding.EncodeToString([]byte(yamlConfig)))
+	t.Run("empty-input", func(t *testing.T) {
+		_, err := LoadConfigurationFromEnv("", false)
+		if !errors.Is(err, ErrConfigFileNotFound) {
+			t.Errorf("expected ErrConfigFileNotFound, got %v", err)
+		}
+	})
+	t.Run("plain-yaml", func(t *testing.T) {
+		cfg, err := LoadConfigurationFromEnv(yamlConfig, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -377,21 +371,38 @@ endpoints:
 		if cfg.Endpoints[0].Name != "website" {
 			t.Errorf("expected endpoint name 'website', got '%s'", cfg.Endpoints[0].Name)
 		}
-		// Verify configPath is empty (env var mode)
 		if cfg.configPath != "" {
 			t.Errorf("expected empty configPath for env var config, got '%s'", cfg.configPath)
 		}
 	})
+	t.Run("base64-encoded-yaml", func(t *testing.T) {
+		cfg, err := LoadConfigurationFromEnv(base64.StdEncoding.EncodeToString([]byte(yamlConfig)), true)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(cfg.Endpoints) != 1 {
+			t.Errorf("expected 1 endpoint, got %d", len(cfg.Endpoints))
+		}
+		if cfg.Endpoints[0].Name != "website" {
+			t.Errorf("expected endpoint name 'website', got '%s'", cfg.Endpoints[0].Name)
+		}
+	})
+	t.Run("invalid-base64", func(t *testing.T) {
+		_, err := LoadConfigurationFromEnv("not-valid-base64!!!", true)
+		if err == nil {
+			t.Error("expected error for invalid base64")
+		}
+	})
 	t.Run("yaml-with-environment-variable-expansion", func(t *testing.T) {
 		t.Setenv("TEST_ENDPOINT_NAME", "test-endpoint")
-		yamlConfig := `
+		yamlWithEnv := `
 endpoints:
   - name: $TEST_ENDPOINT_NAME
     url: https://example.com
     conditions:
       - "[STATUS] == 200"
 `
-		cfg, err := LoadConfigurationFromBase64(base64.StdEncoding.EncodeToString([]byte(yamlConfig)))
+		cfg, err := LoadConfigurationFromEnv(yamlWithEnv, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -400,21 +411,13 @@ endpoints:
 		}
 	})
 	t.Run("invalid-yaml-no-endpoints", func(t *testing.T) {
-		yamlConfig := "metrics: true"
-		_, err := LoadConfigurationFromBase64(base64.StdEncoding.EncodeToString([]byte(yamlConfig)))
+		_, err := LoadConfigurationFromEnv("metrics: true", false)
 		if err == nil || !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
 			t.Errorf("expected ErrNoEndpointOrSuiteInConfig, got %v", err)
 		}
 	})
 	t.Run("env-var-config-never-reports-as-modified", func(t *testing.T) {
-		yamlConfig := `
-endpoints:
-  - name: test
-    url: https://example.com
-    conditions:
-      - "[STATUS] == 200"
-`
-		cfg, err := LoadConfigurationFromBase64(base64.StdEncoding.EncodeToString([]byte(yamlConfig)))
+		cfg, err := LoadConfigurationFromEnv(yamlConfig, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

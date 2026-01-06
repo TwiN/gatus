@@ -261,16 +261,23 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// LoadConfigurationFromBase64 loads configuration from base64-encoded YAML.
-// This is used when configuration is provided via environment variable.
+// LoadConfigurationFromEnv loads configuration from an environment variable value.
+// It supports both plain YAML and base64-encoded YAML. If base64Encoded is true,
+// the value will be decoded from base64 first.
 // Note: Configuration reloading is not supported when using this method.
-func LoadConfigurationFromBase64(base64Config string) (*Config, error) {
-	if len(base64Config) == 0 {
+func LoadConfigurationFromEnv(value string, base64Encoded bool) (*Config, error) {
+	if len(value) == 0 {
 		return nil, ErrConfigFileNotFound
 	}
-	yamlBytes, err := base64.StdEncoding.DecodeString(base64Config)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding base64 config from environment variable: %w", err)
+	var yamlBytes []byte
+	if base64Encoded {
+		var err error
+		yamlBytes, err = base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding base64 config from environment variable: %w", err)
+		}
+	} else {
+		yamlBytes = []byte(value)
 	}
 	config, err := parseAndValidateConfigBytes(yamlBytes)
 	if err != nil {
