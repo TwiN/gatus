@@ -25,7 +25,7 @@ type Config struct {
 // Validate the SSH configuration
 func (cfg *Config) Validate() error {
 	// If there's no username, password, or private key, this endpoint can still check the SSH banner, so the endpoint is still valid
-	if len(cfg.Username) == 0 && len(cfg.Password) == 0 && len(cfg.PrivateKey) == 0 {
+	if len(cfg.Username) == 0 && len(cfg.Password) == 0 && len(cfg.PrivateKey) == 0 && len(cfg.Passphrase) == 0 {
 		return nil
 	}
 	// If any authentication method is provided (password or private key), a username is required
