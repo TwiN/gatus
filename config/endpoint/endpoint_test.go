@@ -512,6 +512,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 		username    string
 		password    string
 		privateKey  string
+		passphrase  string
 		expectedErr error
 	}{
 		{
@@ -545,6 +546,13 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 			privateKey:  "-----BEGIN",
 			expectedErr: nil,
 		},
+		{
+			name:        "fail when has passphrase but no private key",
+			username:    "username",
+			password:    "password",
+			passphrase:  "passphrase",
+			expectedErr: ssh.ErrEndpointWithoutSSHPrivateKey,
+		},
 	}
 
 	for _, scenario := range scenarios {
@@ -556,6 +564,7 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 					Username:   scenario.username,
 					Password:   scenario.password,
 					PrivateKey: scenario.privateKey,
+					Passphrase: scenario.passphrase,
 				},
 				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}
