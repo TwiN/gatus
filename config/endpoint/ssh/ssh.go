@@ -10,12 +10,16 @@ var (
 
 	// ErrEndpointWithoutSSHAuth is the error with which Gatus will panic if an endpoint with SSH monitoring is configured without a password or private key.
 	ErrEndpointWithoutSSHAuth = errors.New("you must specify a password or private-key for each SSH endpoint")
+
+	// ErrEndpointWithoutSSHPrivateKey is the error with which Gatus will panic if an endpoint with SSH monitoring is configured with a passphrase but without a private key.
+	ErrEndpointWithoutSSHPrivateKey = errors.New("you must specify a private-key for each SSH endpoint that has a passphrase")
 )
 
 type Config struct {
 	Username   string `yaml:"username,omitempty"`
 	Password   string `yaml:"password,omitempty"`
 	PrivateKey string `yaml:"private-key,omitempty"`
+	Passphrase string `yaml:"passphrase,omitempty"`
 }
 
 // Validate the SSH configuration
@@ -31,6 +35,10 @@ func (cfg *Config) Validate() error {
 	// If a username is provided, require at least a password or a private key
 	if len(cfg.Password) == 0 && len(cfg.PrivateKey) == 0 {
 		return ErrEndpointWithoutSSHAuth
+	}
+	// If a passphrase is provided, a private key is required
+	if len(cfg.Passphrase) > 0 && len(cfg.PrivateKey) == 0 {
+		return ErrEndpointWithoutSSHPrivateKey
 	}
 	return nil
 }
