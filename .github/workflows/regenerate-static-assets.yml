@@ -92,7 +92,7 @@ jobs:
             } else {
               reaction = '-1';
               var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-              message = '⚠️ There was an issue regenerating static assets. Please check the [workflow run logs](' + workflowUrl + ') for more details.';
+              message = ':warning: There was an issue regenerating static assets. Please check the [workflow run logs](' + workflowUrl + ') for more details.';
             }
             if (message.length) {
               await github.rest.issues.createComment({
