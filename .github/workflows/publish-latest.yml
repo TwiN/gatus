@@ -23,6 +23,7 @@ jobs:
           echo DOCKER_IMAGE_REPOSITORY=$(echo ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo GHCR_IMAGE_REPOSITORY=$(echo ghcr.io/${{ github.actor }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Login to Docker Registry
+        if: vars.DISABLE_DOCKERHUB_PUBLISH != 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -33,13 +34,26 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compose images
+        id: compose_images
+        env:
+          DOCKER_IMAGE_REPOSITORY: ${{ env.DOCKER_IMAGE_REPOSITORY }}
+          GHCR_IMAGE_REPOSITORY: ${{ env.GHCR_IMAGE_REPOSITORY }}
+        run: |
+          if [ "${{ vars.DISABLE_DOCKERHUB_PUBLISH }}" = "true" ]; then
+            echo "images=$GHCR_IMAGE_REPOSITORY" >> $GITHUB_OUTPUT
+          else
+            # multi-line output: both registries, one per line
+            echo "images<<EOF" >> $GITHUB_OUTPUT
+            echo "$DOCKER_IMAGE_REPOSITORY" >> $GITHUB_OUTPUT
+            echo "$GHCR_IMAGE_REPOSITORY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.DOCKER_IMAGE_REPOSITORY }}
-            ${{ env.GHCR_IMAGE_REPOSITORY }}
+          images: ${{ steps.compose_images.outputs.images }}
           tags: |
             type=raw,value=latest
       - name: Build and push Docker image
