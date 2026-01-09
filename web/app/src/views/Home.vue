@@ -219,7 +219,7 @@ const itemsPerPage = 96
 const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
-const showAverageResponseTime = ref(true)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
@@ -483,6 +483,7 @@ const goToPage = (page) => {
 
 const toggleShowAverageResponseTime = () => {
   showAverageResponseTime.value = !showAverageResponseTime.value
+  localStorage.setItem('gatus:show-average-response-time', showAverageResponseTime.value ? 'true' : 'false')
 }
 
 const showTooltip = (result, event, action = 'hover') => {
