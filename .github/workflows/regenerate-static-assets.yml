@@ -83,20 +83,21 @@ jobs:
         with:
           script: |
             const status = '${{ needs.regenerate-static-assets.outputs.status }}';
-            let reaction = '';
-            if (status === 'success') {
-              reaction = 'hooray';
-            } else if (status === 'no_changes') {
-              reaction = '+1';
+            let reaction = 'hooray';
+            let message = '';
+            var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            if (status === 'no_changes') {
+              message = `@${context.actor} No changes to commit after [regenerating static assets](${workflowUrl}) :tada:`;
             } else {
               reaction = '-1';
-              var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-              var body = '⚠️ There was an issue regenerating static assets. Please check the [workflow run logs](' + workflowUrl + ') for more details.';
+              message = `@${context.actor} :warning: There was an issue regenerating static assets. Please check the [workflow run logs](${workflowUrl}) for more details.`;
+            }
+            if (message.length) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: body
+                body: message
               });
             }
             await github.rest.reactions.createForIssueComment({
