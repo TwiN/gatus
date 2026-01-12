@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"log/slog"
 	"sort"
 	"sync"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
-	"github.com/TwiN/logr"
 )
 
 // Store that leverages gocache
@@ -219,7 +219,7 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 			Key:     su.Key(),
 			Results: []*suite.Result{},
 		}
-		logr.Debugf("[memory.InsertSuiteResult] Created new suite status for suiteKey=%s", suiteKey)
+		slog.Debug("Created new suite status", "key", suiteKey)
 	}
 	status := suiteStatus.(*suite.Status)
 	// Add the new result at the end (append like endpoint implementation)
@@ -229,7 +229,7 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 		status.Results = status.Results[len(status.Results)-s.maximumNumberOfResults:]
 	}
 	s.suiteCache.Set(suiteKey, status)
-	logr.Debugf("[memory.InsertSuiteResult] Stored suite result for suiteKey=%s, total results=%d", suiteKey, len(status.Results))
+	slog.Debug("Stored suite result", "key", suiteKey, "total_results", len(status.Results))
 	return nil
 }
 

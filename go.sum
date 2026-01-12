@@ -16,8 +16,6 @@ github.com/TwiN/gocache/v2 v2.4.0 h1:BZ/TqvhipDQE23MFFTjC0MiI1qZ7GEVtSdOFVVXyr18
 github.com/TwiN/gocache/v2 v2.4.0/go.mod h1:Cl1c0qNlQlXzJhTpAARVqpQDSuGDM5RhtzPYAM1x17g=
 github.com/TwiN/health v1.6.0 h1:L2ks575JhRgQqWWOfKjw9B0ec172hx7GdToqkYUycQM=
 github.com/TwiN/health v1.6.0/go.mod h1:Z6TszwQPMvtSiVx1QMidVRgvVr4KZGfiwqcD7/Z+3iw=
-github.com/TwiN/logr v0.3.1 h1:CfTKA83jUmsAoxqrr3p4JxEkqXOBnEE9/f35L5MODy4=
-github.com/TwiN/logr v0.3.1/go.mod h1:BZgZFYq6fQdU3KtR8qYato3zUEw53yQDaIuujHb55Jw=
 github.com/TwiN/whois v1.2.0 h1:/Z22SrS3Z0FQgMl1+4bKSu9UmEQTfGx9i9J4Hn18eQk=
 github.com/TwiN/whois v1.2.0/go.mod h1:TjipCMpJRAJYKmtz/rXQBU6UGxMh6bk8SHazu7OMnQE=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=

@@ -85,7 +85,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 		return false
 	}
 	if !success {
-		//logr.Debugf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
+		//slog.Debug("Condition did not succeed because it is false", "condition", condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success

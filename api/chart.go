@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
-	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 	"github.com/wcharczuk/go-chart/v2"
 	"github.com/wcharczuk/go-chart/v2/drawing"
@@ -121,7 +121,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	c.Set("Expires", "0")
 	c.Status(http.StatusOK)
 	if err := graph.Render(chart.SVG, c); err != nil {
-		logr.Errorf("[api.ResponseTimeChart] Failed to render response time chart: %s", err.Error())
+		slog.Error("Failed to render response time chart", "error", err)
 		return c.Status(500).SendString(err.Error())
 	}
 	return nil

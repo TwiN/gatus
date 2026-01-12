@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -48,6 +49,16 @@ type ExternalEndpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+}
+
+func (ee *ExternalEndpoint) GetLogAttribute() slog.Attr {
+	return slog.Attr{
+		Key: "external-endpoint",
+		Value: slog.GroupValue(
+			slog.String("group", ee.Group),
+			slog.String("name", ee.Name),
+		),
+	}
 }
 
 // ValidateAndSetDefaults validates the ExternalEndpoint and sets the default values
