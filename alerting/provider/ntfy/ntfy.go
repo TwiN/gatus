@@ -171,6 +171,17 @@ type Body struct {
 	Click    string   `json:"click,omitempty"`
 }
 
+func resolveEndpointPlaceholders(data string, ep *endpoint.Endpoint) string {
+	placeholders := map[string]string{
+		"[ENDPOINT_URL]": ep.URL,
+		"[ENDPOINT_KEY]": ep.Key(),
+	}
+	for placeholder, value := range placeholders {
+		data = strings.ReplaceAll(data, placeholder, value)
+	}
+	return data
+}
+
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, formattedConditionResults, tag string
@@ -201,7 +212,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Tags:     []string{tag},
 		Priority: cfg.Priority,
 		Email:    cfg.Email,
-		Click:    cfg.Click,
+		Click:    resolveEndpointPlaceholders(cfg.Click, ep),
 	})
 	return body
 }
