@@ -332,7 +332,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Evaluate the conditions
 	for _, condition := range processedEndpoint.Conditions {
-		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
+		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, processedEndpoint.UIConfig.ResolveSuccessfulConditions, context)
 		if !success {
 			result.Success = false
 		}

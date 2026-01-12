@@ -268,6 +268,31 @@ func TestEndpoint(t *testing.T) {
 	}
 }
 
+func TestEndpoint_ResolveSuccessfulConditions(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	endpoint := Endpoint{
+		Name:       "test-endpoint",
+		URL:        "https://example.com/health",
+		Conditions: []Condition{"[BODY].status == UP"},
+		UIConfig:   &ui.Config{ResolveSuccessfulConditions: true},
+	}
+	mockResponse := test.MockRoundTripper(func(r *http.Request) *http.Response {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status":"UP"}`))}
+	})
+	client.InjectHTTPClient(&http.Client{Transport: mockResponse})
+	if err := endpoint.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+	}
+	result := endpoint.EvaluateHealth()
+	if len(result.ConditionResults) != 1 {
+		t.Fatalf("expected 1 condition result, got %d", len(result.ConditionResults))
+	}
+	expectedCondition := "[BODY].status (UP) == UP"
+	if result.ConditionResults[0].Condition != expectedCondition {
+		t.Errorf("expected condition to be '%s', got '%s'", expectedCondition, result.ConditionResults[0].Condition)
+	}
+}
+
 func TestEndpoint_IsEnabled(t *testing.T) {
 	if !(&Endpoint{Enabled: nil}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned true, because Enabled was set to nil")
