@@ -3,6 +3,7 @@ package metrics
 import (
 	"strconv"
 
+	"github.com/TwiN/gatus/v5/buildinfo"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/suite"
@@ -12,6 +13,7 @@ import (
 const namespace = "gatus" // The prefix of the metrics
 
 var (
+	staticBuildInfo                    *prometheus.GaugeVec
 	resultTotal                        *prometheus.CounterVec
 	resultDurationSeconds              *prometheus.GaugeVec
 	resultConnectedTotal               *prometheus.CounterVec
@@ -37,6 +39,9 @@ func UnregisterPrometheusMetrics() {
 	}
 
 	// Unregister all metrics if they exist
+	if staticBuildInfo != nil {
+		currentRegisterer.Unregister(staticBuildInfo)
+	}
 	if resultTotal != nil {
 		currentRegisterer.Unregister(resultTotal)
 	}
@@ -88,6 +93,15 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 	currentRegisterer = reg
 
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
+	staticBuildInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      "build_info",
+		Help:      "Build information about this instance",
+	}, []string{"version", "revision", "revision_date", "go_version"})
+	reg.MustRegister(staticBuildInfo)
+
+	info := buildinfo.Get()
+	staticBuildInfo.WithLabelValues(info.Version, info.Revision, info.RevisionDate, info.GoVersion).Set(1)
 	resultTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Name:      "results_total",
