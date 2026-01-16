@@ -87,10 +87,10 @@ jobs:
             let message = '';
             var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
             if (status === 'no_changes') {
-              message = `@${context.actor} No changes to commit after [regenerating static assets](${workflowUrl}) :tada:`;
+              message = `@${context.actor} No changes to commit ([ref](${workflowUrl}).`;
             } else {
               reaction = '-1';
-              message = `@${context.actor} :warning: There was an issue regenerating static assets. Please check the [workflow run logs](${workflowUrl}) for more details.`;
+              message = `@${context.actor} There was an issue regenerating static assets. Please check the [workflow run logs](${workflowUrl}) for more details.`;
             }
             if (message.length) {
               await github.rest.issues.createComment({
