@@ -46,8 +46,13 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, co
 			result.AddError(fmt.Sprintf("invalid condition: %s", condition))
 			return false
 		}
-		linkedStateName = conditionParts[0]
-		condition = conditionParts[1]
+		linkedStateName = strings.TrimSpace(conditionParts[0])
+		conditionPart := strings.TrimSpace(conditionParts[1])
+		if len(linkedStateName) == 0 || len(conditionPart) == 0 {
+			result.AddError(fmt.Sprintf("invalid condition: %s", condition))
+			return false
+		}
+		condition = conditionPart
 	}
 
 	conditionToDisplay := condition
