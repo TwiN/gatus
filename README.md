@@ -98,6 +98,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zapier alerts](#configuring-zapier-alerts)
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
+    - [Configuring alert failover](#configuring-alert-failover)
     - [Setting a default alert](#setting-a-default-alert)
   - [Maintenance](#maintenance)
   - [Security](#security)
@@ -803,6 +804,7 @@ Alerts are configured at the endpoint level like so:
 | `alerts[].send-on-resolved`          | Whether to send a notification once a triggered alert is marked as resolved.                                                                              | `false`       |
 | `alerts[].description`               | Description of the alert. Will be included in the alert sent.                                                                                             | `""`          |
 | `alerts[].provider-override`         | Alerting provider configuration override for the given alert type                                                                                         | `{}`          |
+| `alerts[].failover`                  | List of fallback provider types to try if the primary provider fails. <br />See [Configuring alert failover](#configuring-alert-failover).               | `[]`          |
 
 Here's an example of what an alert configuration might look like at the endpoint level:
 ```yaml
@@ -2567,6 +2569,54 @@ alerting:
 ```
 As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
+
+
+#### Configuring alert failover
+Alert failover allows you to specify backup alerting providers that will be used if the primary provider fails
+to send an alert. This is useful for ensuring critical notifications are delivered even when a provider experiences
+issues.
+
+| Parameter          | Description                                                                 | Default |
+|:-------------------|:----------------------------------------------------------------------------|:--------|
+| `alerts[].failover` | List of provider types to try if the primary alert provider fails to send  | `[]`    |
+
+When a primary alert fails to send, Gatus will try each failover provider in order until one succeeds. 
+All failover providers must be configured in the `alerting` section.
+
+```yaml
+alerting:
+  pagerduty:
+    integration-key: "********************************"
+  telegram:
+    token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    id: "-1234567890"
+  slack:
+    webhook-url: "https://hooks.slack.com/services/xxx/yyy/zzz"
+
+endpoints:
+  - name: critical-api
+    url: "https://api.example.com/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: pagerduty
+        failover:
+          - telegram
+          - slack
+        failure-threshold: 3
+        description: "Critical API is down"
+```
+
+In this example, if PagerDuty fails to send an alert, Gatus will try Telegram. If Telegram also fails, 
+it will try Slack. If all providers fail, a warning is logged indicating that the alert was not delivered.
+
+**Behavior:**
+- Failover only triggers when the primary provider returns an error during send
+- Each failover provider is tried in order until one succeeds
+- Failover providers must be configured in the top-level `alerting` section
+- If a failover provider is not configured, it will be skipped with a warning
+- Failover works for both triggered and resolved alerts
 
 
 #### Setting a default alert

@@ -70,6 +70,11 @@ type Alert struct {
 	// some reason, the alert provider always returns errors when trying to send the resolved notification
 	// (SendOnResolved).
 	Triggered bool `yaml:"-"`
+
+	// Failover is a list of provider types to try if the primary provider fails.
+	// Example: failover: [telegram, slack]
+	// If the primary provider fails to send, Gatus will try each failover provider in order.
+	Failover []Type `yaml:"failover,omitempty" json:"failover,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the alert's configuration and sets the default value of fields that have one
