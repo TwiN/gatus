@@ -1176,20 +1176,34 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var suiteStatuses []*suite.Status
+	// Collect all suite data first before making nested queries.
+	// The lib/pq driver requires the previous query to be fully closed before starting
+	// new queries in the same transaction, otherwise it returns "pq: unexpected Parse
+	// response 'C'" errors. See: https://github.com/TwiN/gatus/issues/1435
+	type suiteData struct {
+		id    int64
+		key   string
+		name  string
+		group string
+	}
+	var suitesData []suiteData
 	for rows.Next() {
-		var suiteID int64
-		var key, name, group string
-		if err = rows.Scan(&suiteID, &key, &name, &group); err != nil {
+		var sd suiteData
+		if err = rows.Scan(&sd.id, &sd.key, &sd.name, &sd.group); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		suitesData = append(suitesData, sd)
+	}
+	rows.Close()
 
+	var suiteStatuses []*suite.Status
+	for _, sd := range suitesData {
 		status := &suite.Status{
-			Name:    name,
-			Group:   group,
-			Key:     key,
+			Name:    sd.name,
+			Group:   sd.group,
+			Key:     sd.key,
 			Results: []*suite.Result{},
 		}
 
@@ -1205,14 +1219,14 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 			}
 		}
 
-		status.Results, err = s.getSuiteResults(tx, suiteID, page, pageSize)
+		status.Results, err = s.getSuiteResults(tx, sd.id, page, pageSize)
 		if err != nil {
-			logr.Errorf("[sql.GetAllSuiteStatuses] Failed to retrieve results for suite_id=%d: %s", suiteID, err.Error())
+			logr.Errorf("[sql.GetAllSuiteStatuses] Failed to retrieve results for suite_id=%d: %s", sd.id, err.Error())
 		}
 		// Populate Name and Group fields on each result
 		for _, result := range status.Results {
-			result.Name = name
-			result.Group = group
+			result.Name = sd.name
+			result.Group = sd.group
 		}
 
 		suiteStatuses = append(suiteStatuses, status)
@@ -1466,7 +1480,6 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		logr.Errorf("[sql.getSuiteResults] Query failed: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
 	type suiteResultData struct {
 		result *suite.Result
 		id     int64
@@ -1494,6 +1507,11 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			id:     suiteResultID,
 		})
 	}
+	// Close the rows before making nested queries to avoid PostgreSQL driver issues.
+	// The lib/pq driver requires the previous query to be fully closed before starting
+	// new queries in the same transaction, otherwise it returns "pq: unexpected Parse
+	// response 'C'" errors. See: https://github.com/TwiN/gatus/issues/1435
+	rows.Close()
 
 	// Reverse the results to get chronological order (oldest to newest)
 	for i := len(resultsData)/2 - 1; i >= 0; i-- {
