@@ -509,10 +509,10 @@ func ValidateSuitesConfig(config *Config) error {
 	suiteNames := make(map[string]bool)
 	for _, suite := range config.Suites {
 		// Check for duplicate suite names
-		if suiteNames[suite.Name] {
+		if suiteNames[suite.Key()] {
 			return fmt.Errorf("duplicate suite name: %s", suite.Key())
 		}
-		suiteNames[suite.Name] = true
+		suiteNames[suite.Key()] = true
 		// Validate the suite configuration
 		if err := suite.ValidateAndSetDefaults(); err != nil {
 			return fmt.Errorf("invalid suite '%s': %w", suite.Key(), err)
