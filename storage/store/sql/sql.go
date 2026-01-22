@@ -1177,36 +1177,25 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 		return nil, err
 	}
 
-	// Collect all suite data first before making nested queries.
+	// Collect all suite statuses first before making nested queries.
 	// The lib/pq driver requires the previous query to be fully closed before starting
 	// new queries in the same transaction, otherwise it returns "pq: unexpected Parse
 	// response 'C'" errors. See: https://github.com/TwiN/gatus/issues/1435
-	type suiteData struct {
-		id    int64
-		key   string
-		name  string
-		group string
-	}
-	var suitesData []suiteData
+	var suiteStatuses []*suite.Status
+	suiteIDs := make(map[*suite.Status]int64) // Track suite_id for each status
 	for rows.Next() {
-		var sd suiteData
-		if err = rows.Scan(&sd.id, &sd.key, &sd.name, &sd.group); err != nil {
+		status := &suite.Status{Results: []*suite.Result{}}
+		var suiteID int64
+		if err = rows.Scan(&suiteID, &status.Key, &status.Name, &status.Group); err != nil {
 			rows.Close()
 			return nil, err
 		}
-		suitesData = append(suitesData, sd)
+		suiteStatuses = append(suiteStatuses, status)
+		suiteIDs[status] = suiteID
 	}
 	rows.Close()
 
-	var suiteStatuses []*suite.Status
-	for _, sd := range suitesData {
-		status := &suite.Status{
-			Name:    sd.name,
-			Group:   sd.group,
-			Key:     sd.key,
-			Results: []*suite.Result{},
-		}
-
+	for _, status := range suiteStatuses {
 		// Get suite results with pagination
 		pageSize := 20
 		page := 1
@@ -1219,17 +1208,16 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 			}
 		}
 
-		status.Results, err = s.getSuiteResults(tx, sd.id, page, pageSize)
+		suiteID := suiteIDs[status]
+		status.Results, err = s.getSuiteResults(tx, suiteID, page, pageSize)
 		if err != nil {
-			logr.Errorf("[sql.GetAllSuiteStatuses] Failed to retrieve results for suite_id=%d: %s", sd.id, err.Error())
+			logr.Errorf("[sql.GetAllSuiteStatuses] Failed to retrieve results for suite_id=%d: %s", suiteID, err.Error())
 		}
 		// Populate Name and Group fields on each result
 		for _, result := range status.Results {
-			result.Name = sd.name
-			result.Group = sd.group
+			result.Name = status.Name
+			result.Group = status.Group
 		}
-
-		suiteStatuses = append(suiteStatuses, status)
 	}
 
 	if err = tx.Commit(); err != nil {
