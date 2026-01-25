@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	GatusLogSourceEnvVar     = "GATUS_LOG_SOURCE"
-	GatusConfigLogTypeEnvVar = "GATUS_LOG_TYPE"
-	GatusLogLevelEnvVar      = "GATUS_LOG_LEVEL"
+	GatusLogSourceEnvVar = "GATUS_LOG_SOURCE"
+	GatusLogTypeEnvVar   = "GATUS_LOG_TYPE"
+	GatusLogLevelEnvVar  = "GATUS_LOG_LEVEL"
 
 	DefaultLogType  = "TEXT"
 	DefaultLogLevel = "INFO"
@@ -71,7 +71,7 @@ func getConfiguredLogSource() bool {
 }
 
 func Configure() {
-	logTypeAsString := os.Getenv(GatusConfigLogTypeEnvVar)
+	logTypeAsString := os.Getenv(GatusLogTypeEnvVar)
 	switch logTypeAsString {
 	case "", "TEXT":
 		break
