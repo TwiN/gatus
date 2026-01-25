@@ -12,6 +12,18 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
+// isIgnorableTestError checks if an error is expected during testing when making API calls with dummy credentials
+func isIgnorableTestError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "user does not exist") ||
+		strings.Contains(errStr, "no such host") ||
+		strings.Contains(errStr, "invalid username, password or token") ||
+		strings.Contains(errStr, "dial tcp")
+}
+
 func TestAlertProvider_Validate(t *testing.T) {
 	scenarios := []struct {
 		Name          string
@@ -50,7 +62,7 @@ func TestAlertProvider_Validate(t *testing.T) {
 			if scenario.ExpectedError && err == nil {
 				t.Error("expected error, got none")
 			}
-			if !scenario.ExpectedError && err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+			if !scenario.ExpectedError && err != nil && !isIgnorableTestError(err) {
 				t.Error("expected no error, got", err.Error())
 			}
 		})
@@ -87,7 +99,7 @@ func TestAlertProvider_Send(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			cfg, err := scenario.Provider.GetConfig("", &scenario.Alert)
-			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+			if err != nil && !isIgnorableTestError(err) {
 				t.Error("expected no error, got", err.Error())
 			}
 			cfg.giteaClient, _ = gitea.NewClient("https://gitea.com")
@@ -203,7 +215,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
-			if err != nil && !strings.Contains(err.Error(), "user does not exist") && !strings.Contains(err.Error(), "no such host") {
+			if err != nil && !isIgnorableTestError(err) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 			if got.RepositoryURL != scenario.ExpectedOutput.RepositoryURL {
@@ -221,7 +233,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				}
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !strings.Contains(err.Error(), "user does not exist") {
+			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil && !isIgnorableTestError(err) {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
