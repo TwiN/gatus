@@ -2517,7 +2517,8 @@ leveraging Gatus, you could have Gatus call that application endpoint when an en
 would then check if the endpoint that started failing was part of the recently deployed application, and if it was,
 then automatically roll it back.
 
-Furthermore, you may use the following placeholders in the body (`alerting.custom.body`) and in the url (`alerting.custom.url`):
+Furthermore, you may use the following placeholders in the body (`alerting.custom.body`),
+url (`alerting.custom.url`) and header contents (`alerting.custom.headers`):
 - `[ALERT_DESCRIPTION]` (resolved from `endpoints[].alerts[].description`)
 - `[ENDPOINT_NAME]` (resolved from `endpoints[].name`)
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
