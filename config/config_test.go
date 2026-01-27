@@ -2188,9 +2188,7 @@ suites:
           - "[STATUS] == 200"`,
 		},
 		{
-			name:        "endpoint-conflicting-with-suite-endpoint",
-			shouldError: true,
-			expectedErr: "duplicate key 'backend_api-health': endpoint 'backend_api-health' in suite 'backend_integration-suite' conflicts with endpoint 'backend_api-health'",
+			name: "endpoint-with-same-name-as-suite-endpoint",
 			config: `
 endpoints:
   - name: api-health

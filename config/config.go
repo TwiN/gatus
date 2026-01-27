@@ -561,9 +561,9 @@ func ValidateUniqueKeys(config *Config) error {
 			return fmt.Errorf("duplicate key '%s': suite '%s' conflicts with %s", suiteKey, suite.Key(), existing)
 		}
 		keyMap[suiteKey] = fmt.Sprintf("suite '%s'", suite.Key())
-		// Check endpoints within suites (they generate keys using suite group + endpoint name)
+		// Check endpoints within suites (they generate keys using suite group + suite name + endpoint name)
 		for _, ep := range suite.Endpoints {
-			epKey := key.ConvertGroupAndNameToKey(suite.Group, ep.Name)
+			epKey := key.ConvertGroupAndNameToKey(suite.Key(), ep.Name)
 			if existing, exists := keyMap[epKey]; exists {
 				return fmt.Errorf("duplicate key '%s': endpoint '%s' in suite '%s' conflicts with %s", epKey, epKey, suite.Key(), existing)
 			}
