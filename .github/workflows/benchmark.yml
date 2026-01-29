@@ -25,6 +25,6 @@ jobs:
           go-version: 1.24.4
           repository: "${{ github.event.inputs.repository || 'TwiN/gatus' }}"
           ref: "${{ github.event.inputs.ref || 'master' }}"
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Benchmark
         run: go test -bench=. ./storage/store
