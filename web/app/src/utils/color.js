@@ -8,6 +8,8 @@
  */
 export const getResultColor = (result) => {
   if (!result) return window.config?.localStateColors.unkown
+  if (!result.state)
+    result.state = result.success ? 'healthy' : 'unhealthy'
   return getStateColor(result.state)
 }
 

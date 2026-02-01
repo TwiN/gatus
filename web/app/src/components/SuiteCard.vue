@@ -41,7 +41,7 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
               ]"
-              :style="`background-color: ${getSuiteResultColor(result)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
+              :style="`background-color: ${getResultColor(result)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
               @mouseenter="result && handleMouseEnter(result, $event, index)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
@@ -176,13 +176,6 @@ const handleClick = (result, event, index) => {
     selectedResultIndex.value = index
     emit('showTooltip', result, event, 'click')
   }
-}
-
-const getSuiteResultColor = (result) => {
-  if (result && !result.state) {
-    result.state = result.success ? 'healthy' : 'unhealthy'
-  }
-  return getResultColor(result);
 }
 
 // Listen for clear selection event
