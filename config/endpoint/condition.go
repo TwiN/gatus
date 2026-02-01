@@ -216,7 +216,7 @@ func sanitizeAndResolveNumericalWithContext(list []string, result *Result, conte
 
 func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
 	resolvedStrings := make([]string, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		// Check if the parameter is a certificate or domain expiration placeholder
 		if parameters[i] == CertificateExpirationPlaceholder || parameters[i] == DomainExpirationPlaceholder {
 			// Format as duration string (convert milliseconds back to duration)
