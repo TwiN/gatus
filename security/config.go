@@ -58,8 +58,8 @@ func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 		router.Use(func(ctx *fiber.Ctx) error {
 			// Check for Bearer token
 			authHeader := ctx.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+			if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+				token := strings.TrimSpace(after)
 				if c.API.IsValid(token) {
 					// Valid API token - mark as authenticated and skip other auth middleware
 					ctx.Locals("api_token_authenticated", true)
@@ -137,8 +137,8 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 	// Check for API token authentication first
 	if c.API != nil && len(c.API.Tokens) > 0 {
 		authHeader := ctx.Get("Authorization")
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+			token := strings.TrimSpace(after)
 			if c.API.IsValid(token) {
 				return true
 			}

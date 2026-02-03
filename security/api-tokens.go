@@ -1,6 +1,9 @@
 package security
 
-import "errors"
+import (
+	"errors"
+	"slices"
+)
 
 var (
 	ErrAPITokensEmpty = errors.New("security.api.tokens must not contain empty tokens")
@@ -31,10 +34,5 @@ func (c *APIConfig) IsValid(token string) bool {
 	if c == nil || len(c.Tokens) == 0 || len(token) == 0 {
 		return false
 	}
-	for _, validToken := range c.Tokens {
-		if validToken == token {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Tokens, token)
 }
