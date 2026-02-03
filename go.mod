@@ -3,7 +3,7 @@ module github.com/TwiN/gatus/v5
 go 1.25.5
 
 require (
-	code.gitea.io/sdk/gitea v0.22.1
+	code.gitea.io/sdk/gitea v0.23.2
 	github.com/TwiN/deepmerge v0.2.2
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.4.0
