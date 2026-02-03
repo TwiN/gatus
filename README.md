@@ -239,7 +239,7 @@ subdirectories are merged like so:
 - Parameters with a primitive value (e.g. `metrics`, `alerting.slack.webhook-url`, etc.) may only be defined once to forcefully avoid any ambiguity
     - To clarify, this also means that you could not define `alerting.slack.webhook-url` in two files with different values. All files are merged into one before they are processed. This is by design.
 
-> 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
+> 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`, `${DOMAIN:-example.com}`)
 >
 > ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 >

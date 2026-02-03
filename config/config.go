@@ -283,7 +283,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
 	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	yamlBytes = []byte(expandEnv(string(yamlBytes)))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
@@ -696,4 +696,22 @@ func ValidateAndSetConcurrencyDefaults(config *Config) {
 	} else {
 		logr.Debugf("[config.ValidateAndSetConcurrencyDefaults] Using configured concurrency of %d", config.Concurrency)
 	}
+}
+
+// expandEnv replaces ${var} or $var in the string according to the values
+// of the current environment variables. It also supports default values
+// in the format ${var:-default}.
+func expandEnv(s string) string {
+	return os.Expand(s, func(key string) string {
+		if strings.Contains(key, ":-") {
+			parts := strings.SplitN(key, ":-", 2)
+			key = parts[0]
+			defaultValue := parts[1]
+			if value, ok := os.LookupEnv(key); ok {
+				return value
+			}
+			return defaultValue
+		}
+		return os.Getenv(key)
+	})
 }
