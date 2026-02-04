@@ -14,7 +14,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		Basic: nil,
 		OIDC:  nil,
 	}
-	if c.ValidateAndSetDefaults() {
+	if !c.ValidateAndSetDefaults() {
 		t.Error("expected empty config to be valid")
 	}
 }
