@@ -97,7 +97,8 @@ type OAuth2Config struct {
 	TokenURL     string   `yaml:"token-url"` // e.g. https://dev-12345678.okta.com/token
 	ClientID     string   `yaml:"client-id"`
 	ClientSecret string   `yaml:"client-secret"`
-	Scopes       []string `yaml:"scopes"` // e.g. ["openid"]
+	Scopes       []string `yaml:"scopes"`    // e.g. ["openid"]
+	Proactive    bool     `yaml:"proactive"` // Fetch token proactively at client creation
 }
 
 // IAPConfig is the configuration for the Google Cloud Identity-Aware-Proxy
@@ -332,7 +333,13 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 		TokenURL:     c.TokenURL,
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
-	client := oauth2cfg.Client(ctx)
+	tokenSource := oauth2cfg.TokenSource(ctx)
+	if c.Proactive {
+		if _, err := tokenSource.Token(); err != nil {
+			logr.Warnf("[client.configureOAuth2] Proactive token fetch failed: %s", err.Error())
+		}
+	}
+	client := oauth2.NewClient(ctx, tokenSource)
 	client.Timeout = httpClient.Timeout
 	return client
 }

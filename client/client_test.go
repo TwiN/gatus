@@ -360,6 +360,61 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 	}
 }
 
+// This test checks if proactive token fetching works correctly.
+// When Proactive is set to true, the token should be fetched during client configuration.
+func TestProactiveOAuth2TokenFetching(t *testing.T) {
+	t.Parallel()
+	tokenFetchCount := 0
+	oAuth2Config := &OAuth2Config{
+		ClientID:     "00000000-0000-0000-0000-000000000000",
+		ClientSecret: "secretsauce",
+		TokenURL:     "https://token-server.local/token",
+		Scopes:       []string{"https://application.local/.default"},
+		Proactive:    true,
+	}
+	mockHttpClient := &http.Client{
+		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+			if r.Host == "token-server.local" {
+				tokenFetchCount++
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: io.NopCloser(bytes.NewReader(
+						[]byte(
+							`{"token_type":"Bearer","expires_in":3599,"ext_expires_in":3599,"access_token":"proactive-token"}`,
+						),
+					)),
+				}
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header: map[string][]string{
+					"X-Org-Authorization": {r.Header.Get("Authorization")},
+				},
+				Body: http.NoBody,
+			}
+		}),
+	}
+	// When configureOAuth2 is called with Proactive=true, it should immediately fetch a token
+	mockHttpClientWithOAuth := configureOAuth2(mockHttpClient, *oAuth2Config)
+	// Verify that a token was fetched proactively
+	if tokenFetchCount != 1 {
+		t.Errorf("expected token to be fetched once proactively, but was fetched %d times", tokenFetchCount)
+	}
+	// Now make an HTTP request and verify the token is already available
+	request, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:8282", http.NoBody)
+	response, err := mockHttpClientWithOAuth.Do(request)
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if response.Header.Get("X-Org-Authorization") != "Bearer proactive-token" {
+		t.Error("expected `proactive-token` as Bearer token, but got", response.Header.Get("X-Org-Authorization"))
+	}
+	// Since the token was already fetched proactively and is still valid, no additional fetch should occur
+	if tokenFetchCount != 1 {
+		t.Errorf("expected token to still be fetched only once, but was fetched %d times", tokenFetchCount)
+	}
+}
+
 func TestQueryWebSocket(t *testing.T) {
 	t.Parallel()
 	_, _, err := QueryWebSocket("", "body", nil, &Config{Timeout: 2 * time.Second})
