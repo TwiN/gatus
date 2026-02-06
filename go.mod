@@ -9,7 +9,7 @@ require (
 	github.com/TwiN/gocache/v2 v2.4.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/logr v0.3.1
-	github.com/TwiN/whois v1.2.0
+	github.com/TwiN/whois v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
