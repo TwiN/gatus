@@ -3,6 +3,7 @@ package maintenance
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -70,13 +71,7 @@ func (c *Config) ValidateAndSetDefaults() error {
 		return nil
 	}
 	for _, day := range c.Every {
-		isDayValid := false
-		for _, longDayName := range longDayNames {
-			if day == longDayName {
-				isDayValid = true
-				break
-			}
-		}
+		isDayValid := slices.Contains(longDayNames, day)
 		if !isDayValid {
 			return errInvalidDayName
 		}
@@ -118,7 +113,7 @@ func (c *Config) IsUnderMaintenance() bool {
 	// Set to midnight prior to adding duration
 	dayWhereMaintenancePeriodWouldStart := time.Date(now.Year(), now.Month(), adjustedDate, 0, 0, 0, 0, now.Location())
 	hasMaintenanceEveryDay := len(c.Every) == 0
-	hasMaintenancePeriodScheduledToStartOnThatWeekday := c.hasDay(dayWhereMaintenancePeriodWouldStart.Weekday().String())
+	hasMaintenancePeriodScheduledToStartOnThatWeekday := slices.Contains(c.Every, dayWhereMaintenancePeriodWouldStart.Weekday().String())
 	if !hasMaintenanceEveryDay && !hasMaintenancePeriodScheduledToStartOnThatWeekday {
 		// The day when the maintenance period would start is not scheduled
 		// to have any maintenance, so we can just return false.
@@ -127,15 +122,6 @@ func (c *Config) IsUnderMaintenance() bool {
 	startOfMaintenancePeriod := dayWhereMaintenancePeriodWouldStart.Add(c.durationToStartFromMidnight)
 	endOfMaintenancePeriod := startOfMaintenancePeriod.Add(c.Duration)
 	return now.After(startOfMaintenancePeriod) && now.Before(endOfMaintenancePeriod)
-}
-
-func (c *Config) hasDay(day string) bool {
-	for _, d := range c.Every {
-		if d == day {
-			return true
-		}
-	}
-	return false
 }
 
 func hhmmToDuration(s string) (time.Duration, error) {
