@@ -52,6 +52,15 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if len(cfg.BuildVersion) > 0 {
 			t.Errorf("expected BuildVersion to be empty, got %s", cfg.BuildVersion)
 		}
+		if cfg.Favicon.Default != defaultFavicon {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon, cfg.Favicon.Default)
+		}
+		if cfg.Favicon.Size16x16 != defaultFavicon16 {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon16, cfg.Favicon.Size16x16)
+		}
+		if cfg.Favicon.Size32x32 != defaultFavicon32 {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon32, cfg.Favicon.Size32x32)
+		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
 		var showVersion = true

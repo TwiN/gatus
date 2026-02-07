@@ -21,6 +21,30 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
+func TestHasHeader(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		headers  map[string]string
+		lookup   string
+		expected bool
+	}{
+		{name: "exact-match", headers: map[string]string{"User-Agent": "test"}, lookup: "User-Agent", expected: true},
+		{name: "lowercase-lookup", headers: map[string]string{"User-Agent": "test"}, lookup: "user-agent", expected: true},
+		{name: "uppercase-lookup", headers: map[string]string{"user-agent": "test"}, lookup: "USER-AGENT", expected: true},
+		{name: "mixed-case", headers: map[string]string{"UsEr-AgEnT": "test"}, lookup: "uSeR-aGeNt", expected: true},
+		{name: "not-found", headers: map[string]string{"Content-Type": "test"}, lookup: "User-Agent", expected: false},
+		{name: "empty-headers", headers: map[string]string{}, lookup: "User-Agent", expected: false},
+		{name: "nil-headers", headers: nil, lookup: "User-Agent", expected: false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			if result := hasHeader(scenario.headers, scenario.lookup); result != scenario.expected {
+				t.Errorf("expected %v, got %v", scenario.expected, result)
+			}
+		})
+	}
+}
+
 func TestEndpoint(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	scenarios := []struct {
@@ -265,6 +289,31 @@ func TestEndpoint(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEndpoint_ResolveSuccessfulConditions(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	endpoint := Endpoint{
+		Name:       "test-endpoint",
+		URL:        "https://example.com/health",
+		Conditions: []Condition{"[BODY].status == UP"},
+		UIConfig:   &ui.Config{ResolveSuccessfulConditions: true},
+	}
+	mockResponse := test.MockRoundTripper(func(r *http.Request) *http.Response {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status":"UP"}`))}
+	})
+	client.InjectHTTPClient(&http.Client{Transport: mockResponse})
+	if err := endpoint.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+	}
+	result := endpoint.EvaluateHealth()
+	if len(result.ConditionResults) != 1 {
+		t.Fatalf("expected 1 condition result, got %d", len(result.ConditionResults))
+	}
+	expectedCondition := "[BODY].status (UP) == UP"
+	if result.ConditionResults[0].Condition != expectedCondition {
+		t.Errorf("expected condition to be '%s', got '%s'", expectedCondition, result.ConditionResults[0].Condition)
 	}
 }
 
@@ -692,6 +741,76 @@ func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
 	}
+	if request.Host != "example.com" {
+		t.Error("request.Host should've been example.com, but was", request.Host)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseUserAgent(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
+		Conditions: []Condition{condition},
+		Headers: map[string]string{
+			"user-agent": "CustomAgent/1.0",
+		},
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	if _, exists := endpoint.Headers[UserAgentHeader]; exists {
+		t.Error("User-Agent header should not have been added since user-agent was already specified")
+	}
+	request := endpoint.buildHTTPRequest()
+	if userAgent := request.Header.Get("User-Agent"); userAgent != "CustomAgent/1.0" {
+		t.Errorf("request.Header.Get(User-Agent) should've been CustomAgent/1.0, but was %s", userAgent)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseContentType(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-graphql",
+		URL:        "https://twin.sh/graphql",
+		Method:     "POST",
+		Conditions: []Condition{condition},
+		GraphQL:    true,
+		Headers: map[string]string{
+			"content-type": "application/graphql",
+		},
+		Body: `{ users { id } }`,
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	if _, exists := endpoint.Headers[ContentTypeHeader]; exists {
+		t.Error("Content-Type header should not have been added since content-type was already specified")
+	}
+	request := endpoint.buildHTTPRequest()
+	if contentType := request.Header.Get("Content-Type"); contentType != "application/graphql" {
+		t.Errorf("request.Header.Get(Content-Type) should've been application/graphql, but was %s", contentType)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseHostHeader(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
+		Method:     "POST",
+		Conditions: []Condition{condition},
+		Headers: map[string]string{
+			"host": "example.com",
+		},
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	request := endpoint.buildHTTPRequest()
 	if request.Host != "example.com" {
 		t.Error("request.Host should've been example.com, but was", request.Host)
 	}
