@@ -1,0 +1,108 @@
+name: regenerate-static-assets
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-command:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request }}
+    permissions:
+      pull-requests: write # required for adding reactions to command comments on PRs
+      checks: read # required to check if all ci checks have passed
+    outputs:
+      continue: ${{ steps.command.outputs.continue }}
+    steps:
+      - name: Check command trigger
+        id: command
+        uses: github/command@v2
+        with:
+          command: "/regenerate-static-assets"
+          permissions: "write,admin" # The allowed permission levels to invoke this command
+          allow_forks: true
+          allow_drafts: true
+          skip_ci: true
+          skip_completing: true
+
+  regenerate-static-assets:
+    runs-on: ubuntu-latest
+    needs: check-command
+    if: ${{ needs.check-command.outputs.continue == 'true' }}
+    permissions:
+      contents: write
+    outputs:
+      status: ${{ steps.commit.outputs.status }}
+    steps:
+      - name: Get PR branch
+        id: pr
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('ref', pr.data.head.ref);
+            core.setOutput('repo', pr.data.head.repo.full_name);
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.pr.outputs.repo }}
+          ref: ${{ steps.pr.outputs.ref }}
+      - name: Regenerate static assets
+        run: |
+          make frontend-install-dependencies
+          make frontend-build
+      - name: Commit and push changes
+        id: commit
+        run: |
+          echo "Checking for changes..."
+          if git diff --quiet; then
+            echo "No changes detected."
+            echo "status=no_changes" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Changes detected. Committing and pushing..."
+          git add . 
+          git commit -m "chore(ui): Regenerate static assets"
+          git push origin ${{ steps.pr.outputs.ref }}
+          echo "status=success" >> $GITHUB_OUTPUT
+
+  create-response-comment:
+    runs-on: ubuntu-latest
+    needs: [check-command, regenerate-static-assets]
+    if: ${{ !cancelled() && needs.check-command.outputs.continue == 'true' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Create response comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const status = '${{ needs.regenerate-static-assets.outputs.status }}';
+            let reaction = 'hooray';
+            let message = '';
+            var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            if (status === 'no_changes') {
+              message = `@${context.actor} No changes to commit ([ref](${workflowUrl})).`;
+            } else {
+              reaction = '-1';
+              message = `@${context.actor} There was an issue regenerating static assets. Please check the [workflow run logs](${workflowUrl}) for more details.`;
+            }
+            if (message.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+            }
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: reaction
+            });

@@ -11,16 +11,19 @@ import (
 )
 
 const (
-	defaultTitle               = "Health Dashboard | Gatus"
-	defaultDescription         = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader              = "Gatus"
-	defaultDashboardHeading    = "Health Dashboard"
-	defaultDashboardSubheading = "Monitor the health of your endpoints in real-time"
-	defaultLogo                = ""
-	defaultLink                = ""
-	defaultCustomCSS           = ""
-	defaultSortBy              = "name"
-	defaultFilterBy            = "none"
+	defaultTitle                = "Health Dashboard | Gatus"
+	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader               = "Gatus"
+	defaultDashboardHeading     = "Health Dashboard"
+	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
+	defaultLogo                 = ""
+	defaultLink                 = ""
+	defaultFavicon              = "/favicon.ico"
+	defaultFavicon16            = "/favicon-16x16.png"
+	defaultFavicon32            = "/favicon-32x32.png"
+	defaultCustomCSS            = ""
+	defaultSortBy               = "name"
+	defaultFilterBy             = "none"
 )
 
 var (
@@ -35,18 +38,19 @@ var (
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title               string   `yaml:"title,omitempty" json:"-"`                                            // Title of the page
-	Description         string   `yaml:"description,omitempty" json:"-"`                                      // Meta description of the page
-	DashboardHeading    string   `yaml:"dashboard-heading,omitempty" json:"dashboardHeading,omitempty"`       // Dashboard Title between header and endpoints
-	DashboardSubheading string   `yaml:"dashboard-subheading,omitempty" json:"dashboardSubheading,omitempty"` // Dashboard Description between header and endpoints
-	Header              string   `yaml:"header,omitempty" json:"header,omitempty"`                            // Header is the text at the top of the page
-	Logo                string   `yaml:"logo,omitempty" json:"logo,omitempty"`                                // Logo to display on the page
-	Link                string   `yaml:"link,omitempty" json:"link,omitempty"`                                // Link to open when clicking on the logo
-	Buttons             []Button `yaml:"buttons,omitempty" json:"buttons,omitempty"`                          // Buttons to display below the header
-	CustomCSS           string   `yaml:"custom-css,omitempty" json:"-"`                                       // Custom CSS to include in the page
-	DarkMode            *bool    `yaml:"dark-mode,omitempty" json:"-"`                                        // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy       string   `yaml:"default-sort-by,omitempty" json:"defaultSortBy,omitempty"`            // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy     string   `yaml:"default-filter-by,omitempty" json:"defaultFilterBy,omitempty"`        // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
+	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
+	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
+	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
+	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
+	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
+	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
+	Favicon                 Favicon  `yaml:"favicon,omitempty"`                // Favourite icon to display in web browser tab or address bar
+	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
+	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
+	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -74,6 +78,12 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
+type Favicon struct {
+	Default   string `yaml:"default,omitempty"`   // URL or path to default favourite icon.
+	Size16x16 string `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
+	Size32x32 string `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
+}
+
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
@@ -89,6 +99,11 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		Favicon: Favicon{
+			Default:   defaultFavicon,
+			Size16x16: defaultFavicon16,
+			Size32x32: defaultFavicon32,
+		},
 	}
 }
 
@@ -130,6 +145,15 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if len(cfg.Favicon.Default) == 0 {
+		cfg.Favicon.Default = defaultFavicon
+	}
+	if len(cfg.Favicon.Size16x16) == 0 {
+		cfg.Favicon.Size16x16 = defaultFavicon16
+	}
+	if len(cfg.Favicon.Size32x32) == 0 {
+		cfg.Favicon.Size32x32 = defaultFavicon32
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
