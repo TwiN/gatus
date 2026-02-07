@@ -92,6 +92,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Teams alerts *(Deprecated)*](#configuring-teams-alerts-deprecated)
     - [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts)
     - [Configuring Telegram alerts](#configuring-telegram-alerts)
+    - [Configuring Threema Gateway alerts](#configuring-threema-gateway-alerts)
     - [Configuring Twilio alerts](#configuring-twilio-alerts)
     - [Configuring Vonage alerts](#configuring-vonage-alerts)
     - [Configuring Webex alerts](#configuring-webex-alerts)
@@ -871,6 +872,7 @@ endpoints:
 | `alerting.teams`           | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).    | `{}`    |
 | `alerting.teams-workflows` | Configuration for alerts of type `teams-workflows`. <br />See [Configuring Teams Workflow alerts](#configuring-teams-workflow-alerts).  | `{}`    |
 | `alerting.telegram`        | Configuration for alerts of type `telegram`. <br />See [Configuring Telegram alerts](#configuring-telegram-alerts).                     | `{}`    |
+| `alerting.threema-gateway` | Configuration for alerts of type `threema-gateway`. <br />See [Configuring Threema Gateway alerts](#configuring-threema-gateway-alerts).| `{}`    |
 | `alerting.twilio`          | Settings for alerts of type `twilio`. <br />See [Configuring Twilio alerts](#configuring-twilio-alerts).                                | `{}`    |
 | `alerting.vonage`          | Configuration for alerts of type `vonage`. <br />See [Configuring Vonage alerts](#configuring-vonage-alerts).                           | `{}`    |
 | `alerting.webex`           | Configuration for alerts of type `webex`. <br />See [Configuring Webex alerts](#configuring-webex-alerts).                              | `{}`    |
@@ -2316,6 +2318,37 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Telegram notifications](.github/assets/telegram-alerts.png)
+
+
+#### Configuring Threema Gateway alerts
+| Parameter                                    | Description                                                                                                 | Default                     |
+|:---------------------------------------------|:------------------------------------------------------------------------------------------------------------|:----------------------------|
+| `alerting.threema-gateway`                   | Configuration for alerts of type `threema-gateway`                                                          | `{}`                        |
+| `alerting.threema-gateway.api-base-url`      | Threema Gateway API Base URL                                                                                | `https://msgapi.threema.ch` |
+| `alerting.threema-gateway.api-identity`      | Personal Threema API Identity                                                                               | Required `""`               |
+| `alerting.threema-gateway.recipients`        | Recipients in format `[<type>:]<identifier>`, where type is `id`, `phone` or `email`. Type defaults to `id` | Required `[]`               |
+| `alerting.threema-gateway.auth-secret`       | Threema Gateway API authentication secret                                                                   | Required `""`               |
+| `alerting.threema-gateway.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                  | N/A                         |
+| `alerting.threema-gateway.overrides`         | List of overrides that may be prioritized over the default configuration                                    | `[]`                        |
+| `alerting.threema-gateway.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration                         | `""`                        |
+| `alerting.threema-gateway.overrides[].*`     | See `alerting.threema-gateway.*` parameters                                                                 | `{}`                        |
+
+```yaml
+alerting:
+  threema-gateway:
+    api-identity: "*ABCDEFG"
+    auth-secret: "secret"
+    recipients:
+      - "THREEMA_ID"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: threema-gateway
+```
 
 
 #### Configuring Twilio alerts
