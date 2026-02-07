@@ -2,13 +2,13 @@ package watchdog
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
-	"github.com/TwiN/logr"
 )
 
 func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
@@ -17,7 +17,7 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorExternalEndpointHeartbeat] Canceling current execution of group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
+			slog.Warn("Canceling current external endpoint execution", "group", ee.Group, "name", ee.Name, "key", ee.Key())
 			return
 		case <-ticker.C:
 			executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
@@ -26,23 +26,26 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 }
 
 func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string) {
+	logger := slog.With(ee.GetLogAttribute())
+
 	// Acquire semaphore to limit concurrent external endpoint monitoring
 	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
 		// Only fails if context is cancelled (during shutdown)
-		logr.Debugf("[watchdog.executeExternalEndpointHeartbeat] Context cancelled, skipping execution: %s", err.Error())
+		logger.Debug("Context cancelled; skipping execution", "error", err.Error())
 		return
 	}
 	defer monitoringSemaphore.Release(1)
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
-		logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] No connectivity; skipping execution")
+		logger.Info("No connectivity, skipping execution")
 		return
 	}
-	logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Checking heartbeat for group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
+	logger.Debug("Monitoring start")
 	convertedEndpoint := ee.ToEndpoint()
 	hasReceivedResultWithinHeartbeatInterval, err := store.Get().HasEndpointStatusNewerThan(ee.Key(), time.Now().Add(-ee.Heartbeat.Interval))
 	if err != nil {
-		logr.Errorf("[watchdog.monitorExternalEndpointHeartbeat] Failed to check if endpoint has received a result within the heartbeat interval: %s", err.Error())
+		logger.Error("Failed to check if external endpoint has received a result within the heartbeat interval", "error", err.Error())
+		logger.Error("Monitoring error", "error", err.Error())
 		return
 	}
 	if hasReceivedResultWithinHeartbeatInterval {
@@ -50,7 +53,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		// skip the rest. We don't have to worry about alerting or metrics, because if the previous heartbeat failed
 		// while this one succeeds, it implies that there was a new result pushed, and that result being pushed
 		// should've resolved the alert.
-		logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] Checked heartbeat for group=%s; endpoint=%s; key=%s; success=%v; errors=%d", ee.Group, ee.Name, ee.Key(), hasReceivedResultWithinHeartbeatInterval, 0)
+		logger.Info("Monitoring success, heartbeat received within interval", "success", true, "error_count", 0)
 		return
 	}
 	// All code after this point assumes the heartbeat failed
@@ -63,11 +66,11 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
 	}
 	UpdateEndpointStatus(convertedEndpoint, result)
-	logr.Infof("[watchdog.monitorExternalEndpointHeartbeat] Checked heartbeat for group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ee.Group, ee.Name, ee.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
+	logger.Info("Monitoring done", result.GetLogAttribute())
 	inEndpointMaintenanceWindow := false
 	for _, maintenanceWindow := range ee.MaintenanceWindows {
 		if maintenanceWindow.IsUnderMaintenance() {
-			logr.Debug("[watchdog.monitorExternalEndpointHeartbeat] Under endpoint maintenance window")
+			logger.Debug("Under external endpoint maintenance window")
 			inEndpointMaintenanceWindow = true
 		}
 	}
@@ -77,7 +80,6 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		ee.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 		ee.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
 	} else {
-		logr.Debug("[watchdog.monitorExternalEndpointHeartbeat] Not handling alerting because currently in the maintenance window")
+		logger.Debug("Not handling alerting due to active maintenance window")
 	}
-	logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Waiting for interval=%s before checking heartbeat for group=%s endpoint=%s (key=%s) again", ee.Heartbeat.Interval, ee.Group, ee.Name, ee.Key())
 }

@@ -266,8 +266,14 @@ If you want to test it locally, see [Docker](#docker).
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`          |
 
 If you want more verbose logging, you may set the `GATUS_LOG_LEVEL` environment variable to `DEBUG`.
-Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, `ERROR` or `FATAL`.
+Conversely, if you want less verbose logging, you can set the aforementioned environment variable to `WARN`, or `ERROR`.
 The default value for `GATUS_LOG_LEVEL` is `INFO`.
+
+If you want to log the source code location of the log entry set the environment variable `GATUS_LOG_SOURCE` to `TRUE`.
+The default value for `GATUS_LOG_SOURCE` is `FALSE`.
+
+If you want the logs to be in JSON format instead of plain text set the environment variable `GATUS_LOG_TYPE` to `JSON`.
+The default value for `GATUS_LOG_TYPE` is `TEXT`.
 
 ### Endpoints
 Endpoints are URLs, applications, or services that you want to monitor. Each endpoint has a list of conditions that are
