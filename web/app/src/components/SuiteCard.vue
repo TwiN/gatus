@@ -40,13 +40,9 @@
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
-                result ? (
-                  result.success
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
-                ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
-              @mouseenter="result && handleMouseEnter(result, $event)"
+              :style="`background-color: ${getResultColor(result)}; filter: ${isHighlighted(index) ? 'brightness(75%)' : 'none'}`"
+              @mouseenter="result && handleMouseEnter(result, $event, index)"
               @mouseleave="result && handleMouseLeave(result, $event)"
               @click.stop="result && handleClick(result, $event, index)"
             />
@@ -67,6 +63,7 @@ import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
+import { getResultColor } from '@/utils/color'
 
 const router = useRouter()
 
@@ -86,6 +83,8 @@ const emit = defineEmits(['showTooltip'])
 // Track selected data point
 const selectedResultIndex = ref(null)
 
+const lastHoverIndex = ref(null)
+
 // Computed properties
 const displayResults = computed(() => {
   const results = [...(props.suite.results || [])]
@@ -97,7 +96,7 @@ const displayResults = computed(() => {
 
 const currentStatus = computed(() => {
   if (!props.suite.results || props.suite.results.length === 0) {
-    return 'unknown'
+    return null
   }
   return props.suite.results[props.suite.results.length - 1].success ? 'healthy' : 'unhealthy'
 })
@@ -148,15 +147,21 @@ const newestResultTime = computed(() => {
 })
 
 // Methods
+const isHighlighted = (index) => {
+  return selectedResultIndex.value === index || lastHoverIndex.value === index
+}
+
 const navigateToDetails = () => {
   router.push(`/suites/${props.suite.key}`)
 }
 
-const handleMouseEnter = (result, event) => {
+const handleMouseEnter = (result, event, index) => {
+  lastHoverIndex.value = index
   emit('showTooltip', result, event, 'hover')
 }
 
 const handleMouseLeave = (result, event) => {
+  lastHoverIndex.value = null
   emit('showTooltip', null, event, 'hover')
 }
 
