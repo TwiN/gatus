@@ -47,8 +47,8 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 
 const searchQuery = ref('')
-const filterBy = ref(localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'none')
-const sortBy = ref(localStorage.getItem('gatus:sort-by') || (typeof window !== 'undefined' && window.config?.defaultSortBy) || 'name')
+const filterBy = ref(localStorage.getItem('gatus:filter-by') || globalThis.config?.defaultFilterBy || 'none')
+const sortBy = ref(localStorage.getItem('gatus:sort-by') || globalThis.config?.defaultSortBy || 'name')
 
 const filterOptions = [
   { label: 'None', value: 'none' },
