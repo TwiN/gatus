@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
@@ -60,7 +62,7 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 					err = errors.New("error")
 				}
 			} else {
-				err = alertProvider.Send(ep, endpointAlert, result, false)
+				err = sendWithFailover(ep, endpointAlert, result, false, alertProvider, alertingConfig)
 			}
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToTrigger] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
@@ -106,7 +108,7 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
 		if alertProvider != nil {
 			logr.Infof("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
-			err := alertProvider.Send(ep, endpointAlert, result, true)
+			err := sendWithFailover(ep, endpointAlert, result, true, alertProvider, alertingConfig)
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 			}
@@ -115,4 +117,54 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		}
 	}
 	ep.NumberOfFailuresInARow = 0
+}
+
+// sendWithFailover attempts to send an alert using the primary provider.
+// If the primary fails and failover providers are configured, it tries each one in order.
+// Returns nil if any provider succeeds, or the last error if all fail.
+func sendWithFailover(
+	ep *endpoint.Endpoint,
+	endpointAlert *alert.Alert,
+	result *endpoint.Result,
+	resolved bool,
+	primaryProvider provider.AlertProvider,
+	alertingConfig *alerting.Config,
+) error {
+	// Try primary provider first
+	err := primaryProvider.Send(ep, endpointAlert, result, resolved)
+	if err == nil {
+		return nil
+	}
+	logr.Warnf("[watchdog.sendWithFailover] Primary provider '%s' failed: %s", endpointAlert.Type, err.Error())
+
+	// If no failover configured, return the error
+	if len(endpointAlert.Failover) == 0 {
+		return err
+	}
+
+	// If alerting config is nil, we can't get failover providers
+	if alertingConfig == nil {
+		logr.Warnf("[watchdog.sendWithFailover] Failover configured but alerting config is nil, cannot try failover providers")
+		return err
+	}
+
+	// Try each failover provider in order
+	for _, failoverType := range endpointAlert.Failover {
+		failoverProvider := alertingConfig.GetAlertingProviderByAlertType(failoverType)
+		if failoverProvider == nil {
+			logr.Warnf("[watchdog.sendWithFailover] Failover provider '%s' is not configured, skipping", failoverType)
+			continue
+		}
+
+		logr.Infof("[watchdog.sendWithFailover] Trying failover provider '%s'", failoverType)
+		err = failoverProvider.Send(ep, endpointAlert, result, resolved)
+		if err == nil {
+			logr.Infof("[watchdog.sendWithFailover] Alert sent successfully via failover provider '%s'", failoverType)
+			return nil
+		}
+		logr.Warnf("[watchdog.sendWithFailover] Failover provider '%s' failed: %s", failoverType, err.Error())
+	}
+
+	logr.Errorf("[watchdog.sendWithFailover] All providers failed for endpoint '%s'. Alert was not delivered.", ep.Name)
+	return err
 }
