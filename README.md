@@ -57,6 +57,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
+    - [Configuring Alertmanager alerts](#configuring-alertmanager-alerts)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
@@ -835,6 +836,7 @@ endpoints:
 
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
+| `alerting.alertmanager`    | Configuration for alerts of type `alertmanager`. <br />See [Configuring Alertmanager alerts](#configuring-alertmanager-alerts).          | `{}`    |
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
 | `alerting.clickup`         | Configuration for alerts of type `clickup`. <br />See [Configuring ClickUp alerts](#configuring-clickup-alerts).                        | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
@@ -876,6 +878,52 @@ endpoints:
 | `alerting.webex`           | Configuration for alerts of type `webex`. <br />See [Configuring Webex alerts](#configuring-webex-alerts).                              | `{}`    |
 | `alerting.zapier`          | Configuration for alerts of type `zapier`. <br />See [Configuring Zapier alerts](#configuring-zapier-alerts).                           | `{}`    |
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
+
+
+#### Configuring Alertmanager alerts
+
+| Parameter                                    | Description                                                                                | Default       |
+|:---------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.alertmanager`                      | Configuration for alerts of type `alertmanager`                                            | `{}`          |
+| `alerting.alertmanager.urls`                 | List of Alertmanager API endpoint URLs                                                     | Required `[]` |
+| `alerting.alertmanager.default-severity`     | Default severity level for alerts                                                          | `critical`    |
+| `alerting.alertmanager.extra-labels`         | Additional labels to add to all alerts                                                     | `{}`          |
+| `alerting.alertmanager.extra-annotations`    | Additional annotations to add to all alerts                                                | `{}`          |
+| `alerting.alertmanager.client`               | Client configuration                                                                       | `{}`          |
+| `alerting.alertmanager.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.alertmanager.overrides`            | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.alertmanager.overrides[].group`    | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.alertmanager.overrides[].*`        | See `alerting.alertmanager.*` parameters                                                   | `{}`          |
+
+[Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) is the alert handling component of the Prometheus ecosystem. By routing Gatus alerts through Alertmanager, you can take advantage of its features such as silences, inhibition rules, and grouping, as well as forwarding alerts to any of its supported notification channels (Slack, PagerDuty, email, webhooks, etc.).
+
+Multiple URLs can be configured to support Alertmanager in high-availability mode. Alerts are sent to all configured instances and Alertmanager handles deduplication.
+
+It is highly recommended to set `endpoints[].alerts[].send-on-resolved` to `true` so that resolved notifications are sent to Alertmanager.
+
+```yaml
+alerting:
+  alertmanager:
+    urls:
+      - "http://alertmanager1:9093"
+      - "http://alertmanager2:9093"
+    default-severity: "critical"
+    extra-labels:
+      environment: "production"
+    extra-annotations:
+      runbook: "https://wiki.example.com/runbook"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: alertmanager
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 
 #### Configuring AWS SES alerts

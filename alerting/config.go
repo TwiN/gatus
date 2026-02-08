@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
+	"github.com/TwiN/gatus/v5/alerting/provider/alertmanager"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
@@ -52,6 +53,9 @@ import (
 
 // Config is the configuration for alerting providers
 type Config struct {
+	// Alertmanager is the configuration for the alertmanager alerting provider
+	Alertmanager *alertmanager.AlertProvider `yaml:"alertmanager,omitempty"`
+
 	// AWSSimpleEmailService is the configuration for the aws-ses alerting provider
 	AWSSimpleEmailService *awsses.AlertProvider `yaml:"aws-ses,omitempty"`
 
