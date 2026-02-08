@@ -21,6 +21,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/config/remote"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/config/tunneling"
 	"github.com/TwiN/gatus/v5/config/ui"
@@ -87,6 +88,9 @@ type Config struct {
 
 	// Alerting is the configuration for alerting providers
 	Alerting *alerting.Config `yaml:"alerting,omitempty"`
+
+	// States is the list of configured states
+	States []*state.State `yaml:"states,omitempty"` // TODO#227 Make this a map since state names should always be unique?
 
 	// Endpoints is the list of endpoints to monitor
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints,omitempty"`
@@ -304,6 +308,9 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
+		if er := ValidateStatesConfig(config); er != nil {
+			return nil, er
+		}
 		if err := ValidateEndpointsConfig(config); err != nil {
 			return nil, err
 		}
@@ -450,6 +457,7 @@ func ValidateMaintenanceConfig(config *Config) error {
 	return nil
 }
 
+// Must be called after ValidateStatesConfig to ensure all states are available for validation
 func ValidateUIConfig(config *Config) error {
 	if config.UI == nil {
 		config.UI = ui.GetDefaultConfig()
@@ -457,6 +465,21 @@ func ValidateUIConfig(config *Config) error {
 		if err := config.UI.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
+	}
+
+	// Validate all states configured have a corresponding UI color configured
+	// TODO#227 Add tests
+	stateColorMap := config.UI.StateColors
+	colorsMissing := []string{}
+	for _, state := range config.States {
+		if _, exists := stateColorMap[state.Name]; !exists {
+			colorsMissing = append(colorsMissing, state.Name)
+		}
+	}
+	if len(colorsMissing) > 0 {
+		return fmt.Errorf("no colors configured for states: %s", strings.Join(colorsMissing, ", "))
+	} else {
+		logr.Debugf("[config.ValidateUIConfig] Configured colors for all %d state(s)", len(config.States))
 	}
 	return nil
 }
@@ -470,9 +493,61 @@ func ValidateWebConfig(config *Config) error {
 	return nil
 }
 
+func ValidateStatesConfig(config *Config) error { // TODO#227 Add tests
+	if config.States == nil {
+		logr.Info("[config.ValidateStatesConfig] No custom states configured, using defaults")
+		config.States = state.GetDefaultConfig()
+		logr.Debugf("[config.ValidateStatesConfig] Inserted %d default state(s)", len(config.States))
+		return nil
+	}
+
+	// Insert default states if they are missing
+	defaultStates := state.GetDefaultConfig()
+	for _, defaultState := range defaultStates {
+		found := false
+		for _, customState := range config.States {
+			if customState.Name == defaultState.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			logr.Debugf("[config.ValidateStatesConfig] Inserting default state into config: %s", defaultState.Name)
+			config.States = append(config.States, defaultState)
+		}
+	}
+
+	// Validate custom states
+	stateNames := make(map[string]bool)
+	statePriorities := make(map[int]string)
+	for _, state := range config.States {
+		// Check for duplicate state names
+		if stateNames[state.Name] {
+			return fmt.Errorf("duplicate state name: %s", state.Name)
+		}
+		stateNames[state.Name] = true
+
+		// Check for duplicate state priorities
+		if existingState, exists := statePriorities[state.Priority]; exists {
+			return fmt.Errorf("priority of state '%s' (%d) conflicts with state '%s'", state.Name, state.Priority, existingState)
+		}
+		statePriorities[state.Priority] = state.Name
+
+		// Validate the state configuration
+		if err := state.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid state '%s': %w", state.Name, err)
+		}
+	}
+	logr.Infof("[config.ValidateStatesConfig] Validated %d state(s) (%d custom)", len(config.States), len(config.States)-len(defaultStates))
+	return nil
+}
+
 func ValidateEndpointsConfig(config *Config) error {
-	duplicateValidationMap := make(map[string]bool)
+	// Set state configuration for all endpoints
+	endpoint.SetStateConfig(config.States)
+
 	// Validate endpoints
+	duplicateValidationMap := make(map[string]bool)
 	for _, ep := range config.Endpoints {
 		logr.Debugf("[config.ValidateEndpointsConfig] Validating endpoint with key %s", ep.Key())
 		if endpointKey := ep.Key(); duplicateValidationMap[endpointKey] {
@@ -485,6 +560,7 @@ func ValidateEndpointsConfig(config *Config) error {
 		}
 	}
 	logr.Infof("[config.ValidateEndpointsConfig] Validated %d endpoints", len(config.Endpoints))
+
 	// Validate external endpoints
 	for _, ee := range config.ExternalEndpoints {
 		logr.Debugf("[config.ValidateEndpointsConfig] Validating external endpoint '%s'", ee.Key())
@@ -497,6 +573,7 @@ func ValidateEndpointsConfig(config *Config) error {
 			return fmt.Errorf("invalid external endpoint %s: %w", ee.Key(), err)
 		}
 	}
+
 	logr.Infof("[config.ValidateEndpointsConfig] Validated %d external endpoints", len(config.ExternalEndpoints))
 	return nil
 }
