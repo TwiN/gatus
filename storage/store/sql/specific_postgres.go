@@ -120,5 +120,9 @@ func (s *Store) createPostgresSchema() error {
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS suite_result_id BIGINT REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
 	// Create index for suite_result_id
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
+	// Create index for endpoint_result_conditions
+	_, _ = s.db.Exec(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_endpoint_result_conditions_endpoint_result_id ON endpoint_result_conditions (endpoint_result_id)`)
+	// Create index for endpoint_results
+	_, _ = s.db.Exec(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_endpoint_results_endpoint_id ON endpoint_results (endpoint_id)`)
 	return err
 }
