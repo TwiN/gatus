@@ -3,10 +3,10 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"log/slog"
 	"net"
 	"time"
 
-	"github.com/TwiN/logr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -42,7 +42,7 @@ func PerformGRPCHealthCheck(address string, useTLS bool, cfg *Config) (bool, str
 			resolverCfg, err := cfg.parseDNSResolver()
 			if err != nil {
 				// Shouldn't happen because already validated; log and fall back
-				logr.Errorf("[client.PerformGRPCHealthCheck] invalid DNS resolver: %v", err)
+				slog.Error("Invalid DNS resolver", "error", err)
 			} else {
 				d := &net.Dialer{Resolver: &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 					d := net.Dialer{}

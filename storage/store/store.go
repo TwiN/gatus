@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -11,7 +12,6 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/storage/store/memory"
 	"github.com/TwiN/gatus/v5/storage/store/sql"
-	"github.com/TwiN/logr"
 )
 
 // Store is the interface that each store should implement
@@ -107,7 +107,7 @@ var (
 func Get() Store {
 	if !initialized {
 		// This only happens in tests
-		logr.Info("[store.Get] Provider requested before it was initialized, automatically initializing")
+		slog.Warn("Provider requested before it was initialized, automatically initializing")
 		err := Initialize(nil)
 		if err != nil {
 			panic("failed to automatically initialize store: " + err.Error())
@@ -126,14 +126,14 @@ func Initialize(cfg *storage.Config) error {
 	}
 	if cfg == nil {
 		// This only happens in tests
-		logr.Warn("[store.Initialize] nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
+		slog.Warn("nil storage config passed as parameter. This should only happen in tests. Defaulting to an empty config.")
 		cfg = &storage.Config{
 			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 		}
 	}
 	if len(cfg.Path) == 0 && cfg.Type != storage.TypePostgres {
-		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
+		slog.Info("Creating storage provider", "type", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
@@ -157,12 +157,12 @@ func autoSave(ctx context.Context, store Store, interval time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Info("[store.autoSave] Stopping active job")
+			slog.Info("Stopping active store auto-save task")
 			return
 		case <-ticker.C:
-			logr.Info("[store.autoSave] Saving")
+			slog.Info("Auto-saving store data")
 			if err := store.Save(); err != nil {
-				logr.Errorf("[store.autoSave] Save failed: %s", err.Error())
+				slog.Error("Failed to auto-save store data", "error", err)
 			}
 		}
 	}

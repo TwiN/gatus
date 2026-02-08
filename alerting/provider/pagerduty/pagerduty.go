@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
 )
 
@@ -105,7 +105,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 			var payload pagerDutyResponsePayload
 			if err = json.NewDecoder(response.Body).Decode(&payload); err != nil {
 				// Silently fail. We don't want to create tons of alerts just because we failed to parse the body.
-				logr.Errorf("[pagerduty.Send] Ran into error decoding pagerduty response: %s", err.Error())
+				slog.Error("Ran into error decoding pagerduty response", "error", err.Error())
 			} else {
 				alert.ResolveKey = payload.DedupKey
 			}

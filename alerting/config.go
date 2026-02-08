@@ -1,6 +1,7 @@
 package alerting
 
 import (
+	"log/slog"
 	"reflect"
 	"strings"
 
@@ -47,7 +48,6 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/webex"
 	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
 	"github.com/TwiN/gatus/v5/alerting/provider/zulip"
-	"github.com/TwiN/logr"
 )
 
 // Config is the configuration for alerting providers
@@ -190,7 +190,7 @@ func (config *Config) GetAlertingProviderByAlertType(alertType alert.Type) provi
 			return fieldValue.Interface().(provider.AlertProvider)
 		}
 	}
-	logr.Infof("[alerting.GetAlertingProviderByAlertType] No alerting provider found for alert type %s", alertType)
+	slog.Info("No alerting provider found for alert type", "type", alertType)
 	return nil
 }
 

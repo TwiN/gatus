@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -31,6 +32,18 @@ type Result struct {
 
 	// Errors contains any suite-level errors
 	Errors []string `json:"errors,omitempty"`
+}
+
+func (r *Result) GetLogAttribute() slog.Attr {
+	return slog.Attr{
+		Key: "result",
+		Value: slog.GroupValue(
+			slog.Bool("success", r.Success),
+			slog.Duration("duration", r.Duration),
+			slog.Int("endpoints", len(r.EndpointResults)),
+			slog.Int("error_count", len(r.Errors)),
+		),
+	}
 }
 
 // AddError adds an error to the suite result

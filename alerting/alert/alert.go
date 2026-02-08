@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/TwiN/logr"
 	"gopkg.in/yaml.v3"
 )
 
@@ -131,7 +131,7 @@ func (alert *Alert) Checksum() string {
 func (alert *Alert) ProviderOverrideAsBytes() []byte {
 	yamlBytes, err := yaml.Marshal(alert.ProviderOverride)
 	if err != nil {
-		logr.Warnf("[alert.ProviderOverrideAsBytes] Failed to marshal alert override of type=%s as bytes: %v", alert.Type, err)
+		slog.Warn("Failed to marshal alert override as bytes", "type", alert.Type, "error", err)
 	}
 	return yamlBytes
 }

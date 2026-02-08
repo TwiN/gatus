@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -19,7 +20,6 @@ import (
 	"time"
 
 	"github.com/TwiN/gocache/v2"
-	"github.com/TwiN/logr"
 	"github.com/TwiN/whois"
 	"github.com/gorilla/websocket"
 	"github.com/ishidawataru/sctp"
@@ -163,7 +163,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		if err != nil {
 			// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
 			// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
-			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+			slog.Error("Should never happen: Silently ignoring invalid DNS resolver", "error", err)
 		} else {
 			dialer := &net.Dialer{
 				Resolver: &net.Resolver{
@@ -464,7 +464,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 	m.SetQuestion(queryName, queryTypeAsUint16)
 	r, _, err := c.Exchange(m, url)
 	if err != nil {
-		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
+		slog.Info("Error exchanging DNS message", "error", err)
 		return false, "", nil, err
 	}
 	connected = true

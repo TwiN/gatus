@@ -2,13 +2,13 @@ package watchdog
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
-	"github.com/TwiN/logr"
 )
 
 // monitorSuite monitors a suite by executing it at regular intervals
@@ -21,7 +21,7 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorSuite] Canceling monitoring for suite=%s", s.Name)
+			slog.Warn("Canceling current execution", s.GetLogAttribute())
 			return
 		case <-ticker.C:
 			executeSuite(s, cfg, extraLabels)
@@ -31,19 +31,21 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 
 // executeSuite executes a suite with proper concurrency control
 func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
+	logger := slog.With(s.GetLogAttribute())
+
 	// Acquire semaphore to limit concurrent suite monitoring
 	if err := monitoringSemaphore.Acquire(ctx, 1); err != nil {
 		// Only fails if context is cancelled (during shutdown)
-		logr.Debugf("[watchdog.executeSuite] Context cancelled, skipping execution: %s", err.Error())
+		logger.Debug("Context cancelled; skipping execution", "error", err.Error())
 		return
 	}
 	defer monitoringSemaphore.Release(1)
 	// Check connectivity if configured
 	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
-		logr.Infof("[watchdog.executeSuite] No connectivity; skipping suite=%s", s.Name)
+		logger.Info("No connectivity, skipping execution")
 		return
 	}
-	logr.Debugf("[watchdog.executeSuite] Monitoring group=%s; suite=%s; key=%s", s.Group, s.Name, s.Key())
+	logger.Debug("Monitoring start")
 	// Execute the suite using its Execute method
 	result := s.Execute()
 	// Publish metrics for the suite execution
@@ -62,7 +64,7 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 				inEndpointMaintenanceWindow := false
 				for _, maintenanceWindow := range ep.MaintenanceWindows {
 					if maintenanceWindow.IsUnderMaintenance() {
-						logr.Debug("[watchdog.executeSuite] Endpoint under maintenance window")
+						logger.Debug("Under endpoint maintenance window", ep.GetLogAttribute())
 						inEndpointMaintenanceWindow = true
 						break
 					}
@@ -73,12 +75,12 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 			}
 		}
 	}
-	logr.Infof("[watchdog.executeSuite] Completed suite=%s; success=%v; errors=%d; duration=%v; endpoints_executed=%d/%d", s.Name, result.Success, len(result.Errors), result.Duration, len(result.EndpointResults), len(s.Endpoints))
+	logger.Info("Monitoring done", result.GetLogAttribute())
 }
 
 // UpdateSuiteStatus persists the suite result in the database
 func UpdateSuiteStatus(s *suite.Suite, result *suite.Result) {
 	if err := store.Get().InsertSuiteResult(s, result); err != nil {
-		logr.Errorf("[watchdog.executeSuite] Failed to insert suite result for suite=%s: %v", s.Name, err)
+		slog.Error("Failed to insert suite result", s.GetLogAttribute(), "error", err.Error())
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
-	"github.com/TwiN/logr"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
@@ -247,12 +247,12 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 			// Endpoint doesn't exist in the database, insert it
 			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
 				_ = tx.Rollback()
-				logr.Errorf("[sql.InsertEndpointResult] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to create endpoint", "key", ep.Key(), "error", err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
+			slog.Error("Failed to retrieve endpoint ID", "key", ep.Key(), "error", err.Error())
 			return err
 		}
 	}
@@ -268,7 +268,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	numberOfEvents, err := s.getNumberOfEventsByEndpointID(tx, endpointID)
 	if err != nil {
 		// Silently fail
-		logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve total number of events for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to retrieve total number of events", "key", ep.Key(), "error", err.Error())
 	}
 	if numberOfEvents == 0 {
 		// There's no events yet, which means we need to add the EventStart and the first healthy/unhealthy event
@@ -278,19 +278,19 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		})
 		if err != nil {
 			// Silently fail
-			logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", endpoint.EventStart, ep.Key(), err.Error())
+			slog.Error("Failed to insert start events", "endpoint", ep.Key(), "event", endpoint.EventStart, "error", err.Error())
 		}
 		event := endpoint.NewEventFromResult(result)
 		if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 			// Silently fail
-			logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+			slog.Error("Failed to insert first health event", "endpoint", ep.Key(), "event", event.Type, "error", err.Error())
 		}
 	} else {
 		// Get the success value of the previous result
 		var lastResultSuccess bool
 		if lastResultSuccess, err = s.getLastEndpointResultSuccessValue(tx, endpointID); err != nil {
 			// Silently fail
-			logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve outcome of previous result for endpoint with key=%s: %s", ep.Key(), err.Error())
+			slog.Error("Failed to retrieve outcome of previous result", "endpoint", ep.Key(), "error", err.Error())
 		} else {
 			// If we managed to retrieve the outcome of the previous result, we'll compare it with the new result.
 			// If the final outcome (success or failure) of the previous and the new result aren't the same, it means
@@ -300,7 +300,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 				event := endpoint.NewEventFromResult(result)
 				if err = s.insertEndpointEvent(tx, endpointID, event); err != nil {
 					// Silently fail
-					logr.Errorf("[sql.InsertEndpointResult] Failed to insert event=%s for endpoint with key=%s: %s", event.Type, ep.Key(), err.Error())
+					slog.Error("Failed to insert health event", "endpoint", ep.Key(), "event", event.Type, "error", err.Error())
 				}
 			}
 		}
@@ -309,42 +309,42 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 		// (since we're only deleting MaximumNumberOfEvents at a time instead of 1)
 		if numberOfEvents > int64(s.maximumNumberOfEvents+eventsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointEvents(tx, endpointID); err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to delete old events for endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to delete old events", "endpoint", ep.Key(), "error", err.Error())
 			}
 		}
 	}
 	// Second, we need to insert the result.
 	if err = s.insertEndpointResult(tx, endpointID, result); err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to insert result for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to insert result", "endpoint", ep.Key(), "error", err.Error())
 		_ = tx.Rollback() // If we can't insert the result, we'll rollback now since there's no point continuing
 		return err
 	}
 	// Clean up old results
 	numberOfResults, err := s.getNumberOfResultsByEndpointID(tx, endpointID)
 	if err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve total number of results for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to retrieve total number of results", "endpoint", ep.Key(), "error", err.Error())
 	} else {
 		if numberOfResults > int64(s.maximumNumberOfResults+resultsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldEndpointResults(tx, endpointID); err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to delete old results for endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to delete old results", "endpoint", ep.Key(), "error", err.Error())
 			}
 		}
 	}
 	// Finally, we need to insert the uptime data.
 	// Because the uptime data significantly outlives the results, we can't rely on the results for determining the uptime
 	if err = s.updateEndpointUptime(tx, endpointID, result); err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to update uptime for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to update uptime", "endpoint", ep.Key(), "error", err.Error())
 	}
 	// Merge hourly uptime entries that can be merged into daily entries and clean up old uptime entries
 	numberOfUptimeEntries, err := s.getNumberOfUptimeEntriesByEndpointID(tx, endpointID)
 	if err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve total number of uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to retrieve total number of uptime entries", "endpoint", ep.Key(), "error", err.Error())
 	} else {
 		// Merge older hourly uptime entries into daily uptime entries if we have more than uptimeTotalEntriesMergeThreshold
 		if numberOfUptimeEntries >= uptimeTotalEntriesMergeThreshold {
-			logr.Infof("[sql.InsertEndpointResult] Merging hourly uptime entries for endpoint with key=%s; This is a lot of work, it shouldn't happen too often", ep.Key())
+			slog.Warn("Merging hourly uptime entries; This is a lot of work, it shouldn't happen too often", "endpoint", ep.Key())
 			if err = s.mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx, endpointID); err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to merge hourly uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to merge hourly uptime entries", "endpoint", ep.Key(), "error", err.Error())
 			}
 		}
 	}
@@ -353,11 +353,11 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	// but if Gatus was temporarily shut down, we might have some old entries that need to be cleaned up
 	ageOfOldestUptimeEntry, err := s.getAgeOfOldestEndpointUptimeEntry(tx, endpointID)
 	if err != nil {
-		logr.Errorf("[sql.InsertEndpointResult] Failed to retrieve oldest endpoint uptime entry for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to retrieve oldest uptime entry", "endpoint", ep.Key(), "error", err.Error())
 	} else {
 		if ageOfOldestUptimeEntry > uptimeAgeCleanUpThreshold {
 			if err = s.deleteOldUptimeEntries(tx, endpointID, time.Now().Add(-(uptimeRetention + time.Hour))); err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Failed to delete old uptime entries for endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to delete old uptime entries", "endpoint", ep.Key(), "error", err.Error())
 			}
 		}
 	}
@@ -367,7 +367,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 			s.writeThroughCache.Delete(cacheKey)
 			endpointKey, params, err := extractKeyAndParamsFromCacheKey(cacheKey)
 			if err != nil {
-				logr.Errorf("[sql.InsertEndpointResult] Silently deleting cache key %s instead of refreshing due to error: %s", cacheKey, err.Error())
+				slog.Error("Silently deleting cache key instead of refreshing", "cacheKey", cacheKey, "error", err.Error())
 				continue
 			}
 			// Retrieve the endpoint status by key, which will in turn refresh the cache
@@ -382,12 +382,12 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 
 // DeleteAllEndpointStatusesNotInKeys removes all rows owned by an endpoint whose key is not within the keys provided
 func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
-	logr.Debugf("[sql.DeleteAllEndpointStatusesNotInKeys] Called with %d keys", len(keys))
+	slog.Debug("Delete all endpoint statuses not in keys start", "key_count", len(keys))
 	var err error
 	var result sql.Result
 	if len(keys) == 0 {
 		// Delete everything
-		logr.Debugf("[sql.DeleteAllEndpointStatusesNotInKeys] No keys provided, deleting all endpoints")
+		slog.Debug("No keys provided, deleting all endpoints")
 		result, err = s.db.Exec("DELETE FROM endpoints")
 	} else {
 		// First check what we're about to delete
@@ -410,9 +410,9 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 				}
 			}
 			if len(deletedKeys) > 0 {
-				logr.Infof("[sql.DeleteAllEndpointStatusesNotInKeys] Deleting endpoints with keys: %v", deletedKeys)
+				slog.Info("Deleting endpoints", "keys", deletedKeys)
 			} else {
-				logr.Debugf("[sql.DeleteAllEndpointStatusesNotInKeys] No endpoints to delete")
+				slog.Debug("No endpoints to delete")
 			}
 		}
 
@@ -424,7 +424,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {
-		logr.Errorf("[sql.DeleteAllEndpointStatusesNotInKeys] Failed to delete rows that do not belong to any of keys=%v: %s", keys, err.Error())
+		slog.Error("Failed to delete endpoints not in keys", "keys", keys, "error", err.Error())
 		return 0
 	}
 	if s.writeThroughCache != nil {
@@ -440,7 +440,7 @@ func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 
 // GetTriggeredEndpointAlert returns whether the triggered alert for the specified endpoint as well as the necessary information to resolve it
 func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Alert) (exists bool, resolveKey string, numberOfSuccessesInARow int, err error) {
-	//logr.Debugf("[sql.GetTriggeredEndpointAlert] Getting triggered alert with checksum=%s for endpoint with key=%s", alert.Checksum(), ep.Key())
+	//slog.Debug("Getting triggered endpoint alert", "endpoint_key", ep.Key(), "alert_checksum", alert.Checksum())
 	err = s.db.QueryRow(
 		"SELECT resolve_key, number_of_successes_in_a_row FROM endpoint_alerts_triggered WHERE endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $1 LIMIT 1) AND configuration_checksum = $2",
 		ep.Key(),
@@ -458,7 +458,7 @@ func (s *Store) GetTriggeredEndpointAlert(ep *endpoint.Endpoint, alert *alert.Al
 // UpsertTriggeredEndpointAlert inserts/updates a triggered alert for an endpoint
 // Used for persistence of triggered alerts across application restarts
 func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//logr.Debugf("[sql.UpsertTriggeredEndpointAlert] Upserting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
+	//slog.Debug("Upserting triggered endpoint alert", "endpoint_key", ep.Key(), "alert_checksum", triggeredAlert.Checksum())
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -470,12 +470,12 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 			// This shouldn't happen, but we'll handle it anyway
 			if endpointID, err = s.insertEndpoint(tx, ep); err != nil {
 				_ = tx.Rollback()
-				logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to create endpoint with key=%s: %s", ep.Key(), err.Error())
+				slog.Error("Failed to create endpoint", "key", ep.Key(), "error", err.Error())
 				return err
 			}
 		} else {
 			_ = tx.Rollback()
-			logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to retrieve id of endpoint with key=%s: %s", ep.Key(), err.Error())
+			slog.Error("Failed to retrieve endpoint ID", "key", ep.Key(), "error", err.Error())
 			return err
 		}
 	}
@@ -494,7 +494,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 	)
 	if err != nil {
 		_ = tx.Rollback()
-		logr.Errorf("[sql.UpsertTriggeredEndpointAlert] Failed to persist triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+		slog.Error("Failed to persist triggered alert", "endpoint", ep.Key(), "error", err.Error())
 		return err
 	}
 	if err = tx.Commit(); err != nil {
@@ -505,7 +505,7 @@ func (s *Store) UpsertTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 
 // DeleteTriggeredEndpointAlert deletes a triggered alert for an endpoint
 func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAlert *alert.Alert) error {
-	//logr.Debugf("[sql.DeleteTriggeredEndpointAlert] Deleting triggered alert with checksum=%s for endpoint with key=%s", triggeredAlert.Checksum(), ep.Key())
+	//slog.Debug("Deleting triggered endpoint alert", "endpoint_key", ep.Key(), "alert_checksum", triggeredAlert.Checksum())
 	_, err := s.db.Exec("DELETE FROM endpoint_alerts_triggered WHERE configuration_checksum = $1 AND endpoint_id = (SELECT endpoint_id FROM endpoints WHERE endpoint_key = $2 LIMIT 1)", triggeredAlert.Checksum(), ep.Key())
 	return err
 }
@@ -514,7 +514,7 @@ func (s *Store) DeleteTriggeredEndpointAlert(ep *endpoint.Endpoint, triggeredAle
 // configurations are not provided in the checksums list.
 // This prevents triggered alerts that have been removed or modified from lingering in the database.
 func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.Endpoint, checksums []string) int {
-	//logr.Debugf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Deleting triggered alerts for endpoint with key=%s that do not belong to any of checksums=%v", ep.Key(), checksums)
+	//slog.Debug("Deleting triggered alerts not in checksums", "endpoint_key", ep.Key(), "checksums", checksums)
 	var err error
 	var result sql.Result
 	if len(checksums) == 0 {
@@ -535,7 +535,7 @@ func (s *Store) DeleteAllTriggeredAlertsNotInChecksumsByEndpoint(ep *endpoint.En
 		result, err = s.db.Exec(query, args...)
 	}
 	if err != nil {
-		logr.Errorf("[sql.DeleteAllTriggeredAlertsNotInChecksumsByEndpoint] Failed to delete rows for endpoint with key=%s that do not belong to any of checksums=%v: %s", ep.Key(), checksums, err.Error())
+		slog.Error("Failed to delete triggered alerts not in checksums", "endpoint_key", ep.Key(), "checksums", checksums, "error", err.Error())
 		return 0
 	}
 	// Return number of rows deleted
@@ -585,7 +585,7 @@ func (s *Store) Close() {
 
 // insertEndpoint inserts an endpoint in the store and returns the generated id of said endpoint
 func (s *Store) insertEndpoint(tx *sql.Tx, ep *endpoint.Endpoint) (int64, error) {
-	//logr.Debugf("[sql.insertEndpoint] Inserting endpoint with group=%s and name=%s", ep.Group, ep.Name)
+	//slog.Debug("Inserting endpoint", "key", ep.Key(), "name", ep.Name, "group", ep.Group)
 	var id int64
 	err := tx.QueryRow(
 		"INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ($1, $2, $3) RETURNING endpoint_id",
@@ -725,12 +725,12 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	endpointStatus := endpoint.NewStatus(group, endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
-			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())
+			slog.Error("Failed to retrieve events for endpoint", "key", key, "error", err.Error())
 		}
 	}
 	if parameters.ResultsPageSize > 0 {
 		if endpointStatus.Results, err = s.getEndpointResultsByEndpointID(tx, endpointID, parameters.ResultsPage, parameters.ResultsPageSize); err != nil {
-			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve results for key=%s: %s", key, err.Error())
+			slog.Error("Failed to retrieve results for endpoint", "key", key, "error", err.Error())
 		}
 	}
 	if s.writeThroughCache != nil {
@@ -811,7 +811,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		var joinedErrors string
 		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
 		if err != nil {
-			logr.Errorf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
+			slog.Error("Silently failed to retrieve endpoint result", "endpoint_id", endpointID, "error", err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
@@ -1207,7 +1207,7 @@ func (s *Store) GetAllSuiteStatuses(params *paging.SuiteStatusParams) ([]*suite.
 
 		status.Results, err = s.getSuiteResults(tx, suiteID, page, pageSize)
 		if err != nil {
-			logr.Errorf("[sql.GetAllSuiteStatuses] Failed to retrieve results for suite_id=%d: %s", suiteID, err.Error())
+			slog.Error("Failed to retrieve suite results", "suite_id", suiteID, "error", err.Error())
 		}
 		// Populate Name and Group fields on each result
 		for _, result := range status.Results {
@@ -1267,7 +1267,7 @@ func (s *Store) GetSuiteStatusByKey(key string, params *paging.SuiteStatusParams
 
 	status.Results, err = s.getSuiteResults(tx, suiteID, page, pageSize)
 	if err != nil {
-		logr.Errorf("[sql.GetSuiteStatusByKey] Failed to retrieve results for suite_id=%d: %s", suiteID, err.Error())
+		slog.Error("Failed to retrieve suite results", "suite_id", suiteID, "error", err.Error())
 	}
 	// Populate Name and Group fields on each result
 	for _, result := range status.Results {
@@ -1295,11 +1295,11 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 		if errors.Is(err, common.ErrSuiteNotFound) {
 			// Suite doesn't exist in the database, insert it
 			if suiteID, err = s.insertSuite(tx, su); err != nil {
-				logr.Errorf("[sql.InsertSuiteResult] Failed to create suite with key=%s: %s", su.Key(), err.Error())
+				slog.Error("Failed to insert suite", "key", su.Key(), "error", err.Error())
 				return err
 			}
 		} else {
-			logr.Errorf("[sql.InsertSuiteResult] Failed to retrieve id of suite with key=%s: %s", su.Key(), err.Error())
+			slog.Error("Failed to retrieve suite ID", "key", su.Key(), "error", err.Error())
 			return err
 		}
 	}
@@ -1332,28 +1332,28 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				// Endpoint doesn't exist, create it
 				if epID, err = s.insertEndpoint(tx, ep); err != nil {
-					logr.Errorf("[sql.InsertSuiteResult] Failed to create endpoint %s: %s", epResult.Name, err.Error())
+					slog.Error("Failed to create endpoint", "name", epResult.Name, "error", err.Error())
 					continue
 				}
 			} else {
-				logr.Errorf("[sql.InsertSuiteResult] Failed to get endpoint %s: %s", epResult.Name, err.Error())
+				slog.Error("Failed to get endpoint", "name", epResult.Name, "error", err.Error())
 				continue
 			}
 		}
 		// InsertEndpointResult the endpoint result with suite linkage
 		err = s.insertEndpointResultWithSuiteID(tx, epID, epResult, &suiteResultID)
 		if err != nil {
-			logr.Errorf("[sql.InsertSuiteResult] Failed to insert endpoint result for %s: %s", epResult.Name, err.Error())
+			slog.Error("Failed to insert endpoint result for suite", "endpoint_name", epResult.Name, "error", err.Error())
 		}
 	}
 	// Clean up old suite results
 	numberOfResults, err := s.getNumberOfSuiteResultsByID(tx, suiteID)
 	if err != nil {
-		logr.Errorf("[sql.InsertSuiteResult] Failed to retrieve total number of results for suite with key=%s: %s", su.Key(), err.Error())
+		slog.Error("Failed to retrieve total number of results for suite", "key", su.Key(), "error", err.Error())
 	} else {
 		if numberOfResults > int64(s.maximumNumberOfResults+resultsAboveMaximumCleanUpThreshold) {
 			if err = s.deleteOldSuiteResults(tx, suiteID); err != nil {
-				logr.Errorf("[sql.InsertSuiteResult] Failed to delete old results for suite with key=%s: %s", su.Key(), err.Error())
+				slog.Error("Failed to delete old results for suite", "key", su.Key(), "error", err.Error())
 			}
 		}
 	}
@@ -1365,13 +1365,13 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 
 // DeleteAllSuiteStatusesNotInKeys removes all suite statuses that are not within the keys provided
 func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
-	logr.Debugf("[sql.DeleteAllSuiteStatusesNotInKeys] Called with %d keys", len(keys))
+	slog.Debug("Delete all suite statuses not in keys started", "keys_count", len(keys))
 	if len(keys) == 0 {
 		// Delete all suites
-		logr.Debugf("[sql.DeleteAllSuiteStatusesNotInKeys] No keys provided, deleting all suites")
+		slog.Debug("No keys provided, deleting all suites")
 		result, err := s.db.Exec("DELETE FROM suites")
 		if err != nil {
-			logr.Errorf("[sql.DeleteAllSuiteStatusesNotInKeys] Failed to delete all suites: %s", err.Error())
+			slog.Error("Failed to delete all suites", "error", err.Error())
 			return 0
 		}
 		rowsAffected, _ := result.RowsAffected()
@@ -1407,12 +1407,12 @@ func (s *Store) DeleteAllSuiteStatusesNotInKeys(keys []string) int {
 			}
 		}
 		if len(deletedKeys) > 0 {
-			logr.Infof("[sql.DeleteAllSuiteStatusesNotInKeys] Deleting suites with keys: %v", deletedKeys)
+			slog.Info("Deleting suites with keys", "keys", deletedKeys)
 		}
 	}
 	result, err := s.db.Exec(query, args...)
 	if err != nil {
-		logr.Errorf("[sql.DeleteAllSuiteStatusesNotInKeys] Failed to delete suites: %s", err.Error())
+		slog.Error("Failed to delete suites", "error", err.Error())
 		return 0
 	}
 	rowsAffected, _ := result.RowsAffected()
@@ -1463,7 +1463,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		(page-1)*pageSize,
 	)
 	if err != nil {
-		logr.Errorf("[sql.getSuiteResults] Query failed: %v", err)
+		slog.Error("Failed to retrieve suite results", "suite_id", suiteID, "error", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -1481,7 +1481,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		var nanoseconds int64
 		err = rows.Scan(&suiteResultID, &result.Success, &joinedErrors, &nanoseconds, &result.Timestamp)
 		if err != nil {
-			logr.Errorf("[sql.getSuiteResults] Failed to scan suite result: %s", err.Error())
+			slog.Error("Failed to scan suite result", "suite_id", suiteID, "error", err.Error())
 			continue
 		}
 		result.Duration = time.Duration(nanoseconds)
@@ -1519,7 +1519,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			ORDER BY er.endpoint_result_id
 		`, resultID)
 		if err != nil {
-			logr.Errorf("[sql.getSuiteResults] Failed to get endpoint results for suite_result_id=%d: %s", resultID, err.Error())
+			slog.Error("Failed to retrieve endpoint results for suite result", "suite_result_id", resultID, "error", err.Error())
 			continue
 		}
 		// Map to store endpoint results by their ID for condition lookup
@@ -1535,7 +1535,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 			var timestamp time.Time
 			err = epRows.Scan(&epResultID, &name, &success, &joinedErrors, &duration, &timestamp)
 			if err != nil {
-				logr.Errorf("[sql.getSuiteResults] Failed to scan endpoint result: %s", err.Error())
+				slog.Error("Failed to scan endpoint result", "suite_result_id", resultID, "error", err.Error())
 				continue
 			}
 			epResult := &endpoint.Result{
@@ -1568,7 +1568,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 
 			condRows, err := tx.Query(condQuery, args...)
 			if err != nil {
-				logr.Errorf("[sql.getSuiteResults] Failed to get condition results for suite_result_id=%d: %s", resultID, err.Error())
+				slog.Error("Failed to retrieve condition results for suite result", "suite_result_id", resultID, "error", err.Error())
 			} else {
 				condCount := 0
 				for condRows.Next() {
@@ -1576,7 +1576,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 					conditionResult := &endpoint.ConditionResult{}
 					var epResultID int64
 					if err = condRows.Scan(&epResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
-						logr.Errorf("[sql.getSuiteResults] Failed to scan condition result: %s", err.Error())
+						slog.Error("Failed to scan condition result", "suite_result_id", resultID, "error", err.Error())
 						continue
 					}
 					if epResult, exists := epResultMap[epResultID]; exists {
@@ -1585,12 +1585,12 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 				}
 				condRows.Close()
 				if condCount > 0 {
-					logr.Debugf("[sql.getSuiteResults] Found %d condition results for suite_result_id=%d", condCount, resultID)
+					slog.Debug("Found condition results for suite result", "suite_result_id", resultID, "count", condCount)
 				}
 			}
 		}
 		if epCount > 0 {
-			logr.Debugf("[sql.getSuiteResults] Found %d endpoint results for suite_result_id=%d", epCount, resultID)
+			slog.Debug("Found endpoint results for suite result", "suite_result_id", resultID, "count", epCount)
 		}
 	}
 	// Extract just the results for return

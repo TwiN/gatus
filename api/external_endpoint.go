@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
-	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -35,11 +35,11 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		key := c.Params("key")
 		externalEndpoint := cfg.GetExternalEndpointByKey(key)
 		if externalEndpoint == nil {
-			logr.Errorf("[api.CreateExternalEndpointResult] External endpoint with key=%s not found", key)
+			slog.Error("External endpoint not found", "key", key)
 			return c.Status(404).SendString("not found")
 		}
 		if externalEndpoint.Token != token {
-			logr.Errorf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
+			slog.Error("Invalid token for external endpoint", "key", key)
 			return c.Status(401).SendString("invalid token")
 		}
 		// Persist the result in the storage
@@ -51,7 +51,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		if len(c.Query("duration")) > 0 {
 			parsedDuration, err := time.ParseDuration(c.Query("duration"))
 			if err != nil {
-				logr.Errorf("[api.CreateExternalEndpointResult] Invalid duration from string=%s with error: %s", c.Query("duration"), err.Error())
+				slog.Error("Invalid duration", "duration", c.Query("duration"), "error", err.Error())
 				return c.Status(400).SendString("invalid duration: " + err.Error())
 			}
 			result.Duration = parsedDuration
@@ -64,14 +64,14 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			if errors.Is(err, common.ErrEndpointNotFound) {
 				return c.Status(404).SendString(err.Error())
 			}
-			logr.Errorf("[api.CreateExternalEndpointResult] Failed to insert result in storage: %s", err.Error())
+			slog.Error("Failed to insert endpoint result", "error", err.Error())
 			return c.Status(500).SendString(err.Error())
 		}
-		logr.Infof("[api.CreateExternalEndpointResult] Successfully inserted result for external endpoint with key=%s and success=%s", c.Params("key"), success)
+		slog.Info("Successfully inserted result for external endpoint", slog.Group("result", "key", c.Params("key"), "success", success))
 		inEndpointMaintenanceWindow := false
 		for _, maintenanceWindow := range externalEndpoint.MaintenanceWindows {
 			if maintenanceWindow.IsUnderMaintenance() {
-				logr.Debug("[api.CreateExternalEndpointResult] Under endpoint maintenance window")
+				slog.Debug("External endpoint under maintenance window", "key", externalEndpoint.Key)
 				inEndpointMaintenanceWindow = true
 			}
 		}
@@ -81,7 +81,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
 		} else {
-			logr.Debug("[api.CreateExternalEndpointResult] Not handling alerting because currently in the maintenance window")
+			slog.Debug("Not handling alerting because currently in the maintenance window", "key", externalEndpoint.Key)
 		}
 		if cfg.Metrics {
 			metrics.PublishMetricsForEndpoint(convertedEndpoint, result, extraLabels)
