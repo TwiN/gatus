@@ -3,13 +3,13 @@ module github.com/TwiN/gatus/v5
 go 1.25.5
 
 require (
-	code.gitea.io/sdk/gitea v0.22.1
+	code.gitea.io/sdk/gitea v0.23.2
 	github.com/TwiN/deepmerge v0.2.2
 	github.com/TwiN/g8/v2 v2.0.0
 	github.com/TwiN/gocache/v2 v2.4.0
 	github.com/TwiN/health v1.6.0
 	github.com/TwiN/logr v0.3.1
-	github.com/TwiN/whois v1.2.0
+	github.com/TwiN/whois v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
@@ -30,7 +30,7 @@ require (
 	golang.org/x/crypto v0.47.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/api v0.264.0
+	google.golang.org/api v0.265.0
 	google.golang.org/grpc v1.78.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v3 v3.0.1
