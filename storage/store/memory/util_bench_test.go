@@ -11,10 +11,10 @@ import (
 func BenchmarkShallowCopyEndpointStatus(b *testing.B) {
 	ep := &testEndpoint
 	status := endpoint.NewStatus(ep.Group, ep.Name)
-	for i := 0; i < storage.DefaultMaximumNumberOfResults; i++ {
+	for range storage.DefaultMaximumNumberOfResults {
 		AddResult(status, &testSuccessfulResult, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	}
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		ShallowCopyEndpointStatus(status, paging.NewEndpointStatusParams().WithResults(1, 20))
 	}
 	b.ReportAllocs()

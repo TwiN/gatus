@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -237,13 +238,7 @@ func (s *Store) InsertSuiteResult(su *suite.Suite, result *suite.Result) error {
 func (s *Store) DeleteAllEndpointStatusesNotInKeys(keys []string) int {
 	var keysToDelete []string
 	for _, existingKey := range s.endpointCache.GetKeysByPattern("*", 0) {
-		shouldDelete := true
-		for _, k := range keys {
-			if existingKey == k {
-				shouldDelete = false
-				break
-			}
-		}
+		shouldDelete := !slices.Contains(keys, existingKey)
 		if shouldDelete {
 			keysToDelete = append(keysToDelete, existingKey)
 		}

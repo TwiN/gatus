@@ -133,7 +133,7 @@ func (t *SSHTunnel) Dial(network, addr string) (net.Conn, error) {
 	const maxRetries = 3
 	const baseDelay = 500 * time.Millisecond
 	var lastErr error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		if attempt > 0 {
 			// Exponential backoff: 500ms, 1s, 2s
 			delay := baseDelay << (attempt - 1)
