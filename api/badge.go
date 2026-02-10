@@ -299,7 +299,7 @@ func getBadgeColorFromResponseTime(responseTime int, key string, cfg *config.Con
 		thresholds = endpoint.UIConfig.Badge.ResponseTime.Thresholds
 	}
 	// the threshold config requires 5 values, so we can be sure it's set here
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if responseTime <= thresholds[i] {
 			return badgeColors[i]
 		}
