@@ -761,32 +761,6 @@ func TestEndpoint_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	}
 }
 
-func BenchmarkEndpoint_buildHTTPRequestWithHostHeader(b *testing.B) {
-	condition := Condition("[STATUS] == 200")
-	endpoint := Endpoint{
-		Name:       "website-health",
-		URL:        "https://twin.sh/health",
-		Method:     "POST",
-		Conditions: []Condition{condition},
-		Headers: map[string]string{
-			"Host": "example.com",
-		},
-	}
-	err := endpoint.ValidateAndSetDefaults()
-	if err != nil {
-		b.Fatal("did not expect an error, got", err)
-	}
-	for b.Loop() {
-		request := endpoint.buildHTTPRequest()
-		if request.Method != "POST" {
-			b.Error("request.Method should've been POST, but was", request.Method)
-		}
-		if request.Host != "example.com" {
-			b.Error("request.Host should've been example.com, but was", request.Host)
-		}
-	}
-}
-
 func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 	condition := Condition("[STATUS] == 200")
 	endpoint := Endpoint{
