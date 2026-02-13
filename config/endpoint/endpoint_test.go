@@ -350,12 +350,6 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 	}
 }
 
-type testEndpoint_typeArgs struct {
-	URL string
-	DNS *dns.Config
-	SSH *ssh.Config
-}
-
 func TestEndpoint_Type(t *testing.T) {
 	type args struct {
 		URL string
