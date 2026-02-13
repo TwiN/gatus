@@ -2,11 +2,14 @@ package endpoint
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/jsonpath"
+	dateparser "github.com/markusmobius/go-dateparser"
 )
 
 // Placeholders
@@ -66,6 +69,11 @@ const (
 	// Usage: has([BODY].errors) == true
 	HasFunctionPrefix = "has("
 
+	// AgeFunctionPrefix is the prefix for the age function
+	//
+	// Usage: age([BODY].timestamp) > 15m
+	AgeFunctionPrefix = "age("
+
 	// PatternFunctionPrefix is the prefix for the pattern function
 	//
 	// Usage: [IP] == pat(192.168.*.*)
@@ -96,6 +104,7 @@ const (
 	noFunction functionType = iota
 	functionLen
 	functionHas
+	functionAge
 )
 
 // ResolvePlaceholder resolves all types of placeholders to their string values.
@@ -115,6 +124,7 @@ const (
 // Function wrappers:
 //   - len(placeholder): Returns the length of the resolved value
 //   - has(placeholder): Returns "true" if the placeholder exists and is non-empty, "false" otherwise
+//   - age(placeholder): Returns the age of the resolved value in milliseconds, or an error message if parsing fails
 //
 // Examples:
 //   - ResolvePlaceholder("[STATUS]", result, nil) → "200"
@@ -154,10 +164,6 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 	case DomainExpirationPlaceholder:
 		return formatWithFunction(strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10), fn), nil
 	case BodyPlaceholder:
-		body := strings.TrimSpace(string(result.Body))
-		if fn == functionHas {
-			return strconv.FormatBool(len(body) > 0), nil
-		}
 		if fn == functionLen {
 			// For len([BODY]), we need to check if it's JSON and get the actual length
 			// Use jsonpath to evaluate the root element
@@ -165,10 +171,8 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 			if err == nil {
 				return strconv.Itoa(resolvedLength), nil
 			}
-			// Fall back to string length if not valid JSON
-			return strconv.Itoa(len(body)), nil
 		}
-		return body, nil
+		return formatWithFunction(strings.TrimSpace(string(result.Body)), fn), nil
 	}
 
 	// Handle JSONPath expressions on BODY (including array indexing)
@@ -200,6 +204,10 @@ func extractFunctionWrapper(placeholder string) (functionType, string) {
 		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, HasFunctionPrefix), FunctionSuffix)
 		return functionHas, inner
 	}
+	if strings.HasPrefix(placeholder, AgeFunctionPrefix) && strings.HasSuffix(placeholder, FunctionSuffix) {
+		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, AgeFunctionPrefix), FunctionSuffix)
+		return functionAge, inner
+	}
 	return noFunction, placeholder
 }
 
@@ -222,9 +230,14 @@ func resolveJSONPathPlaceholder(placeholder string, fn functionType, originalPla
 	if err != nil {
 		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
 	}
-	if fn == functionLen {
+
+	switch fn {
+	case functionLen:
 		return strconv.Itoa(resolvedLength), nil
+	case functionAge:
+		return parseAge(resolvedValue), nil
 	}
+
 	return resolvedValue, nil
 }
 
@@ -245,7 +258,9 @@ func resolveContextPlaceholder(placeholder string, fn functionType, originalPlac
 	if err != nil {
 		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
 	}
-	if fn == functionLen {
+
+	switch fn {
+	case functionLen:
 		switch v := value.(type) {
 		case string:
 			return strconv.Itoa(len(v)), nil
@@ -256,7 +271,10 @@ func resolveContextPlaceholder(placeholder string, fn functionType, originalPlac
 		default:
 			return strconv.Itoa(len(fmt.Sprintf("%v", v))), nil
 		}
+	case functionAge:
+		return parseAge(fmt.Sprintf("%v", value)), nil
 	}
+
 	return fmt.Sprintf("%v", value), nil
 }
 
@@ -267,7 +285,34 @@ func formatWithFunction(value string, fn functionType) string {
 		return strconv.FormatBool(value != "")
 	case functionLen:
 		return strconv.Itoa(len(value))
+	case functionAge:
+		return parseAge(value)
 	default:
 		return value
+	}
+}
+
+var nginxDateFmt = regexp.MustCompile(`^\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2}.*`)
+
+// parseAge parses the timestamp (using a broad list of formats) and returns the age in milliseconds as a string, or an error message if parsing fails.
+func parseAge(timestamp string) string {
+	cfg := &dateparser.Configuration{
+		DefaultTimezone:      time.Local,
+		DefaultLanguages:     []string{"en"},
+		PreferredDayOfMonth:  dateparser.Current,
+		PreferredMonthOfYear: dateparser.CurrentMonth,
+		PreserveEndOfMonth:   true,
+	}
+
+	timestamp = strings.TrimSpace(timestamp)
+	if nginxDateFmt.MatchString(timestamp) {
+		timestamp = timestamp[:11] + " " + timestamp[12:] // Convert "12/Oct/2024:15:13:06 +0200" to "12/Oct/2024 15:13:06 +0200"
+	}
+
+	if parsed, err := dateparser.Parse(cfg, timestamp); err == nil {
+		// fmt.Printf("%v\n", parsed)
+		return strconv.FormatInt(time.Since(parsed.Time).Milliseconds(), 10)
+	} else {
+		return fmt.Sprintf("%v", err)
 	}
 }
