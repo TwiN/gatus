@@ -163,35 +163,30 @@ func (e *Endpoint) IsEnabled() bool {
 
 // Type returns the endpoint type
 func (e *Endpoint) Type() Type {
-	if e.DNSConfig != nil {
+	switch {
+	case e.DNSConfig != nil:
 		return TypeDNS
-	}
-	before, _, ok := strings.Cut(e.URL, ":")
-	if !ok {
-		return TypeUNKNOWN
-	}
-	switch before {
-	case "tcp":
+	case strings.HasPrefix(e.URL, "tcp://"):
 		return TypeTCP
-	case "sctp":
+	case strings.HasPrefix(e.URL, "sctp://"):
 		return TypeSCTP
-	case "udp":
+	case strings.HasPrefix(e.URL, "udp://"):
 		return TypeUDP
-	case "icmp":
+	case strings.HasPrefix(e.URL, "icmp://"):
 		return TypeICMP
-	case "starttls":
+	case strings.HasPrefix(e.URL, "starttls://"):
 		return TypeSTARTTLS
-	case "tls":
+	case strings.HasPrefix(e.URL, "tls://"):
 		return TypeTLS
-	case "http", "https":
+	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
 		return TypeHTTP
-	case "grpc", "grpcs":
+	case strings.HasPrefix(e.URL, "grpc://") || strings.HasPrefix(e.URL, "grpcs://"):
 		return TypeGRPC
-	case "ws", "wss":
+	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
 		return TypeWS
-	case "ssh":
+	case strings.HasPrefix(e.URL, "ssh://"):
 		return TypeSSH
-	case "domain":
+	case strings.HasPrefix(e.URL, "domain://"):
 		return TypeDomain
 	default:
 		return TypeUNKNOWN

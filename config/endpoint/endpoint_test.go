@@ -307,118 +307,122 @@ type testEndpoint_typeArgs struct {
 	SSH *ssh.Config
 }
 
-var testEndpoint_typeData = []struct {
-	args testEndpoint_typeArgs
-	want Type
-}{
-	{
-		args: testEndpoint_typeArgs{
-			URL: "8.8.8.8",
-			DNS: &dns.Config{
-				QueryType: "A",
-				QueryName: "example.com",
-			},
-		},
-		want: TypeDNS,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "tcp://127.0.0.1:6379",
-		},
-		want: TypeTCP,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "icmp://example.com",
-		},
-		want: TypeICMP,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "sctp://example.com",
-		},
-		want: TypeSCTP,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "udp://example.com",
-		},
-		want: TypeUDP,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "starttls://smtp.gmail.com:587",
-		},
-		want: TypeSTARTTLS,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "tls://example.com:443",
-		},
-		want: TypeTLS,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "https://twin.sh/health",
-		},
-		want: TypeHTTP,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "grpc://localhost:50051",
-		},
-		want: TypeGRPC,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "grpcs://example.com:443",
-		},
-		want: TypeGRPC,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "wss://example.com/",
-		},
-		want: TypeWS,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "ws://example.com/",
-		},
-		want: TypeWS,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "ssh://example.com:22",
-			SSH: &ssh.Config{
-				Username: "root",
-				Password: "password",
-			},
-		},
-		want: TypeSSH,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "domain://example.org",
-		},
-		want: TypeDomain,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "invalid://example.org",
-		},
-		want: TypeUNKNOWN,
-	},
-	{
-		args: testEndpoint_typeArgs{
-			URL: "no-scheme",
-		},
-		want: TypeUNKNOWN,
-	},
-}
-
 func TestEndpoint_Type(t *testing.T) {
-	for _, tt := range testEndpoint_typeData {
+	type args struct {
+		URL string
+		DNS *dns.Config
+		SSH *ssh.Config
+	}
+	tests := []struct {
+		args args
+		want Type
+	}{
+		{
+			args: args{
+				URL: "8.8.8.8",
+				DNS: &dns.Config{
+					QueryType: "A",
+					QueryName: "example.com",
+				},
+			},
+			want: TypeDNS,
+		},
+		{
+			args: args{
+				URL: "tcp://127.0.0.1:6379",
+			},
+			want: TypeTCP,
+		},
+		{
+			args: args{
+				URL: "icmp://example.com",
+			},
+			want: TypeICMP,
+		},
+		{
+			args: args{
+				URL: "sctp://example.com",
+			},
+			want: TypeSCTP,
+		},
+		{
+			args: args{
+				URL: "udp://example.com",
+			},
+			want: TypeUDP,
+		},
+		{
+			args: args{
+				URL: "starttls://smtp.gmail.com:587",
+			},
+			want: TypeSTARTTLS,
+		},
+		{
+			args: args{
+				URL: "tls://example.com:443",
+			},
+			want: TypeTLS,
+		},
+		{
+			args: args{
+				URL: "https://twin.sh/health",
+			},
+			want: TypeHTTP,
+		},
+		{
+			args: args{
+				URL: "grpc://localhost:50051",
+			},
+			want: TypeGRPC,
+		},
+		{
+			args: args{
+				URL: "grpcs://example.com:443",
+			},
+			want: TypeGRPC,
+		},
+		{
+			args: args{
+				URL: "wss://example.com/",
+			},
+			want: TypeWS,
+		},
+		{
+			args: args{
+				URL: "ws://example.com/",
+			},
+			want: TypeWS,
+		},
+		{
+			args: args{
+				URL: "ssh://example.com:22",
+				SSH: &ssh.Config{
+					Username: "root",
+					Password: "password",
+				},
+			},
+			want: TypeSSH,
+		},
+		{
+			args: args{
+				URL: "domain://example.org",
+			},
+			want: TypeDomain,
+		},
+		{
+			args: args{
+				URL: "invalid://example.org",
+			},
+			want: TypeUNKNOWN,
+		},
+		{
+			args: args{
+				URL: "no-scheme",
+			},
+			want: TypeUNKNOWN,
+		},
+	}
+	for _, tt := range tests {
 		t.Run(string(tt.want), func(t *testing.T) {
 			endpoint := Endpoint{
 				URL:       tt.args.URL,
@@ -711,6 +715,32 @@ func TestEndpoint_buildHTTPRequestWithCustomUserAgent(t *testing.T) {
 	}
 	if userAgent := request.Header.Get("User-Agent"); userAgent != "Test/2.0" {
 		t.Errorf("request.Header.Get(User-Agent) should've been %s, but was %s", "Test/2.0", userAgent)
+	}
+}
+
+func BenchmarkEndpoint_buildHTTPRequestWithHostHeader(b *testing.B) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
+		Method:     "POST",
+		Conditions: []Condition{condition},
+		Headers: map[string]string{
+			"Host": "example.com",
+		},
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		b.Fatal("did not expect an error, got", err)
+	}
+	for b.Loop() {
+		request := endpoint.buildHTTPRequest()
+		if request.Method != "POST" {
+			b.Error("request.Method should've been POST, but was", request.Method)
+		}
+		if request.Host != "example.com" {
+			b.Error("request.Host should've been example.com, but was", request.Host)
+		}
 	}
 }
 
