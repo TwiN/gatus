@@ -225,12 +225,12 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 		e.Headers = make(map[string]string)
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
-	if _, userAgentHeaderExists := e.Headers[UserAgentHeader]; !userAgentHeaderExists {
+	if !hasHeader(e.Headers, UserAgentHeader) {
 		e.Headers[UserAgentHeader] = GatusUserAgent
 	}
 	// Automatically add "Content-Type: application/json" header if there's no Content-Type set
 	// and endpoint.GraphQL is set to true
-	if _, contentTypeHeaderExists := e.Headers[ContentTypeHeader]; !contentTypeHeaderExists && e.GraphQL {
+	if !hasHeader(e.Headers, ContentTypeHeader) && e.GraphQL {
 		e.Headers[ContentTypeHeader] = "application/json"
 	}
 	if len(e.Conditions) == 0 {
@@ -336,7 +336,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Evaluate the conditions
 	for _, condition := range processedEndpoint.Conditions {
-		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
+		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, processedEndpoint.UIConfig.ResolveSuccessfulConditions, context)
 		if !success {
 			result.Success = false
 		}
@@ -490,9 +490,11 @@ func (e *Endpoint) call(result *Result) {
 		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
 	case TypeWS:
 		wsHeaders := map[string]string{}
-		maps.Copy(wsHeaders, e.Headers)
-		if _, exists := wsHeaders["User-Agent"]; !exists {
-			wsHeaders["User-Agent"] = GatusUserAgent
+		if e.Headers != nil {
+			maps.Copy(wsHeaders, e.Headers)
+		}
+		if !hasHeader(wsHeaders, UserAgentHeader) {
+			wsHeaders[UserAgentHeader] = GatusUserAgent
 		}
 		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), wsHeaders, e.ClientConfig)
 		if err != nil {
@@ -586,7 +588,7 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	request, _ := http.NewRequest(e.Method, e.URL, bodyBuffer)
 	for k, v := range e.Headers {
 		request.Header.Set(k, v)
-		if k == HostHeader {
+		if strings.EqualFold(k, HostHeader) {
 			request.Host = v
 		}
 	}
@@ -625,6 +627,16 @@ func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
 func (e *Endpoint) needsToRetrieveIP() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasIPPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// hasHeader checks if a header exists in the map using a case-insensitive lookup
+func hasHeader(headers map[string]string, name string) bool {
+	for k := range headers {
+		if strings.EqualFold(k, name) {
 			return true
 		}
 	}

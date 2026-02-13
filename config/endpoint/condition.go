@@ -26,7 +26,7 @@ type Condition string
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
 	r := &Result{}
-	c.evaluate(r, false, nil)
+	c.evaluate(r, false, false, nil)
 	if len(r.Errors) != 0 {
 		return errors.New(r.Errors[0])
 	}
@@ -34,44 +34,50 @@ func (c Condition) Validate() error {
 }
 
 // evaluate the Condition with the Result and an optional context
-func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, context *gontext.Gontext) bool {
+func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
 	success := false
 	conditionToDisplay := condition
+	shouldResolveCondition := func(success bool) bool {
+		if success {
+			return resolveSuccessfulConditions
+		}
+		return !dontResolveFailedConditions
+	}
 	if strings.Contains(condition, " == ") {
 		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " == "), result, context)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
 		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " != "), result, context)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
 		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
 		success = resolvedParameters[0] <= resolvedParameters[1]
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
 		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
 		success = resolvedParameters[0] >= resolvedParameters[1]
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
 		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
 		success = resolvedParameters[0] > resolvedParameters[1]
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
 		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
 		success = resolvedParameters[0] < resolvedParameters[1]
-		if !success && !dontResolveFailedConditions {
+		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
 		}
 	} else {
@@ -210,7 +216,7 @@ func sanitizeAndResolveNumericalWithContext(list []string, result *Result, conte
 
 func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
 	resolvedStrings := make([]string, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		// Check if the parameter is a certificate or domain expiration placeholder
 		if parameters[i] == CertificateExpirationPlaceholder || parameters[i] == DomainExpirationPlaceholder {
 			// Format as duration string (convert milliseconds back to duration)

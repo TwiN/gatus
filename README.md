@@ -136,6 +136,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
+  - [Use environment variables in config files](#use-environment-variables-in-config-files)
   - [Configuring a startup delay](#configuring-a-startup-delay)
   - [Keeping your configuration small](#keeping-your-configuration-small)
   - [Proxy client configuration](#proxy-client-configuration)
@@ -224,6 +225,9 @@ This example would look similar to this:
 
 ![Simple example](.github/assets/example.jpg)
 
+If you want to test it locally, see [Docker](#docker).
+
+## Configuration
 By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
@@ -237,9 +241,9 @@ subdirectories are merged like so:
 
 > 💡 You can also use environment variables in the configuration file (e.g. `$DOMAIN`, `${DOMAIN}`)
 >
-> See [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for an example.
+> ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 >
-> When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
+> See [Use environment variables in config files](#use-environment-variables-in-config-files) or [examples/docker-compose-postgres-storage/config/config.yaml](.examples/docker-compose-postgres-storage/config/config.yaml) for examples.
 
 If you want to test it locally, see [Docker](#docker).
 
@@ -299,6 +303,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.hide-url`                       | Whether to hide the URL from the results. Useful if the URL contains a token.                                                               | `false`                    |
 | `endpoints[].ui.hide-errors`                    | Whether to hide errors from the results.                                                                                                    | `false`                    |
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
+| `endpoints[].ui.resolve-successful-conditions`  | Whether to resolve successful conditions for the UI (helpful to expose body assertions even when checks pass).                              | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 | `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
@@ -534,6 +539,9 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.header`               | Header at the top of the dashboard.                                                                                                      | `Gatus`                                             |
 | `ui.logo`                 | URL to the logo to display.                                                                                                              | `""`                                                |
 | `ui.link`                 | Link to open when the logo is clicked.                                                                                                   | `""`                                                |
+| `ui.favicon.default`      | Favourite default icon to display in web browser tab or address bar.                                                                     | `/favicon.ico`                                      |
+| `ui.favicon.size16x16`    | Favourite icon to display in web browser for 16x16 size.                                                                                 | `/favicon-16x16.png`                                |
+| `ui.favicon.size32x32`    | Favourite icon to display in web browser for 32x32 size.                                                                                 | `/favicon-32x32.png`                                |
 | `ui.buttons`              | List of buttons to display below the header.                                                                                             | `[]`                                                |
 | `ui.buttons[].name`       | Text to display on the button.                                                                                                           | Required `""`                                       |
 | `ui.buttons[].link`       | Link to open when the button is clicked.                                                                                                 | Required `""`                                       |
@@ -2094,8 +2102,6 @@ Here's an example of what the notifications look like:
 
 #### Configuring Splunk alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
 | Parameter                           | Description                                                                                | Default         |
 |:------------------------------------|:-------------------------------------------------------------------------------------------|:----------------|
 | `alerting.splunk`                   | Configuration for alerts of type `splunk`                                                  | `{}`            |
@@ -3255,7 +3261,7 @@ endpoints:
 
 
 ### Concurrency
-By default, Gatus allows up to 5 endpoints/suites to be monitored concurrently. This provides a balance between performance and resource usage while maintaining accurate response time measurements.
+By default, Gatus allows up to 3 endpoints/suites to be monitored concurrently. This provides a balance between performance and resource usage while maintaining accurate response time measurements.
 
 You can configure the concurrency level using the `concurrency` parameter:
 
@@ -3378,12 +3384,19 @@ web:
 ```
 
 If you're using a PaaS like Heroku that doesn't let you set a custom port and exposes it through an environment
-variable instead, you can use that environment variable directly in the configuration file:
+variable instead see [Use environment variables in config files](#use-environment-variables-in-config-files).
+
+### Use environment variables in config files
+
+You can use environment variables directly in the configuration file which will be substituted from the environment:
 ```yaml
 web:
   port: ${PORT}
-```
 
+ui:
+  title: $TITLE
+```
+⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 ### Configuring a startup delay
 If, for any reason, you need Gatus to wait for a given amount of time before monitoring the endpoints on application start, you can use the `GATUS_DELAY_START_SECONDS` environment variable to make Gatus sleep on startup.
