@@ -2742,6 +2742,7 @@ security:
 | `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
+| `security.oidc.custom-claim-to-check`   | Name of the field to use to match against `allowed-subjects`   | `""`            |
 | `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
 
 ```yaml
@@ -2754,6 +2755,8 @@ security:
     scopes: ["openid"]
     # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
     #allowed-subjects: ["johndoe@example.com"]
+    # You can specify a different claim field to match against allowed-subjects. If not specified "sub" is used.
+    #custom-claim-to-check: "preferred_username"
     # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
     #session-ttl: 8h
 ```
