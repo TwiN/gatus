@@ -190,6 +190,74 @@ func TestAlertProvider_buildAlert(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_buildAlert_InstanceFallback(t *testing.T) {
+	provider := AlertProvider{
+		DefaultConfig: Config{
+			URLs:            []string{"http://alertmanager:9093"},
+			DefaultSeverity: "critical",
+		},
+	}
+	testAlert := &alert.Alert{FailureThreshold: 3, SuccessThreshold: 2}
+	result := &endpoint.Result{}
+
+	// When ep.URL is set, instance should be ep.URL
+	epWithURL := &endpoint.Endpoint{Name: "API", Group: "prod", URL: "https://api.example.com/health"}
+	a := provider.buildAlert(&provider.DefaultConfig, epWithURL, testAlert, result, false)
+	if a.Labels["instance"] != "https://api.example.com/health" {
+		t.Errorf("expected instance to be URL, got %s", a.Labels["instance"])
+	}
+
+	// When ep.URL is empty (e.g. external endpoint via ToEndpoint()), instance falls back to DisplayName
+	epNoURL := &endpoint.Endpoint{Name: "Heartbeat", Group: "ops"}
+	a = provider.buildAlert(&provider.DefaultConfig, epNoURL, testAlert, result, false)
+	if a.Labels["instance"] != "ops/Heartbeat" {
+		t.Errorf("expected instance to fall back to DisplayName 'ops/Heartbeat', got %s", a.Labels["instance"])
+	}
+
+	// No group: fallback should be just the name
+	epNoURLNoGroup := &endpoint.Endpoint{Name: "Heartbeat"}
+	a = provider.buildAlert(&provider.DefaultConfig, epNoURLNoGroup, testAlert, result, false)
+	if a.Labels["instance"] != "Heartbeat" {
+		t.Errorf("expected instance to fall back to name 'Heartbeat', got %s", a.Labels["instance"])
+	}
+}
+
+func TestSendToURL_URLNormalization(t *testing.T) {
+	tests := []struct {
+		name        string
+		inputURL    string
+		expectedPath string
+	}{
+		{"base URL", "http://am:9093", "/api/v2/alerts"},
+		{"base URL with trailing slash", "http://am:9093/", "/api/v2/alerts"},
+		{"URL with /api/v2", "http://am:9093/api/v2", "/api/v2/alerts"},
+		{"URL with /api/v2/", "http://am:9093/api/v2/", "/api/v2/alerts"},
+		{"URL with /api/v2/alerts", "http://am:9093/api/v2/alerts", "/api/v2/alerts"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var gotPath string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			// Replace the host in inputURL with the test server's host
+			inputURL := "http://" + server.Listener.Addr().String() + test.inputURL[len("http://am:9093"):]
+
+			provider := &AlertProvider{}
+			cfg := &Config{}
+			_ = provider.sendToURL(cfg, inputURL, []byte(`[]`))
+
+			if gotPath != test.expectedPath {
+				t.Errorf("input %q: expected path %q, got %q", test.inputURL, test.expectedPath, gotPath)
+			}
+		})
+	}
+}
+
 func TestAlertProvider_Send(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
