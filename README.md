@@ -885,7 +885,7 @@ endpoints:
 | Parameter                                    | Description                                                                                | Default       |
 |:---------------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.alertmanager`                      | Configuration for alerts of type `alertmanager`                                            | `{}`          |
-| `alerting.alertmanager.urls`                 | List of Alertmanager API endpoint URLs                                                     | Required `[]` |
+| `alerting.alertmanager.urls`                 | List of base Alertmanager URLs (e.g. `http://host:9093`). `/api/v2/alerts` is appended automatically. | Required `[]` |
 | `alerting.alertmanager.default-severity`     | Default severity level for alerts                                                          | `critical`    |
 | `alerting.alertmanager.extra-labels`         | Additional labels to add to all alerts                                                     | `{}`          |
 | `alerting.alertmanager.extra-annotations`    | Additional annotations to add to all alerts                                                | `{}`          |

@@ -138,7 +138,11 @@ func (provider *AlertProvider) buildAlert(cfg *Config, ep *endpoint.Endpoint, al
 
 	// Set core Prometheus labels following conventions
 	alertPayload.Labels["alertname"] = "GatusEndpointDown"
-	alertPayload.Labels["instance"] = ep.URL
+	instance := ep.URL
+	if instance == "" {
+		instance = ep.DisplayName()
+	}
+	alertPayload.Labels["instance"] = instance
 	alertPayload.Labels["job"] = "gatus"
 	alertPayload.Labels["severity"] = cfg.DefaultSeverity
 
@@ -219,9 +223,9 @@ func (provider *AlertProvider) sendToAlertmanagers(cfg *Config, alerts []Alertma
 // sendToURL sends the alert payload to a single Alertmanager URL
 func (provider *AlertProvider) sendToURL(cfg *Config, baseURL string, jsonPayload []byte) error {
 	url := strings.TrimSuffix(baseURL, "/")
-	if !strings.HasSuffix(url, "/api/v2/alerts") {
-		url += "/api/v2/alerts"
-	}
+	url = strings.TrimSuffix(url, "/api/v2/alerts")
+	url = strings.TrimSuffix(url, "/api/v2")
+	url += "/api/v2/alerts"
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
