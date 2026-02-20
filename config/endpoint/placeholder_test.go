@@ -177,6 +177,14 @@ func TestParseAge(t *testing.T) {
 		{"12/Oct/2024 15:13:06 +0400", makeAge(time.Since(absoluteDateOffset))},
 		{"12/Oct/2024:15:13:06 +0000", makeAge(time.Since(absoluteDate))},
 		{"2024/10/12 15:13:06", makeAge(time.Since(absoluteDateLocal))},
+		// unix timestamp variants
+		{fmt.Sprintf("%d", absoluteDate.Unix()), makeAge(time.Since(absoluteDate))},
+		{fmt.Sprintf("%d", absoluteDate.UnixMilli()), makeAge(time.Since(absoluteDate))},
+		{fmt.Sprintf("%f", float64(absoluteDate.UnixMilli())/1000.0), makeAge(time.Since(absoluteDate))},
+		// unix timestamp variants with local TZ
+		{fmt.Sprintf("%d", absoluteDateLocal.Unix()), makeAge(time.Since(absoluteDateLocal))},
+		{fmt.Sprintf("%d", absoluteDateLocal.UnixMilli()), makeAge(time.Since(absoluteDateLocal))},
+		{fmt.Sprintf("%f", float64(absoluteDateLocal.UnixMilli())/1000.0), makeAge(time.Since(absoluteDateLocal))},
 		// time only
 		{"04:13:06Z", makeAge(time.Since(timeOnly))},
 		{"04:13:06", makeAge(time.Since(timeOnlyLocal))},
