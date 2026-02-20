@@ -83,8 +83,8 @@ func (alert *Alert) ValidateAndSetDefaults() error {
 	if alert.MinimumReminderInterval != 0 && alert.MinimumReminderInterval < time.Minute {
 		return ErrAlertWithInvalidMinimumReminderInterval
 	}
-	if alert.MinimumReminderInterval > 0 && alert.MinimumReminderInterval < 5*time.Minute && alert.Type != TypeAlertmanager {
-		logr.Warnf("[alert.ValidateAndSetDefaults] minimum-reminder-interval is set to %s, which is below the recommended 5m and may cause alert spam for most providers", alert.MinimumReminderInterval)
+	if alert.MinimumReminderInterval != 0 && alert.MinimumReminderInterval < 5*time.Minute {
+		logr.Warnf("[alert.ValidateAndSetDefaults] minimum-reminder-interval is set to %s, which is below the recommended 5m and may cause alert spam", alert.MinimumReminderInterval)
 	}
 	if strings.ContainsAny(alert.GetDescription(), "\"\\") {
 		return ErrAlertWithInvalidDescription
