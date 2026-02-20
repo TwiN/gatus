@@ -202,6 +202,8 @@ func TestParseAge(t *testing.T) {
 		{"in 3 days", makeAge(-1 * 3 * 24 * time.Hour)},
 		// error
 		{"this is not a date", `failed to parse "this is not a date": unknown format`},
+		// regression
+		{"1771548534964" /* event-ts */, makeAge(time.Since(time.UnixMilli(1771548627000)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
 	}
 
 	for _, test := range tests {
