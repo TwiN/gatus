@@ -204,6 +204,8 @@ func TestParseAge(t *testing.T) {
 		{"this is not a date", `failed to parse "this is not a date": unknown format`},
 		// regression
 		{"1771548534964" /* event-ts */, makeAge(time.Since(time.UnixMilli(1771548627000)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
+		// when the timestamp is a JSON number, it becomes scientific notation after being stringified!
+		{"1.771548534964e+12" /* event-ts */, makeAge(time.Since(time.UnixMilli(1771548627000)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
 	}
 
 	for _, test := range tests {
