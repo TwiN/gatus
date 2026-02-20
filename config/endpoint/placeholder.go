@@ -292,34 +292,10 @@ func formatWithFunction(value string, fn functionType) string {
 	}
 }
 
-var sciRe = regexp.MustCompile(`^\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)[eE][+-]?\d+\s*$`)
-
-// deSci converts scientific-notation numbers like "1.771584249972e+12" into a
-// non-scientific decimal string. Non-matching inputs are returned unchanged.
-func deSci(s string) string {
-  if !sciRe.MatchString(s) {
-    return strings.TrimSpace(s)
-  }
-
-  s = strings.TrimSpace(s)
-  f, err := strconv.ParseFloat(s, 64)
-  if err != nil {
-    return s
-  }
-
-  out := strconv.FormatFloat(f, 'f', -1, 64)
-  if strings.HasSuffix(out, ".0") {
-    out = strings.TrimSuffix(out, ".0")
-  }
-  return out
-}
-
 var nginxDateFmt = regexp.MustCompile(`^\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2}.*`)
 
 // parseAge parses the timestamp (using a broad list of formats) and returns the age in milliseconds as a string, or an error message if parsing fails.
 func parseAge(timestamp string) string {
-	timestamp = deSci(timestamp); // In case we get a string like 1.771584249972e+12
-
 	cfg := &dateparser.Configuration{
 		DefaultTimezone:      time.Local,
 		DefaultLanguages:     []string{"en"},
@@ -329,7 +305,14 @@ func parseAge(timestamp string) string {
 	}
 
 	timestamp = strings.TrimSpace(timestamp)
-	if nginxDateFmt.MatchString(timestamp) {
+
+	// Adjustments for specific formats that would fail parsing
+	if ts, err := strconv.ParseFloat(timestamp, 64); err == nil {
+		if ts < 1e12 {
+			ts = ts * 1000.0 // If it's in seconds, convert to milliseconds
+		}
+		timestamp = strconv.FormatInt(int64(ts), 10) // Convert "1.771584249972e+12" to "1771584249972"
+	} else if nginxDateFmt.MatchString(timestamp) {
 		timestamp = timestamp[:11] + " " + timestamp[12:] // Convert "12/Oct/2024:15:13:06 +0200" to "12/Oct/2024 15:13:06 +0200"
 	}
 
