@@ -9,7 +9,6 @@ import (
 
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/jsonpath"
-	dateparser "github.com/markusmobius/go-dateparser"
 )
 
 // Placeholders
@@ -292,34 +291,50 @@ func formatWithFunction(value string, fn functionType) string {
 	}
 }
 
-var nginxDateFmt = regexp.MustCompile(`^\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2}.*`)
+var customFormat = regexp.MustCompile(`^\[\[(.+?)\]\][, ]+(.*)$`) // age([[layout]], timestamp-expression)
 
-// parseAge parses the timestamp (using a broad list of formats) and returns the age in milliseconds as a string, or an error message if parsing fails.
+// parseAge parses the timestamp from a selection of common formats and returns the age in milliseconds as a string, or an error message if parsing fails.
+// Supported formats:
+//   - Custom layout: [[layout]], timestamp (e.g., age([[2006-01-02 15:04:05]], "2024-01-01 12:00:00"))
+//   - Unix timestamp in seconds or milliseconds (e.g., age("1700000000") or age("1700000000000"))
+//   - Duration (e.g., age("15m"), age("2h"))
+//   - Parsed date using registered formats (e.g., age("2024-01-01T12:00:00Z"))
 func parseAge(timestamp string) string {
-	cfg := &dateparser.Configuration{
-		DefaultTimezone:      time.Local,
-		DefaultLanguages:     []string{"en"},
-		PreferredDayOfMonth:  dateparser.Current,
-		PreferredMonthOfYear: dateparser.CurrentMonth,
-		PreserveEndOfMonth:   true,
-	}
+	var parsed time.Time
+	var failed string
 
 	timestamp = strings.TrimSpace(timestamp)
 
-	// Adjustments for specific formats that would fail parsing
-	if ts, err := strconv.ParseFloat(timestamp, 64); err == nil {
-		if ts < 1e12 {
-			ts = ts * 1000.0 // If it's in seconds, convert to milliseconds
+	if m := customFormat.FindStringSubmatch(timestamp[:min(len(timestamp), 256)]); m != nil {
+		// custom format: [[layout]], timestamp
+		if d, err := time.ParseInLocation(m[1], strings.TrimSpace(m[2]), time.Local); err == nil {
+			parsed = d
+		} else {
+			failed = fmt.Sprintf("failed to parse custom layout '%s': %v", m[1], err)
 		}
-		timestamp = strconv.FormatInt(int64(ts), 10) // Convert "1.771584249972e+12" to "1771584249972"
-	} else if nginxDateFmt.MatchString(timestamp) {
-		timestamp = timestamp[:11] + " " + timestamp[12:] // Convert "12/Oct/2024:15:13:06 +0200" to "12/Oct/2024 15:13:06 +0200"
+
+	} else if ts, err := strconv.ParseFloat(timestamp, 64); err == nil {
+		// unix timestamp in seconds or milliseconds, supports int, float, and scientific notation (e.g., 1.5e9 for 1500000000)
+		if ts < 1e10 {
+			ts = ts * 1000.0 // If it's in seconds, convert to milliseconds prior to converting to int64
+		}
+		parsed = time.UnixMilli(int64(ts))
+
+	} else if dur, err := time.ParseDuration(timestamp); err == nil {
+		// duration (e.g., "15m", "2h")
+		parsed = time.Now().Add(-dur)
+
+	} else {
+		// parsed date
+		if d, err := ParseDate(timestamp); err == nil {
+			parsed = d
+		} else {
+			failed = fmt.Sprintf("%v", err)
+		}
 	}
 
-	if parsed, err := dateparser.Parse(cfg, timestamp); err == nil {
-		// fmt.Printf("%v\n", parsed)
-		return strconv.FormatInt(time.Since(parsed.Time).Milliseconds(), 10)
-	} else {
-		return fmt.Sprintf("%v", err)
+	if len(failed) > 0 {
+		return failed
 	}
+	return strconv.FormatInt(time.Since(parsed).Milliseconds(), 10)
 }

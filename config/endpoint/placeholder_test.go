@@ -19,7 +19,7 @@ func TestResolvePlaceholder(t *testing.T) {
 		Connected:             true,
 		CertificateExpiration: 30 * 24 * time.Hour,
 		DomainExpiration:      365 * 24 * time.Hour,
-		Body:                  []byte(`{"status":"success", "ts":"2 minutes","items":[1,2,3],"user":{"name":"john","id":123}}`),
+		Body:                  []byte(`{"status":"success", "ts":"2m","items":[1,2,3],"user":{"name":"john","id":123}}`),
 	}
 
 	ctx := gontext.New(map[string]interface{}{
@@ -29,7 +29,7 @@ func TestResolvePlaceholder(t *testing.T) {
 		"nested": map[string]interface{}{
 			"value": "test",
 		},
-		"timestamp": "4 minutes",
+		"timestamp": "4m",
 	})
 
 	tests := []struct {
@@ -45,7 +45,7 @@ func TestResolvePlaceholder(t *testing.T) {
 		{"connected", "[CONNECTED]", "true"},
 		{"certificate-expiration", "[CERTIFICATE_EXPIRATION]", "2592000000"},
 		{"domain-expiration", "[DOMAIN_EXPIRATION]", "31536000000"},
-		{"body", "[BODY]", `{"status":"success", "ts":"2 minutes","items":[1,2,3],"user":{"name":"john","id":123}}`},
+		{"body", "[BODY]", `{"status":"success", "ts":"2m","items":[1,2,3],"user":{"name":"john","id":123}}`},
 
 		// Case insensitive placeholders
 		{"status-lowercase", "[status]", "200"},
@@ -157,26 +157,52 @@ func TestParseAge(t *testing.T) {
 	absoluteDateLocal := time.Date(2024, 10, 12, 15, 13, 6, 0, time.Local)
 	absoluteDateOffset := time.Date(2024, 10, 12, 15, 13, 6, 0, time.FixedZone("Offset", 4*60*60))
 
-	timeOnly := time.Date(now.Year(), now.Month(), now.Day(), 4, 13, 6, 0, time.UTC)
 	timeOnlyLocal := time.Date(now.Year(), now.Month(), now.Day(), 4, 13, 6, 0, time.Local)
 
 	tests := []struct {
 		timestamp string
 		expected  string
 	}{
-		// absolute
+		// RFC3339/Nano / ISO 8601 formats
 		{"2024-10-12T15:13:06Z", makeAge(time.Since(absoluteDate))},
 		{" 2024-10-12T15:13:06Z", makeAge(time.Since(absoluteDate))},
 		{"2024-10-12T15:13:06Z ", makeAge(time.Since(absoluteDate))},
 		{" 2024-10-12T15:13:06Z ", makeAge(time.Since(absoluteDate))},
 		{"2024-10-12T15:13:06", makeAge(time.Since(absoluteDateLocal))},
+		{"2024-10-12T15:13:06+04:00", makeAge(time.Since(absoluteDateOffset))},
+		{"2024-10-12T15:13:06+0400", makeAge(time.Since(absoluteDateOffset))},
+		{"2024-10-12 15:13:06Z", makeAge(time.Since(absoluteDate))},
 		{"2024-10-12 15:13:06", makeAge(time.Since(absoluteDateLocal))},
 		{"2024-10-12 15:13:06+04:00", makeAge(time.Since(absoluteDateOffset))},
-		{"Sat Oct 12 15:13:06 UTC 2024", makeAge(time.Since(absoluteDate))},
-		{"Sat, 12 Oct 2024 15:13:06.371213 UTC", makeAge(time.Since(absoluteDate))},
+		{"2024-10-12 15:13:06+0400", makeAge(time.Since(absoluteDateOffset))},
+
+		// other formats
+		{"Sat Oct 12 15:13:06 2024", makeAge(time.Since(absoluteDateLocal))},                     // ANSIC
+		{"Sat Oct 12 15:13:06 UTC 2024", makeAge(time.Since(absoluteDate))},                      // UnixDate
+		{"Sat Oct 12 15:13:06 +0400 2024", makeAge(time.Since(absoluteDateOffset))},              // RubyDate
+		{"12 Oct 24 15:13 UTC", makeAge(time.Since(absoluteDate.Add(-6 * time.Second)))},         // RFC822
+		{"12 Oct 24 15:13 +0400", makeAge(time.Since(absoluteDateOffset.Add(-6 * time.Second)))}, // RFC822Z
+		{"Saturday, 12-Oct-24 15:13:06 UTC", makeAge(time.Since(absoluteDate))},                  // RFC850
+		{"Sat, 12 Oct 2024 15:13:06.371213 UTC", makeAge(time.Since(absoluteDate))},              // RFC1123
+		{"Sat, 12 Oct 2024 15:13:06.371213 +0400", makeAge(time.Since(absoluteDateOffset))},      // RFC1123Z
+		{"10/12 03:13:06PM '24 +0400", makeAge(time.Since(absoluteDateOffset))},                  // Go reference time
+
+		// common access log format
 		{"12/Oct/2024 15:13:06 +0400", makeAge(time.Since(absoluteDateOffset))},
 		{"12/Oct/2024:15:13:06 +0000", makeAge(time.Since(absoluteDate))},
+		{"12/Oct/2024 15:13:06", makeAge(time.Since(absoluteDateLocal))},
+		{"12/Oct/2024:15:13:06", makeAge(time.Since(absoluteDateLocal))},
 		{"2024/10/12 15:13:06", makeAge(time.Since(absoluteDateLocal))},
+
+		// finds timestamp in text (limited to first 128 characters)
+		{" -- 2024-10-12T15:13:06Z -- ", makeAge(time.Since(absoluteDate))},
+		{fmt.Sprintf("%s 2024-10-12T15:13:06Z", strings.Repeat("-", 128)), fmt.Sprintf(`failed to parse "%s": unknown format`, strings.Repeat("-", 128))},
+
+		// custom format - currently not functional as age() call doesn't allow a parameter list.
+		{"[[2006|01|02 15.04.05]], 2024|10|12 15.13.06", makeAge(time.Since(absoluteDateLocal))},
+		{"[[2006|01|02 15.04.05Z0700]], 2024|10|12 15.13.06Z", makeAge(time.Since(absoluteDate))},
+		{"[[2006]], 2024|10|12 15.13.06Z", `failed to parse custom layout '2006': parsing time "2024|10|12 15.13.06Z": extra text: "|10|12 15.13.06Z"`},
+
 		// unix timestamp variants
 		{fmt.Sprintf("%d", absoluteDate.Unix()), makeAge(time.Since(absoluteDate))},
 		{fmt.Sprintf("%d", absoluteDate.UnixMilli()), makeAge(time.Since(absoluteDate))},
@@ -185,28 +211,27 @@ func TestParseAge(t *testing.T) {
 		{fmt.Sprintf("%d", absoluteDateLocal.Unix()), makeAge(time.Since(absoluteDateLocal))},
 		{fmt.Sprintf("%d", absoluteDateLocal.UnixMilli()), makeAge(time.Since(absoluteDateLocal))},
 		{fmt.Sprintf("%f", float64(absoluteDateLocal.UnixMilli())/1000.0), makeAge(time.Since(absoluteDateLocal))},
+		// scientific notation (when the timestamp is a JSON number, it becomes scientific notation after being stringified!)
+		{"1.771548534964e+12", makeAge(time.Since(time.UnixMilli(1771548627000)) + 92036*time.Millisecond)},
+		{"1.771548534964e+9", makeAge(time.Since(time.Unix(1771548627, 0)) + 92036*time.Millisecond)},
+
+		// date only
+		{"2024-10-12", makeAge(time.Since(absoluteDateLocal.Add(-(15*time.Hour + 13*time.Minute + 6*time.Second))))},
+
 		// time only
-		{"04:13:06Z", makeAge(time.Since(timeOnly))},
 		{"04:13:06", makeAge(time.Since(timeOnlyLocal))},
-		// relative
+		{"4:13AM", makeAge(time.Since(timeOnlyLocal.Add(-6 * time.Second)))},
+
+		// duration
 		{"15s", makeAge(15 * time.Second)},
 		{"1m15s", makeAge(75 * time.Second)},
-		{"30 seconds", makeAge(30 * time.Second)},
-		{"1 minute 30 seconds", makeAge(90 * time.Second)},
-		{"10m ago", makeAge(10 * time.Minute)},
-		{"5 days ago", makeAge(5 * 24 * time.Hour)},
-		// localized
-		{"vor 3 Tagen", makeAge(3 * 24 * time.Hour)},
-		{"3 jours", makeAge(3 * 24 * time.Hour)},
+
 		// future date (negative age)
-		{"in 3 days", makeAge(-1 * 3 * 24 * time.Hour)},
+		{"-24h", makeAge(-1 * 24 * time.Hour)},
+		{fmt.Sprintf("%d", time.Now().Add(3*24*time.Hour).UnixMilli()), makeAge(-1 * 3 * 24 * time.Hour)},
+
 		// error
 		{"this is not a date", `failed to parse "this is not a date": unknown format`},
-		// regression
-		{"1771548534964" /* event-ts */, makeAge(time.Since(time.UnixMilli(1771548627000)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
-		// when the timestamp is a JSON number, it becomes scientific notation after being stringified!
-		{"1.771548534964e+12" /* event-ts */, makeAge(time.Since(time.UnixMilli(1771548627000)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
-		{"1.771548534964e+9" /* event-ts */, makeAge(time.Since(time.Unix(1771548627, 0)) /* test-ts */ + 92036*time.Millisecond /* skew */)},
 	}
 
 	for _, test := range tests {
