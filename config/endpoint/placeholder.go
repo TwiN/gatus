@@ -2,8 +2,10 @@ package endpoint
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/jsonpath"
@@ -66,6 +68,11 @@ const (
 	// Usage: has([BODY].errors) == true
 	HasFunctionPrefix = "has("
 
+	// AgeFunctionPrefix is the prefix for the age function
+	//
+	// Usage: age([BODY].timestamp) > 15m
+	AgeFunctionPrefix = "age("
+
 	// PatternFunctionPrefix is the prefix for the pattern function
 	//
 	// Usage: [IP] == pat(192.168.*.*)
@@ -96,6 +103,7 @@ const (
 	noFunction functionType = iota
 	functionLen
 	functionHas
+	functionAge
 )
 
 // ResolvePlaceholder resolves all types of placeholders to their string values.
@@ -115,6 +123,7 @@ const (
 // Function wrappers:
 //   - len(placeholder): Returns the length of the resolved value
 //   - has(placeholder): Returns "true" if the placeholder exists and is non-empty, "false" otherwise
+//   - age(placeholder): Returns the age of the resolved value in milliseconds, or an error message if parsing fails
 //
 // Examples:
 //   - ResolvePlaceholder("[STATUS]", result, nil) → "200"
@@ -154,10 +163,6 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 	case DomainExpirationPlaceholder:
 		return formatWithFunction(strconv.FormatInt(result.DomainExpiration.Milliseconds(), 10), fn), nil
 	case BodyPlaceholder:
-		body := strings.TrimSpace(string(result.Body))
-		if fn == functionHas {
-			return strconv.FormatBool(len(body) > 0), nil
-		}
 		if fn == functionLen {
 			// For len([BODY]), we need to check if it's JSON and get the actual length
 			// Use jsonpath to evaluate the root element
@@ -165,10 +170,8 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 			if err == nil {
 				return strconv.Itoa(resolvedLength), nil
 			}
-			// Fall back to string length if not valid JSON
-			return strconv.Itoa(len(body)), nil
 		}
-		return body, nil
+		return formatWithFunction(strings.TrimSpace(string(result.Body)), fn), nil
 	}
 
 	// Handle JSONPath expressions on BODY (including array indexing)
@@ -200,6 +203,10 @@ func extractFunctionWrapper(placeholder string) (functionType, string) {
 		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, HasFunctionPrefix), FunctionSuffix)
 		return functionHas, inner
 	}
+	if strings.HasPrefix(placeholder, AgeFunctionPrefix) && strings.HasSuffix(placeholder, FunctionSuffix) {
+		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, AgeFunctionPrefix), FunctionSuffix)
+		return functionAge, inner
+	}
 	return noFunction, placeholder
 }
 
@@ -222,9 +229,14 @@ func resolveJSONPathPlaceholder(placeholder string, fn functionType, originalPla
 	if err != nil {
 		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
 	}
-	if fn == functionLen {
+
+	switch fn {
+	case functionLen:
 		return strconv.Itoa(resolvedLength), nil
+	case functionAge:
+		return parseAge(resolvedValue), nil
 	}
+
 	return resolvedValue, nil
 }
 
@@ -245,7 +257,9 @@ func resolveContextPlaceholder(placeholder string, fn functionType, originalPlac
 	if err != nil {
 		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
 	}
-	if fn == functionLen {
+
+	switch fn {
+	case functionLen:
 		switch v := value.(type) {
 		case string:
 			return strconv.Itoa(len(v)), nil
@@ -256,7 +270,10 @@ func resolveContextPlaceholder(placeholder string, fn functionType, originalPlac
 		default:
 			return strconv.Itoa(len(fmt.Sprintf("%v", v))), nil
 		}
+	case functionAge:
+		return parseAge(fmt.Sprintf("%v", value)), nil
 	}
+
 	return fmt.Sprintf("%v", value), nil
 }
 
@@ -267,7 +284,57 @@ func formatWithFunction(value string, fn functionType) string {
 		return strconv.FormatBool(value != "")
 	case functionLen:
 		return strconv.Itoa(len(value))
+	case functionAge:
+		return parseAge(value)
 	default:
 		return value
 	}
+}
+
+var customFormat = regexp.MustCompile(`^\[\[(.+?)\]\][, ]+(.*)$`) // age([[layout]], timestamp-expression)
+
+// parseAge parses the timestamp from a selection of common formats and returns the age in milliseconds as a string, or an error message if parsing fails.
+// Supported formats:
+//   - Custom layout: [[layout]], timestamp (e.g., age([[2006-01-02 15:04:05]], "2024-01-01 12:00:00"))
+//   - Unix timestamp in seconds or milliseconds (e.g., age("1700000000") or age("1700000000000"))
+//   - Duration (e.g., age("15m"), age("2h"))
+//   - Parsed date using registered formats (e.g., age("2024-01-01T12:00:00Z"))
+func parseAge(timestamp string) string {
+	var parsed time.Time
+	var failed string
+
+	timestamp = strings.TrimSpace(timestamp)
+
+	if m := customFormat.FindStringSubmatch(timestamp[:min(len(timestamp), 256)]); m != nil {
+		// custom format: [[layout]], timestamp
+		if d, err := time.ParseInLocation(m[1], strings.TrimSpace(m[2]), time.Local); err == nil {
+			parsed = d
+		} else {
+			failed = fmt.Sprintf("failed to parse custom layout '%s': %v", m[1], err)
+		}
+
+	} else if ts, err := strconv.ParseFloat(timestamp, 64); err == nil {
+		// unix timestamp in seconds or milliseconds, supports int, float, and scientific notation (e.g., 1.5e9 for 1500000000)
+		if ts < 1e10 {
+			ts = ts * 1000.0 // If it's in seconds, convert to milliseconds prior to converting to int64
+		}
+		parsed = time.UnixMilli(int64(ts))
+
+	} else if dur, err := time.ParseDuration(timestamp); err == nil {
+		// duration (e.g., "15m", "2h")
+		parsed = time.Now().Add(-dur)
+
+	} else {
+		// parsed date
+		if d, err := ParseDate(timestamp); err == nil {
+			parsed = d
+		} else {
+			failed = fmt.Sprintf("%v", err)
+		}
+	}
+
+	if len(failed) > 0 {
+		return failed
+	}
+	return strconv.FormatInt(time.Since(parsed).Milliseconds(), 10)
 }
