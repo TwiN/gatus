@@ -61,6 +61,10 @@ type Config struct {
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
 	DNSResolver string `yaml:"dns-resolver,omitempty"`
 
+	// DNSResolverConfig is parsed DNSResolver
+	// We do this to avoid parsing DNSResolver every time it is needed
+	DNSResolverConfig *DNSResolverConfig `yaml:"-"`
+
 	// OAuth2Config is the OAuth2 configuration used for the client.
 	//
 	// If non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.
@@ -123,8 +127,10 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
-		if _, err := c.parseDNSResolver(); err != nil {
+		if resolver, err := c.parseDNSResolver(); err != nil {
 			return err
+		} else {
+			c.DNSResolverConfig = resolver
 		}
 	}
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {

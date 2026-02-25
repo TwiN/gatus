@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -439,11 +440,28 @@ func (e *Endpoint) getParsedBody() string {
 }
 
 func (e *Endpoint) getIP(result *Result) {
-	if ips, err := net.LookupIP(result.Hostname); err != nil {
+	resolver := net.DefaultResolver
+	// Create a custom DNS resolver for use in looking up the IP address
+	// if the configuration specifies a custom DNS resolver address
+	if e.ClientConfig.HasCustomDNSResolver() {
+		dnsResolver := e.ClientConfig.DNSResolverConfig
+		resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{}
+				return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+			},
+		}
+	}
+
+	addrs, err := resolver.LookupIP(context.Background(), e.ClientConfig.Network, result.Hostname)
+	if err != nil {
 		result.AddError(err.Error())
 		return
-	} else {
-		result.IP = ips[0].String()
+	}
+	for _, ia := range addrs {
+		result.IP = ia.String()
+		return
 	}
 }
 
