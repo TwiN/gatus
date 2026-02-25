@@ -340,9 +340,9 @@ func TestGontext_ConcurrentAccess(t *testing.T) {
 	done := make(chan bool, 10)
 
 	// Start 5 goroutines that read values
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		go func(id int) {
-			for j := 0; j < 100; j++ {
+			for range 100 {
 				_, err := ctx.Get("counter")
 				if err != nil {
 					t.Errorf("Reader %d error: %v", id, err)
@@ -353,9 +353,9 @@ func TestGontext_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Start 5 goroutines that write values
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		go func(id int) {
-			for j := 0; j < 100; j++ {
+			for j := range 100 {
 				err := ctx.Set("counter", id*1000+j)
 				if err != nil {
 					t.Errorf("Writer %d error: %v", id, err)
@@ -366,7 +366,7 @@ func TestGontext_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Wait for all goroutines to complete
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 }
