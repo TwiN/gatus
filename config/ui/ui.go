@@ -23,6 +23,7 @@ const (
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
+	defaultExtraHead            = ""
 )
 
 var (
@@ -48,6 +49,7 @@ type Config struct {
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	ExtraHead               string   `yaml:"extra-head,omitempty"`             // Arbitrary HTML to be added to the <head> of the page
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -95,6 +97,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		ExtraHead:              defaultExtraHead,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		Favicon: Favicon{
 			Default:   defaultFavicon,
@@ -164,6 +167,11 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	var buffer bytes.Buffer
 	return t.Execute(&buffer, ViewData{UI: cfg, Theme: "dark"})
+}
+
+// GetExtraHeadHTML returns the ExtraHead as template.HTML so it won't be escaped
+func (cfg *Config) GetExtraHeadHTML() template.HTML {
+	return template.HTML(cfg.ExtraHead)
 }
 
 type ViewData struct {
