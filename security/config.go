@@ -20,8 +20,9 @@ const (
 
 // Config is the security configuration for Gatus
 type Config struct {
-	Basic *BasicConfig `yaml:"basic,omitempty"`
-	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
+	Basic          *BasicConfig `yaml:"basic,omitempty"`
+	OIDC           *OIDCConfig  `yaml:"oidc,omitempty"`
+	ProtectMetrics bool         `yaml:"protect-metrics,omitempty"`
 
 	gate *g8.Gate
 }
