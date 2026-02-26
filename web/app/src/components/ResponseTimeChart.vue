@@ -224,8 +224,10 @@ const chartOptions = computed(() => {
     scales: {
       x: {
         type: 'time',
+        min: new Date(Date.now() - (props.duration === '30d' ? 30 : props.duration === '7d' ? 7 : 1) * 24 * 60 * 60 * 1000),
+        max: new Date(),
         time: {
-          unit: props.duration === '24h' ? 'hour' : props.duration === '7d' ? 'day' : 'day',
+          unit: props.duration === '24h' ? 'hour' : 'day',
           displayFormats: {
             hour: 'MMM d, ha',
             day: 'MMM d'
