@@ -3172,6 +3172,21 @@ endpoints:
     conditions:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
+
+  # Passphrase protected Key-based SSH example
+  - name: ssh-example-key
+    url: "ssh://example.com:22" # port is optional. Default is 22.
+    ssh:
+      username: "username"
+      private-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        TESTRSAKEY...
+        -----END RSA PRIVATE KEY-----
+      passphrase: "passphrase"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 0"
 ```
 
 you can also use no authentication to monitor the endpoint by not specifying the username,
