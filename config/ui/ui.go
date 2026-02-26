@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"html/template"
 
@@ -31,6 +32,8 @@ var (
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+
+	uiTemplate *template.Template = nil
 )
 
 // Config is the configuration for the UI of Gatus
@@ -51,7 +54,7 @@ type Config struct {
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	MaximumNumberOfResults int `yaml:"-" json:"maximumNumberOfResults,omitempty"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -63,8 +66,8 @@ func (cfg *Config) IsDarkMode() bool {
 
 // Button is the configuration for a button on the UI
 type Button struct {
-	Name string `yaml:"name,omitempty"` // Name is the text to display on the button
-	Link string `yaml:"link,omitempty"` // Link to open when the button is clicked.
+	Name string `yaml:"name,omitempty" json:"name,omitempty"` // Name is the text to display on the button
+	Link string `yaml:"link,omitempty" json:"link,omitempty"` // Link to open when the button is clicked.
 }
 
 // Validate validates the button configuration
@@ -158,7 +161,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 	// Validate that the template works
-	t, err := template.ParseFS(static.FileSystem, static.IndexPath)
+	t, err := GetTemplate()
 	if err != nil {
 		return err
 	}
@@ -169,4 +172,23 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 type ViewData struct {
 	UI    *Config
 	Theme string
+}
+
+func toJSON(v any) template.JS {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
+	}
+	return template.JS(b)
+}
+
+func GetTemplate() (*template.Template, error) {
+	if uiTemplate != nil {
+		return uiTemplate, nil
+	}
+	var err error
+	uiTemplate, err = template.New("index.html").Funcs(template.FuncMap{
+		"toJSON": toJSON,
+	}).ParseFS(static.FileSystem, static.IndexPath)
+	return uiTemplate, err
 }
