@@ -47,6 +47,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
 	"github.com/TwiN/gatus/v5/alerting/provider/teamsworkflows"
 	"github.com/TwiN/gatus/v5/alerting/provider/telegram"
+	"github.com/TwiN/gatus/v5/alerting/provider/threemagateway"
 	"github.com/TwiN/gatus/v5/alerting/provider/twilio"
 	"github.com/TwiN/gatus/v5/alerting/provider/vonage"
 	"github.com/TwiN/gatus/v5/alerting/provider/webex"
@@ -1890,6 +1891,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Telegram:              &telegram.AlertProvider{},
 		Teams:                 &teams.AlertProvider{},
 		TeamsWorkflows:        &teamsworkflows.AlertProvider{},
+		ThreemaGateway:        &threemagateway.AlertProvider{},
 		Twilio:                &twilio.AlertProvider{},
 		Vonage:                &vonage.AlertProvider{},
 		Webex:                 &webex.AlertProvider{},
@@ -1935,6 +1937,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},
 		{alertType: alert.TypeTeams, expected: alertingConfig.Teams},
 		{alertType: alert.TypeTeamsWorkflows, expected: alertingConfig.TeamsWorkflows},
+		{alertType: alert.TypeThreemaGateway, expected: alertingConfig.ThreemaGateway},
 		{alertType: alert.TypeTwilio, expected: alertingConfig.Twilio},
 		{alertType: alert.TypeVonage, expected: alertingConfig.Vonage},
 		{alertType: alert.TypeWebex, expected: alertingConfig.Webex},
