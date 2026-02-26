@@ -1728,6 +1728,10 @@ The JSON payload sent to the n8n webhook will include:
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
 
+The following placeholders are supported in `click`:
+- `[ENDPOINT_URL]` - Resolved from `endpoints[].url`
+- `[ENDPOINT_KEY]` - Resolved from internal endpoint key
+
 Example:
 ```yaml
 alerting:
