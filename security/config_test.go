@@ -10,12 +10,82 @@ import (
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
-	c := &Config{
-		Basic: nil,
-		OIDC:  nil,
+	validBasicConfig := &BasicConfig{
+		Username:                        "test",
+		PasswordBcryptHashBase64Encoded: "somevalue",
 	}
-	if c.ValidateAndSetDefaults() {
-		t.Error("expected empty config to be valid")
+	validOIDCConfig := &OIDCConfig{
+		IssuerURL:    "testurl",
+		RedirectURL:  "testredirecturl/authorization-code/callback",
+		ClientID:     "testid",
+		ClientSecret: "testsecret",
+		Scopes:       []string{"testscope"},
+	}
+
+	type Scenario struct {
+		Name        string
+		Config      *Config
+		ExpectValid bool
+	}
+	scenarios := []Scenario{
+		{
+			Name: "empty",
+			Config: &Config{
+				Basic: nil,
+				OIDC:  nil,
+			},
+			ExpectValid: true,
+		},
+		{
+			Name: "empty-basic",
+			Config: &Config{
+				Basic: &BasicConfig{},
+				OIDC:  nil,
+			},
+			ExpectValid: false,
+		},
+		{
+			Name: "empty-oidc",
+			Config: &Config{
+				Basic: nil,
+				OIDC:  &OIDCConfig{},
+			},
+			ExpectValid: false,
+		},
+		{
+			Name: "valid-basic-only",
+			Config: &Config{
+				Basic: validBasicConfig,
+				OIDC:  nil,
+			},
+			ExpectValid: true,
+		},
+		{
+			Name: "valid-oidc-only",
+			Config: &Config{
+				Basic: nil,
+				OIDC:  validOIDCConfig,
+			},
+			ExpectValid: true,
+		},
+		{
+			Name: "valid-basic-and-oidc",
+			Config: &Config{
+				Basic: validBasicConfig,
+				OIDC:  validOIDCConfig,
+			},
+			ExpectValid: true,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			isValid := scenario.Config.ValidateAndSetDefaults()
+			if isValid && !scenario.ExpectValid {
+				t.Errorf("scenario %s: expected config to be invalid", scenario.Name)
+			} else if !isValid && scenario.ExpectValid {
+				t.Errorf("scenario %s: expected config to be valid", scenario.Name)
+			}
+		})
 	}
 }
 
