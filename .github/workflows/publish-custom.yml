@@ -27,7 +27,7 @@ jobs:
       - name: Get image repository
         run: echo GHCR_IMAGE_REPOSITORY=$(echo ghcr.io/${{ github.actor }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
