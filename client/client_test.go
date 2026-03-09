@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 )
 
 func TestGetHTTPClient(t *testing.T) {
+	t.Parallel()
 	cfg := &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
@@ -40,6 +43,7 @@ func TestGetHTTPClient(t *testing.T) {
 }
 
 func TestRdapQuery(t *testing.T) {
+	t.Parallel()
 	if _, err := rdapQuery("1.1.1.1"); err == nil {
 		t.Error("expected an error due to the invalid domain type")
 	}
@@ -129,10 +133,36 @@ func TestPing(t *testing.T) {
 	}
 }
 
+func TestShouldRunPingerAsPrivileged(t *testing.T) {
+	// Don't run in parallel since we're testing system-dependent behavior
+	if runtime.GOOS == "windows" {
+		result := ShouldRunPingerAsPrivileged()
+		if !result {
+			t.Error("On Windows, ShouldRunPingerAsPrivileged() should return true")
+		}
+		return
+	}
+
+	// Non-Windows tests
+	result := ShouldRunPingerAsPrivileged()
+	isRoot := os.Geteuid() == 0
+
+	// Test cases based on current environment
+	if isRoot {
+		if !result {
+			t.Error("When running as root, ShouldRunPingerAsPrivileged() should return true")
+		}
+	} else {
+		// When not root, the result depends on raw socket creation
+		// We can at least verify the function runs without panic
+		t.Logf("Non-root privileged result: %v", result)
+	}
+}
+
 func TestCanPerformStartTLS(t *testing.T) {
 	type args struct {
-		address  string
-		insecure bool
+		address     string
+		insecure    bool
 		dnsresolver string
 	}
 	tests := []struct {
@@ -168,7 +198,7 @@ func TestCanPerformStartTLS(t *testing.T) {
 		{
 			name: "dns resolver",
 			args: args{
-				address: "smtp.gmail.com:587",
+				address:     "smtp.gmail.com:587",
 				dnsresolver: "tcp://1.1.1.1:53",
 			},
 			wantConnected: true,
@@ -260,6 +290,7 @@ func TestCanPerformTLS(t *testing.T) {
 }
 
 func TestCanCreateConnection(t *testing.T) {
+	t.Parallel()
 	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
 	if connected {
 		t.Error("should've failed, because there's no port in the address")
@@ -274,6 +305,7 @@ func TestCanCreateConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
+	t.Parallel()
 	defer InjectHTTPClient(nil)
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
@@ -329,6 +361,7 @@ func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
 }
 
 func TestQueryWebSocket(t *testing.T) {
+	t.Parallel()
 	_, _, err := QueryWebSocket("", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the address being invalid")
@@ -340,7 +373,8 @@ func TestQueryWebSocket(t *testing.T) {
 }
 
 func TestTlsRenegotiation(t *testing.T) {
-	tests := []struct {
+	t.Parallel()
+	scenarios := []struct {
 		name           string
 		cfg            TLSConfig
 		expectedConfig tls.RenegotiationSupport
@@ -371,18 +405,19 @@ func TestTlsRenegotiation(t *testing.T) {
 			expectedConfig: tls.RenegotiateNever,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
 			tls := &tls.Config{}
-			tlsConfig := configureTLS(tls, test.cfg)
-			if tlsConfig.Renegotiation != test.expectedConfig {
-				t.Errorf("expected tls renegotiation to be %v, but got %v", test.expectedConfig, tls.Renegotiation)
+			tlsConfig := configureTLS(tls, scenario.cfg)
+			if tlsConfig.Renegotiation != scenario.expectedConfig {
+				t.Errorf("expected tls renegotiation to be %v, but got %v", scenario.expectedConfig, tls.Renegotiation)
 			}
 		})
 	}
 }
 
 func TestQueryDNS(t *testing.T) {
+	t.Parallel()
 	scenarios := []struct {
 		name            string
 		inputDNS        dns.Config
@@ -439,7 +474,7 @@ func TestQueryDNS(t *testing.T) {
 			},
 			inputURL:        "8.8.8.8",
 			expectedDNSCode: "NOERROR",
-			expectedBody:    "*.iana-servers.net.",
+			expectedBody:    "*.ns.cloudflare.com.",
 		},
 		{
 			name: "test Config with type PTR",
@@ -512,15 +547,13 @@ func TestQueryDNS(t *testing.T) {
 }
 
 func TestCheckSSHBanner(t *testing.T) {
+	t.Parallel()
 	cfg := &Config{Timeout: 3}
-
 	t.Run("no-auth-ssh", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("tty.sdf.org", cfg)
-
 		if err != nil {
 			t.Errorf("Expected: error != nil, got: %v ", err)
 		}
-
 		if connected == false {
 			t.Errorf("Expected: connected == true, got: %v", connected)
 		}
@@ -528,14 +561,11 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 0, got: %v", status)
 		}
 	})
-
 	t.Run("invalid-address", func(t *testing.T) {
 		connected, status, err := CheckSSHBanner("idontplaytheodds.com", cfg)
-
 		if err == nil {
 			t.Errorf("Expected: error, got: %v ", err)
 		}
-
 		if connected != false {
 			t.Errorf("Expected: connected == false, got: %v", connected)
 		}
@@ -543,5 +573,4 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
-
 }

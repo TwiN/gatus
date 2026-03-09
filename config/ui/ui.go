@@ -10,14 +10,19 @@ import (
 )
 
 const (
-	defaultTitle       = "Health Dashboard | Gatus"
-	defaultDescription = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader      = "Gatus"
-	defaultLogo        = ""
-	defaultLink        = ""
-	defaultCustomCSS   = ""
-	defaultSortBy      = "name"
-	defaultFilterBy    = "none"
+	defaultTitle                = "Health Dashboard | Gatus"
+	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader               = "Gatus"
+	defaultDashboardHeading     = "Health Dashboard"
+	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
+	defaultLogo                 = ""
+	defaultLink                 = ""
+	defaultFavicon              = "/favicon.ico"
+	defaultFavicon16            = "/favicon-16x16.png"
+	defaultFavicon32            = "/favicon-32x32.png"
+	defaultCustomCSS            = ""
+	defaultSortBy               = "name"
+	defaultFilterBy             = "none"
 )
 
 var (
@@ -34,9 +39,12 @@ var (
 type Config struct {
 	Title                string   `yaml:"title,omitempty"`                   // Title of the page
 	Description          string   `yaml:"description,omitempty"`             // Meta description of the page
+	DashboardHeading     string   `yaml:"dashboard-heading,omitempty"`       // Dashboard Title between header and endpoints
+	DashboardSubheading  string   `yaml:"dashboard-subheading,omitempty"`    // Dashboard Description between header and endpoints
 	Header               string   `yaml:"header,omitempty"`                  // Header is the text at the top of the page
 	Logo                 string   `yaml:"logo,omitempty"`                    // Logo to display on the page
 	Link                 string   `yaml:"link,omitempty"`                    // Link to open when clicking on the logo
+	Favicon              Favicon  `yaml:"favicon,omitempty"`                 // Favourite icon to display in web browser tab or address bar
 	Buttons              []Button `yaml:"buttons,omitempty"`                 // Buttons to display below the header
 	CustomCSS            string   `yaml:"custom-css,omitempty"`              // Custom CSS to include in the page
 	DarkMode             *bool    `yaml:"dark-mode,omitempty"`               // DarkMode is a flag to enable dark mode by default
@@ -71,11 +79,19 @@ func (btn *Button) Validate() error {
 	return nil
 }
 
+type Favicon struct {
+	Default   string `yaml:"default,omitempty"`   // URL or path to default favourite icon.
+	Size16x16 string `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
+	Size32x32 string `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
+}
+
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
 	return &Config{
 		Title:                  defaultTitle,
 		Description:            defaultDescription,
+		DashboardHeading:       defaultDashboardHeading,
+		DashboardSubheading:    defaultDashboardSubheading,
 		Header:                 defaultHeader,
 		Logo:                   defaultLogo,
 		Link:                   defaultLink,
@@ -85,6 +101,11 @@ func GetDefaultConfig() *Config {
 		DefaultFilterBy:        defaultFilterBy,
 		DefaultGroupCollapse:   &defaultGroupCollapse,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		Favicon: Favicon{
+			Default:   defaultFavicon,
+			Size16x16: defaultFavicon16,
+			Size32x32: defaultFavicon32,
+		},
 	}
 }
 
@@ -95,6 +116,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.Description) == 0 {
 		cfg.Description = defaultDescription
+	}
+	if len(cfg.DashboardHeading) == 0 {
+		cfg.DashboardHeading = defaultDashboardHeading
+	}
+	if len(cfg.DashboardSubheading) == 0 {
+		cfg.DashboardSubheading = defaultDashboardSubheading
 	}
 	if len(cfg.Header) == 0 {
 		cfg.Header = defaultHeader
@@ -122,7 +149,16 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		return ErrInvalidDefaultFilterBy
 	}
 	if cfg.DefaultGroupCollapse == nil {
-	    cfg.DefaultGroupCollapse = &defaultGroupCollapse
+		cfg.DefaultGroupCollapse = &defaultGroupCollapse
+	}
+	if len(cfg.Favicon.Default) == 0 {
+		cfg.Favicon.Default = defaultFavicon
+	}
+	if len(cfg.Favicon.Size16x16) == 0 {
+		cfg.Favicon.Size16x16 = defaultFavicon16
+	}
+	if len(cfg.Favicon.Size32x32) == 0 {
+		cfg.Favicon.Size32x32 = defaultFavicon32
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {

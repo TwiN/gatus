@@ -16,8 +16,14 @@ type Config struct {
 	// HidePort whether to hide the port in the Result
 	HidePort bool `yaml:"hide-port"`
 
+	// HideErrors whether to hide the errors in the Result
+	HideErrors bool `yaml:"hide-errors"`
+
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
 	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
+
+	// ResolveSuccessfulConditions whether to resolve successful conditions in the Result for display in the UI
+	ResolveSuccessfulConditions bool `yaml:"resolve-successful-conditions"`
 
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
@@ -58,7 +64,9 @@ func GetDefaultConfig() *Config {
 		HideHostname:                false,
 		HideURL:                     false,
 		HidePort:                    false,
+		HideErrors:                  false,
 		DontResolveFailedConditions: false,
+		ResolveSuccessfulConditions: false,
 		HideConditions:              false,
 		Badge: &Badge{
 			ResponseTime: &ResponseTime{

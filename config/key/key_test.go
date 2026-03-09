@@ -32,12 +32,12 @@ func TestConvertGroupAndNameToKey(t *testing.T) {
 		{
 			GroupName:      "API (v1)",
 			Name:           "endpoint",
-			ExpectedOutput: "api--v1-_endpoint",
+			ExpectedOutput: "api-(v1)_endpoint",
 		},
 		{
 			GroupName:      "website (admin)",
 			Name:           "test",
-			ExpectedOutput: "website--admin-_test",
+			ExpectedOutput: "website-(admin)_test",
 		},
 		{
 			GroupName:      "search",

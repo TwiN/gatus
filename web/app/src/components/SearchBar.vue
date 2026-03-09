@@ -64,9 +64,10 @@ const sortOptions = [
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
-const handleFilterChange = (value) => {
+const handleFilterChange = (value, store = true) => {
   filterBy.value = value
-  localStorage.setItem('gatus:filter-by', value)
+  if (store)
+    localStorage.setItem('gatus:filter-by', value)
   
   // Reset all filter states first
   emit('update:showOnlyFailing', false)
@@ -80,9 +81,11 @@ const handleFilterChange = (value) => {
   }
 }
 
-const handleSortChange = (value) => {
+const handleSortChange = (value, store = true) => {
   sortBy.value = value
-  localStorage.setItem('gatus:sort-by', value)
+  if (store)
+    localStorage.setItem('gatus:sort-by', value)
+
   emit('update:sortBy', value)
   emit('update:groupByGroup', value === 'group')
   
@@ -93,8 +96,8 @@ const handleSortChange = (value) => {
 }
 
 onMounted(() => {
-  // Apply saved filter/sort state on load
-  handleFilterChange(filterBy.value)
-  handleSortChange(sortBy.value)
+  // Apply saved or application wide filter/sort state on load but do not store it in localstorage
+  handleFilterChange(filterBy.value, false)
+  handleSortChange(sortBy.value, false)
 })
 </script>

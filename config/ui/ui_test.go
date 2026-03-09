@@ -7,31 +7,119 @@ import (
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
-	cfg := &Config{
-		Title:       "",
-		Description: "",
-		Header:      "",
-		Logo:        "",
-		Link:        "",
-	}
-	if err := cfg.ValidateAndSetDefaults(); err != nil {
-		t.Error("expected no error, got", err.Error())
-	}
-	if cfg.Title != defaultTitle {
-		t.Errorf("expected title to be %s, got %s", defaultTitle, cfg.Title)
-	}
-	if cfg.Description != defaultDescription {
-		t.Errorf("expected description to be %s, got %s", defaultDescription, cfg.Description)
-	}
-	if cfg.Header != defaultHeader {
-		t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
-	}
-	if cfg.DefaultSortBy != defaultSortBy {
-		t.Errorf("expected defaultSortBy to be %s, got %s", defaultSortBy, cfg.DefaultSortBy)
-	}
-	if cfg.DefaultFilterBy != defaultFilterBy {
-		t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
-	}
+	t.Run("empty-config", func(t *testing.T) {
+		cfg := &Config{
+			Title:               "",
+			Description:         "",
+			DashboardHeading:    "",
+			DashboardSubheading: "",
+			Header:              "",
+			Logo:                "",
+			Link:                "",
+		}
+		if err := cfg.ValidateAndSetDefaults(); err != nil {
+			t.Error("expected no error, got", err.Error())
+		}
+		if cfg.Title != defaultTitle {
+			t.Errorf("expected title to be %s, got %s", defaultTitle, cfg.Title)
+		}
+		if cfg.Description != defaultDescription {
+			t.Errorf("expected description to be %s, got %s", defaultDescription, cfg.Description)
+		}
+		if cfg.DashboardHeading != defaultDashboardHeading {
+			t.Errorf("expected DashboardHeading to be %s, got %s", defaultDashboardHeading, cfg.DashboardHeading)
+		}
+		if cfg.DashboardSubheading != defaultDashboardSubheading {
+			t.Errorf("expected DashboardSubheading to be %s, got %s", defaultDashboardSubheading, cfg.DashboardSubheading)
+		}
+		if cfg.Header != defaultHeader {
+			t.Errorf("expected header to be %s, got %s", defaultHeader, cfg.Header)
+		}
+		if cfg.DefaultSortBy != defaultSortBy {
+			t.Errorf("expected defaultSortBy to be %s, got %s", defaultSortBy, cfg.DefaultSortBy)
+		}
+		if cfg.DefaultFilterBy != defaultFilterBy {
+			t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
+		}
+		if cfg.Favicon.Default != defaultFavicon {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon, cfg.Favicon.Default)
+		}
+		if cfg.Favicon.Size16x16 != defaultFavicon16 {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon16, cfg.Favicon.Size16x16)
+		}
+		if cfg.Favicon.Size32x32 != defaultFavicon32 {
+			t.Errorf("expected favicon to be %s, got %s", defaultFavicon32, cfg.Favicon.Size32x32)
+		}
+	})
+	t.Run("custom-values", func(t *testing.T) {
+		cfg := &Config{
+			Title:               "Custom Title",
+			Description:         "Custom Description",
+			DashboardHeading:    "Production Status",
+			DashboardSubheading: "Monitor all production endpoints",
+			Header:              "My Company",
+			Logo:                "https://example.com/logo.png",
+			Link:                "https://example.com",
+			DefaultSortBy:       "health",
+			DefaultFilterBy:     "failing",
+		}
+		if err := cfg.ValidateAndSetDefaults(); err != nil {
+			t.Error("expected no error, got", err.Error())
+		}
+		if cfg.Title != "Custom Title" {
+			t.Errorf("expected title to be preserved, got %s", cfg.Title)
+		}
+		if cfg.Description != "Custom Description" {
+			t.Errorf("expected description to be preserved, got %s", cfg.Description)
+		}
+		if cfg.DashboardHeading != "Production Status" {
+			t.Errorf("expected DashboardHeading to be preserved, got %s", cfg.DashboardHeading)
+		}
+		if cfg.DashboardSubheading != "Monitor all production endpoints" {
+			t.Errorf("expected DashboardSubheading to be preserved, got %s", cfg.DashboardSubheading)
+		}
+		if cfg.Header != "My Company" {
+			t.Errorf("expected header to be preserved, got %s", cfg.Header)
+		}
+		if cfg.Logo != "https://example.com/logo.png" {
+			t.Errorf("expected logo to be preserved, got %s", cfg.Logo)
+		}
+		if cfg.Link != "https://example.com" {
+			t.Errorf("expected link to be preserved, got %s", cfg.Link)
+		}
+		if cfg.DefaultSortBy != "health" {
+			t.Errorf("expected defaultSortBy to be preserved, got %s", cfg.DefaultSortBy)
+		}
+		if cfg.DefaultFilterBy != "failing" {
+			t.Errorf("expected defaultFilterBy to be preserved, got %s", cfg.DefaultFilterBy)
+		}
+	})
+	t.Run("partial-custom-values", func(t *testing.T) {
+		cfg := &Config{
+			Title:               "Custom Title",
+			DashboardHeading:    "My Dashboard",
+			Header:              "",
+			DashboardSubheading: "",
+		}
+		if err := cfg.ValidateAndSetDefaults(); err != nil {
+			t.Error("expected no error, got", err.Error())
+		}
+		if cfg.Title != "Custom Title" {
+			t.Errorf("expected custom title to be preserved, got %s", cfg.Title)
+		}
+		if cfg.DashboardHeading != "My Dashboard" {
+			t.Errorf("expected custom DashboardHeading to be preserved, got %s", cfg.DashboardHeading)
+		}
+		if cfg.DashboardSubheading != defaultDashboardSubheading {
+			t.Errorf("expected DashboardSubheading to use default, got %s", cfg.DashboardSubheading)
+		}
+		if cfg.Header != defaultHeader {
+			t.Errorf("expected header to use default, got %s", cfg.Header)
+		}
+		if cfg.Description != defaultDescription {
+			t.Errorf("expected description to use default, got %s", cfg.Description)
+		}
+	})
 }
 
 func TestButton_Validate(t *testing.T) {
@@ -77,6 +165,12 @@ func TestGetDefaultConfig(t *testing.T) {
 	defaultConfig := GetDefaultConfig()
 	if defaultConfig.Title != defaultTitle {
 		t.Error("expected GetDefaultConfig() to return defaultTitle, got", defaultConfig.Title)
+	}
+	if defaultConfig.DashboardHeading != defaultDashboardHeading {
+		t.Error("expected GetDefaultConfig() to return defaultDashboardHeading, got", defaultConfig.DashboardHeading)
+	}
+	if defaultConfig.DashboardSubheading != defaultDashboardSubheading {
+		t.Error("expected GetDefaultConfig() to return defaultDashboardSubheading, got", defaultConfig.DashboardSubheading)
 	}
 	if defaultConfig.Logo != defaultLogo {
 		t.Error("expected GetDefaultConfig() to return defaultLogo, got", defaultConfig.Logo)

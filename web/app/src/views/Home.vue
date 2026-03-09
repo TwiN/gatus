@@ -4,8 +4,8 @@
       <div class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-4xl font-bold tracking-tight">Health Dashboard</h1>
-            <p class="text-muted-foreground mt-2">Monitor the health of your endpoints in real-time</p>
+            <h1 class="text-4xl font-bold tracking-tight">{{ dashboardHeading }}</h1>
+            <p class="text-muted-foreground mt-2">{{ dashboardSubheading }}</p>
           </div>
           <div class="flex items-center gap-4">
             <Button 
@@ -23,10 +23,8 @@
             </Button>
           </div>
         </div>
-
-        <!-- Announcement Banner -->
-        <AnnouncementBanner :announcements="props.announcements" />
-
+        <!-- Announcement Banner (Active Announcements) -->
+        <AnnouncementBanner :announcements="activeAnnouncements" />
         <!-- Search bar -->
         <SearchBar
           @search="handleSearch"
@@ -85,7 +83,7 @@
                     v-for="suite in items.suites"
                     :key="suite.key"
                     :suite="suite"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     @showTooltip="showTooltip"
                   />
                 </div>
@@ -99,7 +97,7 @@
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
-                    :maxResults="50"
+                    :maxResults="resultPageSize"
                     :showAverageResponseTime="showAverageResponseTime"
                     @showTooltip="showTooltip"
                   />
@@ -119,7 +117,7 @@
                 v-for="suite in paginatedSuites"
                 :key="suite.key"
                 :suite="suite"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -133,7 +131,7 @@
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
-                :maxResults="50"
+                :maxResults="resultPageSize"
                 :showAverageResponseTime="showAverageResponseTime"
                 @showTooltip="showTooltip"
               />
@@ -173,6 +171,11 @@
           </Button>
         </div>
       </div>
+
+      <!-- Past Announcements Section -->
+      <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
+        <PastAnnouncements :announcements="archivedAnnouncements" />
+      </div>
     </div>
 
     <Settings @refreshData="fetchData" />
@@ -181,7 +184,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import EndpointCard from '@/components/EndpointCard.vue'
@@ -190,13 +193,22 @@ import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
-import { SERVER_URL } from '@/main.js'
+import PastAnnouncements from '@/components/PastAnnouncements.vue'
 
 const props = defineProps({
   announcements: {
     type: Array,
     default: () => []
   }
+})
+
+// Computed properties for active and archived announcements
+const activeAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => !a.archived) : []
+})
+
+const archivedAnnouncements = computed(() => {
+  return props.announcements ? props.announcements.filter(a => a.archived) : []
 })
 
 const emit = defineEmits(['showTooltip'])
@@ -209,10 +221,11 @@ const itemsPerPage = 96
 const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
-const showAverageResponseTime = ref(true)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
+const resultPageSize = 50
 
 function readBooleanFromLocalStorage(key, fallback) {
   const v = localStorage.getItem(key)
@@ -438,7 +451,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=100`, {
+    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -449,7 +462,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=100`, {
+    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
@@ -489,6 +502,7 @@ const goToPage = (page) => {
 
 const toggleShowAverageResponseTime = () => {
   showAverageResponseTime.value = !showAverageResponseTime.value
+  localStorage.setItem('gatus:show-average-response-time', showAverageResponseTime.value ? 'true' : 'false')
 }
 
 const showTooltip = (result, event, action = 'hover') => {
@@ -522,7 +536,10 @@ const toggleGroupCollapse = (groupName) => {
   localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
 }
 
+// Initialize group collapse state from localStorage or config defaults.
+// Called when user enables group view via SearchBar.
 const initializeCollapsedGroups = () => {
+  // First, try to restore user's previous collapse preferences from localStorage
   try {
     const saved = localStorage.getItem('gatus:uncollapsed-groups')
     if (saved) {
@@ -534,18 +551,23 @@ const initializeCollapsedGroups = () => {
     localStorage.removeItem('gatus:uncollapsed-groups')
   }
 
+  // No saved state found - apply config default (collapseByDefault)
   if (!collapseByDefault.value) {
+    // Expand all groups by default
     const groups = Object.keys(combinedGroups.value || {})
-    uncollapsedGroups.value = new Set(groups) // expanded by default
+    uncollapsedGroups.value = new Set(groups)
   } else {
-    uncollapsedGroups.value = new Set() // collapsed by default
+    // Collapse all groups by default (empty set = nothing uncollapsed)
+    uncollapsedGroups.value = new Set()
   }
 }
 
-watch(() => combinedGroups.value, () => {
-  if (!localStorage.getItem('gatus:uncollapsed-groups')) {
-    initializeCollapsedGroups()
-  }
+const dashboardHeading = computed(() => {
+  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
+})
+
+const dashboardSubheading = computed(() => {
+  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
 })
 
 onMounted(() => {

@@ -21,6 +21,30 @@ import (
 	"github.com/TwiN/gatus/v5/test"
 )
 
+func TestHasHeader(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		headers  map[string]string
+		lookup   string
+		expected bool
+	}{
+		{name: "exact-match", headers: map[string]string{"User-Agent": "test"}, lookup: "User-Agent", expected: true},
+		{name: "lowercase-lookup", headers: map[string]string{"User-Agent": "test"}, lookup: "user-agent", expected: true},
+		{name: "uppercase-lookup", headers: map[string]string{"user-agent": "test"}, lookup: "USER-AGENT", expected: true},
+		{name: "mixed-case", headers: map[string]string{"UsEr-AgEnT": "test"}, lookup: "uSeR-aGeNt", expected: true},
+		{name: "not-found", headers: map[string]string{"Content-Type": "test"}, lookup: "User-Agent", expected: false},
+		{name: "empty-headers", headers: map[string]string{}, lookup: "User-Agent", expected: false},
+		{name: "nil-headers", headers: nil, lookup: "User-Agent", expected: false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			if result := hasHeader(scenario.headers, scenario.lookup); result != scenario.expected {
+				t.Errorf("expected %v, got %v", scenario.expected, result)
+			}
+		})
+	}
+}
+
 func TestEndpoint(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	scenarios := []struct {
@@ -268,6 +292,31 @@ func TestEndpoint(t *testing.T) {
 	}
 }
 
+func TestEndpoint_ResolveSuccessfulConditions(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	endpoint := Endpoint{
+		Name:       "test-endpoint",
+		URL:        "https://example.com/health",
+		Conditions: []Condition{"[BODY].status == UP"},
+		UIConfig:   &ui.Config{ResolveSuccessfulConditions: true},
+	}
+	mockResponse := test.MockRoundTripper(func(r *http.Request) *http.Response {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status":"UP"}`))}
+	})
+	client.InjectHTTPClient(&http.Client{Transport: mockResponse})
+	if err := endpoint.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+	}
+	result := endpoint.EvaluateHealth()
+	if len(result.ConditionResults) != 1 {
+		t.Fatalf("expected 1 condition result, got %d", len(result.ConditionResults))
+	}
+	expectedCondition := "[BODY].status (UP) == UP"
+	if result.ConditionResults[0].Condition != expectedCondition {
+		t.Errorf("expected condition to be '%s', got '%s'", expectedCondition, result.ConditionResults[0].Condition)
+	}
+}
+
 func TestEndpoint_IsEnabled(t *testing.T) {
 	if !(&Endpoint{Enabled: nil}).IsEnabled() {
 		t.Error("endpoint.IsEnabled() should've returned true, because Enabled was set to nil")
@@ -511,24 +560,38 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 		name        string
 		username    string
 		password    string
+		privateKey  string
 		expectedErr error
 	}{
 		{
-			name:        "fail when has no user",
+			name:        "fail when has no user but has password",
 			username:    "",
 			password:    "password",
 			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
 		},
 		{
-			name:        "fail when has no password",
-			username:    "username",
-			password:    "",
-			expectedErr: ssh.ErrEndpointWithoutSSHPassword,
+			name:        "fail when has no user but has private key",
+			username:    "",
+			privateKey:  "-----BEGIN",
+			expectedErr: ssh.ErrEndpointWithoutSSHUsername,
 		},
 		{
-			name:        "success when all fields are set",
+			name:        "fail when has no password or private key",
+			username:    "username",
+			password:    "",
+			privateKey:  "",
+			expectedErr: ssh.ErrEndpointWithoutSSHAuth,
+		},
+		{
+			name:        "success when username and password are set",
 			username:    "username",
 			password:    "password",
+			expectedErr: nil,
+		},
+		{
+			name:        "success when username and private key are set",
+			username:    "username",
+			privateKey:  "-----BEGIN",
 			expectedErr: nil,
 		},
 	}
@@ -539,8 +602,9 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 				Name: "ssh-test",
 				URL:  "https://example.com",
 				SSHConfig: &ssh.Config{
-					Username: scenario.username,
-					Password: scenario.password,
+					Username:   scenario.username,
+					Password:   scenario.password,
+					PrivateKey: scenario.privateKey,
 				},
 				Conditions: []Condition{Condition("[STATUS] == 0")},
 			}
@@ -677,6 +741,76 @@ func TestEndpoint_buildHTTPRequestWithHostHeader(t *testing.T) {
 	if request.Method != "POST" {
 		t.Error("request.Method should've been POST, but was", request.Method)
 	}
+	if request.Host != "example.com" {
+		t.Error("request.Host should've been example.com, but was", request.Host)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseUserAgent(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
+		Conditions: []Condition{condition},
+		Headers: map[string]string{
+			"user-agent": "CustomAgent/1.0",
+		},
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	if _, exists := endpoint.Headers[UserAgentHeader]; exists {
+		t.Error("User-Agent header should not have been added since user-agent was already specified")
+	}
+	request := endpoint.buildHTTPRequest()
+	if userAgent := request.Header.Get("User-Agent"); userAgent != "CustomAgent/1.0" {
+		t.Errorf("request.Header.Get(User-Agent) should've been CustomAgent/1.0, but was %s", userAgent)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseContentType(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-graphql",
+		URL:        "https://twin.sh/graphql",
+		Method:     "POST",
+		Conditions: []Condition{condition},
+		GraphQL:    true,
+		Headers: map[string]string{
+			"content-type": "application/graphql",
+		},
+		Body: `{ users { id } }`,
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	if _, exists := endpoint.Headers[ContentTypeHeader]; exists {
+		t.Error("Content-Type header should not have been added since content-type was already specified")
+	}
+	request := endpoint.buildHTTPRequest()
+	if contentType := request.Header.Get("Content-Type"); contentType != "application/graphql" {
+		t.Errorf("request.Header.Get(Content-Type) should've been application/graphql, but was %s", contentType)
+	}
+}
+
+func TestEndpoint_buildHTTPRequestWithLowercaseHostHeader(t *testing.T) {
+	condition := Condition("[STATUS] == 200")
+	endpoint := Endpoint{
+		Name:       "website-health",
+		URL:        "https://twin.sh/health",
+		Method:     "POST",
+		Conditions: []Condition{condition},
+		Headers: map[string]string{
+			"host": "example.com",
+		},
+	}
+	err := endpoint.ValidateAndSetDefaults()
+	if err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	request := endpoint.buildHTTPRequest()
 	if request.Host != "example.com" {
 		t.Error("request.Host should've been example.com, but was", request.Host)
 	}
@@ -1444,6 +1578,171 @@ func TestEndpoint_preprocessWithContext(t *testing.T) {
 			// Verify original endpoint is not modified
 			if tt.endpoint.URL != ((&Endpoint{URL: tt.endpoint.URL, Body: tt.endpoint.Body, Headers: tt.endpoint.Headers}).URL) {
 				t.Error("Original endpoint was modified")
+			}
+		})
+	}
+}
+
+func TestEndpoint_HideUIFeatures(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	tests := []struct {
+		name              string
+		endpoint          Endpoint
+		mockResponse      test.MockRoundTripper
+		checkHostname     bool
+		expectHostname    string
+		checkErrors       bool
+		expectErrors      bool
+		checkConditions   bool
+		expectConditions  bool
+		checkErrorContent string
+	}{
+		{
+			name: "hide-conditions",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"},
+				UIConfig:   &ui.Config{HideConditions: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"status": "UP"}`))}
+			}),
+			checkConditions:  true,
+			expectConditions: false,
+		},
+		{
+			name: "hide-hostname",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{HideHostname: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			checkHostname:  true,
+			expectHostname: "",
+		},
+		{
+			name: "hide-url-in-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideURL: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse:      nil,
+			checkErrors:       true,
+			expectErrors:      true,
+			checkErrorContent: "<redacted>",
+		},
+		{
+			name: "hide-port-in-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com:9999/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HidePort: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse:      nil,
+			checkErrors:       true,
+			expectErrors:      true,
+			checkErrorContent: "<redacted>",
+		},
+		{
+			name: "hide-errors",
+			endpoint: Endpoint{
+				Name:         "test-endpoint",
+				URL:          "https://example.com/health",
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				UIConfig:     &ui.Config{HideErrors: true},
+				ClientConfig: &client.Config{Timeout: time.Millisecond},
+			},
+			mockResponse: nil,
+			checkErrors:  true,
+			expectErrors: false,
+		},
+		{
+			name: "dont-resolve-failed-conditions",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{DontResolveFailedConditions: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}
+			}),
+			checkConditions:  true,
+			expectConditions: true,
+		},
+		{
+			name: "multiple-hide-features",
+			endpoint: Endpoint{
+				Name:       "test-endpoint",
+				URL:        "https://example.com/health",
+				Conditions: []Condition{"[STATUS] == 200"},
+				UIConfig:   &ui.Config{HideConditions: true, HideHostname: true, HideErrors: true},
+			},
+			mockResponse: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			checkConditions:  true,
+			expectConditions: false,
+			checkHostname:    true,
+			expectHostname:   "",
+			checkErrors:      true,
+			expectErrors:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.mockResponse != nil {
+				mockClient := &http.Client{Transport: tt.mockResponse}
+				if tt.endpoint.ClientConfig != nil && tt.endpoint.ClientConfig.Timeout > 0 {
+					mockClient.Timeout = tt.endpoint.ClientConfig.Timeout
+				}
+				client.InjectHTTPClient(mockClient)
+			} else {
+				client.InjectHTTPClient(nil)
+			}
+			err := tt.endpoint.ValidateAndSetDefaults()
+			if err != nil {
+				t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+			}
+			result := tt.endpoint.EvaluateHealth()
+			if tt.checkHostname {
+				if result.Hostname != tt.expectHostname {
+					t.Errorf("Expected hostname '%s', got '%s'", tt.expectHostname, result.Hostname)
+				}
+			}
+			if tt.checkErrors {
+				hasErrors := len(result.Errors) > 0
+				if hasErrors != tt.expectErrors {
+					t.Errorf("Expected errors=%v, got errors=%v (actual errors: %v)", tt.expectErrors, hasErrors, result.Errors)
+				}
+				if tt.checkErrorContent != "" && len(result.Errors) > 0 {
+					found := false
+					for _, err := range result.Errors {
+						if strings.Contains(err, tt.checkErrorContent) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("Expected error to contain '%s', but got: %v", tt.checkErrorContent, result.Errors)
+					}
+				}
+			}
+			if tt.checkConditions {
+				hasConditions := len(result.ConditionResults) > 0
+				if hasConditions != tt.expectConditions {
+					t.Errorf("Expected conditions=%v, got conditions=%v (actual: %v)", tt.expectConditions, hasConditions, result.ConditionResults)
+				}
 			}
 		})
 	}

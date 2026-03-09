@@ -5,6 +5,15 @@ on:
     inputs:
       tag:
         description: Custom tag to publish
+      platforms:
+        description: Platforms to publish to (comma separated list)
+        default: linux/amd64
+        type: choice
+        options:
+          - linux/amd64
+          - linux/arm/v7
+          - linux/arm64
+
 jobs:
   publish-custom:
     runs-on: ubuntu-latest
@@ -33,7 +42,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           pull: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
