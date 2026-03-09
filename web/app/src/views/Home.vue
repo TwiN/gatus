@@ -536,29 +536,27 @@ const toggleGroupCollapse = (groupName) => {
   localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
 }
 
-// Initialize group collapse state from localStorage or config defaults.
-// Called when user enables group view via SearchBar.
 const initializeCollapsedGroups = () => {
-  // First, try to restore user's previous collapse preferences from localStorage
+  // Get saved uncollapsed groups from localStorage
   try {
     const saved = localStorage.getItem('gatus:uncollapsed-groups')
     if (saved) {
       uncollapsedGroups.value = new Set(JSON.parse(saved))
       return
     }
+    // If no saved state, fall through to apply config defaults
   } catch (e) {
     console.warn('Failed to parse saved uncollapsed groups:', e)
     localStorage.removeItem('gatus:uncollapsed-groups')
+    // On error, fall through to apply config defaults
   }
 
-  // No saved state found - apply config default (collapseByDefault)
+  // Apply config default (collapseByDefault)
   if (!collapseByDefault.value) {
-    // Expand all groups by default
     const groups = Object.keys(combinedGroups.value || {})
-    uncollapsedGroups.value = new Set(groups)
+    uncollapsedGroups.value = new Set(groups) // expanded by default
   } else {
-    // Collapse all groups by default (empty set = nothing uncollapsed)
-    uncollapsedGroups.value = new Set()
+    uncollapsedGroups.value = new Set() // collapsed by default
   }
 }
 
