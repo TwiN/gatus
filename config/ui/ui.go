@@ -23,6 +23,7 @@ const (
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
+	defaultLoginSubtitle        = "System Monitoring Dashboard"
 )
 
 var (
@@ -48,6 +49,7 @@ type Config struct {
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -95,6 +97,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		LoginSubtitle:          defaultLoginSubtitle,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		Favicon: Favicon{
 			Default:   defaultFavicon,
@@ -142,6 +145,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if len(cfg.LoginSubtitle) == 0 {
+		cfg.LoginSubtitle = defaultLoginSubtitle
 	}
 	if len(cfg.Favicon.Default) == 0 {
 		cfg.Favicon.Default = defaultFavicon
