@@ -1,7 +1,7 @@
 package api
 
 import (
-	"net/http"
+	"bytes"
 	"net/http/httptest"
 	"testing"
 
@@ -45,6 +45,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		Path                           string
 		AuthorizationHeaderBearerToken string
 		ExpectedCode                   int
+		Body                           string
 	}{
 		{
 			Name:                           "no-token",
@@ -112,10 +113,24 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   200,
 		},
+		{
+			Name:                           "error-in-body-gets-parsed",
+			Path:                           "/api/v1/endpoints/g_n/external?success=false",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   200,
+			Body:                           `{"error": "failed"}`,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request := httptest.NewRequest("POST", scenario.Path, http.NoBody)
+			var body bytes.Buffer
+			if len(scenario.Body) > 0 {
+				body = *bytes.NewBufferString(scenario.Body)
+			}
+			request := httptest.NewRequest("POST", scenario.Path, &body)
+			if len(scenario.Body) > 0 {
+				request.Header.Set("Content-Type", "application/json")
+			}
 			if len(scenario.AuthorizationHeaderBearerToken) > 0 {
 				request.Header.Set("Authorization", scenario.AuthorizationHeaderBearerToken)
 			}
@@ -138,8 +153,8 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if endpointStatus.Key != "g_n" {
 			t.Errorf("expected key to be g_n but got %s", endpointStatus.Key)
 		}
-		if len(endpointStatus.Results) != 6 {
-			t.Errorf("expected 6 results but got %d", len(endpointStatus.Results))
+		if len(endpointStatus.Results) != 7 {
+			t.Errorf("expected 7 results but got %d", len(endpointStatus.Results))
 		}
 		if !endpointStatus.Results[0].Success {
 			t.Errorf("expected first result to be successful")
@@ -165,9 +180,13 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if len(endpointStatus.Results[5].Errors) == 0 || endpointStatus.Results[5].Errors[0] != "failed" {
 			t.Errorf("expected sixth result to have errors: failed")
 		}
+		if len(endpointStatus.Results[6].Errors) == 0 || endpointStatus.Results[6].Errors[0] != "failed" {
+
+			t.Errorf("expected seventh result to have errors: failed")
+		}
 		externalEndpointFromConfig := cfg.GetExternalEndpointByKey("g_n")
-		if externalEndpointFromConfig.NumberOfFailuresInARow != 3 {
-			t.Errorf("expected 3 failures in a row but got %d", externalEndpointFromConfig.NumberOfFailuresInARow)
+		if externalEndpointFromConfig.NumberOfFailuresInARow != 4 {
+			t.Errorf("expected 4 failures in a row but got %d", externalEndpointFromConfig.NumberOfFailuresInARow)
 		}
 		if externalEndpointFromConfig.NumberOfSuccessesInARow != 0 {
 			t.Errorf("expected 0 successes in a row but got %d", externalEndpointFromConfig.NumberOfSuccessesInARow)
