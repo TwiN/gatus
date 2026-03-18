@@ -16,7 +16,7 @@ import (
 )
 
 type ExternalEndpointBody struct {
-    Error string `json:"error"`
+	Error string `json:"error"`
 }
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
@@ -64,8 +64,8 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			result.AddError(errorFromQuery)
 		}
 		var endpointBody ExternalEndpointBody
-		if err := c.BodyParser(&endpointBody); err != nil {
-      logr.Errorf("[api.CreateExternalEndpointResult] Failed to parse error message from body: %s", err.Error())
+		if err := c.BodyParser(&endpointBody); err != nil && c.Is("json") {
+			logr.Errorf("[api.CreateExternalEndpointResult] Failed to parse error message from body: %s", err.Error())
 		}
 		if errorFromBody := endpointBody.Error; !result.Success && len(errorFromBody) > 0 {
 			result.AddError(errorFromBody)
