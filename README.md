@@ -536,8 +536,8 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.description`          | Meta description for the page.                                                                                                           | `Gatus is an advanced...`.                          |
 | `ui.dashboard-heading`    | Dashboard title between header and endpoints                                                                                             | `Health Dashboard`                                  |
 | `ui.dashboard-subheading` | Dashboard description between header and endpoints                                                                                       | `Monitor the health of your endpoints in real-time` |
-| `ui.header`               | Header at the top of the dashboard.                                                                                                      | `Gatus`                                             |
-| `ui.logo`                 | URL to the logo to display.                                                                                                              | `""`                                                |
+| `ui.header`               | Header at the top of the dashboard. Also used as the title on the OIDC login page.                                                       | `Gatus`                                             |
+| `ui.logo`                 | URL to the logo to display. When set, shown alongside the Gatus logo on the OIDC login page.                                             | `""`                                                |
 | `ui.link`                 | Link to open when the logo is clicked.                                                                                                   | `""`                                                |
 | `ui.favicon.default`      | Favourite default icon to display in web browser tab or address bar.                                                                     | `/favicon.ico`                                      |
 | `ui.favicon.size16x16`    | Favourite icon to display in web browser for 16x16 size.                                                                                 | `/favicon-16x16.png`                                |
@@ -549,6 +549,7 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.dark-mode`            | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                                              |
 | `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
+| `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
 
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
