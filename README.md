@@ -549,6 +549,7 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.dark-mode`            | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                                              |
 | `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
+| `ui.extra-head`           | Extra HTML to include in the status page head.                                                                                           | `""`                                                |
 
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
