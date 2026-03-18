@@ -15,6 +15,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type ExternalEndpointBody struct {
+    Error string `json:"error"`
+}
+
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	return func(c *fiber.Ctx) error {
@@ -58,6 +62,13 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		}
 		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
 			result.AddError(errorFromQuery)
+		}
+		var endpointBody ExternalEndpointBody
+		if err := c.BodyParser(&endpointBody); err != nil {
+      logr.Errorf("[api.CreateExternalEndpointResult] Failed to parse error message from body: %s", err.Error())
+		}
+		if errorFromBody := endpointBody.Error; !result.Success && len(errorFromBody) > 0 {
+			result.AddError(errorFromBody)
 		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().InsertEndpointResult(convertedEndpoint, result); err != nil {
