@@ -181,7 +181,6 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			t.Errorf("expected sixth result to have errors: failed")
 		}
 		if len(endpointStatus.Results[6].Errors) == 0 || endpointStatus.Results[6].Errors[0] != "failed" {
-
 			t.Errorf("expected seventh result to have errors: failed")
 		}
 		externalEndpointFromConfig := cfg.GetExternalEndpointByKey("g_n")
