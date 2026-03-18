@@ -3474,7 +3474,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
@@ -3540,7 +3540,7 @@ The endpoint to generate a badge is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 #### Response time (chart)
@@ -3553,7 +3553,7 @@ The endpoint to generate a response time chart is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/chart.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, or `24h`
+- `{duration}` is `365d`, `30d`, `7d`, or `24h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
@@ -3611,7 +3611,7 @@ The path to get raw uptime data for an endpoint is:
 /api/v1/endpoints/{key}/uptimes/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
@@ -3625,7 +3625,7 @@ The path to get raw response time data for an endpoint is:
 /api/v1/endpoints/{key}/response-times/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
