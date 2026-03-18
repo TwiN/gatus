@@ -100,7 +100,7 @@
         <div class="container mx-auto px-4 py-6 max-w-7xl">
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
-              Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
+              Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus </a> {{ buildVersion && ` ${buildVersion}` }}
             </div>
             <Social />
           </div>
@@ -163,6 +163,9 @@ import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
 
 const route = useRoute()
+
+// Build info
+const buildVersion = ref(window.config && window.config.buildVersion != '{{ .UI.BuildVersion }}' ? window.config.buildVersion : null)
 
 // State
 const retrievedConfig = ref(false)
