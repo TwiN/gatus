@@ -3247,6 +3247,11 @@ endpoints:
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
       - "[CERTIFICATE_EXPIRATION] > 240h"
+  - name: check-domain-expiration-only
+    url: "domain://example.org"
+    interval: 1h
+    conditions:
+      - "[DOMAIN_EXPIRATION] > 720h"
 ```
 
 > ⚠ The usage of the `[DOMAIN_EXPIRATION]` placeholder requires Gatus to use RDAP, or as a fallback, send a request to the official IANA WHOIS service
