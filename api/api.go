@@ -62,7 +62,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	}
 	// Middlewares
 	app.Use(recover.New())
-	app.Use(compress.New())
+	app.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
 	// Define metrics handler, if necessary
 	if cfg.Metrics {
 		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
