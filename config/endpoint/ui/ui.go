@@ -22,6 +22,9 @@ type Config struct {
 	// DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI
 	DontResolveFailedConditions bool `yaml:"dont-resolve-failed-conditions"`
 
+	// ResolveSuccessfulConditions whether to resolve successful conditions in the Result for display in the UI
+	ResolveSuccessfulConditions bool `yaml:"resolve-successful-conditions"`
+
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
 }
@@ -63,6 +66,7 @@ func GetDefaultConfig() *Config {
 		HidePort:                    false,
 		HideErrors:                  false,
 		DontResolveFailedConditions: false,
+		ResolveSuccessfulConditions: false,
 		HideConditions:              false,
 		Badge: &Badge{
 			ResponseTime: &ResponseTime{

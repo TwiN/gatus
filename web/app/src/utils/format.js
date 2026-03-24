@@ -10,7 +10,7 @@ export const formatDuration = (duration) => {
   const durationMs = duration / 1000000
   
   if (durationMs < 1000) {
-    return `${durationMs.toFixed(0)}ms`
+    return `${Math.trunc(durationMs)}ms`
   } else {
     return `${(durationMs / 1000).toFixed(2)}s`
   }

@@ -66,7 +66,7 @@
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    @click="showAverageResponseTime = !showAverageResponseTime"
+                    @click="toggleShowAverageResponseTime"
                     :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
                   >
                     <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
@@ -201,7 +201,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
@@ -213,7 +212,6 @@ import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
-import { SERVER_URL } from '@/main.js'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
 const router = useRouter()
@@ -226,9 +224,8 @@ const events = ref([])
 const currentPage = ref(1)
 const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
-const showAverageResponseTime = ref(false)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
-const serverUrl = SERVER_URL === '.' ? '..' : SERVER_URL
 const isRefreshing = ref(false)
 
 const latestResult = computed(() => {
@@ -247,6 +244,11 @@ const currentHealthStatus = computed(() => {
 const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
+
+const toggleShowAverageResponseTime = () => {
+  showAverageResponseTime.value = !showAverageResponseTime.value
+  localStorage.setItem('gatus:show-average-response-time', showAverageResponseTime.value ? 'true' : 'false')
+}
 
 const pageAverageResponseTime = computed(() => {
   // Use endpointStatus for current page's average response time
@@ -284,8 +286,8 @@ const pageResponseTimeRange = computed(() => {
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.round(min / 1000000)
-  const maxMs = Math.round(max / 1000000) 
+  const minMs = Math.trunc(min / 1000000)
+  const maxMs = Math.trunc(max / 1000000)
   // If min and max are the same, show single value
   if (minMs === maxMs) {
     return `${minMs}ms`
@@ -305,7 +307,7 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`${serverUrl}/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
+    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     
@@ -386,15 +388,15 @@ const prettifyTimestamp = (timestamp) => {
 }
 
 const generateHealthBadgeImageURL = () => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
 }
 
 const generateUptimeBadgeImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
 }
 
 const generateResponseTimeBadgeImageURL = (duration) => {
-  return `${serverUrl}/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
+  return `/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
 }
 
 onMounted(() => {

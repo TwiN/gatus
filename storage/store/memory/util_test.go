@@ -13,7 +13,7 @@ import (
 func TestAddResult(t *testing.T) {
 	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
 	endpointStatus := endpoint.NewStatus(ep.Group, ep.Name)
-	for i := 0; i < (storage.DefaultMaximumNumberOfResults+storage.DefaultMaximumNumberOfEvents)*2; i++ {
+	for i := range (storage.DefaultMaximumNumberOfResults + storage.DefaultMaximumNumberOfEvents) * 2 {
 		AddResult(endpointStatus, &endpoint.Result{Success: i%2 == 0, Timestamp: time.Now()}, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	}
 	if len(endpointStatus.Results) != storage.DefaultMaximumNumberOfResults {
@@ -30,7 +30,7 @@ func TestShallowCopyEndpointStatus(t *testing.T) {
 	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
 	endpointStatus := endpoint.NewStatus(ep.Group, ep.Name)
 	ts := time.Now().Add(-25 * time.Hour)
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		AddResult(endpointStatus, &endpoint.Result{Success: i%2 == 0, Timestamp: ts}, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 		ts = ts.Add(time.Hour)
 	}
@@ -74,9 +74,9 @@ func TestShallowCopySuiteStatus(t *testing.T) {
 		Key:     testSuite.Key(),
 		Results: []*suite.Result{},
 	}
-	
+
 	ts := time.Now().Add(-25 * time.Hour)
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		result := &suite.Result{
 			Name:      testSuite.Name,
 			Group:     testSuite.Group,
@@ -169,4 +169,3 @@ func TestShallowCopySuiteStatus(t *testing.T) {
 		}
 	})
 }
-

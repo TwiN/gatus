@@ -62,6 +62,7 @@ func TestCondition_evaluate(t *testing.T) {
 		Condition                   Condition
 		Result                      *Result
 		DontResolveFailedConditions bool
+		ResolveSuccessfulConditions bool
 		ExpectedSuccess             bool
 		ExpectedOutput              string
 	}{
@@ -183,6 +184,14 @@ func TestCondition_evaluate(t *testing.T) {
 			Result:          &Result{Body: []byte("test")},
 			ExpectedSuccess: true,
 			ExpectedOutput:  "[BODY] == test",
+		},
+		{
+			Name:                        "body-resolved-on-success",
+			Condition:                   Condition("[BODY].status == UP"),
+			Result:                      &Result{Body: []byte("{\"status\":\"UP\"}")},
+			ResolveSuccessfulConditions: true,
+			ExpectedSuccess:             true,
+			ExpectedOutput:              "[BODY].status (UP) == UP",
 		},
 		{
 			Name:            "body-numerical-equal",
@@ -757,7 +766,7 @@ func TestCondition_evaluate(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, nil)
+			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, scenario.ResolveSuccessfulConditions, nil)
 			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
 			}
@@ -771,7 +780,7 @@ func TestCondition_evaluate(t *testing.T) {
 func TestCondition_evaluateWithInvalidOperator(t *testing.T) {
 	condition := Condition("[STATUS] ? 201")
 	result := &Result{HTTPStatus: 201}
-	condition.evaluate(result, false, nil)
+	condition.evaluate(result, false, false, nil)
 	if result.Success {
 		t.Error("condition was invalid, result should've been a failure")
 	}
@@ -791,7 +800,7 @@ func TestConditionEvaluateWithInvalidContextPlaceholder(t *testing.T) {
 		"max_response_time": 5000,
 	})
 	// Simulate suite endpoint evaluation with context
-	success := condition.evaluate(result, false, ctx) // false = don't skip resolution (default)
+	success := condition.evaluate(result, false, false, ctx) // false = don't skip resolution (default)
 	if success {
 		t.Error("Condition should have failed because [CONTEXT].expected_statusz doesn't exist")
 	}
@@ -814,7 +823,7 @@ func TestConditionEvaluateWithValidContextPlaceholder(t *testing.T) {
 		"expected_status": 200,
 	})
 	// Simulate suite endpoint evaluation with context
-	success := condition.evaluate(result, false, ctx)
+	success := condition.evaluate(result, false, false, ctx)
 	if !success {
 		t.Error("Condition should have succeeded")
 	}
@@ -839,7 +848,7 @@ func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
 		"valid_key": 5000,
 	})
 	// Simulate suite endpoint evaluation with context
-	success := condition.evaluate(result, false, ctx)
+	success := condition.evaluate(result, false, false, ctx)
 	if success {
 		t.Error("Condition should have failed because [CONTEXT].invalid_key doesn't exist")
 	}

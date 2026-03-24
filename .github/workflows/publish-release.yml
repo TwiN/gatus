@@ -10,9 +10,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Get image repository
         run: |
           echo DOCKER_IMAGE_REPOSITORY=$(echo ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
@@ -20,19 +20,19 @@ jobs:
       - name: Get the release
         run: echo RELEASE=${GITHUB_REF/refs\/tags\//} >> $GITHUB_ENV
       - name: Login to Docker Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ${{ env.DOCKER_IMAGE_REPOSITORY }}
@@ -42,7 +42,7 @@ jobs:
             type=raw,value=stable
             type=raw,value=latest
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           pull: true

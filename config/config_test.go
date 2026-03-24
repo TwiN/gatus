@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
+	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
@@ -1854,6 +1856,7 @@ func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		AWSSimpleEmailService: &awsses.AlertProvider{},
+		ClickUp:               &clickup.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
 		Datadog:               &datadog.AlertProvider{},
 		Discord:               &discord.AlertProvider{},
@@ -1898,6 +1901,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		expected  provider.AlertProvider
 	}{
 		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
+		{alertType: alert.TypeClickUp, expected: alertingConfig.ClickUp},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
@@ -2049,7 +2053,7 @@ func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
 				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
 			}
 			for _, label := range tt.expected {
-				if !contains(labels, label) {
+				if !slices.Contains(labels, label) {
 					t.Errorf("expected label %s to be present", label)
 				}
 			}

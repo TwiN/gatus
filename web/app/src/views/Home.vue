@@ -182,7 +182,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -193,7 +192,6 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
-import { SERVER_URL } from '@/main.js'
 
 const props = defineProps({
   announcements: {
@@ -221,7 +219,7 @@ const itemsPerPage = 96
 const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
-const showAverageResponseTime = ref(true)
+const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
@@ -434,7 +432,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`${SERVER_URL}/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
+    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -445,7 +443,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`${SERVER_URL}/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
+    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
@@ -485,6 +483,7 @@ const goToPage = (page) => {
 
 const toggleShowAverageResponseTime = () => {
   showAverageResponseTime.value = !showAverageResponseTime.value
+  localStorage.setItem('gatus:show-average-response-time', showAverageResponseTime.value ? 'true' : 'false')
 }
 
 const showTooltip = (result, event, action = 'hover') => {
