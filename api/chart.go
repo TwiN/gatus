@@ -70,16 +70,8 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 		},
 	}
 	keys := make([]int, 0, len(hourlyAverageResponseTime))
-	earliestTimestamp := int64(0)
 	for hourlyTimestamp := range hourlyAverageResponseTime {
 		keys = append(keys, int(hourlyTimestamp))
-		if earliestTimestamp == 0 || hourlyTimestamp < earliestTimestamp {
-			earliestTimestamp = hourlyTimestamp
-		}
-	}
-	for earliestTimestamp > from.Unix() {
-		earliestTimestamp -= int64(time.Hour.Seconds())
-		keys = append(keys, int(earliestTimestamp))
 	}
 	sort.Ints(keys)
 	var maxAverageResponseTime float64
@@ -144,7 +136,9 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).SendString("invalid key encoding")
 	}
-	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(endpointKey, from, time.Now())
+	// Fetch one extra day of data before 'from' so the chart line extends to the left edge
+	// (the frontend clips the visible range to 'from' via the X-axis min/max)
+	hourlyAverageResponseTime, err := store.Get().GetHourlyAverageResponseTimeByKey(endpointKey, from.Add(-24*time.Hour), time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
 			return c.Status(404).SendString(err.Error())
@@ -161,16 +155,8 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 		})
 	}
 	hourlyTimestamps := make([]int, 0, len(hourlyAverageResponseTime))
-	earliestTimestamp := int64(0)
 	for hourlyTimestamp := range hourlyAverageResponseTime {
 		hourlyTimestamps = append(hourlyTimestamps, int(hourlyTimestamp))
-		if earliestTimestamp == 0 || hourlyTimestamp < earliestTimestamp {
-			earliestTimestamp = hourlyTimestamp
-		}
-	}
-	for earliestTimestamp > from.Unix() {
-		earliestTimestamp -= int64(time.Hour.Seconds())
-		hourlyTimestamps = append(hourlyTimestamps, int(earliestTimestamp))
 	}
 	sort.Ints(hourlyTimestamps)
 	timestamps := make([]int64, 0, len(hourlyTimestamps))
