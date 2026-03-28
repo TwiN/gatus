@@ -528,6 +528,9 @@ func rdapQuery(hostname string) (*whois.Response, error) {
 			break
 		}
 	}
+	if response.ExpirationDate.IsZero() {
+		return nil, errors.New("no expiration event found in RDAP response")
+	}
 	return &response, nil
 }
 
