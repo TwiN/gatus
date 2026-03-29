@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	uptimeCleanUpThreshold = 32 * 24
-	uptimeRetention        = 30 * 24 * time.Hour
+	uptimeCleanUpThreshold = 367 * 24
+	uptimeRetention        = 365 * 24 * time.Hour
 )
 
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
