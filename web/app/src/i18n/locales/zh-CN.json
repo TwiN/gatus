@@ -1,0 +1,185 @@
+{
+  "app": {
+    "systemMonitoringDashboard": "系统监控看板",
+    "poweredBy": "由",
+    "loginWithOidc": "使用 OIDC 登录",
+    "accessDenied": "你无权访问该状态页面",
+    "refresh": "刷新数据",
+    "gatusLogoAlt": "Gatus 徽标"
+  },
+  "common": {
+    "loading": "加载中...",
+    "backToDashboard": "返回仪表盘",
+    "noGroup": "无分组",
+    "noEndpointsOrSuitesFound": "未找到监控或",
+    "tryAdjustingYourFilters": "请调整筛选条件",
+    "noEndpointsOrSuitesConfigured": "未配置监控",
+    "unknown": "未知",
+    "nA": "不可用",
+    "now": "现在",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "home": {
+    "suites": "套件",
+    "endpoints": "端点",
+    "showAverageResponseTime": "显示平均响应时间",
+    "showMinMaxResponseTime": "显示最小/最大响应时间",
+    "dashboardHeadingDefault": "监控仪表盘",
+    "dashboardSubheadingDefault": "实时监控你的服务健康状态"
+  },
+  "search": {
+    "searchEndpoints": "搜索服务",
+    "searchPlaceholder": "搜索服务...",
+    "filterBy": "筛选：",
+    "sortBy": "排序：",
+    "filterNone": "无",
+    "filterFailing": "失败",
+    "filterUnstable": "不稳定",
+    "sortName": "名称",
+    "sortGroup": "分组",
+    "sortHealth": "健康状态"
+  },
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "pageOf": "第 {current} 页 / 共 {max} 页"
+  },
+  "status": {
+    "healthy": "健康",
+    "unhealthy": "异常",
+    "degraded": "降级",
+    "unknown": "未知"
+  },
+  "tooltip": {
+    "suitePassed": "套件通过",
+    "suiteFailed": "套件失败",
+    "timestamp": "时间戳",
+    "endpoints": "端点",
+    "passed": "通过",
+    "totalDuration": "总时长",
+    "responseTime": "响应时间",
+    "conditions": "条件",
+    "errors": "错误",
+    "more": "... 以及还有 {count} 项更多"
+  },
+  "suiteDetails": {
+    "loading": "加载中...",
+    "suiteNotFoundTitle": "未找到套件",
+    "suiteNotFoundDescription": "请求的套件不存在。",
+    "latestExecution": "最新执行",
+    "executionAt": "于 {time} 执行",
+    "status": "状态",
+    "duration": "持续时间",
+    "endpoints": "端点",
+    "successRate": "成功率",
+    "executionFlow": "执行流程",
+    "suiteErrors": "套件错误",
+    "executionHistory": "执行历史",
+    "noExecutionHistoryAvailable": "暂无执行历史",
+    "ran": "已执行",
+    "lastRun": "上次执行"
+  },
+  "endpointDetails": {
+    "backToDashboard": "返回仪表盘",
+    "groupLabel": "分组：",
+    "currentStatus": "当前状态",
+    "avgResponseTime": "平均响应时间",
+    "responseTimeRange": "响应时间范围",
+    "lastCheck": "最近检查",
+    "recentChecks": "最近检查",
+    "responseTimeTrend": "响应时间趋势",
+    "uptimeStatistics": "可用性统计",
+    "currentHealth": "当前健康状态",
+    "events": "事件",
+    "operational": "运行正常",
+    "issuesDetected": "检测到问题",
+    "refresh": "刷新数据",
+    "last30Days": "最近 30 天",
+    "last7Days": "最近 7 天",
+    "last24Hours": "最近 24 小时",
+    "lastHour": "最近 1 小时",
+    "healthBadgeAlt": "健康徽章",
+    "periodResponseTimeAlt": "{period} 响应时间",
+    "periodUptimeAlt": "{period} 可用性",
+    "never": "从未",
+    "endpointIsUnhealthy": "端点不健康",
+    "endpointIsHealthy": "端点健康",
+    "monitoringStarted": "监控已开始",
+    "endpointBecameHealthy": "端点已变为健康",
+    "endpointWasUnhealthyFor": "端点不健康持续 {duration}",
+    "endpointBecameUnhealthy": "端点已变为不健康"
+  },
+  "settings": {
+    "language": "语言",
+    "lightMode": "浅色模式",
+    "darkMode": "深色模式",
+    "switchToLightMode": "切换到浅色模式",
+    "switchToDarkMode": "切换到深色模式"
+  },
+  "announcements": {
+    "announcements": "公告",
+    "pastAnnouncements": "历史公告",
+    "noIncidentsReportedOnThisDay": "当天没有上报的事件",
+    "viewOlderAnnouncements": "查看更早的公告",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "flow": {
+    "alwaysRun": "总会执行",
+    "stepsSuccessful": "{completed}/{total} 个步骤成功",
+    "start": "开始",
+    "end": "结束",
+    "statusLegend": "状态图例",
+    "success": "成功",
+    "failed": "失败",
+    "skipped": "跳过",
+    "error": "错误",
+    "errors": "错误"
+  },
+  "stepDetailsModal": {
+    "alwaysRun": "总会执行",
+    "alwaysRunDescription": "即使发生失败，该端点也会继续执行",
+    "errorsTitle": "错误（{count}）",
+    "timestamp": "时间戳",
+    "response": "响应",
+    "durationLabel": "持续时间：",
+    "successLabel": "成功：",
+    "yes": "是",
+    "no": "否",
+    "conditionResultsTitle": "条件结果（{count}）",
+    "passed": "通过",
+    "failed": "失败",
+    "endpointConfiguration": "端点配置",
+    "url": "URL：",
+    "method": "方法：",
+    "interval": "间隔：",
+    "timeout": "超时：",
+    "resultErrorsTitle": "结果错误（{count}）"
+  },
+  "charts": {
+    "responseTimeMs": "响应时间（毫秒）",
+    "errorFailedToLoadChartData": "无法加载图表数据",
+    "statusOngoing": "状态：进行中",
+    "statusResolved": "状态：已解决",
+    "unhealthyFor": "不健康持续 {duration}",
+    "startedAt": "开始于 {time}"
+  },
+  "endpointCard": {
+    "viewDetailsFor": "查看 {name} 详情",
+    "averageResponseTimeTitle": "平均响应时间",
+    "minMaxResponseTimeTitle": "最小与最大响应时间",
+    "noData": "不可用"
+  },
+  "suiteCard": {
+    "viewDetailsForSuite": "查看套件 {name} 详情",
+    "successRateLabel": "成功率：",
+    "endpointLabel": "端点",
+    "endpointsLabel": "端点",
+    "averageSuffix": "平均"
+  },
+  "social": {
+    "githubTitle": "Gatus GitHub"
+  }
+}
+

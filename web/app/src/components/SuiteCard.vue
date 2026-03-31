@@ -11,14 +11,16 @@
               :title="suite.name"
               role="link"
               tabindex="0"
-              :aria-label="`View details for suite ${suite.name}`">
+              :aria-label="t('suiteCard.viewDetailsForSuite', { name: suite.name })">
               {{ suite.name }}
             </span>
           </CardTitle>
           <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <span v-if="suite.group" class="truncate" :title="suite.group">{{ suite.group }}</span>
             <span v-if="suite.group && endpointCount">•</span>
-            <span v-if="endpointCount">{{ endpointCount }} endpoint{{ endpointCount !== 1 ? 's' : '' }}</span>
+            <span v-if="endpointCount">
+              {{ endpointCount }} {{ endpointCount !== 1 ? t('suiteCard.endpointsLabel') : t('suiteCard.endpointLabel') }}
+            </span>
           </div>
         </div>
         <div class="flex-shrink-0 ml-2">
@@ -30,8 +32,8 @@
       <div class="space-y-2">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-muted-foreground">Success Rate: {{ successRate }}%</p>
-            <p class="text-xs text-muted-foreground" v-if="averageDuration !== null">{{ averageDuration }}ms avg</p>
+            <p class="text-xs text-muted-foreground">{{ t('suiteCard.successRateLabel') }} {{ successRate }}%</p>
+            <p class="text-xs text-muted-foreground" v-if="averageDuration !== null">{{ averageDuration }}ms {{ t('suiteCard.averageSuffix') }}</p>
           </div>
           <div class="flex gap-0.5">
             <div
@@ -64,11 +66,13 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const props = defineProps({
   suite: {
@@ -131,7 +135,7 @@ const averageDuration = computed(() => {
 
 const oldestResultTime = computed(() => {
   if (!props.suite.results || props.suite.results.length === 0) {
-    return 'N/A'
+    return t('common.nA')
   }
   
   const oldestResult = props.suite.results[0]
@@ -140,7 +144,7 @@ const oldestResultTime = computed(() => {
 
 const newestResultTime = computed(() => {
   if (!props.suite.results || props.suite.results.length === 0) {
-    return 'Now'
+    return t('common.now')
   }
   
   const newestResult = props.suite.results[props.suite.results.length - 1]

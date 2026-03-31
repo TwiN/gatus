@@ -1,6 +1,6 @@
 <template>
   <div v-if="announcements && announcements.length" class="past-announcements">
-    <h2 class="text-2xl font-semibold text-foreground mb-6">Past Announcements</h2>
+    <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('announcements.pastAnnouncements') }}</h2>
 
     <div class="space-y-8">
       <div
@@ -52,7 +52,7 @@
         <!-- Empty state for dates without announcements -->
         <div v-else class="py-2">
           <p class="text-sm italic text-muted-foreground/60">
-            No incidents reported on this day
+            {{ t('announcements.noIncidentsReportedOnThisDay') }}
           </p>
         </div>
       </div>
@@ -61,7 +61,7 @@
       <div v-if="hasOlderAnnouncements && !showAllAnnouncements">
         <button @click="showAllAnnouncements = true" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 cursor-pointer group">
           <ChevronDown class="w-4 h-4 group-hover:translate-y-0.5 transition-transform duration-200" />
-          <span class="group-hover:underline">View older announcements</span>
+          <span class="group-hover:underline">{{ t('announcements.viewOlderAnnouncements') }}</span>
         </button>
       </div>
     </div>
@@ -72,6 +72,7 @@
 import { ref, computed } from 'vue'
 import { XCircle, AlertTriangle, Info, CheckCircle, Circle, ChevronDown } from 'lucide-vue-next'
 import { formatAnnouncementMessage } from '@/utils/markdown'
+import { useI18n } from 'vue-i18n'
 
 // Props
 const props = defineProps({
@@ -80,6 +81,9 @@ const props = defineProps({
     default: () => []
   }
 })
+
+const { t, locale } = useI18n()
+const dateLocale = computed(() => (locale.value === 'zh-CN' ? 'zh-CN' : 'en-US'))
 
 // State
 const showAllAnnouncements = ref(false)
@@ -182,7 +186,7 @@ const getTypeClasses = (type) => {
 
 const formatDate = (dateString) => {
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(dateLocale.value, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -191,7 +195,7 @@ const formatDate = (dateString) => {
 }
 
 const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
+  return new Date(timestamp).toLocaleTimeString(dateLocale.value, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
@@ -199,7 +203,7 @@ const formatTime = (timestamp) => {
 }
 
 const formatFullTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString('en-US', {
+  return new Date(timestamp).toLocaleString(dateLocale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

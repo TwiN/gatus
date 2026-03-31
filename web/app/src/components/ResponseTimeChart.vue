@@ -18,6 +18,9 @@ import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import { generatePrettyTimeDifference } from '@/utils/time'
 import Loading from './Loading.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
 
@@ -118,7 +121,7 @@ const chartData = computed(() => {
   return {
     labels,
     datasets: [{
-      label: 'Response Time (ms)',
+      label: t('charts.responseTimeMs'),
       data: values.value,
       borderColor: isDark.value ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
       backgroundColor: isDark.value ? 'rgba(96, 165, 250, 0.1)' : 'rgba(59, 130, 246, 0.1)',
@@ -207,7 +210,11 @@ const chartOptions = computed(() => {
             },
             label: {
               display: () => hoveredEventIndex.value === index,
-              content: [event.isOngoing ? `Status: ONGOING` : `Status: RESOLVED`, `Unhealthy for ${event.duration}`, `Started at ${new Date(event.timestamp).toLocaleString()}`],
+              content: [
+                event.isOngoing ? t('charts.statusOngoing') : t('charts.statusResolved'),
+                t('charts.unhealthyFor', { duration: event.duration }),
+                t('charts.startedAt', { time: new Date(event.timestamp).toLocaleString() })
+              ],
               backgroundColor: getEventColor(),
               color: '#ffffff',
               font: {
@@ -268,11 +275,11 @@ const fetchData = async () => {
       timestamps.value = data.timestamps || []
       values.value = data.values || []
     } else {
-      error.value = 'Failed to load chart data'
+      error.value = t('charts.errorFailedToLoadChartData')
       console.error('[ResponseTimeChart] Error:', await response.text())
     }
   } catch (err) {
-    error.value = 'Failed to load chart data'
+    error.value = t('charts.errorFailedToLoadChartData')
     console.error('[ResponseTimeChart] Error:', err)
   } finally {
     loading.value = false

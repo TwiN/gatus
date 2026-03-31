@@ -11,7 +11,7 @@
               :title="endpoint.name"
               role="link"
               tabindex="0"
-              :aria-label="`View details for ${endpoint.name}`">
+              :aria-label="t('endpointCard.viewDetailsFor', { name: endpoint.name })">
               {{ endpoint.name }}
             </span>
           </CardTitle>
@@ -31,7 +31,12 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <div class="flex-1"></div>
-            <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
+            <p
+              class="text-xs text-muted-foreground"
+              :title="showAverageResponseTime ? t('endpointCard.averageResponseTimeTitle') : t('endpointCard.minMaxResponseTimeTitle')"
+            >
+              {{ formattedResponseTime }}
+            </p>
           </div>
           <div class="flex gap-0.5">
             <div
@@ -64,11 +69,13 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const props = defineProps({
   endpoint: {
@@ -116,7 +123,7 @@ const displayResults = computed(() => {
 
 const formattedResponseTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return 'N/A'
+    return t('endpointCard.noData')
   }
   
   let total = 0
@@ -134,7 +141,7 @@ const formattedResponseTime = computed(() => {
     }
   }
   
-  if (count === 0) return 'N/A'
+  if (count === 0) return t('endpointCard.noData')
   
   if (props.showAverageResponseTime) {
     const avgMs = Math.round(total / count)

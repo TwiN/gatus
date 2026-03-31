@@ -6,22 +6,22 @@
 export const generatePrettyTimeAgo = (timestamp) => {
   let differenceInMs = new Date().getTime() - new Date(timestamp).getTime();
   if (differenceInMs < 500) {
-    return "now";
+    return getLocaleText('now', '刚刚');
   }
   if (differenceInMs > 3 * 86400000) { // If it was more than 3 days ago, we'll display the number of days ago
     let days = (differenceInMs / 86400000).toFixed(0);
-    return days + " day" + (days !== "1" ? "s" : "") + " ago";
+    return getLocaleText(`${days} day${days !== "1" ? "s" : ""} ago`, `${days} 天前`);
   }
   if (differenceInMs > 3600000) { // If it was more than 1h ago, display the number of hours ago
     let hours = (differenceInMs / 3600000).toFixed(0);
-    return hours + " hour" + (hours !== "1" ? "s" : "") + " ago";
+    return getLocaleText(`${hours} hour${hours !== "1" ? "s" : ""} ago`, `${hours} 小时前`);
   }
   if (differenceInMs > 60000) {
     let minutes = (differenceInMs / 60000).toFixed(0);
-    return minutes + " minute" + (minutes !== "1" ? "s" : "") + " ago";
+    return getLocaleText(`${minutes} minute${minutes !== "1" ? "s" : ""} ago`, `${minutes} 分钟前`);
   }
   let seconds = (differenceInMs / 1000).toFixed(0);
-  return seconds + " second" + (seconds !== "1" ? "s" : "") + " ago";
+  return getLocaleText(`${seconds} second${seconds !== "1" ? "s" : ""} ago`, `${seconds} 秒前`);
 }
 
 /**
@@ -38,20 +38,24 @@ export const generatePrettyTimeDifference = (start, end) => {
 
   if (hours > 0) {
     const remainingMinutes = minutes % 60
-    const hoursText = hours + (hours === 1 ? ' hour' : ' hours')
     if (remainingMinutes > 0) {
-      return hoursText + ' ' + remainingMinutes + (remainingMinutes === 1 ? ' minute' : ' minutes')
+      return getLocaleText(
+        `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`,
+        `${hours}小时${remainingMinutes}分钟`
+      )
     }
-    return hoursText
+    return getLocaleText(`${hours} ${hours === 1 ? 'hour' : 'hours'}`, `${hours}小时`)
   } else if (minutes > 0) {
     const remainingSeconds = seconds % 60
-    const minutesText = minutes + (minutes === 1 ? ' minute' : ' minutes')
     if (remainingSeconds > 0) {
-      return minutesText + ' ' + remainingSeconds + (remainingSeconds === 1 ? ' second' : ' seconds')
+      return getLocaleText(
+        `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${remainingSeconds} ${remainingSeconds === 1 ? 'second' : 'seconds'}`,
+        `${minutes}分钟${remainingSeconds}秒`
+      )
     }
-    return minutesText
+    return getLocaleText(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`, `${minutes}分钟`)
   } else {
-    return seconds + (seconds === 1 ? ' second' : ' seconds')
+    return getLocaleText(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`, `${seconds}秒`)
   }
 }
 
@@ -69,4 +73,17 @@ export const prettifyTimestamp = (timestamp) => {
   let mm = ((date.getMinutes()) < 10 ? "0" : "") + "" + (date.getMinutes());
   let ss = ((date.getSeconds()) < 10 ? "0" : "") + "" + (date.getSeconds());
   return YYYY + "-" + MM + "-" + DD + " " + hh + ":" + mm + ":" + ss;
+}
+
+const resolveLocale = () => {
+  if (typeof window !== 'undefined' && window.__gatusLocale) return window.__gatusLocale
+  return 'en'
+}
+
+const isZh = () => {
+  return String(resolveLocale()).toLowerCase().startsWith('zh')
+}
+
+const getLocaleText = (enText, zhText) => {
+  return isZh() ? zhText : enText
 }

@@ -6,13 +6,14 @@
         sizeClass,
       ]"
       src="../assets/logo.svg" 
-      alt="Gatus logo" 
+      :alt="t('app.gatusLogoAlt')" 
     />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   size: {
@@ -21,6 +22,8 @@ const props = defineProps({
     validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
   },
 })
+
+const { t } = useI18n()
 
 const sizeClass = computed(() => {
   const sizes = {

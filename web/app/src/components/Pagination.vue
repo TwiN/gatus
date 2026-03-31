@@ -8,11 +8,11 @@
       class="flex items-center gap-1"
     >
       <ChevronLeft class="h-4 w-4" />
-      Previous
+      {{ t('pagination.previous') }}
     </Button>
     
     <span class="text-sm text-muted-foreground">
-      Page {{ currentPage }} of {{ maxPages }}
+      {{ t('pagination.pageOf', { current: currentPage, max: maxPages }) }}
     </span>
     
     <Button
@@ -22,7 +22,7 @@
       @click="nextPage"
       class="flex items-center gap-1"
     >
-      Next
+      {{ t('pagination.next') }}
       <ChevronRight class="h-4 w-4" />
     </Button>
   </div>
@@ -32,6 +32,9 @@
 import { ref, computed } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   numberOfResultsPerPage: Number,

@@ -1,0 +1,185 @@
+{
+  "app": {
+    "systemMonitoringDashboard": "System Monitoring Dashboard",
+    "poweredBy": "Powered by",
+    "loginWithOidc": "Login with OIDC",
+    "accessDenied": "You do not have access to this status page",
+    "refresh": "Refresh data",
+    "gatusLogoAlt": "Gatus logo"
+  },
+  "common": {
+    "loading": "Loading...",
+    "backToDashboard": "Back to Dashboard",
+    "noGroup": "No Group",
+    "noEndpointsOrSuitesFound": "No endpoints or suites found",
+    "tryAdjustingYourFilters": "Try adjusting your filters",
+    "noEndpointsOrSuitesConfigured": "No endpoints or suites are configured",
+    "unknown": "Unknown",
+    "nA": "N/A",
+    "now": "Now",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "home": {
+    "suites": "Suites",
+    "endpoints": "Endpoints",
+    "showAverageResponseTime": "Show average response time",
+    "showMinMaxResponseTime": "Show min-max response time",
+    "dashboardHeadingDefault": "Health Dashboard",
+    "dashboardSubheadingDefault": "Monitor the health of your endpoints in real-time"
+  },
+  "search": {
+    "searchEndpoints": "Search endpoints",
+    "searchPlaceholder": "Search endpoints...",
+    "filterBy": "Filter by:",
+    "sortBy": "Sort by:",
+    "filterNone": "None",
+    "filterFailing": "Failing",
+    "filterUnstable": "Unstable",
+    "sortName": "Name",
+    "sortGroup": "Group",
+    "sortHealth": "Health"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {current} of {max}"
+  },
+  "status": {
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy",
+    "degraded": "Degraded",
+    "unknown": "Unknown"
+  },
+  "tooltip": {
+    "suitePassed": "Suite Passed",
+    "suiteFailed": "Suite Failed",
+    "timestamp": "Timestamp",
+    "endpoints": "Endpoints",
+    "passed": "passed",
+    "totalDuration": "Total Duration",
+    "responseTime": "Response Time",
+    "conditions": "Conditions",
+    "errors": "Errors",
+    "more": "... and {count} more"
+  },
+  "suiteDetails": {
+    "loading": "Loading...",
+    "suiteNotFoundTitle": "Suite not found",
+    "suiteNotFoundDescription": "The requested suite could not be found.",
+    "latestExecution": "Latest Execution",
+    "executionAt": "Execution at {time}",
+    "status": "Status",
+    "duration": "Duration",
+    "endpoints": "Endpoints",
+    "successRate": "Success Rate",
+    "executionFlow": "Execution Flow",
+    "suiteErrors": "Suite Errors",
+    "executionHistory": "Execution History",
+    "noExecutionHistoryAvailable": "No execution history available",
+    "ran": "Ran",
+    "lastRun": "Last run"
+  },
+  "endpointDetails": {
+    "backToDashboard": "Back to Dashboard",
+    "groupLabel": "Group:",
+    "currentStatus": "Current Status",
+    "avgResponseTime": "Avg Response Time",
+    "responseTimeRange": "Response Time Range",
+    "lastCheck": "Last Check",
+    "recentChecks": "Recent Checks",
+    "responseTimeTrend": "Response Time Trend",
+    "uptimeStatistics": "Uptime Statistics",
+    "currentHealth": "Current Health",
+    "events": "Events",
+    "operational": "Operational",
+    "issuesDetected": "Issues Detected",
+    "refresh": "Refresh data",
+    "last30Days": "Last 30 days",
+    "last7Days": "Last 7 days",
+    "last24Hours": "Last 24 hours",
+    "lastHour": "Last hour",
+    "healthBadgeAlt": "health badge",
+    "periodResponseTimeAlt": "{period} response time",
+    "periodUptimeAlt": "{period} uptime",
+    "never": "Never",
+    "endpointIsUnhealthy": "Endpoint is unhealthy",
+    "endpointIsHealthy": "Endpoint is healthy",
+    "monitoringStarted": "Monitoring started",
+    "endpointBecameHealthy": "Endpoint became healthy",
+    "endpointWasUnhealthyFor": "Endpoint was unhealthy for {duration}",
+    "endpointBecameUnhealthy": "Endpoint became unhealthy"
+  },
+  "settings": {
+    "language": "Language",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode"
+  },
+  "announcements": {
+    "announcements": "Announcements",
+    "pastAnnouncements": "Past Announcements",
+    "noIncidentsReportedOnThisDay": "No incidents reported on this day",
+    "viewOlderAnnouncements": "View older announcements",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "flow": {
+    "alwaysRun": "Always Run",
+    "stepsSuccessful": "{completed}/{total} steps successful",
+    "start": "Start",
+    "end": "End",
+    "statusLegend": "Status Legend",
+    "success": "Success",
+    "failed": "Failed",
+    "skipped": "Skipped",
+    "error": "error",
+    "errors": "errors"
+  },
+  "stepDetailsModal": {
+    "alwaysRun": "Always Run",
+    "alwaysRunDescription": "This endpoint is configured to execute even after failures",
+    "errorsTitle": "Errors ({count})",
+    "timestamp": "Timestamp",
+    "response": "Response",
+    "durationLabel": "Duration:",
+    "successLabel": "Success:",
+    "yes": "Yes",
+    "no": "No",
+    "conditionResultsTitle": "Condition Results ({count})",
+    "passed": "Passed",
+    "failed": "Failed",
+    "endpointConfiguration": "Endpoint Configuration",
+    "url": "URL:",
+    "method": "Method:",
+    "interval": "Interval:",
+    "timeout": "Timeout:",
+    "resultErrorsTitle": "Result Errors ({count})"
+  },
+  "charts": {
+    "responseTimeMs": "Response Time (ms)",
+    "errorFailedToLoadChartData": "Failed to load chart data",
+    "statusOngoing": "Status: ONGOING",
+    "statusResolved": "Status: RESOLVED",
+    "unhealthyFor": "Unhealthy for {duration}",
+    "startedAt": "Started at {time}"
+  },
+  "endpointCard": {
+    "viewDetailsFor": "View details for {name}",
+    "averageResponseTimeTitle": "Average response time",
+    "minMaxResponseTimeTitle": "Minimum and maximum response time",
+    "noData": "N/A"
+  },
+  "suiteCard": {
+    "viewDetailsForSuite": "View details for suite {name}",
+    "successRateLabel": "Success Rate:",
+    "endpointLabel": "endpoint",
+    "endpointsLabel": "endpoints",
+    "averageSuffix": "avg"
+  },
+  "social": {
+    "githubTitle": "Gatus on GitHub"
+  }
+}
+

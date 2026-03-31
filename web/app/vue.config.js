@@ -6,7 +6,7 @@ module.exports = {
 	filenameHashing: false,
 	productionSourceMap: false,
 	outputDir: '../static',
-	publicPath: '/',
+	publicPath: './',
 	devServer: {
 		port: 8081,
 		https: false,
@@ -15,9 +15,9 @@ module.exports = {
 		},
 		proxy: {
 			'^/api|^/css|^/oicd': {
-				target: "http://localhost:8080",
-				changeOrigin: true,
-				secure: false,
+				target: "http://149.129.107.38:8085",
+				// changeOrigin: true,
+				// secure: false,
 			}
 		}
 	}

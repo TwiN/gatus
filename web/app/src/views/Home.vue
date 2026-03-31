@@ -12,12 +12,12 @@
               variant="ghost" 
               size="icon" 
               @click="toggleShowAverageResponseTime" 
-              :title="showAverageResponseTime ? 'Show min-max response time' : 'Show average response time'"
+              :title="showAverageResponseTime ? t('home.showMinMaxResponseTime') : t('home.showAverageResponseTime')"
             >
               <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
               <Timer v-else class="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
+            <Button variant="ghost" size="icon" @click="refreshData" :title="t('app.refresh')">
               <RefreshCw class="h-5 w-5" />
             </Button>
           </div>
@@ -41,11 +41,11 @@
 
       <div v-else-if="filteredEndpoints.length === 0 && filteredSuites.length === 0" class="text-center py-20">
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-semibold mb-2">No endpoints or suites found</h3>
+        <h3 class="text-lg font-semibold mb-2">{{ t('common.noEndpointsOrSuitesFound') }}</h3>
         <p class="text-muted-foreground">
           {{ searchQuery || showOnlyFailing || showRecentFailures 
-            ? 'Try adjusting your filters' 
-            : 'No endpoints or suites are configured' }}
+            ? t('common.tryAdjustingYourFilters')
+            : t('common.noEndpointsOrSuitesConfigured') }}
         </p>
       </div>
 
@@ -61,7 +61,9 @@
               <div class="flex items-center gap-3">
                 <ChevronDown v-if="uncollapsedGroups.has(group)" class="h-5 w-5 text-muted-foreground" />
                 <ChevronUp v-else class="h-5 w-5 text-muted-foreground" />
-                <h2 class="text-xl font-semibold text-foreground">{{ group }}</h2>
+                <h2 class="text-xl font-semibold text-foreground">
+                  {{ group === 'No Group' ? t('common.noGroup') : group }}
+                </h2>
               </div>
               <div class="flex items-center gap-2">
                 <span v-if="calculateUnhealthyCount(items.endpoints) + calculateFailingSuitesCount(items.suites) > 0" 
@@ -76,7 +78,7 @@
             <div v-if="uncollapsedGroups.has(group)" class="endpoint-group-content p-4">
               <!-- Suites Section -->
               <div v-if="items.suites.length > 0" class="mb-4">
-                <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Suites</h3>
+                <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">{{ t('home.suites') }}</h3>
                 <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   <SuiteCard
                     v-for="suite in items.suites"
@@ -90,7 +92,7 @@
               
               <!-- Endpoints Section -->
               <div v-if="items.endpoints.length > 0">
-                <h3 v-if="items.suites.length > 0" class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Endpoints</h3>
+                <h3 v-if="items.suites.length > 0" class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">{{ t('home.endpoints') }}</h3>
                 <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   <EndpointCard
                     v-for="endpoint in items.endpoints"
@@ -110,7 +112,7 @@
         <div v-else>
           <!-- Suites Section -->
           <div v-if="filteredSuites.length > 0" class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground mb-3">Suites</h2>
+            <h2 class="text-lg font-semibold text-foreground mb-3">{{ t('home.suites') }}</h2>
             <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <SuiteCard
                 v-for="suite in paginatedSuites"
@@ -124,7 +126,7 @@
           
           <!-- Endpoints Section -->
           <div v-if="filteredEndpoints.length > 0">
-            <h2 v-if="filteredSuites.length > 0" class="text-lg font-semibold text-foreground mb-3">Endpoints</h2>
+            <h2 v-if="filteredSuites.length > 0" class="text-lg font-semibold text-foreground mb-3">{{ t('home.endpoints') }}</h2>
             <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <EndpointCard
                 v-for="endpoint in paginatedEndpoints"
@@ -192,6 +194,9 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   announcements: {
@@ -533,11 +538,15 @@ const initializeCollapsedGroups = () => {
 }
 
 const dashboardHeading = computed(() => {
-  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
+  return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}'
+    ? window.config.dashboardHeading
+    : t('home.dashboardHeadingDefault')
 })
 
 const dashboardSubheading = computed(() => {
-  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
+  return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}'
+    ? window.config.dashboardSubheading
+    : t('home.dashboardSubheadingDefault')
 })
 
 onMounted(() => {

@@ -21,6 +21,7 @@
     "tailwind-merge": "^3.3.1",
     "vue": "^3.5.18",
     "vue-chartjs": "^5.3.2",
+    "vue-i18n": "^11.3.0",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
@@ -50,9 +51,25 @@
       "requireConfigFile": false
     },
     "rules": {
-      "vue/multi-word-component-names": ["error", {
-        "ignores": ["Home", "Details", "Loading", "Settings", "Social", "Tooltip", "Pagination", "Button", "Badge", "Card", "Input", "Select"]
-      }]
+      "vue/multi-word-component-names": [
+        "error",
+        {
+          "ignores": [
+            "Home",
+            "Details",
+            "Loading",
+            "Settings",
+            "Social",
+            "Tooltip",
+            "Pagination",
+            "Button",
+            "Badge",
+            "Card",
+            "Input",
+            "Select"
+          ]
+        }
+      ]
     },
     "globals": {
       "defineProps": "readonly",

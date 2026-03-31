@@ -34,10 +34,42 @@
       <!-- Divider -->
       <div class="h-5 w-px bg-border/50" />
 
+      <!-- Language Selector -->
+      <button
+        @click="showLanguageMenu = !showLanguageMenu"
+        :aria-label="t('settings.language')"
+        :aria-expanded="showLanguageMenu"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent transition-colors relative"
+      >
+        <Languages class="w-3.5 h-3.5 text-muted-foreground" />
+        <span class="text-xs font-medium">{{ currentLanguageLabel }}</span>
+
+        <div
+          v-if="showLanguageMenu"
+          @click.stop
+          class="absolute bottom-full left-0 mb-2 bg-popover border rounded-lg shadow-lg overflow-hidden min-w-[120px]"
+        >
+          <button
+            v-for="lang in LANGUAGE_OPTIONS"
+            :key="lang.value"
+            @click="selectLanguage(lang.value)"
+            :class="[
+              'block w-full px-4 py-2 text-xs text-left hover:bg-accent transition-colors',
+              locale === lang.value && 'bg-accent'
+            ]"
+          >
+            {{ lang.label }}
+          </button>
+        </div>
+      </button>
+
+      <!-- Divider -->
+      <div class="h-5 w-px bg-border/50" />
+
       <!-- Theme Toggle -->
       <button
         @click="toggleDarkMode"
-        :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-label="darkMode ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
         class="p-1.5 rounded-full hover:bg-accent transition-colors group relative"
       >
         <Sun v-if="darkMode" class="h-3.5 w-3.5 transition-all" />
@@ -45,7 +77,7 @@
         
         <!-- Tooltip -->
         <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          {{ darkMode ? 'Light mode' : 'Dark mode' }}
+          {{ darkMode ? t('settings.lightMode') : t('settings.darkMode') }}
         </div>
       </button>
     </div>
@@ -54,10 +86,14 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Sun, Moon, RefreshCw, Languages } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { setLocale } from '@/i18n'
 
 const emit = defineEmits(['refreshData'])
+
+const { t, locale } = useI18n()
 
 // Constants
 const REFRESH_INTERVALS = [
@@ -74,6 +110,10 @@ const THEME_COOKIE_MAX_AGE = 31536000 // 1 year
 const STORAGE_KEYS = {
   REFRESH_INTERVAL: 'gatus:refresh-interval'
 }
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English' },
+  { value: 'zh-CN', label: '中文' }
+]
 
 // Helper functions
 function wantsDarkMode() {
@@ -92,7 +132,13 @@ function getStoredRefreshInterval() {
 const refreshIntervalValue = ref(getStoredRefreshInterval())
 const darkMode = ref(wantsDarkMode())
 const showRefreshMenu = ref(false)
+const showLanguageMenu = ref(false)
 let refreshIntervalHandler = null
+
+const currentLanguageLabel = computed(() => {
+  const selected = LANGUAGE_OPTIONS.find((item) => item.value === locale.value)
+  return selected ? selected.label : 'English'
+})
 
 // Methods
 const formatRefreshInterval = (value) => {
@@ -121,11 +167,17 @@ const selectRefreshInterval = (value) => {
   setRefreshInterval(value)
 }
 
+const selectLanguage = (value) => {
+  setLocale(value)
+  showLanguageMenu.value = false
+}
+
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
   const settings = document.getElementById('settings')
   if (settings && !settings.contains(event.target)) {
     showRefreshMenu.value = false
+    showLanguageMenu.value = false
   }
 }
 

@@ -5,16 +5,16 @@
       <div class="mb-6">
         <Button variant="ghost" size="sm" @click="goBack" class="mb-4">
           <ArrowLeft class="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {{ t('common.backToDashboard') }}
         </Button>
         
         <div class="flex items-start justify-between">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight">{{ suite?.name || 'Loading...' }}</h1>
+            <h1 class="text-3xl font-bold tracking-tight">{{ suite?.name || t('suiteDetails.loading') }}</h1>
             <p class="text-muted-foreground mt-2">
               <span v-if="suite?.group">{{ suite.group }} • </span>
               <span v-if="latestResult">
-                {{ selectedResult && selectedResult.timestamp !== sortedResults[0]?.timestamp ? 'Ran' : 'Last run' }} {{ formatRelativeTime(latestResult.timestamp) }}
+                {{ selectedResult && selectedResult.timestamp !== sortedResults[0]?.timestamp ? t('suiteDetails.ran') : t('suiteDetails.lastRun') }} {{ formatRelativeTime(latestResult.timestamp) }}
               </span>
             </p>
           </div>
@@ -33,41 +33,47 @@
 
       <div v-else-if="!suite" class="text-center py-20">
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-semibold mb-2">Suite not found</h3>
-        <p class="text-muted-foreground">The requested suite could not be found.</p>
+        <h3 class="text-lg font-semibold mb-2">{{ t('suiteDetails.suiteNotFoundTitle') }}</h3>
+        <p class="text-muted-foreground">{{ t('suiteDetails.suiteNotFoundDescription') }}</p>
       </div>
 
       <div v-else class="space-y-6">
         <!-- Latest Execution -->
         <Card v-if="latestResult">
           <CardHeader>
-            <CardTitle>{{ selectedResult?.timestamp === sortedResults[0]?.timestamp ? 'Latest Execution' : `Execution at ${formatTimestamp(selectedResult.timestamp)}` }}</CardTitle>
+            <CardTitle>
+              {{
+                selectedResult?.timestamp === sortedResults[0]?.timestamp
+                  ? t('suiteDetails.latestExecution')
+                  : t('suiteDetails.executionAt', { time: formatTimestamp(selectedResult.timestamp) })
+              }}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
               <!-- Execution stats -->
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p class="text-sm text-muted-foreground">Status</p>
-                  <p class="text-lg font-medium">{{ latestResult.success ? 'Success' : 'Failed' }}</p>
+                  <p class="text-sm text-muted-foreground">{{ t('suiteDetails.status') }}</p>
+                  <p class="text-lg font-medium">{{ latestResult.success ? t('flow.success') : t('flow.failed') }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Duration</p>
+                  <p class="text-sm text-muted-foreground">{{ t('suiteDetails.duration') }}</p>
                   <p class="text-lg font-medium">{{ formatDuration(latestResult.duration) }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Endpoints</p>
+                  <p class="text-sm text-muted-foreground">{{ t('suiteDetails.endpoints') }}</p>
                   <p class="text-lg font-medium">{{ latestResult.endpointResults?.length || 0 }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Success Rate</p>
+                  <p class="text-sm text-muted-foreground">{{ t('suiteDetails.successRate') }}</p>
                   <p class="text-lg font-medium">{{ calculateSuccessRate(latestResult) }}%</p>
                 </div>
               </div>
 
               <!-- Enhanced Execution Flow -->
               <div class="mt-6">
-                <h3 class="text-lg font-semibold mb-4">Execution Flow</h3>
+                <h3 class="text-lg font-semibold mb-4">{{ t('suiteDetails.executionFlow') }}</h3>
                 <SequentialFlowDiagram
                   :flow-steps="flowSteps"
                   :progress-percentage="executionProgress"
@@ -80,7 +86,7 @@
 
               <!-- Errors -->
               <div v-if="latestResult.errors && latestResult.errors.length > 0" class="mt-6">
-                <h3 class="text-lg font-semibold mb-3 text-red-500">Suite Errors</h3>
+                <h3 class="text-lg font-semibold mb-3 text-red-500">{{ t('suiteDetails.suiteErrors') }}</h3>
                 <div class="space-y-2">
                   <div
                     v-for="(error, index) in latestResult.errors"
@@ -98,7 +104,7 @@
         <!-- Execution History -->
         <Card>
           <CardHeader>
-            <CardTitle>Execution History</CardTitle>
+            <CardTitle>{{ t('suiteDetails.executionHistory') }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div v-if="sortedResults.length > 0" class="space-y-2">
@@ -122,7 +128,7 @@
               </div>
             </div>
             <div v-else class="text-center py-8 text-muted-foreground">
-              No execution history available
+              {{ t('suiteDetails.noExecutionHistoryAvailable') }}
             </div>
           </CardContent>
         </Card>
@@ -154,6 +160,9 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 import { formatDuration } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()

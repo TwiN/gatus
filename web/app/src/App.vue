@@ -36,7 +36,7 @@
                 <div>
                   <h1 class="text-2xl font-bold tracking-tight">{{ header }}</h1>
                   <p v-if="buttons && buttons.length" class="text-sm text-muted-foreground">
-                    System Monitoring Dashboard
+                    {{ t('app.systemMonitoringDashboard') }}
                   </p>
                 </div>
               </component>
@@ -100,7 +100,7 @@
         <div class="container mx-auto px-4 py-6 max-w-7xl">
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
-              Powered by <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
+              {{ t('app.poweredBy') }} <a href="https://gatus.io" target="_blank" class="font-medium text-emerald-800 hover:text-emerald-600">Gatus</a>
             </div>
             <Social />
           </div>
@@ -118,14 +118,14 @@
             class="w-20 h-20 mx-auto mb-4"
           />
           <CardTitle class="text-3xl">Gatus</CardTitle>
-          <p class="text-muted-foreground mt-2">System Monitoring Dashboard</p>
+          <p class="text-muted-foreground mt-2">{{ t('app.systemMonitoringDashboard') }}</p>
         </CardHeader>
         <CardContent>
           <div v-if="route && route.query.error" class="mb-6">
             <div class="p-3 rounded-md bg-destructive/10 border border-destructive/20">
               <p class="text-sm text-destructive text-center">
                 <span v-if="route.query.error === 'access_denied'">
-                  You do not have access to this status page
+                  {{ t('app.accessDenied') }}
                 </span>
                 <span v-else>{{ route.query.error }}</span>
               </p>
@@ -140,7 +140,7 @@
             <Loading v-if="isOidcLoading" size="xs" />
             <template v-else>
               <LogIn class="mr-2 h-4 w-4" />
-              Login with OIDC
+              {{ t('app.loginWithOidc') }}
             </template>
           </a>
         </CardContent>
@@ -155,6 +155,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Menu, X, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -163,6 +164,7 @@ import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 
 // State
 const retrievedConfig = ref(false)

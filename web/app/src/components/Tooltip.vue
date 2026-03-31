@@ -17,22 +17,22 @@
           result.success ? 'bg-green-500' : 'bg-red-500'
         ]"></span>
         <span class="text-xs font-semibold">
-          {{ result.success ? 'Suite Passed' : 'Suite Failed' }}
+          {{ result.success ? t('tooltip.suitePassed') : t('tooltip.suiteFailed') }}
         </span>
       </div>
 
       <!-- Timestamp -->
       <div>
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ t('tooltip.timestamp') }}</div>
         <div class="font-mono text-xs">{{ prettifyTimestamp(result.timestamp) }}</div>
       </div>
       
       <!-- Suite Info (for suite results) -->
       <div v-if="isSuiteResult && result.endpointResults">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Endpoints</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ t('tooltip.endpoints') }}</div>
         <div class="font-mono text-xs">
           <span :class="successCount === endpointCount ? 'text-green-500' : 'text-yellow-500'">
-            {{ successCount }}/{{ endpointCount }} passed
+            {{ successCount }}/{{ endpointCount }} {{ t('tooltip.passed') }}
           </span>
         </div>
         <!-- Endpoint breakdown -->
@@ -49,15 +49,15 @@
             <span class="text-muted-foreground">({{ Math.trunc(endpoint.duration / 1000000) }}ms)</span>
           </div>
           <div v-if="result.endpointResults.length > 5" class="text-xs text-muted-foreground">
-            ... and {{ result.endpointResults.length - 5 }} more
+            {{ t('tooltip.more', { count: result.endpointResults.length - 5 }) }}
           </div>
         </div>
       </div>
 
       <!-- Response Time -->
       <div>
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {{ isSuiteResult ? 'Total Duration' : 'Response Time' }}
+          <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {{ isSuiteResult ? t('tooltip.totalDuration') : t('tooltip.responseTime') }}
         </div>
         <div class="font-mono text-xs">
           {{ Math.trunc(result.duration / 1000000) }}ms
@@ -66,7 +66,7 @@
       
       <!-- Conditions (for endpoint results) -->
       <div v-if="!isSuiteResult && result.conditionResults && result.conditionResults.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ t('tooltip.conditions') }}</div>
         <div class="font-mono text-xs space-y-0.5">
           <div 
             v-for="(conditionResult, index) in result.conditionResults" 
@@ -83,7 +83,7 @@
       
       <!-- Errors -->
       <div v-if="result.errors && result.errors.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors</div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{{ t('tooltip.errors') }}</div>
         <div class="font-mono text-xs space-y-0.5">
           <div v-for="(error, index) in result.errors" :key="index" class="text-red-500">
             • {{ error }}
@@ -98,8 +98,10 @@
 import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { prettifyTimestamp } from '@/utils/time'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const props = defineProps({
   event: {

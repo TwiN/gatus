@@ -17,7 +17,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <component :is="mostRecentIcon" :class="['w-5 h-5', mostRecentIconClass]" />
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Announcements</h2>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('announcements.announcements') }}</h2>
             <span class="text-xs text-gray-500 dark:text-gray-400">
               ({{ announcements.length }})
             </span>
@@ -132,6 +132,7 @@
 import { computed, ref } from 'vue'
 import { XCircle, AlertTriangle, Info, CheckCircle, Circle, ChevronDown } from 'lucide-vue-next'
 import { formatAnnouncementMessage } from '@/utils/markdown'
+import { useI18n } from 'vue-i18n'
 
 // Props
 const props = defineProps({
@@ -140,6 +141,9 @@ const props = defineProps({
     default: () => []
   }
 })
+
+const { t, locale } = useI18n()
+const dateLocale = computed(() => (locale.value === 'zh-CN' ? 'zh-CN' : 'en-US'))
 
 // Collapse state
 const isCollapsed = ref(false)
@@ -243,11 +247,11 @@ const formatDate = (dateString) => {
   yesterday.setDate(yesterday.getDate() - 1)
 
   if (date.toDateString() === today.toDateString()) {
-    return 'Today'
+    return t('announcements.today')
   } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday'
+    return t('announcements.yesterday')
   } else {
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(dateLocale.value, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
