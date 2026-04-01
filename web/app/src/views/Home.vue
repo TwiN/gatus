@@ -17,6 +17,7 @@
               <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
               <Timer v-else class="h-5 w-5" />
             </Button>
+
             <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
               <RefreshCw class="h-5 w-5" />
             </Button>
@@ -182,6 +183,7 @@
 </template>
 
 <script setup>
+/* eslint-disable no-undef */
 import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -224,6 +226,23 @@ const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
+
+function readBooleanFromLocalStorage(key, fallback) {
+  const v = localStorage.getItem(key)
+  if (v === null) return fallback
+  if (v === 'true' || v === '1') return true
+  if (v === 'false' || v === '0') return false
+  return fallback
+}
+
+const collapseByDefault = ref(
+  readBooleanFromLocalStorage(
+    'gatus:collapse',
+    (typeof window !== 'undefined' && typeof window.config?.defaultGroupCollapse !== 'undefined')
+      ? !!window.config.defaultGroupCollapse
+      : true
+  )
+)
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -523,12 +542,21 @@ const initializeCollapsedGroups = () => {
     const saved = localStorage.getItem('gatus:uncollapsed-groups')
     if (saved) {
       uncollapsedGroups.value = new Set(JSON.parse(saved))
+      return
     }
-    // If no saved state, uncollapsedGroups stays empty (all collapsed by default)
+    // If no saved state, fall through to apply config defaults
   } catch (e) {
     console.warn('Failed to parse saved uncollapsed groups:', e)
     localStorage.removeItem('gatus:uncollapsed-groups')
-    // On error, uncollapsedGroups stays empty (all collapsed by default)
+    // On error, fall through to apply config defaults
+  }
+
+  // Apply config default (collapseByDefault)
+  if (!collapseByDefault.value) {
+    const groups = Object.keys(combinedGroups.value || {})
+    uncollapsedGroups.value = new Set(groups) // expanded by default
+  } else {
+    uncollapsedGroups.value = new Set() // collapsed by default
   }
 }
 
