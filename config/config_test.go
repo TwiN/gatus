@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -2052,7 +2053,7 @@ func TestConfig_GetUniqueExtraMetricLabels(t *testing.T) {
 				t.Errorf("expected %d labels, got %d", len(tt.expected), len(labels))
 			}
 			for _, label := range tt.expected {
-				if !contains(labels, label) {
+				if !slices.Contains(labels, label) {
 					t.Errorf("expected label %s to be present", label)
 				}
 			}
