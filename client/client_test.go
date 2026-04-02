@@ -55,6 +55,13 @@ func TestRdapQuery(t *testing.T) {
 	} else if response.ExpirationDate.Unix() <= 0 {
 		t.Error("expected to have a valid expiry date, got", response.ExpirationDate.Unix())
 	}
+	// .net domain: rdapQuery must either return a valid expiration or an error,
+	// but never silently return a zero-value expiration date (the bug in #1570)
+	if response, err := rdapQuery("google.net"); err != nil {
+		t.Logf("rdapQuery returned error for .net domain (fallback to WHOIS expected): %s", err)
+	} else if response.ExpirationDate.IsZero() {
+		t.Error("rdapQuery returned a zero expiration date without an error for .net domain")
+	}
 }
 
 func TestGetDomainExpiration(t *testing.T) {
@@ -82,6 +89,12 @@ func TestGetDomainExpiration(t *testing.T) {
 		t.Errorf("expected error to be nil, but got: `%s`", err)
 	} else if domainExpiration <= 0 {
 		t.Error("expected domain expiration to be higher than 0")
+	}
+	// .net domain: should succeed via RDAP or WHOIS fallback (#1570)
+	if domainExpiration, err := GetDomainExpiration("google.net"); err != nil {
+		t.Errorf("expected error to be nil for .net domain, but got: `%s`", err)
+	} else if domainExpiration <= 0 {
+		t.Error("expected domain expiration to be higher than 0 for .net domain")
 	}
 }
 
