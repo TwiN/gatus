@@ -52,7 +52,7 @@ jobs:
           ref: ${{ steps.pr.outputs.ref }}
       - name: Regenerate static assets
         run: |
-          make frontend-install-dependencies
+          make frontend-install
           make frontend-build
       - name: Commit and push changes
         id: commit
