@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	restAPI = "https://api.opsgenie.com/v2/alerts"
+	defaultAPIURL = "https://api.opsgenie.com/v2/alerts"
 )
 
 var (
@@ -25,6 +25,11 @@ var (
 )
 
 type Config struct {
+	// APIURL to use for the OpsGenie API
+	//
+	// default: https://api.opsgenie.com/v2/alerts
+	APIURL string `yaml:"api-url"`
+
 	// APIKey to use for
 	APIKey string `yaml:"api-key"`
 
@@ -58,6 +63,9 @@ func (cfg *Config) Validate() error {
 	if len(cfg.APIKey) == 0 {
 		return ErrAPIKeyNotSet
 	}
+	if len(cfg.APIURL) == 0 {
+		cfg.APIURL = defaultAPIURL
+	}
 	if len(cfg.Source) == 0 {
 		cfg.Source = "gatus"
 	}
@@ -74,6 +82,9 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if len(override.APIURL) > 0 {
+		cfg.APIURL = override.APIURL
+	}
 	if len(override.APIKey) > 0 {
 		cfg.APIKey = override.APIKey
 	}
@@ -137,12 +148,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 func (provider *AlertProvider) sendAlertRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) error {
 	payload := provider.buildCreateRequestBody(cfg, ep, alert, result, resolved)
-	return provider.sendRequest(cfg, restAPI, http.MethodPost, payload)
+	return provider.sendRequest(cfg, cfg.APIURL, http.MethodPost, payload)
 }
 
 func (provider *AlertProvider) closeAlert(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert) error {
 	payload := provider.buildCloseRequestBody(ep, alert)
-	url := restAPI + "/" + cfg.AliasPrefix + buildKey(ep) + "/close?identifierType=alias"
+	url := cfg.APIURL + "/" + cfg.AliasPrefix + buildKey(ep) + "/close?identifierType=alias"
 	return provider.sendRequest(cfg, url, http.MethodPost, payload)
 }
 
