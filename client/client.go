@@ -16,6 +16,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
@@ -36,7 +37,8 @@ const (
 
 var (
 	// injectedHTTPClient is used for testing purposes
-	injectedHTTPClient *http.Client
+	injectedHTTPClient  *http.Client
+	injectedHTTPClientM sync.RWMutex
 
 	whoisClient              = whois.NewClient().WithReferralCache(true)
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
@@ -45,6 +47,8 @@ var (
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
 func GetHTTPClient(config *Config) *http.Client {
+	injectedHTTPClientM.RLock()
+	defer injectedHTTPClientM.RUnlock()
 	if injectedHTTPClient != nil {
 		return injectedHTTPClient
 	}
@@ -508,7 +512,9 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
 func InjectHTTPClient(httpClient *http.Client) {
+	injectedHTTPClientM.Lock()
 	injectedHTTPClient = httpClient
+	injectedHTTPClientM.Unlock()
 }
 
 // rdapQuery returns domain expiration via RDAP protocol
