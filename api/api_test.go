@@ -17,6 +17,7 @@ func TestNew(t *testing.T) {
 		Path         string
 		ExpectedCode int
 		Gzip         bool
+		Zstd         bool
 		WithSecurity bool
 	}
 	scenarios := []Scenario{
@@ -56,6 +57,12 @@ func TestNew(t *testing.T) {
 			Path:         "/js/app.js",
 			ExpectedCode: fiber.StatusOK,
 			Gzip:         true,
+		},
+		{
+			Name:         "app.js-zstd",
+			Path:         "/js/app.js",
+			ExpectedCode: fiber.StatusOK,
+			Zstd:         true,
 		},
 		{
 			Name:         "chunk-vendors.js",
@@ -119,6 +126,9 @@ func TestNew(t *testing.T) {
 			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
 			if scenario.Gzip {
 				request.Header.Set("Accept-Encoding", "gzip")
+			}
+			if scenario.Zstd {
+				request.Header.Set("Accept-Encoding", "zstd")
 			}
 			response, err := router.Test(request)
 			if err != nil {
