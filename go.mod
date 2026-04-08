@@ -22,6 +22,7 @@ require (
 	github.com/ishidawataru/sctp v0.0.0-20251114114122-19ddcbc6aae2
 	github.com/lib/pq v1.11.1
 	github.com/miekg/dns v1.1.72
+	github.com/oliveagle/jsonpath v0.1.4
 	github.com/prometheus-community/pro-bing v0.8.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/registrobr/rdap v1.1.8
