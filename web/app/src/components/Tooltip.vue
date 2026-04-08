@@ -85,7 +85,7 @@
       <div v-if="result.errors && result.errors.length">
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors</div>
         <div class="font-mono text-xs space-y-0.5">
-          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500">
+          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500 whitespace-pre">
             • {{ error }}
           </div>
         </div>
