@@ -163,10 +163,10 @@ func TestAlertProvider_buildBatchedMessageSubjectAndBody(t *testing.T) {
 	if !contains(body, "TRIGGERED (1)") || !contains(body, "RESOLVED (1)") {
 		t.Fatalf("expected body to contain both sections, got %q", body)
 	}
-	if !contains(body, "- service-a") || !contains(body, "URL: https://a.example.com") || !contains(body, "❌ [STATUS] == 200") {
+	if !contains(body, "- core/service-a") || !contains(body, "URL: https://a.example.com") || !contains(body, "❌ [STATUS] == 200") {
 		t.Fatalf("expected triggered details in body, got %q", body)
 	}
-	if !contains(body, "- service-b") {
+	if !contains(body, "- core/service-b") {
 		t.Fatalf("expected resolved service in body, got %q", body)
 	}
 }
