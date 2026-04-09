@@ -149,6 +149,21 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_buildBatchedMessageSubjectAndBody(t *testing.T) {
+	description := "api down"
+	provider := AlertProvider{}
+	subject, body := provider.buildBatchedMessageSubjectAndBody([]batchMessage{
+		{endpoint: &endpoint.Endpoint{Name: "service-a"}, alert: &alert.Alert{Description: &description}},
+		{endpoint: &endpoint.Endpoint{Name: "service-b"}, alert: &alert.Alert{}},
+	}, false)
+	if subject != "2 alerts triggered" {
+		t.Fatalf("expected batched subject, got %q", subject)
+	}
+	if body != "The following alerts were triggered:\n\n- service-a (api down)\n- service-b\n\nServices: service-a, service-b" {
+		t.Fatalf("unexpected batched body: %q", body)
+	}
+}
+
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")

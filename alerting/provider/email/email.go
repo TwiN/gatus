@@ -77,6 +77,10 @@ type AlertProvider struct {
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
 
+	// Batch controls whether multiple email alerts are grouped into one message over a short time window.
+	// Disabled by default to preserve existing behavior.
+	Batch *BatchConfig `yaml:"batch,omitempty"`
+
 	// Overrides is a list of Override that may be prioritized over the default configuration
 	Overrides []Override `yaml:"overrides,omitempty"`
 }
@@ -89,6 +93,9 @@ type Override struct {
 
 // Validate the provider's configuration
 func (provider *AlertProvider) Validate() error {
+	if provider.Batch != nil {
+		provider.Batch.setDefaults()
+	}
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
@@ -107,13 +114,16 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
+	return provider.queueOrSend(ep, alert, result, resolved, cfg)
+}
+
+func (provider *AlertProvider) sendEmail(cfg *Config, subject, body string) error {
 	var username string
 	if len(cfg.Username) > 0 {
 		username = cfg.Username
 	} else {
 		username = cfg.From
 	}
-	subject, body := provider.buildMessageSubjectAndBody(ep, alert, result, resolved)
 	m := gomail.NewMessage()
 	m.SetHeader("From", cfg.From)
 	m.SetHeader("To", strings.Split(cfg.To, ",")...)
@@ -121,16 +131,13 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	m.SetBody("text/plain", body)
 	var d *gomail.Dialer
 	if len(cfg.Password) == 0 {
-		// Get the domain in the From address
 		localName := "localhost"
 		fromParts := strings.Split(cfg.From, `@`)
 		if len(fromParts) == 2 {
 			localName = fromParts[1]
 		}
-		// Create a dialer with no authentication
 		d = &gomail.Dialer{Host: cfg.Host, Port: cfg.Port, LocalName: localName}
 	} else {
-		// Create an authenticated dialer
 		d = gomail.NewDialer(cfg.Host, cfg.Port, username, cfg.Password)
 	}
 	if cfg.ClientConfig != nil && cfg.ClientConfig.Insecure {
