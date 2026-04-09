@@ -1,6 +1,7 @@
 package email
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -153,15 +154,25 @@ func TestAlertProvider_buildBatchedMessageSubjectAndBody(t *testing.T) {
 	description := "api down"
 	provider := AlertProvider{}
 	subject, body := provider.buildBatchedMessageSubjectAndBody([]batchMessage{
-		{endpoint: &endpoint.Endpoint{Name: "service-a"}, alert: &alert.Alert{Description: &description}},
-		{endpoint: &endpoint.Endpoint{Name: "service-b"}, alert: &alert.Alert{}},
-	}, false)
-	if subject != "2 alerts triggered" {
+		{endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core", URL: "https://a.example.com"}, alert: &alert.Alert{Description: &description}, result: &endpoint.Result{ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: false}}}, resolved: false},
+		{endpoint: &endpoint.Endpoint{Name: "service-b", Group: "core"}, alert: &alert.Alert{}, resolved: true},
+	})
+	if subject != "[Gatus] 1 service(s) DOWN / 1 service(s) recovered" {
 		t.Fatalf("expected batched subject, got %q", subject)
 	}
-	if body != "The following alerts were triggered:\n\n- service-a (api down)\n- service-b\n\nServices: service-a, service-b" {
-		t.Fatalf("unexpected batched body: %q", body)
+	if !contains(body, "TRIGGERED (1)") || !contains(body, "RESOLVED (1)") {
+		t.Fatalf("expected body to contain both sections, got %q", body)
 	}
+	if !contains(body, "- service-a") || !contains(body, "URL: https://a.example.com") || !contains(body, "❌ [STATUS] == 200") {
+		t.Fatalf("expected triggered details in body, got %q", body)
+	}
+	if !contains(body, "- service-b") {
+		t.Fatalf("expected resolved service in body, got %q", body)
+	}
+}
+
+func contains(s, needle string) bool {
+	return strings.Contains(s, needle)
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {

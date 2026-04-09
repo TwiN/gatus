@@ -117,6 +117,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return provider.queueOrSend(ep, alert, result, resolved, cfg)
 }
 
+func (provider *AlertProvider) Flush() {
+	emailBatchManager.flushAll(provider)
+}
+
 func (provider *AlertProvider) sendEmail(cfg *Config, subject, body string) error {
 	var username string
 	if len(cfg.Username) > 0 {

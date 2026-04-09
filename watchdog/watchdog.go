@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/config"
 	"golang.org/x/sync/semaphore"
 )
@@ -69,5 +70,20 @@ func Shutdown(cfg *config.Config) {
 			ep.Close()
 		}
 	}
+	flushAlertProviders(cfg)
 	cancelFunc()
+}
+
+func flushAlertProviders(cfg *config.Config) {
+	if cfg == nil || cfg.Alerting == nil {
+		return
+	}
+	providers := []provider.AlertProvider{
+		cfg.Alerting.Email,
+	}
+	for _, alertProvider := range providers {
+		if flushable, ok := alertProvider.(provider.Flushable); ok && flushable != nil {
+			flushable.Flush()
+		}
+	}
 }

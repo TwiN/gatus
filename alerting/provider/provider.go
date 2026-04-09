@@ -60,6 +60,10 @@ type AlertProvider interface {
 	ValidateOverrides(group string, alert *alert.Alert) error
 }
 
+type Flushable interface {
+	Flush()
+}
+
 type Config[T any] interface {
 	Validate() error
 	Merge(override *T)
