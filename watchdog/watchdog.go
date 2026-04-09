@@ -78,12 +78,11 @@ func flushAlertProviders(cfg *config.Config) {
 	if cfg == nil || cfg.Alerting == nil {
 		return
 	}
-	providers := []provider.AlertProvider{
-		cfg.Alerting.Email,
-	}
-	for _, alertProvider := range providers {
-		if flushable, ok := alertProvider.(provider.Flushable); ok && flushable != nil {
-			flushable.Flush()
-		}
+	flushProvider(cfg.Alerting.Email)
+}
+
+func flushProvider(alertProvider provider.AlertProvider) {
+	if flushable, ok := alertProvider.(provider.Flushable); ok && flushable != nil {
+		flushable.Flush()
 	}
 }

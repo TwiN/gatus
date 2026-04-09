@@ -125,6 +125,9 @@ func (manager *batchManager) take(key batchKey) *batchEntry {
 }
 
 func (manager *batchManager) flushAll(provider *AlertProvider) {
+	if provider == nil {
+		return
+	}
 	manager.mu.Lock()
 	keys := make([]batchKey, 0, len(manager.entries))
 	for key := range manager.entries {

@@ -60,6 +60,7 @@ type AlertProvider interface {
 	ValidateOverrides(group string, alert *alert.Alert) error
 }
 
+// Flushable is implemented by providers that buffer alerts and need to flush pending messages on shutdown.
 type Flushable interface {
 	Flush()
 }
