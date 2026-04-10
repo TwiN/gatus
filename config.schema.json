@@ -1,0 +1,3332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TwiN/gatus/v5/config/config",
+  "$ref": "#/$defs/Config",
+  "$defs": {
+    "Alert": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of alert (required)"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled defines whether the alert is enabled\n\nUse Alert.IsEnabled() to retrieve the value of this field.\n\nThis is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value\nor not for provider.ParseWithDefaultAlert to work."
+        },
+        "failure-threshold": {
+          "type": "integer",
+          "description": "FailureThreshold is the number of failures in a row needed before triggering the alert"
+        },
+        "success-threshold": {
+          "type": "integer",
+          "description": "SuccessThreshold defines how many successful executions must happen in a row before an ongoing incident is marked as resolved"
+        },
+        "minimum-reminder-interval": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "MinimumReminderInterval is the interval between reminders"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the alert. Will be included in the alert sent.\n\nThis is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value\nor not for provider.ParseWithDefaultAlert to work."
+        },
+        "send-on-resolved": {
+          "type": "boolean",
+          "description": "SendOnResolved defines whether to send a second notification when the issue has been resolved\n\nThis is a pointer, because it is populated by YAML and we need to know whether it was explicitly set to a value\nor not for provider.ParseWithDefaultAlert to work. Use Alert.IsSendingOnResolved() for a non-pointer"
+        },
+        "provider-override": {
+          "type": "object",
+          "description": "ProviderOverride is an optional field that can be used to override the provider's configuration\nIt is freeform so that it can be used for any provider-specific configuration."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type",
+        "failure-threshold",
+        "success-threshold"
+      ],
+      "description": "Alert is endpoint.Endpoint's alert configuration"
+    },
+    "AlertProvider": {
+      "properties": {
+        "access-key-id": {
+          "type": "string"
+        },
+        "secret-access-key": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/Override"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "access-key-id",
+        "secret-access-key",
+        "region",
+        "from",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using AWS Simple Email Service"
+    },
+    "AlertingConfig": {
+      "properties": {
+        "aws-ses": {
+          "$ref": "#/$defs/AlertProvider",
+          "description": "AWSSimpleEmailService is the configuration for the aws-ses alerting provider"
+        },
+        "clickup": {
+          "$ref": "#/$defs/ClickupAlertProvider",
+          "description": "ClickUp is the configuration for the clickup alerting provider"
+        },
+        "custom": {
+          "$ref": "#/$defs/CustomAlertProvider",
+          "description": "Custom is the configuration for the custom alerting provider"
+        },
+        "datadog": {
+          "$ref": "#/$defs/DatadogAlertProvider",
+          "description": "Datadog is the configuration for the datadog alerting provider"
+        },
+        "discord": {
+          "$ref": "#/$defs/DiscordAlertProvider",
+          "description": "Discord is the configuration for the discord alerting provider"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAlertProvider",
+          "description": "Email is the configuration for the email alerting provider"
+        },
+        "github": {
+          "$ref": "#/$defs/GithubAlertProvider",
+          "description": "GitHub is the configuration for the github alerting provider"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitlabAlertProvider",
+          "description": "GitLab is the configuration for the gitlab alerting provider"
+        },
+        "gitea": {
+          "$ref": "#/$defs/GiteaAlertProvider",
+          "description": "Gitea is the configuration for the gitea alerting provider"
+        },
+        "googlechat": {
+          "$ref": "#/$defs/GooglechatAlertProvider",
+          "description": "GoogleChat is the configuration for the googlechat alerting provider"
+        },
+        "gotify": {
+          "$ref": "#/$defs/GotifyAlertProvider",
+          "description": "Gotify is the configuration for the gotify alerting provider"
+        },
+        "homeassistant": {
+          "$ref": "#/$defs/HomeassistantAlertProvider",
+          "description": "HomeAssistant is the configuration for the homeassistant alerting provider"
+        },
+        "ifttt": {
+          "$ref": "#/$defs/IftttAlertProvider",
+          "description": "IFTTT is the configuration for the ifttt alerting provider"
+        },
+        "ilert": {
+          "$ref": "#/$defs/IlertAlertProvider",
+          "description": "Ilert is the configuration for the ilert alerting provider"
+        },
+        "incident-io": {
+          "$ref": "#/$defs/IncidentioAlertProvider",
+          "description": "IncidentIO is the configuration for the incident-io alerting provider"
+        },
+        "line": {
+          "$ref": "#/$defs/LineAlertProvider",
+          "description": "Line is the configuration for the line alerting provider"
+        },
+        "matrix": {
+          "$ref": "#/$defs/MatrixAlertProvider",
+          "description": "Matrix is the configuration for the matrix alerting provider"
+        },
+        "mattermost": {
+          "$ref": "#/$defs/MattermostAlertProvider",
+          "description": "Mattermost is the configuration for the mattermost alerting provider"
+        },
+        "messagebird": {
+          "$ref": "#/$defs/MessagebirdAlertProvider",
+          "description": "Messagebird is the configuration for the messagebird alerting provider"
+        },
+        "newrelic": {
+          "$ref": "#/$defs/NewrelicAlertProvider",
+          "description": "NewRelic is the configuration for the newrelic alerting provider"
+        },
+        "n8n": {
+          "$ref": "#/$defs/N8nAlertProvider",
+          "description": "N8N is the configuration for the n8n alerting provider"
+        },
+        "ntfy": {
+          "$ref": "#/$defs/NtfyAlertProvider",
+          "description": "Ntfy is the configuration for the ntfy alerting provider"
+        },
+        "opsgenie": {
+          "$ref": "#/$defs/OpsgenieAlertProvider",
+          "description": "Opsgenie is the configuration for the opsgenie alerting provider"
+        },
+        "pagerduty": {
+          "$ref": "#/$defs/PagerdutyAlertProvider",
+          "description": "PagerDuty is the configuration for the pagerduty alerting provider"
+        },
+        "plivo": {
+          "$ref": "#/$defs/PlivoAlertProvider",
+          "description": "Plivo is the configuration for the plivo alerting provider"
+        },
+        "pushover": {
+          "$ref": "#/$defs/PushoverAlertProvider",
+          "description": "Pushover is the configuration for the pushover alerting provider"
+        },
+        "rocketchat": {
+          "$ref": "#/$defs/RocketchatAlertProvider",
+          "description": "RocketChat is the configuration for the rocketchat alerting provider"
+        },
+        "sendgrid": {
+          "$ref": "#/$defs/SendgridAlertProvider",
+          "description": "SendGrid is the configuration for the sendgrid alerting provider"
+        },
+        "signal": {
+          "$ref": "#/$defs/SignalAlertProvider",
+          "description": "Signal is the configuration for the signal alerting provider"
+        },
+        "signl4": {
+          "$ref": "#/$defs/Signl4AlertProvider",
+          "description": "SIGNL4 is the configuration for the signl4 alerting provider"
+        },
+        "slack": {
+          "$ref": "#/$defs/SlackAlertProvider",
+          "description": "Slack is the configuration for the slack alerting provider"
+        },
+        "splunk": {
+          "$ref": "#/$defs/SplunkAlertProvider",
+          "description": "Splunk is the configuration for the splunk alerting provider"
+        },
+        "squadcast": {
+          "$ref": "#/$defs/SquadcastAlertProvider",
+          "description": "Squadcast is the configuration for the squadcast alerting provider"
+        },
+        "teams": {
+          "$ref": "#/$defs/TeamsAlertProvider",
+          "description": "Teams is the configuration for the teams alerting provider"
+        },
+        "teams-workflows": {
+          "$ref": "#/$defs/TeamsworkflowsAlertProvider",
+          "description": "TeamsWorkflows is the configuration for the teams alerting provider using the new Workflow App Webhook Connector"
+        },
+        "telegram": {
+          "$ref": "#/$defs/TelegramAlertProvider",
+          "description": "Telegram is the configuration for the telegram alerting provider"
+        },
+        "twilio": {
+          "$ref": "#/$defs/TwilioAlertProvider",
+          "description": "Twilio is the configuration for the twilio alerting provider"
+        },
+        "vonage": {
+          "$ref": "#/$defs/VonageAlertProvider",
+          "description": "Vonage is the configuration for the vonage alerting provider"
+        },
+        "webex": {
+          "$ref": "#/$defs/WebexAlertProvider",
+          "description": "Webex is the configuration for the webex alerting provider"
+        },
+        "zapier": {
+          "$ref": "#/$defs/ZapierAlertProvider",
+          "description": "Zapier is the configuration for the zapier alerting provider"
+        },
+        "zulip": {
+          "$ref": "#/$defs/ZulipAlertProvider",
+          "description": "Zulip is the configuration for the zulip alerting provider"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config is the configuration for alerting providers"
+    },
+    "Announcement": {
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp is the UTC timestamp when the announcement was made"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type is the type of announcement (outage, warning, information, operational, none)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Message is the user-facing text describing the announcement"
+        },
+        "archived": {
+          "type": "boolean",
+          "description": "Archived indicates whether the announcement should be displayed in the historical section\ninstead of at the top of the status page"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "timestamp",
+        "type",
+        "message"
+      ],
+      "description": "Announcement represents a system-wide announcement"
+    },
+    "Badge": {
+      "properties": {
+        "response-time": {
+          "$ref": "#/$defs/ResponseTime"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "response-time"
+      ]
+    },
+    "BasicConfig": {
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Username is the name which will need to be used for a successful authentication"
+        },
+        "password-bcrypt-base64": {
+          "type": "string",
+          "description": "PasswordBcryptHashBase64Encoded is the base64 encoded string of the Bcrypt hash of the password to use to\nauthenticate using basic auth."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "username",
+        "password-bcrypt-base64"
+      ],
+      "description": "BasicConfig is the configuration for Basic authentication"
+    },
+    "Checker": {
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "e.g. 1.1.1.1:53"
+        },
+        "interval": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "target"
+      ],
+      "description": "Checker is the configuration for making sure Gatus has access to the internet."
+    },
+    "ClickupAlertProvider": {
+      "properties": {
+        "api-url": {
+          "type": "string"
+        },
+        "list-id": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "assignees": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "notify-all": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/ClickupOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-url",
+        "list-id",
+        "token",
+        "assignees",
+        "status",
+        "priority"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using ClickUp"
+    },
+    "ClickupOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "api-url": {
+          "type": "string"
+        },
+        "list-id": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "assignees": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "notify-all": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "api-url",
+        "list-id",
+        "token",
+        "assignees",
+        "status",
+        "priority"
+      ],
+      "description": "Override is a case under which the default configuration is overridden"
+    },
+    "ClientConfig": {
+      "properties": {
+        "proxy-url": {
+          "type": "string",
+          "description": "ProxyURL is the URL of the proxy to use for the client"
+        },
+        "insecure": {
+          "type": "boolean",
+          "description": "Insecure determines whether to skip verifying the server's certificate chain and host name"
+        },
+        "ignore-redirect": {
+          "type": "boolean",
+          "description": "IgnoreRedirect determines whether to ignore redirects (true) or follow them (false, default)"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Timeout for the client"
+        },
+        "dns-resolver": {
+          "type": "string",
+          "description": "DNSResolver override for the HTTP client\nExpected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53"
+        },
+        "oauth2": {
+          "$ref": "#/$defs/OAuth2Config",
+          "description": "OAuth2Config is the OAuth2 configuration used for the client.\n\nIf non-nil, the http.Client returned by getHTTPClient will automatically retrieve a token if necessary.\nSee configureOAuth2 for more details."
+        },
+        "identity-aware-proxy": {
+          "$ref": "#/$defs/IAPConfig",
+          "description": "IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)"
+        },
+        "network": {
+          "type": "string",
+          "description": "Network (ip, ip4 or ip6) for the ICMP client"
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig",
+          "description": "TLS configuration (optional)"
+        },
+        "tunnel": {
+          "type": "string",
+          "description": "Tunnel is the name of the SSH tunnel to use for the client"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "timeout",
+        "network"
+      ],
+      "description": "Config is the configuration for clients"
+    },
+    "Config": {
+      "properties": {
+        "debug": {
+          "type": "boolean",
+          "description": "Debug Whether to enable debug logs\nDeprecated: Use the GATUS_LOG_LEVEL environment variable instead"
+        },
+        "metrics": {
+          "type": "boolean",
+          "description": "Metrics Whether to expose metrics at /metrics"
+        },
+        "skip-invalid-config-update": {
+          "type": "boolean",
+          "description": "SkipInvalidConfigUpdate Whether to make the application ignore invalid configuration\nif the configuration file is updated while the application is running"
+        },
+        "disable-monitoring-lock": {
+          "type": "boolean",
+          "description": "DisableMonitoringLock Whether to disable the monitoring lock\nThe monitoring lock is what prevents multiple endpoints from being processed at the same time.\nDisabling this may lead to inaccurate response times\n\nDeprecated: Use Concurrency instead TODO: REMOVE THIS IN v6.0.0"
+        },
+        "concurrency": {
+          "type": "integer",
+          "description": "Concurrency is the maximum number of endpoints/suites that can be monitored concurrently\nDefaults to DefaultConcurrency. Set to 0 for unlimited concurrency."
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityConfig",
+          "description": "Security is the configuration for securing access to Gatus"
+        },
+        "alerting": {
+          "$ref": "#/$defs/AlertingConfig",
+          "description": "Alerting is the configuration for alerting providers"
+        },
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          },
+          "type": "array",
+          "description": "Endpoints is the list of endpoints to monitor"
+        },
+        "external-endpoints": {
+          "items": {
+            "$ref": "#/$defs/ExternalEndpoint"
+          },
+          "type": "array",
+          "description": "ExternalEndpoints is the list of all external endpoints"
+        },
+        "suites": {
+          "items": {
+            "$ref": "#/$defs/Suite"
+          },
+          "type": "array",
+          "description": "Suites is the list of suites to monitor"
+        },
+        "storage": {
+          "$ref": "#/$defs/StorageConfig",
+          "description": "Storage is the configuration for how the data is stored"
+        },
+        "web": {
+          "$ref": "#/$defs/WebConfig",
+          "description": "Web is the web configuration for the application"
+        },
+        "ui": {
+          "$ref": "#/$defs/UiConfig",
+          "description": "UI is the configuration for the UI"
+        },
+        "maintenance": {
+          "$ref": "#/$defs/MaintenanceConfig",
+          "description": "Maintenance is the configuration for creating a maintenance window in which no alerts are sent"
+        },
+        "remote": {
+          "$ref": "#/$defs/RemoteConfig",
+          "description": "Remote is the configuration for remote Gatus instances\nWARNING: This is in ALPHA and may change or be completely removed in the future"
+        },
+        "connectivity": {
+          "$ref": "#/$defs/ConnectivityConfig",
+          "description": "Connectivity is the configuration for connectivity"
+        },
+        "tunneling": {
+          "$ref": "#/$defs/TunnelingConfig",
+          "description": "Tunneling is the configuration for SSH tunneling"
+        },
+        "announcements": {
+          "items": {
+            "$ref": "#/$defs/Announcement"
+          },
+          "type": "array",
+          "description": "Announcements is the list of system-wide announcements"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config is the main configuration structure"
+    },
+    "ConnectivityConfig": {
+      "properties": {
+        "checker": {
+          "$ref": "#/$defs/Checker"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config is the configuration for the connectivity checker."
+    },
+    "CustomAlertProvider": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "placeholders": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/CustomOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using a custom HTTP request Technically, all alert providers should be reachable using the custom alert provider"
+    },
+    "CustomOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "placeholders": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "DatadogAlertProvider": {
+      "properties": {
+        "api-key": {
+          "type": "string",
+          "description": "Datadog API key"
+        },
+        "site": {
+          "type": "string",
+          "description": "Datadog site (e.g., datadoghq.com, datadoghq.eu)"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Additional tags to include"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/DatadogOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-key"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Datadog"
+    },
+    "DatadogOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "api-key": {
+          "type": "string",
+          "description": "Datadog API key"
+        },
+        "site": {
+          "type": "string",
+          "description": "Datadog site (e.g., datadoghq.com, datadoghq.eu)"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Additional tags to include"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "api-key"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "DiscordAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "message-content": {
+          "type": "string",
+          "description": "Message content for pinging users or groups (e.g. \"\u003c@123456789\u003e\" or \"\u003c@\u0026987654321\u003e\")"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/DiscordOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Discord"
+    },
+    "DiscordOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "message-content": {
+          "type": "string",
+          "description": "Message content for pinging users or groups (e.g. \"\u003c@123456789\u003e\" or \"\u003c@\u0026987654321\u003e\")"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ]
+    },
+    "DnsConfig": {
+      "properties": {
+        "query-type": {
+          "type": "string",
+          "description": "QueryType is the type for the DNS records like A, AAAA, CNAME..."
+        },
+        "query-name": {
+          "type": "string",
+          "description": "QueryName is the query for DNS"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "query-type",
+        "query-name"
+      ],
+      "description": "Config for an Endpoint of type DNS"
+    },
+    "EmailAlertProvider": {
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "to": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/EmailOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from",
+        "username",
+        "password",
+        "host",
+        "port",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using SMTP"
+    },
+    "EmailOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "to": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "from",
+        "username",
+        "password",
+        "host",
+        "port",
+        "to"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "Endpoint": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled defines whether to enable the monitoring of the endpoint"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the endpoint. Can be anything."
+        },
+        "group": {
+          "type": "string",
+          "description": "Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to send the request to"
+        },
+        "method": {
+          "type": "string",
+          "description": "Method of the request made to the url of the endpoint"
+        },
+        "body": {
+          "type": "string",
+          "description": "Body of the request"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "GraphQL is whether to wrap the body in a query param ({\"query\":\"$body\"})"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Headers of the request"
+        },
+        "extra-labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "ExtraLabels are key-value pairs that can be used to metric the endpoint"
+        },
+        "interval": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Interval is the duration to wait between every status check"
+        },
+        "conditions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Conditions used to determine the health of the endpoint"
+        },
+        "alerts": {
+          "items": {
+            "$ref": "#/$defs/Alert"
+          },
+          "type": "array",
+          "description": "Alerts is the alerting configuration for the endpoint in case of failure"
+        },
+        "maintenance-windows": {
+          "items": {
+            "$ref": "#/$defs/MaintenanceConfig"
+          },
+          "type": "array",
+          "description": "MaintenanceWindow is the configuration for per-endpoint maintenance windows"
+        },
+        "dns": {
+          "$ref": "#/$defs/DnsConfig",
+          "description": "DNSConfig is the configuration for DNS monitoring"
+        },
+        "ssh": {
+          "$ref": "#/$defs/SshConfig",
+          "description": "SSH is the configuration for SSH monitoring"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the endpoint's target"
+        },
+        "ui": {
+          "$ref": "#/$defs/UiConfig",
+          "description": "UIConfig is the configuration for the UI"
+        },
+        "store": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Store is a map of values to extract from the result and store in the suite context\nThis field is only used when the endpoint is part of a suite"
+        },
+        "always-run": {
+          "type": "boolean",
+          "description": "AlwaysRun defines whether to execute this endpoint even if previous endpoints in the suite failed\nThis field is only used when the endpoint is part of a suite"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "url",
+        "conditions"
+      ],
+      "description": "Endpoint is the configuration of a service to be monitored"
+    },
+    "ExternalEndpoint": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled defines whether to enable the monitoring of the endpoint"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the endpoint. Can be anything."
+        },
+        "group": {
+          "type": "string",
+          "description": "Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end."
+        },
+        "token": {
+          "type": "string",
+          "description": "Token is the bearer token that must be provided through the Authorization header to push results to the endpoint"
+        },
+        "alerts": {
+          "items": {
+            "$ref": "#/$defs/Alert"
+          },
+          "type": "array",
+          "description": "Alerts is the alerting configuration for the endpoint in case of failure"
+        },
+        "maintenance-windows": {
+          "items": {
+            "$ref": "#/$defs/MaintenanceConfig"
+          },
+          "type": "array",
+          "description": "MaintenanceWindow is the configuration for per-endpoint maintenance windows"
+        },
+        "heartbeat": {
+          "$ref": "#/$defs/HeartbeatConfig",
+          "description": "Heartbeat is the configuration that checks if the external endpoint has received new results when it should have."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "description": "ExternalEndpoint is an endpoint whose result is pushed from outside Gatus, which means that said endpoints are not monitored by Gatus itself; Gatus only displays their results and takes care of alerting"
+    },
+    "GiteaAlertProvider": {
+      "properties": {
+        "repository-url": {
+          "type": "string",
+          "description": "The URL of the Gitea repository to create issues in"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token requires at least RW on issues and RO on metadata"
+        },
+        "assignees": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Assignees is a list of users to assign the issue to"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "repository-url",
+        "token"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Discord"
+    },
+    "GithubAlertProvider": {
+      "properties": {
+        "repository-url": {
+          "type": "string",
+          "description": "The URL of the GitHub repository to create issues in"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token requires at least RW on issues and RO on metadata"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "repository-url",
+        "token"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Discord"
+    },
+    "GitlabAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "The webhook url provided by GitLab"
+        },
+        "authorization-key": {
+          "type": "string",
+          "description": "The authorization key provided by GitLab"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity can be one of: critical, high, medium, low, info, unknown. Defaults to critical"
+        },
+        "monitoring-tool": {
+          "type": "string",
+          "description": "MonitoringTool overrides the name sent to gitlab. Defaults to gatus"
+        },
+        "environment-name": {
+          "type": "string",
+          "description": "EnvironmentName is the name of the associated GitLab environment. Required to display alerts on a dashboard."
+        },
+        "service": {
+          "type": "string",
+          "description": "Service affected. Defaults to the endpoint's display name"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url",
+        "authorization-key"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using GitLab"
+    },
+    "GooglechatAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/GooglechatOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Google chat"
+    },
+    "GooglechatOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "GotifyAlertProvider": {
+      "properties": {
+        "server-url": {
+          "type": "string",
+          "description": "URL of the Gotify server"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token to use when sending a message to the Gotify server"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority of the message. Defaults to DefaultPriority."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "server-url",
+        "token"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Gotify"
+    },
+    "HeartbeatConfig": {
+      "properties": {
+        "interval": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Interval is the time interval at which Gatus verifies whether the external endpoint has received new results\nIf no new result is received within the interval, the endpoint is marked as failed and alerts are triggered"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "interval"
+      ],
+      "description": "Config used to check if the external endpoint has received new results when it should have."
+    },
+    "HomeassistantAlertProvider": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/HomeassistantOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "url",
+        "token"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using HomeAssistant"
+    },
+    "HomeassistantOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "url",
+        "token"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "IAPConfig": {
+      "properties": {
+        "audience": {
+          "type": "string",
+          "description": "e.g. \"toto.apps.googleusercontent.com\""
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "audience"
+      ],
+      "description": "IAPConfig is the configuration for the Google Cloud Identity-Aware-Proxy"
+    },
+    "IftttAlertProvider": {
+      "properties": {
+        "webhook-key": {
+          "type": "string",
+          "description": "IFTTT Webhook key"
+        },
+        "event-name": {
+          "type": "string",
+          "description": "IFTTT event name"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/IftttOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-key",
+        "event-name"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using IFTTT"
+    },
+    "IftttOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-key": {
+          "type": "string",
+          "description": "IFTTT Webhook key"
+        },
+        "event-name": {
+          "type": "string",
+          "description": "IFTTT event name"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-key",
+        "event-name"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "IlertAlertProvider": {
+      "properties": {
+        "integration-key": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/IlertOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "integration-key"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using ilert"
+    },
+    "IlertOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "integration-key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "integration-key"
+      ]
+    },
+    "IncidentioAlertProvider": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "auth-token": {
+          "type": "string"
+        },
+        "source-url": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/IncidentioOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "AlertProvider is the configuration necessary for sending an alert using incident.io"
+    },
+    "IncidentioOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "auth-token": {
+          "type": "string"
+        },
+        "source-url": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group"
+      ]
+    },
+    "Instance": {
+      "properties": {
+        "endpoint-prefix": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "endpoint-prefix",
+        "url"
+      ]
+    },
+    "LineAlertProvider": {
+      "properties": {
+        "channel-access-token": {
+          "type": "string",
+          "description": "Line Messaging API channel access token"
+        },
+        "user-ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of Line user IDs to send messages to"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/LineOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "channel-access-token",
+        "user-ids"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Line"
+    },
+    "LineOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "channel-access-token": {
+          "type": "string",
+          "description": "Line Messaging API channel access token"
+        },
+        "user-ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of Line user IDs to send messages to"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "channel-access-token",
+        "user-ids"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "MaintenanceConfig": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the maintenance period is enabled. Enabled by default if nil."
+        },
+        "start": {
+          "type": "string",
+          "description": "Time at which the maintenance period starts (e.g. 23:00)"
+        },
+        "duration": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Duration of the maintenance period (e.g. 4h)"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Timezone in string format which the maintenance period is configured (e.g. America/Sao_Paulo)"
+        },
+        "every": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Every is a list of days of the week during which maintenance period applies.\nSee longDayNames for list of valid values.\nEvery day if empty."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "description": "Config allows for the configuration of a maintenance period."
+    },
+    "MatrixAlertProvider": {
+      "properties": {
+        "server-url": {
+          "type": "string",
+          "description": "ServerURL is the custom homeserver to use (optional)"
+        },
+        "access-token": {
+          "type": "string",
+          "description": "AccessToken is the bot user's access token to send messages"
+        },
+        "internal-room-id": {
+          "type": "string",
+          "description": "InternalRoomID is the room that the bot user has permissions to send messages to"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/MatrixOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "server-url",
+        "access-token",
+        "internal-room-id"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Matrix"
+    },
+    "MatrixOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "server-url": {
+          "type": "string",
+          "description": "ServerURL is the custom homeserver to use (optional)"
+        },
+        "access-token": {
+          "type": "string",
+          "description": "AccessToken is the bot user's access token to send messages"
+        },
+        "internal-room-id": {
+          "type": "string",
+          "description": "InternalRoomID is the room that the bot user has permissions to send messages to"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "server-url",
+        "access-token",
+        "internal-room-id"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "MattermostAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/MattermostOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Mattermost"
+    },
+    "MattermostOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "MessagebirdAlertProvider": {
+      "properties": {
+        "access-key": {
+          "type": "string"
+        },
+        "originator": {
+          "type": "string"
+        },
+        "recipients": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "access-key",
+        "originator",
+        "recipients"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Messagebird"
+    },
+    "N8nAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/N8nOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using n8n"
+    },
+    "N8nOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "NewrelicAlertProvider": {
+      "properties": {
+        "insert-key": {
+          "type": "string",
+          "description": "New Relic Insert key"
+        },
+        "account-id": {
+          "type": "string",
+          "description": "New Relic account ID"
+        },
+        "region": {
+          "type": "string",
+          "description": "Region (US or EU, defaults to US)"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/NewrelicOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "insert-key",
+        "account-id"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using New Relic"
+    },
+    "NewrelicOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "insert-key": {
+          "type": "string",
+          "description": "New Relic Insert key"
+        },
+        "account-id": {
+          "type": "string",
+          "description": "New Relic account ID"
+        },
+        "region": {
+          "type": "string",
+          "description": "Region (US or EU, defaults to US)"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "insert-key",
+        "account-id"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "NtfyAlertProvider": {
+      "properties": {
+        "topic": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "description": "Defaults to DefaultURL"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Defaults to DefaultPriority"
+        },
+        "token": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "email": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "click": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "disable-firebase": {
+          "type": "boolean",
+          "description": "Defaults to false"
+        },
+        "disable-cache": {
+          "type": "boolean",
+          "description": "Defaults to false"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/NtfyOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "topic"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Slack"
+    },
+    "NtfyOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "description": "Defaults to DefaultURL"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Defaults to DefaultPriority"
+        },
+        "token": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "email": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "click": {
+          "type": "string",
+          "description": "Defaults to \"\""
+        },
+        "disable-firebase": {
+          "type": "boolean",
+          "description": "Defaults to false"
+        },
+        "disable-cache": {
+          "type": "boolean",
+          "description": "Defaults to false"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "topic"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "OAuth2Config": {
+      "properties": {
+        "token-url": {
+          "type": "string",
+          "description": "e.g. https://dev-12345678.okta.com/token"
+        },
+        "client-id": {
+          "type": "string"
+        },
+        "client-secret": {
+          "type": "string"
+        },
+        "scopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "e.g. [\"openid\"]"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "token-url",
+        "client-id",
+        "client-secret",
+        "scopes"
+      ],
+      "description": "OAuth2Config is the configuration for the OAuth2 client credentials flow"
+    },
+    "OIDCConfig": {
+      "properties": {
+        "issuer-url": {
+          "type": "string",
+          "description": "e.g. https://dev-12345678.okta.com"
+        },
+        "redirect-url": {
+          "type": "string",
+          "description": "e.g. http://localhost:8080/authorization-code/callback"
+        },
+        "client-id": {
+          "type": "string"
+        },
+        "client-secret": {
+          "type": "string"
+        },
+        "scopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "e.g. [\"openid\"]"
+        },
+        "allowed-subjects": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "e.g. [\"user1@example.com\"]. If empty, all subjects are allowed"
+        },
+        "session-ttl": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "e.g. 8h. Defaults to 8 hours"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "issuer-url",
+        "redirect-url",
+        "client-id",
+        "client-secret",
+        "scopes",
+        "allowed-subjects",
+        "session-ttl"
+      ],
+      "description": "OIDCConfig is the configuration for OIDC authentication"
+    },
+    "OpsgenieAlertProvider": {
+      "properties": {
+        "api-key": {
+          "type": "string",
+          "description": "APIKey to use for"
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority to be used in Opsgenie alert payload\n\ndefault: P1"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source define source to be used in Opsgenie alert payload\n\ndefault: gatus"
+        },
+        "entity-prefix": {
+          "type": "string",
+          "description": "EntityPrefix is a prefix to be used in entity argument in Opsgenie alert payload\n\ndefault: gatus-"
+        },
+        "alias-prefix": {
+          "type": "string",
+          "description": "AliasPrefix is a prefix to be used in alias argument in Opsgenie alert payload\n\ndefault: gatus-healthcheck-"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Tags to be used in Opsgenie alert payload\n\ndefault: []"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-key",
+        "priority",
+        "source",
+        "entity-prefix",
+        "alias-prefix",
+        "tags"
+      ]
+    },
+    "Override": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "access-key-id": {
+          "type": "string"
+        },
+        "secret-access-key": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "access-key-id",
+        "secret-access-key",
+        "region",
+        "from",
+        "to"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "PagerdutyAlertProvider": {
+      "properties": {
+        "integration-key": {
+          "type": "string"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/PagerdutyOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "integration-key"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using PagerDuty"
+    },
+    "PagerdutyOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "integration-key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "integration-key"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "PlivoAlertProvider": {
+      "properties": {
+        "auth-id": {
+          "type": "string"
+        },
+        "auth-token": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/PlivoOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "auth-id",
+        "auth-token",
+        "from",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Plivo"
+    },
+    "PlivoOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "auth-id": {
+          "type": "string"
+        },
+        "auth-token": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "auth-id",
+        "auth-token",
+        "from",
+        "to"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "PushoverAlertProvider": {
+      "properties": {
+        "application-token": {
+          "type": "string",
+          "description": "Key used to authenticate the application sending\nSee \"Your Applications\" on the dashboard, or add a new one: https://pushover.net/apps/build"
+        },
+        "user-key": {
+          "type": "string",
+          "description": "Key of the user or group the messages should be sent to"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of your message\ndefault: \"Gatus: \u003cendpoint\u003e\"\""
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority of all messages, ranging from -2 (very low) to 2 (Emergency)\ndefault: 0"
+        },
+        "resolved-priority": {
+          "type": "integer",
+          "description": "Priority of resolved messages, ranging from -2 (very low) to 2 (Emergency)\ndefault: 0"
+        },
+        "sound": {
+          "type": "string",
+          "description": "Sound of the messages (see: https://pushover.net/api#sounds)\ndefault: \"\" (pushover)"
+        },
+        "ttl": {
+          "type": "integer",
+          "description": "TTL of your message (https://pushover.net/api#ttl)\nIf priority is 2 then this parameter is ignored\ndefault: 0"
+        },
+        "device": {
+          "type": "string",
+          "description": "Device to send the message to (see: https://pushover.net/api#devices)\ndefault: \"\" (all devices)"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "application-token",
+        "user-key"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Pushover"
+    },
+    "RemoteConfig": {
+      "properties": {
+        "instances": {
+          "items": {
+            "$ref": "#/$defs/Instance"
+          },
+          "type": "array",
+          "description": "Instances is a list of remote instances to retrieve endpoint statuses from."
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ResponseTime": {
+      "properties": {
+        "thresholds": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "thresholds"
+      ]
+    },
+    "RocketchatAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "Rocket.Chat incoming webhook URL"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Optional channel override"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/RocketchatOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Rocket.Chat"
+    },
+    "RocketchatOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string",
+          "description": "Rocket.Chat incoming webhook URL"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Optional channel override"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SecurityConfig": {
+      "properties": {
+        "basic": {
+          "$ref": "#/$defs/BasicConfig"
+        },
+        "oidc": {
+          "$ref": "#/$defs/OIDCConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config is the security configuration for Gatus"
+    },
+    "SendgridAlertProvider": {
+      "properties": {
+        "api-key": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/SendgridOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-key",
+        "from",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using SendGrid"
+    },
+    "SendgridOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "api-key": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "api-key",
+        "from",
+        "to"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SignalAlertProvider": {
+      "properties": {
+        "api-url": {
+          "type": "string",
+          "description": "Signal API URL (e.g., signal-cli-rest-api instance)"
+        },
+        "number": {
+          "type": "string",
+          "description": "Sender phone number"
+        },
+        "recipients": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of recipient phone numbers"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/SignalOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-url",
+        "number",
+        "recipients"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Signal"
+    },
+    "SignalOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "api-url": {
+          "type": "string",
+          "description": "Signal API URL (e.g., signal-cli-rest-api instance)"
+        },
+        "number": {
+          "type": "string",
+          "description": "Sender phone number"
+        },
+        "recipients": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of recipient phone numbers"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "api-url",
+        "number",
+        "recipients"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "Signl4AlertProvider": {
+      "properties": {
+        "team-secret": {
+          "type": "string",
+          "description": "SIGNL4 team secret"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/Signl4Override"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "team-secret"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using SIGNL4"
+    },
+    "Signl4Override": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "team-secret": {
+          "type": "string",
+          "description": "SIGNL4 team secret"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "team-secret"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SlackAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "Slack webhook URL"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/SlackOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Slack"
+    },
+    "SlackOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string",
+          "description": "Slack webhook URL"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SplunkAlertProvider": {
+      "properties": {
+        "hec-url": {
+          "type": "string",
+          "description": "Splunk HEC (HTTP Event Collector) URL"
+        },
+        "hec-token": {
+          "type": "string",
+          "description": "Splunk HEC token"
+        },
+        "source": {
+          "type": "string",
+          "description": "Event source"
+        },
+        "sourcetype": {
+          "type": "string",
+          "description": "Event source type"
+        },
+        "index": {
+          "type": "string",
+          "description": "Splunk index"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/SplunkOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "hec-url",
+        "hec-token"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Splunk"
+    },
+    "SplunkOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "hec-url": {
+          "type": "string",
+          "description": "Splunk HEC (HTTP Event Collector) URL"
+        },
+        "hec-token": {
+          "type": "string",
+          "description": "Splunk HEC token"
+        },
+        "source": {
+          "type": "string",
+          "description": "Event source"
+        },
+        "sourcetype": {
+          "type": "string",
+          "description": "Event source type"
+        },
+        "index": {
+          "type": "string",
+          "description": "Splunk index"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "hec-url",
+        "hec-token"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SquadcastAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "Squadcast webhook URL"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/SquadcastOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Squadcast"
+    },
+    "SquadcastOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string",
+          "description": "Squadcast webhook URL"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "SshConfig": {
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "private-key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "StorageConfig": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path is the path used by the store to achieve persistence\nIf blank, persistence is disabled.\nNote that not all Type support persistence"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of store\nIf blank, uses the default in-memory store"
+        },
+        "caching": {
+          "type": "boolean",
+          "description": "Caching is whether to enable caching.\nThis is used to drastically decrease read latency by pre-emptively caching writes\nas they happen, also known as the write-through caching strategy.\nDoes not apply if Config.Type is not TypePostgres or TypeSQLite."
+        },
+        "maximum-number-of-results": {
+          "type": "integer",
+          "description": "MaximumNumberOfResults is the number of results each endpoint should be able to provide"
+        },
+        "maximum-number-of-events": {
+          "type": "integer",
+          "description": "MaximumNumberOfEvents is the number of events each endpoint should be able to provide"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "path",
+        "type"
+      ],
+      "description": "Config is the configuration for storage"
+    },
+    "Suite": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the suite. Must be unique."
+        },
+        "group": {
+          "type": "string",
+          "description": "Group the suite belongs to. Used for grouping multiple suites together."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled defines whether the suite is enabled"
+        },
+        "interval": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Interval is the duration to wait between suite executions"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "[-+]?([0-9]*(\\.[0-9]*)?[a-z]+)+",
+          "description": "Timeout is the maximum duration for the entire suite execution"
+        },
+        "context": {
+          "type": "object",
+          "description": "InitialContext holds initial values that can be referenced by endpoints"
+        },
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          },
+          "type": "array",
+          "description": "Endpoints in the suite (executed sequentially)"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "endpoints"
+      ],
+      "description": "Suite is a collection of endpoints that are executed sequentially with shared context"
+    },
+    "TLSConfig": {
+      "properties": {
+        "certificate-file": {
+          "type": "string",
+          "description": "CertificateFile is the public certificate for TLS in PEM format."
+        },
+        "private-key-file": {
+          "type": "string",
+          "description": "PrivateKeyFile is the private key file for TLS in PEM format."
+        },
+        "renegotiation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "TLSConfig is the configuration for mTLS configurations"
+    },
+    "TeamsAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/TeamsOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Teams"
+    },
+    "TeamsOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig",
+          "description": "ClientConfig is the configuration of the client used to communicate with the provider's target"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "TeamsworkflowsAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/TeamsworkflowsOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Teams"
+    },
+    "TeamsworkflowsOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the message that will be sent"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "TelegramAlertProvider": {
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "topic-id": {
+          "type": "string"
+        },
+        "api-url": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/TelegramOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of overrides that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "token",
+        "id",
+        "api-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Telegram"
+    },
+    "TelegramOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "topic-id": {
+          "type": "string"
+        },
+        "api-url": {
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/$defs/ClientConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "token",
+        "id",
+        "api-url"
+      ],
+      "description": "Override is a configuration that may be prioritized over the default configuration"
+    },
+    "TunnelingConfig": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config represents the tunneling configuration"
+    },
+    "TwilioAlertProvider": {
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "text-twilio-triggered": {
+          "type": "string",
+          "description": "TODO in v6.0.0: Rename this to text-triggered"
+        },
+        "text-twilio-resolved": {
+          "type": "string",
+          "description": "TODO in v6.0.0: Rename this to text-resolved"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "sid",
+        "token",
+        "from",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Twilio"
+    },
+    "UiConfig": {
+      "properties": {
+        "hide-conditions": {
+          "type": "boolean",
+          "description": "HideConditions whether to hide the condition results on the UI"
+        },
+        "hide-hostname": {
+          "type": "boolean",
+          "description": "HideHostname whether to hide the hostname in the Result"
+        },
+        "hide-url": {
+          "type": "boolean",
+          "description": "HideURL whether to ensure the URL is not displayed in the results. Useful if the URL contains a token."
+        },
+        "hide-port": {
+          "type": "boolean",
+          "description": "HidePort whether to hide the port in the Result"
+        },
+        "hide-errors": {
+          "type": "boolean",
+          "description": "HideErrors whether to hide the errors in the Result"
+        },
+        "dont-resolve-failed-conditions": {
+          "type": "boolean",
+          "description": "DontResolveFailedConditions whether to resolve failed conditions in the Result for display in the UI"
+        },
+        "resolve-successful-conditions": {
+          "type": "boolean",
+          "description": "ResolveSuccessfulConditions whether to resolve successful conditions in the Result for display in the UI"
+        },
+        "badge": {
+          "$ref": "#/$defs/Badge",
+          "description": "Badge is the configuration for the badges generated"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "hide-conditions",
+        "hide-hostname",
+        "hide-url",
+        "hide-port",
+        "hide-errors",
+        "dont-resolve-failed-conditions",
+        "resolve-successful-conditions",
+        "badge"
+      ],
+      "description": "Config is the UI configuration for endpoint.Endpoint"
+    },
+    "VonageAlertProvider": {
+      "properties": {
+        "api-key": {
+          "type": "string"
+        },
+        "api-secret": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/VonageOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "api-key",
+        "api-secret",
+        "from",
+        "to"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Vonage"
+    },
+    "VonageOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "api-key": {
+          "type": "string"
+        },
+        "api-secret": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "api-key",
+        "api-secret",
+        "from",
+        "to"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "WebConfig": {
+      "properties": {
+        "address": {
+          "type": "string",
+          "description": "Address to listen on (defaults to 0.0.0.0 specified by DefaultAddress)"
+        },
+        "port": {
+          "type": "integer",
+          "description": "Port to listen on (default to 8080 specified by DefaultPort)"
+        },
+        "read-buffer-size": {
+          "type": "integer",
+          "description": "ReadBufferSize sets fiber.Config.ReadBufferSize, which is the buffer size for reading requests coming from a\nsingle connection and also acts as a limit for the maximum header size.\n\nIf you're getting occasional \"Request Header Fields Too Large\", you may want to try increasing this value.\n\nDefaults to DefaultReadBufferSize"
+        },
+        "tls": {
+          "$ref": "#/$defs/WebTLSConfig",
+          "description": "TLS configuration (optional)"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "address",
+        "port"
+      ],
+      "description": "Config is the structure which supports the configuration of the server listening to requests"
+    },
+    "WebTLSConfig": {
+      "properties": {
+        "certificate-file": {
+          "type": "string",
+          "description": "CertificateFile is the public certificate for TLS in PEM format."
+        },
+        "private-key-file": {
+          "type": "string",
+          "description": "PrivateKeyFile is the private key file for TLS in PEM format."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "WebexAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "Webex Teams webhook URL"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/WebexOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Webex"
+    },
+    "WebexOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string",
+          "description": "Webex Teams webhook URL"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "ZapierAlertProvider": {
+      "properties": {
+        "webhook-url": {
+          "type": "string",
+          "description": "Zapier webhook URL"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/ZapierOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "webhook-url"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Zapier"
+    },
+    "ZapierOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "webhook-url": {
+          "type": "string",
+          "description": "Zapier webhook URL"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "webhook-url"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    },
+    "ZulipAlertProvider": {
+      "properties": {
+        "bot-email": {
+          "type": "string",
+          "description": "Email of the bot user"
+        },
+        "bot-api-key": {
+          "type": "string",
+          "description": "API key of the bot user"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain of the Zulip server"
+        },
+        "channel-id": {
+          "type": "string",
+          "description": "ID of the channel to send the message to"
+        },
+        "default-alert": {
+          "$ref": "#/$defs/Alert",
+          "description": "DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/ZulipOverride"
+          },
+          "type": "array",
+          "description": "Overrides is a list of Override that may be prioritized over the default configuration"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "bot-email",
+        "bot-api-key",
+        "domain",
+        "channel-id"
+      ],
+      "description": "AlertProvider is the configuration necessary for sending an alert using Zulip"
+    },
+    "ZulipOverride": {
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "bot-email": {
+          "type": "string",
+          "description": "Email of the bot user"
+        },
+        "bot-api-key": {
+          "type": "string",
+          "description": "API key of the bot user"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain of the Zulip server"
+        },
+        "channel-id": {
+          "type": "string",
+          "description": "ID of the channel to send the message to"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "group",
+        "bot-email",
+        "bot-api-key",
+        "domain",
+        "channel-id"
+      ],
+      "description": "Override is a case under which the default integration is overridden"
+    }
+  }
+}
