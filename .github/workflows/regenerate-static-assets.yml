@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: Get PR branch
         id: pr
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const pr = await github.rest.pulls.get({
@@ -79,7 +79,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Create response comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const status = '${{ needs.regenerate-static-assets.outputs.status }}';
