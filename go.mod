@@ -34,7 +34,7 @@ require (
 	google.golang.org/grpc v1.79.3
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.47.0
+	modernc.org/sqlite v1.48.2
 )
 
 require (
