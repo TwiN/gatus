@@ -319,6 +319,21 @@
       ],
       "description": "BasicConfig is the configuration for Basic authentication"
     },
+    "Button": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name is the text to display on the button"
+        },
+        "link": {
+          "type": "string",
+          "description": "Link to open when the button is clicked."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Button is the configuration for a button on the UI"
+    },
     "Checker": {
       "properties": {
         "target": {
@@ -554,7 +569,7 @@
           "description": "Web is the web configuration for the application"
         },
         "ui": {
-          "$ref": "#/$defs/UiConfig",
+          "$ref": "#/$defs/ConfigUiConfig",
           "description": "UI is the configuration for the UI"
         },
         "maintenance": {
@@ -584,6 +599,72 @@
       "additionalProperties": false,
       "type": "object",
       "description": "Config is the main configuration structure"
+    },
+    "ConfigUiConfig": {
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the page"
+        },
+        "description": {
+          "type": "string",
+          "description": "Meta description of the page"
+        },
+        "dashboard-heading": {
+          "type": "string",
+          "description": "Dashboard Title between header and endpoints"
+        },
+        "dashboard-subheading": {
+          "type": "string",
+          "description": "Dashboard Description between header and endpoints"
+        },
+        "header": {
+          "type": "string",
+          "description": "Header is the text at the top of the page"
+        },
+        "logo": {
+          "type": "string",
+          "description": "Logo to display on the page"
+        },
+        "link": {
+          "type": "string",
+          "description": "Link to open when clicking on the logo"
+        },
+        "favicon": {
+          "$ref": "#/$defs/Favicon",
+          "description": "Favourite icon to display in web browser tab or address bar"
+        },
+        "buttons": {
+          "items": {
+            "$ref": "#/$defs/Button"
+          },
+          "type": "array",
+          "description": "Buttons to display below the header"
+        },
+        "custom-css": {
+          "type": "string",
+          "description": "Custom CSS to include in the page"
+        },
+        "dark-mode": {
+          "type": "boolean",
+          "description": "DarkMode is a flag to enable dark mode by default"
+        },
+        "default-sort-by": {
+          "type": "string",
+          "description": "DefaultSortBy is the default sort option ('name', 'group', 'health')"
+        },
+        "default-filter-by": {
+          "type": "string",
+          "description": "DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')"
+        },
+        "login-subtitle": {
+          "type": "string",
+          "description": "LoginSubtitle is the subtitle displayed on the OIDC login page"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Config is the configuration for the UI of Gatus"
     },
     "ConnectivityConfig": {
       "properties": {
@@ -1065,6 +1146,24 @@
         "name"
       ],
       "description": "ExternalEndpoint is an endpoint whose result is pushed from outside Gatus, which means that said endpoints are not monitored by Gatus itself; Gatus only displays their results and takes care of alerting"
+    },
+    "Favicon": {
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "URL or path to default favourite icon."
+        },
+        "size16x16": {
+          "type": "string",
+          "description": "URL or path to favourite icon for 16x16 size."
+        },
+        "size32x32": {
+          "type": "string",
+          "description": "URL or path to favourite icon for 32x32 size."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
     },
     "GiteaAlertProvider": {
       "properties": {

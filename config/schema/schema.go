@@ -96,7 +96,7 @@ func getTypeNameWithoutConflict(name string, pkgPath string) string {
 		name = prefix + name
 	}
 
-	pkgPath = strings.Join(pathParts[:1], "/")
+	pkgPath = strings.Join(pathParts[:len(pathParts)-1], "/")
 
 	return getTypeNameWithoutConflict(name, pkgPath)
 }
