@@ -10,7 +10,7 @@ import (
 
 func BenchmarkShallowCopyEndpointStatus(b *testing.B) {
 	ep := &testEndpoint
-	status := endpoint.NewStatus(ep.Group, ep.Name)
+	status := endpoint.NewStatus(ep.Group, ep.Name, false)
 	for range storage.DefaultMaximumNumberOfResults {
 		AddResult(status, &testSuccessfulResult, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	}
