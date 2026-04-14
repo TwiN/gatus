@@ -130,7 +130,7 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		})
 	}
 	t.Run("verify-end-results", func(t *testing.T) {
-		endpointStatus, err := store.Get().GetEndpointStatus("g", "n", paging.NewEndpointStatusParams().WithResults(1, 11))
+		endpointStatus, err := store.Get().GetEndpointStatus("g", "n", false, paging.NewEndpointStatusParams().WithResults(1, 11))
 		if err != nil {
 			t.Errorf("failed to get endpoint status: %s", err.Error())
 			return
