@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/heartbeat"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
+	"github.com/TwiN/gatus/v5/config/visibility"
 )
 
 var (
@@ -48,6 +49,8 @@ type ExternalEndpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	Visibility visibility.Visibility `yaml:"visibility,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the ExternalEndpoint and sets the default values

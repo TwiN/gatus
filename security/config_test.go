@@ -1,6 +1,7 @@
 package security
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,91 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
 )
+
+func TestConfig_IsAuthenticated(t *testing.T) {
+	cfg := &Config{Basic: &BasicConfig{
+		Username:                        "john.doe",
+		PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
+	}}
+
+	scenarios := []struct {
+		name       string
+		config     *Config
+		authHeader string
+		expect     bool
+	}{
+		{
+			name:       "no-authorization-header",
+			config:     cfg,
+			authHeader: "",
+			expect:     false,
+		},
+		{
+			name:       "invalid-prefix",
+			config:     cfg,
+			authHeader: "Bearer some-token",
+			expect:     false,
+		},
+		{
+			name:       "invalid-base64",
+			config:     cfg,
+			authHeader: "Basic !!!not-base64!!!",
+			expect:     false,
+		},
+		{
+			name:       "missing-colon-in-credentials",
+			config:     cfg,
+			authHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte("nocolon")),
+			expect:     false,
+		},
+		{
+			name:       "wrong-username",
+			config:     cfg,
+			authHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte("wrong:hunter2")),
+			expect:     false,
+		},
+		{
+			name:       "wrong-password",
+			config:     cfg,
+			authHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte("john.doe:wrong")),
+			expect:     false,
+		},
+		{
+			name:       "correct-credentials",
+			config:     cfg,
+			authHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte("john.doe:hunter2")),
+			expect:     true,
+		},
+		{
+			name:       "no-auth-providers",
+			config:     &Config{},
+			authHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte("john.doe:hunter2")),
+			expect:     false,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			var result bool
+			app := fiber.New()
+			app.Get("/test", func(c *fiber.Ctx) error {
+				result = scenario.config.IsAuthenticated(c)
+				return c.SendStatus(200)
+			})
+			request := httptest.NewRequest("GET", "/test", http.NoBody)
+			if scenario.authHeader != "" {
+				request.Header.Set("Authorization", scenario.authHeader)
+			}
+			_, err := app.Test(request)
+			if err != nil {
+				t.Fatal("unexpected error:", err)
+			}
+			if result != scenario.expect {
+				t.Errorf("expected %v, got %v", scenario.expect, result)
+			}
+		})
+	}
+}
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 	validBasicConfig := &BasicConfig{
@@ -86,6 +172,23 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 				t.Errorf("scenario %s: expected config to be valid", scenario.Name)
 			}
 		})
+	}
+	defaultCfg := &Config{Basic: validBasicConfig}
+	defaultCfg.ValidateAndSetDefaults()
+	if defaultCfg.Level != authLevelGlobal {
+		t.Errorf("Default level should be %s", authLevelGlobal)
+	}
+}
+
+func TestConfig_ValidateLevel(t *testing.T) {
+	c := &Config{
+		Basic: nil,
+		OIDC:  nil,
+		Level: "WrongLevel",
+	}
+	valid := c.ValidateAndSetDefaults()
+	if valid {
+		t.Error("expected invalid level to mark config as invalid")
 	}
 }
 
