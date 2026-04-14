@@ -1,0 +1,9 @@
+endpoints:
+  - name: example-dns-query
+    url: "8.8.8.8"  # Address of the DNS server to use
+    dns:
+      query-name: "example.com"
+      query-type: "A"
+    conditions:
+      - "[BODY] == 93.184.215.14"
+      - "[DNS_RCODE] == NOERROR"
