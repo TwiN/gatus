@@ -1846,6 +1846,62 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithEnvVarInEndpointURLAndHeaders(t *testing.T) {
+	t.Setenv("GATUS_TEST_RECORD", "12345678")
+	t.Setenv("GATUS_TEST_TOKEN", "my-secret-token")
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: api
+    url: "https://api.example.com/staff/${GATUS_TEST_RECORD}/basic"
+    headers:
+      Authorization: "Bearer ${GATUS_TEST_TOKEN}"
+    body: "user=${GATUS_TEST_RECORD}"
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("config should not be nil")
+	}
+	expectedURL := "https://api.example.com/staff/12345678/basic"
+	if config.Endpoints[0].URL != expectedURL {
+		t.Errorf("URL: expected %q, got %q", expectedURL, config.Endpoints[0].URL)
+	}
+	expectedAuth := "Bearer my-secret-token"
+	if config.Endpoints[0].Headers["Authorization"] != expectedAuth {
+		t.Errorf("Authorization header: expected %q, got %q", expectedAuth, config.Endpoints[0].Headers["Authorization"])
+	}
+	expectedBody := "user=12345678"
+	if config.Endpoints[0].Body != expectedBody {
+		t.Errorf("Body: expected %q, got %q", expectedBody, config.Endpoints[0].Body)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithUndefinedEnvVarWarning(t *testing.T) {
+	// Ensure the variable is NOT set
+	os.Unsetenv("GATUS_TEST_UNDEFINED_VAR")
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: api
+    url: "https://api.example.com/staff/${GATUS_TEST_UNDEFINED_VAR}/basic"
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("config should not be nil")
+	}
+	// Undefined env vars should be replaced with empty string
+	expectedURL := "https://api.example.com/staff//basic"
+	if config.Endpoints[0].URL != expectedURL {
+		t.Errorf("URL: expected %q, got %q", expectedURL, config.Endpoints[0].URL)
+	}
+}
+
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
