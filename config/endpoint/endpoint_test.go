@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -287,6 +288,50 @@ func TestEndpoint(t *testing.T) {
 				if scenario.ExpectedResult.DomainExpiration.Hours() > 0 && !(result.DomainExpiration.Hours() > 0) {
 					t.Errorf("Expected domain expiration to be non-zero, got %v", result.DomainExpiration)
 				}
+			}
+		})
+	}
+}
+
+// TestUDPEndpointConnectedCondition reproduces the bug reported in https://github.com/TwiN/gatus/issues/1536:
+// a UDP endpoint with [CONNECTED] == true was always reported as successful, even for closed ports.
+func TestUDPEndpointConnectedCondition(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		withListener  bool
+		wantConnected bool
+		wantSuccess   bool
+	}{
+		{name: "open-port", withListener: true, wantConnected: true, wantSuccess: true},
+		{name: "closed-port", withListener: false, wantConnected: false, wantSuccess: false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			listener, err := net.ListenPacket("udp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			addr := listener.LocalAddr().String()
+			if scenario.withListener {
+				defer listener.Close()
+			} else {
+				listener.Close()
+			}
+			endpoint := Endpoint{
+				Name:         "udp-service",
+				URL:          "udp://" + addr,
+				Conditions:   []Condition{"[CONNECTED] == true"},
+				ClientConfig: &client.Config{Timeout: time.Second},
+			}
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatal(err)
+			}
+			result := endpoint.EvaluateHealth()
+			if result.Connected != scenario.wantConnected {
+				t.Errorf("expected connected=%v, got %v", scenario.wantConnected, result.Connected)
+			}
+			if result.Success != scenario.wantSuccess {
+				t.Errorf("expected success=%v, got %v", scenario.wantSuccess, result.Success)
 			}
 		})
 	}
