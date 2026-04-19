@@ -293,8 +293,6 @@ func TestEndpoint(t *testing.T) {
 	}
 }
 
-// TestUDPEndpointConnectedCondition reproduces the bug reported in https://github.com/TwiN/gatus/issues/1536:
-// a UDP endpoint with [CONNECTED] == true was always reported as successful, even for closed ports.
 func TestUDPEndpointConnectedCondition(t *testing.T) {
 	scenarios := []struct {
 		name          string
