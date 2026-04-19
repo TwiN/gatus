@@ -17,7 +17,6 @@ import (
 )
 
 func TestGetHTTPClient(t *testing.T) {
-	t.Parallel()
 	cfg := &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
@@ -318,7 +317,6 @@ func TestCanCreateConnection(t *testing.T) {
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
 func TestHttpClientProvidesOAuth2BearerToken(t *testing.T) {
-	t.Parallel()
 	defer InjectHTTPClient(nil)
 	oAuth2Config := &OAuth2Config{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
