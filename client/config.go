@@ -70,7 +70,7 @@ type Config struct {
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
-	// Network (ip, ip4 or ip6) for the ICMP client
+	// Network (ip, ip4 or ip6) for the ICMP, TCP, and UDP clients
 	Network string `yaml:"network"`
 
 	// TLS configuration (optional)
