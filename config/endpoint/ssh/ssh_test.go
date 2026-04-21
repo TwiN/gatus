@@ -36,3 +36,12 @@ func TestSSH_validatePrivateKeyCfg(t *testing.T) {
 		}
 	})
 }
+
+func TestSSH_validatePassphraseCfg(t *testing.T) {
+	t.Run("fail when passphrase provided but private key missing", func(t *testing.T) {
+		cfg := &Config{Username: "test", Password: "xxxxxx", Passphrase: "xxx"}
+		if err := cfg.Validate(); !errors.Is(err, ErrEndpointWithoutSSHPrivateKey) {
+			t.Fatalf("expected ErrEndpointWithoutSSHPrivateKey, got %v", err)
+		}
+	})
+}
