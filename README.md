@@ -232,6 +232,26 @@ By default, the configuration file is expected to be at `config/config.yaml`.
 
 You can specify a custom path by setting the `GATUS_CONFIG_PATH` environment variable.
 
+Alternatively, you can pass the entire configuration via the `GATUS_CONFIG` environment variable. This takes precedence over file-based configuration and is useful for containerized deployments where mounting config files is inconvenient:
+
+```yaml
+# Plain YAML configuration
+GATUS_CONFIG: |
+  endpoints:
+    - name: website
+      url: "https://example.org"
+      interval: 5m
+      conditions:
+        - "[STATUS] == 200"
+```
+
+If your configuration contains special characters that may cause issues with environment variable parsing, you can base64-encode the configuration and set `GATUS_CONFIG_BASE64=true`:
+
+```bash
+GATUS_CONFIG_BASE64=true
+GATUS_CONFIG=ZW5kcG9pbnRzOgogIC0gbmFtZTogd2Vic2l0ZQogICAgdXJsOiAiaHR0cHM6Ly9leGFtcGxlLm9yZyIK
+```
+
 If `GATUS_CONFIG_PATH` points to a directory, all `*.yaml` and `*.yml` files inside said directory and its
 subdirectories are merged like so:
 - All maps/objects are deep merged (i.e. you could define `alerting.slack` in one file and `alerting.pagerduty` in another file)
