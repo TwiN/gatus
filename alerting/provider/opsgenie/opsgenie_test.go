@@ -20,6 +20,16 @@ func TestAlertProvider_Validate(t *testing.T) {
 	if err := validProvider.Validate(); err != nil {
 		t.Error("provider should've been valid")
 	}
+	if validProvider.DefaultConfig.APIURL != defaultAPIURL {
+		t.Errorf("expected APIURL to be %s, got %s", defaultAPIURL, validProvider.DefaultConfig.APIURL)
+	}
+	customURLProvider := AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000", APIURL: "https://api.atlassian.com/jsm/ops/integration/v2/alerts"}}
+	if err := customURLProvider.Validate(); err != nil {
+		t.Error("provider with custom api-url should've been valid")
+	}
+	if customURLProvider.DefaultConfig.APIURL != "https://api.atlassian.com/jsm/ops/integration/v2/alerts" {
+		t.Errorf("expected APIURL to be preserved, got %s", customURLProvider.DefaultConfig.APIURL)
+	}
 }
 
 func TestAlertProvider_Send(t *testing.T) {
@@ -40,6 +50,19 @@ func TestAlertProvider_Send(t *testing.T) {
 			Resolved:      false,
 			ExpectedError: false,
 			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+		},
+		{
+			Name:          "triggered-custom-api-url",
+			Provider:      AlertProvider{DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000", APIURL: "https://api.atlassian.com/jsm/ops/integration/v2/alerts"}},
+			Alert:         alert.Alert{Description: &description, SuccessThreshold: 1, FailureThreshold: 1},
+			Resolved:      false,
+			ExpectedError: false,
+			MockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				if r.URL.String() != "https://api.atlassian.com/jsm/ops/integration/v2/alerts" {
+					return &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody}
+				}
 				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
 			}),
 		},
@@ -342,6 +365,14 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"api-key": "00000000-0000-0000-0000-000000000001"}},
 			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
 		},
+		{
+			Name: "provider-with-custom-api-url",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000", APIURL: "https://api.atlassian.com/jsm/ops/integration/v2/alerts"},
+			},
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000", APIURL: "https://api.atlassian.com/jsm/ops/integration/v2/alerts"},
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -351,6 +382,9 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.APIKey != scenario.ExpectedOutput.APIKey {
 				t.Errorf("expected APIKey to be %s, got %s", scenario.ExpectedOutput.APIKey, got.APIKey)
+			}
+			if scenario.ExpectedOutput.APIURL != "" && got.APIURL != scenario.ExpectedOutput.APIURL {
+				t.Errorf("expected APIURL to be %s, got %s", scenario.ExpectedOutput.APIURL, got.APIURL)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
