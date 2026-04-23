@@ -2842,12 +2842,13 @@ This is an experimental feature. It may be removed or updated in a breaking mann
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
 Use at your own risk.
 
-| Parameter                          | Description                                  | Default       |
-|:-----------------------------------|:---------------------------------------------|:--------------|
-| `remote`                           | Remote configuration                         | `{}`          |
-| `remote.instances`                 | List of remote instances                     | Required `[]` |
-| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with     | `""`          |
-| `remote.instances.url`             | URL from which to retrieve endpoint statuses | Required `""` |
+| Parameter                          | Description                                    | Default       |
+|:-----------------------------------|:-----------------------------------------------|:--------------|
+| `remote`                           | Remote configuration                           | `{}`          |
+| `remote.instances`                 | List of remote instances                       | Required `[]` |
+| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with       | `""`          |
+| `remote.instances.url`             | URL from which to retrieve endpoint statuses   | Required `""` |
+| `remote.client`                    | [Client configuration](#client-configuration). | `{}`          |
 
 ```yaml
 remote:
