@@ -16,6 +16,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/TwiN/gocache/v2"
@@ -117,6 +118,22 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 			return false, nil
 		}
 		return true, buf[:n]
+	}
+	// For UDP with no body, net.DialTimeout always succeeds (UDP is connectionless).
+	// Send a probe packet so the OS can receive an ICMP port-unreachable response if
+	// nothing is listening, then detect it via ECONNREFUSED on the subsequent Read.
+	if strings.HasPrefix(netType, "udp") {
+		connection.SetDeadline(time.Now().Add(config.Timeout))
+		if _, err = connection.Write([]byte{0}); err != nil {
+			return false, nil
+		}
+		buf := make([]byte, MaximumMessageSize)
+		if _, err = connection.Read(buf); err != nil {
+			if errors.Is(err, syscall.ECONNREFUSED) {
+				return false, nil
+			}
+			// Timeout or other error: server is present but silent (normal for many UDP services).
+		}
 	}
 	return true, nil
 }
