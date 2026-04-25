@@ -27,6 +27,7 @@ type Config struct {
 	BotAPIKey string `yaml:"bot-api-key"` // API key of the bot user
 	Domain    string `yaml:"domain"`      // Domain of the Zulip server
 	ChannelID string `yaml:"channel-id"`  // ID of the channel to send the message to
+	Topic     string `yaml:"topic"`       // Topic of the channel to send the message to
 }
 
 func (cfg *Config) Validate() error {
@@ -138,10 +139,14 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		}
 		message += fmt.Sprintf("\n%s - `%s`", prefix, conditionResult.Condition)
 	}
+	topic := "Gatus"
+	if cfg.Topic != nil {
+		topic = cfg.Topic
+	}
 	return url.Values{
 		"type":    {"channel"},
 		"to":      {cfg.ChannelID},
-		"topic":   {"Gatus"},
+		"topic":   {topic},
 		"content": {message},
 	}.Encode()
 }
