@@ -283,8 +283,14 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent os.ExpandEnv from treating "$$" as if it was an
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
-	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	// Expand environment variables, warning about any that are not set
+	yamlBytes = []byte(os.Expand(string(yamlBytes), func(key string) string {
+		value, exists := os.LookupEnv(key)
+		if !exists {
+			logr.Warnf("[config.parseAndValidateConfigBytes] Environment variable '%s' is not set", key)
+		}
+		return value
+	}))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
