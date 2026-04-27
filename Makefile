@@ -20,6 +20,10 @@ clean:
 test:
 	go test ./... -cover
 
+.PHONY: gen-schema
+gen-schema:
+	go run config/schema/schema.go
+
 
 ##########
 # Docker #
