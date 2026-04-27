@@ -1067,6 +1067,9 @@ endpoints:
 | `alerting.email.port`              | Port the mail server is listening to (e.g. `587`)                                             | Required `0`  |
 | `alerting.email.to`                | Email(s) to send the alerts to                                                                | Required `""` |
 | `alerting.email.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)    | N/A           |
+| `alerting.email.batch.enabled`     | Whether to batch email alerts into a single summary email                                     | `false`       |
+| `alerting.email.batch.window`      | How long to wait for additional alerts before sending the summary                             | `2m`          |
+| `alerting.email.batch.max-alerts`  | Maximum number of alerts to buffer before flushing immediately                                | `50`          |
 | `alerting.email.client.insecure`   | Whether to skip TLS verification                                                              | `false`       |
 | `alerting.email.overrides`         | List of overrides that may be prioritized over the default configuration                      | `[]`          |
 | `alerting.email.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration           | `""`          |
@@ -1081,6 +1084,10 @@ alerting:
     host: "mail.example.com"
     port: 587
     to: "recipient1@example.com,recipient2@example.com"
+    batch:
+      enabled: true
+      window: 2m
+      max-alerts: 50
     client:
       insecure: false
     # You can also add group-specific to keys, which will
@@ -1116,6 +1123,8 @@ endpoints:
 ```
 
 > ⚠ Some mail servers are painfully slow.
+>
+> When batching is enabled, Gatus groups email alerts that share the same SMTP configuration and recipient list into one summary email. Triggered and resolved alerts are rendered in separate sections, and pending summaries are flushed on shutdown.
 
 
 #### Configuring Gitea alerts
