@@ -23,11 +23,11 @@ var (
 )
 
 type Config struct {
-	BotEmail  string `yaml:"bot-email"`   // Email of the bot user
-	BotAPIKey string `yaml:"bot-api-key"` // API key of the bot user
-	Domain    string `yaml:"domain"`      // Domain of the Zulip server
-	ChannelID string `yaml:"channel-id"`  // ID of the channel to send the message to
-	Topic     string `yaml:"topic"`       // Topic of the channel to send the message to
+	BotEmail  string `yaml:"bot-email"`       // Email of the bot user
+	BotAPIKey string `yaml:"bot-api-key"`     // API key of the bot user
+	Domain    string `yaml:"domain"`          // Domain of the Zulip server
+	ChannelID string `yaml:"channel-id"`      // ID of the channel to send the message to
+	Topic     string `yaml:"topic,omitempty"` // Topic of the channel to send the message to
 }
 
 func (cfg *Config) Validate() error {
@@ -58,6 +58,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.ChannelID) > 0 {
 		cfg.ChannelID = override.ChannelID
+	}
+	if len(override.Topic) > 0 {
+		cfg.Topic = override.Topic
 	}
 }
 
@@ -140,7 +143,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		message += fmt.Sprintf("\n%s - `%s`", prefix, conditionResult.Condition)
 	}
 	topic := "Gatus"
-	if cfg.Topic != nil {
+	if cfg.Topic != "" {
 		topic = cfg.Topic
 	}
 	return url.Values{
