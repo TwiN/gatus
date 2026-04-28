@@ -358,13 +358,27 @@ gatus-cli external-endpoint push --url https://status.example.org --key "core_ex
 or send an HTTP request:
 ```
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
+
 ```
+You may specify the error in the body for security reasons. When using both approaches, the message in the body is added additionally.
+
+```http
+POST /api/v1/endpoints/{key}/external?success=false&error=Error%20occured
+Content-Type: application/json
+Authorization: Bearer foo
+
+{
+    "error": "Ipsum dolore adipisicing adipisicing et. \n Fugiat cupidatat voluptate Lorem nisi ea sint culpa ex aliquip magna commodo nisi laborum dolore. \n Aliqua reprehenderit elit officia sint adipisicing nostrud nostrud incididunt eu sunt est eu elit dolor. Duis cupidatat commodo nulla culpa aute consequat eiusmod sint est. \n Nisi nostrud mollit sint ad voluptate esse pariatur aute. Labore sit Lorem occaecat do consectetur aliqua est aliqua nostrud quis laborum in aliqua."
+}
+```
+
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
 - `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, this will be ignored.
 - `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
+- the json body of a request for failed status can contain an error message e.g. `{"error": "Fatal!\nthe task failed"}`
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
