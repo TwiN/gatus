@@ -359,9 +359,19 @@ or send an HTTP request:
 ```
 POST /api/v1/endpoints/{key}/external?success={success}&error={error}&duration={duration}
 
-curl -X POST 'http://example.com/api/v1/endpoints/{key}/external?success=false' --header "Content-Type: application/json" --header "Authorization: Bearer foo" -d '{"error":"some detailed error message with sensitive data \n that have line breaks and may exceed 2KB"}
-
 ```
+You may specify the error in the body for security reasons. When using both approaches, the message in the body is added additionally.
+
+```http
+POST /api/v1/endpoints/{key}/external?success=false&error=Error%20occured
+Content-Type: application/json
+Authorization: Bearer foo
+
+{
+    "error": "Ipsum dolore adipisicing adipisicing et. \n Fugiat cupidatat voluptate Lorem nisi ea sint culpa ex aliquip magna commodo nisi laborum dolore. \n Aliqua reprehenderit elit officia sint adipisicing nostrud nostrud incididunt eu sunt est eu elit dolor. Duis cupidatat commodo nulla culpa aute consequat eiusmod sint est. \n Nisi nostrud mollit sint ad voluptate esse pariatur aute. Labore sit Lorem occaecat do consectetur aliqua est aliqua nostrud quis laborum in aliqua."
+}
+```
+
 Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
