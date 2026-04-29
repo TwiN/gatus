@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -310,6 +311,36 @@ func TestCanCreateConnection(t *testing.T) {
 	connected, _ = CanCreateNetworkConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
 	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
+	}
+}
+
+func TestCanCreateUDPConnection(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		withListener  bool
+		wantConnected bool
+	}{
+		{name: "open-port", withListener: true, wantConnected: true},
+		{name: "closed-port", withListener: false, wantConnected: false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			listener, err := net.ListenPacket("udp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			addr := listener.LocalAddr().String()
+			if scenario.withListener {
+				defer listener.Close()
+			} else {
+				listener.Close()
+			}
+			connected, _ := CanCreateNetworkConnection("udp", addr, "", &Config{Timeout: time.Second})
+			if connected != scenario.wantConnected {
+				t.Errorf("expected connected=%v, got %v", scenario.wantConnected, connected)
+			}
+		})
 	}
 }
 
