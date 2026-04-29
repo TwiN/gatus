@@ -13,11 +13,12 @@ import (
 
 func TestNew(t *testing.T) {
 	type Scenario struct {
-		Name         string
-		Path         string
-		ExpectedCode int
-		Gzip         bool
-		WithSecurity bool
+		Name           string
+		Path           string
+		ExpectedCode   int
+		Gzip           bool
+		WithSecurity   bool
+		ProtectMetrics bool
 	}
 	scenarios := []Scenario{
 		{
@@ -40,6 +41,13 @@ func TestNew(t *testing.T) {
 			Name:         "metrics",
 			Path:         "/metrics",
 			ExpectedCode: fiber.StatusOK,
+		},
+		{
+			Name:           "metrics-should-return-401-if-protected",
+			Path:           "/metrics",
+			ExpectedCode:   fiber.StatusUnauthorized,
+			WithSecurity:   true,
+			ProtectMetrics: true,
 		},
 		{
 			Name:         "favicon.ico",
@@ -112,6 +120,7 @@ func TestNew(t *testing.T) {
 						Username:                        "john.doe",
 						PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
 					},
+					ProtectMetrics: scenario.ProtectMetrics,
 				}
 			}
 			api := New(cfg)
