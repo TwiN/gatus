@@ -39,7 +39,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 			// Set the period from each endpoint's UI config if configured
 			for _, es := range endpointStatuses {
 				if ep := cfg.GetEndpointByKey(es.Key); ep != nil && ep.UIConfig != nil {
-					es.SetPeriod(ep.UIConfig.Period)
+					es.SetPeriod(ep.UIConfig.Period.Duration())
 				}
 			}
 			// Marshal endpoint statuses to JSON
@@ -112,7 +112,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 		}
 		// Set the period from the endpoint's UI config if configured
 		if ep := cfg.GetEndpointByKey(key); ep != nil && ep.UIConfig != nil {
-			endpointStatus.SetPeriod(ep.UIConfig.Period)
+			endpointStatus.SetPeriod(ep.UIConfig.Period.Duration())
 		}
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {
