@@ -253,7 +253,11 @@ const navigateToDetails = () => {
 }
 
 const handleMouseEnter = (result, event) => {
-  emit('showTooltip', result, event, 'hover')
+  if (result && result.missing) {
+    emit('showTooltip', { missing: true, timestamp: result.timestamp }, event, 'hover')
+  } else {
+    emit('showTooltip', result, event, 'hover')
+  }
 }
 
 const handleMouseLeave = (result, event) => {
@@ -267,7 +271,11 @@ const handleClick = (result, event, index) => {
     emit('showTooltip', null, event, 'click')
   } else {
     selectedResultIndex.value = index
-    emit('showTooltip', result, event, 'click')
+    if (result && result.missing) {
+      emit('showTooltip', { missing: true, timestamp: result.timestamp }, event, 'click')
+    } else {
+      emit('showTooltip', result, event, 'click')
+    }
   }
 }
 
