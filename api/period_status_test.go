@@ -151,24 +151,27 @@ func TestPeriodStatusesResponseStructure(t *testing.T) {
 	if result.Parts != 5 {
 		t.Errorf("expected parts 5, got %d", result.Parts)
 	}
-	if len(result.Slices) != 5 {
-		t.Fatalf("expected 5 slices, got %d", len(result.Slices))
+	if result.Uptime < 0 || result.Uptime > 1 {
+		t.Errorf("uptime must be in [0, 1], got %f", result.Uptime)
 	}
-	for i, slice := range result.Slices {
-		if slice.Timestamp <= 0 {
-			t.Errorf("slice %d: timestamp must be positive, got %d", i, slice.Timestamp)
+	if len(result.Results) != 5 {
+		t.Fatalf("expected 5 results, got %d", len(result.Results))
+	}
+	for i, r := range result.Results {
+		if r.Timestamp.IsZero() {
+			t.Errorf("result %d: timestamp must not be zero", i)
 		}
-		if slice.Uptime < 0 || slice.Uptime > 1 {
-			t.Errorf("slice %d: uptime must be in [0, 1], got %f", i, slice.Uptime)
-		}
-		if slice.ResponseTime < 0 {
-			t.Errorf("slice %d: response_time must be non-negative, got %d", i, slice.ResponseTime)
+		if !r.Missing {
+			// Non-missing results should have valid data
+			if r.Duration < 0 {
+				t.Errorf("result %d: duration must be non-negative, got %v", i, r.Duration)
+			}
 		}
 	}
 	// Verify timestamps are in ascending order
-	for i := 1; i < len(result.Slices); i++ {
-		if result.Slices[i].Timestamp <= result.Slices[i-1].Timestamp {
-			t.Errorf("slice %d timestamp (%d) should be greater than slice %d timestamp (%d)", i, result.Slices[i].Timestamp, i-1, result.Slices[i-1].Timestamp)
+	for i := 1; i < len(result.Results); i++ {
+		if !result.Results[i].Timestamp.After(result.Results[i-1].Timestamp) {
+			t.Errorf("result %d timestamp should be after result %d timestamp", i, i-1)
 		}
 	}
 }
@@ -203,7 +206,10 @@ func TestPeriodStatusesSinglePart(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if len(result.Slices) != 1 {
-		t.Fatalf("expected 1 slice, got %d", len(result.Slices))
+	if len(result.Results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(result.Results))
+	}
+	if result.Uptime < 0 || result.Uptime > 1 {
+		t.Errorf("uptime must be in [0, 1], got %f", result.Uptime)
 	}
 }
