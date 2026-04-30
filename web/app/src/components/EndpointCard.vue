@@ -47,16 +47,12 @@
               @click.stop="item && handleClick(item, $event, index)"
             />
           </div>
-          <div v-if="hasPeriodData && periodUptime !== null" class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-            <span>{{ periodStartTime }}</span>
+          <div class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <span>{{ displayStartTime }}</span>
             <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
-            <span class="font-medium" :class="uptimeColor(periodUptime)">{{ formatUptimePercent(periodUptime) }} uptime</span>
+            <span class="font-medium" :class="uptimeColor(displayUptime)">{{ formatUptimePercent(displayUptime) }} uptime</span>
             <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
-            <span>{{ periodEndTime }}</span>
-          </div>
-          <div v-else class="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{{ oldestResultTime }}</span>
-            <span>{{ newestResultTime }}</span>
+            <span>{{ displayEndTime }}</span>
           </div>
         </div>
       </div>
@@ -116,24 +112,54 @@ const hasPeriodData = computed(() => {
   return configuredPeriod.value && periodData.value && periodData.value.results && periodData.value.results.length > 0
 })
 
-const periodUptime = computed(() => {
-  if (!hasPeriodData.value) return null
-  return periodData.value.uptime
+const displayStartTime = computed(() => {
+  if (hasPeriodData.value) {
+    // Find first non-missing result
+    for (const r of periodData.value.results) {
+      if (r && !r.missing) {
+        return generatePrettyTimeAgo(r.timestamp)
+      }
+    }
+    return ''
+  }
+  // Non-period: use oldest displayed result
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
+  const oldestIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
+  return generatePrettyTimeAgo(props.endpoint.results[oldestIndex].timestamp)
 })
 
-const periodStartTime = computed(() => {
-  if (!hasPeriodData.value) return ''
-  const first = periodData.value.results[0]
-  if (!first || first.missing) return ''
-  return generatePrettyTimeAgo(first.timestamp)
+const displayEndTime = computed(() => {
+  if (hasPeriodData.value) {
+    const results = periodData.value.results
+    if (!results || results.length === 0) return ''
+    return generatePrettyTimeAgo(results[results.length - 1].timestamp)
+  }
+  // Non-period: use newest result
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
+  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
 
-const periodEndTime = computed(() => {
-  if (!hasPeriodData.value) return ''
-  const results = periodData.value.results
-  const last = results[results.length - 1]
-  if (!last) return ''
-  return generatePrettyTimeAgo(last.timestamp)
+const displayUptime = computed(() => {
+  if (hasPeriodData.value) {
+    return periodData.value.uptime
+  }
+  // Non-period: use uptime from the API response (day uptime as default)
+  if (props.endpoint.uptime) {
+    return props.endpoint.uptime.day
+  }
+  // Fallback: compute from displayed results
+  const results = props.endpoint.results
+  if (!results || results.length === 0) return null
+  let success = 0
+  let total = 0
+  for (const r of results) {
+    if (r) {
+      total++
+      if (r.success) success++
+    }
+  }
+  if (total === 0) return null
+  return success / total
 })
 
 const displayBars = computed(() => {
@@ -195,17 +221,6 @@ const formattedResponseTime = computed(() => {
     }
     return `${minMs}-${maxMs}ms`
   }
-})
-
-const oldestResultTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  const oldestResultIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
-  return generatePrettyTimeAgo(props.endpoint.results[oldestResultIndex].timestamp)
-})
-
-const newestResultTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
 
 const formatUptimePercent = (value) => {
