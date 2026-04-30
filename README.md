@@ -3591,7 +3591,9 @@ Specific endpoints can also be queried by using the following pattern:
 ```
 /api/v1/endpoints/{group}_{endpoint}/statuses
 ```
-Example: https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
+Example: 
+- https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
+- (FOR NO GROUPS SET) https://status.twin.sh/api/v1/endpoints/_main-page/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
