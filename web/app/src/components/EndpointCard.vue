@@ -33,7 +33,10 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex gap-0.5">
+          <div v-if="configuredPeriod && periodLoading" class="flex gap-0.5">
+            <div v-for="i in maxResults" :key="i" class="flex-1 h-6 sm:h-8 rounded-sm bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          </div>
+          <div v-else class="flex gap-0.5">
             <div
               v-for="(item, index) in displayBars"
               :key="index"
@@ -113,22 +116,15 @@ const hasPeriodData = computed(() => {
 })
 
 const displayStartTime = computed(() => {
-  if (hasPeriodData.value) {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
     // Use the configured period duration as the start time
-    if (configuredPeriod.value) {
-      const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
-      if (match) {
-        const value = parseInt(match[1])
-        const unit = match[2]
-        const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
-        return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
-      }
-    }
-    // Fallback: find first non-missing result
-    for (const r of periodData.value.results) {
-      if (r && !r.missing) {
-        return generatePrettyTimeAgo(r.timestamp)
-      }
+    const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
+    if (match) {
+      const value = parseInt(match[1])
+      const unit = match[2]
+      const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
+      return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
     }
     return ''
   }
@@ -139,7 +135,8 @@ const displayStartTime = computed(() => {
 })
 
 const displayEndTime = computed(() => {
-  if (hasPeriodData.value) {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
     const results = periodData.value.results
     if (!results || results.length === 0) return ''
     return generatePrettyTimeAgo(results[results.length - 1].timestamp)
@@ -150,7 +147,8 @@ const displayEndTime = computed(() => {
 })
 
 const displayUptime = computed(() => {
-  if (hasPeriodData.value) {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return null
     return periodData.value.uptime
   }
   // Non-period: use uptime from the API response (day uptime as default)
@@ -199,6 +197,9 @@ const barClass = (item, index) => {
 }
 
 const formattedResponseTime = computed(() => {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
+  }
   const source = hasPeriodData.value ? periodData.value.results : props.endpoint.results
   if (!source || source.length === 0) return 'N/A'
   
