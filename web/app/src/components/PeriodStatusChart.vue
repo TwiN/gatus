@@ -19,13 +19,12 @@
         @click.stop="handleClick(result, $event)"
       />
     </div>
-    <div class="flex items-center justify-between text-xs text-muted-foreground">
-      <span>{{ formatTimestamp(data.results[0]?.timestamp) }}</span>
-      <span>{{ formatTimestamp(data.results[data.results.length - 1]?.timestamp) }}</span>
-    </div>
-    <div class="text-center text-sm text-muted-foreground pt-1">
-      <span>Uptime over {{ data.duration }}: </span>
-      <span class="font-medium" :class="overallUptimeColor">{{ overallUptimePercent }}%</span>
+    <div class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+      <span>{{ periodStartTime }}</span>
+      <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+      <span class="font-medium" :class="uptimeColor(data.uptime)">{{ formatUptimePercent(data.uptime) }} uptime</span>
+      <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+      <span>{{ periodEndTime }}</span>
     </div>
   </div>
 </template>
@@ -56,24 +55,33 @@ const data = ref(null)
 const loading = ref(false)
 const error = ref(null)
 
-const overallUptimePercent = computed(() => {
-  if (!data.value) return 'N/A'
-  return (data.value.uptime * 100).toFixed(2).replace(/\.?0+$/, '')
+const periodStartTime = computed(() => {
+  if (!data.value || !data.value.results || data.value.results.length === 0) return ''
+  const first = data.value.results[0]
+  if (!first || first.missing) return ''
+  return generatePrettyTimeAgo(first.timestamp)
 })
 
-const overallUptimeColor = computed(() => {
-  if (!data.value) return ''
-  const val = data.value.uptime * 100
-  if (val >= 97.5) return 'text-green-500'
-  if (val >= 95) return 'text-green-400'
-  if (val >= 90) return 'text-yellow-400'
-  if (val >= 80) return 'text-orange-400'
+const periodEndTime = computed(() => {
+  if (!data.value || !data.value.results || data.value.results.length === 0) return ''
+  const results = data.value.results
+  const last = results[results.length - 1]
+  if (!last) return ''
+  return generatePrettyTimeAgo(last.timestamp)
+})
+
+const formatUptimePercent = (value) => {
+  if (value === undefined || value === null) return 'N/A'
+  return (value * 100).toFixed(2).replace(/\.?0+$/, '') + '%'
+}
+
+const uptimeColor = (value) => {
+  if (value === undefined || value === null) return ''
+  if (value >= 0.975) return 'text-green-500'
+  if (value >= 0.95) return 'text-green-400'
+  if (value >= 0.9) return 'text-yellow-500'
+  if (value >= 0.8) return 'text-orange-500'
   return 'text-red-500'
-})
-
-const formatTimestamp = (ts) => {
-  if (!ts) return ''
-  return generatePrettyTimeAgo(ts)
 }
 
 const buildTooltipData = (result) => {
