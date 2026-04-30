@@ -71,3 +71,28 @@ func TestFormatDuration(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeUptime(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    float64
+		expected float64
+	}{
+		{name: "zero", input: 0, expected: 0},
+		{name: "one", input: 1, expected: 1},
+		{name: "0.995", input: 0.995, expected: 0.995},
+		{name: "0.9999", input: 0.9999, expected: 0.9999},
+		{name: "0.12345-rounds-down", input: 0.12345, expected: 0.1235},
+		{name: "0.12344-rounds-down", input: 0.12344, expected: 0.1234},
+		{name: "clamp-above-1", input: 1.5, expected: 1},
+		{name: "clamp-below-0", input: -0.1, expected: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizeUptime(tt.input)
+			if result != tt.expected {
+				t.Errorf("NormalizeUptime(%f) = %f, want %f", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

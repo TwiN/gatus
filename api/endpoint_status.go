@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -16,6 +17,36 @@ import (
 	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
+
+// populateUptimeStats fetches uptime for hour/day/week/month and sets it on the Status.
+func populateUptimeStats(es *endpoint.Status) {
+	now := time.Now()
+	periods := map[string]time.Time{
+		"hour":  now.Add(-1 * time.Hour),
+		"day":   now.Add(-24 * time.Hour),
+		"week":  now.Add(-7 * 24 * time.Hour),
+		"month": now.Add(-30 * 24 * time.Hour),
+	}
+	stats := &endpoint.UptimeStats{}
+	for name, from := range periods {
+		uptime, err := store.Get().GetUptimeByKey(es.Key, from, now)
+		if err != nil {
+			continue
+		}
+		val := endpoint.NormalizeUptime(uptime)
+		switch name {
+		case "hour":
+			stats.Hour = val
+		case "day":
+			stats.Day = val
+		case "week":
+			stats.Week = val
+		case "month":
+			stats.Month = val
+		}
+	}
+	es.UptimeStats = stats
+}
 
 // EndpointStatuses handles requests to retrieve all EndpointStatus
 // Due to how intensive this operation can be on the storage, this function leverages a cache.
@@ -36,11 +67,12 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 			} else if endpointStatusesFromRemote != nil {
 				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
 			}
-			// Set the period from each endpoint's UI config if configured
+			// Set the period from each endpoint's UI config if configured, and populate uptime stats
 			for _, es := range endpointStatuses {
 				if ep := cfg.GetEndpointByKey(es.Key); ep != nil && ep.UIConfig != nil {
 					es.SetPeriod(ep.UIConfig.Period.Duration())
 				}
+				populateUptimeStats(es)
 			}
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
@@ -114,6 +146,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 		if ep := cfg.GetEndpointByKey(key); ep != nil && ep.UIConfig != nil {
 			endpointStatus.SetPeriod(ep.UIConfig.Period.Duration())
 		}
+		populateUptimeStats(endpointStatus)
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {
 			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())

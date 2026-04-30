@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"math"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/key"
@@ -35,6 +36,19 @@ type Status struct {
 	// When set, indicates that the endpoint has a custom period configured.
 	// Represented as a duration string (e.g., "30d", "7d", "24h").
 	Period string `json:"period,omitempty"`
+
+	// UptimeStats contains uptime percentages for standard time windows.
+	// Populated by the API layer, not by the store.
+	UptimeStats *UptimeStats `json:"uptime,omitempty"`
+}
+
+// UptimeStats contains uptime percentages for standard time windows.
+// Values are floats between 0.0 and 1.0.
+type UptimeStats struct {
+	Hour  float64 `json:"hour"`
+	Day   float64 `json:"day"`
+	Week  float64 `json:"week"`
+	Month float64 `json:"month"`
 }
 
 // NewStatus creates a new Status
@@ -60,6 +74,12 @@ func (s *Status) SetPeriod(d time.Duration) {
 	} else {
 		s.Period = formatDurationString(int(hours), "h")
 	}
+}
+
+// NormalizeUptime clamps an uptime value to [0, 1] and rounds to 4 decimal places
+func NormalizeUptime(uptime float64) float64 {
+	uptime = math.Max(0, math.Min(1, uptime))
+	return math.Round(uptime*10000) / 10000
 }
 
 func formatDurationString(value int, unit string) string {

@@ -55,6 +55,12 @@
             <span>{{ oldestResultTime }}</span>
             <span>{{ newestResultTime }}</span>
           </div>
+          <div v-if="hasUptime" class="flex items-center justify-between text-xs text-muted-foreground mt-1">
+            <span :class="uptimeColor(endpoint.uptime.hour)" :title="'1h: ' + formatUptime(endpoint.uptime.hour)">1h {{ formatUptime(endpoint.uptime.hour) }}</span>
+            <span :class="uptimeColor(endpoint.uptime.day)" :title="'24h: ' + formatUptime(endpoint.uptime.day)">24h {{ formatUptime(endpoint.uptime.day) }}</span>
+            <span :class="uptimeColor(endpoint.uptime.week)" :title="'7d: ' + formatUptime(endpoint.uptime.week)">7d {{ formatUptime(endpoint.uptime.week) }}</span>
+            <span :class="uptimeColor(endpoint.uptime.month)" :title="'30d: ' + formatUptime(endpoint.uptime.month)">30d {{ formatUptime(endpoint.uptime.month) }}</span>
+          </div>
         </div>
       </div>
     </CardContent>
@@ -161,6 +167,24 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
+
+const hasUptime = computed(() => {
+  return props.endpoint.uptime && typeof props.endpoint.uptime === 'object'
+})
+
+const formatUptime = (value) => {
+  if (value === undefined || value === null) return 'N/A'
+  return (value * 100).toFixed(1) + '%'
+}
+
+const uptimeColor = (value) => {
+  if (value === undefined || value === null) return ''
+  if (value >= 0.975) return 'text-green-500'
+  if (value >= 0.95) return 'text-green-400'
+  if (value >= 0.9) return 'text-yellow-500'
+  if (value >= 0.8) return 'text-orange-500'
+  return 'text-red-500'
+}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
