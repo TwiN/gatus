@@ -38,21 +38,17 @@ var (
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for :duration -> 30d, 7d, 24h, 1h
+// Supported duration formats: 30d, 7d, 24h, 1h, or any custom duration like 14d, 60d, 90d, 2h, etc.
 func UptimeBadge(c *fiber.Ctx) error {
 	duration := c.Params("duration")
-	var from time.Time
-	switch duration {
-	case "30d":
-		from = time.Now().Add(-30 * 24 * time.Hour)
-	case "7d":
-		from = time.Now().Add(-7 * 24 * time.Hour)
-	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
-	case "1h":
-		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
-	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+	parsedDuration, err := ParseCustomDuration(duration)
+	if err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+	from := time.Now().Add(-parsedDuration)
+	// Because uptime metrics are stored by hour, we have to ensure at least 2 hours for 1h queries
+	if parsedDuration < 2*time.Hour {
+		from = time.Now().Add(-2 * time.Hour)
 	}
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
@@ -75,22 +71,18 @@ func UptimeBadge(c *fiber.Ctx) error {
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for :duration -> 30d, 7d, 24h, 1h
+// Supported duration formats: 30d, 7d, 24h, 1h, or any custom duration like 14d, 60d, 90d, 2h, etc.
 func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		duration := c.Params("duration")
-		var from time.Time
-		switch duration {
-		case "30d":
-			from = time.Now().Add(-30 * 24 * time.Hour)
-		case "7d":
-			from = time.Now().Add(-7 * 24 * time.Hour)
-		case "24h":
-			from = time.Now().Add(-24 * time.Hour)
-		case "1h":
-			from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
-		default:
-			return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+		parsedDuration, err := ParseCustomDuration(duration)
+		if err != nil {
+			return c.Status(400).SendString(err.Error())
+		}
+		from := time.Now().Add(-parsedDuration)
+		// Because response time metrics are stored by hour, we have to ensure at least 2 hours for 1h queries
+		if parsedDuration < 2*time.Hour {
+			from = time.Now().Add(-2 * time.Hour)
 		}
 		key, err := url.QueryUnescape(c.Params("key"))
 		if err != nil {
@@ -176,18 +168,8 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
-	var labelWidth, valueWidth, valueWidthAdjustment int
-	switch duration {
-	case "30d":
-		labelWidth = 70
-	case "7d":
-		labelWidth = 65
-	case "24h":
-		labelWidth = 70
-	case "1h":
-		labelWidth = 65
-	default:
-	}
+	labelWidth := CalculateLabelWidth(duration, "uptime")
+	var valueWidth, valueWidthAdjustment int
 	color := getBadgeColorFromUptime(uptime)
 	sanitizedValue := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", uptime*100), "0"), ".") + "%"
 	if strings.Contains(sanitizedValue, ".") {
@@ -244,18 +226,8 @@ func getBadgeColorFromUptime(uptime float64) string {
 }
 
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
-	var labelWidth, valueWidth int
-	switch duration {
-	case "30d":
-		labelWidth = 110
-	case "7d":
-		labelWidth = 105
-	case "24h":
-		labelWidth = 110
-	case "1h":
-		labelWidth = 105
-	default:
-	}
+	labelWidth := CalculateLabelWidth(duration, "response time")
+	var valueWidth int
 	color := getBadgeColorFromResponseTime(averageResponseTime, key, cfg)
 	sanitizedValue := strconv.Itoa(averageResponseTime) + "ms"
 	valueWidth = len(sanitizedValue) * 11

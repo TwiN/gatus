@@ -1,6 +1,10 @@
 package ui
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"time"
+)
 
 // Config is the UI configuration for endpoint.Endpoint
 type Config struct {
@@ -27,6 +31,14 @@ type Config struct {
 
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
+
+	// Period defines a fixed time window for the "Recent Checks" graph and uptime display.
+	// When set, the "Recent Checks" section and uptime badges will use this period
+	// instead of the default behavior.
+	// Supported formats: "1h", "24h", "7d", "14d", "30d", "60d", "90d"
+	// Minimum: 1h, Maximum: 90d
+	// Default: 0 (uses default behavior based on endpoint interval)
+	Period time.Duration `yaml:"period,omitempty"`
 }
 
 type Badge struct {
@@ -39,6 +51,7 @@ type ResponseTime struct {
 
 var (
 	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
+	ErrInvalidPeriod                  = errors.New("invalid period configuration: period must be between 1h and 90d")
 )
 
 // ValidateAndSetDefaults validates the UI configuration and sets the default values
@@ -54,6 +67,11 @@ func (config *Config) ValidateAndSetDefaults() error {
 		}
 	} else {
 		config.Badge = GetDefaultConfig().Badge
+	}
+	if config.Period != 0 {
+		if config.Period < time.Hour || config.Period > 90*24*time.Hour {
+			return ErrInvalidPeriod
+		}
 	}
 	return nil
 }
@@ -74,4 +92,17 @@ func GetDefaultConfig() *Config {
 			},
 		},
 	}
+}
+
+// PeriodDurationString returns the period as a duration string suitable for API calls
+// (e.g., "30d", "7d", "24h", "1h"). Returns empty string if period is not set.
+func (config *Config) PeriodDurationString() string {
+	if config.Period == 0 {
+		return ""
+	}
+	hours := config.Period.Hours()
+	if hours >= 24 && int(hours)%24 == 0 {
+		return fmt.Sprintf("%dd", int(hours)/24)
+	}
+	return fmt.Sprintf("%dh", int(hours))
 }

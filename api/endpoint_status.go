@@ -36,6 +36,12 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 			} else if endpointStatusesFromRemote != nil {
 				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
 			}
+			// Set the period from each endpoint's UI config if configured
+			for _, es := range endpointStatuses {
+				if ep := cfg.GetEndpointByKey(es.Key); ep != nil && ep.UIConfig != nil {
+					es.SetPeriod(ep.UIConfig.Period)
+				}
+			}
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
 			if err != nil {
@@ -103,6 +109,10 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 		if endpointStatus == nil { // XXX: is this check necessary?
 			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
+		}
+		// Set the period from the endpoint's UI config if configured
+		if ep := cfg.GetEndpointByKey(key); ep != nil && ep.UIConfig != nil {
+			endpointStatus.SetPeriod(ep.UIConfig.Period)
 		}
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {

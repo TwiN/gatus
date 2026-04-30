@@ -64,6 +64,28 @@
                 <CardTitle>Recent Checks</CardTitle>
                 <div class="flex items-center gap-2">
                   <Button 
+                    v-if="configuredPeriod"
+                    variant="ghost"
+                    size="sm"
+                    :class="viewMode === 'paginated' ? 'bg-muted' : ''"
+                    @click="viewMode = 'paginated'"
+                    title="Paginated results"
+                  >
+                    <List class="h-4 w-4 mr-1" />
+                    <span class="hidden sm:inline">Results</span>
+                  </Button>
+                  <Button 
+                    v-if="configuredPeriod"
+                    variant="ghost"
+                    size="sm"
+                    :class="viewMode === 'period' ? 'bg-muted' : ''"
+                    @click="viewMode = 'period'"
+                    :title="`Period view (${configuredPeriod})`"
+                  >
+                    <BarChart3 class="h-4 w-4 mr-1" />
+                    <span class="hidden sm:inline">Period</span>
+                  </Button>
+                  <Button 
                     variant="ghost" 
                     size="icon"
                     @click="toggleShowAverageResponseTime"
@@ -86,17 +108,28 @@
             </CardHeader>
             <CardContent>
               <div class="space-y-4">
-                <EndpointCard 
-                  v-if="endpointStatus"
-                  :endpoint="endpointStatus"
-                  :maxResults="resultPageSize"
-                  :showAverageResponseTime="showAverageResponseTime"
-                  @showTooltip="showTooltip"
-                  class="border-0 shadow-none bg-transparent p-0"
-                />
-                <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
-                  <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
-                </div>
+                <template v-if="viewMode === 'period' && configuredPeriod">
+                  <PeriodStatusChart
+                    v-if="endpointStatus && endpointStatus.key"
+                    :endpointKey="endpointStatus.key"
+                    :duration="configuredPeriod"
+                    :parts="50"
+                    @showTooltip="showTooltip"
+                  />
+                </template>
+                <template v-else>
+                  <EndpointCard 
+                    v-if="endpointStatus"
+                    :endpoint="endpointStatus"
+                    :maxResults="resultPageSize"
+                    :showAverageResponseTime="showAverageResponseTime"
+                    @showTooltip="showTooltip"
+                    class="border-0 shadow-none bg-transparent p-0"
+                  />
+                  <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
+                    <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
+                  </div>
+                </template>
               </div>
             </CardContent>
           </Card>
@@ -110,9 +143,7 @@
                     v-model="selectedChartDuration"
                     class="text-sm bg-background border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="24h">24 hours</option>
-                    <option value="7d">7 days</option>
-                    <option value="30d">30 days</option>
+                    <option v-for="d in chartDurationOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
                   </select>
                 </div>
               </CardHeader>
@@ -127,11 +158,11 @@
               </CardContent>
             </Card>
 
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card v-for="period in ['30d', '7d', '24h', '1h']" :key="period">
+            <div class="grid gap-4" :class="responseTimeBadgeGridClass">
+              <Card v-for="period in responseTimeBadgePeriods" :key="period">
                 <CardHeader class="pb-2">
                   <CardTitle class="text-sm font-medium text-muted-foreground text-center">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
+                    {{ formatPeriodLabel(period) }}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -146,10 +177,10 @@
               <CardTitle>Uptime Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div v-for="period in ['30d', '7d', '24h', '1h']" :key="period" class="text-center">
+              <div class="grid gap-4" :class="uptimeBadgeGridClass">
+                <div v-for="period in uptimeBadgePeriods" :key="period" class="text-center">
                   <p class="text-sm text-muted-foreground mb-2">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
+                    {{ formatPeriodLabel(period) }}
                   </p>
                   <img :src="generateUptimeBadgeImageURL(period)" :alt="`${period} uptime`" class="mx-auto" />
                 </div>
@@ -203,7 +234,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer, List, BarChart3 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -212,6 +243,7 @@ import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
+import PeriodStatusChart from '@/components/PeriodStatusChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
 const router = useRouter()
@@ -227,6 +259,72 @@ const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
 const isRefreshing = ref(false)
+const viewMode = ref('paginated')
+const serverUrl = ''
+
+const configuredPeriod = computed(() => {
+  return endpointStatus.value?.period || null
+})
+
+const defaultUptimePeriods = ['30d', '7d', '24h', '1h']
+
+const uptimeBadgePeriods = computed(() => {
+  const period = configuredPeriod.value
+  if (!period) return defaultUptimePeriods
+  // Add the configured period if it's not already in the default list
+  if (defaultUptimePeriods.includes(period)) return defaultUptimePeriods
+  return [period, ...defaultUptimePeriods]
+})
+
+const uptimeBadgeGridClass = computed(() => {
+  const count = uptimeBadgePeriods.value.length
+  if (count <= 4) return 'md:grid-cols-2 lg:grid-cols-4'
+  return 'md:grid-cols-3 lg:grid-cols-5'
+})
+
+const defaultResponseTimePeriods = ['30d', '7d', '24h', '1h']
+
+const responseTimeBadgePeriods = computed(() => {
+  const period = configuredPeriod.value
+  if (!period) return defaultResponseTimePeriods
+  if (defaultResponseTimePeriods.includes(period)) return defaultResponseTimePeriods
+  return [period, ...defaultResponseTimePeriods]
+})
+
+const responseTimeBadgeGridClass = computed(() => {
+  const count = responseTimeBadgePeriods.value.length
+  if (count <= 4) return 'md:grid-cols-2 lg:grid-cols-4'
+  return 'md:grid-cols-3 lg:grid-cols-5'
+})
+
+const chartDurationOptions = computed(() => {
+  const options = [
+    { value: '24h', label: '24 hours' },
+    { value: '7d', label: '7 days' },
+    { value: '30d', label: '30 days' },
+  ]
+  const period = configuredPeriod.value
+  if (period && !options.some(o => o.value === period)) {
+    options.push({ value: period, label: formatPeriodLabel(period) })
+  }
+  return options
+})
+
+const formatPeriodLabel = (period) => {
+  const match = period.match(/^(\d+)([hd])$/)
+  if (!match) return period
+  const value = parseInt(match[1])
+  const unit = match[2]
+  if (unit === 'd') {
+    if (value === 1) return 'Last day'
+    return `Last ${value} days`
+  }
+  if (unit === 'h') {
+    if (value === 1) return 'Last hour'
+    return `Last ${value} hours`
+  }
+  return period
+}
 
 const latestResult = computed(() => {
   // Use currentStatus for the actual latest result
