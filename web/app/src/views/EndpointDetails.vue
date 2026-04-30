@@ -64,28 +64,6 @@
                 <CardTitle>Recent Checks</CardTitle>
                 <div class="flex items-center gap-2">
                   <Button 
-                    v-if="configuredPeriod"
-                    variant="ghost"
-                    size="sm"
-                    :class="viewMode === 'paginated' ? 'bg-muted' : ''"
-                    @click="viewMode = 'paginated'"
-                    title="Paginated results"
-                  >
-                    <List class="h-4 w-4 mr-1" />
-                    <span class="hidden sm:inline">Results</span>
-                  </Button>
-                  <Button 
-                    v-if="configuredPeriod"
-                    variant="ghost"
-                    size="sm"
-                    :class="viewMode === 'period' ? 'bg-muted' : ''"
-                    @click="viewMode = 'period'"
-                    :title="`Period view (${configuredPeriod})`"
-                  >
-                    <BarChart3 class="h-4 w-4 mr-1" />
-                    <span class="hidden sm:inline">Period</span>
-                  </Button>
-                  <Button 
                     variant="ghost" 
                     size="icon"
                     @click="toggleShowAverageResponseTime"
@@ -108,28 +86,17 @@
             </CardHeader>
             <CardContent>
               <div class="space-y-4">
-                <template v-if="viewMode === 'period' && configuredPeriod">
-                  <PeriodStatusChart
-                    v-if="endpointStatus && endpointStatus.key"
-                    :endpointKey="endpointStatus.key"
-                    :duration="configuredPeriod"
-                    :parts="50"
-                    @showTooltip="showTooltip"
-                  />
-                </template>
-                <template v-else>
-                  <EndpointCard 
-                    v-if="endpointStatus"
-                    :endpoint="endpointStatus"
-                    :maxResults="resultPageSize"
-                    :showAverageResponseTime="showAverageResponseTime"
-                    @showTooltip="showTooltip"
-                    class="border-0 shadow-none bg-transparent p-0"
-                  />
-                  <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
-                    <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
-                  </div>
-                </template>
+                <EndpointCard 
+                  v-if="endpointStatus"
+                  :endpoint="endpointStatus"
+                  :maxResults="resultPageSize"
+                  :showAverageResponseTime="showAverageResponseTime"
+                  @showTooltip="showTooltip"
+                  class="border-0 shadow-none bg-transparent p-0"
+                />
+                <div v-if="!configuredPeriod && endpointStatus && endpointStatus.key" class="pt-4 border-t">
+                  <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -234,7 +201,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer, List, BarChart3 } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -243,7 +210,6 @@ import Settings from '@/components/Settings.vue'
 import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
-import PeriodStatusChart from '@/components/PeriodStatusChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
 
 const router = useRouter()
@@ -259,7 +225,6 @@ const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
 const isRefreshing = ref(false)
-const viewMode = ref('paginated')
 const serverUrl = ''
 
 const configuredPeriod = computed(() => {

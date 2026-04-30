@@ -114,7 +114,17 @@ const hasPeriodData = computed(() => {
 
 const displayStartTime = computed(() => {
   if (hasPeriodData.value) {
-    // Find first non-missing result
+    // Use the configured period duration as the start time
+    if (configuredPeriod.value) {
+      const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
+      if (match) {
+        const value = parseInt(match[1])
+        const unit = match[2]
+        const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
+        return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
+      }
+    }
+    // Fallback: find first non-missing result
     for (const r of periodData.value.results) {
       if (r && !r.missing) {
         return generatePrettyTimeAgo(r.timestamp)
