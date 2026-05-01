@@ -33,27 +33,29 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex gap-0.5">
+          <div v-if="configuredPeriod && periodLoading" class="flex gap-0.5">
+            <div v-for="i in maxResults" :key="i" class="flex-1 h-6 sm:h-8 rounded-sm bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          </div>
+          <div v-else class="flex gap-0.5">
             <div
-              v-for="(result, index) in displayResults"
+              v-for="(item, index) in displayBars"
               :key="index"
               :class="[
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
-                result ? 'cursor-pointer' : '',
-                result ? (
-                  result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
-                ) : 'bg-gray-200 dark:bg-gray-700'
+                barClickable(item) ? 'cursor-pointer' : '',
+                barClass(item, index)
               ]"
-              @mouseenter="result && handleMouseEnter(result, $event)"
-              @mouseleave="result && handleMouseLeave(result, $event)"
-              @click.stop="result && handleClick(result, $event, index)"
+              @mouseenter="item && handleMouseEnter(item, $event)"
+              @mouseleave="item && handleMouseLeave(item, $event)"
+              @click.stop="item && handleClick(item, $event, index)"
             />
           </div>
-          <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{{ oldestResultTime }}</span>
-            <span>{{ newestResultTime }}</span>
+          <div class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <span>{{ displayStartTime }}</span>
+            <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+            <span class="font-medium" :class="uptimeColor(displayUptime)">{{ formatUptimePercent(displayUptime) }} uptime</span>
+            <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+            <span>{{ displayEndTime }}</span>
           </div>
         </div>
       </div>
@@ -62,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -87,8 +89,11 @@ const props = defineProps({
 
 const emit = defineEmits(['showTooltip'])
 
-// Track selected data point
 const selectedResultIndex = ref(null)
+const periodData = ref(null)
+const periodLoading = ref(false)
+
+const configuredPeriod = computed(() => props.endpoint?.period || null)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -106,7 +111,69 @@ const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
 
-const displayResults = computed(() => {
+const hasPeriodData = computed(() => {
+  return configuredPeriod.value && periodData.value && periodData.value.results && periodData.value.results.length > 0
+})
+
+const displayStartTime = computed(() => {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
+    // Use the configured period duration as the start time
+    const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
+    if (match) {
+      const value = parseInt(match[1])
+      const unit = match[2]
+      const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
+      return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
+    }
+    return ''
+  }
+  // Non-period: use oldest displayed result
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
+  const oldestIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
+  return generatePrettyTimeAgo(props.endpoint.results[oldestIndex].timestamp)
+})
+
+const displayEndTime = computed(() => {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
+    const results = periodData.value.results
+    if (!results || results.length === 0) return ''
+    return generatePrettyTimeAgo(results[results.length - 1].timestamp)
+  }
+  // Non-period: use newest result
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
+  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
+})
+
+const displayUptime = computed(() => {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return null
+    return periodData.value.uptime
+  }
+  // Non-period: use uptime from the API response (day uptime as default)
+  if (props.endpoint.uptime) {
+    return props.endpoint.uptime.day
+  }
+  // Fallback: compute from displayed results
+  const results = props.endpoint.results
+  if (!results || results.length === 0) return null
+  let success = 0
+  let total = 0
+  for (const r of results) {
+    if (r) {
+      total++
+      if (r.success) success++
+    }
+  }
+  if (total === 0) return null
+  return success / total
+})
+
+const displayBars = computed(() => {
+  if (hasPeriodData.value) {
+    return periodData.value.results
+  }
   const results = [...(props.endpoint.results || [])]
   while (results.length < props.maxResults) {
     results.unshift(null)
@@ -114,19 +181,37 @@ const displayResults = computed(() => {
   return results.slice(-props.maxResults)
 })
 
-const formattedResponseTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return 'N/A'
+const barClickable = (item) => {
+  return item !== null && item !== undefined
+}
+
+const barClass = (item, index) => {
+  if (!item) return 'bg-gray-200 dark:bg-gray-700'
+  if (item.missing) return 'bg-gray-200 dark:bg-gray-700'
+  const success = item.success
+  const selected = selectedResultIndex.value === index
+  if (success) {
+    return selected ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700'
   }
+  return selected ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700'
+}
+
+const formattedResponseTime = computed(() => {
+  if (configuredPeriod.value) {
+    if (periodLoading.value || !periodData.value) return ''
+  }
+  const source = hasPeriodData.value ? periodData.value.results : props.endpoint.results
+  if (!source || source.length === 0) return 'N/A'
   
   let total = 0
   let count = 0
   let min = Infinity
   let max = 0
   
-  for (const result of props.endpoint.results) {
-    if (result.duration) {
-      const durationMs = result.duration / 1000000
+  for (const result of source) {
+    if (!result || result.missing) continue
+    const durationMs = (result.duration || 0) / 1000000
+    if (durationMs > 0) {
       total += durationMs
       count++
       min = Math.min(min, durationMs)
@@ -140,10 +225,8 @@ const formattedResponseTime = computed(() => {
     const avgMs = Math.round(total / count)
     return `~${avgMs}ms`
   } else {
-    // Show min-max range
     const minMs = Math.trunc(min)
     const maxMs = Math.trunc(max)
-    // If min and max are the same, show single value
     if (minMs === maxMs) {
       return `${minMs}ms`
     }
@@ -151,23 +234,30 @@ const formattedResponseTime = computed(() => {
   }
 })
 
-const oldestResultTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  const oldestResultIndex = Math.max(0, props.endpoint.results.length - props.maxResults)
-  return generatePrettyTimeAgo(props.endpoint.results[oldestResultIndex].timestamp)
-})
+const formatUptimePercent = (value) => {
+  if (value === undefined || value === null) return 'N/A'
+  return (value * 100).toFixed(2).replace(/\.?0+$/, '') + '%'
+}
 
-const newestResultTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
-  return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
-})
+const uptimeColor = (value) => {
+  if (value === undefined || value === null) return ''
+  if (value >= 0.975) return 'text-green-500'
+  if (value >= 0.95) return 'text-green-400'
+  if (value >= 0.9) return 'text-yellow-500'
+  if (value >= 0.8) return 'text-orange-500'
+  return 'text-red-500'
+}
 
 const navigateToDetails = () => {
   router.push(`/endpoints/${props.endpoint.key}`)
 }
 
 const handleMouseEnter = (result, event) => {
-  emit('showTooltip', result, event, 'hover')
+  if (result && result.missing) {
+    emit('showTooltip', { missing: true, timestamp: result.timestamp }, event, 'hover')
+  } else {
+    emit('showTooltip', result, event, 'hover')
+  }
 }
 
 const handleMouseLeave = (result, event) => {
@@ -175,28 +265,53 @@ const handleMouseLeave = (result, event) => {
 }
 
 const handleClick = (result, event, index) => {
-  // Clear selections in other cards first
   window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
-  // Then toggle this card's selection
   if (selectedResultIndex.value === index) {
     selectedResultIndex.value = null
     emit('showTooltip', null, event, 'click')
   } else {
     selectedResultIndex.value = index
-    emit('showTooltip', result, event, 'click')
+    if (result && result.missing) {
+      emit('showTooltip', { missing: true, timestamp: result.timestamp }, event, 'click')
+    } else {
+      emit('showTooltip', result, event, 'click')
+    }
   }
 }
 
-// Listen for clear selection event
 const handleClearSelection = () => {
   selectedResultIndex.value = null
 }
 
+const fetchPeriodData = async () => {
+  if (!configuredPeriod.value) {
+    periodData.value = null
+    return
+  }
+  periodLoading.value = true
+  try {
+    const parts = props.maxResults
+    const response = await fetch(`/api/v1/endpoints/${props.endpoint.key}/period-statuses/${configuredPeriod.value}/${parts}`)
+    if (response.status === 200) {
+      periodData.value = await response.json()
+    }
+  } catch (e) {
+    // Silently fail, will fall back to regular results
+  } finally {
+    periodLoading.value = false
+  }
+}
+
 onMounted(() => {
   window.addEventListener('clear-data-point-selection', handleClearSelection)
+  fetchPeriodData()
 })
 
 onUnmounted(() => {
   window.removeEventListener('clear-data-point-selection', handleClearSelection)
+})
+
+watch(() => [props.endpoint.key, configuredPeriod.value], () => {
+  fetchPeriodData()
 })
 </script>

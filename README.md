@@ -305,6 +305,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.resolve-successful-conditions`  | Whether to resolve successful conditions for the UI (helpful to expose body assertions even when checks pass).                              | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].ui.period`                         | Fixed time window for the "Recent Checks" display and uptime badges. <br />See [Period](#period).                                          | `0` (disabled)             |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 | `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
 | `endpoints[].store`                             | (SUITES ONLY) Map of values to extract from the response and store in the suite context (stored even on failure).                           | `{}`                       |
@@ -550,6 +551,33 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
+
+### Period
+The `period` parameter allows you to define a fixed time window for the "Recent Checks" display and uptime badges.
+When set, the status bars on the dashboard will show aggregated data for the configured period, and the uptime
+percentage will be calculated for that exact time window.
+
+| Parameter         | Description                                                                         | Default   |
+|:------------------|:------------------------------------------------------------------------------------|:----------|
+| `endpoints[].ui.period` | Time window for the status display. Supported formats: `1h`, `24h`, `7d`, `30d`, `90d`. | `0` (disabled) |
+
+Example:
+```yaml
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+    ui:
+      period: "30d"
+```
+
+When `period` is configured:
+- The "Recent Checks" section on the dashboard shows aggregated status bars for the entire period
+- Each bar represents a time slice within the period (green = healthy, red = unhealthy, gray = no data)
+- The uptime percentage is displayed below the bars in the format: `{time ago} --- {uptime}% uptime --- {time ago}`
+- The uptime and response time badges for that period are also available
 
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
@@ -3476,7 +3504,7 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `1h`, `24h`, `7d`, `14d`, `30d`, `60d`, `90d`, etc. (maximum 90d)
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
@@ -3487,6 +3515,12 @@ https://example.com/api/v1/endpoints/core_frontend/uptimes/7d/badge.svg
 If you want to display an endpoint that is not part of a group, you must leave the group value empty:
 ```
 https://example.com/api/v1/endpoints/_frontend/uptimes/7d/badge.svg
+```
+Custom duration examples:
+```
+https://example.com/api/v1/endpoints/core_frontend/uptimes/14d/badge.svg
+https://example.com/api/v1/endpoints/core_frontend/uptimes/60d/badge.svg
+https://example.com/api/v1/endpoints/core_frontend/uptimes/90d/badge.svg
 ```
 Example:
 ```
@@ -3542,7 +3576,7 @@ The endpoint to generate a badge is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `1h`, `24h`, `7d`, `14d`, `30d`, `60d`, `90d`, etc. (maximum 90d)
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 #### Response time (chart)
@@ -3555,7 +3589,7 @@ The endpoint to generate a response time chart is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/chart.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, or `24h`
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `24h`, `7d`, `30d`, `90d`, etc. (maximum 90d)
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
@@ -3587,16 +3621,76 @@ All endpoints are available via a GET request to the following endpoint:
 ````
 Example: https://status.twin.sh/api/v1/endpoints/statuses
 
+Each endpoint in the response includes an `uptime` object with uptime percentages for standard time windows:
+```json
+{
+  "key": "core_frontend",
+  "name": "frontend",
+  "results": [...],
+  "uptime": {
+    "hour": 1.0,
+    "day": 0.9985,
+    "week": 0.9972,
+    "month": 0.9951
+  }
+}
+```
+
 Specific endpoints can also be queried by using the following pattern:
 ```
 /api/v1/endpoints/{group}_{endpoint}/statuses
 ```
-Example: https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
+Example: 
+- https://status.twin.sh/api/v1/endpoints/core_blog-home/statuses
+- (FOR NO GROUPS SET) https://status.twin.sh/api/v1/endpoints/_main-page/statuses
 
 Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzip`.
 
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
+
+
+#### Period Statuses
+The period statuses endpoint returns aggregated uptime and response time data sampled evenly across a time period.
+This is useful for building custom dashboards or integrating with external monitoring systems.
+
+```
+/api/v1/endpoints/{key}/period-statuses/{duration}/{parts}
+```
+Where:
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `1h`, `24h`, `7d`, `14d`, `30d`, `60d`, `90d`, etc. (maximum 90d)
+- `{parts}` is the number of evenly spaced samples to return (1-100)
+- `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
+
+Example:
+```
+https://example.com/api/v1/endpoints/core_frontend/period-statuses/30d/50
+```
+
+Response:
+```json
+{
+  "duration": "30d",
+  "parts": 50,
+  "uptime": 0.995,
+  "results": [
+    {
+      "status": 200,
+      "duration": 150000000,
+      "success": true,
+      "timestamp": "2026-04-15T12:00:00Z"
+    },
+    {
+      "timestamp": "2026-04-18T00:00:00Z",
+      "missing": true
+    }
+  ]
+}
+```
+
+The `uptime` field contains the overall uptime percentage (0.0 to 1.0) for the entire period.
+Each result in the `results` array mirrors the structure of the standard endpoint results.
+Time slices with no data are marked with `missing: true`.
 
 
 #### Interacting with the API programmatically
@@ -3613,7 +3707,7 @@ The path to get raw uptime data for an endpoint is:
 /api/v1/endpoints/{key}/uptimes/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `1h`, `24h`, `7d`, `14d`, `30d`, `60d`, `90d`, etc. (maximum 90d)
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
@@ -3627,7 +3721,7 @@ The path to get raw response time data for an endpoint is:
 /api/v1/endpoints/{key}/response-times/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is a duration string in the format `<number>h` (hours) or `<number>d` (days). Supported values include `1h`, `24h`, `7d`, `14d`, `30d`, `60d`, `90d`, etc. (maximum 90d)
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:

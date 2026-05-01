@@ -34,8 +34,8 @@ const (
 	resultsAboveMaximumCleanUpThreshold = 10 // Maximum number of results above the configured maximum before triggering a cleanup
 
 	uptimeTotalEntriesMergeThreshold = 100                 // Maximum number of uptime entries before triggering a merge
-	uptimeAgeCleanUpThreshold        = 32 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
-	uptimeRetention                  = 30 * 24 * time.Hour // Minimum duration that must be kept to operate as intended
+	uptimeAgeCleanUpThreshold        = 92 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
+	uptimeRetention                  = 90 * 24 * time.Hour // Minimum duration that must be kept to operate as intended
 	uptimeHourlyBuffer               = 48 * time.Hour      // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
 
 	cacheTTL = 10 * time.Minute
@@ -1053,7 +1053,7 @@ func (s *Store) deleteOldUptimeEntries(tx *sql.Tx, endpointID int64, maxAge time
 //
 // This effectively limits the number of uptime entries to (48+(n-2)) where 48 is for the first 48 entries with hourly
 // entries (defined by uptimeHourlyBuffer) and n is the number of days for all entries older than 48 hours.
-// Supporting 30d of entries would then result in far less than 24*30=720 entries.
+// Supporting 90d of entries would then result in far less than 24*90=2160 entries.
 func (s *Store) mergeHourlyUptimeEntriesOlderThanMergeThresholdIntoDailyUptimeEntries(tx *sql.Tx, endpointID int64) error {
 	// Calculate timestamp of the first full day of uptime entries that would not impact the uptime calculation for 24h badges
 	// The logic is that once at least 48 hours passed, we:
