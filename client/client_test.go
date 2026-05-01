@@ -303,13 +303,78 @@ func TestCanPerformTLS(t *testing.T) {
 
 func TestCanCreateConnection(t *testing.T) {
 	t.Parallel()
-	connected, _ := CanCreateNetworkConnection("tcp", "127.0.0.1", "", &Config{Timeout: 5 * time.Second})
-	if connected {
-		t.Error("should've failed, because there's no port in the address")
+	scenarios := []struct {
+		name      string
+		netType   string
+		address   string
+		network   string
+		wantConn  bool
+	}{
+		{
+			name:     "tcp-no-port-fails",
+			netType:  "tcp",
+			address:  "127.0.0.1",
+			network:  "ip",
+			wantConn: false,
+		},
+		{
+			name:     "tcp-valid-address-succeeds",
+			netType:  "tcp",
+			address:  "1.1.1.1:53",
+			network:  "ip",
+			wantConn: true,
+		},
+		{
+			name:     "tcp-ipv4-address-with-ip4-network-succeeds",
+			netType:  "tcp",
+			address:  "1.1.1.1:53",
+			network:  "ip4",
+			wantConn: true,
+		},
+		{
+			name:     "tcp-ipv4-address-with-ip6-network-fails",
+			netType:  "tcp",
+			address:  "1.1.1.1:53",
+			network:  "ip6",
+			wantConn: false,
+		},
+		{
+			name:     "tcp-ipv6-no-port-fails",
+			netType:  "tcp",
+			address:  "2606:4700:4700::1111",
+			network:  "ip",
+			wantConn: false,
+		},
+		{
+			name:     "tcp-ipv6-valid-address-succeeds",
+			netType:  "tcp",
+			address:  "[2606:4700:4700::1111]:53",
+			network:  "ip",
+			wantConn: true,
+		},
+		{
+			name:     "tcp-ipv6-address-with-ip6-network-succeeds",
+			netType:  "tcp",
+			address:  "[2606:4700:4700::1111]:53",
+			network:  "ip6",
+			wantConn: true,
+		},
+		{
+			name:     "tcp-ipv6-address-with-ip4-network-fails",
+			netType:  "tcp",
+			address:  "[2606:4700:4700::1111]:53",
+			network:  "ip4",
+			wantConn: false,
+		},
 	}
-	connected, _ = CanCreateNetworkConnection("tcp", "1.1.1.1:53", "", &Config{Timeout: 5 * time.Second})
-	if !connected {
-		t.Error("should've succeeded, because that IP should always™ be up")
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			connected, _ := CanCreateNetworkConnection(scenario.netType, scenario.address, "", &Config{Timeout: 5 * time.Second, Network: scenario.network})
+			if connected != scenario.wantConn {
+				t.Errorf("expected connected=%v, got connected=%v", scenario.wantConn, connected)
+			}
+		})
 	}
 }
 
