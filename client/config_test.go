@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -167,5 +168,168 @@ func TestConfig_TlsIsValid(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr error
+	}{
+		{
+			name: "valid kerberos config",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					Krb5ConfigFile: "/etc/krb5.conf",
+					KeytabFile:     "/etc/gatus/secrets/service-account.keytab",
+					Principal:      "service-account@EXAMPLE.COM",
+					SPN:            "HTTP/intranet.example.com",
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "valid kerberos config without krb5 config file",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					KeytabFile: "/etc/gatus/secrets/service-account.keytab",
+					Principal:  "service-account@EXAMPLE.COM",
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "invalid kerberos config without principal",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					KeytabFile: "/etc/gatus/secrets/service-account.keytab",
+				},
+			},
+			wantErr: ErrInvalidClientKerberosConfig,
+		},
+		{
+			name: "invalid kerberos config without keytab file",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					Principal: "service-account@EXAMPLE.COM",
+				},
+			},
+			wantErr: ErrInvalidClientKerberosConfig,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.ValidateAndSetDefaults()
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestSplitPrincipal(t *testing.T) {
+	tests := []struct {
+		name         string
+		principal    string
+		wantUsername string
+		wantRealm    string
+		wantErr      bool
+	}{
+		{
+			name:         "valid principal",
+			principal:    "service-account@EXAMPLE.COM",
+			wantUsername: "service-account",
+			wantRealm:    "EXAMPLE.COM",
+			wantErr:      false,
+		},
+		{
+			name:      "missing realm",
+			principal: "service-account",
+			wantErr:   true,
+		},
+		{
+			name:      "missing username",
+			principal: "@EXAMPLE.COM",
+			wantErr:   true,
+		},
+		{
+			name:      "missing realm value",
+			principal: "service-account@",
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			username, realm, err := splitPrincipal(tt.principal)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if username != tt.wantUsername {
+				t.Fatalf("expected username %q, got %q", tt.wantUsername, username)
+			}
+
+			if realm != tt.wantRealm {
+				t.Fatalf("expected realm %q, got %q", tt.wantRealm, realm)
+			}
+		})
+	}
+}
+
+func TestDefaultHTTPSpn(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://intranet.example.com/path", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := defaultHTTPSpn(req)
+	want := "HTTP/intranet.example.com"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestDefaultHTTPSpnWithPort(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://intranet.example.com:8443/path", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := defaultHTTPSpn(req)
+	want := "HTTP/intranet.example.com"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestConfigureKerberosWrapsTransport(t *testing.T) {
+	httpClient := &http.Client{
+		Transport: http.DefaultTransport,
+	}
+
+	configuredClient := configureKerberos(httpClient, KerberosConfig{
+		KeytabFile: "/tmp/service-account.keytab",
+		Principal:  "service-account@EXAMPLE.COM",
+	})
+
+	if configuredClient.Transport == nil {
+		t.Fatal("expected transport to be configured")
+	}
+
+	if _, ok := configuredClient.Transport.(*kerberosTransport); !ok {
+		t.Fatalf("expected kerberosTransport, got %T", configuredClient.Transport)
 	}
 }

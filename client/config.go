@@ -4,15 +4,21 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/logr"
+	krb5client "github.com/go-krb5/krb5/client"
+	krb5config "github.com/go-krb5/krb5/config"
+	"github.com/go-krb5/krb5/keytab"
+	"github.com/go-krb5/krb5/spnego"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/api/idtoken"
@@ -20,14 +26,16 @@ import (
 
 const (
 	defaultTimeout = 10 * time.Second
+	defaultKrb5ConfigFile = "/etc/krb5.conf"
 )
 
 var (
-	ErrInvalidDNSResolver        = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
-	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
-	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
-	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
-	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidDNSResolver           = errors.New("invalid DNS resolver specified. Required format is {proto}://{ip}:{port}")
+	ErrInvalidDNSResolverPort       = errors.New("invalid DNS resolver port")
+	ErrInvalidClientOAuth2Config    = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
+	ErrInvalidClientIAPConfig       = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
+	ErrInvalidClientTLSConfig       = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidClientKerberosConfig  = errors.New("invalid kerberos configuration: must define principal and keytab-file")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -70,6 +78,11 @@ type Config struct {
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
+	// KerberosConfig is the configuration for Kerberos authentication
+	// If non-nil, the http.Client returned by getHTTPClient will automatically add an
+	// Authorization: Negotiate header to outgoing HTTP requests.
+	KerberosConfig *KerberosConfig `yaml:"kerberos,omitempty"`
+
 	// Network (ip, ip4 or ip6) for the ICMP client
 	Network string `yaml:"network"`
 
@@ -105,6 +118,19 @@ type IAPConfig struct {
 	Audience string `yaml:"audience"` // e.g. "toto.apps.googleusercontent.com"
 }
 
+// KerberosConfig is the configuration for Kerberos authentication
+type KerberosConfig struct {
+	Krb5ConfigFile string `yaml:"krb5-config-file,omitempty"`
+	KeytabFile     string `yaml:"keytab-file,omitempty"`
+	Principal      string `yaml:"principal,omitempty"`
+	SPN            string `yaml:"spn,omitempty"`
+}
+
+type kerberosTransport struct {
+	base   http.RoundTripper
+	config KerberosConfig
+}
+
 // TLSConfig is the configuration for mTLS configurations
 type TLSConfig struct {
 	// CertificateFile is the public certificate for TLS in PEM format.
@@ -137,6 +163,9 @@ func (c *Config) ValidateAndSetDefaults() error {
 		if err := c.TLS.isValid(); err != nil {
 			return err
 		}
+	}
+	if c.HasKerberosConfig() && !c.KerberosConfig.isValid() {
+		return ErrInvalidClientKerberosConfig
 	}
 	return nil
 }
@@ -183,6 +212,11 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
+// HasKerberosConfig returns true if the client has Kerberos configuration parameters
+func (c *Config) HasKerberosConfig() bool {
+	return c.KerberosConfig != nil
+}
+
 // HasTLSConfig returns true if the client has client certificate parameters
 func (c *Config) HasTLSConfig() bool {
 	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
@@ -198,6 +232,11 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
+// isValid() returns true if the Kerberos configuration is valid
+func (c *KerberosConfig) IsValid() bool {
+	return len(c.Principal) > 0 && len(c.KeytabFile) > 0
+}
+
 // isValid() returns nil if the client tls certificates are valid, otherwise returns an error
 func (t *TLSConfig) isValid() error {
 	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
@@ -208,6 +247,13 @@ func (t *TLSConfig) isValid() error {
 		return nil
 	}
 	return ErrInvalidClientTLSConfig
+}
+
+// isValid() returns true if the Kerberos configuration is valid
+func (c *KerberosConfig) isValid() bool {
+	return c != nil &&
+		c.Principal != "" &&
+		c.KeytabFile != ""
 }
 
 // getHTTPClient return an HTTP client matching the Config's parameters.
@@ -267,10 +313,14 @@ func (c *Config) getHTTPClient() *http.Client {
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {
 			logr.Errorf("[client.getHTTPClient] Error: Both Identity-Aware-Proxy and Oauth2 configuration are present.")
+		} else if c.HasKerberosConfig() && (c.HasOAuth2Config() || c.HasIAPConfig()) {
+			logr.Errorf("[client.getHTTPClient] Error: Kerberos cannot be combined with Oauth2 or Identity-Aware-Proxy configuration.")
 		} else if c.HasOAuth2Config() {
 			c.httpClient = configureOAuth2(c.httpClient, *c.OAuth2Config)
 		} else if c.HasIAPConfig() {
 			c.httpClient = configureIAP(c.httpClient, *c.IAPConfig)
+		} else if c.HasKerberosConfig() {
+			c.httpClient = configureKerberos(c.httpClient, *c.KerberosConfig)
 		}
 		if c.ResolvedTunnel != nil {
 			// Use SSH tunnel dialer
@@ -356,3 +406,88 @@ func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
 	}
 	return tlsConfig
 }
+
+func (t *kerberosTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	clonedRequest := req.Clone(req.Context())
+
+	if err := setKerberosAuthorizationHeader(clonedRequest, t.config); err != nil {
+		return nil, err
+	}
+	return t.base.RoundTrip(clonedRequest)
+}
+
+func configureKerberos(httpClient *http.Client, config KerberosConfig) *http.Client {
+	baseTransport := httpClient.Transport
+	if baseTransport == nil {
+		baseTransport = http.DefaultTransport
+	}
+
+	httpClient.Transport = &kerberosTransport{
+		base:   baseTransport,
+		config: config,
+	}
+
+	return httpClient
+}
+
+func setKerberosAuthorizationHeader(req *http.Request, c KerberosConfig) error {
+	krb5Config, err := loadKerberosConfig(c)
+	if err != nil {
+		return err
+	}
+
+	kerberosClient, err := newKerberosClient(c, krb5Config)
+	if err != nil {
+		return err
+	}
+
+	if err := kerberosClient.Login(); err != nil {
+		return fmt.Errorf("kerberos login failed: %w", err)
+	}
+
+	spn := c.SPN
+	if spn == "" {
+		spn = defaultHTTPSpn(req)
+	}
+
+	if err := spnego.SetSPNEGOHeader(kerberosClient, req, spn); err != nil {
+		return fmt.Errorf("failed to set SPNEGO header: %w", err)
+	}
+
+	return nil
+}
+
+func loadKerberosConfig(c KerberosConfig) (*krb5config.Config, error) {
+	if c.Krb5ConfigFile == "" {
+		return krb5config.Load(defaultKrb5ConfigFile)
+	}
+	return krb5config.Load(c.Krb5ConfigFile)
+}
+
+func newKerberosClient(c KerberosConfig, krb5Config *krb5config.Config) (*krb5client.Client, error) {
+	username, realm, err := splitPrincipal(c.Principal)
+	if err != nil {
+		return nil, err
+	}
+
+	kt, err := keytab.Load(c.KeytabFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load keytab: %w", err)
+	}
+
+	return krb5client.NewWithKeytab(username, realm, kt, krb5Config), nil
+}
+
+func splitPrincipal(principal string) (string, string, error) {
+	parts := strings.SplitN(principal, "@", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", fmt.Errorf("invalid kerberos principal %q: expected user@REALM", principal)
+	}
+	return parts[0], parts[1], nil
+}
+
+func defaultHTTPSpn(req *http.Request) string {
+	return "HTTP/" + req.URL.Hostname()
+}
+
+
