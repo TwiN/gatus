@@ -752,6 +752,7 @@ endpoints:
 ```
 
 If `client.kerberos.spn` is omitted, Gatus will use `HTTP/<request-hostname>` as the default Service Principal Name.
+
 `client.kerberos.disable-fast` disables PA-FX-FAST negotiation. It is disabled by default (So FAST negotation is used). Some Active Directory environments may require setting it to `true` if authentication fails with an error similar to: `KDC did not respond appropriately to FAST negotiation`
 
 The keytab must be generated with the current Key Version Number, also known as `KVNO`, for the Kerberos principal.
