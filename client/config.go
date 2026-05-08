@@ -124,6 +124,7 @@ type KerberosConfig struct {
 	KeytabFile     string `yaml:"keytab-file,omitempty"`
 	Principal      string `yaml:"principal,omitempty"`
 	SPN            string `yaml:"spn,omitempty"`
+	DisableFAST    bool   `yaml:"disable-fast,omitempty"`
 }
 
 type kerberosTransport struct {
@@ -475,7 +476,13 @@ func newKerberosClient(c KerberosConfig, krb5Config *krb5config.Config) (*krb5cl
 		return nil, fmt.Errorf("failed to load keytab: %w", err)
 	}
 
-	return krb5client.NewWithKeytab(username, realm, kt, krb5Config), nil
+	return krb5client.NewWithKeytab(
+		username,
+		realm,
+		kt,
+		krb5Config,
+		krb5client.DisablePAFXFAST(c.DisableFAST),
+	), nil
 }
 
 func splitPrincipal(principal string) (string, string, error) {
