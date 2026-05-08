@@ -783,13 +783,22 @@ services:
       - ./kerberos/service-account.keytab:/etc/gatus/secrets/service-account.keytab:ro
 ```
 
-Example `krb5.conf`:
+Example `krb5.conf` (If DNS-based KDC discovery is not available or not supported in your environment, explicitly define the KDCs in the `[realms]` section:
+):
 ```conf
 [libdefaults]
   default_realm = EXAMPLE.COM
   dns_lookup_kdc = true
   rdns = false
   forwardable = true
+
+[realms]
+  EXAMPLE.COM = {
+    kdc = dc01.example.com:88
+    kdc = dc02.example.com:88
+    default_domain = example.com
+  }
+
 [domain_realm]
   .example.com = EXAMPLE.COM
   example.com = EXAMPLE.COM
@@ -801,8 +810,8 @@ ktutil
 ```
 Inside `ktutil`:
 ```console
-addent -password -p service-account@EXAMPLE.COM -k 1 -e aes256-cts-hmac-sha1-96
-addent -password -p service-account@EXAMPLE.COM -k 1 -e aes128-cts-hmac-sha1-96
+addent -password -p service-account@EXAMPLE.COM -k 2 -e aes256-cts-hmac-sha1-96
+addent -password -p service-account@EXAMPLE.COM -k 2 -e aes128-cts-hmac-sha1-96
 wkt ./service-account.keytab
 quit
 ```
