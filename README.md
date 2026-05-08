@@ -758,63 +758,10 @@ If `client.kerberos.spn` is omitted, Gatus will use `HTTP/<request-hostname>` as
 The keytab must be generated with the current Key Version Number, also known as `KVNO`, for the Kerberos principal.
 The KVNO depends on the account state in the KDC or Active Directory and should not be hardcoded blindly. If the KVNO is incorrect, Kerberos authentication may fail with an error similar to: `matching key not found in keytab`
 
-You can retrieve the expected KVNO after a successful Kerberos authentication by using:
-```console
-kinit service-account@EXAMPLE.COM
-kvno HTTP/intranet.example.com
-```
-Example output:
-```console
-HTTP/intranet.example.com@EXAMPLE.COM: kvno = 2
-```
-Use the returned KVNO when creating the keytab.
+A complete Docker Compose example is available in [`docker-compose-kerberos`](./examples/docker-compose-kerberos). It starts a local MIT Kerberos KDC, an Apache server protected with `mod_auth_gssapi`, and a Gatus instance configured with `client.kerberos`.
 
 > 📝 Note that Kerberos/SPNEGO authentication uses the HTTP `Authorization: Negotiate` header. It cannot be combined with `client.oauth2` or `client.identity-aware-proxy` for the same endpoint.
 > 📝 Note that if running in a container, you must volume mount the Kerberos configuration file and the keytab into the container.
-
-Example Docker Compose volume configuration:
-```yaml
-services:
-  gatus:
-    image: ghcr.io/twin/gatus:stable
-    volumes:
-      - ./config:/config:ro
-      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
-      - ./kerberos/service-account.keytab:/etc/gatus/secrets/service-account.keytab:ro
-```
-
-Example `krb5.conf` (If DNS-based KDC discovery is not available or not supported in your environment, explicitly define the KDCs in the `[realms]` section:
-):
-```conf
-[libdefaults]
-  default_realm = EXAMPLE.COM
-  dns_lookup_kdc = true
-  rdns = false
-  forwardable = true
-
-[realms]
-  EXAMPLE.COM = {
-    kdc = dc01.example.com:88
-    kdc = dc02.example.com:88
-    default_domain = example.com
-  }
-
-[domain_realm]
-  .example.com = EXAMPLE.COM
-  example.com = EXAMPLE.COM
-```
-
-Example keytab generation using `ktutil`:
-```console
-ktutil
-```
-Inside `ktutil`:
-```console
-addent -password -p service-account@EXAMPLE.COM -k 2 -e aes256-cts-hmac-sha1-96
-addent -password -p service-account@EXAMPLE.COM -k 2 -e aes128-cts-hmac-sha1-96
-wkt ./service-account.keytab
-quit
-```
 > 📝 The keytab file must be treated as a secret. Do not commit it to Git, do not bake it into container images, and prefer mounting it from a secret store such as Docker secrets, Kubernetes Secrets, Vault, Azure Key Vault, or equivalent.
 
 This example shows you how you can use the `client.tls` configuration to perform an mTLS query to a backend API:

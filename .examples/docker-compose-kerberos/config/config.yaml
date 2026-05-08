@@ -1,0 +1,23 @@
+endpoints:
+  - name: Kerberos protected endpoint
+    group: Kerberos demo
+    url: "http://apache.example.com/secure/"
+    interval: 10s
+    client:
+      kerberos:
+        krb5-config-file: /etc/krb5.conf
+        keytab-file: /etc/gatus/secrets/gatus.keytab
+        principal: gatus@EXAMPLE.COM
+        spn: HTTP/apache.example.com
+        disable-fast: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == pat(*kerberos ok*)"
+
+  - name: Public endpoint
+    group: Kerberos demo
+    url: "http://apache.example.com/"
+    interval: 10s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == pat(*public ok*)"
