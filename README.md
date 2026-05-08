@@ -761,8 +761,8 @@ The KVNO depends on the account state in the KDC or Active Directory and should 
 A complete Docker Compose example is available in [`docker-compose-kerberos`](./examples/docker-compose-kerberos). It starts a local MIT Kerberos KDC, an Apache server protected with `mod_auth_gssapi`, and a Gatus instance configured with `client.kerberos`.
 
 > 📝 Note that Kerberos/SPNEGO authentication uses the HTTP `Authorization: Negotiate` header. It cannot be combined with `client.oauth2` or `client.identity-aware-proxy` for the same endpoint.
-> 📝 Note that if running in a container, you must volume mount the Kerberos configuration file and the keytab into the container.
-> 📝 The keytab file must be treated as a secret. Do not commit it to Git, do not bake it into container images, and prefer mounting it from a secret store such as Docker secrets, Kubernetes Secrets, Vault, Azure Key Vault, or equivalent.
+> If running in a container, you must volume mount the Kerberos configuration file and the keytab into the container.
+> The keytab file must be treated as a secret. Do not commit it to Git, do not bake it into container images, and prefer mounting it from a secret store such as Docker secrets, Kubernetes Secrets, Vault, Azure Key Vault, or equivalent.
 
 This example shows you how you can use the `client.tls` configuration to perform an mTLS query to a backend API:
 
