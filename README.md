@@ -650,6 +650,11 @@ the client used to send the request.
 | `client.proxy-url`                     | The URL of the proxy to use for the client                                    | `""`            |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                             | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential)   | required `""`   |
+| `client.kerberos`                      | Kerberos/SPNEGO client configuration.                                         | `{}`            |
+| `client.kerberos.krb5-config-file`     | Path to the Kerberos configuration file. If omitted, `/etc/krb5.conf` is used.| `/etc/krb5.conf`|
+| `client.kerberos.keytab-file`          | Path to the keytab file for the Kerberos principal. required                  | `""`            |
+| `client.kerberos.principal`            | Kerberos principal used to authenticate, Ex: `service-account@EXAMPLE.COM`.   | required `""`   |
+| `client.kerberos.spn`                  | Service Principal Name. If omitted, `HTTP/<request-hostname>` is used.        | `""`            |
 | `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.         | `""`            |
 | `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.         | `""`            |
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
@@ -727,6 +732,62 @@ endpoints:
 ```
 
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
+
+This example shows how you can use the `client.kerberos` configuration to query an endpoint protected by Kerberos/SPNEGO using HTTP `Negotiate`:
+
+```yaml
+endpoints:
+  - name: with-kerberos
+    url: "https://intranet.example.com/health"
+    client:
+      kerberos:
+        krb5-config-file: /etc/krb5.conf
+        keytab-file: /etc/gatus/secrets/service-account.keytab
+        principal: service-account@EXAMPLE.COM
+        spn: HTTP/intranet.example.com
+    conditions:
+      - "[STATUS] == 200"
+```
+
+If `client.kerberos.spn` is omitted, Gatus will use `HTTP/<request-hostname>` as the default Service Principal Name.
+> 📝 Note that Kerberos/SPNEGO authentication uses the HTTP `Authorization: Negotiate` header. It cannot be combined with `client.oauth2` or `client.identity-aware-proxy` for the same endpoint.
+> 📝 Note that if running in a container, you must volume mount the Kerberos configuration file and the keytab into the container.
+
+Example Docker Compose volume configuration:
+```yaml
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:stable
+    volumes:
+      - ./config:/config:ro
+      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
+      - ./kerberos/service-account.keytab:/etc/gatus/secrets/service-account.keytab:ro
+```
+
+Example `krb5.conf`:
+```conf
+[libdefaults]
+  default_realm = EXAMPLE.COM
+  dns_lookup_kdc = true
+  rdns = false
+  forwardable = true
+[domain_realm]
+  .example.com = EXAMPLE.COM
+  example.com = EXAMPLE.COM
+```
+
+Example keytab generation using `ktutil`:
+```console
+ktutil
+```
+Inside `ktutil`:
+```console
+addent -password -p service-account@EXAMPLE.COM -k 1 -e aes256-cts-hmac-sha1-96
+addent -password -p service-account@EXAMPLE.COM -k 1 -e aes128-cts-hmac-sha1-96
+wkt ./service-account.keytab
+quit
+```
+> 📝 The keytab file must be treated as a secret. Do not commit it to Git, do not bake it into container images, and prefer mounting it from a secret store such as Docker secrets, Kubernetes Secrets, Vault, Azure Key Vault, or equivalent.
 
 This example shows you how you can use the `client.tls` configuration to perform an mTLS query to a backend API:
 
