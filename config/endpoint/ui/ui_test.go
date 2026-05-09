@@ -43,6 +43,16 @@ func TestValidateAndSetDefaults(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "with-full-period-display-nil-defaults-to-true",
+			config: &Config{
+				Badge: &Badge{
+					ResponseTime: &ResponseTime{Thresholds: []int{50, 200, 300, 500, 750}},
+				},
+				FullPeriodDisplay: nil,
+			},
+			wantErr: nil,
+		},
+		{
 			name: "with-valid-period-1h",
 			config: &Config{
 				Badge: &Badge{
@@ -98,6 +108,46 @@ func TestValidateAndSetDefaults(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.config.ValidateAndSetDefaults(); !errors.Is(err, tt.wantErr) {
 				t.Errorf("Expected error %v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr == nil && tt.config.FullPeriodDisplay == nil {
+				t.Errorf("expected FullPeriodDisplay to be defaulted")
+			}
+		})
+	}
+}
+
+func TestIsFullPeriodDisplay(t *testing.T) {
+	full := true
+	notFull := false
+	tests := []struct {
+		name     string
+		config   *Config
+		expected bool
+	}{
+		{
+			name:     "nil-defaults-true",
+			config:   &Config{},
+			expected: true,
+		},
+		{
+			name: "explicit-true",
+			config: &Config{
+				FullPeriodDisplay: &full,
+			},
+			expected: true,
+		},
+		{
+			name: "explicit-false",
+			config: &Config{
+				FullPeriodDisplay: &notFull,
+			},
+			expected: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.config.IsFullPeriodDisplay(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
 			}
 		})
 	}

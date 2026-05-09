@@ -47,6 +47,17 @@ func TestStatusSetPeriod(t *testing.T) {
 	}
 }
 
+func TestStatusSetPeriodDisplayOptions(t *testing.T) {
+	status := NewStatus("group", "name")
+	status.SetPeriodDisplayOptions(true, false)
+	if !status.HideUptimePercent {
+		t.Errorf("expected HideUptimePercent to be true")
+	}
+	if status.FullPeriodDisplay {
+		t.Errorf("expected FullPeriodDisplay to be false")
+	}
+}
+
 func TestFormatDuration(t *testing.T) {
 	tests := []struct {
 		value    int

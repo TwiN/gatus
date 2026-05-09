@@ -37,6 +37,12 @@ type Status struct {
 	// Represented as a duration string (e.g., "30d", "7d", "24h").
 	Period string `json:"period,omitempty"`
 
+	// HideUptimePercent determines whether uptime percentage and separators should be hidden in endpoint cards.
+	HideUptimePercent bool `json:"hideUptimePercent,omitempty"`
+
+	// FullPeriodDisplay indicates whether period view should show full configured range.
+	FullPeriodDisplay bool `json:"fullPeriodDisplay,omitempty"`
+
 	// UptimeStats contains uptime percentages for standard time windows.
 	// Populated by the API layer, not by the store.
 	UptimeStats *UptimeStats `json:"uptime,omitempty"`
@@ -74,6 +80,12 @@ func (s *Status) SetPeriod(d time.Duration) {
 	} else {
 		s.Period = formatDurationString(int(hours), "h")
 	}
+}
+
+// SetPeriodDisplayOptions sets endpoint card display options related to period/uptime rendering.
+func (s *Status) SetPeriodDisplayOptions(hideUptimePercent, fullPeriodDisplay bool) {
+	s.HideUptimePercent = hideUptimePercent
+	s.FullPeriodDisplay = fullPeriodDisplay
 }
 
 // NormalizeUptime clamps an uptime value to [0, 1] and rounds to 4 decimal places

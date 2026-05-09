@@ -306,6 +306,8 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.resolve-successful-conditions`  | Whether to resolve successful conditions for the UI (helpful to expose body assertions even when checks pass).                              | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
 | `endpoints[].ui.period`                         | Fixed time window for the "Recent Checks" display and uptime badges. <br />See [Period](#period).                                          | `0` (disabled)             |
+| `endpoints[].ui.hide-uptime-percent`            | Whether to hide the uptime percentage and dashed separators under endpoint status bars.                                                      | `false`                    |
+| `endpoints[].ui.full-period-display`            | Whether to display the full configured period range (`true`) or from earliest available data to now (`false`).                             | `true`                     |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 | `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
 | `endpoints[].store`                             | (SUITES ONLY) Map of values to extract from the response and store in the suite context (stored even on failure).                           | `{}`                       |
@@ -557,9 +559,11 @@ The `period` parameter allows you to define a fixed time window for the "Recent 
 When set, the status bars on the dashboard will show aggregated data for the configured period, and the uptime
 percentage will be calculated for that exact time window.
 
-| Parameter         | Description                                                                         | Default   |
-|:------------------|:------------------------------------------------------------------------------------|:----------|
-| `endpoints[].ui.period` | Time window for the status display. Supported formats: `1h`, `24h`, `7d`, `30d`, `90d`. | `0` (disabled) |
+| Parameter                           | Description                                                                                                       | Default        |
+|:------------------------------------|:------------------------------------------------------------------------------------------------------------------|:---------------|
+| `endpoints[].ui.period`             | Time window for the status display. Supported formats: `1h`, `24h`, `7d`, `30d`, `90d`.                         | `0` (disabled) |
+| `endpoints[].ui.hide-uptime-percent`| Hide uptime percentage text and dashed separators below endpoint bars.                                            | `false`        |
+| `endpoints[].ui.full-period-display`| Show full configured period (`true`) or only earliest available data to now (`false`).                           | `true`         |
 
 Example:
 ```yaml
@@ -578,6 +582,8 @@ When `period` is configured:
 - Each bar represents a time slice within the period (green = healthy, red = unhealthy, gray = no data)
 - The uptime percentage is displayed below the bars in the format: `{time ago} --- {uptime}% uptime --- {time ago}`
 - The uptime and response time badges for that period are also available
+- If `endpoints[].ui.hide-uptime-percent` is `true`, the uptime percentage and dashed separators are hidden
+- If `endpoints[].ui.full-period-display` is `false`, the period display starts at earliest available data instead of the full configured period
 
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.

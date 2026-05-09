@@ -52,9 +52,12 @@
           </div>
           <div class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
             <span>{{ displayStartTime }}</span>
-            <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
-            <span class="font-medium" :class="uptimeColor(displayUptime)">{{ formatUptimePercent(displayUptime) }} uptime</span>
-            <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+            <template v-if="!hideUptimePercent">
+              <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+              <span class="font-medium" :class="uptimeColor(displayUptime)">{{ formatUptimePercent(displayUptime) }} uptime</span>
+              <span class="flex-1 border-t border-dashed border-muted-foreground/30 mx-1"></span>
+            </template>
+            <span v-else class="flex-1"></span>
             <span>{{ displayEndTime }}</span>
           </div>
         </div>
@@ -94,6 +97,8 @@ const periodData = ref(null)
 const periodLoading = ref(false)
 
 const configuredPeriod = computed(() => props.endpoint?.period || null)
+const hideUptimePercent = computed(() => !!props.endpoint?.hideUptimePercent)
+const fullPeriodDisplay = computed(() => props.endpoint?.fullPeriodDisplay !== false)
 
 const latestResult = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) {
@@ -115,16 +120,38 @@ const hasPeriodData = computed(() => {
   return configuredPeriod.value && periodData.value && periodData.value.results && periodData.value.results.length > 0
 })
 
+const periodResultsForDisplay = computed(() => {
+  if (!hasPeriodData.value) {
+    return []
+  }
+  const results = periodData.value.results || []
+  if (fullPeriodDisplay.value) {
+    return results
+  }
+  const firstDataIndex = results.findIndex(result => result && !result.missing)
+  if (firstDataIndex <= 0) {
+    return results
+  }
+  return results.slice(firstDataIndex)
+})
+
 const displayStartTime = computed(() => {
   if (configuredPeriod.value) {
     if (periodLoading.value || !periodData.value) return ''
-    // Use the configured period duration as the start time
-    const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
-    if (match) {
-      const value = parseInt(match[1])
-      const unit = match[2]
-      const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
-      return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
+    if (fullPeriodDisplay.value) {
+      // Use the configured period duration as the start time
+      const match = configuredPeriod.value.match(/^(\d+)([hd])$/)
+      if (match) {
+        const value = parseInt(match[1])
+        const unit = match[2]
+        const ms = unit === 'd' ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000
+        return generatePrettyTimeAgo(new Date(Date.now() - ms).toISOString())
+      }
+      return ''
+    }
+    const firstDataPoint = periodResultsForDisplay.value.find(result => result && !result.missing)
+    if (firstDataPoint?.timestamp) {
+      return generatePrettyTimeAgo(firstDataPoint.timestamp)
     }
     return ''
   }
@@ -137,7 +164,7 @@ const displayStartTime = computed(() => {
 const displayEndTime = computed(() => {
   if (configuredPeriod.value) {
     if (periodLoading.value || !periodData.value) return ''
-    const results = periodData.value.results
+    const results = periodResultsForDisplay.value
     if (!results || results.length === 0) return ''
     return generatePrettyTimeAgo(results[results.length - 1].timestamp)
   }
@@ -149,6 +176,20 @@ const displayEndTime = computed(() => {
 const displayUptime = computed(() => {
   if (configuredPeriod.value) {
     if (periodLoading.value || !periodData.value) return null
+    if (!fullPeriodDisplay.value) {
+      const source = periodResultsForDisplay.value
+      if (!source || source.length === 0) return null
+      let success = 0
+      let total = 0
+      for (const r of source) {
+        if (r && !r.missing) {
+          total++
+          if (r.success) success++
+        }
+      }
+      if (total === 0) return null
+      return success / total
+    }
     return periodData.value.uptime
   }
   // Non-period: use uptime from the API response (day uptime as default)
@@ -172,7 +213,7 @@ const displayUptime = computed(() => {
 
 const displayBars = computed(() => {
   if (hasPeriodData.value) {
-    return periodData.value.results
+    return periodResultsForDisplay.value
   }
   const results = [...(props.endpoint.results || [])]
   while (results.length < props.maxResults) {
@@ -200,7 +241,7 @@ const formattedResponseTime = computed(() => {
   if (configuredPeriod.value) {
     if (periodLoading.value || !periodData.value) return ''
   }
-  const source = hasPeriodData.value ? periodData.value.results : props.endpoint.results
+  const source = hasPeriodData.value ? periodResultsForDisplay.value : props.endpoint.results
   if (!source || source.length === 0) return 'N/A'
   
   let total = 0
@@ -288,7 +329,10 @@ const fetchPeriodData = async () => {
     periodData.value = null
     return
   }
-  periodLoading.value = true
+  const hasExistingData = !!periodData.value
+  if (!hasExistingData) {
+    periodLoading.value = true
+  }
   try {
     const parts = props.maxResults
     const response = await fetch(`/api/v1/endpoints/${props.endpoint.key}/period-statuses/${configuredPeriod.value}/${parts}`)
@@ -311,7 +355,7 @@ onUnmounted(() => {
   window.removeEventListener('clear-data-point-selection', handleClearSelection)
 })
 
-watch(() => [props.endpoint.key, configuredPeriod.value], () => {
+watch(() => [props.endpoint.key, configuredPeriod.value, latestResult.value?.timestamp], () => {
   fetchPeriodData()
 })
 </script>

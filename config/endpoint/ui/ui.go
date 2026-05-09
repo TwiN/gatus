@@ -90,6 +90,14 @@ type Config struct {
 	// Minimum: 1h, Maximum: 90d
 	// Default: 0 (uses default behavior based on endpoint interval)
 	Period CustomDuration `yaml:"period,omitempty"`
+
+	// HideUptimePercent whether to hide uptime percentage and separators under endpoint cards.
+	HideUptimePercent bool `yaml:"hide-uptime-percent,omitempty"`
+
+	// FullPeriodDisplay whether period display should always cover the full configured period.
+	// If false, the UI can display from earliest available data to now.
+	// Default: true
+	FullPeriodDisplay *bool `yaml:"full-period-display,omitempty"`
 }
 
 type Badge struct {
@@ -125,11 +133,16 @@ func (config *Config) ValidateAndSetDefaults() error {
 			return ErrInvalidPeriod
 		}
 	}
+	if config.FullPeriodDisplay == nil {
+		fullPeriodDisplay := true
+		config.FullPeriodDisplay = &fullPeriodDisplay
+	}
 	return nil
 }
 
 // GetDefaultConfig retrieves the default UI configuration
 func GetDefaultConfig() *Config {
+	fullPeriodDisplay := true
 	return &Config{
 		HideHostname:                false,
 		HideURL:                     false,
@@ -138,12 +151,19 @@ func GetDefaultConfig() *Config {
 		DontResolveFailedConditions: false,
 		ResolveSuccessfulConditions: false,
 		HideConditions:              false,
+		HideUptimePercent:           false,
+		FullPeriodDisplay:           &fullPeriodDisplay,
 		Badge: &Badge{
 			ResponseTime: &ResponseTime{
 				Thresholds: []int{50, 200, 300, 500, 750},
 			},
 		},
 	}
+}
+
+// IsFullPeriodDisplay returns whether full period display is enabled.
+func (config *Config) IsFullPeriodDisplay() bool {
+	return config.FullPeriodDisplay == nil || *config.FullPeriodDisplay
 }
 
 // PeriodDurationString returns the period as a duration string suitable for API calls

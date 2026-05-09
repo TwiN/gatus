@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	endpointui "github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -227,5 +229,57 @@ func TestEndpointStatuses(t *testing.T) {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
 			}
 		})
+	}
+}
+
+func TestEndpointStatusIncludesPeriodDisplayOptions(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	fullPeriodDisplay := false
+	cfg := &config.Config{
+		Metrics: true,
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name:  "frontend",
+				Group: "core",
+				UIConfig: &endpointui.Config{
+					Period:            endpointui.CustomDuration(30 * 24 * time.Hour),
+					HideUptimePercent: true,
+					FullPeriodDisplay: &fullPeriodDisplay,
+					Badge: &endpointui.Badge{
+						ResponseTime: &endpointui.ResponseTime{Thresholds: []int{50, 200, 300, 500, 750}},
+					},
+				},
+			},
+		},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/endpoints/core_frontend/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+	defer response.Body.Close()
+	var payload endpoint.Status
+	if err = json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if payload.Period != "30d" {
+		t.Fatalf("expected period 30d, got %s", payload.Period)
+	}
+	if !payload.HideUptimePercent {
+		t.Fatalf("expected hideUptimePercent=true")
+	}
+	if payload.FullPeriodDisplay {
+		t.Fatalf("expected fullPeriodDisplay=false")
 	}
 }

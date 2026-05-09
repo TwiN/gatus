@@ -71,6 +71,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 			for _, es := range endpointStatuses {
 				if ep := cfg.GetEndpointByKey(es.Key); ep != nil && ep.UIConfig != nil {
 					es.SetPeriod(ep.UIConfig.Period.Duration())
+					es.SetPeriodDisplayOptions(ep.UIConfig.HideUptimePercent, ep.UIConfig.IsFullPeriodDisplay())
 				}
 				populateUptimeStats(es)
 			}
@@ -145,6 +146,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 		// Set the period from the endpoint's UI config if configured
 		if ep := cfg.GetEndpointByKey(key); ep != nil && ep.UIConfig != nil {
 			endpointStatus.SetPeriod(ep.UIConfig.Period.Duration())
+			endpointStatus.SetPeriodDisplayOptions(ep.UIConfig.HideUptimePercent, ep.UIConfig.IsFullPeriodDisplay())
 		}
 		populateUptimeStats(endpointStatus)
 		output, err := json.Marshal(endpointStatus)

@@ -18,7 +18,7 @@
               <Timer v-else class="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
-              <RefreshCw class="h-5 w-5" />
+              <RefreshCw :class="['h-5 w-5', refreshing ? 'animate-spin' : '']" />
             </Button>
           </div>
         </div>
@@ -177,7 +177,7 @@
       </div>
     </div>
 
-    <Settings @refreshData="fetchData" />
+    <Settings @refreshData="refreshData" />
   </div>
 </template>
 
@@ -213,7 +213,9 @@ const emit = defineEmits(['showTooltip'])
 
 const endpointStatuses = ref([])
 const suiteStatuses = ref([])
-const loading = ref(false)
+const loading = ref(true)
+const refreshing = ref(false)
+const hasAppliedInitialData = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = 96
 const searchQuery = ref('')
@@ -424,51 +426,56 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const fetchData = async () => {
-  // Don't show loading state on refresh to prevent UI flicker
-  const isInitialLoad = endpointStatuses.value.length === 0 && suiteStatuses.value.length === 0
-  if (isInitialLoad) {
+const fetchData = async ({ background = false } = {}) => {
+  if (background) {
+    refreshing.value = true
+  } else if (!hasAppliedInitialData.value) {
     loading.value = true
   }
   try {
-    // Fetch endpoints
-    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
-      credentials: 'include'
-    })
+    const [endpointResponse, suiteResponse] = await Promise.all([
+      fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
+        credentials: 'include'
+      }),
+      fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
+        credentials: 'include'
+      })
+    ])
+
+    let hasNewData = false
+    let nextEndpointStatuses = endpointStatuses.value
+    let nextSuiteStatuses = suiteStatuses.value
+
     if (endpointResponse.status === 200) {
-      const data = await endpointResponse.json()
-      endpointStatuses.value = data
+      nextEndpointStatuses = await endpointResponse.json()
+      hasNewData = true
     } else {
       console.error('[Home][fetchData] Error fetching endpoints:', await endpointResponse.text())
     }
-    
-    // Fetch suites
-    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
-      credentials: 'include'
-    })
+
     if (suiteResponse.status === 200) {
       const suiteData = await suiteResponse.json()
-      suiteStatuses.value = suiteData || []
+      nextSuiteStatuses = suiteData || []
+      hasNewData = true
     } else {
       console.error('[Home][fetchData] Error fetching suites:', await suiteResponse.text())
-      // Ensure suiteStatuses stays as empty array instead of becoming null/undefined
-      if (!suiteStatuses.value) {
-        suiteStatuses.value = []
-      }
+    }
+
+    if (hasNewData) {
+      endpointStatuses.value = nextEndpointStatuses
+      suiteStatuses.value = nextSuiteStatuses || []
+      hasAppliedInitialData.value = true
+      loading.value = false
     }
   } catch (error) {
     console.error('[Home][fetchData] Error:', error)
   } finally {
-    if (isInitialLoad) {
-      loading.value = false
-    }
+    refreshing.value = false
   }
 }
 
 const refreshData = () => {
-  endpointStatuses.value = [];
-  suiteStatuses.value = [];
-  fetchData()
+  fetchData({ background: true })
 }
 
 const handleSearch = (query) => {
