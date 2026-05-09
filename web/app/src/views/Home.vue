@@ -17,7 +17,7 @@
               <Activity v-if="showAverageResponseTime" class="h-5 w-5" />
               <Timer v-else class="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" @click="refreshData" title="Refresh data">
+            <Button variant="ghost" size="icon" @click="manualRefreshData" title="Refresh data">
               <RefreshCw :class="['h-5 w-5', refreshing ? 'animate-spin' : '']" />
             </Button>
           </div>
@@ -426,10 +426,11 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const fetchData = async ({ background = false } = {}) => {
-  if (background) {
+const fetchData = async ({ background = false, forceLoading = false } = {}) => {
+  if (background || forceLoading) {
     refreshing.value = true
-  } else if (!hasAppliedInitialData.value) {
+  }
+  if (forceLoading || (!background && !hasAppliedInitialData.value)) {
     loading.value = true
   }
   try {
@@ -476,6 +477,10 @@ const fetchData = async ({ background = false } = {}) => {
 
 const refreshData = () => {
   fetchData({ background: true })
+}
+
+const manualRefreshData = () => {
+  fetchData({ forceLoading: true })
 }
 
 const handleSearch = (query) => {

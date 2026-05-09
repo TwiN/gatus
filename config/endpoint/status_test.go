@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -55,6 +56,30 @@ func TestStatusSetPeriodDisplayOptions(t *testing.T) {
 	}
 	if status.FullPeriodDisplay {
 		t.Errorf("expected FullPeriodDisplay to be false")
+	}
+}
+
+func TestStatusMarshalIncludesFullPeriodDisplayWhenFalse(t *testing.T) {
+	status := NewStatus("group", "name")
+	status.SetPeriodDisplayOptions(false, false)
+	b, err := json.Marshal(status)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	var payload map[string]any
+	if err = json.Unmarshal(b, &payload); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	value, exists := payload["fullPeriodDisplay"]
+	if !exists {
+		t.Fatalf("expected fullPeriodDisplay field to exist")
+	}
+	asBool, ok := value.(bool)
+	if !ok {
+		t.Fatalf("expected fullPeriodDisplay to be bool")
+	}
+	if asBool {
+		t.Fatalf("expected fullPeriodDisplay=false")
 	}
 }
 

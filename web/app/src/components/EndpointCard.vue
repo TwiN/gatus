@@ -164,9 +164,7 @@ const displayStartTime = computed(() => {
 const displayEndTime = computed(() => {
   if (configuredPeriod.value) {
     if (periodLoading.value || !periodData.value) return ''
-    const results = periodResultsForDisplay.value
-    if (!results || results.length === 0) return ''
-    return generatePrettyTimeAgo(results[results.length - 1].timestamp)
+    return 'now'
   }
   // Non-period: use newest result
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''

@@ -41,7 +41,7 @@ type Status struct {
 	HideUptimePercent bool `json:"hideUptimePercent,omitempty"`
 
 	// FullPeriodDisplay indicates whether period view should show full configured range.
-	FullPeriodDisplay bool `json:"fullPeriodDisplay,omitempty"`
+	FullPeriodDisplay bool `json:"fullPeriodDisplay"`
 
 	// UptimeStats contains uptime percentages for standard time windows.
 	// Populated by the API layer, not by the store.
