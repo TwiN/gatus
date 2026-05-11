@@ -181,10 +181,10 @@ func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
 			name: "valid kerberos config",
 			config: &Config{
 				KerberosConfig: &KerberosConfig{
-					Krb5ConfigFile: "/etc/krb5.conf",
-					KeytabFile:     "/etc/gatus/secrets/service-account.keytab",
-					Principal:      "service-account@EXAMPLE.COM",
-					SPN:            "HTTP/intranet.example.com",
+					Krb5ConfigFile: "../testdata/krb5.conf",
+					KeytabFile:     "../testdata/gatus.keytab",
+					Principal:      "gatus@EXAMPLE.COM",
+					SPN:            "HTTP/test.example.com",
 				},
 			},
 			wantErr: nil,
@@ -193,8 +193,8 @@ func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
 			name: "valid kerberos config without krb5 config file",
 			config: &Config{
 				KerberosConfig: &KerberosConfig{
-					KeytabFile: "/etc/gatus/secrets/service-account.keytab",
-					Principal:  "service-account@EXAMPLE.COM",
+					KeytabFile: "../testdata/gatus.keytab",
+					Principal:  "gatus@EXAMPLE.COM",
 				},
 			},
 			wantErr: nil,
@@ -203,7 +203,7 @@ func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
 			name: "invalid kerberos config without principal",
 			config: &Config{
 				KerberosConfig: &KerberosConfig{
-					KeytabFile: "/etc/gatus/secrets/service-account.keytab",
+					KeytabFile: "../testdata/gatus.keytab",
 				},
 			},
 			wantErr: ErrInvalidClientKerberosConfig,
@@ -212,7 +212,7 @@ func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
 			name: "invalid kerberos config without keytab file",
 			config: &Config{
 				KerberosConfig: &KerberosConfig{
-					Principal: "service-account@EXAMPLE.COM",
+					Principal: "gatus@EXAMPLE.COM",
 				},
 			},
 			wantErr: ErrInvalidClientKerberosConfig,
@@ -229,6 +229,39 @@ func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
 	}
 }
 
+func TestLoadKerberosConfig(t *testing.T) {
+	cfg, err := loadKerberosConfig(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg == nil {
+		t.Fatal("expected kerberos config to be loaded")
+	}
+}
+
+func TestNewKerberosClientWithKeytab(t *testing.T) {
+	cfg, err := loadKerberosConfig(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := newKerberosClient(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+		KeytabFile:     "../testdata/gatus.keytab",
+		Principal:      "gatus@EXAMPLE.COM",
+	}, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client == nil {
+		t.Fatal("expected kerberos client to be created")
+	}
+}
+
 func TestSplitPrincipal(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -239,14 +272,14 @@ func TestSplitPrincipal(t *testing.T) {
 	}{
 		{
 			name:         "valid principal",
-			principal:    "service-account@EXAMPLE.COM",
-			wantUsername: "service-account",
+			principal:    "gatus@EXAMPLE.COM",
+			wantUsername: "gatus",
 			wantRealm:    "EXAMPLE.COM",
 			wantErr:      false,
 		},
 		{
 			name:      "missing realm",
-			principal: "service-account",
+			principal: "gatus",
 			wantErr:   true,
 		},
 		{
@@ -256,7 +289,7 @@ func TestSplitPrincipal(t *testing.T) {
 		},
 		{
 			name:      "missing realm value",
-			principal: "service-account@",
+			principal: "gatus@",
 			wantErr:   true,
 		},
 	}
@@ -288,13 +321,13 @@ func TestSplitPrincipal(t *testing.T) {
 }
 
 func TestDefaultHTTPSpn(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, "https://intranet.example.com/path", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://test.example.com/path", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	got := defaultHTTPSpn(req)
-	want := "HTTP/intranet.example.com"
+	want := "HTTP/test.example.com"
 
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
@@ -302,13 +335,13 @@ func TestDefaultHTTPSpn(t *testing.T) {
 }
 
 func TestDefaultHTTPSpnWithPort(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, "https://intranet.example.com:8443/path", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://test.example.com:8443/path", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	got := defaultHTTPSpn(req)
-	want := "HTTP/intranet.example.com"
+	want := "HTTP/test.example.com"
 
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
@@ -321,8 +354,8 @@ func TestConfigureKerberosWrapsTransport(t *testing.T) {
 	}
 
 	configuredClient := configureKerberos(httpClient, KerberosConfig{
-		KeytabFile: "/tmp/service-account.keytab",
-		Principal:  "service-account@EXAMPLE.COM",
+		KeytabFile: "../testdata/gatus.keytab",
+		Principal:  "gatus@EXAMPLE.COM",
 	})
 
 	if configuredClient.Transport == nil {
