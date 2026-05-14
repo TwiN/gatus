@@ -191,7 +191,29 @@ func (config *Config) HasLoadedConfigurationBeenModified() bool {
 
 // UpdateLastFileModTime refreshes Config.lastFileModTime
 func (config *Config) UpdateLastFileModTime() {
-	config.lastFileModTime = time.Now()
+	fileInfo, err := os.Stat(config.configPath)
+	if err != nil {
+		config.lastFileModTime = time.Now()
+		return
+	}
+
+	var maxModTime time.Time
+	if fileInfo.IsDir() {
+		_ = walkConfigDir(config.configPath, func(path string, d fs.DirEntry, err error) error {
+			if info, err := d.Info(); err == nil && info.ModTime().After(maxModTime) {
+				maxModTime = info.ModTime()
+			}
+			return nil
+		})
+	} else {
+		maxModTime = fileInfo.ModTime()
+	}
+
+	if maxModTime.IsZero() {
+		config.lastFileModTime = time.Now()
+	} else {
+		config.lastFileModTime = maxModTime
+	}
 }
 
 // LoadConfiguration loads the full configuration composed of the main configuration file
