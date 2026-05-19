@@ -1,6 +1,6 @@
 module github.com/TwiN/gatus/v5
 
-go 1.25.5
+go 1.25.9
 
 require (
 	code.gitea.io/sdk/gitea v0.23.2
@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/ses v1.34.18
 	github.com/coreos/go-oidc/v3 v3.17.0
-	github.com/gofiber/fiber/v2 v2.52.11
+	github.com/gofiber/fiber/v2 v2.52.13
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
