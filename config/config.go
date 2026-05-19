@@ -196,7 +196,6 @@ func (config *Config) UpdateLastFileModTime() {
 		config.lastFileModTime = time.Now()
 		return
 	}
-
 	var maxModTime time.Time
 	if fileInfo.IsDir() {
 		_ = walkConfigDir(config.configPath, func(path string, d fs.DirEntry, err error) error {
