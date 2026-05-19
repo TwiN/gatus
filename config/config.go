@@ -207,7 +207,6 @@ func (config *Config) UpdateLastFileModTime() {
 	} else {
 		maxModTime = fileInfo.ModTime()
 	}
-
 	if maxModTime.IsZero() {
 		config.lastFileModTime = time.Now()
 	} else {
