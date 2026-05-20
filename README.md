@@ -636,25 +636,31 @@ See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres
 In order to support a wide range of environments, each monitored endpoint has a unique configuration for
 the client used to send the request.
 
-| Parameter                              | Description                                                                   | Default         |
-|:---------------------------------------|:------------------------------------------------------------------------------|:----------------|
-| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.       | `false`         |
-| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).           | `false`         |
-| `client.timeout`                       | Duration before timing out.                                                   | `10s`           |
-| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.         | `""`            |
-| `client.oauth2`                        | OAuth2 client configuration.                                                  | `{}`            |
-| `client.oauth2.token-url`              | The token endpoint URL                                                        | required `""`   |
-| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`          | required `""`   |
-| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`      | required `""`   |
-| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.    | required `[""]` |
-| `client.proxy-url`                     | The URL of the proxy to use for the client                                    | `""`            |
-| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                             | `{}`            |
-| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential)   | required `""`   |
-| `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.         | `""`            |
-| `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.         | `""`            |
-| `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
-| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
-| `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
+| Parameter                              | Description                                                                                  | Default         |
+|:---------------------------------------|:---------------------------------------------------------------------------------------------|:----------------|
+| `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.                      | `false`         |
+| `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).                          | `false`         |
+| `client.timeout`                       | Duration before timing out.                                                                  | `10s`           |
+| `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.                        | `""`            |
+| `client.oauth2`                        | OAuth2 client configuration.                                                                 | `{}`            |
+| `client.oauth2.token-url`              | The token endpoint URL                                                                       | required `""`   |
+| `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`                         | required `""`   |
+| `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`                     | required `""`   |
+| `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.                   | required `[""]` |
+| `client.proxy-url`                     | The URL of the proxy to use for the client                                                   | `""`            |
+| `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                                            | `{}`            |
+| `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential)                  | required `""`   |
+| `client.kerberos`                      | Kerberos/SPNEGO client configuration.                                                        | `{}`            |
+| `client.kerberos.krb5-config-file`     | Path to the Kerberos configuration file. If omitted, `/etc/krb5.conf` is used.               | `/etc/krb5.conf`|
+| `client.kerberos.keytab-file`          | Path to the keytab file for the Kerberos principal.                                          | required `""`   |
+| `client.kerberos.principal`            | Kerberos principal used to authenticate, , for example `service-account@EXAMPLE.COM`.        | required `""`   |
+| `client.kerberos.spn`                  | Service Principal Name. If omitted, `HTTP/<request-hostname>` is used.                       | `""`            |
+| `client.kerberos.disable-fast`         | Disable PA-FX-FAST negotiation. This may be required for some Active Directory environments. | `false`         |
+| `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.                        | `""`            |
+| `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.                        | `""`            |
+| `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).                       | `"never"`       |
+| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).                          | `"ip"`          |
+| `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling).                | `""`            |
 
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
@@ -727,6 +733,36 @@ endpoints:
 ```
 
 > 📝 Note that Gatus will use the [gcloud default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) within its environment to generate the token.
+
+This example shows how you can use the `client.kerberos` configuration to query an endpoint protected by Kerberos/SPNEGO using HTTP `Negotiate`:
+
+```yaml
+endpoints:
+  - name: with-kerberos
+    url: "https://intranet.example.com/health"
+    client:
+      kerberos:
+        krb5-config-file: /etc/krb5.conf
+        keytab-file: /etc/gatus/secrets/service-account.keytab
+        principal: service-account@EXAMPLE.COM
+        spn: HTTP/intranet.example.com
+        disable-fast: true
+    conditions:
+      - "[STATUS] == 200"
+```
+
+If `client.kerberos.spn` is omitted, Gatus will use `HTTP/<request-hostname>` as the default Service Principal Name.
+
+`client.kerberos.disable-fast` disables PA-FX-FAST negotiation. It is disabled by default (So FAST negotation is used). Some Active Directory environments may require setting it to `true` if authentication fails with an error similar to: `KDC did not respond appropriately to FAST negotiation`
+
+The keytab must be generated with the current Key Version Number, also known as `KVNO`, for the Kerberos principal.
+The KVNO depends on the account state in the KDC or Active Directory and should not be hardcoded blindly. If the KVNO is incorrect, Kerberos authentication may fail with an error similar to: `matching key not found in keytab`
+
+A complete Docker Compose example is available in [`docker-compose-kerberos`](./examples/docker-compose-kerberos). It starts a local MIT Kerberos KDC, an Apache server protected with `mod_auth_gssapi`, and a Gatus instance configured with `client.kerberos`.
+
+> 📝 Note that Kerberos/SPNEGO authentication uses the HTTP `Authorization: Negotiate` header. It cannot be combined with `client.oauth2` or `client.identity-aware-proxy` for the same endpoint.
+> If running in a container, you must volume mount the Kerberos configuration file and the keytab into the container.
+> The keytab file must be treated as a secret. Do not commit it to Git, do not bake it into container images, and prefer mounting it from a secret store such as Docker secrets, Kubernetes Secrets, Vault, Azure Key Vault, or equivalent.
 
 This example shows you how you can use the `client.tls` configuration to perform an mTLS query to a backend API:
 

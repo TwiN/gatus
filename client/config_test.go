@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -167,5 +168,201 @@ func TestConfig_TlsIsValid(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_Kerberos(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr error
+	}{
+		{
+			name: "valid kerberos config",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					Krb5ConfigFile: "../testdata/krb5.conf",
+					KeytabFile:     "../testdata/gatus.keytab",
+					Principal:      "gatus@EXAMPLE.COM",
+					SPN:            "HTTP/test.example.com",
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "valid kerberos config without krb5 config file",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					KeytabFile: "../testdata/gatus.keytab",
+					Principal:  "gatus@EXAMPLE.COM",
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "invalid kerberos config without principal",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					KeytabFile: "../testdata/gatus.keytab",
+				},
+			},
+			wantErr: ErrInvalidClientKerberosConfig,
+		},
+		{
+			name: "invalid kerberos config without keytab file",
+			config: &Config{
+				KerberosConfig: &KerberosConfig{
+					Principal: "gatus@EXAMPLE.COM",
+				},
+			},
+			wantErr: ErrInvalidClientKerberosConfig,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.ValidateAndSetDefaults()
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestLoadKerberosConfig(t *testing.T) {
+	cfg, err := loadKerberosConfig(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg == nil {
+		t.Fatal("expected kerberos config to be loaded")
+	}
+}
+
+func TestNewKerberosClientWithKeytab(t *testing.T) {
+	cfg, err := loadKerberosConfig(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := newKerberosClient(KerberosConfig{
+		Krb5ConfigFile: "../testdata/krb5.conf",
+		KeytabFile:     "../testdata/gatus.keytab",
+		Principal:      "gatus@EXAMPLE.COM",
+	}, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client == nil {
+		t.Fatal("expected kerberos client to be created")
+	}
+}
+
+func TestSplitPrincipal(t *testing.T) {
+	tests := []struct {
+		name         string
+		principal    string
+		wantUsername string
+		wantRealm    string
+		wantErr      bool
+	}{
+		{
+			name:         "valid principal",
+			principal:    "gatus@EXAMPLE.COM",
+			wantUsername: "gatus",
+			wantRealm:    "EXAMPLE.COM",
+			wantErr:      false,
+		},
+		{
+			name:      "missing realm",
+			principal: "gatus",
+			wantErr:   true,
+		},
+		{
+			name:      "missing username",
+			principal: "@EXAMPLE.COM",
+			wantErr:   true,
+		},
+		{
+			name:      "missing realm value",
+			principal: "gatus@",
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			username, realm, err := splitPrincipal(tt.principal)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if username != tt.wantUsername {
+				t.Fatalf("expected username %q, got %q", tt.wantUsername, username)
+			}
+
+			if realm != tt.wantRealm {
+				t.Fatalf("expected realm %q, got %q", tt.wantRealm, realm)
+			}
+		})
+	}
+}
+
+func TestDefaultHTTPSpn(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://test.example.com/path", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := defaultHTTPSpn(req)
+	want := "HTTP/test.example.com"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestDefaultHTTPSpnWithPort(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://test.example.com:8443/path", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := defaultHTTPSpn(req)
+	want := "HTTP/test.example.com"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestConfigureKerberosWrapsTransport(t *testing.T) {
+	httpClient := &http.Client{
+		Transport: http.DefaultTransport,
+	}
+
+	configuredClient := configureKerberos(httpClient, KerberosConfig{
+		KeytabFile: "../testdata/gatus.keytab",
+		Principal:  "gatus@EXAMPLE.COM",
+	})
+
+	if configuredClient.Transport == nil {
+		t.Fatal("expected transport to be configured")
+	}
+
+	if _, ok := configuredClient.Transport.(*kerberosTransport); !ok {
+		t.Fatalf("expected kerberosTransport, got %T", configuredClient.Transport)
 	}
 }

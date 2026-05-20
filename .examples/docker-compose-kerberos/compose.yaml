@@ -1,0 +1,54 @@
+services:
+  kdc:
+    build:
+      context: ./kdc
+    container_name: kerberos-kdc
+    hostname: kdc.example.com
+    networks:
+      kerberos-net:
+        aliases:
+          - kdc.example.com
+    volumes:
+      - kerberos-secrets:/shared
+    ports:
+      - "1088:88/tcp"
+      - "1088:88/udp"
+
+  apache:
+    build:
+      context: ./apache
+    container_name: kerberos-apache
+    hostname: apache.example.com
+    depends_on:
+      - kdc
+    networks:
+      kerberos-net:
+        aliases:
+          - apache.example.com
+    volumes:
+      - kerberos-secrets:/shared:ro
+      - ./kdc/krb5.conf:/etc/krb5.conf:ro
+    ports:
+      - "8081:80"
+
+  gatus:
+    image: twinproduction/gatus:latest
+    container_name: kerberos-gatus
+    depends_on:
+      - kdc
+      - apache
+    networks:
+      - kerberos-net
+    volumes:
+      - ./config/config.yaml:/config/config.yaml:ro
+      - ./kdc/krb5.conf:/etc/krb5.conf:ro
+      - kerberos-secrets:/etc/gatus/secrets:ro
+    ports:
+      - "8080:8080"
+
+volumes:
+  kerberos-secrets:
+
+networks:
+  kerberos-net:
+    driver: bridge
