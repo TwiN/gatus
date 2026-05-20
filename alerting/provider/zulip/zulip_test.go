@@ -97,6 +97,13 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Domain:    "domain",
 		ChannelID: "channel-id",
 	}
+	customTopicConfig := Config{
+		BotEmail:  "bot-email",
+		BotAPIKey: "bot-api-key",
+		Domain:    "domain",
+		ChannelID: "channel-id",
+		Topic:     "custom",
+	}
 	alertDesc := "Description"
 	basicAlert := alert.Alert{
 		SuccessThreshold: 2,
@@ -145,6 +152,23 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 :check: - ` + "`[BODY] != \"\"`"},
 				"to":    {"channel-id"},
 				"topic": {"Gatus"},
+				"type":  {"channel"},
+			},
+		},
+		{
+			name: "Resolved alert with custom topic",
+			provider: AlertProvider{
+				DefaultConfig: customTopicConfig,
+			},
+			alert:         basicAlert,
+			resolved:      true,
+			hasConditions: false,
+			expectedBody: url.Values{
+				"content": {`An alert for **endpoint-Name** has been resolved after passing successfully 2 time(s) in a row
+> Description
+`},
+				"to":    {"channel-id"},
+				"topic": {"custom"},
 				"type":  {"channel"},
 			},
 		},
