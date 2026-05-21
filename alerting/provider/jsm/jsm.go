@@ -21,7 +21,8 @@ const (
 )
 
 var (
-	ErrAPIKeyNotSet = errors.New("api-key not set")
+	ErrAPIKeyNotSet           = errors.New("api-key not set")
+	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
@@ -99,10 +100,28 @@ type AlertProvider struct {
 
 	// DefaultAlert is the default alert configuration to use for endpoints with an alert of the appropriate type
 	DefaultAlert *alert.Alert `yaml:"default-alert,omitempty"`
+
+	// Overrides is a list of Override that may be prioritized over the default configuration
+	Overrides []Override `yaml:"overrides,omitempty"`
+}
+
+// Override is a case under which the default integration is overridden
+type Override struct {
+	Group  string `yaml:"group"`
+	Config `yaml:",inline"`
 }
 
 // Validate the provider's configuration
 func (provider *AlertProvider) Validate() error {
+	registeredGroups := make(map[string]bool)
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
+				return ErrDuplicateGroupOverride
+			}
+			registeredGroups[override.Group] = true
+		}
+	}
 	return provider.DefaultConfig.Validate()
 }
 
@@ -236,6 +255,15 @@ func (provider *AlertProvider) GetDefaultAlert() *alert.Alert {
 // GetConfig returns the configuration for the provider with the overrides applied
 func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Config, error) {
 	cfg := provider.DefaultConfig
+	// Handle group overrides
+	if provider.Overrides != nil {
+		for _, override := range provider.Overrides {
+			if group == override.Group {
+				cfg.Merge(&override.Config)
+				break
+			}
+		}
+	}
 	// Handle alert overrides
 	if len(alert.ProviderOverride) != 0 {
 		overrideConfig := Config{}
