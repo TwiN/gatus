@@ -82,6 +82,10 @@ type Config struct {
 	// ResolvedTunnel is the resolved SSH tunnel for this specific Config
 	ResolvedTunnel *sshtunnel.SSHTunnel `yaml:"-"`
 
+	// dnsResolverConfig is parsed DNSResolver
+	// We do this to avoid parsing DNSResolver every time it is needed
+	dnsResolverConfig *DNSResolverConfig `yaml:"-"`
+
 	httpClient *http.Client
 }
 
@@ -123,8 +127,10 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
-		if _, err := c.parseDNSResolver(); err != nil {
+		if resolver, err := c.parseDNSResolver(); err != nil {
 			return err
+		} else {
+			c.dnsResolverConfig = resolver
 		}
 	}
 	if c.HasOAuth2Config() && !c.OAuth2Config.isValid() {
@@ -144,6 +150,16 @@ func (c *Config) ValidateAndSetDefaults() error {
 // HasCustomDNSResolver returns whether a custom DNSResolver is configured
 func (c *Config) HasCustomDNSResolver() bool {
 	return len(c.DNSResolver) > 0
+}
+
+// CustomDNSResolver returns the parsed DNS configuration
+// This is useful to avoid parsing input on every access.
+func (c *Config) CustomDNSResolver() *DNSResolverConfig {
+	if c.HasCustomDNSResolver() {
+		return c.dnsResolverConfig
+	}
+
+	return nil
 }
 
 // parseDNSResolver parses the DNS resolver into the DNSResolverConfig struct
@@ -245,11 +261,11 @@ func (c *Config) getHTTPClient() *http.Client {
 			}
 		}
 		if c.HasCustomDNSResolver() {
-			dnsResolver, err := c.parseDNSResolver()
-			if err != nil {
+			dnsResolver := c.CustomDNSResolver()
+			if dnsResolver == nil {
 				// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
 				// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
-				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver")
 			} else {
 				dialer := &net.Dialer{
 					Resolver: &net.Resolver{
