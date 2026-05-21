@@ -1495,16 +1495,19 @@ In order to get the required alert source config id and authentication token, yo
 #### Configuring JSM alerts
 > **_NOTE:_**  This integration is working similarly to the deprecated Opsgenie integration, but uses the newer API of Jira Service Management (JSM).
 
-| Parameter                    | Description                                                                                | Default              |
-|:-----------------------------|:-------------------------------------------------------------------------------------------|:---------------------|
-| `alerting.jsm`               | Configuration for alerts of type `jsm`                                                     | `{}`                 |
-| `alerting.jsm.api-key`       | JSM API Key                                                                                | Required `""`        |
-| `alerting.jsm.priority`      | Priority level of the alert.                                                               | `P1`                 |
-| `alerting.jsm.source`        | Source field of the alert.                                                                 | `gatus`              |
-| `alerting.jsm.entity-prefix` | Entity field prefix.                                                                       | `gatus-`             |
-| `alerting.jsm.alias-prefix`  | Alias field prefix.                                                                        | `gatus-healthcheck-` |
-| `alerting.jsm.tags`          | Tags of alert.                                                                             | `[]`                 |
-| `alerting.jsm.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                  |
+| Parameter                        | Description                                                                                | Default              |
+|:-----------------------------    |:-------------------------------------------------------------------------------------------|:---------------------|
+| `alerting.jsm`                   | Configuration for alerts of type `jsm`                                                     | `{}`                 |
+| `alerting.jsm.api-key`           | JSM API Key                                                                                | Required `""`        |
+| `alerting.jsm.priority`          | Priority level of the alert.                                                               | `P1`                 |
+| `alerting.jsm.source`            | Source field of the alert.                                                                 | `gatus`              |
+| `alerting.jsm.entity-prefix`     | Entity field prefix.                                                                       | `gatus-`             |
+| `alerting.jsm.alias-prefix`      | Alias field prefix.                                                                        | `gatus-healthcheck-` |
+| `alerting.jsm.tags`              | Tags of alert.                                                                             | `[]`                 |
+| `alerting.jsm.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                  |
+| `alerting.jsm.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                 |
+| `alerting.jsm.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                 |
+| `alerting.jsm.overrides[].*`     | See `alerting.jsm.*` parameters                                                            | `{}`                 | 
 
 JSM (Jira Service Management) provider will automatically open and close alerts.
 
