@@ -22,6 +22,32 @@ func TestAlertProvider_Validate(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_ValidateWithOverride(t *testing.T) {
+	providerWithInvalidOverrideGroup := AlertProvider{
+		Overrides: []Override{
+			{
+				Config: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+				Group:  "",
+			},
+		},
+	}
+	if err := providerWithInvalidOverrideGroup.Validate(); err == nil {
+		t.Error("provider Group shouldn't have been valid")
+	}
+	providerWithValidOverride := AlertProvider{
+		DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+		Overrides: []Override{
+			{
+				Config: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+				Group:  "group",
+			},
+		},
+	}
+	if err := providerWithValidOverride.Validate(); err != nil {
+		t.Error("provider should've been valid")
+	}
+}
+
 func TestAlertProvider_Send(t *testing.T) {
 	defer client.InjectHTTPClient(nil)
 	description := "my bad alert description"
@@ -323,29 +349,79 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 	scenarios := []struct {
 		Name           string
 		Provider       AlertProvider
+		InputGroup     string
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
 		{
-			Name: "provider-no-override-should-default",
+			Name: "provider-no-override-specify-no-group-should-default",
 			Provider: AlertProvider{
 				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+				Overrides:     nil,
 			},
+			InputGroup:     "",
 			InputAlert:     alert.Alert{},
 			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
 		},
 		{
-			Name: "provider-with-alert-override--alert-override-should-take-precedence",
+			Name: "provider-no-override-specify-group-should-default",
 			Provider: AlertProvider{
 				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+				Overrides:     nil,
 			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+		},
+		{
+			Name: "provider-with-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+					},
+				},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+		},
+		{
+			Name: "provider-with-group-override-and-alert-override--alert-override-should-take-precedence",
+			Provider: AlertProvider{
+				DefaultConfig: Config{APIKey: "00000000-0000-0000-0000-000000000000"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
+					},
+				},
+			},
+			InputGroup:     "group",
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"api-key": "00000000-0000-0000-0000-000000000001"}},
 			ExpectedOutput: Config{APIKey: "00000000-0000-0000-0000-000000000001"},
 		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			got, err := scenario.Provider.GetConfig("", &scenario.InputAlert)
+			got, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -353,7 +429,7 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("expected APIKey to be %s, got %s", scenario.ExpectedOutput.APIKey, got.APIKey)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
-			if err = scenario.Provider.ValidateOverrides("", &scenario.InputAlert); err != nil {
+			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
