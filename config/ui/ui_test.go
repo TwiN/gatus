@@ -50,6 +50,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.Favicon.Size32x32 != defaultFavicon32 {
 			t.Errorf("expected favicon to be %s, got %s", defaultFavicon32, cfg.Favicon.Size32x32)
 		}
+		if cfg.LoginSubtitle != defaultLoginSubtitle {
+			t.Errorf("expected LoginSubtitle to be %s, got %s", defaultLoginSubtitle, cfg.LoginSubtitle)
+		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -62,6 +65,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Link:                "https://example.com",
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
+			LoginSubtitle:       "Welcome",
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -93,6 +97,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != "failing" {
 			t.Errorf("expected defaultFilterBy to be preserved, got %s", cfg.DefaultFilterBy)
 		}
+		if cfg.LoginSubtitle != "Welcome" {
+			t.Errorf("expected LoginSubtitle to be preserved, got %s", cfg.LoginSubtitle)
+		}
 	})
 	t.Run("partial-custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -118,6 +125,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 		if cfg.Description != defaultDescription {
 			t.Errorf("expected description to use default, got %s", cfg.Description)
+		}
+		if cfg.LoginSubtitle != defaultLoginSubtitle {
+			t.Errorf("expected LoginSubtitle to use default, got %s", cfg.LoginSubtitle)
 		}
 	})
 }
@@ -180,6 +190,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 	if defaultConfig.DefaultFilterBy != defaultFilterBy {
 		t.Error("expected GetDefaultConfig() to return defaultFilterBy, got", defaultConfig.DefaultFilterBy)
+	}
+	if defaultConfig.LoginSubtitle != defaultLoginSubtitle {
+		t.Error("expected GetDefaultConfig() to return defaultLoginSubtitle, got", defaultConfig.LoginSubtitle)
 	}
 }
 

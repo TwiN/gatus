@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: Get PR branch
         id: pr
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const pr = await github.rest.pulls.get({
@@ -52,7 +52,7 @@ jobs:
           ref: ${{ steps.pr.outputs.ref }}
       - name: Regenerate static assets
         run: |
-          make frontend-install-dependencies
+          make frontend-install
           make frontend-build
       - name: Commit and push changes
         id: commit
@@ -79,7 +79,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Create response comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const status = '${{ needs.regenerate-static-assets.outputs.status }}';
@@ -88,6 +88,8 @@ jobs:
             var workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
             if (status === 'no_changes') {
               message = `@${context.actor} No changes to commit ([ref](${workflowUrl})).`;
+            } else if (status === 'success') {
+              // Assets regenerated successfully - no comment needed, just add reaction
             } else {
               reaction = '-1';
               message = `@${context.actor} There was an issue regenerating static assets. Please check the [workflow run logs](${workflowUrl}) for more details.`;
