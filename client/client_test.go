@@ -508,6 +508,16 @@ func TestQueryDNS(t *testing.T) {
 			expectedBody:    "one.one.one.one.",
 		},
 		{
+			name: "test Config with type TXT",
+			inputDNS: dns.Config{
+				QueryType: "TXT",
+				QueryName: "example.com.",
+			},
+			inputURL:        "1.1.1.1",
+			expectedDNSCode: "NOERROR",
+			expectedBody:    "*v=spf1*",
+		},
+		{
 			name: "test Config with fake type and retrieve error",
 			inputDNS: dns.Config{
 				QueryType: "B",
@@ -526,8 +536,8 @@ func TestQueryDNS(t *testing.T) {
 			if dnsRCode != scenario.expectedDNSCode {
 				t.Errorf("expected DNSRCode to be %s, got %s", scenario.expectedDNSCode, dnsRCode)
 			}
-			if scenario.inputDNS.QueryType == "NS" {
-				// Because there are often multiple nameservers backing a single domain, we'll only look at the suffix
+			if scenario.inputDNS.QueryType == "NS" || scenario.inputDNS.QueryType == "TXT" {
+				// Some record types can have multiple valid answers, so wildcard matching is used in those scenarios
 				if !pattern.Match(scenario.expectedBody, string(body)) {
 					t.Errorf("got %s, expected result %s,", string(body), scenario.expectedBody)
 				}
