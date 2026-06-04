@@ -2,8 +2,12 @@ package client
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -14,6 +18,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	cryptossh "golang.org/x/crypto/ssh"
 )
 
 func TestGetHTTPClient(t *testing.T) {
@@ -584,4 +589,103 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
+}
+
+func TestExecuteSSHCommandWithEmptyBody(t *testing.T) {
+	address, cleanup := startTestSSHServer(t)
+	defer cleanup()
+
+	connected, sshClient, err := CanCreateSSHConnection(address, "scenario", "scenario", "", &Config{Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("expected SSH connection, got error: %v", err)
+	}
+	if !connected {
+		t.Fatal("expected SSH connection to succeed")
+	}
+
+	success, status, output, err := ExecuteSSHCommand(sshClient, "", &Config{Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("expected empty SSH body to skip command execution, got error: %v", err)
+	}
+	if !success {
+		t.Fatal("expected empty SSH body to preserve successful connection")
+	}
+	if status != 0 {
+		t.Fatalf("expected status 0, got %d", status)
+	}
+	if len(output) != 0 {
+		t.Fatalf("expected no command output, got %q", string(output))
+	}
+}
+
+func startTestSSHServer(t *testing.T) (string, func()) {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate test SSH key: %v", err)
+	}
+	signer, err := cryptossh.NewSignerFromKey(privateKey)
+	if err != nil {
+		t.Fatalf("failed to create test SSH signer: %v", err)
+	}
+
+	serverConfig := &cryptossh.ServerConfig{
+		PasswordCallback: func(c cryptossh.ConnMetadata, password []byte) (*cryptossh.Permissions, error) {
+			if c.User() == "scenario" && string(password) == "scenario" {
+				return nil, nil
+			}
+			return nil, errors.New("invalid test SSH credentials")
+		},
+	}
+	serverConfig.AddHostKey(signer)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen for test SSH server: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go handleTestSSHConnection(conn, serverConfig)
+		}
+	}()
+
+	return listener.Addr().String(), func() {
+		_ = listener.Close()
+		<-done
+	}
+}
+
+func handleTestSSHConnection(conn net.Conn, serverConfig *cryptossh.ServerConfig) {
+	serverConn, chans, reqs, err := cryptossh.NewServerConn(conn, serverConfig)
+	if err != nil {
+		_ = conn.Close()
+		return
+	}
+	defer serverConn.Close()
+	go cryptossh.DiscardRequests(reqs)
+	for newChannel := range chans {
+		channel, requests, err := newChannel.Accept()
+		if err != nil {
+			continue
+		}
+		go func() {
+			defer channel.Close()
+			for req := range requests {
+				if req.Type == "exec" {
+					_ = req.Reply(true, nil)
+					_, _ = channel.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+					return
+				}
+				_ = req.Reply(false, nil)
+			}
+		}()
+	}
 }

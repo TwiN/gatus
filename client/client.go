@@ -322,6 +322,9 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	defer sshClient.Close()
 	var b Body
 	body = parseLocalAddressPlaceholder(body, sshClient.Conn.LocalAddr())
+	if strings.TrimSpace(body) == "" {
+		return true, 0, nil, nil
+	}
 	if err := json.Unmarshal([]byte(body), &b); err != nil {
 		return false, 0, nil, err
 	}
