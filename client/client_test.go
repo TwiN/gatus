@@ -2,8 +2,11 @@ package client
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -14,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestGetHTTPClient(t *testing.T) {
@@ -584,4 +588,79 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
+}
+
+func TestExecuteSSHCommandWithEmptyBody(t *testing.T) {
+	t.Parallel()
+	for _, body := range []string{"", " \n\t "} {
+		t.Run("empty-body", func(t *testing.T) {
+			sshClient, channelTypes := newTestSSHClient(t)
+
+			success, status, output, err := ExecuteSSHCommand(sshClient, body, &Config{})
+			if err != nil {
+				t.Fatalf("Expected: err == nil, got: %v", err)
+			}
+			if !success {
+				t.Error("Expected: success == true")
+			}
+			if status != 0 {
+				t.Errorf("Expected: status == 0, got: %d", status)
+			}
+			if output != nil {
+				t.Errorf("Expected: output == nil, got: %q", string(output))
+			}
+			select {
+			case channelType := <-channelTypes:
+				t.Fatalf("Expected no SSH channel to be opened, got: %s", channelType)
+			case <-time.After(50 * time.Millisecond):
+			}
+		})
+	}
+}
+
+func newTestSSHClient(t *testing.T) (*ssh.Client, <-chan string) {
+	t.Helper()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Failed to generate SSH private key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(privateKey)
+	if err != nil {
+		t.Fatalf("Failed to create SSH signer: %v", err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to listen for test SSH server: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = listener.Close()
+	})
+	channelTypes := make(chan string, 1)
+	serverConfig := &ssh.ServerConfig{NoClientAuth: true}
+	serverConfig.AddHostKey(signer)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		sshConn, channels, requests, err := ssh.NewServerConn(conn, serverConfig)
+		if err != nil {
+			return
+		}
+		defer sshConn.Close()
+		go ssh.DiscardRequests(requests)
+		for channel := range channels {
+			channelTypes <- channel.ChannelType()
+			_ = channel.Reject(ssh.UnknownChannelType, "unexpected channel")
+		}
+	}()
+	sshClient, err := ssh.Dial("tcp", listener.Addr().String(), &ssh.ClientConfig{
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         time.Second,
+		User:            "test",
+	})
+	if err != nil {
+		t.Fatalf("Failed to connect to test SSH server: %v", err)
+	}
+	return sshClient, channelTypes
 }
