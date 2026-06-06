@@ -2708,9 +2708,10 @@ endpoints:
 ### Security
 | Parameter        | Description                  | Default |
 |:-----------------|:-----------------------------|:--------|
-| `security`       | Security configuration       | `{}`    |
-| `security.basic` | HTTP Basic configuration     | `{}`    |
-| `security.oidc`  | OpenID Connect configuration | `{}`    |
+| `security`                 | Security configuration                                        | `{}`    |
+| `security.protect-metrics` | Whether to protect `/metrics` with configured security      | `false` |
+| `security.basic`           | HTTP Basic configuration                                     | `{}`    |
+| `security.oidc`            | OpenID Connect configuration                                 | `{}`    |
 
 
 #### Basic Authentication
@@ -2777,6 +2778,17 @@ web:
 ### Metrics
 To enable metrics, you must set `metrics` to `true`. Doing so will expose Prometheus-friendly metrics at the `/metrics`
 endpoint on the same port your application is configured to run on (`web.port`).
+
+By default, `/metrics` is unauthenticated. To protect it using your configured security provider, set `security.protect-metrics`
+to `true` and configure `security.basic` or `security.oidc`.
+
+```yaml
+security:
+  protect-metrics: true
+  basic:
+    username: "john.doe"
+    password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
+```
 
 | Metric name                                  | Type    | Description                                                                | Labels                          | Relevant endpoint types |
 |:---------------------------------------------|:--------|:---------------------------------------------------------------------------|:--------------------------------|:------------------------|
