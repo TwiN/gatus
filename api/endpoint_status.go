@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sync"
+	"time"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
-	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 // EndpointStatuses handles requests to retrieve all EndpointStatus
@@ -23,64 +25,92 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
+
 		var data []byte
+		var err error
+
 		if !exists {
-			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
-			if err != nil {
-				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
-				return c.Status(500).SendString(err.Error())
+			endpointStatuses := make([]*endpoint.Status, 0)
+			wg := errgroup.Group{}
+			sliceMutex := sync.Mutex{}
+
+			wg.Go(func() error {
+				es, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
+				if err != nil {
+					return fmt.Errorf("[api.EndpointStatuses] failed to retrieve endpoint statuses: %w", err)
+				}
+
+				sliceMutex.Lock()
+				endpointStatuses = append(endpointStatuses, es...)
+				sliceMutex.Unlock()
+
+				return nil
+			})
+
+			if cfg.Remote != nil && len(cfg.Remote.Instances) > 0 {
+				httpClient := client.GetHTTPClient(cfg.Remote.ClientConfig)
+
+				// ALPHA: Retrieve endpoint statuses from remote instances
+				for _, instance := range cfg.Remote.Instances {
+					wg.Go(func() error {
+						start := time.Now()
+
+						response, err := httpClient.Get(instance.URL)
+						responseCode := 0
+
+						// just in case response is nil from an error
+						if response != nil {
+							responseCode = response.StatusCode
+							defer response.Body.Close()
+						}
+
+						logr.Infof("[api.EndpointStatuses] remote=%s; status=%d; duration=%s", instance.URL, responseCode, time.Since(start).Truncate(100 * time.Nanosecond))
+
+						if err != nil {
+							// log but dont return to the errgroup to avoid 500 errors for remote instance failures
+							logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
+							return nil
+						}
+
+						var es []*endpoint.Status
+						if err = json.NewDecoder(response.Body).Decode(&es); err != nil {
+							// log but dont return to the errgroup to avoid 500 errors for remote instance failures
+							logr.Errorf("[api.EndpointStatuses] Failed to decode endpoint statuses from %s: %s", instance.URL, err.Error())
+							return nil
+						}
+
+						for _, endpointStatus := range es {
+							endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
+						}
+
+						sliceMutex.Lock()
+						endpointStatuses = append(endpointStatuses, es...)
+						sliceMutex.Unlock()
+
+						return nil
+					})
+				}
 			}
-			// ALPHA: Retrieve endpoint statuses from remote instances
-			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
-				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
-			} else if endpointStatusesFromRemote != nil {
-				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
+
+			if err := wg.Wait(); err != nil {
+				return c.Status(500).SendString(fmt.Sprintf("unable to retrieve endpoint statuses: %s", err.Error()))
 			}
+
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
 			if err != nil {
 				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
 				return c.Status(500).SendString("unable to marshal object to JSON")
 			}
+
 			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
 		} else {
 			data = value.([]byte)
 		}
+
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
 	}
-}
-
-func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
-	if remoteConfig == nil || len(remoteConfig.Instances) == 0 {
-		return nil, nil
-	}
-	var endpointStatusesFromAllRemotes []*endpoint.Status
-	httpClient := client.GetHTTPClient(remoteConfig.ClientConfig)
-	for _, instance := range remoteConfig.Instances {
-		response, err := httpClient.Get(instance.URL)
-		if err != nil {
-			// Log the error but continue with other instances
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
-		var endpointStatuses []*endpoint.Status
-		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
-			_ = response.Body.Close()
-			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to decode endpoint statuses from %s: %s", instance.URL, err.Error())
-			continue
-		}
-		_ = response.Body.Close()
-		for _, endpointStatus := range endpointStatuses {
-			endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
-		}
-		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
-	}
-	// Only return nil, error if no remote instances were successfully processed
-	if len(endpointStatusesFromAllRemotes) == 0 && remoteConfig.Instances != nil {
-		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
-	}
-	return endpointStatusesFromAllRemotes, nil
 }
 
 // EndpointStatus retrieves a single endpoint.Status by group and endpoint name
