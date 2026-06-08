@@ -119,8 +119,18 @@ func TestConfig_TlsIsValid(t *testing.T) {
 			expectedErr: false,
 		},
 		{
+			name:        "good-tls-with-ca-config",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key", CAFile: "../testdata/cert.pem"}},
+			expectedErr: false,
+		},
+		{
 			name:        "missing-certificate-file",
 			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "doesnotexist", PrivateKeyFile: "../testdata/cert.key"}},
+			expectedErr: true,
+		},
+		{
+			name:        "missing-ca-file",
+			cfg:         &Config{TLS: &TLSConfig{CertificateFile: "../testdata/cert.pem", PrivateKeyFile: "../testdata/cert.key", CAFile: "doesnotexist"}},
 			expectedErr: true,
 		},
 		{
