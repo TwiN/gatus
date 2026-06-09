@@ -499,6 +499,13 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			if srv, ok := rr.(*dns.SRV); ok {
 				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
 			}
+		case dns.TypeTXT:
+			if txt, ok := rr.(*dns.TXT); ok {
+				if len(body) > 0 {
+					body = append(body, '\n')
+				}
+				body = append(body, []byte(strings.Join(txt.Txt, ""))...)
+			}
 		default:
 			body = []byte("query type is not supported yet")
 		}
