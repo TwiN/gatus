@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,17 @@ import (
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 )
+
+func isIgnorableNetworkTestError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errString := err.Error()
+	return strings.Contains(errString, "no such host") ||
+		strings.Contains(errString, "connection reset by peer") ||
+		strings.Contains(errString, "i/o timeout") ||
+		strings.Contains(errString, "server misbehaving")
+}
 
 func TestGetHTTPClient(t *testing.T) {
 	cfg := &Config{
@@ -221,6 +233,9 @@ func TestCanPerformStartTLS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			connected, _, err := CanPerformStartTLS(tt.args.address, &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second, DNSResolver: tt.args.dnsresolver})
+			if !tt.wantErr && isIgnorableNetworkTestError(err) {
+				t.Skipf("skipping due to transient network error: %v", err)
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformStartTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
@@ -290,6 +305,9 @@ func TestCanPerformTLS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			connected, _, _, err := CanPerformTLS(tt.args.address, "", &Config{Insecure: tt.args.insecure, Timeout: 5 * time.Second})
+			if !tt.wantErr && isIgnorableNetworkTestError(err) {
+				t.Skipf("skipping due to transient network error: %v", err)
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CanPerformTLS() err=%v, wantErr=%v", err, tt.wantErr)
 				return
