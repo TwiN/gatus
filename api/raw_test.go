@@ -65,6 +65,16 @@ func TestRawDataEndpoint(t *testing.T) {
 			ExpectedCode: http.StatusOK,
 		},
 		{
+			Name:         "raw-uptime-custom-14d",
+			Path:         "/api/v1/endpoints/core_frontend/uptimes/14d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-uptime-custom-90d",
+			Path:         "/api/v1/endpoints/core_frontend/uptimes/90d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
 			Name:         "raw-uptime-with-invalid-duration",
 			Path:         "/api/v1/endpoints/core_backend/uptimes/3d",
 			ExpectedCode: http.StatusBadRequest,
@@ -92,6 +102,16 @@ func TestRawDataEndpoint(t *testing.T) {
 		{
 			Name:         "raw-response-times-30d",
 			Path:         "/api/v1/endpoints/core_frontend/response-times/30d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-custom-14d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/14d",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "raw-response-times-custom-90d",
+			Path:         "/api/v1/endpoints/core_frontend/response-times/90d",
 			ExpectedCode: http.StatusOK,
 		},
 		{

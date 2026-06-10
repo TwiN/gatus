@@ -9,7 +9,11 @@
     ]"
     :style="`top: ${top}px; left: ${left}px;`"
   >
-    <div v-if="result" class="space-y-2">
+    <div v-if="result && result.missing" class="space-y-1">
+      <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">NO DATA</div>
+      <div class="font-mono text-xs">{{ prettifyTimestamp(result.timestamp) }}</div>
+    </div>
+    <div v-else-if="result" class="space-y-2">
       <!-- Status (for suite results) -->
       <div v-if="isSuiteResult" class="flex items-center gap-2">
         <span :class="[
