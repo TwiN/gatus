@@ -33,6 +33,15 @@ func (c Condition) Validate() error {
 	return nil
 }
 
+// This may not go here but I don't care
+func splitLast(s, sep string) []string {
+	i := strings.LastIndex(s, sep)
+	if i == -1 {
+		return []string{s, ""}
+	}
+	return []string{s[:i], s[i+len(sep):]}
+}
+
 // evaluate the Condition with the Result and an optional context
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
@@ -45,37 +54,37 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 		return !dontResolveFailedConditions
 	}
 	if strings.Contains(condition, " == ") {
-		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " == "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(splitLast(condition, " == "), result, context)
 		success = isEqual(resolvedParameters[0], resolvedParameters[1])
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
-		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " != "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveWithContext(splitLast(condition, " != "), result, context)
 		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(splitLast(condition, " <= "), result, context)
 		success = resolvedParameters[0] <= resolvedParameters[1]
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(splitLast(condition, " >= "), result, context)
 		success = resolvedParameters[0] >= resolvedParameters[1]
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(splitLast(condition, " > "), result, context)
 		success = resolvedParameters[0] > resolvedParameters[1]
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
+		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(splitLast(condition, " < "), result, context)
 		success = resolvedParameters[0] < resolvedParameters[1]
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
