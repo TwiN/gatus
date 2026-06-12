@@ -15,6 +15,8 @@ func UptimeRaw(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "365d":
+		from = time.Now().Add(-365 * 24 * time.Hour)
 	case "30d":
 		from = time.Now().Add(-30 * 24 * time.Hour)
 	case "7d":
@@ -24,7 +26,7 @@ func UptimeRaw(c *fiber.Ctx) error {
 	case "1h":
 		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+		return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h, 1h")
 	}
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
@@ -50,6 +52,8 @@ func ResponseTimeRaw(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "365d":
+		from = time.Now().Add(-365 * 24 * time.Hour)
 	case "30d":
 		from = time.Now().Add(-30 * 24 * time.Hour)
 	case "7d":
@@ -59,7 +63,7 @@ func ResponseTimeRaw(c *fiber.Ctx) error {
 	case "1h":
 		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+		return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h, 1h")
 	}
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
