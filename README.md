@@ -601,6 +601,7 @@ If at least one announcement is archived, a **Past Announcements** section will 
 | `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
 | `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                            | `100`      |
 | `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                             | `50`       |
+| `storage.uptime-retention`          | Minimum duration for which uptime data is kept. Increase it (e.g. `8760h`) to support long-range uptime badges like the `365d` badge.              | `720h`     |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
@@ -3475,8 +3476,10 @@ The path to generate a badge is the following:
 /api/v1/endpoints/{key}/uptimes/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
+
+> 📝 The `365d` badge only reflects a full year once enough history has been collected **and** [`storage.uptime-retention`](#storage) is set to at least `8760h` (it defaults to 30 days, so longer durations are capped at the configured retention).
 
 For instance, if you want the uptime during the last 24 hours from the endpoint `frontend` in the group `core`,
 the URL would look like this:
@@ -3541,7 +3544,7 @@ The endpoint to generate a badge is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/badge.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 #### Response time (chart)
@@ -3554,7 +3557,7 @@ The endpoint to generate a response time chart is the following:
 /api/v1/endpoints/{key}/response-times/{duration}/chart.svg
 ```
 Where:
-- `{duration}` is `30d`, `7d`, or `24h`
+- `{duration}` is `365d`, `30d`, `7d`, or `24h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 ##### How to change the color thresholds of the response time badge
@@ -3612,7 +3615,7 @@ The path to get raw uptime data for an endpoint is:
 /api/v1/endpoints/{key}/uptimes/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw uptime data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
@@ -3626,7 +3629,7 @@ The path to get raw response time data for an endpoint is:
 /api/v1/endpoints/{key}/response-times/{duration}
 ```
 Where:
-- `{duration}` is `30d`, `7d`, `24h` or `1h`
+- `{duration}` is `365d`, `30d`, `7d`, `24h` or `1h`
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
 
 For instance, if you want the raw response time data for the last 24 hours from the endpoint `frontend` in the group `core`, the URL would look like this:
