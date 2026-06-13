@@ -122,9 +122,10 @@ type Body struct {
 }
 
 type Payload struct {
-	Summary  string `json:"summary"`
-	Source   string `json:"source"`
-	Severity string `json:"severity"`
+	Summary       string            `json:"summary"`
+	Source        string            `json:"source"`
+	Severity      string            `json:"severity"`
+	CustomDetails map[string]string `json:"custom_details,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -139,15 +140,19 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		eventAction = "trigger"
 		resolveKey = ""
 	}
+	payload := Payload{
+		Summary:  message,
+		Source:   "Gatus",
+		Severity: "critical",
+	}
+	if len(ep.ExtraLabels) > 0 {
+		payload.CustomDetails = ep.ExtraLabels
+	}
 	body, _ := json.Marshal(Body{
 		RoutingKey:  cfg.IntegrationKey,
 		DedupKey:    resolveKey,
 		EventAction: eventAction,
-		Payload: Payload{
-			Summary:  message,
-			Source:   "Gatus",
-			Severity: "critical",
-		},
+		Payload:     payload,
 	})
 	return body
 }
