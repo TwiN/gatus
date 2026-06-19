@@ -97,6 +97,12 @@ func (c Condition) hasBodyPlaceholder() bool {
 	return strings.Contains(string(c), BodyPlaceholder)
 }
 
+// hasHeadersPlaceholder checks whether the condition has a HeadersPlaceholder
+// Used for determining whether the response headers should be stored or not
+func (c Condition) hasHeadersPlaceholder() bool {
+	return strings.Contains(string(c), HeadersPlaceholder)
+}
+
 // hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder
 // Used for determining whether a whois operation is necessary
 func (c Condition) hasDomainExpirationPlaceholder() bool {
