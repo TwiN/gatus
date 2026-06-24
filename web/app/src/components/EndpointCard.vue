@@ -38,12 +38,12 @@
             <div v-else class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex overflow-hidden rounded-lg gap-px h-7 sm:h-9">
+          <div class="overflow-hidden rounded-lg h-7 sm:h-9" style="display:grid;grid-template-columns:repeat(40,1fr);gap:1px;">
             <div
               v-for="(result, index) in displayBuckets"
               :key="index"
               :class="[
-                'flex-1 transition-opacity',
+                'transition-opacity',
                 result ? 'cursor-pointer' : '',
                 result ? (
                   result.mixed
