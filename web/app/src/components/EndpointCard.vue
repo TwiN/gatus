@@ -29,28 +29,23 @@
     <CardContent class="endpoint-content flex-1 pb-3 sm:pb-4 px-3 sm:px-6 pt-2">
       <div class="space-y-2">
         <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span
-              v-if="uptimePercentage !== null"
-              class="text-xs font-semibold tabular-nums"
-              :class="uptimePercentage >= 99 ? 'text-green-500' : uptimePercentage >= 95 ? 'text-amber-500' : 'text-red-500'"
-            >{{ uptimePercentage }}%</span>
-            <div v-else class="flex-1"></div>
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="overflow-hidden rounded-lg h-7 sm:h-9" style="display:grid;grid-template-columns:repeat(40,1fr);gap:1px;">
+          <div class="flex gap-0.5">
             <div
-              v-for="(result, index) in displayBuckets"
+              v-for="(result, index) in displayResults"
               :key="index"
               :class="[
-                'transition-opacity',
+                'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
                 result ? (
                   result.mixed
                     ? (selectedResultIndex === index ? 'bg-amber-500' : 'bg-amber-400 hover:bg-amber-500')
                     : result.success
-                      ? (selectedResultIndex === index ? 'bg-green-600' : 'bg-green-500 hover:bg-green-600')
-                      : (selectedResultIndex === index ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600')
+                      ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                      : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result && handleMouseEnter(result, $event)"
@@ -112,12 +107,18 @@ const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
 
-// Aggregate raw results into DISPLAY_BUCKETS for a clean visual
-const displayBuckets = computed(() => {
+const displayResults = computed(() => {
   const results = props.endpoint.results || []
   const total = props.maxResults
 
-  // Pad with nulls at the start so index 0 = oldest slot
+  // When few enough results, show them individually (original Gatus behaviour)
+  if (total <= DISPLAY_BUCKETS) {
+    const padded = [...results]
+    while (padded.length < total) padded.unshift(null)
+    return padded.slice(-total)
+  }
+
+  // Otherwise aggregate into DISPLAY_BUCKETS
   const padded = Array(Math.max(0, total - results.length)).fill(null).concat(results.slice(-total))
 
   const buckets = []
@@ -140,14 +141,6 @@ const displayBuckets = computed(() => {
     }
   }
   return buckets
-})
-
-const uptimePercentage = computed(() => {
-  const results = props.endpoint.results || []
-  if (results.length === 0) return null
-  const successCount = results.filter(r => r.success).length
-  const pct = (successCount / results.length) * 100
-  return pct % 1 === 0 ? pct : Math.round(pct * 10) / 10
 })
 
 const formattedResponseTime = computed(() => {
