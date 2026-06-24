@@ -4,9 +4,9 @@
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
           <CardTitle class="text-base sm:text-lg truncate">
-            <span 
-              class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate" 
-              @click="navigateToDetails" 
+            <span
+              class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate"
+              @click="navigateToDetails"
               @keydown.enter="navigateToDetails"
               :title="endpoint.name"
               role="link"
@@ -29,22 +29,28 @@
     <CardContent class="endpoint-content flex-1 pb-3 sm:pb-4 px-3 sm:px-6 pt-2">
       <div class="space-y-2">
         <div>
-          <div class="flex items-center justify-between mb-1">
-            <div class="flex-1"></div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span
+              v-if="uptimePercentage !== null"
+              class="text-xs font-semibold tabular-nums"
+              :class="uptimePercentage >= 99 ? 'text-green-500' : uptimePercentage >= 95 ? 'text-amber-500' : 'text-red-500'"
+            >{{ uptimePercentage }}%</span>
+            <div v-else class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div :class="['flex', displayResults.length > 100 ? 'gap-0' : 'gap-0.5']">
+          <div class="flex overflow-hidden rounded-lg gap-px h-7 sm:h-9">
             <div
-              v-for="(result, index) in displayResults"
+              v-for="(result, index) in displayBuckets"
               :key="index"
               :class="[
-                'flex-1 min-w-[1px] h-6 sm:h-8 transition-all',
-                displayResults.length <= 100 ? 'rounded-sm' : '',
+                'flex-1 transition-opacity',
                 result ? 'cursor-pointer' : '',
                 result ? (
-                  result.success
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                  result.mixed
+                    ? (selectedResultIndex === index ? 'bg-amber-500' : 'bg-amber-400 hover:bg-amber-500')
+                    : result.success
+                      ? (selectedResultIndex === index ? 'bg-green-600' : 'bg-green-500 hover:bg-green-600')
+                      : (selectedResultIndex === index ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result && handleMouseEnter(result, $event)"
@@ -69,6 +75,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 
+const DISPLAY_BUCKETS = 40
+
 const router = useRouter()
 
 const props = defineProps({
@@ -88,13 +96,10 @@ const props = defineProps({
 
 const emit = defineEmits(['showTooltip'])
 
-// Track selected data point
 const selectedResultIndex = ref(null)
 
 const latestResult = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return null
-  }
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return null
   return props.endpoint.results[props.endpoint.results.length - 1]
 })
 
@@ -107,24 +112,52 @@ const hostname = computed(() => {
   return latestResult.value?.hostname || null
 })
 
-const displayResults = computed(() => {
-  const results = [...(props.endpoint.results || [])]
-  while (results.length < props.maxResults) {
-    results.unshift(null)
+// Aggregate raw results into DISPLAY_BUCKETS for a clean visual
+const displayBuckets = computed(() => {
+  const results = props.endpoint.results || []
+  const total = props.maxResults
+
+  // Pad with nulls at the start so index 0 = oldest slot
+  const padded = Array(Math.max(0, total - results.length)).fill(null).concat(results.slice(-total))
+
+  const buckets = []
+  for (let i = 0; i < DISPLAY_BUCKETS; i++) {
+    const start = Math.floor(i * total / DISPLAY_BUCKETS)
+    const end = Math.floor((i + 1) * total / DISPLAY_BUCKETS)
+    const slice = padded.slice(start, end)
+    const nonNull = slice.filter(Boolean)
+
+    if (nonNull.length === 0) {
+      buckets.push(null)
+    } else {
+      const successCount = nonNull.filter(r => r.success).length
+      const latest = nonNull[nonNull.length - 1]
+      buckets.push({
+        ...latest,
+        success: successCount === nonNull.length,
+        mixed: successCount > 0 && successCount < nonNull.length,
+      })
+    }
   }
-  return results.slice(-props.maxResults)
+  return buckets
+})
+
+const uptimePercentage = computed(() => {
+  const results = props.endpoint.results || []
+  if (results.length === 0) return null
+  const successCount = results.filter(r => r.success).length
+  const pct = (successCount / results.length) * 100
+  return pct % 1 === 0 ? pct : Math.round(pct * 10) / 10
 })
 
 const formattedResponseTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return 'N/A'
-  }
-  
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return 'N/A'
+
   let total = 0
   let count = 0
   let min = Infinity
   let max = 0
-  
+
   for (const result of props.endpoint.results) {
     if (result.duration) {
       const durationMs = result.duration / 1000000
@@ -134,21 +167,15 @@ const formattedResponseTime = computed(() => {
       max = Math.max(max, durationMs)
     }
   }
-  
+
   if (count === 0) return 'N/A'
-  
+
   if (props.showAverageResponseTime) {
-    const avgMs = Math.round(total / count)
-    return `~${avgMs}ms`
+    return `~${Math.round(total / count)}ms`
   } else {
-    // Show min-max range
     const minMs = Math.trunc(min)
     const maxMs = Math.trunc(max)
-    // If min and max are the same, show single value
-    if (minMs === maxMs) {
-      return `${minMs}ms`
-    }
-    return `${minMs}-${maxMs}ms`
+    return minMs === maxMs ? `${minMs}ms` : `${minMs}-${maxMs}ms`
   }
 })
 
@@ -176,9 +203,7 @@ const handleMouseLeave = (result, event) => {
 }
 
 const handleClick = (result, event, index) => {
-  // Clear selections in other cards first
   window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
-  // Then toggle this card's selection
   if (selectedResultIndex.value === index) {
     selectedResultIndex.value = null
     emit('showTooltip', null, event, 'click')
@@ -188,7 +213,6 @@ const handleClick = (result, event, index) => {
   }
 }
 
-// Listen for clear selection event
 const handleClearSelection = () => {
   selectedResultIndex.value = null
 }
