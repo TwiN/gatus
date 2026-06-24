@@ -92,7 +92,7 @@
 
       <!-- Main Content -->
       <main class="relative">
-        <router-view @showTooltip="showTooltip" :announcements="announcements" :maximumNumberOfResults="maximumNumberOfResults" />
+        <router-view @showTooltip="showTooltip" :announcements="announcements" />
       </main>
 
       <!-- Footer -->
@@ -169,7 +169,6 @@ const route = useRoute()
 const retrievedConfig = ref(false)
 const config = ref({ oidc: false, authenticated: true })
 const announcements = ref([])
-const maximumNumberOfResults = ref(0)
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
 const isOidcLoading = ref(false)
@@ -205,7 +204,6 @@ const fetchConfig = async () => {
       const data = await response.json()
       config.value = data
       announcements.value = data.announcements || []
-      maximumNumberOfResults.value = data['maximum-number-of-results'] || 0
     }
     retrievedConfig.value = true
   } catch (error) {

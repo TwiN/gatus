@@ -182,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import EndpointCard from '@/components/EndpointCard.vue'
@@ -197,10 +197,6 @@ const props = defineProps({
   announcements: {
     type: Array,
     default: () => []
-  },
-  maximumNumberOfResults: {
-    type: Number,
-    default: 0
   }
 })
 
@@ -227,7 +223,9 @@ const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-res
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
-const resultPageSize = computed(() => props.maximumNumberOfResults > 0 ? props.maximumNumberOfResults : 50)
+const resultPageSize = (typeof window !== 'undefined' && window.config && window.config.maximumNumberOfResults)
+  ? (parseInt(window.config.maximumNumberOfResults) || 50)
+  : 50
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -436,7 +434,7 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize.value}`, {
+    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (endpointResponse.status === 200) {
@@ -447,7 +445,7 @@ const fetchData = async () => {
     }
     
     // Fetch suites
-    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize.value}`, {
+    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     if (suiteResponse.status === 200) {
@@ -548,10 +546,4 @@ onMounted(() => {
   fetchData()
 })
 
-// Re-fetch when the config-driven page size arrives (config loads async after mount)
-watch(() => props.maximumNumberOfResults, (val, oldVal) => {
-  if (val > 0 && val !== oldVal) {
-    fetchData()
-  }
-})
 </script>
