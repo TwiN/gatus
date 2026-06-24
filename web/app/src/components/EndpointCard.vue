@@ -33,15 +33,16 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex gap-0.5">
+          <div :class="['flex', displayResults.length > 100 ? 'gap-0' : 'gap-0.5']">
             <div
               v-for="(result, index) in displayResults"
               :key="index"
               :class="[
-                'flex-1 h-6 sm:h-8 rounded-sm transition-all',
+                'flex-1 min-w-[1px] h-6 sm:h-8 transition-all',
+                displayResults.length <= 100 ? 'rounded-sm' : '',
                 result ? 'cursor-pointer' : '',
                 result ? (
-                  result.success 
+                  result.success
                     ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
                     : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
