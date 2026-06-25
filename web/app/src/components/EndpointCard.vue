@@ -4,16 +4,15 @@
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
           <CardTitle class="text-base sm:text-lg truncate">
-            <span 
+            <a 
               class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate" 
-              @click="navigateToDetails" 
-              @keydown.enter="navigateToDetails"
               :title="endpoint.name"
+              :href="`/endpoints/${props.endpoint.key}`"
               role="link"
               tabindex="0"
               :aria-label="`View details for ${endpoint.name}`">
               {{ endpoint.name }}
-            </span>
+            </a>
           </CardTitle>
           <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground min-h-[1.25rem]">
             <span v-if="endpoint.group" class="truncate" :title="endpoint.group">{{ endpoint.group }}</span>
@@ -63,12 +62,10 @@
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 
-const router = useRouter()
 
 const props = defineProps({
   endpoint: {
@@ -161,10 +158,6 @@ const newestResultTime = computed(() => {
   if (!props.endpoint.results || props.endpoint.results.length === 0) return ''
   return generatePrettyTimeAgo(props.endpoint.results[props.endpoint.results.length - 1].timestamp)
 })
-
-const navigateToDetails = () => {
-  router.push(`/endpoints/${props.endpoint.key}`)
-}
 
 const handleMouseEnter = (result, event) => {
   emit('showTooltip', result, event, 'hover')
