@@ -12,6 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/gatus/v5/zeroconf"
 	"github.com/TwiN/logr"
 )
 
@@ -52,10 +53,12 @@ func start(cfg *config.Config) {
 	go controller.Handle(cfg)
 	metrics.InitializePrometheusMetrics(cfg, nil)
 	watchdog.Monitor(cfg)
+	zeroconf.Initialize(cfg)
 	go listenToConfigurationFileChanges(cfg)
 }
 
 func stop(cfg *config.Config) {
+	zeroconf.Shutdown()
 	watchdog.Shutdown(cfg)
 	controller.Shutdown()
 	metrics.UnregisterPrometheusMetrics()
