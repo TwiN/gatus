@@ -53,7 +53,9 @@ func start(cfg *config.Config) {
 	go controller.Handle(cfg)
 	metrics.InitializePrometheusMetrics(cfg, nil)
 	watchdog.Monitor(cfg)
-	zeroconf.Initialize(cfg)
+	if !cfg.DisableZeroconf {
+		zeroconf.Initialize(cfg)
+	}
 	go listenToConfigurationFileChanges(cfg)
 }
 
