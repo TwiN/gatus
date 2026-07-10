@@ -51,3 +51,9 @@ endpoints:
     interval: 1h
     conditions:
       - "[DOMAIN_EXPIRATION] > 720h"
+
+  - name: check-stripe-api
+    url: "https://www.stripestatus.com/api/v2/components.json"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].components[?(@.id == '2p0n66vlgnn2')].status[0] == operational"
