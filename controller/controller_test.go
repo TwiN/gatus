@@ -92,6 +92,50 @@ func TestHandleTLS(t *testing.T) {
 	}
 }
 
+func TestHandleSocket(t *testing.T) {
+	scenarios := []struct {
+		name               string
+		socket             string
+		expectedStatusCode int
+	}{
+		{
+			name:               "good-socket-config",
+			socket:             "/tmp/gatus.socket",
+			expectedStatusCode: 200,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			cfg := &config.Config{
+				Web: &web.Config{Socket: scenario.socket},
+				Endpoints: []*endpoint.Endpoint{
+					{Name: "frontend", Group: "core"},
+					{Name: "backend", Group: "core"},
+				},
+			}
+			if err := cfg.Web.ValidateAndSetDefaults(); err != nil {
+				t.Error("expected no error from web, got", err)
+			}
+			_ = os.Setenv("ROUTER_TEST", "true")
+			_ = os.Setenv("ENVIRONMENT", "dev")
+			defer os.Clearenv()
+			Handle(cfg)
+			defer Shutdown()
+			request := httptest.NewRequest("GET", "/health", http.NoBody)
+			response, err := app.Test(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if response.StatusCode != scenario.expectedStatusCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.expectedStatusCode, response.StatusCode)
+			}
+			if app == nil {
+				t.Fatal("server should've been set (but because we set ROUTER_TEST, it shouldn't have been started)")
+			}
+		})
+	}
+}
+
 func TestShutdown(t *testing.T) {
 	// Pretend that we called controller.Handle(), which initializes the server variable
 	app = fiber.New()
