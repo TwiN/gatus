@@ -139,7 +139,7 @@ endpoints:
 			pathAndFiles: map[string]string{
 				"config.yaml": "",
 			},
-			expectedError: ErrNoEndpointOrSuiteInConfig,
+			expectedError: ErrNoEndpointOrSuiteOrRemoteInConfig,
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -741,8 +741,20 @@ badconfig:
 	if err == nil {
 		t.Error("An error should've been returned")
 	}
-	if err != ErrNoEndpointOrSuiteInConfig {
-		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
+	if err != ErrNoEndpointOrSuiteOrRemoteInConfig {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteOrRemoteInConfig")
+	}
+}
+
+func TestParseAndValidateOnlyRemote(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+remote:
+  instances:
+    - endpoint-prefix: remote
+      url: "https://gatus.example.com/api/v1/endpoints/statuses"
+`))
+	if err != nil {
+		t.Error("Only having remote config shouldn't be an error")
 	}
 }
 
@@ -1848,8 +1860,8 @@ endpoints:
 
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
-	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
-		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteInConfig")
+	if !errors.Is(err, ErrNoEndpointOrSuiteOrRemoteInConfig) {
+		t.Error("The error returned should have been of type ErrNoEndpointOrSuiteOrRemoteInConfig")
 	}
 }
 
