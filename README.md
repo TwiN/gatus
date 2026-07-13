@@ -2847,6 +2847,7 @@ Use at your own risk.
 | `remote.instances`                 | List of remote instances                       | Required `[]` |
 | `remote.instances.endpoint-prefix` | String to prefix all endpoint names with       | `""`          |
 | `remote.instances.url`             | URL from which to retrieve endpoint statuses   | Required `""` |
+| `remote.instances.include-remote`  | Include remote endpoints from remote instance  | true          |
 | `remote.client`                    | [Client configuration](#client-configuration). | `{}`          |
 
 ```yaml
