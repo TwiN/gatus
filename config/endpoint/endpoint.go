@@ -610,11 +610,19 @@ func (e *Endpoint) needsToReadBody() bool {
 	return false
 }
 
-// needsToReadHeaders checks if there's any condition that requires the response headers to be stored
+// needsToReadHeaders checks if there's any condition or store mapping that requires the response headers to be stored
 func (e *Endpoint) needsToReadHeaders() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasHeadersPlaceholder() {
 			return true
+		}
+	}
+	// Check store values for headers placeholders
+	if e.Store != nil {
+		for _, value := range e.Store {
+			if strings.Contains(strings.ToUpper(value), HeadersPlaceholder) {
+				return true
+			}
 		}
 	}
 	return false

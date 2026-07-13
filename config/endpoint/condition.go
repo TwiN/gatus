@@ -100,7 +100,7 @@ func (c Condition) hasBodyPlaceholder() bool {
 // hasHeadersPlaceholder checks whether the condition has a HeadersPlaceholder
 // Used for determining whether the response headers should be stored or not
 func (c Condition) hasHeadersPlaceholder() bool {
-	return strings.Contains(string(c), HeadersPlaceholder)
+	return strings.Contains(strings.ToUpper(string(c)), HeadersPlaceholder)
 }
 
 // hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder

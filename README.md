@@ -506,6 +506,8 @@ Here are some examples of conditions you can use:
 | `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
 
+> ⚠️ Header values resolved by `[HEADERS]` conditions are displayed in failed condition results and may be persisted in the results store. Avoid checking sensitive headers such as `Authorization` or `Set-Cookie` unless you are comfortable with those values being visible in the dashboard and stored alongside results.
+
 
 #### Functions
 | Function | Description                                                                                                                                                                                                                         | Example                            |
