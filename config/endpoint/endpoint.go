@@ -118,6 +118,9 @@ type Endpoint struct {
 	// MaintenanceWindow is the configuration for per-endpoint maintenance windows
 	MaintenanceWindows []*maintenance.Config `yaml:"maintenance-windows,omitempty"`
 
+	// IgnoreConnectivity is the configuration to ignore Connectivity check for the endpoint
+	IgnoreConnectivity bool `yaml:"ignore-connectivity,omitempty"`
+
 	// DNSConfig is the configuration for DNS monitoring
 	DNSConfig *dns.Config `yaml:"dns,omitempty"`
 
