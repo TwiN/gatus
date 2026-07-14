@@ -521,6 +521,7 @@ Allows you to configure how and where the dashboard is being served.
 | `web`                      | Web configuration                                                                           | `{}`      |
 | `web.address`              | Address to listen on.                                                                       | `0.0.0.0` |
 | `web.port`                 | Port to listen on.                                                                          | `8080`    |
+| `web.base-path`            | `href` of the HTML `<base>` tag. Set this to host Gatus on a subpath (e.g. `/status/`). Must end with `/`. See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |
@@ -2760,6 +2761,8 @@ security:
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
 
+The example configuration using [Dex](https://dexidp.io/) as the OIDC provider, 
+can be found in [.examples/docker-compose-oidc](.examples/docker-compose-oidc).
 
 ### TLS Encryption
 Gatus supports basic encryption with TLS. To enable this, certificate files in PEM format have to be provided.
@@ -3367,10 +3370,17 @@ clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path
-Currently, you can expose the Gatus UI using a fully qualified domain name (FQDN) such as `status.example.org`. However, it does not support path-based routing, which means you cannot expose it through a URL like `example.org/status/`.
+Gatus always exposes its endpoints and UI under the root path ('/'), and it cannot be changed.
+However, if you find yourself in a situation where you need to expose Gatus on a custom path (e.g. `/gatus/`),
+you can achieve this by using a reverse proxy such as Nginx or Traefik or Caddy to handle the path rewriting for you.
+In order for it to work properly, you must tell Gatus to use the custom path as its `web.base-path` so that all links
+are generated correctly and redirections work as expected.
 
-For more information, see https://github.com/TwiN/gatus/issues/88.
+See [examples/docker-compose-reverse-proxy](.examples/docker-compose-reverse-proxy) for example using Caddy.
 
+Note that if you are using OIDC for authentication, your `security.oidc.redirect-url` must include the custom path as well.
+
+See [examples/docker-compose-reverse-proxy-oidc](.examples/docker-compose-reverse-proxy-oidc) for an example using Caddy and OIDC.
 
 ### Exposing Gatus on a custom port
 By default, Gatus is exposed on port `8080`, but you may specify a different port by setting the `web.port` parameter:
