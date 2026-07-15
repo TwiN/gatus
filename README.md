@@ -66,7 +66,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring GitLab alerts](#configuring-gitlab-alerts)
     - [Configuring Google Chat alerts](#configuring-google-chat-alerts)
     - [Configuring Gotify alerts](#configuring-gotify-alerts)
-    - [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts)
+    - [Configuring HomeAssistant alerts (Legacy)](#configuring-homeassistant-alerts-legacy)
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
     - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
@@ -112,6 +112,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
     - [Kubernetes](#kubernetes)
+- [Home Assistant Integration](#home-assistant-integration)
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
@@ -846,7 +847,7 @@ endpoints:
 | `alerting.gitlab`          | Configuration for alerts of type `gitlab`. <br />See [Configuring GitLab alerts](#configuring-gitlab-alerts).                           | `{}`    |
 | `alerting.googlechat`      | Configuration for alerts of type `googlechat`. <br />See [Configuring Google Chat alerts](#configuring-google-chat-alerts).             | `{}`    |
 | `alerting.gotify`          | Configuration for alerts of type `gotify`. <br />See [Configuring Gotify alerts](#configuring-gotify-alerts).                           | `{}`    |
-| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant`. <br />See [Configuring HomeAssistant alerts](#configuring-homeassistant-alerts).      | `{}`    |
+| `alerting.homeassistant`   | Configuration for alerts of type `homeassistant` (Legacy). <br />See [Configuring HomeAssistant alerts (Legacy)](#configuring-homeassistant-alerts-legacy).| `{}`    |
 | `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
@@ -1301,7 +1302,11 @@ Here's an example of what the notifications look like:
 ![Gotify notifications](.github/assets/gotify-alerts.png)
 
 
-#### Configuring HomeAssistant alerts
+#### Configuring HomeAssistant alerts (Legacy)
+
+[!NOTE]
+This method of pushing alerts from Gatus to Home Assistant via custom events is legacy. It is recommended to use the official [Home Assistant Integration](#home-assistant-integration) instead.
+
 | Parameter                                  | Description                                                                            | Default Value |
 |:-------------------------------------------|:---------------------------------------------------------------------------------------|:--------------|
 | `alerting.homeassistant.url`               | HomeAssistant instance URL                                                             | Required `""` |
@@ -2905,6 +2910,57 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 #### Kubernetes
 
 Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
+
+## Home Assistant Integration
+
+Gatus can be integrated into [Home Assistant](https://www.home-assistant.io/) to monitor the status of your endpoints directly from your home automation dashboard.
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=gatus)
+
+### Configuration
+
+To add the integration, click the button above or:
+
+1. In Home Assistant, navigate to **Settings** > **Devices & Services**.
+2. Click **Add Integration** in the bottom-right corner.
+3. Search for **Gatus** and select it.
+4. Enter the base URL of your Gatus instance (e.g., `http://192.168.1.50:8080`).
+
+Home Assistant will create a binary sensor for each endpoint configured in Gatus. Because these sensors use the `connectivity` device class, they will show as `Connected` (Up) when the endpoint i>
+
+### Automation Example
+
+You can easily set up a UI automation in Home Assistant to receive mobile notifications if any endpoint goes down:
+
+1. Navigate to **Settings** > **Automations & Scenes** > **Create Automation** > **Create new automation**.
+2. Under **Triggers**, click **Add Trigger** and select **State**.
+3. In the **Entity** field, select the Gatus binary sensor(s) you want to monitor.
+4. Set the **To** field to `off` (since a state of `off` represents a disconnected/down endpoint).
+5. Under **Actions**, click **Add Action** and select **Perform action**.
+6. Select your notification service (e.g., `Send a notification via mobile_app_<your_device_name>`).
+7. Set the **Message** field. You can use template values to dynamically include the endpoint name:
+   ```yaml
+   message: "The endpoint {{ trigger.to_state.name }} is down!"
+   ```
+
+For advanced users, here is the YAML representation of the automation:
+
+```yaml
+alias: "Notify when Gatus endpoint goes down"
+description: "Sends a mobile notification if a Gatus endpoint goes down"
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.website
+      - binary_sensor.make_sure_header_is_rendered
+    to: "off"
+action:
+  - action: notify.mobile_app_your_device_name
+    data:
+      title: "Gatus Alert"
+      message: "The endpoint {{ trigger.to_state.name }} is down!"
+```
+
 
 ## Running the tests
 ```console
