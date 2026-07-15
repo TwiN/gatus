@@ -2926,7 +2926,7 @@ To add the integration, click the button above or:
 3. Search for **Gatus** and select it.
 4. Enter the base URL of your Gatus instance (e.g., `http://192.168.1.50:8080`).
 
-Home Assistant will create a binary sensor for each endpoint configured in Gatus. Because these sensors use the `connectivity` device class, they will show as `Connected` (Up) when the endpoint i>
+Home Assistant will create a binary sensor for each endpoint configured in Gatus. Because these sensors use the `connectivity` device class, they will show as `Connected` (Up) when the endpoint is healthy, and `Disconnected` (Down) when the endpoint is unhealthy.
 
 ### Automation Example
 
