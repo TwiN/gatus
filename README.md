@@ -521,7 +521,7 @@ Allows you to configure how and where the dashboard is being served.
 | `web`                      | Web configuration                                                                           | `{}`      |
 | `web.address`              | Address to listen on.                                                                       | `0.0.0.0` |
 | `web.port`                 | Port to listen on.                                                                          | `8080`    |
-| `web.base-path`            | Subpath to serve Gatus under (e.g. `/status/`); Gatus registers its UI and API natively under this path. Must start and end with `/`. See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
+| `web.base-path`            | Subpath to serve Gatus under; must start and end with `/` (e.g. `/gatus/`). <br />See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |
@@ -3370,26 +3370,24 @@ clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path
-By default, Gatus exposes its UI and endpoints under the root path (`/`). If you need to serve Gatus on a
-subpath (e.g. `/gatus/`), set `web.base-path` to that path and Gatus will register all of its routes — the
-UI, the API and the OIDC login/callback handlers — natively under it. Generated links, asset URLs, auth
-cookie paths and OIDC redirects are all adjusted accordingly.
+By default, Gatus is served under the root path (`/`), but you may serve it on a subpath by setting the
+`web.base-path` parameter:
+```yaml
+web:
+  base-path: /gatus/
+```
+Gatus then serves everything under that path natively (e.g. `http://localhost:8080/gatus/`), with no reverse
+proxy required — `/` redirects there. This includes `/health` and `/metrics`, so update your health probes and
+metric scrapers accordingly (e.g. `/gatus/health`).
 
-This works standalone, with **no reverse proxy required**: set `web.base-path: /gatus/` and Gatus serves at
-e.g. `http://localhost:8080/gatus/` (the root `/` conveniently redirects there). Everything lives under the
-base path, including `/health` and `/metrics` (e.g. `/gatus/health`), so remember to update any health probes
-or metric scrapers accordingly.
+If you do put a reverse proxy in front of Gatus, it must pass the subpath through unchanged rather than strip
+it. With Caddy, that means using `handle` instead of `handle_path`. See
+[examples/docker-compose-reverse-proxy](.examples/docker-compose-reverse-proxy) for an example.
 
-If you do place a reverse proxy (Nginx, Traefik, Caddy, ...) in front of Gatus, it must **pass the subpath
-through unchanged** — do **not** strip it — because Gatus now serves at the subpath itself. For example,
-with Caddy use `handle` rather than `handle_path`.
-
-See [examples/docker-compose-reverse-proxy](.examples/docker-compose-reverse-proxy) for an example using Caddy.
-
-Note that if you are using OIDC for authentication, your `security.oidc.redirect-url` must include the custom
-path as well (e.g. `http://localhost:8080/gatus/authorization-code/callback`).
-
-See [examples/docker-compose-reverse-proxy-oidc](.examples/docker-compose-reverse-proxy-oidc) for an example using Caddy and OIDC.
+Note that if you are using OIDC for authentication, your `security.oidc.redirect-url` must include the base
+path as well (e.g. `http://localhost:8080/gatus/authorization-code/callback`). See
+[examples/docker-compose-reverse-proxy-oidc](.examples/docker-compose-reverse-proxy-oidc) for an example using
+Caddy and OIDC.
 
 ### Exposing Gatus on a custom port
 By default, Gatus is exposed on port `8080`, but you may specify a different port by setting the `web.port` parameter:
