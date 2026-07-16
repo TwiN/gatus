@@ -85,6 +85,10 @@ type Endpoint struct {
 	// Name of the endpoint. Can be anything.
 	Name string `yaml:"name"`
 
+	// ExplicitKey, when set, is used as the endpoint's unique key instead of deriving it from Group and Name.
+	// This lets an endpoint's identity stay stable across name and group changes.
+	ExplicitKey string `yaml:"key,omitempty"`
+
 	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
 	Group string `yaml:"group,omitempty"`
 
@@ -273,6 +277,9 @@ func (e *Endpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (e *Endpoint) Key() string {
+	if e.ExplicitKey != "" {
+		return key.Sanitize(e.ExplicitKey)
+	}
 	return key.ConvertGroupAndNameToKey(e.Group, e.Name)
 }
 

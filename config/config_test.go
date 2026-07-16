@@ -2210,6 +2210,74 @@ suites:
         conditions:
           - "[STATUS] == 200"`,
 		},
+		{
+			name:        "two-endpoints-with-same-explicit-key",
+			shouldError: true,
+			expectedErr: "invalid endpoint shared-key: name and group combination must be unique",
+			config: `
+endpoints:
+  - name: first
+    key: shared-key
+    url: https://example.com/first
+    conditions:
+      - "[STATUS] == 200"
+  - name: second
+    key: shared-key
+    url: https://example.com/second
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "explicit-key-cannot-collide-with-derived-key",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: api
+    group: backend
+    url: https://example.com/api
+    conditions:
+      - "[STATUS] == 200"
+  - name: unrelated
+    key: backend_api
+    url: https://example.com/unrelated
+    conditions:
+      - "[STATUS] == 200"`,
+		},
+		{
+			name:        "external-endpoint-explicit-key-colliding-with-endpoint",
+			shouldError: true,
+			expectedErr: "invalid external endpoint stable-id: name and group combination must be unique",
+			config: `
+endpoints:
+  - name: whatever
+    key: stable-id
+    url: https://example.com/whatever
+    conditions:
+      - "[STATUS] == 200"
+
+external-endpoints:
+  - name: pushed
+    key: stable-id
+    token: some-token`,
+		},
+		{
+			name:        "same-group-and-name-disambiguated-by-explicit-keys",
+			shouldError: false,
+			config: `
+endpoints:
+  - name: worker
+    group: jobs
+    key: worker-a
+    url: https://example.com/a
+    conditions:
+      - "[STATUS] == 200"
+  - name: worker
+    group: jobs
+    key: worker-b
+    url: https://example.com/b
+    conditions:
+      - "[STATUS] == 200"`,
+		},
 	}
 
 	for _, scenario := range scenarios {
