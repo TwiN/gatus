@@ -521,7 +521,7 @@ Allows you to configure how and where the dashboard is being served.
 | `web`                      | Web configuration                                                                           | `{}`      |
 | `web.address`              | Address to listen on.                                                                       | `0.0.0.0` |
 | `web.port`                 | Port to listen on.                                                                          | `8080`    |
-| `web.base-path`            | `href` of the HTML `<base>` tag. Set this to host Gatus on a subpath (e.g. `/status/`). Must end with `/`. See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
+| `web.base-path`            | Subpath to serve Gatus under (e.g. `/status/`); Gatus registers its UI and API natively under this path. Must start and end with `/`. See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |
@@ -3370,15 +3370,24 @@ clears their browser's localstorage.
 
 
 ### Exposing Gatus on a custom path
-Gatus always exposes its endpoints and UI under the root path ('/'), and it cannot be changed.
-However, if you find yourself in a situation where you need to expose Gatus on a custom path (e.g. `/gatus/`),
-you can achieve this by using a reverse proxy such as Nginx or Traefik or Caddy to handle the path rewriting for you.
-In order for it to work properly, you must tell Gatus to use the custom path as its `web.base-path` so that all links
-are generated correctly and redirections work as expected.
+By default, Gatus exposes its UI and endpoints under the root path (`/`). If you need to serve Gatus on a
+subpath (e.g. `/gatus/`), set `web.base-path` to that path and Gatus will register all of its routes — the
+UI, the API and the OIDC login/callback handlers — natively under it. Generated links, asset URLs, auth
+cookie paths and OIDC redirects are all adjusted accordingly.
 
-See [examples/docker-compose-reverse-proxy](.examples/docker-compose-reverse-proxy) for example using Caddy.
+This works standalone, with **no reverse proxy required**: set `web.base-path: /gatus/` and Gatus serves at
+e.g. `http://localhost:8080/gatus/` (the root `/` conveniently redirects there). Everything lives under the
+base path, including `/health` and `/metrics` (e.g. `/gatus/health`), so remember to update any health probes
+or metric scrapers accordingly.
 
-Note that if you are using OIDC for authentication, your `security.oidc.redirect-url` must include the custom path as well.
+If you do place a reverse proxy (Nginx, Traefik, Caddy, ...) in front of Gatus, it must **pass the subpath
+through unchanged** — do **not** strip it — because Gatus now serves at the subpath itself. For example,
+with Caddy use `handle` rather than `handle_path`.
+
+See [examples/docker-compose-reverse-proxy](.examples/docker-compose-reverse-proxy) for an example using Caddy.
+
+Note that if you are using OIDC for authentication, your `security.oidc.redirect-url` must include the custom
+path as well (e.g. `http://localhost:8080/gatus/authorization-code/callback`).
 
 See [examples/docker-compose-reverse-proxy-oidc](.examples/docker-compose-reverse-proxy-oidc) for an example using Caddy and OIDC.
 
