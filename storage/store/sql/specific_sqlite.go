@@ -1,5 +1,10 @@
 package sql
 
+import (
+	"context"
+	"strings"
+)
+
 func (s *Store) createSQLiteSchema() error {
 	// Create suite tables
 	_, err := s.db.Exec(`
@@ -33,8 +38,7 @@ func (s *Store) createSQLiteSchema() error {
 			endpoint_id    INTEGER PRIMARY KEY,
 			endpoint_key   TEXT UNIQUE,
 			endpoint_name  TEXT NOT NULL,
-			endpoint_group TEXT NOT NULL,
-			UNIQUE(endpoint_name, endpoint_group)
+			endpoint_group TEXT NOT NULL
 		)
 	`)
 	if err != nil {
@@ -144,5 +148,60 @@ func (s *Store) createSQLiteSchema() error {
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
 	// Note: SQLite doesn't support DROP COLUMN in older versions, so we skip this cleanup
 	// The suite_id column in endpoints table will remain but unused
-	return err
+	if err != nil {
+		return err
+	}
+	// Drop the legacy UNIQUE(endpoint_name, endpoint_group) constraint (see the Postgres equivalent for the rationale).
+	// SQLite cannot drop a table-level constraint, so the table is rebuilt without it when the constraint is present.
+	return s.dropLegacyEndpointNameGroupUniqueConstraint()
+}
+
+// dropLegacyEndpointNameGroupUniqueConstraint removes the UNIQUE(endpoint_name, endpoint_group) constraint from an
+// existing endpoints table by rebuilding it, so that endpoints with an explicit key may share a name and group.
+// It is a no-op on databases where the constraint is already absent (e.g. freshly created ones).
+func (s *Store) dropLegacyEndpointNameGroupUniqueConstraint() error {
+	var ddl string
+	if err := s.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'endpoints'`).Scan(&ddl); err != nil {
+		return err
+	}
+	normalizedDDL := strings.ToLower(strings.ReplaceAll(ddl, " ", ""))
+	if !strings.Contains(normalizedDDL, "unique(endpoint_name,endpoint_group)") {
+		return nil // Constraint already absent
+	}
+	ctx := context.Background()
+	// Use a single connection so the foreign_keys pragma and the transaction below apply to the same session.
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	// foreign_keys must be toggled outside of a transaction (it is a no-op within one).
+	if _, err = conn.ExecContext(ctx, `PRAGMA foreign_keys=OFF`); err != nil {
+		return err
+	}
+	defer func() { _, _ = conn.ExecContext(ctx, `PRAGMA foreign_keys=ON`) }()
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	// endpoint_id values are preserved so foreign keys in child tables (endpoint_results, endpoint_events, etc.) stay valid.
+	statements := []string{
+		`CREATE TABLE endpoints_new (
+			endpoint_id    INTEGER PRIMARY KEY,
+			endpoint_key   TEXT UNIQUE,
+			endpoint_name  TEXT NOT NULL,
+			endpoint_group TEXT NOT NULL
+		)`,
+		`INSERT INTO endpoints_new (endpoint_id, endpoint_key, endpoint_name, endpoint_group)
+			SELECT endpoint_id, endpoint_key, endpoint_name, endpoint_group FROM endpoints`,
+		`DROP TABLE endpoints`,
+		`ALTER TABLE endpoints_new RENAME TO endpoints`,
+	}
+	for _, statement := range statements {
+		if _, err = tx.ExecContext(ctx, statement); err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
 }

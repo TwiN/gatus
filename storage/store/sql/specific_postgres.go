@@ -33,8 +33,7 @@ func (s *Store) createPostgresSchema() error {
 			endpoint_id    BIGSERIAL PRIMARY KEY,
 			endpoint_key   TEXT UNIQUE,
 			endpoint_name  TEXT NOT NULL,
-			endpoint_group TEXT NOT NULL,
-			UNIQUE(endpoint_name, endpoint_group)
+			endpoint_group TEXT NOT NULL
 		)
 	`)
 	if err != nil {
@@ -116,6 +115,10 @@ func (s *Store) createPostgresSchema() error {
 	`)
 	// Silent table modifications TODO: Remove this in v6.0.0
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0`)
+	// Drop the legacy UNIQUE(endpoint_name, endpoint_group) constraint.
+	// It predates support for an explicit endpoint key: with an explicit key, identity is decoupled from name and group, so two endpoints may legitimately share a name and group.
+	// endpoint_key remains UNIQUE, which is the real identity guarantee.
+	_, _ = s.db.Exec(`ALTER TABLE endpoints DROP CONSTRAINT IF EXISTS endpoints_endpoint_name_endpoint_group_key`)
 	// Add suite_result_id to endpoint_results table for suite endpoint linkage
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS suite_result_id BIGINT REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
 	// Create index for suite_result_id
