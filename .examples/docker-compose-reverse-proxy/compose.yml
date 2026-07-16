@@ -33,14 +33,19 @@ configs:
       web:
         base-path: /gatus/
   caddyfile:
+    # Gatus serves natively under `web.base-path` (/gatus/), so the proxy must
+    # PASS THE PREFIX THROUGH unchanged. Use `handle` (not `handle_path`, which
+    # would strip /gatus/ and break the native subpath). `redir` sends the bare
+    # /gatus to /gatus/ for convenience.
     content: |
       {
         auto_https off
         http_port 8080
       }
-      
+
       http://localhost:8080 {
-        handle_path /gatus/* {
+        redir /gatus /gatus/
+        handle /gatus/* {
             reverse_proxy http://gatus_behind_proxy:8080
         }
       }

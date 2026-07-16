@@ -80,14 +80,19 @@ configs:
           scopes:
             - openid
   caddyfile:
+    # Gatus serves natively under `web.base-path` (/gatus/), including the OIDC
+    # login/callback routes, so the proxy PASSES THE PREFIX THROUGH unchanged.
+    # Use `handle` (not `handle_path`, which would strip /gatus/ and break both
+    # the SPA and the OIDC callback at /gatus/authorization-code/callback).
     content: |
       {
         auto_https off
         http_port 8080
       }
-      
+
       http://localhost:8080 {
-        handle_path /gatus/* {
+        redir /gatus /gatus/
+        handle /gatus/* {
             reverse_proxy http://localhost:8081
         }
       }
