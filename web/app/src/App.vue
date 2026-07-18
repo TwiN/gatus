@@ -112,13 +112,14 @@
     <div v-else id="login-container" class="flex items-center justify-center min-h-screen p-4">
       <Card class="w-full max-w-md">
         <CardHeader class="text-center">
-          <img 
-            src="./assets/logo.svg" 
-            alt="Gatus" 
-            class="w-20 h-20 mx-auto mb-4"
-          />
-          <CardTitle class="text-3xl">Gatus</CardTitle>
-          <p class="text-muted-foreground mt-2">System Monitoring Dashboard</p>
+          <div v-if="logo" class="flex items-center justify-center gap-4 mb-4">
+            <img :src="logo" alt="" class="w-20 h-20 object-contain" />
+            <div class="w-px h-12 bg-border"></div>
+            <img src="./assets/logo.svg" alt="Gatus" class="w-20 h-20" />
+          </div>
+          <img v-else src="./assets/logo.svg" alt="Gatus" class="w-20 h-20 mx-auto mb-4" />
+          <CardTitle class="text-3xl">{{ header }}</CardTitle>
+          <p class="text-muted-foreground mt-2">{{ loginSubtitle }}</p>
         </CardHeader>
         <CardContent>
           <div v-if="route && route.query.error" class="mb-6">
@@ -189,6 +190,10 @@ const link = computed(() => {
 
 const buttons = computed(() => {
   return window.config && window.config.buttons ? window.config.buttons : []
+})
+
+const loginSubtitle = computed(() => {
+  return window.config && window.config.loginSubtitle && window.config.loginSubtitle !== '{{ .UI.LoginSubtitle }}' ? window.config.loginSubtitle : "System Monitoring Dashboard"
 })
 
 // Methods

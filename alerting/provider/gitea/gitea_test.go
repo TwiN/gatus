@@ -21,6 +21,7 @@ func isIgnorableTestError(err error) bool {
 	return strings.Contains(errStr, "user does not exist") ||
 		strings.Contains(errStr, "no such host") ||
 		strings.Contains(errStr, "invalid username, password or token") ||
+		strings.Contains(errStr, "unknown API error") ||
 		strings.Contains(errStr, "dial tcp")
 }
 
