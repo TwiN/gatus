@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	// maximumLengthBeforeTruncatingWhenComparedWithPattern is the maximum length an element being compared to a
-	// pattern can have.
+	// maximumResolvedValueDisplayLength is the maximum length a resolved value can have in a condition's display
+	// representation (e.g. in the message of a failed condition included in an alert) before being truncated.
 	//
 	// This is only used for aesthetic purposes; it does not influence whether the condition evaluation results in a
 	// success or a failure
-	maximumLengthBeforeTruncatingWhenComparedWithPattern = 25
+	maximumResolvedValueDisplayLength = 25
 )
 
 // Condition is a condition that needs to be met in order for an Endpoint to be considered healthy.
@@ -255,14 +255,30 @@ func formatDuration(d time.Duration) string {
 	return s
 }
 
+// truncateResolvedValueForDisplay truncates a resolved parameter's value for display purposes if it's too long.
+//
+// It leaves function literals (pat(...), any(...), len(...), has(...)) and INVALID markers untouched, since those
+// aren't resolved response data and truncating them would make the condition harder to understand.
+func truncateResolvedValueForDisplay(parameter, resolvedParameter string) string {
+	if len(resolvedParameter) <= maximumResolvedValueDisplayLength {
+		return resolvedParameter
+	}
+	if strings.HasSuffix(resolvedParameter, InvalidConditionElementSuffix) {
+		return resolvedParameter
+	}
+	if strings.HasSuffix(parameter, FunctionSuffix) && (strings.HasPrefix(parameter, PatternFunctionPrefix) || strings.HasPrefix(parameter, AnyFunctionPrefix) || strings.HasPrefix(parameter, LengthFunctionPrefix) || strings.HasPrefix(parameter, HasFunctionPrefix)) {
+		return resolvedParameter
+	}
+	return fmt.Sprintf("%.25s...(truncated)", resolvedParameter)
+}
+
 // prettify returns a string representation of a condition with its parameters resolved between parentheses
 func prettify(parameters []string, resolvedParameters []string, operator string) string {
-	// Handle pattern function truncation first
-	if strings.HasPrefix(parameters[0], PatternFunctionPrefix) && strings.HasSuffix(parameters[0], FunctionSuffix) && len(resolvedParameters[1]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
-		resolvedParameters[1] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[1])
-	}
-	if strings.HasPrefix(parameters[1], PatternFunctionPrefix) && strings.HasSuffix(parameters[1], FunctionSuffix) && len(resolvedParameters[0]) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
-		resolvedParameters[0] = fmt.Sprintf("%.25s...(truncated)", resolvedParameters[0])
+	// Truncate any resolved value that's too long for display purposes, regardless of what it's being compared
+	// against (e.g. a plain [BODY] == "OK" condition against a huge HTML error page shouldn't dump the whole body
+	// into the alert message).
+	for i := range resolvedParameters {
+		resolvedParameters[i] = truncateResolvedValueForDisplay(parameters[i], resolvedParameters[i])
 	}
 	// Determine the state of each parameter
 	leftChanged := parameters[0] != resolvedParameters[0]
