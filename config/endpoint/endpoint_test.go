@@ -1030,6 +1030,11 @@ func TestEndpoint_Key(t *testing.T) {
 			endpoint: Endpoint{Group: "g", Name: "n", ExplicitKey: "My Custom.Key"},
 			expected: "my-custom-key",
 		},
+		{
+			name:     "explicit-key-underscore-is-replaced",
+			endpoint: Endpoint{Group: "g", Name: "n", ExplicitKey: "foo_bar"},
+			expected: "foo-bar",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
