@@ -3,6 +3,7 @@ package endpoint
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -46,13 +47,13 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 	}
 	if strings.Contains(condition, " == ") {
 		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " == "), result, context)
-		success = isEqual(resolvedParameters[0], resolvedParameters[1])
+		success = headerAwareIsEqual(parameters, resolvedParameters, result)
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "==")
 		}
 	} else if strings.Contains(condition, " != ") {
 		parameters, resolvedParameters := sanitizeAndResolveWithContext(strings.Split(condition, " != "), result, context)
-		success = !isEqual(resolvedParameters[0], resolvedParameters[1])
+		success = !headerAwareIsEqual(parameters, resolvedParameters, result)
 		if shouldResolveCondition(success) {
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
@@ -174,6 +175,63 @@ func isEqual(first, second string) bool {
 	}
 
 	return first == second
+}
+
+// isPatFunction reports whether element is a pat(...) function call.
+func isPatFunction(element string) bool {
+	return strings.HasPrefix(element, PatternFunctionPrefix) && strings.HasSuffix(element, FunctionSuffix)
+}
+
+// headerValuesForPatMatch returns the raw, individual header values that a bare (no len()/has() wrapper)
+// [HEADERS] or [HEADERS].name element refers to. Values are never joined or flattened into one string, so a
+// pat() comparison always tests one real header value at a time and can never falsely match by spanning the
+// JSON-encoded separator between two distinct values (or, for the bare [HEADERS] form, two distinct headers).
+func headerValuesForPatMatch(element string, result *Result) (values []string, ok bool) {
+	fn, inner := extractFunctionWrapper(element)
+	if fn != noFunction || len(result.HTTPResponseHeaders) == 0 {
+		return nil, false
+	}
+	upperInner := strings.ToUpper(inner)
+	if upperInner == HeadersPlaceholder {
+		for _, headerValues := range result.HTTPResponseHeaders {
+			values = append(values, headerValues...)
+		}
+		return values, len(values) > 0
+	}
+	if !strings.HasPrefix(upperInner, HeadersPlaceholder+".") {
+		return nil, false
+	}
+	name := inner[len(HeadersPlaceholder)+1:]
+	values = result.HTTPResponseHeaders[http.CanonicalHeaderKey(name)]
+	return values, len(values) > 0
+}
+
+// matchesAnyValue reports whether resolvedPattern (a pat(...) function call) matches at least one of values.
+func matchesAnyValue(resolvedPattern string, values []string) bool {
+	for _, value := range values {
+		if isEqual(resolvedPattern, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// headerAwareIsEqual behaves like isEqual, except when one side is pat(...) and the other is a bare
+// [HEADERS] or [HEADERS].name placeholder: in that case the pattern is checked against each individual raw
+// header value instead of against the placeholder's single flattened (and potentially JSON-encoded) resolved
+// value. Without this, a pattern could match by spanning the separator the JSON encoding inserts between two
+// unrelated header values, even though neither value actually contains the searched substring.
+func headerAwareIsEqual(parameters []string, resolvedParameters []string, result *Result) bool {
+	if isPatFunction(parameters[1]) {
+		if values, ok := headerValuesForPatMatch(parameters[0], result); ok {
+			return matchesAnyValue(resolvedParameters[1], values)
+		}
+	} else if isPatFunction(parameters[0]) {
+		if values, ok := headerValuesForPatMatch(parameters[1], result); ok {
+			return matchesAnyValue(resolvedParameters[0], values)
+		}
+	}
+	return isEqual(resolvedParameters[0], resolvedParameters[1])
 }
 
 // sanitizeAndResolveWithContext sanitizes and resolves a list of elements with an optional context

@@ -489,6 +489,7 @@ Here are some examples of conditions you can use:
 | `[HEADERS].Location == https://example.com/` | Response `Location` header must equal the given URL | `https://example.com/`     |                  |
 | `has([HEADERS].Location) == true` | Response must include a `Location` header          | any redirect response      | responses without `Location` |
 | `len([HEADERS].Set-Cookie) == 2` | Response must set exactly 2 cookies                 | two `Set-Cookie` headers   | 0, 1, 3, ...     |
+| `[HEADERS].Set-Cookie == pat(theme=dark)` | One of the (possibly repeated) `Set-Cookie` values is exactly `theme=dark` | `Set-Cookie: session=abc`<br>`Set-Cookie: theme=dark` | responses without a matching `Set-Cookie` value |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 | `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
 
@@ -507,6 +508,12 @@ Here are some examples of conditions you can use:
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
 
 > ⚠️ Header values resolved by `[HEADERS]` conditions are displayed in failed condition results and may be persisted in the results store. Avoid checking sensitive headers such as `Authorization` or `Set-Cookie` unless you are comfortable with those values being visible in the dashboard and stored alongside results.
+
+> 💡 A header can legally appear more than once (e.g. multiple `Set-Cookie` values). A bare `==`/`!=` against
+> `[HEADERS].<name>` or `[HEADERS]` is strict equality against the whole set of values received (resolved as a
+> JSON array/object) — it never silently becomes a "does any value match" check. To check whether **any**
+> individual value matches, use `pat(...)`, e.g. `[HEADERS].Set-Cookie == pat(theme=dark)`; this is evaluated one
+> raw value at a time, so a pattern can never falsely match by spanning the boundary between two distinct values.
 
 
 #### Functions

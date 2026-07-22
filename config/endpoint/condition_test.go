@@ -829,6 +829,68 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedSuccess: true,
 			ExpectedOutput:  "len([HEADERS].Set-Cookie) == 2",
 		},
+		{
+			Name:            "headers-multi-value-pat-matches-one-of-the-values",
+			Condition:       Condition("[HEADERS].Set-Cookie == pat(theme=dark)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Set-Cookie == pat(theme=dark)",
+		},
+		{
+			// Regression test: neither "session=abc" nor "theme=dark" contains the substring `abc","theme`.
+			// That substring only exists in the JSON-flattened representation of the two values
+			// (["session=abc","theme=dark"]), so a pat() match must not be evaluated against that flattened
+			// string or this would incorrectly succeed by spanning the JSON separator between the two values.
+			Name:            "headers-multi-value-pat-does-not-cross-json-boundary",
+			Condition:       Condition(`[HEADERS].Set-Cookie == pat(*abc","theme*)`),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS].Set-Cookie (["session=abc","theme=dar...(truncated)) == pat(*abc","theme*)`,
+		},
+		{
+			Name:            "headers-multi-value-pat-not-equal-fails-when-one-matches",
+			Condition:       Condition("[HEADERS].Set-Cookie != pat(theme=dark)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS].Set-Cookie (["session=abc","theme=dar...(truncated)) != pat(theme=dark)`,
+		},
+		{
+			Name:            "headers-multi-value-pat-not-equal-succeeds-when-none-match",
+			Condition:       Condition("[HEADERS].Set-Cookie != pat(admin=true)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Set-Cookie != pat(admin=true)",
+		},
+		{
+			Name:      "headers-bare-pat-matches-across-distinct-headers",
+			Condition: Condition("[HEADERS] == pat(*dark*)"),
+			Result: &Result{HTTPResponseHeaders: map[string][]string{
+				"Content-Type": {"application/json"},
+				"Set-Cookie":   {"session=abc", "theme=dark"},
+			}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS] == pat(*dark*)",
+		},
+		{
+			// Regression test: no single header value actually contains "json...session" — that substring
+			// only exists if Content-Type's value gets JSON-flattened and concatenated with Set-Cookie's
+			// first value. The bare [HEADERS] placeholder must not allow a pat() match to span that boundary.
+			Name:      "headers-bare-pat-does-not-cross-header-boundary",
+			Condition: Condition("[HEADERS] == pat(*json*session*)"),
+			Result: &Result{HTTPResponseHeaders: map[string][]string{
+				"Content-Type": {"application/json"},
+				"Set-Cookie":   {"session=abc", "theme=dark"},
+			}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS] ({"Content-Type":"applicat...(truncated)) == pat(*json*session*)`,
+		},
+		{
+			Name:            "headers-pat-on-left-side-matches-one-of-the-values",
+			Condition:       Condition("pat(theme=dark) == [HEADERS].Set-Cookie"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "pat(theme=dark) == [HEADERS].Set-Cookie",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
