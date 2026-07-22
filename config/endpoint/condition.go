@@ -26,6 +26,9 @@ type Condition string
 
 // Validate checks if the Condition is valid
 func (c Condition) Validate() error {
+	if isTemplateCondition(string(c)) {
+		return getCompiledTemplateCondition(string(c)).parseErr
+	}
 	r := &Result{}
 	c.evaluate(r, false, false, nil)
 	if len(r.Errors) != 0 {
@@ -37,6 +40,9 @@ func (c Condition) Validate() error {
 // evaluate the Condition with the Result and an optional context
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
+	if isTemplateCondition(condition) {
+		return c.evaluateTemplate(result, context)
+	}
 	success := false
 	conditionToDisplay := condition
 	shouldResolveCondition := func(success bool) bool {
@@ -95,24 +101,36 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 // hasBodyPlaceholder checks whether the condition has a BodyPlaceholder
 // Used for determining whether the response body should be read or not
 func (c Condition) hasBodyPlaceholder() bool {
+	if isTemplateCondition(string(c)) {
+		return getCompiledTemplateCondition(string(c)).fields["Body"]
+	}
 	return strings.Contains(string(c), BodyPlaceholder)
 }
 
 // hasHeadersPlaceholder checks whether the condition has a HeadersPlaceholder
 // Used for determining whether the response headers should be stored or not
 func (c Condition) hasHeadersPlaceholder() bool {
+	if isTemplateCondition(string(c)) {
+		return getCompiledTemplateCondition(string(c)).fields["Headers"]
+	}
 	return strings.Contains(strings.ToUpper(string(c)), HeadersPlaceholder)
 }
 
 // hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder
 // Used for determining whether a whois operation is necessary
 func (c Condition) hasDomainExpirationPlaceholder() bool {
+	if isTemplateCondition(string(c)) {
+		return getCompiledTemplateCondition(string(c)).fields["DomainExpiration"]
+	}
 	return strings.Contains(string(c), DomainExpirationPlaceholder)
 }
 
 // hasIPPlaceholder checks whether the condition has an IPPlaceholder
 // Used for determining whether an IP lookup is necessary
 func (c Condition) hasIPPlaceholder() bool {
+	if isTemplateCondition(string(c)) {
+		return getCompiledTemplateCondition(string(c)).fields["IP"]
+	}
 	return strings.Contains(string(c), IPPlaceholder)
 }
 
