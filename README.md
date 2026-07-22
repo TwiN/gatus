@@ -563,11 +563,28 @@ JSONPath workaround for logic the bracket DSL never supported.
 > condition evaluation — use `pat`/`any`/`eq` combined with `splitList`/`list` if you need Sprig-style
 > list-membership checks.
 
-> 💡 Two known limitations of template conditions compared to the legacy syntax: failed/successful
-> conditions are displayed as-is in the dashboard (there's no per-operand `original (resolved)`
-> breakdown), and whether a condition needs the response body/headers/IP/domain-expiration is detected
-> by looking for direct `.Body`/`.Headers`/`.IP`/`.DomainExpiration` references — assigning one of these
-> to a template variable first (e.g. `{{$b := .Body}}`) isn't detected.
+##### Resolved value display
+Unlike the legacy syntax, template conditions don't have a fixed two-operand shape to render an
+`original (resolved)` breakdown for. Instead, when a condition fails (or, if
+`resolve-successful-conditions` is enabled, when it succeeds), Gatus appends the resolved value of
+every field it referenced directly, as `path=value`, in the order they first appear:
+
+```
+{{eq .Status 200}} (Status=500)
+{{and (eq .Status 200) (lt .ResponseTime 500)}} (Status=500, ResponseTime=750)
+{{eq .Body.user.name "john"}} (Body.user.name=bob)
+```
+
+This only resolves plain dotted field paths (`.Status`, `.Body.user.name`, `.Headers.Location`,
+`.Context.expected_status`, ...) — a path that can't be traversed against the actual response (e.g.
+`.Body.foo` when the body isn't JSON) is silently omitted rather than shown as `(INVALID)`, and the
+result of a function call chained with a field access (the `.id` in `(index .Body.data 0).id`)
+isn't individually resolved, since it isn't a direct field path.
+
+> 💡 One remaining limitation compared to the legacy syntax: whether a condition needs the response
+> body/headers/IP/domain-expiration is detected by looking for direct `.Body`/`.Headers`/`.IP`/
+> `.DomainExpiration` references — assigning one of these to a template variable first (e.g.
+> `{{$b := .Body}}`) isn't detected.
 
 #### Legacy bracket syntax (deprecated)
 The syntax below remains fully supported for backwards compatibility, but new conditions should use the

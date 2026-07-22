@@ -41,7 +41,7 @@ func (c Condition) Validate() error {
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
 	if isTemplateCondition(condition) {
-		return c.evaluateTemplate(result, context)
+		return c.evaluateTemplate(result, dontResolveFailedConditions, resolveSuccessfulConditions, context)
 	}
 	success := false
 	conditionToDisplay := condition

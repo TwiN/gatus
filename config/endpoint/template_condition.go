@@ -3,6 +3,7 @@ package endpoint
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,9 +26,10 @@ func isTemplateCondition(condition string) bool {
 
 // compiledTemplateCondition is the cached, parsed form of a template Condition.
 type compiledTemplateCondition struct {
-	tmpl     *template.Template
-	fields   map[string]bool // top-level Result fields referenced directly, e.g. "Body", "Headers", "IP", "DomainExpiration"
-	parseErr error
+	tmpl       *template.Template
+	fields     map[string]bool // top-level Result fields referenced directly, e.g. "Body", "Headers", "IP", "DomainExpiration"
+	fieldPaths []string        // distinct dot-joined field paths referenced directly, e.g. "Status", "Body.user.name", in first-appearance order
+	parseErr   error
 }
 
 var templateConditionCache sync.Map // map[string]*compiledTemplateCondition
@@ -43,84 +45,75 @@ func getCompiledTemplateCondition(condition string) *compiledTemplateCondition {
 		compiled.parseErr = err
 	} else {
 		compiled.tmpl = tmpl
-		for _, field := range []string{"Body", "Headers", "IP", "DomainExpiration"} {
-			if templateUsesField(tmpl.Tree, field) {
-				compiled.fields[field] = true
+		compiled.fieldPaths = collectFieldPaths(tmpl.Tree)
+		for _, path := range compiled.fieldPaths {
+			top := path
+			if i := strings.IndexByte(path, '.'); i >= 0 {
+				top = path[:i]
 			}
+			compiled.fields[top] = true
 		}
 	}
 	actual, _ := templateConditionCache.LoadOrStore(condition, compiled)
 	return actual.(*compiledTemplateCondition)
 }
 
-// templateUsesField reports whether the parsed template directly references .<field>
-// (e.g. .Body, .Headers.Location, (index .Body.data 0).id).
+// collectFieldPaths returns the distinct dot-joined field paths directly referenced by the
+// template (e.g. ".Status" -> "Status", ".Body.user.name" -> "Body.user.name"), in
+// first-appearance order. Used both for static gating (needsToReadBody, etc.) and for resolving
+// display values for failed/successful conditions.
 //
-// This does not track variable aliases (e.g. "{{$b := .Body}}{{if $b}}...{{end}}").
-func templateUsesField(tree *parse.Tree, field string) bool {
+// This does not track variable aliases (e.g. "{{$b := .Body}}{{if $b}}...{{end}}"), and it does
+// not resolve field accesses chained onto the result of a function call (e.g. the ".id" in
+// "(index .Body.data 0).id" is not captured as a path, though ".Body.data" is).
+func collectFieldPaths(tree *parse.Tree) []string {
 	if tree == nil || tree.Root == nil {
-		return false
+		return nil
 	}
-	return walkForField(tree.Root, field)
-}
-
-func walkForField(n parse.Node, field string) bool {
-	if n == nil {
-		return false
-	}
-	switch v := n.(type) {
-	case *parse.ListNode:
-		for _, c := range v.Nodes {
-			if walkForField(c, field) {
-				return true
+	seen := make(map[string]bool)
+	var paths []string
+	var walk func(n parse.Node)
+	walk = func(n parse.Node) {
+		if n == nil {
+			return
+		}
+		switch v := n.(type) {
+		case *parse.ListNode:
+			for _, c := range v.Nodes {
+				walk(c)
 			}
-		}
-	case *parse.ActionNode:
-		return walkForField(v.Pipe, field)
-	case *parse.PipeNode:
-		if v == nil {
-			return false
-		}
-		for _, c := range v.Cmds {
-			if walkForField(c, field) {
-				return true
+		case *parse.ActionNode:
+			walk(v.Pipe)
+		case *parse.PipeNode:
+			for _, c := range v.Cmds {
+				walk(c)
 			}
-		}
-	case *parse.CommandNode:
-		for _, a := range v.Args {
-			if walkForField(a, field) {
-				return true
+		case *parse.CommandNode:
+			for _, a := range v.Args {
+				walk(a)
 			}
-		}
-	case *parse.FieldNode:
-		if len(v.Ident) > 0 && v.Ident[0] == field {
-			return true
-		}
-	case *parse.ChainNode:
-		if walkForField(v.Node, field) {
-			return true
-		}
-		if len(v.Field) > 0 && v.Field[0] == field {
-			return true
-		}
-	case *parse.IfNode:
-		return walkForField(&v.BranchNode, field)
-	case *parse.RangeNode:
-		return walkForField(&v.BranchNode, field)
-	case *parse.WithNode:
-		return walkForField(&v.BranchNode, field)
-	case *parse.BranchNode:
-		if walkForField(v.Pipe, field) {
-			return true
-		}
-		if walkForField(v.List, field) {
-			return true
-		}
-		if walkForField(v.ElseList, field) {
-			return true
+		case *parse.FieldNode:
+			path := strings.Join(v.Ident, ".")
+			if path != "" && !seen[path] {
+				seen[path] = true
+				paths = append(paths, path)
+			}
+		case *parse.ChainNode:
+			walk(v.Node)
+		case *parse.IfNode:
+			walk(&v.BranchNode)
+		case *parse.RangeNode:
+			walk(&v.BranchNode)
+		case *parse.WithNode:
+			walk(&v.BranchNode)
+		case *parse.BranchNode:
+			walk(v.Pipe)
+			walk(v.List)
+			walk(v.ElseList)
 		}
 	}
-	return false
+	walk(tree.Root)
+	return paths
 }
 
 // templateData is the data made available to a template Condition.
@@ -173,15 +166,23 @@ func buildTemplateData(result *Result, ctx *gontext.Gontext) *templateData {
 }
 
 // evaluateTemplate evaluates a text/template-pipeline Condition.
-func (c Condition) evaluateTemplate(result *Result, ctx *gontext.Gontext) bool {
+func (c Condition) evaluateTemplate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, ctx *gontext.Gontext) bool {
 	condition := string(c)
 	compiled := getCompiledTemplateCondition(condition)
 	success := false
+	conditionToDisplay := condition
+	shouldResolveCondition := func(success bool) bool {
+		if success {
+			return resolveSuccessfulConditions
+		}
+		return !dontResolveFailedConditions
+	}
 	if compiled.parseErr != nil {
 		result.AddError(fmt.Sprintf("invalid condition: %s: %s", condition, compiled.parseErr))
 	} else {
+		data := buildTemplateData(result, ctx)
 		var buf strings.Builder
-		if err := compiled.tmpl.Execute(&buf, buildTemplateData(result, ctx)); err != nil {
+		if err := compiled.tmpl.Execute(&buf, data); err != nil {
 			result.AddError(fmt.Sprintf("error evaluating condition %s: %s", condition, err))
 		} else {
 			switch buf.String() {
@@ -193,9 +194,77 @@ func (c Condition) evaluateTemplate(result *Result, ctx *gontext.Gontext) bool {
 				result.AddError(fmt.Sprintf("condition %s did not evaluate to a boolean (got %q)", condition, buf.String()))
 			}
 		}
+		if shouldResolveCondition(success) {
+			if resolved := formatResolvedFields(compiled.fieldPaths, data); resolved != "" {
+				conditionToDisplay = condition + " (" + resolved + ")"
+			}
+		}
 	}
-	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: condition, Success: success})
+	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
 	return success
+}
+
+// formatResolvedFields renders "path=value" for each field path that could be resolved against
+// data, joined by ", ", in the order the paths first appeared in the template. Paths that can't
+// be resolved (e.g. traversal into a non-JSON body, or a missing key) are silently skipped.
+func formatResolvedFields(paths []string, data *templateData) string {
+	var parts []string
+	for _, path := range paths {
+		value, ok := resolveFieldPath(data, path)
+		if !ok {
+			continue
+		}
+		parts = append(parts, path+"="+formatFieldValue(value))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// resolveFieldPath walks a dot-joined field path (e.g. "Body.user.name") against data, starting
+// with a struct field lookup on templateData and falling back to map-key lookups for every
+// subsequent segment (since Body/Headers/Context hold arbitrary map[string]interface{} values).
+func resolveFieldPath(data *templateData, path string) (interface{}, bool) {
+	var current interface{} = data
+	for _, segment := range strings.Split(path, ".") {
+		v := reflect.ValueOf(current)
+		for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+			if v.IsNil() {
+				return nil, false
+			}
+			v = v.Elem()
+		}
+		switch v.Kind() {
+		case reflect.Struct:
+			f := v.FieldByName(segment)
+			if !f.IsValid() {
+				return nil, false
+			}
+			current = f.Interface()
+		case reflect.Map:
+			mv := v.MapIndex(reflect.ValueOf(segment))
+			if !mv.IsValid() {
+				return nil, false
+			}
+			current = mv.Interface()
+		default:
+			return nil, false
+		}
+	}
+	return current, true
+}
+
+// formatFieldValue renders a resolved field value for display: composite values (maps, slices,
+// arrays) are JSON-encoded for readability, everything else uses its default string form.
+func formatFieldValue(value interface{}) string {
+	if s, ok := value.(string); ok {
+		return s
+	}
+	switch reflect.ValueOf(value).Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		if b, err := json.Marshal(value); err == nil {
+			return string(b)
+		}
+	}
+	return fmt.Sprint(value)
 }
 
 // coerceNumber attempts to interpret v as a number, trying (in order) a duration string

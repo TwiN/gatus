@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -277,14 +278,102 @@ func TestCondition_evaluateTemplate(t *testing.T) {
 			if len(result.ConditionResults) != 1 {
 				t.Fatalf("expected exactly one ConditionResult, got %d", len(result.ConditionResults))
 			}
-			if result.ConditionResults[0].Condition != string(scenario.Condition) {
-				t.Errorf("expected displayed condition to be the raw template text %q, got %q", scenario.Condition, result.ConditionResults[0].Condition)
+			// On failure (the default flags used here), the displayed condition may have
+			// " (path=value, ...)" appended for the fields it referenced - see
+			// TestCondition_evaluateTemplate_ResolvedFieldDisplay for the exact format. Here we
+			// only assert that the raw template text itself is preserved as a prefix.
+			if !strings.HasPrefix(result.ConditionResults[0].Condition, string(scenario.Condition)) {
+				t.Errorf("expected displayed condition to start with the raw template text %q, got %q", scenario.Condition, result.ConditionResults[0].Condition)
 			}
 			if result.ConditionResults[0].Success != scenario.ExpectedSuccess {
 				t.Errorf("expected ConditionResult.Success=%v, got %v", scenario.ExpectedSuccess, result.ConditionResults[0].Success)
 			}
 			if scenario.ExpectedErrors > 0 && len(result.Errors) != scenario.ExpectedErrors {
 				t.Errorf("expected %d errors, got %d (%v)", scenario.ExpectedErrors, len(result.Errors), result.Errors)
+			}
+		})
+	}
+}
+
+func TestCondition_evaluateTemplate_ResolvedFieldDisplay(t *testing.T) {
+	scenarios := []struct {
+		Name                        string
+		Condition                   Condition
+		Result                      *Result
+		Context                     *gontext.Gontext
+		DontResolveFailedConditions bool
+		ResolveSuccessfulConditions bool
+		ExpectedDisplay             string
+	}{
+		{
+			Name:            "single-field-failure-default-flags",
+			Condition:       `{{eq .Status 200}}`,
+			Result:          &Result{HTTPStatus: 500},
+			ExpectedDisplay: `{{eq .Status 200}} (Status=500)`,
+		},
+		{
+			Name:            "multiple-fields-failure",
+			Condition:       `{{and (eq .Status 200) (lt .ResponseTime 500)}}`,
+			Result:          &Result{HTTPStatus: 500, Duration: 750 * time.Millisecond},
+			ExpectedDisplay: `{{and (eq .Status 200) (lt .ResponseTime 500)}} (Status=500, ResponseTime=750)`,
+		},
+		{
+			Name:            "nested-body-field",
+			Condition:       `{{eq .Body.user.name "john"}}`,
+			Result:          &Result{Body: []byte(`{"user":{"name":"bob"}}`)},
+			ExpectedDisplay: `{{eq .Body.user.name "john"}} (Body.user.name=bob)`,
+		},
+		{
+			Name:            "header-field",
+			Condition:       `{{eq .Headers.Location "https://example.com/"}}`,
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://elsewhere.example/"}}},
+			ExpectedDisplay: `{{eq .Headers.Location "https://example.com/"}} (Headers.Location=https://elsewhere.example/)`,
+		},
+		{
+			Name:            "context-field",
+			Condition:       `{{eq .Status .Context.expected_status}}`,
+			Result:          &Result{HTTPStatus: 500},
+			Context:         gontext.New(map[string]interface{}{"expected_status": 200}),
+			ExpectedDisplay: `{{eq .Status .Context.expected_status}} (Status=500, Context.expected_status=200)`,
+		},
+		{
+			// .Body.foo can't be resolved for display because Body is a non-JSON raw string
+			// here (traversing "foo" into a string fails); the path is silently skipped rather
+			// than shown as an error, leaving the raw template text with no " (...)" suffix.
+			Name:            "unresolvable-path-is-skipped",
+			Condition:       `{{eq .Body.foo "1"}}`,
+			Result:          &Result{Body: []byte(`not json`)},
+			ExpectedDisplay: `{{eq .Body.foo "1"}}`,
+		},
+		{
+			Name:                        "dont-resolve-failed-conditions-suppresses-display",
+			Condition:                   `{{eq .Status 200}}`,
+			Result:                      &Result{HTTPStatus: 500},
+			DontResolveFailedConditions: true,
+			ExpectedDisplay:             `{{eq .Status 200}}`,
+		},
+		{
+			Name:            "success-with-default-flags-is-not-resolved",
+			Condition:       `{{eq .Status 200}}`,
+			Result:          &Result{HTTPStatus: 200},
+			ExpectedDisplay: `{{eq .Status 200}}`,
+		},
+		{
+			Name:                        "resolve-successful-conditions-shows-display-on-success",
+			Condition:                   `{{eq .Status 200}}`,
+			Result:                      &Result{HTTPStatus: 200},
+			ResolveSuccessfulConditions: true,
+			ExpectedDisplay:             `{{eq .Status 200}} (Status=200)`,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, scenario.ResolveSuccessfulConditions, scenario.Context)
+			if len(scenario.Result.ConditionResults) != 1 {
+				t.Fatalf("expected exactly one ConditionResult, got %d", len(scenario.Result.ConditionResults))
+			}
+			if actual := scenario.Result.ConditionResults[0].Condition; actual != scenario.ExpectedDisplay {
+				t.Errorf("expected display %q, got %q", scenario.ExpectedDisplay, actual)
 			}
 		})
 	}
