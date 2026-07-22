@@ -11,6 +11,7 @@
           placeholder="Search endpoints..."
           class="pl-10 text-sm sm:text-base"
           @input="$emit('search', searchQuery)"
+          @keydown.escape="clearSearch"
         />
       </div>
     </div>
@@ -63,6 +64,14 @@ const sortOptions = [
 ]
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
+
+const clearSearch = () => {
+  if (!searchQuery.value) {
+    return
+  }
+  searchQuery.value = ''
+  emit('search', '')
+}
 
 const handleFilterChange = (value, store = true) => {
   filterBy.value = value
