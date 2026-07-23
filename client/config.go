@@ -288,7 +288,7 @@ func (c *Config) getHTTPClient() *http.Client {
 		if c.StoreCookies {
 			jar, err := cookiejar.New(nil)
 			if err != nil {
-				logr.Fatalf("Failed to initialize cookie jar: %v", err)
+				logr.Fatalf("[client.getHTTPClient] Failed to initialize cookie jar: %v", err)
 			}
 			c.httpClient.Jar = jar
 		}
