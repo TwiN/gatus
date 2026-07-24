@@ -2228,6 +2228,8 @@ endpoints:
       - "[STATUS] == 200"`,
 		},
 		{
+			// The derived key of the first endpoint is "backend_api", while the explicit key "backend_api" of the second endpoint is sanitized to "backend-api" because Sanitize replaces underscores with dashes.
+			// Derived keys always contain a literal "_" separator and sanitized explicit keys never can, so the two namespaces cannot collide and no duplicate error is expected here.
 			name:        "explicit-key-cannot-collide-with-derived-key",
 			shouldError: false,
 			config: `
