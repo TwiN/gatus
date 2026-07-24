@@ -3,6 +3,8 @@ package sql
 import (
 	"context"
 	"strings"
+
+	"github.com/TwiN/logr"
 )
 
 func (s *Store) createSQLiteSchema() error {
@@ -168,6 +170,8 @@ func (s *Store) dropLegacyEndpointNameGroupUniqueConstraint() error {
 	if !strings.Contains(normalizedDDL, "unique(endpoint_name,endpoint_group)") {
 		return nil // Constraint already absent
 	}
+	// This rebuild happens at most once per database, but it can make startup noticeably slower on large databases, so leave a breadcrumb for operators.
+	logr.Infof("[sql.dropLegacyEndpointNameGroupUniqueConstraint] Rebuilding the endpoints table to drop the legacy UNIQUE(endpoint_name, endpoint_group) constraint; this is a one-time migration")
 	ctx := context.Background()
 	// Use a single connection so the foreign_keys pragma and the transaction below apply to the same session.
 	conn, err := s.db.Conn(ctx)
