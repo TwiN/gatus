@@ -1,5 +1,9 @@
 package sql
 
+import (
+	"github.com/TwiN/logr"
+)
+
 func (s *Store) createPostgresSchema() error {
 	// Create suite tables
 	_, err := s.db.Exec(`
@@ -118,7 +122,17 @@ func (s *Store) createPostgresSchema() error {
 	// Drop the legacy UNIQUE(endpoint_name, endpoint_group) constraint.
 	// It predates support for an explicit endpoint key: with an explicit key, identity is decoupled from name and group, so two endpoints may legitimately share a name and group.
 	// endpoint_key remains UNIQUE, which is the real identity guarantee.
-	_, _ = s.db.Exec(`ALTER TABLE endpoints DROP CONSTRAINT IF EXISTS endpoints_endpoint_name_endpoint_group_key`)
+	var hasLegacyEndpointNameGroupConstraint bool
+	if scanErr := s.db.QueryRow(`SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'endpoints_endpoint_name_endpoint_group_key' AND conrelid = 'endpoints'::regclass)`).Scan(&hasLegacyEndpointNameGroupConstraint); scanErr != nil {
+		logr.Errorf("[sql.createPostgresSchema] Failed to check for the legacy UNIQUE(endpoint_name, endpoint_group) constraint: %s", scanErr.Error())
+	} else if hasLegacyEndpointNameGroupConstraint {
+		logr.Infof("[sql.createPostgresSchema] Dropping the legacy UNIQUE(endpoint_name, endpoint_group) constraint; this is a one-time migration")
+		if _, dropErr := s.db.Exec(`ALTER TABLE endpoints DROP CONSTRAINT endpoints_endpoint_name_endpoint_group_key`); dropErr != nil {
+			logr.Errorf("[sql.createPostgresSchema] Failed to drop the legacy UNIQUE(endpoint_name, endpoint_group) constraint: %s", dropErr.Error())
+		}
+	} else {
+		logr.Debugf("[sql.createPostgresSchema] Legacy UNIQUE(endpoint_name, endpoint_group) constraint is not present; nothing to drop")
+	}
 	// Add suite_result_id to endpoint_results table for suite endpoint linkage
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS suite_result_id BIGINT REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
 	// Create index for suite_result_id
