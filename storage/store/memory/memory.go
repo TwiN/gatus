@@ -195,8 +195,7 @@ func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Res
 	s.Lock()
 	status, exists := s.endpointCache.Get(endpointKey)
 	if !exists {
-		status = endpoint.NewStatus(ep.Group, ep.Name)
-		status.(*endpoint.Status).Key = endpointKey
+		status = endpoint.NewStatusWithKey(endpointKey, ep.Group, ep.Name)
 		status.(*endpoint.Status).Events = append(status.(*endpoint.Status).Events, &endpoint.Event{
 			Type:      endpoint.EventStart,
 			Timestamp: time.Now(),
