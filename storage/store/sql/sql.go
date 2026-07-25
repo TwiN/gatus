@@ -66,6 +66,16 @@ type Store struct {
 
 	maximumNumberOfResults int // maximum number of results that an endpoint can have
 	maximumNumberOfEvents  int // maximum number of events that an endpoint can have
+
+	// persistResponseBody is whether to persist the (brotli-compressed) response body in the endpoint_results table.
+	// Only takes effect when driver is postgres, since the response column doesn't exist on the sqlite schema.
+	persistResponseBody bool
+}
+
+// SetPersistResponseBody sets whether to persist the response body in the endpoint_results table.
+// Only takes effect when the store's driver is postgres.
+func (s *Store) SetPersistResponseBody(persist bool) {
+	s.persistResponseBody = persist
 }
 
 // NewStore initializes the database and creates the schema if it doesn't already exist in the path specified
@@ -625,9 +635,9 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *endpo
 func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, result *endpoint.Result, suiteResultID *int64) error {
 	var endpointResultID int64
 	var err error
-	// The response body is only persisted for the postgres driver, since the response column doesn't
-	// exist on the sqlite schema (it can grow the sqlite file significantly for embedded/lightweight deployments).
-	if s.driver == "postgres" {
+	// The response body is only persisted for the postgres driver (and only when explicitly enabled via
+	// storage.persist-response-body), since the response column doesn't exist on the sqlite schema.
+	if s.driver == "postgres" && s.persistResponseBody {
 		var compressedResponse []byte
 		if compressedResponse, err = compressResponseBody(result.Body); err != nil {
 			logr.Errorf("[sql.insertEndpointResultWithSuiteID] Failed to compress response body: %s", err.Error())

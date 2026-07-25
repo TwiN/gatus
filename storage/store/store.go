@@ -138,10 +138,13 @@ func Initialize(cfg *storage.Config) error {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
-		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
+		var sqlStore *sql.Store
+		sqlStore, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
+		sqlStore.SetPersistResponseBody(cfg.PersistResponseBody)
+		store = sqlStore
 	case storage.TypeMemory:
 		fallthrough
 	default:

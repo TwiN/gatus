@@ -601,6 +601,7 @@ If at least one announcement is archived, a **Past Announcements** section will 
 | `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
 | `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                            | `100`      |
 | `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                             | `50`       |
+| `storage.persist-response-body`     | Whether to persist the (brotli-compressed) response body of each result. Only supported if `storage.type` is `postgres`                            | `false`    |
 
 The results for each endpoint health check as well as the data for uptime and the past events must be persisted
 so that they can be displayed on the dashboard. These parameters allow you to configure the storage in question.
