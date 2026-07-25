@@ -14,6 +14,10 @@ on:
           - linux/arm/v7
           - linux/arm64
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   publish-custom:
     runs-on: ubuntu-latest
