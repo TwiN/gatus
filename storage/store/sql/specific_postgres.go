@@ -66,7 +66,8 @@ func (s *Store) createPostgresSchema() error {
 			ip                     TEXT      NOT NULL,
 			duration               BIGINT    NOT NULL,
 			timestamp              TIMESTAMP NOT NULL,
-			suite_result_id        BIGINT    REFERENCES suite_results(suite_result_id) ON DELETE CASCADE
+			suite_result_id        BIGINT    REFERENCES suite_results(suite_result_id) ON DELETE CASCADE,
+			response               BYTEA
 		)
 	`)
 	if err != nil {
@@ -118,6 +119,8 @@ func (s *Store) createPostgresSchema() error {
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0`)
 	// Add suite_result_id to endpoint_results table for suite endpoint linkage
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS suite_result_id BIGINT REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
+	// Add response to endpoint_results table to persist the brotli-compressed response body (only populated when a condition reads it)
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS response BYTEA`)
 	// Create index for suite_result_id
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
 	// Create index for endpoint_result_conditions

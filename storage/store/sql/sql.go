@@ -1,9 +1,11 @@
 package sql
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gocache/v2"
 	"github.com/TwiN/logr"
+	"github.com/andybalholm/brotli"
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
@@ -621,30 +624,87 @@ func (s *Store) insertEndpointResult(tx *sql.Tx, endpointID int64, result *endpo
 // insertEndpointResultWithSuiteID inserts a result in the store with optional suite linkage
 func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, result *endpoint.Result, suiteResultID *int64) error {
 	var endpointResultID int64
-	err := tx.QueryRow(
-		`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-			RETURNING endpoint_result_id
-		`,
-		endpointID,
-		result.Success,
-		strings.Join(result.Errors, arraySeparator),
-		result.Connected,
-		result.HTTPStatus,
-		result.DNSRCode,
-		result.CertificateExpiration,
-		result.DomainExpiration,
-		result.Hostname,
-		result.IP,
-		result.Duration,
-		result.Timestamp.UTC(),
-		suiteResultID,
-	).Scan(&endpointResultID)
+	var err error
+	// The response body is only persisted for the postgres driver, since the response column doesn't
+	// exist on the sqlite schema (it can grow the sqlite file significantly for embedded/lightweight deployments).
+	if s.driver == "postgres" {
+		var compressedResponse []byte
+		if compressedResponse, err = compressResponseBody(result.Body); err != nil {
+			logr.Errorf("[sql.insertEndpointResultWithSuiteID] Failed to compress response body: %s", err.Error())
+			compressedResponse = nil
+		}
+		err = tx.QueryRow(
+			`
+				INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id, response)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+				RETURNING endpoint_result_id
+			`,
+			endpointID,
+			result.Success,
+			strings.Join(result.Errors, arraySeparator),
+			result.Connected,
+			result.HTTPStatus,
+			result.DNSRCode,
+			result.CertificateExpiration,
+			result.DomainExpiration,
+			result.Hostname,
+			result.IP,
+			result.Duration,
+			result.Timestamp.UTC(),
+			suiteResultID,
+			compressedResponse,
+		).Scan(&endpointResultID)
+	} else {
+		err = tx.QueryRow(
+			`
+				INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+				RETURNING endpoint_result_id
+			`,
+			endpointID,
+			result.Success,
+			strings.Join(result.Errors, arraySeparator),
+			result.Connected,
+			result.HTTPStatus,
+			result.DNSRCode,
+			result.CertificateExpiration,
+			result.DomainExpiration,
+			result.Hostname,
+			result.IP,
+			result.Duration,
+			result.Timestamp.UTC(),
+			suiteResultID,
+		).Scan(&endpointResultID)
+	}
 	if err != nil {
 		return err
 	}
 	return s.insertConditionResults(tx, endpointResultID, result.ConditionResults)
+}
+
+// compressResponseBody compresses a response body using brotli so it can be persisted in the response BYTEA column
+func compressResponseBody(body []byte) ([]byte, error) {
+	if len(body) == 0 {
+		return nil, nil
+	}
+	var buf bytes.Buffer
+	writer := brotli.NewWriter(&buf)
+	if _, err := writer.Write(body); err != nil {
+		_ = writer.Close()
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// decompressResponseBody decompresses a response body persisted in the response BYTEA column
+func decompressResponseBody(compressed []byte) ([]byte, error) {
+	if len(compressed) == 0 {
+		return nil, nil
+	}
+	return io.ReadAll(brotli.NewReader(bytes.NewReader(compressed)))
 }
 
 func (s *Store) insertConditionResults(tx *sql.Tx, endpointResultID int64, conditionResults []*endpoint.ConditionResult) error {
@@ -789,9 +849,14 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 }
 
 func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*endpoint.Result, err error) {
+	// The response column only exists on the postgres schema (see insertEndpointResultWithSuiteID)
+	columns := "endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp"
+	if s.driver == "postgres" {
+		columns += ", response"
+	}
 	rows, err := tx.Query(
 		`
-			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
+			SELECT `+columns+`
 			FROM endpoint_results
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
@@ -809,13 +874,24 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		result := &endpoint.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
+		var compressedResponse []byte
+		scanArgs := []any{&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp}
+		if s.driver == "postgres" {
+			scanArgs = append(scanArgs, &compressedResponse)
+		}
+		err = rows.Scan(scanArgs...)
 		if err != nil {
 			logr.Errorf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil
 		}
 		if len(joinedErrors) != 0 {
 			result.Errors = strings.Split(joinedErrors, arraySeparator)
+		}
+		if len(compressedResponse) != 0 {
+			if result.Body, err = decompressResponseBody(compressedResponse); err != nil {
+				logr.Errorf("[sql.getEndpointResultsByEndpointID] Failed to decompress response body for endpointID=%d: %s", endpointID, err.Error())
+				err = nil
+			}
 		}
 		// This is faster than using a subselect
 		results = append([]*endpoint.Result{result}, results...)
