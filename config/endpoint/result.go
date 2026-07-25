@@ -49,8 +49,8 @@ type Result struct {
 	//
 	// It is used for health evaluation as well as debugging purposes.
 	// Only populated when an endpoint has a condition or store mapping that reads it (see needsToReadBody).
-	// When using the SQL store with the postgres driver, it is persisted brotli-compressed in the
-	// endpoint_results.response BYTEA column.
+	// When using the SQL store with the postgres driver and storage.persist-response-body enabled, it is
+	// persisted brotli-compressed in the endpoint_results.response BYTEA column.
 	Body []byte `json:"-"`
 
 	///////////////////////////////////////////////////////////////////////

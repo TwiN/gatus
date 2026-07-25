@@ -36,6 +36,10 @@ type Config struct {
 
 	// MaximumNumberOfEvents is the number of events each endpoint should be able to provide
 	MaximumNumberOfEvents int `yaml:"maximum-number-of-events,omitempty"`
+
+	// PersistResponseBody is whether to persist the (brotli-compressed) response body of each result.
+	// Only supported if Config.Type is TypePostgres.
+	PersistResponseBody bool `yaml:"persist-response-body,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the configuration and sets the default values (if applicable)
