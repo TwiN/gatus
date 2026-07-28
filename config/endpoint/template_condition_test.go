@@ -68,6 +68,22 @@ func TestCondition_evaluateTemplate(t *testing.T) {
 			ExpectedSuccess: false,
 		},
 		{
+			// Regression test: coerceNumber used to require a duration string to parse to a
+			// non-zero value before treating it as a duration, so "0ms"/"0s"/"0h" fell through to
+			// string comparison and a condition like this one - meaning "any response at all" -
+			// would silently never fire.
+			Name:            "response-time-gt-zero-duration-string",
+			Condition:       `{{gt .ResponseTime "0ms"}}`,
+			Result:          &Result{Duration: 100 * time.Millisecond},
+			ExpectedSuccess: true,
+		},
+		{
+			Name:            "response-time-gt-zero-duration-string-zero-response",
+			Condition:       `{{gt .ResponseTime "0ms"}}`,
+			Result:          &Result{Duration: 0},
+			ExpectedSuccess: false,
+		},
+		{
 			Name:            "connected",
 			Condition:       `{{eq .Connected true}}`,
 			Result:          &Result{Connected: true},
@@ -113,6 +129,17 @@ func TestCondition_evaluateTemplate(t *testing.T) {
 			Name:            "body-has-false",
 			Condition:       `{{has .Body "errors"}}`,
 			Result:          &Result{Body: []byte(`{"name":"john.doe"}`)},
+			ExpectedSuccess: false,
+		},
+		{
+			// Pins the behavior of has() against a non-JSON body: buildTemplateData falls back to
+			// string(result.Body) when the body isn't valid JSON, so .Body is a plain string here
+			// and templateHas's default case returns false rather than doing a substring check -
+			// consistent with the legacy has() semantics. If this is ever changed to do a
+			// substring check instead, this test should be updated deliberately.
+			Name:            "body-has-false-for-non-json-body",
+			Condition:       `{{has .Body "errors"}}`,
+			Result:          &Result{Body: []byte(`errors: something went wrong`)},
 			ExpectedSuccess: false,
 		},
 		{
@@ -324,10 +351,13 @@ func TestCondition_evaluateTemplate_ResolvedFieldDisplay(t *testing.T) {
 			ExpectedDisplay: `{{eq .Body.user.name "john"}} (Body.user.name=bob)`,
 		},
 		{
+			// The resolved value here is 26 chars ("https://elsewhere.example/"), one over the
+			// truncation threshold, so it gets truncated too - see large-body-value-is-truncated
+			// below for the dedicated truncation test.
 			Name:            "header-field",
 			Condition:       `{{eq .Headers.Location "https://example.com/"}}`,
 			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://elsewhere.example/"}}},
-			ExpectedDisplay: `{{eq .Headers.Location "https://example.com/"}} (Headers.Location=https://elsewhere.example/)`,
+			ExpectedDisplay: `{{eq .Headers.Location "https://example.com/"}} (Headers.Location=https://elsewhere.example...(truncated))`,
 		},
 		{
 			Name:            "context-field",
@@ -364,6 +394,16 @@ func TestCondition_evaluateTemplate_ResolvedFieldDisplay(t *testing.T) {
 			Result:                      &Result{HTTPStatus: 200},
 			ResolveSuccessfulConditions: true,
 			ExpectedDisplay:             `{{eq .Status 200}} (Status=200)`,
+		},
+		{
+			// Regression test: formatFieldValue used to JSON-encode/stringify resolved values
+			// verbatim with no length cap, so comparing a large non-JSON body (e.g. an HTML error
+			// page) would dump the whole thing into the alert message. This mirrors the 25-char
+			// truncation the legacy condition path applies (maximumLengthBeforeTruncatingWhenComparedWithPattern).
+			Name:            "large-body-value-is-truncated",
+			Condition:       `{{eq .Body "ok"}}`,
+			Result:          &Result{Body: []byte(strings.Repeat("x", 100))},
+			ExpectedDisplay: `{{eq .Body "ok"}} (Body=` + strings.Repeat("x", 25) + `...(truncated))`,
 		},
 	}
 	for _, scenario := range scenarios {
@@ -441,6 +481,27 @@ func TestCondition_hasPlaceholder_templateStyle(t *testing.T) {
 			Condition:          `{{and (eq .Body.name "john") (has .Headers "Location")}}`,
 			ExpectedHasBody:    true,
 			ExpectedHasHeaders: true,
+		},
+		{
+			// A variable aliasing a field directly is tracked correctly, because the ".Body" on
+			// the right-hand side of the declaration is itself a FieldNode.
+			Name:            "variable-aliasing-a-field-directly-is-tracked",
+			Condition:       `{{$b := .Body}}{{if $b}}true{{else}}false{{end}}`,
+			ExpectedHasBody: true,
+		},
+		{
+			// Regression test: a variable that aliases the whole "." and is then dotted into
+			// (e.g. "$root.Body") can't be resolved back to a field path without full data-flow
+			// analysis, since VariableNode.Ident is ["$root", "Body"] rather than a FieldNode.
+			// collectFieldPaths detects this shape and conservatively marks every gated field as
+			// referenced, so the corresponding reads (body, headers, domain expiration, IP) aren't
+			// skipped.
+			Name:                       "variable-dotted-into-conservatively-flags-all-gated-fields",
+			Condition:                  `{{$root := .}}{{if $root.Body}}true{{else}}false{{end}}`,
+			ExpectedHasBody:            true,
+			ExpectedHasHeaders:         true,
+			ExpectedHasDomainExpirtion: true,
+			ExpectedHasIP:              true,
 		},
 	}
 	for _, scenario := range scenarios {

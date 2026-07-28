@@ -32,6 +32,11 @@ type compiledTemplateCondition struct {
 	parseErr   error
 }
 
+// templateConditionCache is keyed by the full condition string, so it stays bounded by the number
+// of distinct template conditions across the loaded config (parsed once at startup/reload) for
+// typical usage. It has no eviction, so configs that programmatically generate a large and
+// ever-changing set of distinct condition strings (e.g. one condition per dynamically discovered
+// device) should keep that set bounded to avoid unbounded memory growth.
 var templateConditionCache sync.Map // map[string]*compiledTemplateCondition
 
 // getCompiledTemplateCondition parses (or retrieves from cache) the template for a condition.
@@ -45,13 +50,24 @@ func getCompiledTemplateCondition(condition string) *compiledTemplateCondition {
 		compiled.parseErr = err
 	} else {
 		compiled.tmpl = tmpl
-		compiled.fieldPaths = collectFieldPaths(tmpl.Tree)
+		paths, hasVariableFieldChain := collectFieldPaths(tmpl.Tree)
+		compiled.fieldPaths = paths
 		for _, path := range compiled.fieldPaths {
 			top := path
 			if i := strings.IndexByte(path, '.'); i >= 0 {
 				top = path[:i]
 			}
 			compiled.fields[top] = true
+		}
+		if hasVariableFieldChain {
+			// A variable is being dotted into (e.g. "{{$b := .}}{{if $b.Body}}...{{end}}"), which
+			// collectFieldPaths can't resolve back to a field path without full data-flow analysis.
+			// Conservatively assume every gated field might be referenced so the corresponding
+			// (potentially expensive) reads aren't skipped.
+			compiled.fields["Body"] = true
+			compiled.fields["Headers"] = true
+			compiled.fields["DomainExpiration"] = true
+			compiled.fields["IP"] = true
 		}
 	}
 	actual, _ := templateConditionCache.LoadOrStore(condition, compiled)
@@ -60,18 +76,22 @@ func getCompiledTemplateCondition(condition string) *compiledTemplateCondition {
 
 // collectFieldPaths returns the distinct dot-joined field paths directly referenced by the
 // template (e.g. ".Status" -> "Status", ".Body.user.name" -> "Body.user.name"), in
-// first-appearance order. Used both for static gating (needsToReadBody, etc.) and for resolving
-// display values for failed/successful conditions.
+// first-appearance order, along with whether the template dots into a variable (e.g. the
+// "$b.Body" in "{{$b := .}}{{if $b.Body}}...{{end}}"). Used both for static gating
+// (needsToReadBody, etc.) and for resolving display values for failed/successful conditions.
 //
-// This does not track variable aliases (e.g. "{{$b := .Body}}{{if $b}}...{{end}}"), and it does
-// not resolve field accesses chained onto the result of a function call (e.g. the ".id" in
+// A variable that aliases a field directly (e.g. "{{$b := .Body}}{{if $b}}...{{end}}") is still
+// tracked correctly, since the ".Body" on the right-hand side of the declaration is itself a
+// FieldNode. What can't be resolved without full data-flow analysis is a variable that gets
+// dotted into after the fact (e.g. "{{$root := .}}{{if $root.Body}}...{{end}}") - the caller is
+// expected to treat hasVariableFieldChain conservatively in that case. This also does not resolve
+// field accesses chained onto the result of a function call (e.g. the ".id" in
 // "(index .Body.data 0).id" is not captured as a path, though ".Body.data" is).
-func collectFieldPaths(tree *parse.Tree) []string {
+func collectFieldPaths(tree *parse.Tree) (paths []string, hasVariableFieldChain bool) {
 	if tree == nil || tree.Root == nil {
-		return nil
+		return nil, false
 	}
 	seen := make(map[string]bool)
-	var paths []string
 	var walk func(n parse.Node)
 	walk = func(n parse.Node) {
 		if n == nil {
@@ -98,6 +118,10 @@ func collectFieldPaths(tree *parse.Tree) []string {
 				seen[path] = true
 				paths = append(paths, path)
 			}
+		case *parse.VariableNode:
+			if len(v.Ident) > 1 {
+				hasVariableFieldChain = true
+			}
 		case *parse.ChainNode:
 			walk(v.Node)
 		case *parse.IfNode:
@@ -113,7 +137,7 @@ func collectFieldPaths(tree *parse.Tree) []string {
 		}
 	}
 	walk(tree.Root)
-	return paths
+	return paths, hasVariableFieldChain
 }
 
 // templateData is the data made available to a template Condition.
@@ -253,18 +277,29 @@ func resolveFieldPath(data *templateData, path string) (interface{}, bool) {
 }
 
 // formatFieldValue renders a resolved field value for display: composite values (maps, slices,
-// arrays) are JSON-encoded for readability, everything else uses its default string form.
+// arrays) are JSON-encoded for readability, everything else uses its default string form. The
+// result is truncated at maximumLengthBeforeTruncatingWhenComparedWithPattern characters, mirroring
+// the legacy condition path's protection against dumping huge bodies into alert messages.
 func formatFieldValue(value interface{}) string {
-	if s, ok := value.(string); ok {
-		return s
-	}
-	switch reflect.ValueOf(value).Kind() {
-	case reflect.Map, reflect.Slice, reflect.Array:
-		if b, err := json.Marshal(value); err == nil {
-			return string(b)
+	var s string
+	if str, ok := value.(string); ok {
+		s = str
+	} else {
+		switch reflect.ValueOf(value).Kind() {
+		case reflect.Map, reflect.Slice, reflect.Array:
+			if b, err := json.Marshal(value); err == nil {
+				s = string(b)
+			} else {
+				s = fmt.Sprint(value)
+			}
+		default:
+			s = fmt.Sprint(value)
 		}
 	}
-	return fmt.Sprint(value)
+	if len(s) > maximumLengthBeforeTruncatingWhenComparedWithPattern {
+		return fmt.Sprintf("%.*s...(truncated)", maximumLengthBeforeTruncatingWhenComparedWithPattern, s)
+	}
+	return s
 }
 
 // coerceNumber attempts to interpret v as a number, trying (in order) a duration string
@@ -282,7 +317,7 @@ func coerceNumber(v interface{}) (float64, bool) {
 	case bool:
 		return 0, false
 	case string:
-		if d, err := time.ParseDuration(n); err == nil && d != 0 {
+		if d, err := time.ParseDuration(n); err == nil {
 			return float64(d.Milliseconds()), true
 		}
 		if i, err := strconv.ParseInt(n, 0, 64); err == nil {
@@ -371,8 +406,10 @@ func templateHas(container interface{}, key interface{}) bool {
 }
 
 // conditionFuncMap holds the functions that are central to condition evaluation. These take
-// precedence over Sprig's functions of the same name (notably "has", which Sprig defines as a
-// list-membership check with reversed argument order: has(needle, haystack)).
+// precedence over Sprig's functions of the same name - in practice, that's only "has", which
+// Sprig defines as a list-membership check with reversed argument order: has(needle, haystack).
+// eq/ne/lt/le/gt/ge/pat/any aren't defined by Sprig (https://masterminds.github.io/sprig/), so
+// overriding them here doesn't shadow anything; they're listed for clarity and future-proofing.
 var conditionFuncMap = template.FuncMap{
 	"eq":  templateEq,
 	"ne":  templateNe,

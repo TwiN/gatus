@@ -579,12 +579,16 @@ This only resolves plain dotted field paths (`.Status`, `.Body.user.name`, `.Hea
 `.Context.expected_status`, ...) — a path that can't be traversed against the actual response (e.g.
 `.Body.foo` when the body isn't JSON) is silently omitted rather than shown as `(INVALID)`, and the
 result of a function call chained with a field access (the `.id` in `(index .Body.data 0).id`)
-isn't individually resolved, since it isn't a direct field path.
+isn't individually resolved, since it isn't a direct field path. Like the legacy syntax, resolved
+values longer than 25 characters are truncated (e.g. `Body=this-is-a-long-body-va...(truncated)`)
+so a large body or header value doesn't flood the alert message.
 
 > 💡 One remaining limitation compared to the legacy syntax: whether a condition needs the response
-> body/headers/IP/domain-expiration is detected by looking for direct `.Body`/`.Headers`/`.IP`/
-> `.DomainExpiration` references — assigning one of these to a template variable first (e.g.
-> `{{$b := .Body}}`) isn't detected.
+> body/headers/IP/domain-expiration is detected by statically looking for `.Body`/`.Headers`/`.IP`/
+> `.DomainExpiration` references, including through a template variable that aliases the whole dot
+> (e.g. `{{$root := .}}{{if $root.Body}}...{{end}}`, which conservatively assumes every field might
+> be needed). What still isn't detected is a field reached purely dynamically, e.g.
+> `{{index . "Body"}}` instead of `.Body` — prefer the plain dotted form so Gatus knows to fetch it.
 
 #### Legacy bracket syntax (deprecated)
 The syntax below remains fully supported for backwards compatibility, but new conditions should use the
