@@ -231,6 +231,9 @@ func (c *Config) getHTTPClient() *http.Client {
 				MaxIdleConnsPerHost: 20,
 				Proxy:               http.ProxyFromEnvironment,
 				TLSClientConfig:     tlsConfig,
+				// net/http disables HTTP/2 whenever TLSClientConfig is set,
+				// so HTTP/2-only endpoints answer 505 without this.
+				ForceAttemptHTTP2: true,
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if c.IgnoreRedirect {
