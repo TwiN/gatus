@@ -762,6 +762,11 @@ alerting:
     webhook-url: "http://example.com"
     client:
       insecure: true
+  rocketchat:
+    webhook-url: "http://example.com"
+    channel: "#alerts"
+    client:
+      insecure: true
   messagebird:
     access-key: "1"
     originator: "31619191918"
@@ -798,6 +803,7 @@ endpoints:
         success-threshold: 15
       - type: teams
       - type: pushover
+      - type: rocketchat
     conditions:
       - "[STATUS] == 200"
 `))
@@ -814,6 +820,12 @@ endpoints:
 	if config.Alerting.Slack == nil || config.Alerting.Slack.Validate() != nil {
 		t.Fatal("Slack alerting config should've been valid")
 	}
+	if config.Alerting.RocketChat == nil || config.Alerting.RocketChat.Validate() != nil {
+		t.Fatal("RocketChat alerting config should've been valid")
+	}
+	if config.Alerting.RocketChat.DefaultConfig.Channel != "#alerts" {
+		t.Errorf("RocketChat channel should've been %s, but was %s", "#alerts", config.Alerting.RocketChat.DefaultConfig.Channel)
+	}
 	// Endpoints
 	if len(config.Endpoints) != 1 {
 		t.Error("There should've been 1 endpoint")
@@ -824,8 +836,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 9 {
-		t.Fatal("There should've been 9 alerts configured")
+	if len(config.Endpoints[0].Alerts) != 10 {
+		t.Fatal("There should've been 10 alerts configured")
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -932,6 +944,13 @@ endpoints:
 	if !config.Endpoints[0].Alerts[8].IsEnabled() {
 		t.Error("The alert should've been enabled")
 	}
+
+	if config.Endpoints[0].Alerts[9].Type != alert.TypeRocketChat {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeRocketChat, config.Endpoints[0].Alerts[9].Type)
+	}
+	if !config.Endpoints[0].Alerts[9].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
 }
 
 func TestParseAndValidateConfigBytesWithAlertingAndDefaultAlert(t *testing.T) {
@@ -1007,6 +1026,10 @@ alerting:
     token: "**************"
     default-alert:
       enabled: true
+  rocketchat:
+    webhook-url: "http://example.com"
+    default-alert:
+      enabled: true
 
 external-endpoints:
   - name: ext-ep-test
@@ -1031,6 +1054,7 @@ endpoints:
       - type: pushover
       - type: email
       - type: gotify
+      - type: rocketchat
     conditions:
       - "[STATUS] == 200"
 `))
@@ -1221,8 +1245,8 @@ endpoints:
 	if config.Endpoints[0].Interval != 60*time.Second {
 		t.Errorf("Interval should have been %s, because it is the default value", 60*time.Second)
 	}
-	if len(config.Endpoints[0].Alerts) != 11 {
-		t.Fatalf("There should've been 11 alerts configured, got %d", len(config.Endpoints[0].Alerts))
+	if len(config.Endpoints[0].Alerts) != 12 {
+		t.Fatalf("There should've been 12 alerts configured, got %d", len(config.Endpoints[0].Alerts))
 	}
 
 	if config.Endpoints[0].Alerts[0].Type != alert.TypeSlack {
@@ -1363,6 +1387,19 @@ endpoints:
 	}
 	if config.Endpoints[0].Alerts[10].SuccessThreshold != 2 {
 		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[10].SuccessThreshold)
+	}
+
+	if config.Endpoints[0].Alerts[11].Type != alert.TypeRocketChat {
+		t.Errorf("The type of the alert should've been %s, but it was %s", alert.TypeRocketChat, config.Endpoints[0].Alerts[11].Type)
+	}
+	if !config.Endpoints[0].Alerts[11].IsEnabled() {
+		t.Error("The alert should've been enabled")
+	}
+	if config.Endpoints[0].Alerts[11].FailureThreshold != 3 {
+		t.Errorf("The default failure threshold of the alert should've been %d, but it was %d", 3, config.Endpoints[0].Alerts[11].FailureThreshold)
+	}
+	if config.Endpoints[0].Alerts[11].SuccessThreshold != 2 {
+		t.Errorf("The default success threshold of the alert should've been %d, but it was %d", 2, config.Endpoints[0].Alerts[11].SuccessThreshold)
 	}
 }
 
