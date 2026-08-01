@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -14,6 +17,22 @@ import (
 	"github.com/TwiN/logr"
 	"github.com/gofiber/fiber/v2"
 )
+
+const (
+	// maximumNumberOfConditionResultsPerPush is the maximum number of condition results that may be pushed alongside the result of an external endpoint
+	maximumNumberOfConditionResultsPerPush = 50
+
+	// maximumConditionLengthPerPush is the maximum length of a single condition pushed alongside the result of an external endpoint
+	maximumConditionLengthPerPush = 1024
+)
+
+// externalEndpointResultRequestBody is the optional JSON body that may be sent when pushing the result of an
+// external endpoint. The query parameters remain the source of truth for everything that isn't part of this body.
+type externalEndpointResultRequestBody struct {
+	// ConditionResults are the results of the conditions evaluated by whatever pushed the result.
+	// They are displayed as-is on the dashboard; they do not influence the success of the result.
+	ConditionResults []*endpoint.ConditionResult `json:"conditionResults"`
+}
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
@@ -58,6 +77,25 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		}
 		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
 			result.AddError(errorFromQuery)
+		}
+		if body := bytes.TrimSpace(c.Body()); len(body) > 0 {
+			var requestBody externalEndpointResultRequestBody
+			if err := json.Unmarshal(body, &requestBody); err != nil {
+				logr.Errorf("[api.CreateExternalEndpointResult] Invalid request body for external endpoint with key=%s: %s", key, err.Error())
+				return c.Status(400).SendString("invalid request body: " + err.Error())
+			}
+			if len(requestBody.ConditionResults) > maximumNumberOfConditionResultsPerPush {
+				return c.Status(400).SendString(fmt.Sprintf("too many condition results: maximum is %d", maximumNumberOfConditionResultsPerPush))
+			}
+			for _, conditionResult := range requestBody.ConditionResults {
+				if conditionResult == nil || len(strings.TrimSpace(conditionResult.Condition)) == 0 {
+					return c.Status(400).SendString("conditionResults[].condition must not be empty")
+				}
+				if len(conditionResult.Condition) > maximumConditionLengthPerPush {
+					return c.Status(400).SendString(fmt.Sprintf("conditionResults[].condition must not exceed %d characters", maximumConditionLengthPerPush))
+				}
+			}
+			result.ConditionResults = requestBody.ConditionResults
 		}
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().InsertEndpointResult(convertedEndpoint, result); err != nil {
