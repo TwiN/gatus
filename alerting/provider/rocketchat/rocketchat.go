@@ -20,8 +20,12 @@ var (
 )
 
 type Config struct {
-	WebhookURL string `yaml:"webhook-url"`       // Rocket.Chat incoming webhook URL
-	Channel    string `yaml:"channel,omitempty"` // Optional channel override
+	WebhookURL   string         `yaml:"webhook-url"`       // Rocket.Chat incoming webhook URL
+	Channel      string         `yaml:"channel,omitempty"` // Optional channel override
+	Alias        string         `yaml:"alias,omitempty"`   // Overrides the sender name displayed in Rocket.Chat
+	Emoji        string         `yaml:"emoji,omitempty"`   // Overrides the sender avatar with an emoji, e.g. ":rotating_light:"
+	Avatar       string         `yaml:"avatar,omitempty"`  // Overrides the sender avatar with an image URL
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -32,11 +36,23 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
 	}
 	if len(override.Channel) > 0 {
 		cfg.Channel = override.Channel
+	}
+	if len(override.Alias) > 0 {
+		cfg.Alias = override.Alias
+	}
+	if len(override.Emoji) > 0 {
+		cfg.Emoji = override.Emoji
+	}
+	if len(override.Avatar) > 0 {
+		cfg.Avatar = override.Avatar
 	}
 }
 
@@ -87,7 +103,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(nil).Do(request)
+	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
@@ -103,6 +119,9 @@ type Body struct {
 	Text        string       `json:"text"`
 	Channel     string       `json:"channel,omitempty"`
 	Username    string       `json:"username"`
+	Alias       string       `json:"alias,omitempty"`
+	Emoji       string       `json:"emoji,omitempty"`
+	Avatar      string       `json:"avatar,omitempty"`
 	Attachments []Attachment `json:"attachments"`
 }
 
@@ -160,6 +179,15 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	}
 	if cfg.Channel != "" {
 		body.Channel = cfg.Channel
+	}
+	if cfg.Alias != "" {
+		body.Alias = cfg.Alias
+	}
+	if cfg.Emoji != "" {
+		body.Emoji = cfg.Emoji
+	}
+	if cfg.Avatar != "" {
+		body.Avatar = cfg.Avatar
 	}
 	if len(formattedConditionResults) > 0 {
 		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
