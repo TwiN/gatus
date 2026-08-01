@@ -1933,23 +1933,28 @@ endpoints:
 
 #### Configuring Rocket.Chat alerts
 
-> ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
-
-| Parameter                               | Description                                                                                | Default       |
-|:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
-| `alerting.rocketchat`                   | Configuration for alerts of type `rocketchat`                                              | `{}`          |
-| `alerting.rocketchat.webhook-url`       | Rocket.Chat incoming webhook URL                                                           | Required `""` |
-| `alerting.rocketchat.channel`           | Optional channel override                                                                  | `""`          |
-| `alerting.rocketchat.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
-| `alerting.rocketchat.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
-| `alerting.rocketchat.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
-| `alerting.rocketchat.overrides[].*`     | See `alerting.rocketchat.*` parameters                                                     | `{}`          |
+| Parameter                                | Description                                                                                 | Default       |
+|:------------------------------------------|:-----------------------------------------------------------------------------------------------|:--------------|
+| `alerting.rocketchat`                    | Configuration for alerts of type `rocketchat`                                               | `{}`          |
+| `alerting.rocketchat.webhook-url`        | Rocket.Chat incoming webhook URL                                                             | Required `""` |
+| `alerting.rocketchat.channel`            | Channel override, e.g. `#alerts` (optional)                                          | `""`          |
+| `alerting.rocketchat.alias`              | Overrides the sender name displayed in Rocket.Chat (optional)                                | `""`          |
+| `alerting.rocketchat.emoji`              | Overrides the sender avatar with an emoji, e.g. `:rotating_light:` (optional)                | `""`          |
+| `alerting.rocketchat.avatar`             | Overrides the sender avatar with an image URL (optional)                                     | `""`          |
+| `alerting.rocketchat.client`             | Client configuration. <br />See [Client configuration](#client-configuration).               | `{}`          |
+| `alerting.rocketchat.default-alert`      | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)   | N/A           |
+| `alerting.rocketchat.overrides`          | List of overrides that may be prioritized over the default configuration                     | `[]`          |
+| `alerting.rocketchat.overrides[].group`  | Endpoint group for which the configuration will be overridden by this configuration          | `""`          |
+| `alerting.rocketchat.overrides[].*`      | See `alerting.rocketchat.*` parameters                                                       | `{}`          |
 
 ```yaml
 alerting:
   rocketchat:
-    webhook-url: "https://your-rocketchat.com/hooks/YOUR_WEBHOOK_ID/YOUR_TOKEN"
-    channel: "#alerts"  # Optional
+    webhook-url: ${ROCKETCHAT_WEBHOOK_URL}
+    channel: "#alerts"
+    alias: "Gatus"
+    default-alert:
+      send-on-resolved: true
 
 endpoints:
   - name: website
@@ -1959,7 +1964,19 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: rocketchat
-        send-on-resolved: true
+```
+
+> 💡 For the `channel` override to take effect, the Rocket.Chat incoming webhook integration must have **"Allow to overwrite destination channel in the body parameters"** enabled (Administration > Integrations > your Incoming WebHook). If that setting is off, the `channel` field is silently ignored and messages always go to the channel configured in **Post to Channel**. When enabled, the value must be prefixed with `#` for a channel (e.g. `#alerts`) or `@` for a direct message to a user (e.g. `@jdoe`), and the webhook's bot user needs access to that destination.
+
+If your Rocket.Chat server uses a certificate issued by an internal/private certificate authority, Gatus won't be able to verify it by default. Until certificate authority pinning is supported, the workaround is to skip certificate verification for that webhook's client:
+
+```yaml
+alerting:
+  rocketchat:
+    webhook-url: ${ROCKETCHAT_WEBHOOK_URL}
+    channel: "#alerts"
+    client:
+      insecure: true # Skips TLS certificate verification -- only use this if you trust the network path to your Rocket.Chat server
 ```
 
 
