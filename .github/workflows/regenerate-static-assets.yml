@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Check command trigger
         id: command
-        uses: github/command@v2
+        uses: github/command@3442f3fa1efe01bdb024b157083c337902d17372 # v2.0.3
         with:
           command: "/regenerate-static-assets"
           permissions: "write,admin" # The allowed permission levels to invoke this command
@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: Get PR branch
         id: pr
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const pr = await github.rest.pulls.get({
@@ -46,7 +46,7 @@ jobs:
             core.setOutput('ref', pr.data.head.ref);
             core.setOutput('repo', pr.data.head.repo.full_name);
       - name: Checkout PR branch
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ steps.pr.outputs.repo }}
           ref: ${{ steps.pr.outputs.ref }}
@@ -79,7 +79,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Create response comment
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const status = '${{ needs.regenerate-static-assets.outputs.status }}';
