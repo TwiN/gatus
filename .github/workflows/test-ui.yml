@@ -8,6 +8,9 @@ on:
       - master
     paths:
       - 'web/**'
+permissions:
+  contents: read
+
 jobs:
   test-ui:
     runs-on: ubuntu-latest

@@ -11,6 +11,9 @@ on:
       - '*.md'
       - '.github/**'
       - '.examples/**'
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

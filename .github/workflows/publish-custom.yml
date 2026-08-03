@@ -14,6 +14,11 @@ on:
           - linux/arm/v7
           - linux/arm64
 
+# The docker push to ghcr.io authenticates with GITHUB_TOKEN.
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   publish-custom:
     runs-on: ubuntu-latest

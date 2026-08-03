@@ -2,6 +2,11 @@ name: publish-release
 on:
   release:
     types: [published]
+# The docker push to ghcr.io authenticates with GITHUB_TOKEN.
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   publish-release:
     name: publish-release

@@ -1,5 +1,8 @@
 name: publish-experimental
 on: [workflow_dispatch]
+permissions:
+  contents: read
+
 jobs:
   publish-experimental:
     runs-on: ubuntu-latest

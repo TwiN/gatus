@@ -7,6 +7,11 @@ on:
 concurrency:
   group: ${{ github.event.workflow_run.head_repository.full_name }}::${{ github.event.workflow_run.head_branch }}::${{ github.workflow }}
   cancel-in-progress: true
+# The docker push to ghcr.io authenticates with GITHUB_TOKEN.
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   publish-latest:
     runs-on: ubuntu-latest
