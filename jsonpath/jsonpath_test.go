@@ -174,6 +174,38 @@ func TestEval(t *testing.T) {
 			ExpectedOutputLength: 18,
 			ExpectedError:        false,
 		},
+		{
+			Name:                 "negative-index-on-keyed-array",
+			Path:                 "data[-1]",
+			Data:                 `{"data": [1, 2, 3]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
+			Name:                 "negative-index-on-root-array",
+			Path:                 "[-1]",
+			Data:                 `[1, 2, 3]`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
+			Name:                 "negative-index-followed-by-key",
+			Path:                 "data[-1].name",
+			Data:                 `{"data": [{"name": "value"}]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
+			Name:                 "negative-index-nested-array",
+			Path:                 "data[0][-1]",
+			Data:                 `{"data": [[1, 2, 3]]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
