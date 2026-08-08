@@ -129,6 +129,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Monitoring an endpoint using STARTTLS](#monitoring-an-endpoint-using-starttls)
   - [Monitoring an endpoint using TLS](#monitoring-an-endpoint-using-tls)
   - [Monitoring domain expiration](#monitoring-domain-expiration)
+  - [Monitoring upstream provider status](#monitoring-upstream-provider-status)
   - [Concurrency](#concurrency)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
@@ -3256,6 +3257,31 @@ endpoints:
 > [through a library](https://github.com/TwiN/whois) and in some cases, a secondary request to a TLD-specific WHOIS server (e.g. `whois.nic.sh`).
 > To prevent the WHOIS service from throttling your IP address if you send too many requests, Gatus will prevent you from
 > using the `[DOMAIN_EXPIRATION]` placeholder on an endpoint with an interval of less than `5m`.
+
+
+### Monitoring upstream provider status
+If your application depends on a cloud or SaaS provider, you can use Gatus to evaluate that provider's normalized
+official status alongside your own direct health checks. The following example uses
+[OutageDeck](https://outagedeck.com/developers/api?utm_source=gatus&utm_medium=docs&utm_campaign=gatus_upstream_status),
+which exposes a keyless JSON endpoint for each supported provider:
+
+```yaml
+endpoints:
+  - name: github-provider-status
+    group: upstream-dependencies
+    url: "https://outagedeck.com/api/v1/providers/github"
+    interval: 10m
+    client:
+      timeout: 10s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].data.currentStatus.code == operational"
+```
+
+Replace `github` with another provider slug to monitor a different dependency. The status condition also fails for
+`degraded`, `partial_outage`, `major_outage`, `maintenance`, and `unknown`, so your normal Gatus alerting
+configuration can handle the result. This official-feed signal does not replace a direct check of your application's
+network path, credentials, region, or provider-specific API behavior.
 
 
 ### Concurrency
