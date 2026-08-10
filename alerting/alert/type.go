@@ -113,6 +113,9 @@ const (
 	// TypeTelegram is the Type for the telegram alerting provider
 	TypeTelegram Type = "telegram"
 
+	// TypeThreemaGateway is the Type for the threema-gateway alerting provider
+	TypeThreemaGateway Type = "threema-gateway"
+
 	// TypeTwilio is the Type for the twilio alerting provider
 	TypeTwilio Type = "twilio"
 
