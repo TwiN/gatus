@@ -10,7 +10,9 @@
           type="text"
           placeholder="Search endpoints..."
           class="pl-10 text-sm sm:text-base"
-          @input="$emit('search', searchQuery)"
+          @input="handleSearchChange($event.target.value, false)"
+          @blur="handleSearchChange($event.target.value, true)"
+          @keyup.enter="handleSearchChange($event.target.value, true)"
         />
       </div>
     </div>
@@ -25,7 +27,7 @@
           @update:model-value="handleFilterChange"
         />
       </div>
-      
+
       <div class="flex items-center gap-2 flex-1 sm:flex-initial">
         <label class="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">Sort by:</label>
         <Select 
@@ -41,14 +43,37 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Search } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 
-const searchQuery = ref('')
-const filterBy = ref(localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'none')
-const sortBy = ref(localStorage.getItem('gatus:sort-by') || (typeof window !== 'undefined' && window.config?.defaultSortBy) || 'name')
+const STORAGE_KEYS = {
+  FILTER_BY: 'gatus:filter-by',
+  SORT_BY: 'gatus:sort-by',
+}
+
+const router = useRouter()
+const route = useRoute()
+
+const [defaultFilterBy, defaultSortBy] = (() => {
+  let filter = 'none'
+  let sort = 'name'
+  if (typeof window !== 'undefined' && window.config) {
+    if (window.config.defaultFilterBy && window.config.defaultFilterBy !== '{{ .UI.DefaultFilterBy }}') {
+      filter = window.config.defaultFilterBy
+    }
+    if (window.config.defaultSortBy && window.config.defaultSortBy !== '{{ .UI.DefaultSortBy }}') {
+      sort = window.config.defaultSortBy
+    }
+  }
+  return [filter, sort]
+})()
+
+const searchQuery = ref(route.query.search || '')
+const filterBy = ref(route.query.filter || localStorage.getItem(STORAGE_KEYS.FILTER_BY) || defaultFilterBy)
+const sortBy = ref(route.query.sort || localStorage.getItem(STORAGE_KEYS.SORT_BY) || defaultSortBy)
 
 const filterOptions = [
   { label: 'None', value: 'none' },
@@ -64,31 +89,40 @@ const sortOptions = [
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
+const handleSearchChange = (value, push = true) => {
+  searchQuery.value = value
+  const query = { ...route.query }
+  query.search = searchQuery.value || undefined
+  push ? router.push({ query }) : router.replace({ query })
+  
+  emit('search', searchQuery.value)
+}
+
 const handleFilterChange = (value, store = true) => {
   filterBy.value = value
-  if (store)
-    localStorage.setItem('gatus:filter-by', value)
-  
-  // Reset all filter states first
-  emit('update:showOnlyFailing', false)
-  emit('update:showRecentFailures', false)
-  
-  // Apply the selected filter
-  if (value === 'failing') {
-    emit('update:showOnlyFailing', true)
-  } else if (value === 'unstable') {
-    emit('update:showRecentFailures', true)
+  if (store) {
+    const query = { ...route.query }
+    query.filter = value
+    router.push({ query })
+    localStorage.setItem(STORAGE_KEYS.FILTER_BY, value)
   }
+
+  emit('update:showOnlyFailing', value === 'failing')
+  emit('update:showRecentFailures', value === 'unstable')
 }
 
 const handleSortChange = (value, store = true) => {
   sortBy.value = value
-  if (store)
-    localStorage.setItem('gatus:sort-by', value)
+  if (store) {
+    const query = { ...route.query }
+    query.sort = value
+    router.push({ query })
+    localStorage.setItem(STORAGE_KEYS.SORT_BY, value)
+  }
 
   emit('update:sortBy', value)
   emit('update:groupByGroup', value === 'group')
-  
+
   // When switching to group view, initialize collapsed groups
   if (value === 'group') {
     emit('initializeCollapsedGroups')
@@ -96,8 +130,33 @@ const handleSortChange = (value, store = true) => {
 }
 
 onMounted(() => {
+  if (route.query.search)
+    emit('search', searchQuery.value)
+
   // Apply saved or application wide filter/sort state on load but do not store it in localstorage
   handleFilterChange(filterBy.value, false)
   handleSortChange(sortBy.value, false)
 })
+
+// Ensure browser history navigation (back/forward) re-applies search, filter, and sort
+watch(
+  () => route.query.search,
+  (value) => {
+    handleSearchChange(value || '')
+  }
+)
+
+watch(
+  () => route.query.filter,
+  (value) => {
+    handleFilterChange(value || localStorage.getItem(STORAGE_KEYS.FILTER_BY) || defaultFilterBy, false)
+  }
+)
+
+watch(
+  () => route.query.sort,
+  (value) => {
+    handleSortChange(value || localStorage.getItem(STORAGE_KEYS.SORT_BY) || defaultSortBy, false)
+  }
+)
 </script>
