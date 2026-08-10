@@ -218,7 +218,11 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	var config *Config
 	if fileInfo.IsDir() {
-		err := walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
+		// Walk the directory we actually resolved, not the raw argument: when
+		// configPath is empty and the directory came from one of the default
+		// paths, walking configPath would descend from the current working
+		// directory and silently skip every file. See #456.
+		err := walkConfigDir(usedConfigPath, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("error walking path %s: %w", path, err)
 			}
