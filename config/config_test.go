@@ -539,6 +539,40 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesConcurrency(t *testing.T) {
+	tests := []struct {
+		name          string
+		configuration string
+		expected      int
+	}{
+		{name: "omitted uses default", expected: DefaultConcurrency},
+		{name: "null uses default", configuration: "concurrency:", expected: DefaultConcurrency},
+		{name: "explicit zero is unlimited", configuration: "concurrency: 0", expected: 0},
+		{name: "positive value is preserved", configuration: "concurrency: 20", expected: 20},
+		{name: "negative value uses default", configuration: "concurrency: -1", expected: DefaultConcurrency},
+		{name: "deprecated lock disable is unlimited", configuration: "disable-monitoring-lock: true", expected: 0},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+%s
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`, test.configuration)))
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if config.Concurrency != test.expected {
+				t.Errorf("expected concurrency %d, got %d", test.expected, config.Concurrency)
+			}
+		})
+	}
+}
+
 func TestParseAndValidateConfigBytesWithAddress(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 web:
