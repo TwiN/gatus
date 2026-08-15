@@ -539,6 +539,26 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithDisableZeroconf(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+disable-zeroconf: true
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if !config.DisableZeroconf {
+		t.Error("DisableZeroconf should've been true")
+	}
+}
+
 func TestParseAndValidateConfigBytesWithAddress(t *testing.T) {
 	config, err := parseAndValidateConfigBytes([]byte(`
 web:
