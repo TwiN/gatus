@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
 	"strconv"
 	"syscall"
 	"time"
@@ -21,7 +24,19 @@ const (
 	GatusLogLevelEnvVar   = "GATUS_LOG_LEVEL"
 )
 
+var (
+	validateConfig = flag.Bool("validate", false, "Validate configuration file and exit")
+	configPath     = flag.String("config", "", "Path to configuration file (overrides GATUS_CONFIG_PATH)")
+)
+
 func main() {
+	flag.Parse()
+
+	if *validateConfig {
+		validateConfigurationAndExit()
+		return
+	}
+
 	if delayInSeconds, _ := strconv.Atoi(os.Getenv("GATUS_DELAY_START_SECONDS")); delayInSeconds > 0 {
 		logr.Infof("Delaying start by %d seconds", delayInSeconds)
 		time.Sleep(time.Duration(delayInSeconds) * time.Second)
@@ -46,6 +61,70 @@ func main() {
 	}()
 	<-done
 	logr.Info("Shutting down")
+}
+
+func validateConfigurationAndExit() {
+	configureLogging()
+	
+	path := *configPath
+	if len(path) == 0 {
+		path = os.Getenv(GatusConfigPathEnvVar)
+		if len(path) == 0 {
+			path = os.Getenv(GatusConfigFileEnvVar)
+		}
+	}
+	
+	if len(path) == 0 {
+		fmt.Fprintf(os.Stderr, "No configuration file specified\n")
+		fmt.Fprintf(os.Stderr, "Use -config flag or set GATUS_CONFIG_PATH environment variable\n")
+		os.Exit(1)
+	}
+	
+	fmt.Printf("Validating configuration: %s\n", path)
+	
+	cfg, err := config.LoadConfiguration(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Configuration validation failed: %s\n", err)
+		os.Exit(1)
+	}
+	
+	fmt.Printf("Configuration validation passed!\n")
+	fmt.Printf("  - Endpoints: %d\n", len(cfg.Endpoints))
+	
+	if cfg.ExternalEndpoints != nil && len(cfg.ExternalEndpoints) > 0 {
+		fmt.Printf("  - External endpoints: %d\n", len(cfg.ExternalEndpoints))
+	}
+	
+	if cfg.Alerting != nil {
+		providers := countAlertingProviders(cfg.Alerting)
+		if providers > 0 {
+			fmt.Printf("  - Alerting providers: %d\n", providers)
+		}
+	}
+	
+	if cfg.Storage != nil {
+		fmt.Printf("  - Storage: %s\n", cfg.Storage.Type)
+	}
+	
+	fmt.Printf("Configuration is valid and ready to use\n")
+	os.Exit(0)
+}
+
+func countAlertingProviders(alertingConfig interface{}) int {
+	count := 0
+	v := reflect.ValueOf(alertingConfig)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			count++
+		}
+	}
+	
+	return count
 }
 
 func start(cfg *config.Config) {
