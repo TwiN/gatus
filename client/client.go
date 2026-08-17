@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -186,6 +187,11 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		}
 	}
 
+	// Detect protocol from port: 143 = IMAP, others = SMTP
+	if hostAndPort[1] == "143" {
+		return canPerformIMAPSTARTTLS(connection, hostAndPort[0], config)
+	}
+
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
@@ -202,6 +208,46 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	} else {
 		return false, nil, errors.New("could not get TLS connection state")
 	}
+	return true, certificate, nil
+}
+
+// canPerformIMAPSTARTTLS performs STARTTLS negotiation on an IMAP connection.
+func canPerformIMAPSTARTTLS(conn net.Conn, host string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
+	// Read IMAP greeting
+	reader := bufio.NewReader(conn)
+	greeting, err := reader.ReadString('\n')
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to read IMAP greeting: %w", err)
+	}
+	if !strings.HasPrefix(greeting, "* OK") {
+		return false, nil, fmt.Errorf("unexpected IMAP greeting: %s", strings.TrimSpace(greeting))
+	}
+
+	// Send STARTTLS command
+	_, err = conn.Write([]byte("a001 STARTTLS\r\n"))
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to send IMAP STARTTLS command: %w", err)
+	}
+
+	// Read response
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to read IMAP STARTTLS response: %w", err)
+	}
+	if !strings.HasPrefix(response, "a001 OK") {
+		return false, nil, fmt.Errorf("IMAP STARTTLS failed: %s", strings.TrimSpace(response))
+	}
+
+	// Upgrade to TLS
+	tlsConn := tls.Client(conn, &tls.Config{
+		InsecureSkipVerify: config.Insecure,
+		ServerName:         host,
+	})
+	err = tlsConn.Handshake()
+	if err != nil {
+		return false, nil, fmt.Errorf("IMAP TLS handshake failed: %w", err)
+	}
+	certificate = tlsConn.ConnectionState().PeerCertificates[0]
 	return true, certificate, nil
 }
 
