@@ -15,6 +15,7 @@ import (
 	"net/smtp"
 	"os"
 	"runtime"
+	"sync"
 	"strings"
 	"time"
 
@@ -42,6 +43,28 @@ var (
 	whoisExpirationDateCache = gocache.NewCache().WithMaxSize(10000).WithDefaultTTL(24 * time.Hour)
 	rdapClient               = rdap.NewClient(nil)
 )
+
+// PrivilegedPing holds the global state for enabling/disabling
+// privileged pings in ICMP endpoints.
+type PrivilegedPing struct {
+    mu sync.RWMutex
+	Enabled bool
+}
+
+var UsePrivilegedPing = &PrivilegedPing { Enabled: false }
+
+func (p *PrivilegedPing) Get() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.Enabled
+}
+
+func (p *PrivilegedPing) Set(enabled bool) {
+	UsePrivilegedPing.mu.Lock()
+	defer UsePrivilegedPing.mu.Unlock()
+	UsePrivilegedPing.Enabled = enabled
+}
+
 
 // GetHTTPClient returns the shared HTTP client, or the client from the configuration passed
 func GetHTTPClient(config *Config) *http.Client {
@@ -360,6 +383,7 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger.SetNetwork(config.Network)
 	err := pinger.Run()
 	if err != nil {
+		logr.Warnf("Failed to initiate ping. Does the process have the proper capabilities?")
 		return false, 0
 	}
 	if pinger.Statistics() != nil {
@@ -388,7 +412,8 @@ func ShouldRunPingerAsPrivileged() bool {
 	// To actually check for cap_net_raw capabilities, we would need to add "kernel.org/pub/linux/libs/security/libcap/cap" to gatus.
 	// Or use a syscall and check for permission errors, but this requires platform specific compilation
 	// As a backstop we can simply check the effective user id and run as privileged when running as root
-	return os.Geteuid() == 0
+	// unless the user set `use_privileged_ping = true` in the config file.
+	return os.Geteuid() == 0 || UsePrivilegedPing.Get()
 }
 
 // QueryWebSocket opens a websocket connection, write `body` and return a message from the server

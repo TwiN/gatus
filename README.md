@@ -260,6 +260,7 @@ If you want to test it locally, see [Docker](#docker).
 | `concurrency`                | Maximum number of endpoints/suites to monitor concurrently. Set to `0` for unlimited. See [Concurrency](#concurrency).                   | `3`           |
 | `disable-monitoring-lock`    | Whether to [disable the monitoring lock](#disable-monitoring-lock). **Deprecated**: Use `concurrency: 0` instead.                        | `false`       |
 | `skip-invalid-config-update` | Whether to ignore invalid configuration update. <br />See [Reloading configuration on the fly](#reloading-configuration-on-the-fly).     | `false`       |
+| `use-privileged-ping`        | Whether to use privileged pings. See [upstream docs](https://github.com/prometheus-community/pro-bing/blob/620801fe77f9ea5b10ded99e3d3a34ba6e521aff/README.md?plain=1#L89) for more info |
 | `web`                        | [Web configuration](#web).                                                                                                               | `{}`          |
 | `ui`                         | [UI configuration](#ui).                                                                                                                 | `{}`          |
 | `maintenance`                | [Maintenance configuration](#maintenance).                                                                                               | `{}`          |
