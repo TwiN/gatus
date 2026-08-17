@@ -2629,3 +2629,95 @@ func TestResolveTunnelForClientConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAndValidateConfigRemoteInstancesIncludeRemoteFlag(t *testing.T) {
+	scenarios := []struct {
+		name                  string
+		expectedIncludeRemote []bool
+		config                string
+	}{
+		{
+			name:                  "from-remote-include-remote-default",
+			expectedIncludeRemote: []bool{true},
+			config: `
+endpoints:
+  # We include one endpoint until we can start with only remote instances
+  # See https://github.com/TwiN/gatus/pull/1719
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+remote:
+  instances:
+    - endpoint-prefix: "remote-"
+      url: "https://gatus.example.com/api/v1/endpoint/statuses"`,
+		},
+		{
+			name:                  "from-remote-include-remote-true",
+			expectedIncludeRemote: []bool{true},
+			config: `
+endpoints:
+  # We include one endpoint until we can start with only remote instances
+  # See https://github.com/TwiN/gatus/pull/1719
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+remote:
+  instances:
+    - endpoint-prefix: "remote-"
+      url: "https://gatus.example.com/api/v1/endpoint/statuses"
+      include-remote: true`,
+		},
+		{
+			name:                  "from-remote-include-remote-false",
+			expectedIncludeRemote: []bool{false},
+			config: `
+endpoints:
+  # We include one endpoint until we can start with only remote instances
+  # See https://github.com/TwiN/gatus/pull/1719
+  - name: ep1
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+remote:
+  instances:
+    - endpoint-prefix: "remote-"
+      url: "https://gatus.example.com/api/v1/endpoint/statuses"
+      include-remote: false`,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			cfg, err := parseAndValidateConfigBytes([]byte(scenario.config))
+			if err != nil {
+				t.Errorf("Scenario %s shouldn't have returned an error: %v", scenario.name, err)
+			}
+
+			if cfg.Remote == nil {
+				t.Errorf("Scenario %s cfg.Remote shouldn't be nil", scenario.name)
+			}
+
+			if len(cfg.Remote.Instances) != len(scenario.expectedIncludeRemote) {
+				t.Errorf(
+					"Scenario %s number of found remote instances (%d) does not match expected number of remote instances (%d)",
+					scenario.name,
+					len(cfg.Remote.Instances),
+					len(scenario.expectedIncludeRemote),
+				)
+			}
+
+			for idx, instance := range cfg.Remote.Instances {
+				if *instance.IncludeRemote != scenario.expectedIncludeRemote[idx] {
+					t.Errorf(
+						"Scenario %s remote instance %s had include-remote %t, expected %t",
+						scenario.name,
+						instance.EndpointPrefix,
+						*instance.IncludeRemote,
+						scenario.expectedIncludeRemote[idx],
+					)
+				}
+			}
+		})
+	}
+}

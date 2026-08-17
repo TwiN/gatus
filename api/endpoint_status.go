@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -22,7 +23,16 @@ import (
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
-		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
+
+		// Does the client request remote endpoints? By default yes, for web UI display
+		// and for backwards compatibility. Remote instance queries should have remote=false to
+		// avoid duplicates.
+		remoteQuery := c.Query("remote", "true")
+		// remote query param value is case-insensitive (eg. `TRUE` and `True` are also truthy values)
+		includeRemote := strings.EqualFold(remoteQuery, "true")
+		logr.Debugf("Received EndpointStatuses request with remote=%t")
+
+		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d-%t", page, pageSize, includeRemote))
 		var data []byte
 		if !exists {
 			endpointStatuses, err := store.Get().GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(page, pageSize))
@@ -31,10 +41,12 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				return c.Status(500).SendString(err.Error())
 			}
 			// ALPHA: Retrieve endpoint statuses from remote instances
-			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
-				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
-			} else if endpointStatusesFromRemote != nil {
-				endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
+			if includeRemote {
+				if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
+					logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
+				} else if endpointStatusesFromRemote != nil {
+					endpointStatuses = append(endpointStatuses, endpointStatusesFromRemote...)
+				}
 			}
 			// Marshal endpoint statuses to JSON
 			data, err = json.Marshal(endpointStatuses)
@@ -42,13 +54,31 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Unable to marshal object to JSON: %s", err.Error())
 				return c.Status(500).SendString("unable to marshal object to JSON")
 			}
-			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize), data, cacheTTL)
+			cache.SetWithTTL(fmt.Sprintf("endpoint-status-%d-%d-%t", page, pageSize, includeRemote), data, cacheTTL)
 		} else {
 			data = value.([]byte)
 		}
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
 	}
+}
+
+func formatRemoteInstanceQueryParams(originalURL string, includeRemote bool) (string, error) {
+	parsedOriginalURL, err := url.Parse(originalURL)
+	if err != nil {
+		return "", err
+	}
+
+	// Here we passed url by value not by reference, so we can modify the instance
+	// without changing the actual settings.
+	query := parsedOriginalURL.Query()
+	if includeRemote {
+		query.Set("remote", "true")
+	} else {
+		query.Set("remote", "false")
+	}
+	parsedOriginalURL.RawQuery = query.Encode()
+	return parsedOriginalURL.String(), nil
 }
 
 func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
@@ -58,7 +88,13 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 	var endpointStatusesFromAllRemotes []*endpoint.Status
 	httpClient := client.GetHTTPClient(remoteConfig.ClientConfig)
 	for _, instance := range remoteConfig.Instances {
-		response, err := httpClient.Get(instance.URL)
+		newurl, err := formatRemoteInstanceQueryParams(instance.URL, *instance.IncludeRemote)
+		if err != nil {
+			// Log the error but continue with other instances
+			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Invalid remote instance URL %s: %s", instance.URL, err.Error())
+			continue
+		}
+		response, err := httpClient.Get(newurl)
 		if err != nil {
 			// Log the error but continue with other instances
 			logr.Errorf("[api.getEndpointStatusesFromRemoteInstances] Failed to retrieve endpoint statuses from %s: %s", instance.URL, err.Error())
