@@ -546,7 +546,7 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.buttons[].link`       | Link to open when the button is clicked.                                                                                                 | Required `""`                                       |
 | `ui.custom-css`           | Custom CSS                                                                                                                               | `""`                                                |
 | `ui.dark-mode`            | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                                              |
-| `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
+| `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `default`, `name`, `group`, or `health`. Note that user preferences override this.    | `default`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
 
