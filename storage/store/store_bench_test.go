@@ -66,12 +66,12 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 				if scenario.Parallel {
 					b.RunParallel(func(pb *testing.PB) {
 						for pb.Next() {
-							_, _ = scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+							_, _ = scenario.Store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 20))
 						}
 					})
 				} else {
 					for n := 0; n < b.N; n++ {
-						_, _ = scenario.Store.GetAllEndpointStatuses(paging.NewEndpointStatusParams().WithResults(1, 20))
+						_, _ = scenario.Store.GetAllEndpointStatuses(false, paging.NewEndpointStatusParams().WithResults(1, 20))
 					}
 				}
 				b.ReportAllocs()
@@ -199,12 +199,12 @@ func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
 			if scenario.Parallel {
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
-						scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 20))
+						scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), false, paging.NewEndpointStatusParams().WithResults(1, 20))
 					}
 				})
 			} else {
 				for n := 0; n < b.N; n++ {
-					scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 20))
+					scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), false, paging.NewEndpointStatusParams().WithResults(1, 20))
 				}
 			}
 			b.ReportAllocs()

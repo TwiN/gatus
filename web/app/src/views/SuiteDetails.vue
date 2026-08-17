@@ -154,6 +154,7 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 import { formatDuration } from '@/utils/format'
+import { authenticatedFetch } from '@/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -190,9 +191,7 @@ const fetchData = async () => {
   }
 
   try {
-    const response = await fetch(`/api/v1/suites/${route.params.key}/statuses`, {
-      credentials: 'include'
-    })
+    const response = await authenticatedFetch(`/api/v1/suites/${route.params.key}/statuses`)
 
     if (response.status === 200) {
       const data = await response.json()

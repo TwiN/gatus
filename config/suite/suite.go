@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/key"
+	"github.com/TwiN/gatus/v5/config/visibility"
 )
 
 var (
@@ -54,6 +55,8 @@ type Suite struct {
 
 	// Endpoints in the suite (executed sequentially)
 	Endpoints []*endpoint.Endpoint `yaml:"endpoints"`
+
+	Visibility visibility.Visibility `yaml:"visibility,omitempty"`
 }
 
 // IsEnabled returns whether the suite is enabled
@@ -124,6 +127,7 @@ func (s *Suite) Execute() *Result {
 		Success:         true,
 		Timestamp:       start,
 		EndpointResults: make([]*endpoint.Result, 0, len(s.Endpoints)),
+		Public:          s.Visibility.Public,
 	}
 	// Set up timeout for the entire suite execution
 	timeoutChan := time.After(s.Timeout)

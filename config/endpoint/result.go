@@ -62,6 +62,8 @@ type Result struct {
 	// Name of the endpoint (ONLY USED FOR SUITES)
 	// Group is not needed because it's inherited from the suite
 	Name string `json:"name,omitempty"`
+
+	Public bool `json:"public"`
 }
 
 // AddError adds an error to the result's list of errors.

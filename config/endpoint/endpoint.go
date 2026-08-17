@@ -23,6 +23,7 @@ import (
 	sshconfig "github.com/TwiN/gatus/v5/config/endpoint/ssh"
 	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/config/visibility"
 	"github.com/TwiN/gatus/v5/config/key"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"golang.org/x/crypto/ssh"
@@ -138,6 +139,8 @@ type Endpoint struct {
 
 	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
 	LastReminderSent time.Time `yaml:"-"`
+
+	Visibility visibility.Visibility `yaml:"visibility,omitempty"`
 
 	///////////////////////
 	// SUITE-ONLY FIELDS //
@@ -292,7 +295,7 @@ func (e *Endpoint) EvaluateHealth() *Result {
 
 // EvaluateHealthWithContext sends a request to the endpoint's URL with context support and evaluates the conditions
 func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
-	result := &Result{Success: true, Errors: []string{}}
+	result := &Result{Success: true, Errors: []string{}, Public: e.Visibility.Public}
 	// Preprocess the endpoint with context if provided
 	processedEndpoint := e
 	if context != nil {
