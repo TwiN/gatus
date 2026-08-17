@@ -20,6 +20,7 @@ const (
 	defaultFavicon              = "/favicon.ico"
 	defaultFavicon16            = "/favicon-16x16.png"
 	defaultFavicon32            = "/favicon-32x32.png"
+	defaultAppleTouchIcon       = "/apple-touch-icon.png"
 	defaultCustomCSS            = ""
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
@@ -78,9 +79,10 @@ func (btn *Button) Validate() error {
 }
 
 type Favicon struct {
-	Default   string `yaml:"default,omitempty"`   // URL or path to default favourite icon.
-	Size16x16 string `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
-	Size32x32 string `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
+	Default       string `yaml:"default,omitempty"`         // URL or path to default favourite icon.
+	Size16x16     string `yaml:"size16x16,omitempty"`       // URL or path to favourite icon for 16x16 size.
+	Size32x32     string `yaml:"size32x32,omitempty"`       // URL or path to favourite icon for 32x32 size.
+	AppleTouchIcon string `yaml:"apple-touch-icon,omitempty"` // URL or path to Apple touch icon (180x180).
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -100,9 +102,10 @@ func GetDefaultConfig() *Config {
 		LoginSubtitle:          defaultLoginSubtitle,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		Favicon: Favicon{
-			Default:   defaultFavicon,
-			Size16x16: defaultFavicon16,
-			Size32x32: defaultFavicon32,
+			Default:        defaultFavicon,
+			Size16x16:      defaultFavicon16,
+			Size32x32:      defaultFavicon32,
+			AppleTouchIcon: defaultAppleTouchIcon,
 		},
 	}
 }
@@ -157,6 +160,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.Favicon.Size32x32) == 0 {
 		cfg.Favicon.Size32x32 = defaultFavicon32
+	}
+	if len(cfg.Favicon.AppleTouchIcon) == 0 {
+		cfg.Favicon.AppleTouchIcon = defaultAppleTouchIcon
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
