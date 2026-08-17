@@ -609,6 +609,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeIFTTT,
 		alert.TypeIlert,
 		alert.TypeIncidentIO,
+		alert.TypeJSM,
 		alert.TypeLine,
 		alert.TypeMatrix,
 		alert.TypeMattermost,
