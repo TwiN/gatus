@@ -123,7 +123,7 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 			}
 			formattedConditionResults += fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition)
 			if index < len(result.ConditionResults)-1 {
-				formattedConditionResults += ", "
+				formattedConditionResults += `\n`
 			}
 		}
 		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", formattedConditionResults)
