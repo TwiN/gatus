@@ -55,6 +55,9 @@ var (
 	// ErrInvalidSecurityConfig is an error returned when the security configuration is invalid
 	ErrInvalidSecurityConfig = errors.New("invalid security configuration")
 
+	// ErrProtectMetricsWithoutSecurity is returned when metrics protection has no security
+	ErrProtectMetricsWithoutSecurity = errors.New("security.protect-metrics is true but no security.basic or security.oidc is set")
+
 	// errEarlyReturn is returned to break out of a loop from a callback early
 	errEarlyReturn = errors.New("early escape")
 )
@@ -576,6 +579,9 @@ func ValidateUniqueKeys(config *Config) error {
 
 func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
+		if config.Security.ProtectMetrics && config.Security.Basic == nil && config.Security.OIDC == nil {
+			return ErrProtectMetricsWithoutSecurity
+		}
 		if !config.Security.ValidateAndSetDefaults() {
 			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
 			return ErrInvalidSecurityConfig

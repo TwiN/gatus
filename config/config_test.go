@@ -1765,6 +1765,21 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithProtectMetricsWithoutAuth(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+security:
+  protect-metrics: true
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if !errors.Is(err, ErrProtectMetricsWithoutSecurity) {
+		t.Fatalf("expected error %v, got %v", ErrProtectMetricsWithoutSecurity, err)
+	}
+}
+
 func TestParseAndValidateConfigBytesWithInvalidSecurityConfig(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 security:
@@ -1816,6 +1831,33 @@ endpoints:
 	}
 	if config.Security.Basic.PasswordBcryptHashBase64Encoded != expectedPasswordHash {
 		t.Errorf("config.Security.Basic.PasswordBcryptHashBase64Encoded should've been %s, but was %s", expectedPasswordHash, config.Security.Basic.PasswordBcryptHashBase64Encoded)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithProtectMetrics(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+security:
+  protect-metrics: true
+  basic:
+    username: "john.doe"
+    password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Security == nil {
+		t.Fatal("config.Security shouldn't have been nil")
+	}
+	if !config.Security.ProtectMetrics {
+		t.Error("protect-metrics should have been true")
 	}
 }
 
