@@ -4,7 +4,7 @@
     ref="tooltip"
     :class="[
       'absolute z-50 px-3 py-2 text-sm rounded-md shadow-lg border transition-all duration-200',
-      'bg-popover text-popover-foreground border-border',
+      'bg-popover text-popover-foreground border-border max-w-full',
       hidden ? 'invisible opacity-0' : 'visible opacity-100'
     ]"
     :style="`top: ${top}px; left: ${left}px;`"
@@ -84,8 +84,8 @@
       <!-- Errors -->
       <div v-if="result.errors && result.errors.length">
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors</div>
-        <div class="font-mono text-xs space-y-0.5">
-          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500">
+        <div class="font-mono text-xs space-y-0.5 max-w-full overflow-auto">
+          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500 whitespace-pre">
             • {{ error }}
           </div>
         </div>
