@@ -1,6 +1,7 @@
 package custom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -265,7 +266,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 	alertProvider := &AlertProvider{
 		DefaultConfig: Config{
 			URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-			Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_CONDITIONS]",
+			Body:    `{"text":"[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_CONDITIONS]"}`,
 			Headers: nil,
 			Placeholders: map[string]map[string]string{
 				"ALERT_TRIGGERED_OR_RESOLVED": {
@@ -287,13 +288,13 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 			AlertProvider: alertProvider,
 			Resolved:      true,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=fixed&description=alert-description",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,fixed,✅ - `[CONNECTED] == true`, ✅ - `[STATUS] == 200`",
+			ExpectedBody:  "{\"text\":\"endpoint-name,endpoint-group,alert-description,fixed,✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\"}",
 		},
 		{
 			AlertProvider: alertProvider,
 			Resolved:      false,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=boom&description=alert-description",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,boom,❌ - `[CONNECTED] == true`, ❌ - `[STATUS] == 200`",
+			ExpectedBody:  "{\"text\":\"endpoint-name,endpoint-group,alert-description,boom,❌ - `[CONNECTED] == true`\\n❌ - `[STATUS] == 200`\"}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -317,6 +318,9 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
 			body, _ := io.ReadAll(request.Body)
+			if !json.Valid(body) {
+				t.Error("expected body to contain valid JSON, got", string(body))
+			}
 			if string(body) != scenario.ExpectedBody {
 				t.Error("expected body to be", scenario.ExpectedBody, "got", string(body))
 			}
