@@ -123,8 +123,27 @@ type Config struct {
 	// Announcements is the list of system-wide announcements
 	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
 
-	configPath      string    // path to the file or directory from which config was loaded
-	lastFileModTime time.Time // last modification time
+	configPath            string    // path to the file or directory from which config was loaded
+	lastFileModTime       time.Time // last modification time
+	concurrencyConfigured bool      // whether concurrency was explicitly present in the YAML configuration
+}
+
+// UnmarshalYAML records whether concurrency was explicitly configured so that
+// an omitted value can use the default while an explicit zero remains the
+// documented unlimited-concurrency setting.
+func (config *Config) UnmarshalYAML(value *yaml.Node) error {
+	type configWithoutMethods Config
+	if err := value.Decode((*configWithoutMethods)(config)); err != nil {
+		return err
+	}
+	config.concurrencyConfigured = false
+	for i := 0; i+1 < len(value.Content); i += 2 {
+		if value.Content[i].Value == "concurrency" && value.Content[i+1].Tag != "!!null" {
+			config.concurrencyConfigured = true
+			break
+		}
+	}
+	return nil
 }
 
 // GetUniqueExtraMetricLabels returns a slice of unique metric labels from all enabled endpoints
@@ -691,7 +710,7 @@ func ValidateAndSetConcurrencyDefaults(config *Config) {
 		logr.Warn("WARNING: The 'disable-monitoring-lock' configuration has been deprecated and will be removed in v6.0.0")
 		logr.Warn("WARNING: Please set 'concurrency: 0' instead")
 		logr.Debug("[config.ValidateAndSetConcurrencyDefaults] DisableMonitoringLock is true, setting unlimited (0) concurrency")
-	} else if config.Concurrency <= 0 && !config.DisableMonitoringLock {
+	} else if config.Concurrency < 0 || (config.Concurrency == 0 && !config.concurrencyConfigured) {
 		config.Concurrency = DefaultConcurrency
 		logr.Debugf("[config.ValidateAndSetConcurrencyDefaults] Setting default concurrency to %d", config.Concurrency)
 	} else {
