@@ -21,7 +21,20 @@
             <span v-if="hostname" class="truncate" :title="hostname">{{ hostname }}</span>
           </div>
         </div>
-        <div class="flex-shrink-0 ml-2">
+        <div class="flex-shrink-0 ml-2 flex items-center gap-1">
+          <a
+            v-for="link in endpoint.links"
+            :key="link.name"
+            :href="link.value"
+            target="_blank"
+            rel="noopener noreferrer"
+            :title="link.name"
+            :aria-label="link.name"
+            class="text-muted-foreground hover:text-primary transition-colors"
+            @click.stop
+          >
+            <ExternalLink class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          </a>
           <StatusBadge :status="currentStatus" />
         </div>
       </div>
@@ -64,6 +77,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ExternalLink } from 'lucide-vue-next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'

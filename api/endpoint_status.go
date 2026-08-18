@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
@@ -30,6 +31,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
 			}
+			populateLinksFromConfig(cfg, endpointStatuses)
 			// ALPHA: Retrieve endpoint statuses from remote instances
 			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
 				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
@@ -48,6 +50,23 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 		}
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
+	}
+}
+
+// populateLinksFromConfig sets Links on each endpointStatus from the live config's matching endpoint.
+// Links are static config, not historical per-check data, so they're attached here at read time
+// rather than persisted to storage.
+func populateLinksFromConfig(cfg *config.Config, endpointStatuses []*endpoint.Status) {
+	linksByKey := make(map[string][]ui.Link, len(cfg.Endpoints))
+	for _, ep := range cfg.Endpoints {
+		if ep.UIConfig != nil && len(ep.UIConfig.Links) > 0 {
+			linksByKey[ep.Key()] = ep.UIConfig.Links
+		}
+	}
+	for _, status := range endpointStatuses {
+		if links, exists := linksByKey[status.Key]; exists {
+			status.Links = links
+		}
 	}
 }
 
@@ -104,6 +123,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
+		populateLinksFromConfig(cfg, []*endpoint.Status{endpointStatus})
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {
 			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())
