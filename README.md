@@ -47,8 +47,10 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [External Endpoints](#external-endpoints)
   - [Suites (ALPHA)](#suites-alpha)
   - [Conditions](#conditions)
-    - [Placeholders](#placeholders)
-    - [Functions](#functions)
+    - [Template conditions (recommended)](#template-conditions-recommended)
+    - [Legacy bracket syntax (deprecated)](#legacy-bracket-syntax-deprecated)
+      - [Placeholders](#placeholders)
+      - [Functions](#functions)
   - [Web](#web)
   - [UI](#ui)
   - [Announcements](#announcements)
@@ -464,6 +466,134 @@ The suite will be considered successful only if all required endpoints pass thei
 
 
 ### Conditions
+Gatus supports two syntaxes for `conditions`: a **template syntax** (recommended) built on Go's
+`text/template` pipelines, and a **legacy bracket syntax** (deprecated, but fully supported — there is
+no removal planned). Both syntaxes can be freely mixed within the same endpoint's `conditions` list.
+A condition is parsed as the template syntax if (after trimming whitespace) it starts with `{{` and
+ends with `}}`; anything else is parsed as the legacy syntax.
+
+#### Template conditions (recommended)
+A template condition is a `text/template` action (e.g. `"{{eq .Status 200}}"`) which must evaluate to
+exactly `true` or `false`.
+
+| Condition                                     | Description                                          |
+|:-----------------------------------------------|:-----------------------------------------------------|
+| `{{eq .Status 200}}`                          | Status must be equal to 200                          |
+| `{{lt .Status 300}}`                          | Status must be lower than 300                        |
+| `{{le .Status 299}}`                          | Status must be less than or equal to 299              |
+| `{{gt .Status 400}}`                          | Status must be greater than 400                      |
+| `{{any .Status 200 429}}`                     | Status must be either 200 or 429                     |
+| `{{eq .Connected true}}`                      | Connection to host must've been successful           |
+| `{{lt .ResponseTime 500}}`                    | Response time must be below 500ms                    |
+| `{{eq .IP "127.0.0.1"}}`                      | Target IP must be 127.0.0.1                          |
+| `{{eq .Body 1}}`                              | The body must be equal to 1                          |
+| `{{eq .Body.user.name "john"}}`               | JSON field `$.user.name` is equal to `john`           |
+| `{{eq (index .Body.data 0).id 1}}`            | JSON field `$.data[0].id` is equal to 1               |
+| `{{eq .Body.age .Body.id}}`                   | JSON field `$.age` is equal to JSON field `$.id`      |
+| `{{lt (len .Body.data) 5}}`                   | Array at `$.data` has less than 5 elements            |
+| `{{eq (len .Body.name) 8}}`                   | String at `$.name` has a length of 8                  |
+| `{{not (has .Body "errors")}}`                | JSON field `$.errors` does not exist                  |
+| `{{has .Body "users"}}`                       | JSON field `$.users` exists                           |
+| `{{pat "john*" .Body.name}}`                  | String at `$.name` matches pattern `john*`             |
+| `{{any .Body.id 1 2}}`                        | Value at `$.id` is equal to `1` or `2`                |
+| `{{eq .Headers.Location "https://example.com/"}}` | Response `Location` header must equal the given URL |
+| `{{has .Headers "Location"}}`                 | Response must include a `Location` header             |
+| `{{eq (len (index .Headers "Set-Cookie")) 2}}`| Response must set exactly 2 cookies                   |
+| `{{pat "theme=dark" (index .Headers "Set-Cookie")}}` | One of the (possibly repeated) `Set-Cookie` values is exactly `theme=dark` |
+| `{{gt .CertificateExpiration "48h"}}`         | Certificate expiration is more than 48h away          |
+| `{{gt .DomainExpiration "720h"}}`             | The domain must expire in more than 720h              |
+
+##### Fields
+| Field                       | Description                                                                               | Example                        |
+|:----------------------------|:--------------------------------------------------------------------------------------------|:--------------------------------|
+| `.Status`                   | HTTP status of the request (int)                                                            | `404`                          |
+| `.ResponseTime`             | Response time the request took, in ms (int64)                                               | `10`                            |
+| `.IP`                       | IP of the target host (string)                                                              | `192.168.0.232`                |
+| `.Body`                     | Response body, JSON-decoded when possible (any); otherwise the raw string                   | `{"name":"john.doe"}`           |
+| `.Headers`                  | Response headers (map); a header present once is a string, repeated headers are `[]string`  | `{"Location":"https://..."}`   |
+| `.Connected`                | Whether a connection could be established (bool)                                            | `true`                          |
+| `.CertificateExpiration`    | Duration before certificate expiration, in ms (int64) — compare with a duration string       | `{{gt .CertificateExpiration "48h"}}` |
+| `.DomainExpiration`         | Duration before the domain expires, in ms (int64) — compare with a duration string           | `{{gt .DomainExpiration "720h"}}` |
+| `.DNSRCode`                 | DNS status of the response (string)                                                         | `NOERROR`                       |
+| `.Context`                  | Suite context values (map, only populated inside suites — see [Suites](#suites-alpha))       | `{{eq .Status .Context.expected_status}}` |
+
+Because template pipelines have no `[i]` bracket-indexing syntax, use the built-in `index` function for
+array access (`index .Body.data 0`) and for header/field names that aren't valid Go identifiers, such as
+hyphenated header names (`index .Headers "Content-Type"`).
+
+##### Functions
+| Function          | Description                                                                                       | Example                                  |
+|:-------------------|:----------------------------------------------------------------------------------------------------|:-------------------------------------------|
+| `eq`, `ne`, `lt`, `le`, `gt`, `ge` | Binary comparisons. Values are compared numerically when both sides parse as a number (including duration strings like `"48h"` and `0x`/`0o`/`0b`-prefixed integers), otherwise as strings. | `{{gt .Status 400}}` |
+| `len`              | Built-in `text/template` function: length of a string, array, slice, or map.                       | `{{lt (len .Body.data) 5}}`               |
+| `has`              | Returns `true`/`false` based on whether a given key/index exists in a map or slice, without erroring on a missing key. | `{{has .Body "errors"}}`                  |
+| `pat`              | Evaluates the first argument as a glob pattern against the second argument. Takes the pattern first: `pat "<pattern>" <value>`. | `{{pat "192.168.*" .IP}}`                 |
+| `any`              | Checks whether the first argument equals any of the following arguments. Takes the value first: `any <value> <opt1> <opt2> ...`. | `{{any .IP "127.0.0.1" "::1"}}`           |
+| `index`            | Built-in `text/template` function: indexes into an array/slice/map.                                 | `{{index .Body.data 0}}`                  |
+
+Every other [built-in `text/template` function](https://pkg.go.dev/text/template#hdr-Functions) is also
+available, including the logical operators `and`, `or`, and `not`, which are how you combine multiple
+checks into a single condition:
+
+| Condition                                                        | Description                                            |
+|:-------------------------------------------------------------------|:----------------------------------------------------------|
+| `{{and (eq .Status 200) (lt .ResponseTime 500)}}`                 | Status must be 200 **and** response time under 500ms      |
+| `{{or (eq .Status 200) (eq .Status 429)}}`                        | Status must be 200 **or** 429                              |
+| `{{not (has .Body "errors")}}`                                    | JSON field `$.errors` must **not** exist                   |
+
+##### Sprig functions
+On top of the functions above, every function from the [Sprig](https://masterminds.github.io/sprig/)
+template function library is available, giving conditions access to string manipulation, regular
+expressions, list/dict helpers, encoding, date arithmetic, and more — without needing a `[BODY]`
+JSONPath workaround for logic the bracket DSL never supported.
+
+| Condition                                              | Description                                              |
+|:----------------------------------------------------------|:-------------------------------------------------------------|
+| `{{eq (upper (trim .Body.name)) "JOHN"}}`                | Trims whitespace and uppercases `$.name` before comparing   |
+| `{{contains "doe" .Body.name}}`                          | `$.name` contains the substring `doe`                       |
+| `{{hasPrefix "2." .Body.version}}`                       | `$.version` starts with `2.`                                 |
+| `{{hasSuffix ".json" .Headers.Location}}`                | `Location` header ends with `.json`                          |
+| `{{regexMatch "^[0-9]+$" .Body.id}}`                     | `$.id` is made up entirely of digits                          |
+| `{{eq (len (splitList "," .Headers.Vary)) 3}}`           | `Vary` header has exactly 3 comma-separated values             |
+| `{{dateInZone "2006-01-02" (now) "UTC"}}`                | Today's date in `UTC`, useful when combined with `eq`/`lt`/`gt` |
+
+> ⚠️ Sprig defines its own `has(needle, haystack)` function for list membership, with reversed
+> argument order compared to this document's `has`. Gatus's own `has(container, key)` (see the
+> Functions table above) takes precedence over Sprig's when the two collide, since it's central to
+> condition evaluation — use `pat`/`any`/`eq` combined with `splitList`/`list` if you need Sprig-style
+> list-membership checks.
+
+##### Resolved value display
+Unlike the legacy syntax, template conditions don't have a fixed two-operand shape to render an
+`original (resolved)` breakdown for. Instead, when a condition fails (or, if
+`resolve-successful-conditions` is enabled, when it succeeds), Gatus appends the resolved value of
+every field it referenced directly, as `path=value`, in the order they first appear:
+
+```
+{{eq .Status 200}} (Status=500)
+{{and (eq .Status 200) (lt .ResponseTime 500)}} (Status=500, ResponseTime=750)
+{{eq .Body.user.name "john"}} (Body.user.name=bob)
+```
+
+This only resolves plain dotted field paths (`.Status`, `.Body.user.name`, `.Headers.Location`,
+`.Context.expected_status`, ...) — a path that can't be traversed against the actual response (e.g.
+`.Body.foo` when the body isn't JSON) is silently omitted rather than shown as `(INVALID)`, and the
+result of a function call chained with a field access (the `.id` in `(index .Body.data 0).id`)
+isn't individually resolved, since it isn't a direct field path. Like the legacy syntax, resolved
+values longer than 25 characters are truncated (e.g. `Body=this-is-a-long-body-va...(truncated)`)
+so a large body or header value doesn't flood the alert message.
+
+> 💡 One remaining limitation compared to the legacy syntax: whether a condition needs the response
+> body/headers/IP/domain-expiration is detected by statically looking for `.Body`/`.Headers`/`.IP`/
+> `.DomainExpiration` references, including through a template variable that aliases the whole dot
+> (e.g. `{{$root := .}}{{if $root.Body}}...{{end}}`, which conservatively assumes every field might
+> be needed). What still isn't detected is a field reached purely dynamically, e.g.
+> `{{index . "Body"}}` instead of `.Body` — prefer the plain dotted form so Gatus knows to fetch it.
+
+#### Legacy bracket syntax (deprecated)
+The syntax below remains fully supported for backwards compatibility, but new conditions should use the
+template syntax documented above.
+
 Here are some examples of conditions you can use:
 
 | Condition                        | Description                                         | Passing values             | Failing values   |
@@ -486,28 +616,41 @@ Here are some examples of conditions you can use:
 | `has([BODY].users) == true`      | JSONPath `$.users` exists                           | `{"users":[]}`             | `{}`             |
 | `[BODY].name == pat(john*)`      | String at JSONPath `$.name` matches pattern `john*` | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].id == any(1, 2)`         | Value at JSONPath `$.id` is equal to `1` or `2`     | 1, 2                       | 3, 4, 5          |
+| `[HEADERS].Location == https://example.com/` | Response `Location` header must equal the given URL | `https://example.com/`     |                  |
+| `has([HEADERS].Location) == true` | Response must include a `Location` header          | any redirect response      | responses without `Location` |
+| `len([HEADERS].Set-Cookie) == 2` | Response must set exactly 2 cookies                 | two `Set-Cookie` headers   | 0, 1, 3, ...     |
+| `[HEADERS].Set-Cookie == pat(theme=dark)` | One of the (possibly repeated) `Set-Cookie` values is exactly `theme=dark` | `Set-Cookie: session=abc`<br>`Set-Cookie: theme=dark` | responses without a matching `Set-Cookie` value |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 | `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
 
 
-#### Placeholders
+##### Placeholders
 | Placeholder                | Description                                                                               | Example of resolved value                    |
 |:---------------------------|:------------------------------------------------------------------------------------------|:---------------------------------------------|
 | `[STATUS]`                 | Resolves into the HTTP status of the request                                              | `404`                                        |
 | `[RESPONSE_TIME]`          | Resolves into the response time the request took, in ms                                   | `10`                                         |
 | `[IP]`                     | Resolves into the IP of the target host                                                   | `192.168.0.232`                              |
 | `[BODY]`                   | Resolves into the response body. Supports JSONPath.                                       | `{"name":"john.doe"}`                        |
+| `[HEADERS].<name>`         | Resolves into the value of the named HTTP response header (case-insensitive). A header present once resolves to a plain string; multiple occurrences resolve to a JSON array. | `https://example.com/` |
 | `[CONNECTED]`              | Resolves into whether a connection could be established                                   | `true`                                       |
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration (valid units are "s", "m", "h".) | `24h`, `48h`, 0 (if not protocol with certs) |
 | `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
 
+> ⚠️ Header values resolved by `[HEADERS]` conditions are displayed in failed condition results and may be persisted in the results store. Avoid checking sensitive headers such as `Authorization` or `Set-Cookie` unless you are comfortable with those values being visible in the dashboard and stored alongside results.
 
-#### Functions
+> 💡 A header can legally appear more than once (e.g. multiple `Set-Cookie` values). A bare `==`/`!=` against
+> `[HEADERS].<name>` or `[HEADERS]` is strict equality against the whole set of values received (resolved as a
+> JSON array/object) — it never silently becomes a "does any value match" check. To check whether **any**
+> individual value matches, use `pat(...)`, e.g. `[HEADERS].Set-Cookie == pat(theme=dark)`; this is evaluated one
+> raw value at a time, so a pattern can never falsely match by spanning the boundary between two distinct values.
+
+
+##### Functions
 | Function | Description                                                                                                                                                                                                                         | Example                            |
 |:---------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------|
-| `len`    | If the given path leads to an array, returns its length. Otherwise, the JSON at the given path is minified and converted to a string, and the resulting number of characters is returned. Works only with the `[BODY]` placeholder. | `len([BODY].username) > 8`         |
-| `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.                                                                                                                         | `has([BODY].errors) == false`      |
+| `len`    | For `[BODY]`: if the path leads to an array, returns its length; otherwise returns the character count of the stringified value. For `[HEADERS].<name>`: returns the number of values when the header appears multiple times, or the character length of the value when it appears once. | `len([BODY].username) > 8`, `len([HEADERS].Set-Cookie) == 2` |
+| `has`    | Returns `true` or `false` based on whether a given path is valid. Works with the `[BODY]` and `[HEADERS]` placeholders.                                                                                                             | `has([BODY].errors) == false`, `has([HEADERS].Location) == true` |
 | `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
