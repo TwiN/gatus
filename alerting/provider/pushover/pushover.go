@@ -58,6 +58,18 @@ type Config struct {
 	// Device to send the message to (see: https://pushover.net/api#devices)
 	// default: "" (all devices)
 	Device string `yaml:"device,omitempty"`
+
+	// Retry parameter specifies how often (in seconds) the Pushover servers will retry the notification to the user
+	// Required when Priority is 2, otherwise ignored
+	// Minimum value is 30 seconds
+	// default: 60
+	Retry int `yaml:"retry,omitempty"`
+
+	// Expire parameter specifies how long (in seconds) the notification will continue to be retried
+	// Required when Priority is 2, otherwise ignored
+	// Maximum value is 10800 seconds (3 hours)
+	// default: 3600
+	Expire int `yaml:"expire,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -78,6 +90,37 @@ func (cfg *Config) Validate() error {
 	}
 	if len(cfg.Device) > 25 {
 		return ErrInvalidDevice
+	}
+	// Set default values for retry and expire when priority is 2
+	if cfg.Priority == 2 {
+		if cfg.Retry == 0 {
+			cfg.Retry = 60 // default: 60 seconds
+		}
+		if cfg.Expire == 0 {
+			cfg.Expire = 3600 // default: 3600 seconds (1 hour)
+		}
+		// Validate retry and expire values
+		if cfg.Retry < 30 {
+			return errors.New("retry must be at least 30 seconds when priority is 2")
+		}
+		if cfg.Expire > 10800 {
+			return errors.New("expire must not exceed 10800 seconds (3 hours) when priority is 2")
+		}
+	}
+	if cfg.ResolvedPriority == 2 {
+		if cfg.Retry == 0 {
+			cfg.Retry = 60 // default: 60 seconds
+		}
+		if cfg.Expire == 0 {
+			cfg.Expire = 3600 // default: 3600 seconds (1 hour)
+		}
+		// Validate retry and expire values
+		if cfg.Retry < 30 {
+			return errors.New("retry must be at least 30 seconds when resolved-priority is 2")
+		}
+		if cfg.Expire > 10800 {
+			return errors.New("expire must not exceed 10800 seconds (3 hours) when resolved-priority is 2")
+		}
 	}
 	return nil
 }
@@ -106,6 +149,12 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Device) > 0 {
 		cfg.Device = override.Device
+	}
+	if override.Retry > 0 {
+		cfg.Retry = override.Retry
+	}
+	if override.Expire > 0 {
+		cfg.Expire = override.Expire
 	}
 }
 
@@ -157,6 +206,8 @@ type Body struct {
 	Sound    string `json:"sound,omitempty"`
 	TTL      int    `json:"ttl,omitempty"`
 	Device   string `json:"device,omitempty"`
+	Retry    int    `json:"retry,omitempty"`
+	Expire   int    `json:"expire,omitempty"`
 }
 
 // buildRequestBody builds the request body for the provider
@@ -186,7 +237,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	if cfg.Title != "" {
 		title = cfg.Title
 	}
-	body, _ := json.Marshal(Body{
+	bodyStruct := Body{
 		Token:    cfg.ApplicationToken,
 		User:     cfg.UserKey,
 		Title:    title,
@@ -196,7 +247,13 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Sound:    cfg.Sound,
 		TTL:      cfg.TTL,
 		Device:   cfg.Device,
-	})
+	}
+	// Include retry and expire when priority is 2 (Emergency)
+	if priority == 2 {
+		bodyStruct.Retry = cfg.Retry
+		bodyStruct.Expire = cfg.Expire
+	}
+	body, _ := json.Marshal(bodyStruct)
 	return body
 }
 
