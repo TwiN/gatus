@@ -53,6 +53,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.LoginSubtitle != defaultLoginSubtitle {
 			t.Errorf("expected LoginSubtitle to be %s, got %s", defaultLoginSubtitle, cfg.LoginSubtitle)
 		}
+		if cfg.BasePath != defaultBasePath {
+			t.Errorf("expected BasePath to be %s, got %s", defaultBasePath, cfg.BasePath)
+		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -66,6 +69,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
 			LoginSubtitle:       "Welcome",
+			BasePath:            "/custom-base-path/",
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -100,6 +104,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.LoginSubtitle != "Welcome" {
 			t.Errorf("expected LoginSubtitle to be preserved, got %s", cfg.LoginSubtitle)
 		}
+		if cfg.BasePath != "/custom-base-path/" {
+			t.Errorf("expected BasePath to be /custom-base-path/, got %s", cfg.BasePath)
+		}
 	})
 	t.Run("partial-custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -128,6 +135,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 		if cfg.LoginSubtitle != defaultLoginSubtitle {
 			t.Errorf("expected LoginSubtitle to use default, got %s", cfg.LoginSubtitle)
+		}
+		if cfg.BasePath != defaultBasePath {
+			t.Errorf("expected BasePath to be %s, got %s", defaultBasePath, cfg.BasePath)
 		}
 	})
 }
@@ -193,6 +203,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 	if defaultConfig.LoginSubtitle != defaultLoginSubtitle {
 		t.Error("expected GetDefaultConfig() to return defaultLoginSubtitle, got", defaultConfig.LoginSubtitle)
+	}
+	if defaultConfig.BasePath != defaultBasePath {
+		t.Error("expected GetDefaultConfig() to return defaultBasePath, got", defaultConfig.BasePath)
 	}
 }
 
