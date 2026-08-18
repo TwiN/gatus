@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
+	"github.com/TwiN/gatus/v5/alerting/provider/bark"
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
@@ -1856,6 +1857,7 @@ func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		AWSSimpleEmailService: &awsses.AlertProvider{},
+		Bark:                  &bark.AlertProvider{},
 		ClickUp:               &clickup.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
 		Datadog:               &datadog.AlertProvider{},
@@ -1901,6 +1903,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		expected  provider.AlertProvider
 	}{
 		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
+		{alertType: alert.TypeBark, expected: alertingConfig.Bark},
 		{alertType: alert.TypeClickUp, expected: alertingConfig.ClickUp},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
@@ -1947,6 +1950,70 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 				t.Errorf("expected %s configuration", scenario.alertType)
 			}
 		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithBarkAlerting(t *testing.T) {
+	t.Parallel()
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  bark:
+    server-url: https://bark.example.com/
+    device-key: test-device-key
+    title: Gatus status
+    group: gatus
+    default-alert:
+      failure-threshold: 7
+      success-threshold: 4
+      send-on-resolved: true
+    overrides:
+      - group: production
+        level: passive
+
+endpoints:
+  - name: api
+    group: production
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: bark
+        provider-override:
+          group: incident
+          sound: alarm
+`))
+	if err != nil {
+		t.Fatal("expected Bark configuration to parse, got", err)
+	}
+	if config.Alerting == nil || config.Alerting.Bark == nil {
+		t.Fatal("expected Bark alerting provider")
+	}
+	if config.Alerting.Bark.DefaultConfig.ServerURL != "https://bark.example.com" {
+		t.Errorf("expected normalized Bark server URL, got %q", config.Alerting.Bark.DefaultConfig.ServerURL)
+	}
+	if config.Alerting.Bark.DefaultConfig.DeviceKey != "test-device-key" {
+		t.Error("expected Bark device key to be parsed")
+	}
+	if config.Alerting.Bark.DefaultConfig.Group != "gatus" {
+		t.Errorf("expected Bark notification group %q, got %q", "gatus", config.Alerting.Bark.DefaultConfig.Group)
+	}
+	if config.Alerting.GetAlertingProviderByAlertType(alert.TypeBark) != config.Alerting.Bark {
+		t.Error("expected Bark provider to be discoverable by alert type")
+	}
+	endpointAlert := config.Endpoints[0].Alerts[0]
+	if endpointAlert.Type != alert.TypeBark {
+		t.Errorf("expected alert type %q, got %q", alert.TypeBark, endpointAlert.Type)
+	}
+	if endpointAlert.FailureThreshold != 7 || endpointAlert.SuccessThreshold != 4 || !endpointAlert.IsSendingOnResolved() {
+		t.Errorf("expected Bark default alert to be merged, got %#v", endpointAlert)
+	}
+	merged, err := config.Alerting.Bark.GetConfig(config.Endpoints[0].Group, endpointAlert)
+	if err != nil {
+		t.Fatal("expected merged Bark configuration to be valid, got", err)
+	}
+	if merged.Level != "passive" || merged.Sound != "alarm" || merged.Group != "incident" {
+		t.Errorf("expected group and alert overrides, got %#v", merged)
 	}
 }
 

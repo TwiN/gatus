@@ -57,6 +57,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
+    - [Configuring Bark alerts](#configuring-bark-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
@@ -838,6 +839,7 @@ endpoints:
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
+| `alerting.bark`            | Configuration for alerts of type `bark`. <br />See [Configuring Bark alerts](#configuring-bark-alerts).                                 | `{}`    |
 | `alerting.clickup`         | Configuration for alerts of type `clickup`. <br />See [Configuring ClickUp alerts](#configuring-clickup-alerts).                        | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
 | `alerting.datadog`         | Configuration for alerts of type `datadog`. <br />See [Configuring Datadog alerts](#configuring-datadog-alerts).                        | `{}`    |
@@ -921,6 +923,64 @@ endpoints:
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
+
+
+#### Configuring Bark alerts
+
+| Parameter                            | Description                                                                                                                       | Default                 |
+|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:------------------------|
+| `alerting.bark`                      | Configuration for alerts of type `bark`                                                                                           | `{}`                    |
+| `alerting.bark.server-url`           | Base URL of the official or self-hosted Bark server. A URL ending in `/push` is also accepted                                    | `https://api.day.app`   |
+| `alerting.bark.device-key`           | Bark device key                                                                                                                   | Required `""`           |
+| `alerting.bark.title`                | Notification title. When empty, Gatus uses `Gatus: <endpoint>`                                                                    | `""`                    |
+| `alerting.bark.group`                | Bark notification group                                                                                                           | `""`                    |
+| `alerting.bark.sound`                | Bark notification sound                                                                                                           | `""`                    |
+| `alerting.bark.icon`                 | URL of the notification icon                                                                                                      | `""`                    |
+| `alerting.bark.url`                  | URL or URL scheme opened when the notification is selected                                                                        | `""`                    |
+| `alerting.bark.level`                | Bark notification level: `critical`, `active`, `timeSensitive`, or `passive`                                                     | `""`                    |
+| `alerting.bark.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                       | N/A                     |
+| `alerting.bark.overrides`            | List of overrides selected by endpoint group                                                                                       | `[]`                    |
+| `alerting.bark.overrides[].group`    | Endpoint group for which the configuration is overridden                                                                          | `""`                    |
+| `alerting.bark.overrides[].*`        | See `alerting.bark.*` parameters, except `group`, which selects the endpoint group and inherits the default Bark notification group | `{}`                    |
+
+```yaml
+alerting:
+  bark:
+    server-url: "https://api.day.app"
+    device-key: "${BARK_DEVICE_KEY}"
+    group: "gatus"
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+    overrides:
+      - group: "production"
+        sound: "alarm"
+        level: "timeSensitive"
+
+endpoints:
+  - name: website
+    group: production
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: bark
+        description: "health check failed"
+        provider-override:
+          title: "Production website"
+          group: "gatus-production"
+          level: "critical"
+```
+
+The device key is a push credential: anyone who has it can send notifications to the device. Keep it out of public
+configuration files and inject it through an environment variable such as `BARK_DEVICE_KEY`. Use HTTPS for remote
+Bark servers; an HTTP connection sends the device key without transport encryption.
+
+See the [Bark project](https://github.com/finb/bark) and the
+[Bark server API V2 documentation](https://github.com/Finb/bark-server/blob/master/docs/API_V2.md) for server and
+notification details.
 
 
 #### Configuring ClickUp alerts
