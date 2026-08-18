@@ -28,6 +28,10 @@ type ExternalEndpoint struct {
 	// Name of the endpoint. Can be anything.
 	Name string `yaml:"name"`
 
+	// ExplicitKey, when set, is used as the endpoint's unique key instead of deriving it from Group and Name.
+	// This lets an endpoint's identity stay stable across name and group changes.
+	ExplicitKey string `yaml:"key,omitempty"`
+
 	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
 	Group string `yaml:"group,omitempty"`
 
@@ -83,6 +87,9 @@ func (externalEndpoint *ExternalEndpoint) DisplayName() string {
 
 // Key returns the unique key for the Endpoint
 func (externalEndpoint *ExternalEndpoint) Key() string {
+	if externalEndpoint.ExplicitKey != "" {
+		return key.Sanitize(externalEndpoint.ExplicitKey)
+	}
 	return key.ConvertGroupAndNameToKey(externalEndpoint.Group, externalEndpoint.Name)
 }
 
@@ -91,6 +98,7 @@ func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 	endpoint := &Endpoint{
 		Enabled:                 externalEndpoint.Enabled,
 		Name:                    externalEndpoint.Name,
+		ExplicitKey:             externalEndpoint.ExplicitKey,
 		Group:                   externalEndpoint.Group,
 		Alerts:                  externalEndpoint.Alerts,
 		NumberOfFailuresInARow:  externalEndpoint.NumberOfFailuresInARow,

@@ -278,6 +278,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints`                                     | List of endpoints to monitor.                                                                                                               | Required `[]`              |
 | `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                            | `true`                     |
 | `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                      | Required `""`              |
+| `endpoints[].key`                               | Explicit unique key used for storage and API routes instead of deriving it from group and name. <br />See [Endpoint key](#endpoint-key).   | `""`                       |
 | `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `""`                       |
 | `endpoints[].url`                               | URL to send the request to.                                                                                                                 | Required `""`              |
 | `endpoints[].method`                            | Request method.                                                                                                                             | `GET`                      |
@@ -329,6 +330,7 @@ For instance:
 | `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
 | `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
 | `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
+| `external-endpoints[].key`                | Explicit unique key used for storage and API routes instead of deriving it from group and name. <br />See [Endpoint key](#endpoint-key). | `""`     |
 | `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
 | `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
 | `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
@@ -3372,6 +3374,28 @@ the same as restarting the application.
 
 > 📝 Updates may not be detected if the config file is bound instead of the config folder. See [#151](https://github.com/TwiN/gatus/issues/151).
 
+
+### Endpoint key
+By default, an endpoint's unique key is derived from its `group` and `name`.
+This key is what Gatus uses to store the endpoint's history and to build its API routes (e.g. `/api/v1/endpoints/{key}/...`), which means renaming an endpoint or moving it to a different group changes its key and orphans its existing history.
+
+Setting `key` lets you pin an endpoint's identity to a stable value (e.g. a UUID or a slug) so it survives changes to `name` and `group`:
+```yaml
+endpoints:
+  - name: My Frontend
+    key: 550e8400-e29b-41d4-a716-446655440000
+    url: "https://example.org/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+```
+The same field is available on `external-endpoints`.
+
+Notes:
+- The value is sanitized the same way derived keys are, so it is safe to use in storage and URLs. For UUIDs and slugs this is a no-op.
+- Because `_` is replaced by `-`, an explicit key can never reproduce a derived `group`/`name` key (those always contain a `_` separator). An explicit key therefore cannot be used to adopt the history of an existing grouped endpoint.
+- The key must be unique across all endpoints and external endpoints, just like the derived `group`/`name` key.
+- Adding or changing `key` on an endpoint that already has history is a one-time cutover: the history stored under the old key is orphaned (not migrated). This is expected.
 
 ### Endpoint groups
 Endpoint groups are used for grouping multiple endpoints together on the dashboard.

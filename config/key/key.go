@@ -4,10 +4,10 @@ import "strings"
 
 // ConvertGroupAndNameToKey converts a group and a name to a key
 func ConvertGroupAndNameToKey(groupName, name string) string {
-	return sanitize(groupName) + "_" + sanitize(name)
+	return Sanitize(groupName) + "_" + Sanitize(name)
 }
 
-func sanitize(s string) string {
+func Sanitize(s string) string {
 	s = strings.TrimSpace(strings.ToLower(s))
 	s = strings.ReplaceAll(s, "/", "-")
 	s = strings.ReplaceAll(s, "_", "-")

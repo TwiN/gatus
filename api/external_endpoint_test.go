@@ -174,3 +174,46 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		}
 	})
 }
+
+func TestCreateExternalEndpointResultWithExplicitKey(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	cfg := &config.Config{
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{
+			{
+				Name:        "A Human Readable Name",
+				Group:       "some-group",
+				ExplicitKey: "some-stable-uuid",
+				Token:       "token",
+			},
+		},
+		Maintenance: &maintenance.Config{},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("POST", "/api/v1/endpoints/some-stable-uuid/external?success=true", http.NoBody)
+	request.Header.Set("Authorization", "Bearer token")
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatalf("failed to push result: %s", err.Error())
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		t.Fatalf("expected push to return 200, but returned %d instead", response.StatusCode)
+	}
+	// The result must be stored under the explicit key.
+	endpointStatus, err := store.Get().GetEndpointStatusByKey("some-stable-uuid", paging.NewEndpointStatusParams().WithResults(1, 1))
+	if err != nil {
+		t.Fatalf("failed to get endpoint status by explicit key: %s", err.Error())
+	}
+	if endpointStatus.Key != "some-stable-uuid" {
+		t.Errorf("expected stored key to be some-stable-uuid but got %s", endpointStatus.Key)
+	}
+	if len(endpointStatus.Results) != 1 || !endpointStatus.Results[0].Success {
+		t.Errorf("expected exactly one successful result under the explicit key")
+	}
+	// It must NOT be stored under the derived group_name key.
+	if derived, _ := store.Get().GetEndpointStatusByKey("some-group_a-human-readable-name", paging.NewEndpointStatusParams().WithResults(1, 1)); derived != nil && len(derived.Results) > 0 {
+		t.Errorf("result should not have been stored under the derived key")
+	}
+}
