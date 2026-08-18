@@ -14,8 +14,8 @@
           </h3>
         </div>
 
-        <!-- Announcements for this date or empty state -->
-        <div v-if="group.length > 0" class="space-y-3">
+        <!-- Announcements for this date -->
+        <div class="space-y-3">
           <div
             v-for="(announcement, index) in group"
             :key="`${date}-${index}-${announcement.timestamp}`"
@@ -47,13 +47,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Empty state for dates without announcements -->
-        <div v-else class="py-2">
-          <p class="text-sm italic text-muted-foreground/60">
-            No incidents reported on this day
-          </p>
         </div>
       </div>
 
@@ -158,7 +151,8 @@ const displayedAnnouncements = computed(() => {
   if (grouped[todayKey]) result[todayKey] = grouped[todayKey]
 
   for (let date = new Date(today.getTime() - 24 * 60 * 60 * 1000); date >= endDate; date.setDate(date.getDate() - 1)) {
-    result[date.toDateString()] = grouped[date.toDateString()] || []
+    const dateKey = date.toDateString()
+    if (grouped[dateKey]) result[dateKey] = grouped[dateKey]
   }
 
   return result
