@@ -106,13 +106,14 @@
               <CardHeader>
                 <div class="flex items-center justify-between">
                   <CardTitle>Response Time Trend</CardTitle>
-                  <select 
+                  <select
                     v-model="selectedChartDuration"
                     class="text-sm bg-background border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="24h">24 hours</option>
                     <option value="7d">7 days</option>
                     <option value="30d">30 days</option>
+                    <option value="365d">365 days</option>
                   </select>
                 </div>
               </CardHeader>
@@ -127,11 +128,11 @@
               </CardContent>
             </Card>
 
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card v-for="period in ['30d', '7d', '24h', '1h']" :key="period">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <Card v-for="period in ['365d', '30d', '7d', '24h', '1h']" :key="period">
                 <CardHeader class="pb-2">
                   <CardTitle class="text-sm font-medium text-muted-foreground text-center">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
+                    {{ period === '365d' ? 'Last 365 days' : period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -146,10 +147,10 @@
               <CardTitle>Uptime Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div v-for="period in ['30d', '7d', '24h', '1h']" :key="period" class="text-center">
+              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div v-for="period in ['365d', '30d', '7d', '24h', '1h']" :key="period" class="text-center">
                   <p class="text-sm text-muted-foreground mb-2">
-                    {{ period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
+                    {{ period === '365d' ? 'Last 365 days' : period === '30d' ? 'Last 30 days' : period === '7d' ? 'Last 7 days' : period === '24h' ? 'Last 24 hours' : 'Last hour' }}
                   </p>
                   <img :src="generateUptimeBadgeImageURL(period)" :alt="`${period} uptime`" class="mx-auto" />
                 </div>
