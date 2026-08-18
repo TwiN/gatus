@@ -2898,6 +2898,9 @@ There are two main use cases for this:
 - You have multiple Gatus instances running on different machines, and you wish to visually expose the statuses through a single dashboard
 - You have one or more Gatus instances that are not publicly accessible (e.g. behind a firewall), and you wish to retrieve
 
+It is possible to filter imported endpoints with the `filter-groups` parameter. This is for example useful if you have separate
+gatus instances, but would like to perform inter-site connectivity tests.
+
 This is an experimental feature. It may be removed or updated in a breaking manner at any time. Furthermore,
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
 Use at your own risk.
@@ -2907,6 +2910,7 @@ Use at your own risk.
 | `remote`                           | Remote configuration                           | `{}`          |
 | `remote.instances`                 | List of remote instances                       | Required `[]` |
 | `remote.instances.endpoint-prefix` | String to prefix all endpoint names with       | `""`          |
+| `remote.instances.filter-groups`   | List of groups to import (default all)         | `[]`          |
 | `remote.instances.url`             | URL from which to retrieve endpoint statuses   | Required `""` |
 | `remote.client`                    | [Client configuration](#client-configuration). | `{}`          |
 
