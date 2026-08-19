@@ -4,16 +4,31 @@
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
           <CardTitle class="text-base sm:text-lg truncate">
-            <span 
-              class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate" 
-              @click="navigateToDetails" 
-              @keydown.enter="navigateToDetails"
-              :title="endpoint.name"
-              role="link"
-              tabindex="0"
-              :aria-label="`View details for ${endpoint.name}`">
-              {{ endpoint.name }}
-            </span>
+            <div class="flex items-center gap-1 min-w-0">
+              <span
+                class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base truncate min-w-0"
+                @click="navigateToDetails"
+                @keydown.enter="navigateToDetails"
+                :title="endpoint.name"
+                role="link"
+                tabindex="0"
+                :aria-label="`View details for ${endpoint.name}`">
+                {{ endpoint.name }}
+              </span>
+              <a
+                v-for="link in endpoint.links"
+                :key="link.name"
+                :href="link.value"
+                target="_blank"
+                rel="noopener noreferrer"
+                :title="link.name"
+                :aria-label="link.name"
+                class="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                @click.stop
+              >
+                <ExternalLink class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </a>
+            </div>
           </CardTitle>
           <div class="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground min-h-[1.25rem]">
             <span v-if="endpoint.group" class="truncate" :title="endpoint.group">{{ endpoint.group }}</span>
@@ -21,20 +36,7 @@
             <span v-if="hostname" class="truncate" :title="hostname">{{ hostname }}</span>
           </div>
         </div>
-        <div class="flex-shrink-0 ml-2 flex items-center gap-1">
-          <a
-            v-for="link in endpoint.links"
-            :key="link.name"
-            :href="link.value"
-            target="_blank"
-            rel="noopener noreferrer"
-            :title="link.name"
-            :aria-label="link.name"
-            class="text-muted-foreground hover:text-primary transition-colors"
-            @click.stop
-          >
-            <ExternalLink class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </a>
+        <div class="flex-shrink-0 ml-2">
           <StatusBadge :status="currentStatus" />
         </div>
       </div>
