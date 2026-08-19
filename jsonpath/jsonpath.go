@@ -8,6 +8,11 @@ import (
 )
 
 // Eval is a half-baked json path implementation that needs some love
+//
+// Beyond plain dotted keys and [N] array indices, it supports a single
+// gjson-style query segment for selecting one element out of an array of
+// objects by a field's value: arrayField.#(key=="value").remainingPath.
+// See queryArray for the exact syntax and its limitations.
 func Eval(path string, b []byte) (string, int, error) {
 	if len(path) == 0 && !(len(b) != 0 && b[0] == '[' && b[len(b)-1] == ']') {
 		// if there's no path AND the value is not a JSON array, then there's nothing to walk
@@ -23,15 +28,18 @@ func Eval(path string, b []byte) (string, int, error) {
 // walk traverses the object and returns the value as a string as well as its length
 func walk(path string, object interface{}) (string, int, error) {
 	var keys []string
-	startOfCurrentKey, bracketDepth := 0, 0
+	startOfCurrentKey, depth := 0, 0
 	for i := range path {
-		if path[i] == '[' {
-			bracketDepth++
-		} else if path[i] == ']' {
-			bracketDepth--
+		// [ and ( both open a nested segment (an array index or a #(...) query);
+		// a dot inside either must not be treated as a key separator.
+		switch path[i] {
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
 		}
 		// If we encounter a dot, we've reached the end of a key unless we're inside a bracket
-		if path[i] == '.' && bracketDepth == 0 {
+		if path[i] == '.' && depth == 0 {
 			keys = append(keys, path[startOfCurrentKey:i])
 			startOfCurrentKey = i + 1
 		}
@@ -57,6 +65,24 @@ func walk(path string, object interface{}) (string, int, error) {
 		}
 		return value, len(value), nil
 	case []interface{}:
+		// If the next segment is a #(key=="value") query, use it to select a
+		// single element out of the array and keep walking from there.
+		// Otherwise, preserve the existing behavior of returning the whole
+		// array formatted as a string.
+		if len(keys) > 1 && isQuerySegment(keys[1]) {
+			matched, err := queryArray(keys[1], value)
+			if err != nil {
+				return "", 0, err
+			}
+			newPath := strings.Replace(path, fmt.Sprintf("%s.%s.", currentKey, keys[1]), "", 1)
+			if newPath == path {
+				// The query was the last segment of the path, so treat the
+				// matched element like the end-of-path map case above.
+				b, err := json.Marshal(matched)
+				return string(b), len(b), err
+			}
+			return walk(newPath, matched)
+		}
 		return fmt.Sprintf("%v", value), len(value), nil
 	case interface{}:
 		newValue := fmt.Sprintf("%v", value)
@@ -64,6 +90,45 @@ func walk(path string, object interface{}) (string, int, error) {
 	default:
 		return "", 0, fmt.Errorf("couldn't walk through '%s' because type was '%T', but expected 'map[string]interface{}'", currentKey, value)
 	}
+}
+
+// isQuerySegment returns whether a path segment is a #(key=="value") query,
+// as opposed to a plain key.
+func isQuerySegment(segment string) bool {
+	return strings.HasPrefix(segment, "#(") && strings.HasSuffix(segment, ")")
+}
+
+// queryArray evaluates a #(key=="value") segment against an array of objects
+// and returns the first element for which key equals value.
+//
+// This intentionally supports only exact-match string equality against a
+// double-quoted literal (no !=, no wildcards, no unquoted/numeric values, no
+// selecting all matches) -- just enough to pick a single named element (e.g.
+// a component) out of the kind of array returned by any Atlassian-
+// Statuspage-compatible components.json endpoint, which is the motivating
+// use case. Root-level array queries (a query as the very first path
+// segment, with no preceding field name) aren't supported either -- in
+// practice a query always follows the array field it selects from.
+func queryArray(segment string, array []interface{}) (map[string]interface{}, error) {
+	inner := segment[2 : len(segment)-1] // strip the leading "#(" and trailing ")"
+	key, value, found := strings.Cut(inner, "==")
+	if !found {
+		return nil, fmt.Errorf("invalid query '%s': expected the form #(key==\"value\")", segment)
+	}
+	key = strings.TrimSpace(key)
+	value = strings.TrimSpace(value)
+	if len(value) < 2 || value[0] != '"' || value[len(value)-1] != '"' {
+		return nil, fmt.Errorf("invalid query '%s': value must be a quoted string, e.g. #(%s==\"value\")", segment, key)
+	}
+	value = value[1 : len(value)-1]
+	for _, element := range array {
+		if object, ok := element.(map[string]interface{}); ok {
+			if fmt.Sprintf("%v", object[key]) == value {
+				return object, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no element found matching query '%s'", segment)
 }
 
 func extractValue(currentKey string, value interface{}) interface{} {
