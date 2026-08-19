@@ -27,6 +27,10 @@ type Config struct {
 
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
+
+	// Links is a list of external links to display for the endpoint on the UI (e.g. a link to the
+	// service's own dashboard or repository).
+	Links []Link `yaml:"links,omitempty"`
 }
 
 type Badge struct {
@@ -37,8 +41,24 @@ type ResponseTime struct {
 	Thresholds []int `yaml:"thresholds"`
 }
 
+// Link is an external link displayed for an endpoint on the UI
+type Link struct {
+	Name  string `yaml:"name,omitempty" json:"name,omitempty"`   // Name is the text to display for the link
+	Value string `yaml:"value,omitempty" json:"value,omitempty"` // Value is the URL the link points to
+}
+
+// Validate validates the link configuration
+func (link *Link) Validate() error {
+	if len(link.Name) == 0 || len(link.Value) == 0 {
+		return ErrInvalidLinkConfig
+	}
+	return nil
+}
+
 var (
 	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
+
+	ErrInvalidLinkConfig = errors.New("invalid link configuration: missing required name or value")
 )
 
 // ValidateAndSetDefaults validates the UI configuration and sets the default values
@@ -54,6 +74,11 @@ func (config *Config) ValidateAndSetDefaults() error {
 		}
 	} else {
 		config.Badge = GetDefaultConfig().Badge
+	}
+	for i := range config.Links {
+		if err := config.Links[i].Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
