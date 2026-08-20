@@ -223,7 +223,9 @@ const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-res
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
-const resultPageSize = 50
+const resultPageSize = (typeof window !== 'undefined' && window.config && window.config.maximumNumberOfResults)
+  ? (parseInt(window.config.maximumNumberOfResults) || 50)
+  : 50
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -543,4 +545,5 @@ const dashboardSubheading = computed(() => {
 onMounted(() => {
   fetchData()
 })
+
 </script>
