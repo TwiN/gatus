@@ -16,6 +16,8 @@ core applications: https://status.twin.sh/
 
 _Looking for a managed solution? Check out [Gatus.io](https://gatus.io)._
 
+[![Deploy with Zenith](https://cdn.zenith.hosting/buttons/deploy-with-zenith.svg)](https://zenith.hosting/host/gatus)
+
 <details>
   <summary><b>Quick start</b></summary>
 
