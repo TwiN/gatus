@@ -28,21 +28,40 @@ func (c *Config) ValidateAndSetDefaults() error {
 		if !strings.HasSuffix(c.Checker.Target, ":53") {
 			return ErrInvalidDNSTarget
 		}
+		if c.Checker.Client != nil {
+			if err := c.Checker.Client.ValidateAndSetDefaults(); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 // Checker is the configuration for making sure Gatus has access to the internet.
 type Checker struct {
-	Target   string        `yaml:"target"` // e.g. 1.1.1.1:53
+	Target string `yaml:"target"` // e.g. 1.1.1.1:53
 	Interval time.Duration `yaml:"interval,omitempty"`
+	// Client is the client configuration used by the checker. Only the
+	// proxy-url option has an effect on the checker's raw TCP dial; deployments
+	// where Gatus itself has no direct egress can point the check at the same
+	// proxy their endpoints already use (#1772).
+	Client *client.Config `yaml:"client,omitempty"`
 
 	isConnected bool
 	lastCheck   time.Time
 }
 
 func (c *Checker) Check() bool {
-	connected, _ := client.CanCreateNetworkConnection("tcp", c.Target, "", &client.Config{Timeout: 5 * time.Second})
+	cfg := &client.Config{Timeout: 5 * time.Second}
+	if c.Client != nil {
+		if c.Client.ProxyURL != "" {
+			cfg.ProxyURL = c.Client.ProxyURL
+		}
+		if c.Client.Timeout > 0 {
+			cfg.Timeout = c.Client.Timeout
+		}
+	}
+	connected, _ := client.CanCreateNetworkConnection("tcp", c.Target, "", cfg)
 	return connected
 }
 
