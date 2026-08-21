@@ -78,8 +78,13 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		// Check if an alert should be triggered or resolved
 		if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 			watchdog.HandleAlerting(convertedEndpoint, result, cfg.Alerting)
+			// Sync the counters and the reminder clock back; LastReminderSent
+			// lives on the converted copy and would otherwise reset to zero on
+			// every pushed result, re-sending the alert and ignoring
+			// minimum-reminder-interval (#1765).
 			externalEndpoint.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 			externalEndpoint.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+			externalEndpoint.LastReminderSent = convertedEndpoint.LastReminderSent
 		} else {
 			logr.Debug("[api.CreateExternalEndpointResult] Not handling alerting because currently in the maintenance window")
 		}
