@@ -28,6 +28,7 @@ require (
 	github.com/valyala/fasthttp v1.71.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.52.0
+	golang.org/x/net v0.54.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.20.0
 	google.golang.org/api v0.280.0
@@ -90,7 +91,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/image v0.40.0 // indirect
 	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect

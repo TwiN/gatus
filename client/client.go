@@ -99,7 +99,13 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 	const (
 		MaximumMessageSize = 1024 // in bytes
 	)
-	connection, err := net.DialTimeout(netType, address, config.Timeout)
+	var connection net.Conn
+	var err error
+	if config.ProxyURL != "" && netType == "tcp" {
+		connection, err = dialThroughProxy(config, address)
+	} else {
+		connection, err = net.DialTimeout(netType, address, config.Timeout)
+	}
 	if err != nil {
 		return false, nil
 	}
