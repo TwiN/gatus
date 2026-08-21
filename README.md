@@ -2876,6 +2876,8 @@ endpoints:
 | `connectivity.checker`          | Connectivity checker configuration         | Required `{}` |
 | `connectivity.checker.target`   | Host to use for validating connectivity    | Required `""` |
 | `connectivity.checker.interval` | Interval at which to validate connectivity | `1m`          |
+| `connectivity.checker.conditions` | Conditions evaluated against an `http(s)://` target response; DNS-tcp targets reject them | `[]`  |
+| `connectivity.checker.client`   | Client config (`proxy-url`) used by the check | `{}`       |
 
 While Gatus is used to monitor other services, it is possible for Gatus itself to lose connectivity to the internet.
 In order to prevent Gatus from reporting endpoints as unhealthy when Gatus itself is unhealthy, you may configure
@@ -2888,6 +2890,23 @@ connectivity:
   checker:
     target: 1.1.1.1:53
     interval: 60s
+```
+
+An `http://` or `https://` target turns the checker into an HTTP health probe - useful when Gatus itself
+has no direct egress but can reach a VPN proxy or docker-socket-proxy. The probe succeeds when every
+configured condition evaluates to true (no conditions means any 2xx response), and `client.proxy-url`
+routes the request:
+
+```yaml
+connectivity:
+  checker:
+    target: "http://vpn:8888/containers/vpn/json"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].State.Health.Status == healthy"
+    client:
+      proxy-url: http://vpn:8888
 ```
 
 
