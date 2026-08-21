@@ -39,6 +39,9 @@ func TestCondition_Validate(t *testing.T) {
 		{condition: "[CERTIFICATE_EXPIRATION] > 48h", expectedErr: nil},
 		{condition: "[DOMAIN_EXPIRATION] > 720h", expectedErr: nil},
 		{condition: "raw == raw", expectedErr: nil},
+		{condition: "[HEADERS].Location == https://example.com/", expectedErr: nil},
+		{condition: "has([HEADERS].Location) == true", expectedErr: nil},
+		{condition: "len([HEADERS].Set-Cookie) > 0", expectedErr: nil},
 		{condition: "[STATUS] ? 201", expectedErr: errors.New("invalid condition: [STATUS] ? 201")},
 		{condition: "[STATUS]==201", expectedErr: errors.New("invalid condition: [STATUS]==201")},
 		{condition: "[STATUS] = = 201", expectedErr: errors.New("invalid condition: [STATUS] = = 201")},
@@ -762,6 +765,131 @@ func TestCondition_evaluate(t *testing.T) {
 			DontResolveFailedConditions: true,
 			ExpectedSuccess:             false,
 			ExpectedOutput:              "has([BODY].errors) == false",
+		},
+		{
+			Name:            "headers-location-success",
+			Condition:       Condition("[HEADERS].Location == https://example.com/redirected"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://example.com/redirected"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Location == https://example.com/redirected",
+		},
+		{
+			Name:            "headers-location-failure",
+			Condition:       Condition("[HEADERS].Location == https://example.com/redirected"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://example.com/other"}}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[HEADERS].Location (https://example.com/other) == https://example.com/redirected",
+		},
+		{
+			Name:            "headers-location-case-insensitive",
+			Condition:       Condition("[HEADERS].location == https://example.com/redirected"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://example.com/redirected"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].location == https://example.com/redirected",
+		},
+		{
+			Name:            "headers-missing-returns-invalid",
+			Condition:       Condition("[HEADERS].Location == https://example.com/redirected"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[HEADERS].Location (INVALID) == https://example.com/redirected",
+		},
+		{
+			Name:            "headers-has-existing",
+			Condition:       Condition("has([HEADERS].Location) == true"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://example.com/redirected"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "has([HEADERS].Location) == true",
+		},
+		{
+			Name:            "headers-has-missing",
+			Condition:       Condition("has([HEADERS].Location) == false"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "has([HEADERS].Location) == false",
+		},
+		{
+			Name:            "headers-multi-value-returns-json-array",
+			Condition:       Condition("[HEADERS].Set-Cookie == [\"a=1\",\"b=2\"]"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"a=1", "b=2"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Set-Cookie == [\"a=1\",\"b=2\"]",
+		},
+		{
+			Name:            "headers-len-single-value",
+			Condition:       Condition("len([HEADERS].Location) > 0"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Location": {"https://example.com/redirected"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([HEADERS].Location) > 0",
+		},
+		{
+			Name:            "headers-len-multi-value",
+			Condition:       Condition("len([HEADERS].Set-Cookie) == 2"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"a=1", "b=2"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "len([HEADERS].Set-Cookie) == 2",
+		},
+		{
+			Name:            "headers-multi-value-pat-matches-one-of-the-values",
+			Condition:       Condition("[HEADERS].Set-Cookie == pat(theme=dark)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Set-Cookie == pat(theme=dark)",
+		},
+		{
+			// Regression test: neither "session=abc" nor "theme=dark" contains the substring `abc","theme`.
+			// That substring only exists in the JSON-flattened representation of the two values
+			// (["session=abc","theme=dark"]), so a pat() match must not be evaluated against that flattened
+			// string or this would incorrectly succeed by spanning the JSON separator between the two values.
+			Name:            "headers-multi-value-pat-does-not-cross-json-boundary",
+			Condition:       Condition(`[HEADERS].Set-Cookie == pat(*abc","theme*)`),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS].Set-Cookie (["session=abc","theme=dar...(truncated)) == pat(*abc","theme*)`,
+		},
+		{
+			Name:            "headers-multi-value-pat-not-equal-fails-when-one-matches",
+			Condition:       Condition("[HEADERS].Set-Cookie != pat(theme=dark)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS].Set-Cookie (["session=abc","theme=dar...(truncated)) != pat(theme=dark)`,
+		},
+		{
+			Name:            "headers-multi-value-pat-not-equal-succeeds-when-none-match",
+			Condition:       Condition("[HEADERS].Set-Cookie != pat(admin=true)"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS].Set-Cookie != pat(admin=true)",
+		},
+		{
+			Name:      "headers-bare-pat-matches-across-distinct-headers",
+			Condition: Condition("[HEADERS] == pat(*dark*)"),
+			Result: &Result{HTTPResponseHeaders: map[string][]string{
+				"Content-Type": {"application/json"},
+				"Set-Cookie":   {"session=abc", "theme=dark"},
+			}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADERS] == pat(*dark*)",
+		},
+		{
+			// Regression test: no single header value actually contains "json...session" — that substring
+			// only exists if Content-Type's value gets JSON-flattened and concatenated with Set-Cookie's
+			// first value. The bare [HEADERS] placeholder must not allow a pat() match to span that boundary.
+			Name:      "headers-bare-pat-does-not-cross-header-boundary",
+			Condition: Condition("[HEADERS] == pat(*json*session*)"),
+			Result: &Result{HTTPResponseHeaders: map[string][]string{
+				"Content-Type": {"application/json"},
+				"Set-Cookie":   {"session=abc", "theme=dark"},
+			}},
+			ExpectedSuccess: false,
+			ExpectedOutput:  `[HEADERS] ({"Content-Type":"applicat...(truncated)) == pat(*json*session*)`,
+		},
+		{
+			Name:            "headers-pat-on-left-side-matches-one-of-the-values",
+			Condition:       Condition("pat(theme=dark) == [HEADERS].Set-Cookie"),
+			Result:          &Result{HTTPResponseHeaders: map[string][]string{"Set-Cookie": {"session=abc", "theme=dark"}}},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "pat(theme=dark) == [HEADERS].Set-Cookie",
 		},
 	}
 	for _, scenario := range scenarios {
