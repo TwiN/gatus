@@ -683,3 +683,69 @@ func verify(t *testing.T, ep *endpoint.Endpoint, expectedNumberOfFailuresInARow,
 		}
 	}
 }
+
+// TestHandleAlertingOnExternalEndpointConversionPreservesReminderInterval pins
+// the external-endpoint flow, which runs alerting against a ToEndpoint() copy
+// per heartbeat tick / pushed result (#1765): the copy must carry
+// LastReminderSent over, and the caller must sync it back, or every tick sees
+// a zero clock and re-sends the alert regardless of minimum-reminder-interval.
+func TestHandleAlertingOnExternalEndpointConversionPreservesReminderInterval(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Clearenv()
+
+	cfg := &config.Config{
+		Alerting: &alerting.Config{
+			Custom: &custom.AlertProvider{
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
+			},
+		},
+	}
+	enabled := true
+	ee := &endpoint.ExternalEndpoint{
+		Name:  "external",
+		Group: "g",
+		Alerts: []*alert.Alert{
+			{
+				Type:                   alert.TypeCustom,
+				Enabled:                &enabled,
+				FailureThreshold:       1,
+				MinimumReminderInterval: time.Hour,
+			},
+		},
+	}
+
+	// First evaluation triggers the initial alert and stamps the clock.
+	converted := ee.ToEndpoint()
+	HandleAlerting(converted, &endpoint.Result{Success: false}, cfg.Alerting)
+	ee.NumberOfFailuresInARow = converted.NumberOfFailuresInARow
+	ee.LastReminderSent = converted.LastReminderSent
+
+	if !ee.Alerts[0].Triggered {
+		t.Fatal("the alert should have triggered")
+	}
+	if ee.LastReminderSent.IsZero() {
+		t.Fatal("the initial alert should have stamped LastReminderSent on the external endpoint")
+	}
+
+	// A tick 30m later — below the 1h minimum-reminder-interval — must not
+	// refresh the clock (no reminder sent).
+	ee.LastReminderSent = time.Now().Add(-30 * time.Minute)
+	converted = ee.ToEndpoint()
+	HandleAlerting(converted, &endpoint.Result{Success: false}, cfg.Alerting)
+	ee.LastReminderSent = converted.LastReminderSent
+	if time.Since(ee.LastReminderSent) < 25*time.Minute {
+		t.Fatal("a reminder was sent before minimum-reminder-interval elapsed")
+	}
+
+	// A tick 2h later must send the reminder and refresh the clock.
+	ee.LastReminderSent = time.Now().Add(-2 * time.Hour)
+	converted = ee.ToEndpoint()
+	HandleAlerting(converted, &endpoint.Result{Success: false}, cfg.Alerting)
+	ee.LastReminderSent = converted.LastReminderSent
+	if time.Since(ee.LastReminderSent) > time.Minute {
+		t.Fatal("the overdue reminder should have refreshed LastReminderSent")
+	}
+}
