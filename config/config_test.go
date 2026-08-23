@@ -1846,6 +1846,35 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithEnvironmentVariableDefaults(t *testing.T) {
+	t.Setenv("GATUS_TestEnvWithDefaultSet", "from-environment")
+	t.Setenv("GATUS_TestEnvWithDefaultEmpty", "")
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://${GATUS_TestEnvWithDefaultSet:-twin.sh}/health
+    conditions:
+      - "[BODY] == ${GATUS_TestEnvWithDefaultUnset:-fallback}"
+      - "[STATUS] == ${GATUS_TestEnvWithDefaultEmpty:-200}"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if config == nil {
+		t.Fatal("config should not have been nil")
+	}
+	if config.Endpoints[0].URL != "https://from-environment/health" {
+		t.Errorf("URL should have expanded the configured variable, but was %q", config.Endpoints[0].URL)
+	}
+	if config.Endpoints[0].Conditions[0] != "[BODY] == fallback" {
+		t.Errorf("first condition should have used the default value, but was %q", config.Endpoints[0].Conditions[0])
+	}
+	if config.Endpoints[0].Conditions[1] != "[STATUS] == 200" {
+		t.Errorf("second condition should have used the default value for an empty variable, but was %q", config.Endpoints[0].Conditions[1])
+	}
+}
+
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {
