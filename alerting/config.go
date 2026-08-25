@@ -21,6 +21,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ifttt"
 	"github.com/TwiN/gatus/v5/alerting/provider/ilert"
 	"github.com/TwiN/gatus/v5/alerting/provider/incidentio"
+	"github.com/TwiN/gatus/v5/alerting/provider/jira"
 	"github.com/TwiN/gatus/v5/alerting/provider/line"
 	"github.com/TwiN/gatus/v5/alerting/provider/matrix"
 	"github.com/TwiN/gatus/v5/alerting/provider/mattermost"
@@ -96,6 +97,9 @@ type Config struct {
 
 	// IncidentIO is the configuration for the incident-io alerting provider
 	IncidentIO *incidentio.AlertProvider `yaml:"incident-io,omitempty"`
+
+	// Jira is the configuration for the jira alerting provider
+	Jira *jira.AlertProvider `yaml:"jira,omitempty"`
 
 	// Line is the configuration for the line alerting provider
 	Line *line.AlertProvider `yaml:"line,omitempty"`
