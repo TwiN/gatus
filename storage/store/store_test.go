@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -103,6 +104,10 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 	if err != nil {
 		t.Fatal("failed to create store:", err.Error())
 	}
+	bufferedSqliteStore, err := sql.NewBufferedSQLiteStore(t.TempDir()+"/"+testName+"-buffered.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	if err != nil {
+		t.Fatal("failed to create store:", err.Error())
+	}
 	return []*Scenario{
 		{
 			Name:  "memory",
@@ -115,6 +120,10 @@ func initStoresAndBaseScenarios(t *testing.T, testName string) []*Scenario {
 		{
 			Name:  "sqlite-with-caching",
 			Store: sqliteStoreWithCaching,
+		},
+		{
+			Name:  "sqlite-buffered",
+			Store: bufferedSqliteStore,
 		},
 	}
 }
@@ -610,6 +619,11 @@ func TestInitialize(t *testing.T) {
 			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: filepath.Join(dir, "TestInitialize_sqlite-with-path.db")},
 			ExpectedErr: nil,
 		},
+		{
+			Name:        "sqlite-buffered",
+			Cfg:         &storage.Config{Type: storage.TypeSQLite, Path: filepath.Join(dir, "TestInitialize_sqlite-buffered.db"), Buffered: true},
+			ExpectedErr: nil,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -650,4 +664,36 @@ func TestAutoSave(t *testing.T) {
 	time.Sleep(15 * time.Millisecond)
 	cancelFunc()
 	time.Sleep(50 * time.Millisecond)
+}
+
+func TestAutoSaveWithBufferedSQLiteStore(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "TestAutoSaveWithBufferedSQLiteStore.db")
+	// FlushInterval is far below MinimumFlushInterval, but Initialize doesn't re-validate,
+	// which lets this test observe a periodic flush without waiting a minute
+	if err := Initialize(&storage.Config{Type: storage.TypeSQLite, Path: file, Buffered: true, FlushInterval: 5 * time.Millisecond}); err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+	defer cancelFunc()
+	// The store constructor writes a startup snapshot synchronously, so the file existing
+	// proves nothing about autoSave; deleting it ensures the file can only reappear
+	// through a flush from the autoSave goroutine
+	if err := os.Remove(file); err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+	// Inserting while flushes tick also exercises the insert-vs-flush paths under -race
+	if err := store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult); err != nil {
+		t.Fatal("shouldn't have returned an error, got", err.Error())
+	}
+	fileRecreated := false
+	for start := time.Now(); time.Since(start) < 10*time.Second; time.Sleep(time.Millisecond) {
+		if _, err := os.Stat(file); err == nil {
+			fileRecreated = true
+			break
+		}
+	}
+	if !fileRecreated {
+		t.Error("expected the autoSave goroutine to have periodically persisted the in-memory database")
+	}
+	cancelFunc()
+	store.Close()
 }

@@ -90,6 +90,7 @@ var (
 	// Validate interface implementation on compile
 	_ Store = (*memory.Store)(nil)
 	_ Store = (*sql.Store)(nil)
+	_ Store = (*sql.BufferedStore)(nil)
 )
 
 var (
@@ -136,14 +137,26 @@ func Initialize(cfg *storage.Config) error {
 		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
-	switch cfg.Type {
-	case storage.TypeSQLite, storage.TypePostgres:
+	switch {
+	// Guarding on the type as well keeps a buffered postgres config, which validation
+	// rejects but Initialize may still receive unvalidated, out of the sqlite store
+	case cfg.Type == storage.TypeSQLite && cfg.Buffered:
+		store, err = sql.NewBufferedSQLiteStore(cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
+		if err != nil {
+			return err
+		}
+		flushInterval := cfg.FlushInterval
+		if flushInterval <= 0 {
+			// The default is normally set by validation, which may not have run
+			flushInterval = storage.DefaultFlushInterval
+		}
+		logr.Infof("[store.Initialize] Persisting the in-memory database to path=%s every %s; an unclean shutdown may lose up to that much history", cfg.Path, flushInterval)
+		go autoSave(ctx, store, flushInterval)
+	case cfg.Type == storage.TypeSQLite, cfg.Type == storage.TypePostgres:
 		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 		if err != nil {
 			return err
 		}
-	case storage.TypeMemory:
-		fallthrough
 	default:
 		store, _ = memory.NewStore(cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
 	}

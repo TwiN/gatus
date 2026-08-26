@@ -1750,6 +1750,28 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithBufferedStorageConfig(t *testing.T) {
+	file := t.TempDir() + "/test.db"
+	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+storage:
+  type: sqlite
+  path: %s
+  buffered: true
+  flush-interval: 1h
+endpoints:
+  - name: example
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+`, file)))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config.Storage == nil || !config.Storage.Buffered || config.Storage.FlushInterval != time.Hour {
+		t.Error("expected buffered storage with a flush interval of 1h, got", config.Storage)
+	}
+}
+
 func TestParseAndValidateConfigBytesWithInvalidYAML(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 storage:

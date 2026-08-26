@@ -599,6 +599,8 @@ If at least one announcement is archived, a **Past Announcements** section will 
 | `storage.path`                      | Path to persist the data in. Only supported for types `sqlite` and `postgres`.                                                                     | `""`       |
 | `storage.type`                      | Type of storage. Valid types: `memory`, `sqlite`, `postgres`.                                                                                      | `"memory"` |
 | `storage.caching`                   | Whether to use write-through caching. Improves loading time for large dashboards. <br />Only supported if `storage.type` is `sqlite` or `postgres` | `false`    |
+| `storage.buffered`                  | Whether to keep the database in memory and only persist it to `storage.path` periodically. <br />Only supported if `storage.type` is `sqlite`      | `false`    |
+| `storage.flush-interval`            | How often the in-memory database is persisted to `storage.path`. Minimum: `1m`. <br />Only supported if `storage.buffered` is `true`               | `10m`      |
 | `storage.maximum-number-of-results` | The maximum number of results that an endpoint can have                                                                                            | `100`      |
 | `storage.maximum-number-of-events`  | The maximum number of events that an endpoint can have                                                                                             | `50`       |
 
@@ -621,6 +623,32 @@ storage:
   path: data.db
 ```
 See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
+
+If you're running Gatus on a device with flash storage that wears out under constant writes (e.g. the SD card of a
+Raspberry Pi or similar single-board computers), you can set `storage.buffered` to `true` to keep the live database
+in memory and only persist it to `storage.path` once at startup, every `storage.flush-interval` and on graceful
+shutdown:
+```yaml
+storage:
+  type: sqlite
+  path: data.db
+  buffered: true
+  flush-interval: 1h
+```
+This bounds disk writes to one full rewrite per interval no matter how many endpoints are monitored: there is only
+ever one database file at `storage.path`, and each flush atomically replaces it with a copy of the in-memory
+database, so an ill-timed crash cannot corrupt the previously persisted file. A flush always writes the database
+as a whole rather than appending new results transactionally, so the write volume per flush is the database size.
+The `storage.maximum-number-of-results` and `storage.maximum-number-of-events` limits keep that size small and
+constant; if you raise them significantly, raise `storage.flush-interval` accordingly. Be aware of the trade-off: if Gatus
+is not shut down gracefully (e.g. power loss), the history recorded since the last flush is lost, which means you
+can lose up to `storage.flush-interval` worth of history.
+
+> [!NOTE]
+> Because each flush renames a temporary file over `storage.path`, the path must not be a bind mount of the
+> database file itself. If you run Gatus in a container, mount the directory containing the database
+> (e.g. `-v ./data:/data`) rather than the file. Gatus flushes once at startup, so a path that cannot be
+> written to is reported immediately instead of failing silently later.
 
 - If `storage.type` is `postgres`, `storage.path` must be the connection URL:
 ```yaml

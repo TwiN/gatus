@@ -39,6 +39,8 @@ const (
 	uptimeHourlyBuffer               = 48 * time.Hour      // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
 
 	cacheTTL = 10 * time.Minute
+
+	writeThroughCacheMaxSize = 10000
 )
 
 var (
@@ -99,7 +101,7 @@ func NewStore(driver, path string, caching bool, maximumNumberOfResults, maximum
 		return nil, err
 	}
 	if caching {
-		store.writeThroughCache = gocache.NewCache().WithMaxSize(10000)
+		store.writeThroughCache = gocache.NewCache().WithMaxSize(writeThroughCacheMaxSize)
 	}
 	return store, nil
 }
