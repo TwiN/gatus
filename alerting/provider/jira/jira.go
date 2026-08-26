@@ -126,38 +126,52 @@ func (provider *AlertProvider) createIssue(cfg *Config, summary, description str
 	}
 	defer response.Body.Close()
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("failed to create issue, status: %d", response.StatusCode)
+		return fmt.Errorf("failed to create issue, status: %d, body: %s", response.StatusCode, readErrorBody(response))
 	}
 	return nil
 }
 
-// resolveIssues looks for open issues in the project that match the summary and transitions each of them
+// resolveIssues looks for open issues in the project that match the summary and transitions each of them.
+// It pages through the search results so a matching issue is not missed when the project has more open
+// issues than fit in a single response.
 func (provider *AlertProvider) resolveIssues(cfg *Config, summary string) error {
 	jql := fmt.Sprintf("project = %q AND statusCategory != Done ORDER BY created DESC", cfg.ProjectKey)
-	response, err := provider.sendRequest(cfg, http.MethodGet, "/rest/api/2/search?jql="+url.QueryEscape(jql), nil)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if response.StatusCode >= 400 {
-		return fmt.Errorf("failed to search issues, status: %d", response.StatusCode)
-	}
-	var searchResponse struct {
-		Issues []struct {
-			Key    string `json:"key"`
-			Fields struct {
-				Summary string `json:"summary"`
-			} `json:"fields"`
-		} `json:"issues"`
-	}
-	if err := json.NewDecoder(response.Body).Decode(&searchResponse); err != nil {
-		return err
-	}
-	for _, issue := range searchResponse.Issues {
-		if issue.Fields.Summary == summary {
-			if err := provider.transitionIssue(cfg, issue.Key); err != nil {
-				return err
+	startAt := 0
+	for {
+		path := fmt.Sprintf("/rest/api/2/search?jql=%s&startAt=%d&maxResults=100", url.QueryEscape(jql), startAt)
+		response, err := provider.sendRequest(cfg, http.MethodGet, path, nil)
+		if err != nil {
+			return err
+		}
+		if response.StatusCode >= 400 {
+			err := fmt.Errorf("failed to search issues, status: %d, body: %s", response.StatusCode, readErrorBody(response))
+			response.Body.Close()
+			return err
+		}
+		var searchResponse struct {
+			Total  int `json:"total"`
+			Issues []struct {
+				Key    string `json:"key"`
+				Fields struct {
+					Summary string `json:"summary"`
+				} `json:"fields"`
+			} `json:"issues"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&searchResponse); err != nil {
+			response.Body.Close()
+			return err
+		}
+		response.Body.Close()
+		for _, issue := range searchResponse.Issues {
+			if issue.Fields.Summary == summary {
+				if err := provider.transitionIssue(cfg, issue.Key); err != nil {
+					return err
+				}
 			}
+		}
+		startAt += len(searchResponse.Issues)
+		if len(searchResponse.Issues) == 0 || startAt >= searchResponse.Total {
+			break
 		}
 	}
 	return nil
@@ -171,7 +185,7 @@ func (provider *AlertProvider) transitionIssue(cfg *Config, issueKey string) err
 	}
 	defer transitionsResponse.Body.Close()
 	if transitionsResponse.StatusCode >= 400 {
-		return fmt.Errorf("failed to fetch transitions for %s, status: %d", issueKey, transitionsResponse.StatusCode)
+		return fmt.Errorf("failed to fetch transitions for %s, status: %d, body: %s", issueKey, transitionsResponse.StatusCode, readErrorBody(transitionsResponse))
 	}
 	var transitions struct {
 		Transitions []struct {
@@ -202,9 +216,16 @@ func (provider *AlertProvider) transitionIssue(cfg *Config, issueKey string) err
 	}
 	defer response.Body.Close()
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("failed to transition issue %s, status: %d", issueKey, response.StatusCode)
+		return fmt.Errorf("failed to transition issue %s, status: %d, body: %s", issueKey, response.StatusCode, readErrorBody(response))
 	}
 	return nil
+}
+
+// readErrorBody returns a trimmed, size-limited copy of the response body so Jira's error details
+// (JQL parse errors, auth/permission failures, invalid transitions) surface in the returned error.
+func readErrorBody(response *http.Response) string {
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 1024))
+	return strings.TrimSpace(string(body))
 }
 
 func (provider *AlertProvider) sendRequest(cfg *Config, method, path string, body []byte) (*http.Response, error) {
