@@ -26,6 +26,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pinglet"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
@@ -116,6 +117,7 @@ var (
 	_ AlertProvider = (*ntfy.AlertProvider)(nil)
 	_ AlertProvider = (*opsgenie.AlertProvider)(nil)
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
+	_ AlertProvider = (*pinglet.AlertProvider)(nil)
 	_ AlertProvider = (*plivo.AlertProvider)(nil)
 	_ AlertProvider = (*pushover.AlertProvider)(nil)
 	_ AlertProvider = (*rocketchat.AlertProvider)(nil)
@@ -158,6 +160,7 @@ var (
 	_ Config[ntfy.Config]           = (*ntfy.Config)(nil)
 	_ Config[opsgenie.Config]       = (*opsgenie.Config)(nil)
 	_ Config[pagerduty.Config]      = (*pagerduty.Config)(nil)
+	_ Config[pinglet.Config]        = (*pinglet.Config)(nil)
 	_ Config[plivo.Config]          = (*plivo.Config)(nil)
 	_ Config[pushover.Config]       = (*pushover.Config)(nil)
 	_ Config[rocketchat.Config]     = (*rocketchat.Config)(nil)

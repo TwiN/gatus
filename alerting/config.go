@@ -30,6 +30,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/ntfy"
 	"github.com/TwiN/gatus/v5/alerting/provider/opsgenie"
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
+	"github.com/TwiN/gatus/v5/alerting/provider/pinglet"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
@@ -123,6 +124,9 @@ type Config struct {
 
 	// PagerDuty is the configuration for the pagerduty alerting provider
 	PagerDuty *pagerduty.AlertProvider `yaml:"pagerduty,omitempty"`
+
+	// Pinglet is the configuration for the pinglet alerting provider
+	Pinglet *pinglet.AlertProvider `yaml:"pinglet,omitempty"`
 
 	// Plivo is the configuration for the plivo alerting provider
 	Plivo *plivo.AlertProvider `yaml:"plivo,omitempty"`
