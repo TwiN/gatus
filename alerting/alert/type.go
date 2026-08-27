@@ -92,6 +92,9 @@ const (
 	// TypeSignal is the Type for the signal alerting provider
 	TypeSignal Type = "signal"
 
+	// TypeSignalgrid is the Type for the signalgrid alerting provider
+	TypeSignalgrid Type = "signalgrid"
+
 	// TypeSIGNL4 is the Type for the signl4 alerting provider
 	TypeSIGNL4 Type = "signl4"
 

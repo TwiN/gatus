@@ -31,6 +31,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
+	"github.com/TwiN/gatus/v5/alerting/provider/signalgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
@@ -121,6 +122,7 @@ var (
 	_ AlertProvider = (*rocketchat.AlertProvider)(nil)
 	_ AlertProvider = (*sendgrid.AlertProvider)(nil)
 	_ AlertProvider = (*signal.AlertProvider)(nil)
+	_ AlertProvider = (*signalgrid.AlertProvider)(nil)
 	_ AlertProvider = (*signl4.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
 	_ AlertProvider = (*splunk.AlertProvider)(nil)
@@ -163,6 +165,7 @@ var (
 	_ Config[rocketchat.Config]     = (*rocketchat.Config)(nil)
 	_ Config[sendgrid.Config]       = (*sendgrid.Config)(nil)
 	_ Config[signal.Config]         = (*signal.Config)(nil)
+	_ Config[signalgrid.Config]     = (*signalgrid.Config)(nil)
 	_ Config[signl4.Config]         = (*signl4.Config)(nil)
 	_ Config[slack.Config]          = (*slack.Config)(nil)
 	_ Config[splunk.Config]         = (*splunk.Config)(nil)
