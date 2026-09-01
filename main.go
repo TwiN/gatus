@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/watchdog"
 	"github.com/TwiN/logr"
 )
@@ -132,6 +135,21 @@ func initializeStorage(cfg *config.Config) {
 	if numberOfEndpointStatusesDeleted > 0 {
 		logr.Infof("[main.initializeStorage] Deleted %d endpoint statuses because their matching endpoints no longer existed", numberOfEndpointStatusesDeleted)
 	}
+	// Restore NumberOfFailuresInARow/NumberOfSuccessesInARow from the persisted results so that a configuration
+	// reload (or restart) doesn't lose progress towards an alert's failure/success threshold. Without this, the
+	// in-memory counters reset to 0 on every reload, even though the storage provider already has the history
+	// needed to know how many evaluations in a row actually failed or succeeded.
+	for _, ep := range cfg.Endpoints {
+		restoreNumberOfEvaluationsInARow(ep, cfg.Storage.MaximumNumberOfResults)
+	}
+	for _, ee := range cfg.ExternalEndpoints {
+		restoreNumberOfEvaluationsInARow(ee.ToEndpoint(), cfg.Storage.MaximumNumberOfResults)
+	}
+	for _, suite := range cfg.Suites {
+		for _, ep := range suite.Endpoints {
+			restoreNumberOfEvaluationsInARow(ep, cfg.Storage.MaximumNumberOfResults)
+		}
+	}
 	// Clean up the triggered alerts from the storage provider and load valid triggered endpoint alerts
 	numberOfPersistedTriggeredAlertsLoaded := 0
 	for _, ep := range cfg.Endpoints {
@@ -146,14 +164,13 @@ func initializeStorage(cfg *config.Config) {
 			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
 		}
 		for _, alert := range ep.Alerts {
-			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+			exists, resolveKey, _, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
 			if err != nil {
 				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 				continue
 			}
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
-				ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -171,14 +188,13 @@ func initializeStorage(cfg *config.Config) {
 			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ee.Key())
 		}
 		for _, alert := range ee.Alerts {
-			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
+			exists, resolveKey, _, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
 			if err != nil {
 				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ee.Key(), err.Error())
 				continue
 			}
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
-				ee.NumberOfSuccessesInARow, ee.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -197,14 +213,13 @@ func initializeStorage(cfg *config.Config) {
 				logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for suite endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
 			}
 			for _, alert := range ep.Alerts {
-				exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+				exists, resolveKey, _, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
 				if err != nil {
 					logr.Errorf("[main.initializeStorage] Failed to get triggered alert for suite endpoint with key=%s: %s", ep.Key(), err.Error())
 					continue
 				}
 				if exists {
 					alert.Triggered, alert.ResolveKey = true, resolveKey
-					ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
 					numberOfPersistedTriggeredAlertsLoaded++
 				}
 			}
@@ -212,6 +227,35 @@ func initializeStorage(cfg *config.Config) {
 	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
+	}
+}
+
+// restoreNumberOfEvaluationsInARow recomputes ep.NumberOfFailuresInARow and ep.NumberOfSuccessesInARow from the
+// results already persisted by the storage provider, by walking the most recent results backwards for as long as
+// they keep the same outcome (success or failure). This is what allows progress towards an alert's failure/success
+// threshold to survive a configuration reload or a restart when a persistent storage provider (e.g. sqlite/postgres)
+// is used. It's a no-op for endpoints without any persisted history yet.
+func restoreNumberOfEvaluationsInARow(ep *endpoint.Endpoint, maximumNumberOfResults int) {
+	endpointStatus, err := store.Get().GetEndpointStatusByKey(ep.Key(), paging.NewEndpointStatusParams().WithResults(1, maximumNumberOfResults))
+	if err != nil {
+		if err != common.ErrEndpointNotFound {
+			logr.Errorf("[main.restoreNumberOfEvaluationsInARow] Failed to get endpoint status for endpoint with key=%s: %s", ep.Key(), err.Error())
+		}
+		return
+	}
+	results := endpointStatus.Results
+	if len(results) == 0 {
+		return
+	}
+	lastResultSuccess := results[len(results)-1].Success
+	numberInARow := 0
+	for i := len(results) - 1; i >= 0 && results[i].Success == lastResultSuccess; i-- {
+		numberInARow++
+	}
+	if lastResultSuccess {
+		ep.NumberOfSuccessesInARow = numberInARow
+	} else {
+		ep.NumberOfFailuresInARow = numberInARow
 	}
 }
 
