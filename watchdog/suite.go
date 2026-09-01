@@ -13,7 +13,15 @@ import (
 
 // monitorSuite monitors a suite by executing it at regular intervals
 func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	// Execute immediately on start
+	// Seed first execution delay from last persisted result
+	if delay := suiteInitialDelay(s.Key(), s.Interval); delay > 0 {
+		select {
+		case <-ctx.Done():
+			logr.Warnf("[watchdog.monitorSuite] Canceling monitoring for suite=%s", s.Name)
+			return
+		case <-time.After(delay):
+		}
+	}
 	executeSuite(s, cfg, extraLabels)
 	// Set up ticker for periodic execution
 	ticker := time.NewTicker(s.Interval)

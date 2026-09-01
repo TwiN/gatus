@@ -12,6 +12,15 @@ import (
 )
 
 func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
+	if delay := endpointInitialDelay(ee.Key(), ee.Heartbeat.Interval); delay > 0 {
+		select {
+		case <-ctx.Done():
+			logr.Warnf("[watchdog.monitorExternalEndpointHeartbeat] Canceling current execution of group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
+			return
+		case <-time.After(delay):
+		}
+	}
+	executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
 	ticker := time.NewTicker(ee.Heartbeat.Interval)
 	defer ticker.Stop()
 	for {
