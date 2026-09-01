@@ -13,7 +13,15 @@ import (
 
 // monitorEndpoint a single endpoint in a loop
 func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	// Run it immediately on start
+	// Seed the first execution delay from the last persisted result timestamp
+	if delay := endpointInitialDelay(ep.Key(), ep.Interval); delay > 0 {
+		select {
+		case <-ctx.Done():
+			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			return
+		case <-time.After(delay):
+		}
+	}
 	executeEndpoint(ep, cfg, extraLabels)
 	// Loop for the next executions
 	ticker := time.NewTicker(ep.Interval)

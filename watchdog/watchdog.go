@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -70,4 +72,26 @@ func Shutdown(cfg *config.Config) {
 		}
 	}
 	cancelFunc()
+}
+
+// endpointInitialDelay returns how long to wait before the first execution, seeded
+// from the last persisted endpoint result. <=0 means no history (e.g. memory store)
+// or overdue -> caller should run immediately.
+func endpointInitialDelay(key string, interval time.Duration) time.Duration {
+	status, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(1, 1))
+	if err != nil || status == nil || len(status.Results) == 0 {
+		return 0
+	}
+	lastResult := status.Results[len(status.Results)-1] // results are newest-LAST
+	return time.Until(lastResult.Timestamp.Add(interval))
+}
+
+// suiteInitialDelay: same idea for suites.
+func suiteInitialDelay(key string, interval time.Duration) time.Duration {
+	status, err := store.Get().GetSuiteStatusByKey(key, paging.NewSuiteStatusParams().WithPagination(1, 1))
+	if err != nil || status == nil || len(status.Results) == 0 {
+		return 0
+	}
+	lastResult := status.Results[len(status.Results)-1]
+	return time.Until(lastResult.Timestamp.Add(interval))
 }
