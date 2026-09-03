@@ -320,8 +320,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
       - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
-		// The file mod time only has second precision, so advance it explicitly
-		// instead of sleeping a full second for the wall clock to tick.
+		// File mod times have second precision, so advance it explicitly.
 		future := time.Now().Add(2 * time.Second)
 		if err = os.Chtimes(configFilePath, future, future); err != nil {
 			t.Fatalf("failed to advance config file mod time: %v", err)
@@ -350,8 +349,7 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
 			t.Fatalf("failed to add config file: %v", err)
 		}
-		// The file mod time only has second precision, so advance it explicitly
-		// instead of sleeping a full second for the wall clock to tick.
+		// File mod times have second precision, so advance it explicitly.
 		future := time.Now().Add(2 * time.Second)
 		if err = os.Chtimes(filepath.Join(dir, "metrics.yaml"), future, future); err != nil {
 			t.Fatalf("failed to advance config file mod time: %v", err)
