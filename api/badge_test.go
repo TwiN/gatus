@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -391,5 +393,43 @@ func TestGetBadgeColorFromHealth(t *testing.T) {
 				t.Errorf("expected %s from %s, got %v", scenario.ExpectedColor, scenario.HealthStatus, getBadgeColorFromHealth(scenario.HealthStatus))
 			}
 		})
+	}
+}
+
+func TestHealthBadgeShieldsLabel(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	cfg := &config.Config{
+		Metrics: true,
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name:  "frontend",
+				Group: "core",
+			},
+		},
+	}
+	cfg.Endpoints[0].UIConfig = ui.GetDefaultConfig()
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Connected: true, Duration: time.Millisecond, Timestamp: time.Now()})
+	router := New(cfg).Router()
+
+	request := httptest.NewRequest("GET", "/api/v1/endpoints/core_frontend/health/badge.shields", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	body, _ := io.ReadAll(response.Body)
+	var shields map[string]interface{}
+	if err = json.Unmarshal(body, &shields); err != nil {
+		t.Fatalf("failed to parse shields json: %v (body: %s)", err, string(body))
+	}
+	// The shields label must be the endpoint name, not the hardcoded "gatus" (#737).
+	if shields["label"] != "frontend" {
+		t.Errorf("expected shields label %q, got %q", "frontend", shields["label"])
+	}
+	if shields["message"] != "up" {
+		t.Errorf("expected shields message %q, got %q", "up", shields["message"])
 	}
 }

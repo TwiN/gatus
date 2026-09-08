@@ -168,7 +168,7 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Set("Expires", "0")
-	jsonData, err := generateHealthBadgeShields(healthStatus)
+	jsonData, err := generateHealthBadgeShields(status.Name, healthStatus)
 	if err != nil {
 		return c.Status(500).SendString(err.Error())
 	}
@@ -356,11 +356,11 @@ func generateHealthBadgeSVG(healthStatus string) []byte {
 	return svg
 }
 
-func generateHealthBadgeShields(healthStatus string) ([]byte, error) {
+func generateHealthBadgeShields(name, healthStatus string) ([]byte, error) {
 	color := getBadgeShieldsColorFromHealth(healthStatus)
 	data := map[string]interface{}{
 		"schemaVersion": 1,
-		"label":         "gatus",
+		"label":         name,
 		"message":       healthStatus,
 		"color":         color,
 	}
