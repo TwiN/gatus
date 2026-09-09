@@ -10,7 +10,7 @@
           type="text"
           placeholder="Search endpoints..."
           class="pl-10 text-sm sm:text-base"
-          @input="$emit('search', searchQuery)"
+          @input="handleSearchChange"
         />
       </div>
     </div>
@@ -41,14 +41,51 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import {
+  DASHBOARD_FILTER_VALUES,
+  DASHBOARD_SORT_VALUES,
+  normalizeDashboardOption,
+  normalizeSearchQuery,
+  withQueryValue,
+} from '@/utils/dashboard-query.mjs'
 
-const searchQuery = ref('')
-const filterBy = ref(localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'none')
-const sortBy = ref(localStorage.getItem('gatus:sort-by') || (typeof window !== 'undefined' && window.config?.defaultSortBy) || 'name')
+const router = useRouter()
+const route = useRoute()
+
+const storedFilterBy = localStorage.getItem('gatus:filter-by')
+const configuredFilterBy = typeof window !== 'undefined' && window.config?.defaultFilterBy
+const configuredFilterFallback = normalizeDashboardOption(
+  configuredFilterBy,
+  DASHBOARD_FILTER_VALUES,
+  'none'
+)
+const filterFallback = normalizeDashboardOption(
+  storedFilterBy,
+  DASHBOARD_FILTER_VALUES,
+  configuredFilterFallback
+)
+
+const storedSortBy = localStorage.getItem('gatus:sort-by')
+const configuredSortBy = typeof window !== 'undefined' && window.config?.defaultSortBy
+const configuredSortFallback = normalizeDashboardOption(
+  configuredSortBy,
+  DASHBOARD_SORT_VALUES,
+  'name'
+)
+const sortFallback = normalizeDashboardOption(
+  storedSortBy,
+  DASHBOARD_SORT_VALUES,
+  configuredSortFallback
+)
+
+const searchQuery = ref(normalizeSearchQuery(route.query.search))
+const filterBy = ref(normalizeDashboardOption(route.query.filter, DASHBOARD_FILTER_VALUES, filterFallback))
+const sortBy = ref(normalizeDashboardOption(route.query.sort, DASHBOARD_SORT_VALUES, sortFallback))
 
 const filterOptions = [
   { label: 'None', value: 'none' },
@@ -64,10 +101,18 @@ const sortOptions = [
 
 const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
+const handleSearchChange = event => {
+  searchQuery.value = event.target.value
+  router.replace({ query: withQueryValue(route.query, 'search', searchQuery.value) })
+  emit('search', searchQuery.value)
+}
+
 const handleFilterChange = (value, store = true) => {
   filterBy.value = value
-  if (store)
+  if (store) {
     localStorage.setItem('gatus:filter-by', value)
+    router.push({ query: withQueryValue(route.query, 'filter', value) })
+  }
   
   // Reset all filter states first
   emit('update:showOnlyFailing', false)
@@ -83,8 +128,10 @@ const handleFilterChange = (value, store = true) => {
 
 const handleSortChange = (value, store = true) => {
   sortBy.value = value
-  if (store)
+  if (store) {
     localStorage.setItem('gatus:sort-by', value)
+    router.push({ query: withQueryValue(route.query, 'sort', value) })
+  }
 
   emit('update:sortBy', value)
   emit('update:groupByGroup', value === 'group')
@@ -96,8 +143,40 @@ const handleSortChange = (value, store = true) => {
 }
 
 onMounted(() => {
+  emit('search', searchQuery.value)
   // Apply saved or application wide filter/sort state on load but do not store it in localstorage
   handleFilterChange(filterBy.value, false)
   handleSortChange(sortBy.value, false)
 })
+
+watch(
+  () => route.query.search,
+  value => {
+    const normalizedValue = normalizeSearchQuery(value)
+    if (normalizedValue !== searchQuery.value) {
+      searchQuery.value = normalizedValue
+      emit('search', normalizedValue)
+    }
+  }
+)
+
+watch(
+  () => route.query.filter,
+  value => {
+    const normalizedValue = normalizeDashboardOption(value, DASHBOARD_FILTER_VALUES, filterFallback)
+    if (normalizedValue !== filterBy.value) {
+      handleFilterChange(normalizedValue, false)
+    }
+  }
+)
+
+watch(
+  () => route.query.sort,
+  value => {
+    const normalizedValue = normalizeDashboardOption(value, DASHBOARD_SORT_VALUES, sortFallback)
+    if (normalizedValue !== sortBy.value) {
+      handleSortChange(normalizedValue, false)
+    }
+  }
+)
 </script>
