@@ -11,7 +11,11 @@ import (
 	"github.com/TwiN/logr"
 )
 
+// monitorExternalEndpointHeartbeat checks a single external endpoint's heartbeat in a loop
 func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
+	// Seed the first execution delay from the last persisted result timestamp so a restart or
+	// config reload resumes the existing heartbeat schedule instead of restarting the cadence
+	// from zero.
 	if delay := endpointInitialDelay(ee.Key(), ee.Heartbeat.Interval); delay > 0 {
 		select {
 		case <-ctx.Done():
@@ -20,6 +24,10 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		case <-time.After(delay):
 		}
 	}
+	// Execute once immediately after the seeded delay elapses so the heartbeat check that's
+	// due right now isn't skipped: the ticker below only fires after a full
+	// ee.Heartbeat.Interval from when it's created, so without this call the first check
+	// would be deferred an extra interval.
 	executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
 	ticker := time.NewTicker(ee.Heartbeat.Interval)
 	defer ticker.Stop()
