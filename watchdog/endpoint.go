@@ -17,7 +17,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	if delay := endpointInitialDelay(ep.Key(), ep.Interval); delay > 0 {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			logr.Warnf("[watchdog.monitorEndpoint] Context canceled; stopping monitoring of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-time.After(delay):
 		}
@@ -29,7 +29,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			logr.Warnf("[watchdog.monitorEndpoint] Context canceled; stopping monitoring of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-ticker.C:
 			executeEndpoint(ep, cfg, extraLabels)

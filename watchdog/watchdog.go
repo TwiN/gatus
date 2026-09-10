@@ -76,14 +76,22 @@ func Shutdown(cfg *config.Config) {
 
 // endpointInitialDelay returns how long to wait before the first execution, seeded
 // from the last persisted endpoint result. <=0 means no history (e.g. memory store)
-// or overdue -> caller should run immediately.
+// or overdue -> caller should run immediately. The result is capped at interval so a
+// result timestamped in the future (clock skew) never delays the first check by more
+// than one interval.
 func endpointInitialDelay(key string, interval time.Duration) time.Duration {
 	status, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(1, 1))
 	if err != nil || status == nil || len(status.Results) == 0 {
 		return 0
 	}
 	lastResult := status.Results[len(status.Results)-1] // results are newest-LAST
-	return time.Until(lastResult.Timestamp.Add(interval))
+	delay := time.Until(lastResult.Timestamp.Add(interval))
+	// Guard against clock skew: a result timestamped in the future would otherwise push the
+	// first execution more than one interval out. Never wait longer than a single interval.
+	if delay > interval {
+		return interval
+	}
+	return delay
 }
 
 // suiteInitialDelay: same idea for suites.
@@ -93,5 +101,9 @@ func suiteInitialDelay(key string, interval time.Duration) time.Duration {
 		return 0
 	}
 	lastResult := status.Results[len(status.Results)-1]
-	return time.Until(lastResult.Timestamp.Add(interval))
+	delay := time.Until(lastResult.Timestamp.Add(interval))
+	if delay > interval {
+		return interval
+	}
+	return delay
 }

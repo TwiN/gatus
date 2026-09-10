@@ -47,6 +47,19 @@ func TestEndpointInitialDelay(t *testing.T) {
 			},
 			wantPos: true,
 		},
+		{
+			// A result timestamped in the future (clock skew) must not push the first
+			// execution beyond a single interval; endpointInitialDelay caps it at interval.
+			name: "future timestamp (clock skew) -> capped at interval",
+			setup: func() {
+				r := &endpoint.Result{
+					Timestamp: time.Now().Add(interval),
+					Success:   true,
+				}
+				_ = store.Get().InsertEndpointResult(ep, r)
+			},
+			wantPos: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -104,6 +117,19 @@ func TestSuiteInitialDelay(t *testing.T) {
 			setup: func() {
 				r := &suite.Result{
 					Timestamp: time.Now().Add(-interval / 2),
+					Success:   true,
+				}
+				_ = store.Get().InsertSuiteResult(s, r)
+			},
+			wantPos: true,
+		},
+		{
+			// A result timestamped in the future (clock skew) must not push the first
+			// execution beyond a single interval; suiteInitialDelay caps it at interval.
+			name: "future timestamp (clock skew) -> capped at interval",
+			setup: func() {
+				r := &suite.Result{
+					Timestamp: time.Now().Add(interval),
 					Success:   true,
 				}
 				_ = store.Get().InsertSuiteResult(s, r)
