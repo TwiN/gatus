@@ -13,7 +13,8 @@ import (
 
 // monitorSuite monitors a suite by executing it at regular intervals
 func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	// Seed first execution delay from last persisted result
+	// Seed first execution delay from last persisted result so a restart or config reload
+	// resumes the existing schedule instead of restarting the cadence from zero.
 	if delay := suiteInitialDelay(s.Key(), s.Interval); delay > 0 {
 		select {
 		case <-ctx.Done():
@@ -22,6 +23,9 @@ func monitorSuite(s *suite.Suite, cfg *config.Config, extraLabels []string, ctx 
 		case <-time.After(delay):
 		}
 	}
+	// Execute once immediately after the seeded delay elapses so the run that's due right
+	// now isn't skipped: the ticker below only fires after a full s.Interval from when it's
+	// created, so without this call the first execution would be deferred an extra interval.
 	executeSuite(s, cfg, extraLabels)
 	// Set up ticker for periodic execution
 	ticker := time.NewTicker(s.Interval)
