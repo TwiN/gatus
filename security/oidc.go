@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -14,18 +15,21 @@ import (
 )
 
 const (
-	DefaultOIDCSessionTTL = 8 * time.Hour
+	DefaultOIDCSessionTTL         = 8 * time.Hour
+	DefaultOIDCAllowedGroupsClaim = "groups"
 )
 
 // OIDCConfig is the configuration for OIDC authentication
 type OIDCConfig struct {
-	IssuerURL       string        `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
-	RedirectURL     string        `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
-	ClientID        string        `yaml:"client-id"`
-	ClientSecret    string        `yaml:"client-secret"`
-	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
-	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
-	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
+	IssuerURL          string        `yaml:"issuer-url"`   // e.g. https://dev-12345678.okta.com
+	RedirectURL        string        `yaml:"redirect-url"` // e.g. http://localhost:8080/authorization-code/callback
+	ClientID           string        `yaml:"client-id"`
+	ClientSecret       string        `yaml:"client-secret"`
+	Scopes             []string      `yaml:"scopes"`               // e.g. ["openid"]
+	AllowedSubjects    []string      `yaml:"allowed-subjects"`     // e.g. ["user1@example.com"]. If empty, all subjects are allowed
+	AllowedGroups      []string      `yaml:"allowed-groups"`       // e.g. ["/computing-team"]. If empty, all groups are allowed
+	AllowedGroupsClaim string        `yaml:"allowed-groups-claim"` // e.g. "custom-groups-claim". Defaults to "groups"
+	SessionTTL         time.Duration `yaml:"session-ttl"`          // e.g. 8h. Defaults to 8 hours
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -36,7 +40,10 @@ func (c *OIDCConfig) ValidateAndSetDefaults() bool {
 	if c.SessionTTL <= 0 {
 		c.SessionTTL = DefaultOIDCSessionTTL
 	}
-	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
+	if len(c.AllowedGroupsClaim) == 0 {
+		c.AllowedGroupsClaim = DefaultOIDCAllowedGroupsClaim
+	}
+	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0 && !(len(c.AllowedGroups) > 0 && len(c.AllowedSubjects) > 0)
 }
 
 func (c *OIDCConfig) initialize() error {
@@ -119,21 +126,50 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		http.Error(w, "nonce did not match", http.StatusBadRequest)
 		return
 	}
+	if len(c.AllowedGroups) > 0 {
+		// If allowed-groups is configured, check groups
+		var claims map[string]json.RawMessage
+		if err := idToken.Claims(&claims); err != nil {
+			http.Error(w, "Failed to parse claims: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var groups []string
+		if err := json.Unmarshal(claims[c.AllowedGroupsClaim], &groups); err != nil {
+			http.Error(w, "Failed to parse groups claim: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, allowedGroup := range c.AllowedGroups {
+			for _, userGroup := range groups {
+				if strings.EqualFold(allowedGroup, userGroup) {
+					c.setSessionCookie(w, idToken)
+					http.Redirect(w, r, "/", http.StatusFound)
+					return
+				}
+			}
+		}
+
+		logr.Debugf("[security.callbackHandler] User %s does not have an allowed group", idToken.Subject)
+		http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
+		return
+	} else if len(c.AllowedSubjects) > 0 {
+		// If allowed-subjects is configured, check groups
+		for _, subject := range c.AllowedSubjects {
+			if strings.EqualFold(subject, idToken.Subject) {
+				c.setSessionCookie(w, idToken)
+				http.Redirect(w, r, "/", http.StatusFound)
+				return
+			}
+		}
+		logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
+		http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
+		return
+	}
 	if len(c.AllowedSubjects) == 0 {
 		// If there's no allowed subjects, all subjects are allowed.
 		c.setSessionCookie(w, idToken)
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	for _, subject := range c.AllowedSubjects {
-		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
-			c.setSessionCookie(w, idToken)
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-	}
-	logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
-	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
