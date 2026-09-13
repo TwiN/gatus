@@ -164,12 +164,9 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 		return
 	}
-	if len(c.AllowedSubjects) == 0 {
-		// If there's no allowed subjects, all subjects are allowed.
-		c.setSessionCookie(w, idToken)
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	// If allowed-subjects and allowed-groups aren't set, all users are allowed.
+	c.setSessionCookie(w, idToken)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (c *OIDCConfig) setSessionCookie(w http.ResponseWriter, idToken *oidc.IDToken) {
