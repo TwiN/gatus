@@ -11,6 +11,10 @@ type Status struct {
 	// Key of the Suite
 	Key string `json:"key"`
 
+	// Suspended is whether the suite's monitoring is currently suspended. This is populated from the
+	// configuration by the API layer, not persisted by the storage provider.
+	Suspended bool `json:"suspended,omitempty"`
+
 	// Results is the list of suite execution results
 	Results []*Result `json:"results"`
 }
@@ -18,9 +22,10 @@ type Status struct {
 // NewStatus creates a new Status for a given Suite
 func NewStatus(s *Suite) *Status {
 	return &Status{
-		Name:    s.Name,
-		Group:   s.Group,
-		Key:     s.Key(),
-		Results: []*Result{},
+		Name:      s.Name,
+		Group:     s.Group,
+		Key:       s.Key(),
+		Suspended: s.IsSuspended(),
+		Results:   []*Result{},
 	}
 }

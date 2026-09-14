@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -498,6 +499,58 @@ func TestSuiteStatuses_NoSuitesInStoreButExistInConfig(t *testing.T) {
 	}
 	if contains(bodyStr, "disabled-suite") {
 		t.Error("Should not include disabled-suite in response")
+	}
+}
+
+// TestSuiteStatuses_SuspendedSuites makes sure that suspended suites are annotated with suspended=true in the
+// response whether or not they already have persisted results, and that suites which aren't suspended are
+// unaffected.
+func TestSuiteStatuses_SuspendedSuites(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	activeSuite := &suite.Suite{Name: "active-suite", Group: "test-group", Enabled: boolPtr(true)}
+	suspendedWithHistory := &suite.Suite{Name: "suspended-with-history", Group: "test-group", Enabled: boolPtr(true), Suspended: boolPtr(true)}
+	suspendedWithoutHistory := &suite.Suite{Name: "suspended-without-history", Group: "test-group", Enabled: boolPtr(true), Suspended: boolPtr(true)}
+	store.Get().InsertSuiteResult(activeSuite, &suite.Result{Name: activeSuite.Name, Group: activeSuite.Group, Success: true, Timestamp: time.Now()})
+	store.Get().InsertSuiteResult(suspendedWithHistory, &suite.Result{Name: suspendedWithHistory.Name, Group: suspendedWithHistory.Group, Success: false, Timestamp: time.Now()})
+	cfg := &config.Config{
+		Metrics: true,
+		Suites:  []*suite.Suite{activeSuite, suspendedWithHistory, suspendedWithoutHistory},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/suites/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal("expected err to be nil, but was", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	var statuses []*suite.Status
+	if err := json.NewDecoder(response.Body).Decode(&statuses); err != nil {
+		t.Fatal("failed to decode response body:", err)
+	}
+	if len(statuses) != 3 {
+		t.Fatalf("expected 3 suite statuses (including the suspended one with no history), got %d", len(statuses))
+	}
+	byKey := make(map[string]*suite.Status, len(statuses))
+	for _, status := range statuses {
+		byKey[status.Key] = status
+	}
+	if status, ok := byKey[activeSuite.Key()]; !ok || status.Suspended {
+		t.Errorf("expected active suite to not be suspended, got %+v", status)
+	}
+	if status, ok := byKey[suspendedWithHistory.Key()]; !ok || !status.Suspended || len(status.Results) != 1 {
+		t.Errorf("expected suspended suite with history to be marked suspended and keep its results, got %+v", status)
+	}
+	if status, ok := byKey[suspendedWithoutHistory.Key()]; !ok || !status.Suspended || len(status.Results) != 0 {
+		t.Errorf("expected suspended suite without history to be marked suspended with no results, got %+v", status)
 	}
 }
 

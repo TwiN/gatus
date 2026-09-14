@@ -237,6 +237,7 @@ const latestResult = computed(() => {
 })
 
 const currentHealthStatus = computed(() => {
+  if (currentStatus.value?.suspended) return 'suspended'
   if (!latestResult.value) return 'unknown'
   return latestResult.value.success ? 'healthy' : 'unhealthy'
 })

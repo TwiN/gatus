@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -151,6 +152,44 @@ func TestEndpointStatus(t *testing.T) {
 	}
 }
 
+// TestEndpointStatus_SuspendedEndpointWithoutHistory makes sure that requesting the status of a suspended endpoint
+// that has never been checked returns a placeholder built from the configuration (marked suspended) instead of a
+// 404, so that it's still reachable from the UI.
+func TestEndpointStatus_SuspendedEndpointWithoutHistory(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	suspended := &endpoint.Endpoint{Name: "suspended", Group: "core", Suspended: boolPtr(true)}
+	cfg := &config.Config{
+		Metrics:   true,
+		Endpoints: []*endpoint.Endpoint{suspended},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/endpoints/"+suspended.Key()+"/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal("expected err to be nil, but was", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status code %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	var status endpoint.Status
+	if err := json.NewDecoder(response.Body).Decode(&status); err != nil {
+		t.Fatal("failed to decode response body:", err)
+	}
+	if !status.Suspended {
+		t.Error("expected the placeholder status to be marked suspended")
+	}
+	if status.Key != suspended.Key() {
+		t.Errorf("expected key=%s, got %s", suspended.Key(), status.Key)
+	}
+}
+
 func TestEndpointStatuses(t *testing.T) {
 	defer store.Get().Clear()
 	defer cache.Clear()
@@ -227,5 +266,57 @@ func TestEndpointStatuses(t *testing.T) {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
 			}
 		})
+	}
+}
+
+// TestEndpointStatuses_SuspendedEndpoints makes sure that suspended endpoints are annotated with suspended=true in
+// the response whether or not they already have persisted results, and that endpoints which aren't suspended are
+// unaffected.
+func TestEndpointStatuses_SuspendedEndpoints(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	activeEndpoint := &endpoint.Endpoint{Name: "active", Group: "group"}
+	suspendedWithHistory := &endpoint.Endpoint{Name: "suspended-with-history", Group: "group", Suspended: boolPtr(true)}
+	suspendedWithoutHistory := &endpoint.Endpoint{Name: "suspended-without-history", Group: "group", Suspended: boolPtr(true)}
+	watchdog.UpdateEndpointStatus(activeEndpoint, &endpoint.Result{Success: true, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(suspendedWithHistory, &endpoint.Result{Success: false, Timestamp: time.Now()})
+	cfg := &config.Config{
+		Metrics:   true,
+		Endpoints: []*endpoint.Endpoint{activeEndpoint, suspendedWithHistory, suspendedWithoutHistory},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/endpoints/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal("expected err to be nil, but was", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	var statuses []*endpoint.Status
+	if err := json.NewDecoder(response.Body).Decode(&statuses); err != nil {
+		t.Fatal("failed to decode response body:", err)
+	}
+	if len(statuses) != 3 {
+		t.Fatalf("expected 3 endpoint statuses (including the suspended one with no history), got %d", len(statuses))
+	}
+	byKey := make(map[string]*endpoint.Status, len(statuses))
+	for _, status := range statuses {
+		byKey[status.Key] = status
+	}
+	if status, ok := byKey[activeEndpoint.Key()]; !ok || status.Suspended {
+		t.Errorf("expected active endpoint to not be suspended, got %+v", status)
+	}
+	if status, ok := byKey[suspendedWithHistory.Key()]; !ok || !status.Suspended || len(status.Results) != 1 {
+		t.Errorf("expected suspended endpoint with history to be marked suspended and keep its results, got %+v", status)
+	}
+	if status, ok := byKey[suspendedWithoutHistory.Key()]; !ok || !status.Suspended || len(status.Results) != 0 {
+		t.Errorf("expected suspended endpoint without history to be marked suspended with no results, got %+v", status)
 	}
 }

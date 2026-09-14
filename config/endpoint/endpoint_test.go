@@ -329,6 +329,18 @@ func TestEndpoint_IsEnabled(t *testing.T) {
 	}
 }
 
+func TestEndpoint_IsSuspended(t *testing.T) {
+	if (&Endpoint{Suspended: nil}).IsSuspended() {
+		t.Error("endpoint.IsSuspended() should've returned false, because Suspended was set to nil")
+	}
+	if value := false; (&Endpoint{Suspended: &value}).IsSuspended() {
+		t.Error("endpoint.IsSuspended() should've returned false, because Suspended was set to false")
+	}
+	if value := true; !(&Endpoint{Suspended: &value}).IsSuspended() {
+		t.Error("endpoint.IsSuspended() should've returned true, because Suspended was set to true")
+	}
+}
+
 func TestEndpoint_Type(t *testing.T) {
 	type args struct {
 		URL string

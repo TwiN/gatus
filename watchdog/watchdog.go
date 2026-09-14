@@ -36,7 +36,7 @@ func Monitor(cfg *config.Config) {
 	}
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
 	for _, endpoint := range cfg.Endpoints {
-		if endpoint.IsEnabled() {
+		if endpoint.IsEnabled() && !endpoint.IsSuspended() {
 			// To prevent multiple requests from running at the same time, we'll wait for a little before each iteration
 			time.Sleep(222 * time.Millisecond)
 			go monitorEndpoint(endpoint, cfg, extraLabels, ctx)
@@ -46,12 +46,12 @@ func Monitor(cfg *config.Config) {
 		// Check if the external endpoint is enabled and is using heartbeat
 		// If the external endpoint does not use heartbeat, then it does not need to be monitored periodically, because
 		// alerting is checked every time an external endpoint is pushed to Gatus, unlike normal endpoints.
-		if externalEndpoint.IsEnabled() && externalEndpoint.Heartbeat.Interval > 0 {
+		if externalEndpoint.IsEnabled() && !externalEndpoint.IsSuspended() && externalEndpoint.Heartbeat.Interval > 0 {
 			go monitorExternalEndpointHeartbeat(externalEndpoint, cfg, extraLabels, ctx)
 		}
 	}
 	for _, suite := range cfg.Suites {
-		if suite.IsEnabled() {
+		if suite.IsEnabled() && !suite.IsSuspended() {
 			time.Sleep(222 * time.Millisecond)
 			go monitorSuite(suite, cfg, extraLabels, ctx)
 		}

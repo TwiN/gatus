@@ -43,6 +43,12 @@ type Suite struct {
 	// Enabled defines whether the suite is enabled
 	Enabled *bool `yaml:"enabled,omitempty"`
 
+	// Suspended defines whether the suite's monitoring is temporarily suspended.
+	//
+	// Unlike Enabled, a suspended suite is still displayed in the UI, where it can be filtered for separately, but
+	// it is excluded from the failing/unstable filters and counts since it isn't actively being run.
+	Suspended *bool `yaml:"suspended,omitempty"`
+
 	// Interval is the duration to wait between suite executions
 	Interval time.Duration `yaml:"interval,omitempty"`
 
@@ -62,6 +68,14 @@ func (s *Suite) IsEnabled() bool {
 		return true
 	}
 	return *s.Enabled
+}
+
+// IsSuspended returns whether the suite's monitoring is suspended
+func (s *Suite) IsSuspended() bool {
+	if s.Suspended == nil {
+		return false
+	}
+	return *s.Suspended
 }
 
 // Key returns a unique key for the suite

@@ -21,12 +21,25 @@ func SuiteStatuses(cfg *config.Config) fiber.Handler {
 				"error": fmt.Sprintf("Failed to retrieve suite statuses: %v", err),
 			})
 		}
-		// If no statuses exist yet, create empty ones from config
-		if len(suiteStatuses) == 0 {
-			for _, s := range cfg.Suites {
-				if s.IsEnabled() {
-					suiteStatuses = append(suiteStatuses, suite.NewStatus(s))
-				}
+		// Annotate suite statuses with their current suspended state from the configuration, and create
+		// placeholder statuses for any enabled suite that doesn't have one yet (either because it never ran, or
+		// because it's suspended and was therefore never run), so that suspended suites are still visible (and
+		// filterable) in the UI.
+		suspendedKeys := make(map[string]bool)
+		for _, s := range cfg.Suites {
+			if s.IsSuspended() {
+				suspendedKeys[s.Key()] = true
+			}
+		}
+		seenKeys := make(map[string]bool, len(suiteStatuses))
+		for _, status := range suiteStatuses {
+			seenKeys[status.Key] = true
+			status.Suspended = suspendedKeys[status.Key]
+		}
+		for _, s := range cfg.Suites {
+			if s.IsEnabled() && !seenKeys[s.Key()] {
+				suiteStatuses = append(suiteStatuses, suite.NewStatus(s))
+				seenKeys[s.Key()] = true
 			}
 		}
 		return c.Status(fiber.StatusOK).JSON(suiteStatuses)
@@ -52,6 +65,13 @@ func SuiteStatus(cfg *config.Config) fiber.Handler {
 				return c.Status(404).JSON(fiber.Map{
 					"error": fmt.Sprintf("Suite with key '%s' not found", key),
 				})
+			}
+		} else {
+			for _, s := range cfg.Suites {
+				if s.Key() == key {
+					status.Suspended = s.IsSuspended()
+					break
+				}
 			}
 		}
 		return c.Status(fiber.StatusOK).JSON(status)

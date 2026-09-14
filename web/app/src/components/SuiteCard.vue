@@ -96,6 +96,7 @@ const displayResults = computed(() => {
 })
 
 const currentStatus = computed(() => {
+  if (props.suite.suspended) return 'suspended'
   if (!props.suite.results || props.suite.results.length === 0) {
     return 'unknown'
   }

@@ -152,6 +152,44 @@ func TestExternalEndpoint_IsEnabled(t *testing.T) {
 	}
 }
 
+func TestExternalEndpoint_IsSuspended(t *testing.T) {
+	tests := []struct {
+		name      string
+		suspended *bool
+		expected  bool
+	}{
+		{
+			name:      "nil-suspended-defaults-to-false",
+			suspended: nil,
+			expected:  false,
+		},
+		{
+			name:      "explicitly-suspended",
+			suspended: boolPtr(true),
+			expected:  true,
+		},
+		{
+			name:      "explicitly-not-suspended",
+			suspended: boolPtr(false),
+			expected:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			endpoint := &ExternalEndpoint{
+				Name:      "test-endpoint",
+				Token:     "test-token",
+				Suspended: tt.suspended,
+			}
+			result := endpoint.IsSuspended()
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestExternalEndpoint_DisplayName(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -243,10 +281,11 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 		{
 			name: "complete-external-endpoint",
 			externalEndpoint: &ExternalEndpoint{
-				Enabled: boolPtr(true),
-				Name:    "test-endpoint",
-				Group:   "test-group",
-				Token:   "test-token",
+				Enabled:   boolPtr(true),
+				Suspended: boolPtr(true),
+				Name:      "test-endpoint",
+				Group:     "test-group",
+				Token:     "test-token",
 				Alerts: []*alert.Alert{
 					{
 						Type: alert.TypeSlack,
@@ -291,6 +330,9 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 			// Verify all fields are correctly copied
 			if result.Enabled != tt.externalEndpoint.Enabled {
 				t.Errorf("Expected Enabled=%v, got %v", tt.externalEndpoint.Enabled, result.Enabled)
+			}
+			if result.Suspended != tt.externalEndpoint.Suspended {
+				t.Errorf("Expected Suspended=%v, got %v", tt.externalEndpoint.Suspended, result.Suspended)
 			}
 			if result.Name != tt.externalEndpoint.Name {
 				t.Errorf("Expected Name=%q, got %q", tt.externalEndpoint.Name, result.Name)

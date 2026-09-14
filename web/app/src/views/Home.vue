@@ -29,6 +29,7 @@
           @search="handleSearch"
           @update:showOnlyFailing="showOnlyFailing = $event"
           @update:showRecentFailures="showRecentFailures = $event"
+          @update:showOnlySuspended="showOnlySuspended = $event"
           @update:groupByGroup="groupByGroup = $event"
           @update:sortBy="sortBy = $event"
           @initializeCollapsedGroups="initializeCollapsedGroups"
@@ -43,8 +44,8 @@
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 class="text-lg font-semibold mb-2">No endpoints or suites found</h3>
         <p class="text-muted-foreground">
-          {{ searchQuery || showOnlyFailing || showRecentFailures 
-            ? 'Try adjusting your filters' 
+          {{ searchQuery || showOnlyFailing || showRecentFailures || showOnlySuspended
+            ? 'Try adjusting your filters'
             : 'No endpoints or suites are configured' }}
         </p>
       </div>
@@ -219,6 +220,7 @@ const itemsPerPage = 96
 const searchQuery = ref('')
 const showOnlyFailing = ref(false)
 const showRecentFailures = ref(false)
+const showOnlySuspended = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
@@ -236,21 +238,23 @@ const filteredEndpoints = computed(() => {
     )
   }
   
-  if (showOnlyFailing.value) {
+  if (showOnlySuspended.value) {
+    filtered = filtered.filter(endpoint => endpoint.suspended)
+  } else if (showOnlyFailing.value) {
     filtered = filtered.filter(endpoint => {
+      if (endpoint.suspended) return false
       if (!endpoint.results || endpoint.results.length === 0) return false
       const latestResult = endpoint.results[endpoint.results.length - 1]
       return !latestResult.success
     })
-  }
-  
-  if (showRecentFailures.value) {
+  } else if (showRecentFailures.value) {
     filtered = filtered.filter(endpoint => {
+      if (endpoint.suspended) return false
       if (!endpoint.results || endpoint.results.length === 0) return false
       return endpoint.results.some(result => !result.success)
     })
   }
-  
+
   // Sort by health if selected
   if (sortBy.value === 'health') {
     filtered.sort((a, b) => {
@@ -280,20 +284,22 @@ const filteredSuites = computed(() => {
     )
   }
   
-  if (showOnlyFailing.value) {
+  if (showOnlySuspended.value) {
+    filtered = filtered.filter(suite => suite.suspended)
+  } else if (showOnlyFailing.value) {
     filtered = filtered.filter(suite => {
+      if (suite.suspended) return false
       if (!suite.results || suite.results.length === 0) return false
       return !suite.results[suite.results.length - 1].success
     })
-  }
-  
-  if (showRecentFailures.value) {
+  } else if (showRecentFailures.value) {
     filtered = filtered.filter(suite => {
+      if (suite.suspended) return false
       if (!suite.results || suite.results.length === 0) return false
       return suite.results.some(result => !result.success)
     })
   }
-  
+
   // Sort by health if selected
   if (sortBy.value === 'health') {
     filtered.sort((a, b) => {
@@ -492,6 +498,7 @@ const showTooltip = (result, event, action = 'hover') => {
 
 const calculateUnhealthyCount = (endpoints) => {
   return endpoints.filter(endpoint => {
+    if (endpoint.suspended) return false
     if (!endpoint.results || endpoint.results.length === 0) return false
     const latestResult = endpoint.results[endpoint.results.length - 1]
     return !latestResult.success
@@ -500,6 +507,7 @@ const calculateUnhealthyCount = (endpoints) => {
 
 const calculateFailingSuitesCount = (suites) => {
   return suites.filter(suite => {
+    if (suite.suspended) return false
     if (!suite.results || suite.results.length === 0) return false
     return !suite.results[suite.results.length - 1].success
   }).length

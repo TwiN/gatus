@@ -53,7 +53,8 @@ const sortBy = ref(localStorage.getItem('gatus:sort-by') || (typeof window !== '
 const filterOptions = [
   { label: 'None', value: 'none' },
   { label: 'Failing', value: 'failing' },
-  { label: 'Unstable', value: 'unstable' }
+  { label: 'Unstable', value: 'unstable' },
+  { label: 'Suspended', value: 'suspended' }
 ]
 
 const sortOptions = [
@@ -62,22 +63,25 @@ const sortOptions = [
   { label: 'Health', value: 'health' }
 ]
 
-const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
+const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecentFailures', 'update:showOnlySuspended', 'update:groupByGroup', 'update:sortBy', 'initializeCollapsedGroups'])
 
 const handleFilterChange = (value, store = true) => {
   filterBy.value = value
   if (store)
     localStorage.setItem('gatus:filter-by', value)
-  
+
   // Reset all filter states first
   emit('update:showOnlyFailing', false)
   emit('update:showRecentFailures', false)
-  
+  emit('update:showOnlySuspended', false)
+
   // Apply the selected filter
   if (value === 'failing') {
     emit('update:showOnlyFailing', true)
   } else if (value === 'unstable') {
     emit('update:showRecentFailures', true)
+  } else if (value === 'suspended') {
+    emit('update:showOnlySuspended', true)
   }
 }
 

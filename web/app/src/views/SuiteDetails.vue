@@ -19,7 +19,7 @@
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <StatusBadge v-if="latestResult" :status="latestResult.success ? 'healthy' : 'unhealthy'" />
+            <StatusBadge v-if="suite?.suspended || latestResult" :status="suite?.suspended ? 'suspended' : (latestResult.success ? 'healthy' : 'unhealthy')" />
             <Button variant="ghost" size="icon" @click="refreshData" title="Refresh">
               <RefreshCw class="h-5 w-5" />
             </Button>

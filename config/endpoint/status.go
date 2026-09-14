@@ -14,6 +14,10 @@ type Status struct {
 	// Key of the Endpoint
 	Key string `json:"key"`
 
+	// Suspended is whether the endpoint's monitoring is currently suspended. This is populated from the
+	// configuration by the API layer, not persisted by the storage provider.
+	Suspended bool `json:"suspended,omitempty"`
+
 	// Results is the list of endpoint evaluation results
 	Results []*Result `json:"results"`
 

@@ -25,6 +25,12 @@ type ExternalEndpoint struct {
 	// Enabled defines whether to enable the monitoring of the endpoint
 	Enabled *bool `yaml:"enabled,omitempty"`
 
+	// Suspended defines whether the endpoint's monitoring is temporarily suspended.
+	//
+	// Unlike Enabled, a suspended endpoint is still displayed in the UI, where it can be filtered for separately,
+	// but it is excluded from the failing/unstable filters and counts since it isn't actively being checked.
+	Suspended *bool `yaml:"suspended,omitempty"`
+
 	// Name of the endpoint. Can be anything.
 	Name string `yaml:"name"`
 
@@ -73,6 +79,14 @@ func (externalEndpoint *ExternalEndpoint) IsEnabled() bool {
 	return *externalEndpoint.Enabled
 }
 
+// IsSuspended returns whether the endpoint's monitoring is suspended
+func (externalEndpoint *ExternalEndpoint) IsSuspended() bool {
+	if externalEndpoint.Suspended == nil {
+		return false
+	}
+	return *externalEndpoint.Suspended
+}
+
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
 func (externalEndpoint *ExternalEndpoint) DisplayName() string {
 	if len(externalEndpoint.Group) > 0 {
@@ -90,6 +104,7 @@ func (externalEndpoint *ExternalEndpoint) Key() string {
 func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 	endpoint := &Endpoint{
 		Enabled:                 externalEndpoint.Enabled,
+		Suspended:               externalEndpoint.Suspended,
 		Name:                    externalEndpoint.Name,
 		Group:                   externalEndpoint.Group,
 		Alerts:                  externalEndpoint.Alerts,

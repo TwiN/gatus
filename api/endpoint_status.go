@@ -30,6 +30,10 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
 			}
+			// Annotate endpoint statuses with their current suspended state from the configuration, and add
+			// placeholder statuses for suspended endpoints that don't have any persisted results yet, so that
+			// they're still visible (and filterable) in the UI.
+			endpointStatuses = applySuspendedStateToEndpointStatuses(cfg, endpointStatuses)
 			// ALPHA: Retrieve endpoint statuses from remote instances
 			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
 				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
@@ -49,6 +53,71 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
 	}
+}
+
+// applySuspendedStateToEndpointStatuses sets the Suspended field on every endpoint.Status that has a matching
+// suspended endpoint (or external endpoint) in the configuration, and appends a placeholder endpoint.Status for
+// any suspended endpoint that doesn't have one yet (e.g. it was suspended before ever being checked).
+func applySuspendedStateToEndpointStatuses(cfg *config.Config, endpointStatuses []*endpoint.Status) []*endpoint.Status {
+	suspendedKeys := suspendedEndpointKeys(cfg)
+	if len(suspendedKeys) == 0 {
+		return endpointStatuses
+	}
+	seenKeys := make(map[string]bool, len(endpointStatuses))
+	for _, status := range endpointStatuses {
+		seenKeys[status.Key] = true
+		status.Suspended = suspendedKeys[status.Key]
+	}
+	for _, ep := range cfg.Endpoints {
+		if ep.IsSuspended() && !seenKeys[ep.Key()] {
+			placeholder := endpoint.NewStatus(ep.Group, ep.Name)
+			placeholder.Suspended = true
+			endpointStatuses = append(endpointStatuses, placeholder)
+			seenKeys[ep.Key()] = true
+		}
+	}
+	for _, ee := range cfg.ExternalEndpoints {
+		if ee.IsSuspended() && !seenKeys[ee.Key()] {
+			placeholder := endpoint.NewStatus(ee.Group, ee.Name)
+			placeholder.Suspended = true
+			endpointStatuses = append(endpointStatuses, placeholder)
+			seenKeys[ee.Key()] = true
+		}
+	}
+	return endpointStatuses
+}
+
+// suspendedEndpointKeys returns the set of keys of all suspended endpoints and external endpoints in the
+// configuration.
+func suspendedEndpointKeys(cfg *config.Config) map[string]bool {
+	suspendedKeys := make(map[string]bool)
+	for _, ep := range cfg.Endpoints {
+		if ep.IsSuspended() {
+			suspendedKeys[ep.Key()] = true
+		}
+	}
+	for _, ee := range cfg.ExternalEndpoints {
+		if ee.IsSuspended() {
+			suspendedKeys[ee.Key()] = true
+		}
+	}
+	return suspendedKeys
+}
+
+// findSuspendedEndpointInConfig looks up a suspended endpoint or external endpoint by key, returning its group and
+// name if found.
+func findSuspendedEndpointInConfig(cfg *config.Config, key string) (group, name string, found bool) {
+	for _, ep := range cfg.Endpoints {
+		if ep.IsSuspended() && ep.Key() == key {
+			return ep.Group, ep.Name, true
+		}
+	}
+	for _, ee := range cfg.ExternalEndpoints {
+		if ee.IsSuspended() && ee.Key() == key {
+			return ee.Group, ee.Name, true
+		}
+	}
+	return "", "", false
 }
 
 func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {
@@ -95,15 +164,24 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 		endpointStatus, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(page, pageSize).WithEvents(1, cfg.Storage.MaximumNumberOfEvents))
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
-				return c.Status(404).SendString(err.Error())
+				// The endpoint may not have any persisted results yet because it's suspended: fall back to a
+				// placeholder built from the configuration so it's still reachable from the UI.
+				if group, name, found := findSuspendedEndpointInConfig(cfg, key); found {
+					endpointStatus = endpoint.NewStatus(group, name)
+					endpointStatus.Suspended = true
+				} else {
+					return c.Status(404).SendString(err.Error())
+				}
+			} else {
+				logr.Errorf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
+				return c.Status(500).SendString(err.Error())
 			}
-			logr.Errorf("[api.EndpointStatus] Failed to retrieve endpoint status: %s", err.Error())
-			return c.Status(500).SendString(err.Error())
 		}
 		if endpointStatus == nil { // XXX: is this check necessary?
 			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
+		endpointStatus.Suspended = suspendedEndpointKeys(cfg)[endpointStatus.Key]
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {
 			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())

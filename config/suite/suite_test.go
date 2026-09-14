@@ -129,6 +129,38 @@ func TestSuite_IsEnabled(t *testing.T) {
 	}
 }
 
+func TestSuite_IsSuspended(t *testing.T) {
+	tests := []struct {
+		name      string
+		suspended *bool
+		want      bool
+	}{
+		{
+			name:      "nil-defaults-to-false",
+			suspended: nil,
+			want:      false,
+		},
+		{
+			name:      "explicitly-suspended",
+			suspended: boolPtr(true),
+			want:      true,
+		},
+		{
+			name:      "explicitly-not-suspended",
+			suspended: boolPtr(false),
+			want:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Suite{Suspended: tt.suspended}
+			if got := s.IsSuspended(); got != tt.want {
+				t.Errorf("Suite.IsSuspended() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSuite_Key(t *testing.T) {
 	tests := []struct {
 		name  string

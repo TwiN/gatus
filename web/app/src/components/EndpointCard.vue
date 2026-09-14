@@ -98,6 +98,7 @@ const latestResult = computed(() => {
 })
 
 const currentStatus = computed(() => {
+  if (props.endpoint.suspended) return 'suspended'
   if (!latestResult.value) return 'unknown'
   return latestResult.value.success ? 'healthy' : 'unhealthy'
 })
