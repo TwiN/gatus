@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/controller"
@@ -138,12 +139,17 @@ func initializeStorage(cfg *config.Config) {
 	// Restore NumberOfFailuresInARow/NumberOfSuccessesInARow from the persisted results so that a configuration
 	// reload (or restart) doesn't lose progress towards an alert's failure/success threshold. Without this, the
 	// in-memory counters reset to 0 on every reload, even though the storage provider already has the history
-	// needed to know how many evaluations in a row actually failed or succeeded.
+	// needed to know how many evaluations in a row actually failed or succeeded. This must run before the
+	// triggered-alert restore below, since sending/resolving a reminder can depend on these counters.
+	// The lookup itself is bounded by each endpoint's largest alert threshold (see restoreNumberOfEvaluationsInARow),
+	// so this doesn't scale with the potentially much larger cfg.Storage.MaximumNumberOfResults.
 	for _, ep := range cfg.Endpoints {
 		restoreNumberOfEvaluationsInARow(ep, cfg.Storage.MaximumNumberOfResults)
 	}
 	for _, ee := range cfg.ExternalEndpoints {
-		restoreNumberOfEvaluationsInARow(ee.ToEndpoint(), cfg.Storage.MaximumNumberOfResults)
+		convertedEndpoint := ee.ToEndpoint()
+		restoreNumberOfEvaluationsInARow(convertedEndpoint, cfg.Storage.MaximumNumberOfResults)
+		ee.NumberOfFailuresInARow, ee.NumberOfSuccessesInARow = convertedEndpoint.NumberOfFailuresInARow, convertedEndpoint.NumberOfSuccessesInARow
 	}
 	for _, suite := range cfg.Suites {
 		for _, ep := range suite.Endpoints {
@@ -235,8 +241,19 @@ func initializeStorage(cfg *config.Config) {
 // they keep the same outcome (success or failure). This is what allows progress towards an alert's failure/success
 // threshold to survive a configuration reload or a restart when a persistent storage provider (e.g. sqlite/postgres)
 // is used. It's a no-op for endpoints without any persisted history yet.
+//
+// Only one of the two counters is set, matching the outcome of the most recent result: the watchdog itself never
+// lets both be non-zero at the same time (every evaluation resets the counter of the opposite outcome to 0, see
+// handleAlertsToTrigger/handleAlertsToResolve in watchdog/alerting.go), and ep starts out zero-valued either way.
 func restoreNumberOfEvaluationsInARow(ep *endpoint.Endpoint, maximumNumberOfResults int) {
-	endpointStatus, err := store.Get().GetEndpointStatusByKey(ep.Key(), paging.NewEndpointStatusParams().WithResults(1, maximumNumberOfResults))
+	// We only ever need to look as far back as the largest threshold configured on the endpoint's alerts: beyond
+	// that, the exact streak length no longer changes any alerting decision. This keeps the lookup bounded even if
+	// MaximumNumberOfResults is configured very high, instead of always walking the full persisted history.
+	window := largestAlertThreshold(ep.Alerts)
+	if window > maximumNumberOfResults {
+		window = maximumNumberOfResults
+	}
+	endpointStatus, err := store.Get().GetEndpointStatusByKey(ep.Key(), paging.NewEndpointStatusParams().WithResults(1, window))
 	if err != nil {
 		if err != common.ErrEndpointNotFound {
 			logr.Errorf("[main.restoreNumberOfEvaluationsInARow] Failed to get endpoint status for endpoint with key=%s: %s", ep.Key(), err.Error())
@@ -247,16 +264,31 @@ func restoreNumberOfEvaluationsInARow(ep *endpoint.Endpoint, maximumNumberOfResu
 	if len(results) == 0 {
 		return
 	}
-	lastResultSuccess := results[len(results)-1].Success
+	streakOutcome := results[len(results)-1].Success
 	numberInARow := 0
-	for i := len(results) - 1; i >= 0 && results[i].Success == lastResultSuccess; i-- {
+	for i := len(results) - 1; i >= 0 && results[i].Success == streakOutcome; i-- {
 		numberInARow++
 	}
-	if lastResultSuccess {
+	if streakOutcome {
 		ep.NumberOfSuccessesInARow = numberInARow
 	} else {
 		ep.NumberOfFailuresInARow = numberInARow
 	}
+}
+
+// largestAlertThreshold returns the largest FailureThreshold/SuccessThreshold configured across the given alerts,
+// defaulting to 1 (i.e. only the most recent result matters) when there are no alerts to satisfy.
+func largestAlertThreshold(alerts []*alert.Alert) int {
+	largest := 1
+	for _, a := range alerts {
+		if a.FailureThreshold > largest {
+			largest = a.FailureThreshold
+		}
+		if a.SuccessThreshold > largest {
+			largest = a.SuccessThreshold
+		}
+	}
+	return largest
 }
 
 func closeTunnels(cfg *config.Config) {
