@@ -11,6 +11,7 @@
           placeholder="Search endpoints..."
           class="pl-10 text-sm sm:text-base"
           @input="handleSearchChange"
+          @blur="normalizeSearchInput"
         />
       </div>
     </div>
@@ -49,6 +50,7 @@ import { Select } from '@/components/ui/select'
 import {
   DASHBOARD_FILTER_VALUES,
   DASHBOARD_SORT_VALUES,
+  getFirstQueryValue,
   normalizeDashboardOption,
   normalizeSearchQuery,
   withQueryValue,
@@ -103,8 +105,17 @@ const emit = defineEmits(['search', 'update:showOnlyFailing', 'update:showRecent
 
 const handleSearchChange = event => {
   searchQuery.value = event.target.value
-  router.replace({ query: withQueryValue(route.query, 'search', searchQuery.value) })
-  emit('search', searchQuery.value)
+  const normalizedValue = normalizeSearchQuery(searchQuery.value)
+  router.replace({ query: withQueryValue(route.query, 'search', normalizedValue) })
+  emit('search', normalizedValue)
+}
+
+const normalizeSearchInput = () => {
+  const normalizedValue = normalizeSearchQuery(searchQuery.value)
+  if (normalizedValue !== searchQuery.value) {
+    searchQuery.value = normalizedValue
+    router.replace({ query: withQueryValue(route.query, 'search', normalizedValue) })
+  }
 }
 
 const handleFilterChange = (value, store = true) => {
@@ -113,17 +124,9 @@ const handleFilterChange = (value, store = true) => {
     localStorage.setItem('gatus:filter-by', value)
     router.push({ query: withQueryValue(route.query, 'filter', value) })
   }
-  
-  // Reset all filter states first
-  emit('update:showOnlyFailing', false)
-  emit('update:showRecentFailures', false)
-  
-  // Apply the selected filter
-  if (value === 'failing') {
-    emit('update:showOnlyFailing', true)
-  } else if (value === 'unstable') {
-    emit('update:showRecentFailures', true)
-  }
+
+  emit('update:showOnlyFailing', value === 'failing')
+  emit('update:showRecentFailures', value === 'unstable')
 }
 
 const handleSortChange = (value, store = true) => {
@@ -144,6 +147,16 @@ const handleSortChange = (value, store = true) => {
 
 onMounted(() => {
   emit('search', searchQuery.value)
+
+  // Canonicalize URL-provided search values once without disrupting multi-word typing.
+  const routeSearchQuery = getFirstQueryValue(route.query.search)
+  if (
+    route.query.search !== undefined &&
+    (Array.isArray(route.query.search) || routeSearchQuery !== searchQuery.value || searchQuery.value === '')
+  ) {
+    router.replace({ query: withQueryValue(route.query, 'search', searchQuery.value) })
+  }
+
   // Apply saved or application wide filter/sort state on load but do not store it in localstorage
   handleFilterChange(filterBy.value, false)
   handleSortChange(sortBy.value, false)
@@ -153,7 +166,9 @@ watch(
   () => route.query.search,
   value => {
     const normalizedValue = normalizeSearchQuery(value)
-    if (normalizedValue !== searchQuery.value) {
+    // Compare normalized values so URL updates do not remove a trailing space
+    // while the user is in the middle of entering a multi-word search.
+    if (normalizedValue !== normalizeSearchQuery(searchQuery.value)) {
       searchQuery.value = normalizedValue
       emit('search', normalizedValue)
     }
@@ -165,6 +180,7 @@ watch(
   value => {
     const normalizedValue = normalizeDashboardOption(value, DASHBOARD_FILTER_VALUES, filterFallback)
     if (normalizedValue !== filterBy.value) {
+      // Apply route-driven state without writing the same value back to the URL.
       handleFilterChange(normalizedValue, false)
     }
   }

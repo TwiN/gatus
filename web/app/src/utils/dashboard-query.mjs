@@ -8,7 +8,7 @@ export const getFirstQueryValue = (value) => {
   return typeof value === 'string' ? value : undefined
 }
 
-export const normalizeSearchQuery = (value) => getFirstQueryValue(value) || ''
+export const normalizeSearchQuery = (value) => (getFirstQueryValue(value) || '').trim()
 
 export const normalizeDashboardOption = (value, allowedValues, fallback) => {
   const normalizedValue = getFirstQueryValue(value)
@@ -17,7 +17,7 @@ export const normalizeDashboardOption = (value, allowedValues, fallback) => {
 
 export const withQueryValue = (currentQuery, key, value) => {
   const query = { ...currentQuery }
-  if (value) {
+  if (value !== '' && value !== null && value !== undefined) {
     query[key] = value
   } else {
     delete query[key]

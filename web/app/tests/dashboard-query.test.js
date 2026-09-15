@@ -8,6 +8,9 @@ test('getFirstQueryValue handles Vue Router query values', async () => {
   assert.equal(getFirstQueryValue('api'), 'api')
   assert.equal(getFirstQueryValue(['api', 'web']), 'api')
   assert.equal(getFirstQueryValue([null, 'web']), 'web')
+  assert.equal(getFirstQueryValue([1, 'web']), 'web')
+  assert.equal(getFirstQueryValue([undefined, 'web']), 'web')
+  assert.equal(getFirstQueryValue([1, undefined, null]), undefined)
   assert.equal(getFirstQueryValue(null), undefined)
   assert.equal(getFirstQueryValue(undefined), undefined)
 })
@@ -16,6 +19,9 @@ test('normalizeSearchQuery returns a safe string', async () => {
   const { normalizeSearchQuery } = await dashboardQuery
   assert.equal(normalizeSearchQuery('database'), 'database')
   assert.equal(normalizeSearchQuery(['database', 'cache']), 'database')
+  assert.equal(normalizeSearchQuery('  database cluster  '), 'database cluster')
+  assert.equal(normalizeSearchQuery('database cluster'), 'database cluster')
+  assert.equal(normalizeSearchQuery(['  database  ', 'cache']), 'database')
   assert.equal(normalizeSearchQuery(null), '')
 })
 
@@ -41,4 +47,8 @@ test('withQueryValue preserves unrelated parameters and sets or removes the targ
   assert.deepEqual(withQueryValue({ search: 'api', sort: 'group' }, 'search', ''), {
     sort: 'group',
   })
+  assert.deepEqual(withQueryValue({}, 'page', 0), { page: 0 })
+  assert.deepEqual(withQueryValue({}, 'enabled', false), { enabled: false })
+  assert.deepEqual(withQueryValue({ search: 'api' }, 'search', null), {})
+  assert.deepEqual(withQueryValue({ search: 'api' }, 'search', undefined), {})
 })
