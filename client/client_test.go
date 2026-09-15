@@ -143,6 +143,12 @@ func TestPing(t *testing.T) {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
+	if success, rtt := Ping("[::1]", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+		t.Error("expected true for bracketed IPv6 address")
+		if rtt == 0 {
+			t.Error("Round-trip time returned on failure should've been 0")
+		}
+	}
 	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
 		t.Error("expected false, because the IP isn't an IPv4 address")
 		if rtt != 0 {

@@ -1004,6 +1004,48 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	}
 }
 
+func TestEndpoint_ValidateAndSetDefaults_ICMP_IPv6(t *testing.T) {
+	testCases := []struct {
+		url          string
+		wantHostname string
+	}{
+		{
+			url:          "icmp://[2a07:6b44:27:11::ac]",
+			wantHostname: "2a07:6b44:27:11::ac",
+		},
+		{
+			url:          "icmp://2a07:6b44:27:11::ac",
+			wantHostname: "2a07:6b44:27:11::ac",
+		},
+		{
+			url:          "icmp://[::1]",
+			wantHostname: "::1",
+		},
+		{
+			url:          "icmp://::1",
+			wantHostname: "::1",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.url, func(t *testing.T) {
+			endpoint := Endpoint{
+				Name:         "icmp-ipv6-test",
+				URL:          tc.url,
+				ClientConfig: &client.Config{Timeout: 10 * time.Millisecond},
+				Conditions:   []Condition{"[CONNECTED] == true"},
+			}
+			err := endpoint.ValidateAndSetDefaults()
+			if err != nil {
+				t.Fatalf("expected no validation error for %s, got %v", tc.url, err)
+			}
+			result := endpoint.EvaluateHealth()
+			if result.Hostname != tc.wantHostname {
+				t.Errorf("expected hostname %q, got %q", tc.wantHostname, result.Hostname)
+			}
+		})
+	}
+}
+
 func TestEndpoint_DisplayName(t *testing.T) {
 	if endpoint := (Endpoint{Name: "n"}); endpoint.DisplayName() != "n" {
 		t.Error("endpoint.DisplayName() should've been 'n', but was", endpoint.DisplayName())

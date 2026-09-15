@@ -353,6 +353,8 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
 func Ping(address string, config *Config) (bool, time.Duration) {
+	// Strip square brackets in case an IPv6 address was passed with brackets e.g. "[::1]"
+	address = strings.TrimSuffix(strings.TrimPrefix(address, "["), "]")
 	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
