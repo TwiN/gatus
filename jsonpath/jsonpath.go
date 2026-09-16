@@ -123,7 +123,7 @@ func queryArray(segment string, array []interface{}) (map[string]interface{}, er
 	value = value[1 : len(value)-1]
 	for _, element := range array {
 		if object, ok := element.(map[string]interface{}); ok {
-			if fmt.Sprintf("%v", object[key]) == value {
+			if fieldValue, exists := object[key]; exists && fieldValue != nil && fmt.Sprintf("%v", fieldValue) == value {
 				return object, nil
 			}
 		}

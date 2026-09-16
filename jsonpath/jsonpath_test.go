@@ -263,12 +263,20 @@ func TestEval(t *testing.T) {
 			ExpectedError:        true,
 		},
 		{
-			Name:                 "query-without-preceding-array-field-falls-back-to-whole-array",
+			Name:                 "array-without-query-still-returns-whole-array",
 			Path:                 "components",
 			Data:                 `{"components": [{"name": "A"}]}`,
 			ExpectedOutput:       `[map[name:A]]`,
 			ExpectedOutputLength: 1,
 			ExpectedError:        false,
+		},
+		{
+			Name:                 "query-against-unset-field-does-not-match-nil",
+			Path:                 `components.#(status=="<nil>").name`,
+			Data:                 `{"components": [{"name": "A"}]}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
 		},
 	}
 	for _, scenario := range scenarios {
