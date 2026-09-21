@@ -2530,6 +2530,7 @@ endpoints:
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
 | `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
+| `alerting.zulip.topic`             | The topic under which the alerts will be sent.<br />Supports the `[ENDPOINT_NAME]`, `[ENDPOINT_GROUP]` and `[ALERT_DESCRIPTION]` placeholders. | `Gatus`       |
 | `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
 | `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
 | `alerting.zulip.overrides[].*`     | See `alerting.zulip.*` parameters                                                   | `{}`          |
@@ -2541,6 +2542,7 @@ alerting:
     bot-api-key: "********************************"
     domain: some.zulip.org
     channel-id: 123456
+    topic: "[ENDPOINT_NAME]" # Optional; groups each endpoint's alerts under its own topic. Defaults to "Gatus"
 
 endpoints:
   - name: website
