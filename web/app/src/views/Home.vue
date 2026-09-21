@@ -216,12 +216,14 @@ const suiteStatuses = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = 96
-const searchQuery = ref('')
-const showOnlyFailing = ref(false)
-const showRecentFailures = ref(false)
+const initialFilterBy = localStorage.getItem('gatus:filter-by') || (typeof window !== 'undefined' && window.config?.defaultFilterBy) || 'none'
+const initialSortBy = localStorage.getItem('gatus:sort-by') || (typeof window !== 'undefined' && window.config?.defaultSortBy) || 'name'
+
+const showOnlyFailing = ref(initialFilterBy === 'failing')
+const showRecentFailures = ref(initialFilterBy === 'unstable')
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
-const groupByGroup = ref(false)
-const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
+const groupByGroup = ref(initialSortBy === 'group')
+const sortBy = ref(initialSortBy)
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
 
