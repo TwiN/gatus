@@ -521,7 +521,7 @@ Allows you to configure how and where the dashboard is being served.
 | `web`                      | Web configuration                                                                           | `{}`      |
 | `web.address`              | Address to listen on.                                                                       | `0.0.0.0` |
 | `web.port`                 | Port to listen on.                                                                          | `8080`    |
-| `web.base-path`            | Subpath to serve Gatus under; must start and end with `/` (e.g. `/gatus/`). <br />See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
+| `web.base-path`            | Subpath to serve Gatus under (e.g. `/gatus/`). Leading and trailing `/` are added if missing. <br />See [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path). | `/`       |
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |

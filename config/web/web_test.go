@@ -101,16 +101,6 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			expectedReadBufferSize: 8192,
 			expectedErr:            false,
 		},
-		{
-			name:        "invalid-base-path-no-slash",
-			cfg:         &Config{BasePath: "noslash/"},
-			expectedErr: true,
-		},
-		{
-			name:        "invalid-base-path-no-trailing-slash",
-			cfg:         &Config{BasePath: "/noslash"},
-			expectedErr: true,
-		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
@@ -129,6 +119,51 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 				if scenario.cfg.Address != scenario.expectedAddress {
 					t.Errorf("expected Address to be %s, got %s", scenario.expectedAddress, scenario.cfg.Address)
 				}
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_BasePathNormalization(t *testing.T) {
+	scenarios := []struct {
+		name             string
+		basePath         string
+		expectedBasePath string
+	}{
+		{
+			name:             "empty",
+			basePath:         "",
+			expectedBasePath: DefaultBasePath,
+		},
+		{
+			name:             "already-normalized",
+			basePath:         "/gatus/",
+			expectedBasePath: "/gatus/",
+		},
+		{
+			name:             "missing-leading-slash",
+			basePath:         "gatus/",
+			expectedBasePath: "/gatus/",
+		},
+		{
+			name:             "missing-trailing-slash",
+			basePath:         "/gatus",
+			expectedBasePath: "/gatus/",
+		},
+		{
+			name:             "missing-both-slashes",
+			basePath:         "gatus",
+			expectedBasePath: "/gatus/",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			cfg := &Config{BasePath: scenario.basePath}
+			if err := cfg.ValidateAndSetDefaults(); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if cfg.BasePath != scenario.expectedBasePath {
+				t.Errorf("expected BasePath to be %s, got %s", scenario.expectedBasePath, cfg.BasePath)
 			}
 		})
 	}

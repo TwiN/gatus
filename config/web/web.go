@@ -94,8 +94,13 @@ func (web *Config) ValidateAndSetDefaults() error {
 	// Validate BasePath
 	if len(web.BasePath) == 0 {
 		web.BasePath = DefaultBasePath
-	} else if !strings.HasPrefix(web.BasePath, "/") || !strings.HasSuffix(web.BasePath, "/") {
-		return fmt.Errorf("invalid base-path value: must start and end with a '/' character")
+	} else {
+		if !strings.HasPrefix(web.BasePath, "/") {
+			web.BasePath = "/" + web.BasePath
+		}
+		if !strings.HasSuffix(web.BasePath, "/") {
+			web.BasePath += "/"
+		}
 	}
 	// Try to load the TLS certificates
 	if web.TLS != nil {
