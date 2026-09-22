@@ -190,6 +190,9 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 	if err != nil {
 		return
 	}
+	// Gracefully close the connection once we're done with it so that a proper TLS close_notify alert
+	// is sent to the server instead of abruptly closing the underlying TCP connection.
+	defer smtpClient.Close()
 	err = smtpClient.StartTLS(&tls.Config{
 		InsecureSkipVerify: config.Insecure,
 		ServerName:         hostAndPort[0],
