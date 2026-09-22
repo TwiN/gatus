@@ -2,16 +2,23 @@ package remote
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/logr"
 )
 
-const KeyPrefix = "@remote:"
+const (
+	KeyPrefix              = "@remote:"
+	defaultMaxResponseBody = 10 << 20 // 10 MiB
+	defaultCircuitBreakerFailureThreshold = 3
+	defaultCircuitBreakerOpenDuration     = 30 * time.Second
+)
 
 // NOTICE: This is an experimental alpha feature and may be updated/removed in future versions.
 // For more information, see https://github.com/TwiN/gatus/issues/64
@@ -22,6 +29,42 @@ type Config struct {
 
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
+
+	// MaxResponseBody is the maximum size in bytes of a response body read from a remote instance.
+	MaxResponseBody int64 `yaml:"max-response-body,omitempty"`
+
+	// CircuitBreaker configures per-remote failure tracking to temporarily skip unhealthy instances.
+	CircuitBreaker *CircuitBreakerConfig `yaml:"circuit-breaker,omitempty"`
+}
+
+type CircuitBreakerConfig struct {
+	// FailureThreshold is the number of consecutive transport failures before a remote is skipped.
+	FailureThreshold int `yaml:"failure-threshold,omitempty"`
+
+	// OpenDuration is how long a remote remains skipped after the failure threshold is reached.
+	OpenDuration time.Duration `yaml:"open-duration,omitempty"`
+}
+
+func (c *CircuitBreakerConfig) FailureThresholdOrDefault() int {
+	if c == nil || c.FailureThreshold <= 0 {
+		return defaultCircuitBreakerFailureThreshold
+	}
+	return c.FailureThreshold
+}
+
+func (c *CircuitBreakerConfig) OpenDurationOrDefault() time.Duration {
+	if c == nil || c.OpenDuration <= 0 {
+		return defaultCircuitBreakerOpenDuration
+	}
+	return c.OpenDuration
+}
+
+// MaxResponseBodySize returns the configured maximum remote response body size.
+func (c *Config) MaxResponseBodySize() int64 {
+	if c == nil || c.MaxResponseBody <= 0 {
+		return defaultMaxResponseBody
+	}
+	return c.MaxResponseBody
 }
 
 type Instance struct {
@@ -31,6 +74,11 @@ type Instance struct {
 	// Authorization is sent as the Authorization header when retrieving data from the remote instance.
 	// Use this when the remote Gatus API is protected (basic auth, bearer token, etc.).
 	Authorization string `yaml:"authorization,omitempty"`
+
+	// AllowPrivateNetworks allows remote instance URLs that resolve to private or loopback addresses.
+	AllowPrivateNetworks bool `yaml:"allow-private-networks,omitempty"`
+
+	endpointBaseURL string
 }
 
 // PrefixedKey returns a key that identifies an endpoint as belonging to a remote instance.
@@ -69,11 +117,10 @@ func ParsePrefixedKey(key string) (instanceIndex int, originalKey string, ok boo
 // For example, https://status.example.org/api/v1/endpoints/statuses becomes
 // https://status.example.org/api/v1/endpoints.
 func (i Instance) EndpointBaseURL() string {
-	baseURL := strings.TrimSuffix(strings.TrimSpace(i.URL), "/")
-	if strings.HasSuffix(baseURL, "/statuses") {
-		baseURL = strings.TrimSuffix(baseURL, "/statuses")
+	if len(i.endpointBaseURL) > 0 {
+		return i.endpointBaseURL
 	}
-	return baseURL
+	return computeEndpointBaseURL(i.URL)
 }
 
 // BuildEndpointURL builds a remote endpoint resource URL.
@@ -83,6 +130,12 @@ func (i Instance) BuildEndpointURL(endpointKey, subPath string) string {
 }
 
 func (i Instance) ApplyRequestHeaders(request *http.Request, forwardHeaders http.Header) {
+	// Instance-configured authorization is exclusive; inbound Authorization and Cookie
+	// headers are only forwarded when the instance does not define its own credentials.
+	if len(i.Authorization) > 0 {
+		request.Header.Set("Authorization", i.Authorization)
+		return
+	}
 	if forwardHeaders != nil {
 		if cookie := forwardHeaders.Get("Cookie"); len(cookie) > 0 {
 			request.Header.Set("Cookie", cookie)
@@ -91,9 +144,76 @@ func (i Instance) ApplyRequestHeaders(request *http.Request, forwardHeaders http
 			request.Header.Set("Authorization", authorization)
 		}
 	}
-	if len(i.Authorization) > 0 {
-		request.Header.Set("Authorization", i.Authorization)
+}
+
+func computeEndpointBaseURL(instanceURL string) string {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(instanceURL), "/")
+	if strings.HasSuffix(baseURL, "/statuses") {
+		baseURL = strings.TrimSuffix(baseURL, "/statuses")
 	}
+	return baseURL
+}
+
+func isPrivateIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()
+}
+
+func isPrivateOrLoopbackHost(host string) bool {
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return isPrivateIP(ip)
+}
+
+func hostResolvesToPrivateNetwork(hostname string, lookup func(string) ([]net.IP, error)) error {
+	ips, err := lookup(hostname)
+	if err != nil {
+		logr.Warnf("unable to resolve remote instance host %q at startup: %s", hostname, err.Error())
+		return nil
+	}
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			return fmt.Errorf("remote instance host %q resolves to private network address %s; set allow-private-networks: true to allow", hostname, ip.String())
+		}
+	}
+	return nil
+}
+
+func (i *Instance) validate() error {
+	if len(strings.TrimSpace(i.URL)) == 0 {
+		return fmt.Errorf("remote instance url must not be empty")
+	}
+	parsedURL, err := url.Parse(i.URL)
+	if err != nil {
+		return fmt.Errorf("invalid remote instance url %q: %w", i.URL, err)
+	}
+	switch strings.ToLower(parsedURL.Scheme) {
+	case "http", "https":
+	default:
+		return fmt.Errorf("remote instance url %q must use http or https scheme", i.URL)
+	}
+	normalizedPath := strings.TrimSuffix(parsedURL.Path, "/")
+	if !strings.HasSuffix(normalizedPath, "/statuses") {
+		return fmt.Errorf("remote instance url %q must end with /api/v1/endpoints/statuses", i.URL)
+	}
+	hostname := parsedURL.Hostname()
+	if !i.AllowPrivateNetworks {
+		if isPrivateOrLoopbackHost(hostname) {
+			return fmt.Errorf("remote instance url %q resolves to a private network address; set allow-private-networks: true to allow", i.URL)
+		}
+		if net.ParseIP(hostname) == nil {
+			if err := hostResolvesToPrivateNetwork(hostname, net.LookupIP); err != nil {
+				return err
+			}
+		}
+	}
+	i.endpointBaseURL = computeEndpointBaseURL(i.URL)
+	return nil
 }
 
 func (c *Config) ValidateAndSetDefaults() error {
@@ -101,6 +221,11 @@ func (c *Config) ValidateAndSetDefaults() error {
 		c.ClientConfig = client.GetDefaultConfig()
 	} else {
 		if err := c.ClientConfig.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+	}
+	for i := range c.Instances {
+		if err := c.Instances[i].validate(); err != nil {
 			return err
 		}
 	}
