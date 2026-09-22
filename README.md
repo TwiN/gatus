@@ -2948,6 +2948,15 @@ docker build . -t ghcr.io/twin/gatus:stable
 ```
 
 
+### Easypanel
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform, and Gatus has a one-click deployment template there:
+
+[![Deploy on Easypanel][easypanel-btn]][easypanel-deploy]
+
+[easypanel-btn]: https://easypanel.io/img/deploy-on-easypanel-40.svg
+[easypanel-deploy]: https://easypanel.io/templates/gatus
+
+
 ### Helm Chart
 [Helm](https://helm.sh) must be installed to use the chart.
 Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
