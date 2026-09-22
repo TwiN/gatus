@@ -100,8 +100,23 @@ func loadConfiguration() (*config.Config, error) {
 // A: Yes. Yes it would make more sense to have it in the config package. But I don't want to import
 // the massive SQL dependencies just because I want to import the config, so here we are.
 func initializeStorage(cfg *config.Config) {
-	err := store.Initialize(cfg.Storage)
+	const (
+		maxRetries = 5
+		retryDelay = 2 * time.Second
+	)
+	var err error
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err = store.Initialize(cfg.Storage)
+		if err == nil {
+			break
+		}
+		if attempt < maxRetries {
+			logr.Warnf("[main.initializeStorage] Storage initialization attempt %d/%d failed: %v. Retrying in %v...", attempt, maxRetries, err, retryDelay)
+			time.Sleep(retryDelay)
+		}
+	}
 	if err != nil {
+		logr.Errorf("[main.initializeStorage] Failed to initialize storage after %d attempts: %v", maxRetries, err)
 		panic(err)
 	}
 	// Remove all SuiteStatuses that represent suites which no longer exist in the configuration
