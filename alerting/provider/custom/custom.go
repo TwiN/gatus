@@ -2,6 +2,7 @@ package custom
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -113,21 +114,24 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", resultErrors)
 
 	if len(result.ConditionResults) > 0 && strings.Contains(body, "[RESULT_CONDITIONS]") {
-		var formattedConditionResults string
-		for index, conditionResult := range result.ConditionResults {
+		formattedConditionResults := make([]string, 0, len(result.ConditionResults))
+		for _, conditionResult := range result.ConditionResults {
 			var prefix string
 			if conditionResult.Success {
 				prefix = "✅"
 			} else {
 				prefix = "❌"
 			}
-			formattedConditionResults += fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition)
-			if index < len(result.ConditionResults)-1 {
-				formattedConditionResults += `\n`
-			}
+			formattedConditionResults = append(formattedConditionResults, fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition))
 		}
-		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", formattedConditionResults)
-		url = strings.ReplaceAll(url, "[RESULT_CONDITIONS]", formattedConditionResults)
+		bodyConditions := strings.Join(formattedConditionResults, "\n")
+		// JSON templates require string escaping; plain-text bodies require real newlines.
+		if json.Valid([]byte(cfg.Body)) {
+			quoted, _ := json.Marshal(bodyConditions)
+			bodyConditions = string(quoted[1 : len(quoted)-1])
+		}
+		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", bodyConditions)
+		url = strings.ReplaceAll(url, "[RESULT_CONDITIONS]", strings.Join(formattedConditionResults, `\n`))
 	}
 
 	if resolved {

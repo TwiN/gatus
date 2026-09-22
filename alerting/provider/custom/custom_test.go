@@ -328,6 +328,76 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 	}
 }
 
+func TestAlertProvider_ResultConditionsBodyFormats(t *testing.T) {
+	scenarios := []struct {
+		name       string
+		conditions []*endpoint.ConditionResult
+		want       string
+	}{
+		{
+			name: "multiple-conditions",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: "[CONNECTED] == true", Success: true},
+				{Condition: "[STATUS] == 200", Success: false},
+			},
+			want: "✅ - `[CONNECTED] == true`\n❌ - `[STATUS] == 200`",
+		},
+		{
+			name: "quotes-and-backslashes",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: `[BODY] == "ready"`, Success: true},
+				{Condition: `[BODY] == C:\new`, Success: false},
+			},
+			want: "✅ - `[BODY] == \"ready\"`\n❌ - `[BODY] == C:\\new`",
+		},
+		{
+			name: "literal-backslash-n",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: `[BODY] == a\nb`, Success: true},
+				{Condition: "[STATUS] == 200", Success: false},
+			},
+			want: "✅ - `[BODY] == a\\nb`\n❌ - `[STATUS] == 200`",
+		},
+		{
+			name: "single-condition-with-control-characters",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: "[BODY] == first\nsecond\tline", Success: true},
+			},
+			want: "✅ - `[BODY] == first\nsecond\tline`",
+		},
+	}
+	for _, scenario := range scenarios {
+		for _, jsonBody := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/json-%v", scenario.name, jsonBody), func(t *testing.T) {
+				cfg := Config{URL: "https://example.com", Body: "[RESULT_CONDITIONS]"}
+				if jsonBody {
+					cfg.Body = `{"text":"[RESULT_CONDITIONS]"}`
+				}
+				provider := &AlertProvider{}
+				request := provider.buildHTTPRequest(&cfg, &endpoint.Endpoint{}, &alert.Alert{},
+					&endpoint.Result{ConditionResults: scenario.conditions}, false)
+				body, err := io.ReadAll(request.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := string(body)
+				if jsonBody {
+					var payload struct {
+						Text string `json:"text"`
+					}
+					if err := json.Unmarshal(body, &payload); err != nil {
+						t.Fatalf("invalid JSON body: %v; body: %s", err, body)
+					}
+					got = payload.Text
+				}
+				if got != scenario.want {
+					t.Errorf("expected condition text %q, got %q", scenario.want, got)
+				}
+			})
+		}
+	}
+}
+
 func TestAlertProvider_GetAlertStatePlaceholderValueDefaults(t *testing.T) {
 	alertProvider := &AlertProvider{
 		DefaultConfig: Config{
