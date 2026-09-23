@@ -251,6 +251,10 @@ func TestCanPerformStartTLS(t *testing.T) {
 }
 
 func TestCanPerformStartTLSClosesConnectionGracefully(t *testing.T) {
+	// startTLSTestTimeout is used both as the client's dial/read timeout and as the deadline for
+	// observing the server-side close. It's generous enough to avoid flakiness on a slow CI runner
+	// while still failing the test quickly if the connection is never closed.
+	const startTLSTestTimeout = 5 * time.Second
 	cert, err := tls.LoadX509KeyPair("../testdata/cert.pem", "../testdata/cert.key")
 	if err != nil {
 		t.Fatal(err)
@@ -297,7 +301,7 @@ func TestCanPerformStartTLSClosesConnectionGracefully(t *testing.T) {
 		serverCloseErr <- err
 	}()
 	address := listener.Addr().String()
-	connected, _, err := CanPerformStartTLS(address, &Config{Insecure: true, Timeout: 5 * time.Second})
+	connected, _, err := CanPerformStartTLS(address, &Config{Insecure: true, Timeout: startTLSTestTimeout})
 	if err != nil {
 		t.Fatalf("CanPerformStartTLS() unexpected error: %v", err)
 	}
@@ -309,7 +313,7 @@ func TestCanPerformStartTLSClosesConnectionGracefully(t *testing.T) {
 		if err != io.EOF {
 			t.Errorf("expected the server to observe a graceful TLS shutdown (io.EOF), got: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(startTLSTestTimeout):
 		t.Fatal("timed out waiting for the server to observe the connection being closed")
 	}
 }
