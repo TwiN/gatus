@@ -30,14 +30,15 @@ var (
 )
 
 type Config struct {
-	Topic           string `yaml:"topic"`
-	URL             string `yaml:"url,omitempty"`              // Defaults to DefaultURL
-	Priority        int    `yaml:"priority,omitempty"`         // Defaults to DefaultPriority
-	Token           string `yaml:"token,omitempty"`            // Defaults to ""
-	Email           string `yaml:"email,omitempty"`            // Defaults to ""
-	Click           string `yaml:"click,omitempty"`            // Defaults to ""
-	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
-	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
+	Topic            string `yaml:"topic"`
+	URL              string `yaml:"url,omitempty"`               // Defaults to DefaultURL
+	Priority         int    `yaml:"priority,omitempty"`          // Defaults to DefaultPriority
+	ResolvedPriority int    `yaml:"resolved-priority,omitempty"` // Defaults to Priority
+	Token            string `yaml:"token,omitempty"`             // Defaults to ""
+	Email            string `yaml:"email,omitempty"`             // Defaults to ""
+	Click            string `yaml:"click,omitempty"`             // Defaults to ""
+	DisableFirebase  bool   `yaml:"disable-firebase,omitempty"`  // Defaults to false
+	DisableCache     bool   `yaml:"disable-cache,omitempty"`     // Defaults to false
 }
 
 func (cfg *Config) Validate() error {
@@ -56,6 +57,9 @@ func (cfg *Config) Validate() error {
 	if cfg.Priority < 1 || cfg.Priority > 5 {
 		return ErrInvalidPriority
 	}
+	if cfg.ResolvedPriority < 0 || cfg.ResolvedPriority > 5 {
+		return ErrInvalidPriority
+	}
 	return nil
 }
 
@@ -68,6 +72,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if override.Priority > 0 {
 		cfg.Priority = override.Priority
+	}
+	if override.ResolvedPriority > 0 {
+		cfg.ResolvedPriority = override.ResolvedPriority
 	}
 	if len(override.Token) > 0 {
 		cfg.Token = override.Token
@@ -118,6 +125,9 @@ func (provider *AlertProvider) Validate() error {
 				return ErrDuplicateGroupOverride
 			}
 			if override.Priority < 0 || override.Priority >= 6 {
+				return ErrDuplicateGroupOverride
+			}
+			if override.ResolvedPriority < 0 || override.ResolvedPriority >= 6 {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
@@ -174,7 +184,11 @@ type Body struct {
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, formattedConditionResults, tag string
+	priority := cfg.Priority
 	if resolved {
+		if cfg.ResolvedPriority > 0 {
+			priority = cfg.ResolvedPriority
+		}
 		tag = "white_check_mark"
 		message = "An alert has been resolved after passing successfully " + strconv.Itoa(alert.SuccessThreshold) + " time(s) in a row"
 	} else {
@@ -199,7 +213,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Title:    "Gatus: " + ep.DisplayName(),
 		Message:  message,
 		Tags:     []string{tag},
-		Priority: cfg.Priority,
+		Priority: priority,
 		Email:    cfg.Email,
 		Click:    cfg.Click,
 	})

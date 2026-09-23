@@ -1779,6 +1779,7 @@ The JSON payload sent to the n8n webhook will include:
 | `alerting.ntfy.email`                | E-mail address for additional e-mail notifications                                                                                           | `""`              |
 | `alerting.ntfy.click`                | Website opened when notification is clicked                                                                                                  | `""`              |
 | `alerting.ntfy.priority`             | The priority of the alert                                                                                                                    | `3`               |
+| `alerting.ntfy.resolved-priority`    | The priority of the resolved alert (defaults to `priority`)                                                                                  | `0`               |
 | `alerting.ntfy.disable-firebase`     | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
 | `alerting.ntfy.disable-cache`        | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
 | `alerting.ntfy.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                                   | N/A               |
