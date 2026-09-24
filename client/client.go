@@ -12,6 +12,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/smtp"
 	"os"
 	"runtime"
@@ -353,6 +354,32 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
 func Ping(address string, config *Config) (bool, time.Duration) {
+	if _, err := netip.ParseAddr(address); err != nil && config.HasCustomDNSResolver() {
+		// The pinger resolves hostnames with the system resolver, so we have to resolve it ourselves
+		dnsResolver, err := config.parseDNSResolver()
+		if err != nil {
+			logr.Errorf("[client.Ping] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+		} else {
+			resolver := &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+				},
+			}
+			network := "ip"
+			if config.Network == "ip4" || config.Network == "ip6" {
+				network = config.Network
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)
+			defer cancel()
+			ips, err := resolver.LookupIP(ctx, network, address)
+			if err != nil || len(ips) == 0 {
+				return false, 0
+			}
+			address = ips[0].String()
+		}
+	}
 	pinger := ping.New(address)
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
