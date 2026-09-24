@@ -2904,19 +2904,34 @@ This is an experimental feature. It may be removed or updated in a breaking mann
 there are known issues with this feature. If you'd like to provide some feedback, please write a comment in [#64](https://github.com/TwiN/gatus/issues/64).
 Use at your own risk.
 
-| Parameter                          | Description                                    | Default       |
-|:-----------------------------------|:-----------------------------------------------|:--------------|
-| `remote`                           | Remote configuration                           | `{}`          |
-| `remote.instances`                 | List of remote instances                       | Required `[]` |
-| `remote.instances.endpoint-prefix` | String to prefix all endpoint names with       | `""`          |
-| `remote.instances.url`             | URL from which to retrieve endpoint statuses   | Required `""` |
-| `remote.client`                    | [Client configuration](#client-configuration). | `{}`          |
+| Parameter                                    | Description                                                                 | Default       |
+|:---------------------------------------------|:----------------------------------------------------------------------------|:--------------|
+| `remote`                                     | Remote configuration                                                        | `{}`          |
+| `remote.instances`                           | List of remote instances                                                    | Required `[]` |
+| `remote.instances.endpoint-prefix`           | String to prefix all endpoint names with                                    | `""`          |
+| `remote.instances.url`                       | URL from which to retrieve endpoint statuses (must end with `/statuses`)    | Required `""` |
+| `remote.instances.authorization`             | Authorization header sent to the remote instance (exclusive; inbound auth is not forwarded when set) | `""` |
+| `remote.instances.allow-private-networks`    | Allow remote URLs that point to private or loopback addresses               | `false`       |
+| `remote.max-response-body`                   | Maximum response body size in bytes read from a remote instance             | `10485760`    |
+| `remote.circuit-breaker.failure-threshold`   | Consecutive transport failures before a remote instance is temporarily skipped | `3`        |
+| `remote.circuit-breaker.open-duration`       | How long a remote instance stays skipped after opening its circuit breaker  | `30s`         |
+| `remote.client`                              | [Client configuration](#client-configuration).                              | `{}`          |
+
+Remote endpoint keys are exposed on the dashboard as `@remote:<instance-index>:<endpoint-key>`. Detail pages, badges, and charts for remote endpoints are proxied through the local instance using that prefixed key.
 
 ```yaml
 remote:
+  max-response-body: 10485760
+  circuit-breaker:
+    failure-threshold: 3
+    open-duration: 30s
   instances:
     - endpoint-prefix: "status.example.org-"
       url: "https://status.example.org/api/v1/endpoints/statuses"
+      authorization: "Bearer <token>"
+      # allow-private-networks: true  # required for localhost/private IP remotes
+  client:
+    timeout: 10s
 ```
 
 

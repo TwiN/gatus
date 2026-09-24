@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -39,38 +38,43 @@ var (
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for :duration -> 30d, 7d, 24h, 1h
-func UptimeBadge(c *fiber.Ctx) error {
-	duration := c.Params("duration")
-	var from time.Time
-	switch duration {
-	case "30d":
-		from = time.Now().Add(-30 * 24 * time.Hour)
-	case "7d":
-		from = time.Now().Add(-7 * 24 * time.Hour)
-	case "24h":
-		from = time.Now().Add(-24 * time.Hour)
-	case "1h":
-		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
-	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
-	}
-	key, err := url.QueryUnescape(c.Params("key"))
-	if err != nil {
-		return c.Status(400).SendString("invalid key encoding")
-	}
-	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
-	if err != nil {
-		if errors.Is(err, common.ErrEndpointNotFound) {
-			return c.Status(404).SendString(err.Error())
-		} else if errors.Is(err, common.ErrInvalidTimeRange) {
-			return c.Status(400).SendString(err.Error())
+func UptimeBadge(cfg *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		duration := c.Params("duration")
+		var from time.Time
+		switch duration {
+		case "30d":
+			from = time.Now().Add(-30 * 24 * time.Hour)
+		case "7d":
+			from = time.Now().Add(-7 * 24 * time.Hour)
+		case "24h":
+			from = time.Now().Add(-24 * time.Hour)
+		case "1h":
+			from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
+		default:
+			return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 		}
-		return c.Status(500).SendString(err.Error())
+		key, err := decodeEndpointKeyParam(c)
+		if err != nil {
+			return c.Status(400).SendString("invalid key encoding")
+		}
+		uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
+		if err != nil {
+			if errors.Is(err, common.ErrEndpointNotFound) {
+				if proxied, proxyErr := proxyRemoteEndpoint(c, cfg, key, "/uptimes/"+duration+"/badge.svg"); proxied || proxyErr != nil {
+					return proxyErr
+				}
+				return c.Status(404).SendString(err.Error())
+			} else if errors.Is(err, common.ErrInvalidTimeRange) {
+				return c.Status(400).SendString(err.Error())
+			}
+			return c.Status(500).SendString(err.Error())
+		}
+		c.Set("Content-Type", "image/svg+xml")
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Set("Expires", "0")
+		return c.Status(200).Send(generateUptimeBadgeSVG(duration, uptime))
 	}
-	c.Set("Content-Type", "image/svg+xml")
-	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	c.Set("Expires", "0")
-	return c.Status(200).Send(generateUptimeBadgeSVG(duration, uptime))
 }
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
@@ -92,13 +96,16 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 		default:
 			return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 		}
-		key, err := url.QueryUnescape(c.Params("key"))
+		key, err := decodeEndpointKeyParam(c)
 		if err != nil {
 			return c.Status(400).SendString("invalid key encoding")
 		}
 		averageResponseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 		if err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {
+				if proxied, proxyErr := proxyRemoteEndpoint(c, cfg, key, "/response-times/"+duration+"/badge.svg"); proxied || proxyErr != nil {
+					return proxyErr
+				}
 				return c.Status(404).SendString(err.Error())
 			} else if errors.Is(err, common.ErrInvalidTimeRange) {
 				return c.Status(400).SendString(err.Error())
@@ -113,66 +120,76 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 }
 
 // HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
-func HealthBadge(c *fiber.Ctx) error {
-	key, err := url.QueryUnescape(c.Params("key"))
-	if err != nil {
-		return c.Status(400).SendString("invalid key encoding")
-	}
-	pagingConfig := paging.NewEndpointStatusParams()
-	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
-	if err != nil {
-		if errors.Is(err, common.ErrEndpointNotFound) {
-			return c.Status(404).SendString(err.Error())
-		} else if errors.Is(err, common.ErrInvalidTimeRange) {
-			return c.Status(400).SendString(err.Error())
+func HealthBadge(cfg *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		key, err := decodeEndpointKeyParam(c)
+		if err != nil {
+			return c.Status(400).SendString("invalid key encoding")
 		}
-		return c.Status(500).SendString(err.Error())
-	}
-	healthStatus := HealthStatusUnknown
-	if len(status.Results) > 0 {
-		if status.Results[0].Success {
-			healthStatus = HealthStatusUp
-		} else {
-			healthStatus = HealthStatusDown
+		pagingConfig := paging.NewEndpointStatusParams()
+		status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+		if err != nil {
+			if errors.Is(err, common.ErrEndpointNotFound) {
+				if proxied, proxyErr := proxyRemoteEndpoint(c, cfg, key, "/health/badge.svg"); proxied || proxyErr != nil {
+					return proxyErr
+				}
+				return c.Status(404).SendString(err.Error())
+			} else if errors.Is(err, common.ErrInvalidTimeRange) {
+				return c.Status(400).SendString(err.Error())
+			}
+			return c.Status(500).SendString(err.Error())
 		}
+		healthStatus := HealthStatusUnknown
+		if len(status.Results) > 0 {
+			if status.Results[0].Success {
+				healthStatus = HealthStatusUp
+			} else {
+				healthStatus = HealthStatusDown
+			}
+		}
+		c.Set("Content-Type", "image/svg+xml")
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Set("Expires", "0")
+		return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
 	}
-	c.Set("Content-Type", "image/svg+xml")
-	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	c.Set("Expires", "0")
-	return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
 }
 
-func HealthBadgeShields(c *fiber.Ctx) error {
-	key, err := url.QueryUnescape(c.Params("key"))
-	if err != nil {
-		return c.Status(400).SendString("invalid key encoding")
-	}
-	pagingConfig := paging.NewEndpointStatusParams()
-	status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
-	if err != nil {
-		if errors.Is(err, common.ErrEndpointNotFound) {
-			return c.Status(404).SendString(err.Error())
-		} else if errors.Is(err, common.ErrInvalidTimeRange) {
-			return c.Status(400).SendString(err.Error())
+func HealthBadgeShields(cfg *config.Config) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		key, err := decodeEndpointKeyParam(c)
+		if err != nil {
+			return c.Status(400).SendString("invalid key encoding")
 		}
-		return c.Status(500).SendString(err.Error())
-	}
-	healthStatus := HealthStatusUnknown
-	if len(status.Results) > 0 {
-		if status.Results[0].Success {
-			healthStatus = HealthStatusUp
-		} else {
-			healthStatus = HealthStatusDown
+		pagingConfig := paging.NewEndpointStatusParams()
+		status, err := store.Get().GetEndpointStatusByKey(key, pagingConfig.WithResults(1, 1))
+		if err != nil {
+			if errors.Is(err, common.ErrEndpointNotFound) {
+				if proxied, proxyErr := proxyRemoteEndpoint(c, cfg, key, "/health/badge.shields"); proxied || proxyErr != nil {
+					return proxyErr
+				}
+				return c.Status(404).SendString(err.Error())
+			} else if errors.Is(err, common.ErrInvalidTimeRange) {
+				return c.Status(400).SendString(err.Error())
+			}
+			return c.Status(500).SendString(err.Error())
 		}
+		healthStatus := HealthStatusUnknown
+		if len(status.Results) > 0 {
+			if status.Results[0].Success {
+				healthStatus = HealthStatusUp
+			} else {
+				healthStatus = HealthStatusDown
+			}
+		}
+		c.Set("Content-Type", "application/json")
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Set("Expires", "0")
+		jsonData, err := generateHealthBadgeShields(healthStatus)
+		if err != nil {
+			return c.Status(500).SendString(err.Error())
+		}
+		return c.Status(200).Send(jsonData)
 	}
-	c.Set("Content-Type", "application/json")
-	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	c.Set("Expires", "0")
-	jsonData, err := generateHealthBadgeShields(healthStatus)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-	return c.Status(200).Send(jsonData)
 }
 
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
