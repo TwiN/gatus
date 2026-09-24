@@ -3661,6 +3661,8 @@ Gzip compression will be used if the `Accept-Encoding` HTTP header contains `gzi
 The API will return a JSON payload with the `Content-Type` response header set to `application/json`.
 No such header is required to query the API.
 
+Note that duration fields (`duration`, `certificateExpiration`, `domainExpiration`) in endpoint results are represented as signed 64-bit integers in nanoseconds. For `certificateExpiration` and `domainExpiration`, a negative value indicates that the certificate or domain has already expired by that duration.
+
 
 #### Interacting with the API programmatically
 See [TwiN/gatus-sdk](https://github.com/TwiN/gatus-sdk)
