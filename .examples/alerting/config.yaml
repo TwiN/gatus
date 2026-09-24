@@ -1,0 +1,22 @@
+alerting:
+  slack:
+    webhook-url: "https://hooks.slack.com/services/T00000000/B00000000/your-webhook-token-here"
+
+  discord:
+    webhook-url: "https://discord.com/api/webhooks/000000000000000000/your-discord-webhook-token-here"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: slack
+        description: "healthcheck failed"
+        send-on-resolved: true
+      - type: discord
+        description: "healthcheck failed"
+        send-on-resolved: true
