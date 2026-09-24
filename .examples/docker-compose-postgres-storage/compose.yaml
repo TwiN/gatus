@@ -2,7 +2,9 @@ services:
   postgres:
     image: postgres
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      # PostgreSQL 18 and above declare the volume at /var/lib/postgresql.
+      # For 17 and earlier, mount ./data/db at /var/lib/postgresql/data instead.
+      - ./data/db:/var/lib/postgresql
     ports:
       - "5432:5432"
     environment:

@@ -654,6 +654,7 @@ the client used to send the request.
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
 | `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
+| `client.store-cookies`                 | Whether to store cookies between requests.                                    | `false`         |
 
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
@@ -666,6 +667,7 @@ client:
   insecure: false
   ignore-redirect: false
   timeout: 10s
+  store-cookies: false
 ```
 
 Note that this configuration is only available under `endpoints[]`, `alerting.mattermost` and `alerting.custom`.
@@ -1302,6 +1304,10 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring HomeAssistant alerts
+
+> [!NOTE]
+> It is recommended to use the native Home Assistant integration instead (see below).
+
 | Parameter                                  | Description                                                                            | Default Value |
 |:-------------------------------------------|:---------------------------------------------------------------------------------------|:--------------|
 | `alerting.homeassistant.url`               | HomeAssistant instance URL                                                             | Required `""` |
@@ -1375,6 +1381,61 @@ To get your HomeAssistant long-lived access token:
 4. Click "Create Token"
 5. Give it a name (e.g., "Gatus")
 6. Copy the token - you'll only see it once!
+
+##### Native Home Assistant Integration
+
+Gatus can be integrated into [Home Assistant](https://www.home-assistant.io/) to monitor the status of your endpoints directly from your home automation dashboard.
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=gatus)
+
+<details>
+  <summary>Configuration & Automation Examples</summary>
+
+###### Configuration
+
+To add the integration, click the button above or:
+
+1. In Home Assistant, navigate to **Settings** > **Devices & Services**.
+2. Click **Add Integration** in the bottom-right corner.
+3. Search for **Gatus** and select it.
+4. Enter the base URL of your Gatus instance (e.g., `http://192.168.1.50:8080`).
+
+Home Assistant will create a binary sensor for each endpoint configured in Gatus. Because these sensors use the `connectivity` device class, they will show as `Connected` (Up) when the endpoint is healthy, and `Disconnected` (Down) when the endpoint is unhealthy.
+
+###### Automation Example
+
+You can easily set up a UI automation in Home Assistant to receive mobile notifications if any endpoint goes down:
+
+1. Navigate to **Settings** > **Automations & Scenes** > **Create Automation** > **Create new automation**.
+2. Under **Triggers**, click **Add Trigger** and select **State**.
+3. In the **Entity** field, select the Gatus binary sensor(s) you want to monitor.
+4. Set the **To** field to `off` (since a state of `off` represents a disconnected/down endpoint).
+5. Under **Actions**, click **Add Action** and select **Perform action**.
+6. Select your notification service (e.g., `Send a notification via mobile_app_<your_device_name>`).
+7. Set the **Message** field. You can use template values to dynamically include the endpoint name:
+   ```yaml
+   message: "The endpoint {{ trigger.to_state.name }} is down!"
+   ```
+
+For advanced users, here is the YAML representation of the automation:
+
+```yaml
+alias: "Notify when Gatus endpoint goes down"
+description: "Sends a mobile notification if a Gatus endpoint goes down"
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.website
+      - binary_sensor.make_sure_header_is_rendered
+    to: "off"
+action:
+  - action: notify.mobile_app_your_device_name
+    data:
+      title: "Gatus Alert"
+      message: "The endpoint {{ trigger.to_state.name }} is down!"
+```
+
+</details>
 
 
 #### Configuring IFTTT alerts
@@ -2469,6 +2530,7 @@ endpoints:
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
 | `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
+| `alerting.zulip.topic`             | The topic under which the alerts will be sent.<br />Supports the `[ENDPOINT_NAME]`, `[ENDPOINT_GROUP]` and `[ALERT_DESCRIPTION]` placeholders. | `Gatus`       |
 | `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
 | `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
 | `alerting.zulip.overrides[].*`     | See `alerting.zulip.*` parameters                                                   | `{}`          |
@@ -2480,6 +2542,7 @@ alerting:
     bot-api-key: "********************************"
     domain: some.zulip.org
     channel-id: 123456
+    topic: "[ENDPOINT_NAME]" # Optional; groups each endpoint's alerts under its own topic. Defaults to "Gatus"
 
 endpoints:
   - name: website
@@ -2905,6 +2968,7 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 #### Kubernetes
 
 Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
+
 
 ## Running the tests
 ```console
