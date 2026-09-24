@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+
+	"github.com/TwiN/gatus/v5/buildinfo"
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
@@ -16,6 +18,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			Header:              "",
 			Logo:                "",
 			Link:                "",
+			DefaultSortBy:       "",
+			DefaultFilterBy:     "",
+			ShowVersion:         nil,
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -41,6 +46,12 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.DefaultFilterBy != defaultFilterBy {
 			t.Errorf("expected defaultFilterBy to be %s, got %s", defaultFilterBy, cfg.DefaultFilterBy)
 		}
+		if *cfg.ShowVersion != defaultShowVersion {
+			t.Errorf("expected ShowVersion to be %v, got %v", defaultShowVersion, *cfg.ShowVersion)
+		}
+		if len(cfg.BuildVersion) > 0 {
+			t.Errorf("expected BuildVersion to be empty, got %s", cfg.BuildVersion)
+		}
 		if cfg.Favicon.Default != defaultFavicon {
 			t.Errorf("expected favicon to be %s, got %s", defaultFavicon, cfg.Favicon.Default)
 		}
@@ -55,6 +66,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
+		var showVersion = true
 		cfg := &Config{
 			Title:               "Custom Title",
 			Description:         "Custom Description",
@@ -66,6 +78,7 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 			DefaultSortBy:       "health",
 			DefaultFilterBy:     "failing",
 			LoginSubtitle:       "Welcome",
+			ShowVersion:         &showVersion,
 		}
 		if err := cfg.ValidateAndSetDefaults(); err != nil {
 			t.Error("expected no error, got", err.Error())
@@ -100,6 +113,12 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.LoginSubtitle != "Welcome" {
 			t.Errorf("expected LoginSubtitle to be preserved, got %s", cfg.LoginSubtitle)
 		}
+    if *cfg.ShowVersion != showVersion {
+			t.Errorf("expected ShowVersion to be preserved, got %v", *cfg.ShowVersion)
+		}
+		if cfg.BuildVersion != buildinfo.Get().Version {
+			t.Errorf("expected BuildVersion to be %s, got %s", buildinfo.Get().Version, cfg.BuildVersion)
+    }
 	})
 	t.Run("partial-custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -194,6 +213,12 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.LoginSubtitle != defaultLoginSubtitle {
 		t.Error("expected GetDefaultConfig() to return defaultLoginSubtitle, got", defaultConfig.LoginSubtitle)
 	}
+	if *defaultConfig.ShowVersion != defaultShowVersion {
+		t.Error("expected GetDefaultConfig() to return defaultShowVersion, got", *defaultConfig.ShowVersion)
+	}
+	if len(defaultConfig.BuildVersion) > 0 {
+		t.Errorf("expected BuildVersion to be empty, got %s", defaultConfig.BuildVersion)
+  }
 }
 
 func TestConfig_ValidateAndSetDefaults_DefaultSortBy(t *testing.T) {
