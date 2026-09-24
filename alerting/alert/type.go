@@ -50,6 +50,9 @@ const (
 	// TypeIncidentIO is the Type for the incident-io alerting provider
 	TypeIncidentIO Type = "incident-io"
 
+	// TypeJira is the Type for the jira alerting provider
+	TypeJira Type = "jira"
+
 	// TypeLine is the Type for the line alerting provider
 	TypeLine Type = "line"
 
