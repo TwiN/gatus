@@ -40,22 +40,26 @@ func (s *Store) createSQLiteSchema() error {
 	if err != nil {
 		return err
 	}
+
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS endpoint_events (
 			endpoint_event_id  INTEGER PRIMARY KEY,
 			endpoint_id        INTEGER   NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
 			event_type         TEXT      NOT NULL,
+			event_state        TEXT      NOT NULL,
 			event_timestamp    TIMESTAMP NOT NULL
 		)
 	`)
 	if err != nil {
 		return err
 	}
+
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS endpoint_results (
 			endpoint_result_id     INTEGER PRIMARY KEY,
 			endpoint_id            INTEGER   NOT NULL REFERENCES endpoints(endpoint_id) ON DELETE CASCADE,
 			success                INTEGER   NOT NULL,
+			state                  TEXT      NOT NULL,
 			errors                 TEXT      NOT NULL,
 			connected              INTEGER   NOT NULL,
 			status                 INTEGER   NOT NULL,
@@ -138,6 +142,12 @@ func (s *Store) createSQLiteSchema() error {
 	}
 	// Silent table modifications TODO: Remove this in v6.0.0
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD domain_expiration INTEGER NOT NULL DEFAULT 0`)
+	// Add new state columns
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD state TEXT NOT NULL DEFAULT 'MIGRATION#1457'`)
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_events ADD event_state TEXT NOT NULL DEFAULT 'MIGRATION#1457'`)
+	// Replace unknown default values with healthy if success is 1 else unhealthy
+	_, _ = s.db.Exec(`UPDATE endpoint_results SET state = CASE WHEN success = 1 THEN 'healthy' ELSE 'unhealthy' END WHERE state = 'MIGRATION#1457'`)
+	_, _ = s.db.Exec(`UPDATE endpoint_events SET event_state = CASE WHEN event_type = 'HEALTHY' THEN 'healthy' WHEN event_type = 'UNHEALTHY' THEN 'unhealthy' ELSE '' END WHERE event_state = 'MIGRATION#1457'`)
 	// Add suite_result_id to endpoint_results table for suite endpoint linkage
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD suite_result_id INTEGER REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
 	// Create index for suite_result_id

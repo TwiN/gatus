@@ -36,6 +36,7 @@ var (
 	testSuccessfulResult = endpoint.Result{
 		Timestamp:             now,
 		Success:               true,
+		State:                 "healthy",
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,
@@ -61,6 +62,7 @@ var (
 	testUnsuccessfulResult = endpoint.Result{
 		Timestamp:             now,
 		Success:               false,
+		State:                 "unhealthy",
 		Hostname:              "example.org",
 		IP:                    "127.0.0.1",
 		HTTPStatus:            200,

@@ -1,53 +1,103 @@
+maintenance:
+  enabled: true
+  start: "01:25"
+  duration: "5m"
+  timezone: "Europe/Berlin"
+
+storage:
+  type: sqlite
+  path: ./gatus.db
+
+states:
+  - name: degraded
+    priority: 1
+
+ui:
+  state-colors:
+    degraded: "#FFA500"  # Orange color for degraded state
+
 endpoints:
-  - name: front-end
+  - name: healthy-test
     group: core
-    url: "https://twin.sh/health"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].status == UP"
-      - "[RESPONSE_TIME] < 150"
-
-  - name: back-end
-    group: core
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-      - "[CERTIFICATE_EXPIRATION] > 48h"
-
-  - name: monitoring
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-
-  - name: nas
-    group: internal
-    url: "https://example.org/"
-    interval: 5m
-    conditions:
-      - "[STATUS] == 200"
-
-  - name: example-dns-query
-    url: "8.8.8.8" # Address of the DNS server to use
-    interval: 5m
-    dns:
-      query-name: "example.com"
-      query-type: "A"
-    conditions:
-      - "[BODY] == pat(*.*.*.*)"  # Matches any IPv4 address
-      - "[DNS_RCODE] == NOERROR"
-
-  - name: icmp-ping
-    url: "icmp://example.org"
-    interval: 1m
+    url: "icmp://9.9.9.9"
+    interval: 10s
     conditions:
       - "[CONNECTED] == true"
 
-  - name: check-domain-expiration
-    url: "https://example.org/"
-    interval: 1h
+  - name: maintenance-test
+    group: core
+    url: "http://doesnotexist.internal"
+    interval: 10s
     conditions:
-      - "[DOMAIN_EXPIRATION] > 720h"
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 150"
+    maintenance-windows:
+      - start: "12:00"
+        duration: "23h59m"
+
+  - name: degraded-test
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "degraded::[RESPONSE_TIME] < 22"
+
+  - name: unhealthy-test (error)
+    group: core
+    url: "http://doesnotexist.local/"
+    interval: 10s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: unhealthy-test (failing condition)
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[RESPONSE_TIME] < 1"
+
+  - name: unhealthy-test (invalid linked condition state)
+    group: core
+    url: "icmp://9.9.9.9"
+    interval: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "invalid::[RESPONSE_TIME] < 1"
+
+external-endpoints:
+  - name: external-endpoint-test
+    token: "test"
+    heartbeat:
+      interval: 1m
+
+suites:
+  - name: custom-state-test
+    group: api-tests
+    interval: 10s
+    endpoints:
+      - name: create-item
+        url: icmp://9.9.9.9
+        conditions:
+          - "[CONNECTED] == true"
+          - "[RESPONSE_TIME] < 23"
+
+      - name: update-item
+        url: icmp://9.9.9.9
+        conditions:
+          - "[CONNECTED] == true"
+          - "degraded::[RESPONSE_TIME] < 24"
+
+      - name: get-item
+        url: icmp://9.9.9.9
+        conditions:
+          - "[CONNECTED] == true"
+          - "[RESPONSE_TIME] < 23"
+
+      - name: delete-item
+        url: icmp://9.9.9.9
+        always-run: true
+        conditions:
+          - "[CONNECTED] == true"
+          - "degraded::[RESPONSE_TIME] < 23"
