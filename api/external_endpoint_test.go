@@ -264,12 +264,13 @@ func TestCreateExternalEndpointResultWithConditionResults(t *testing.T) {
 	push(t, "/api/v1/endpoints/g_n/external?success=false", `{"conditionResults":[{"condition":"[STATUS] == 200","success":true},{"condition":"[RESPONSE_TIME] < 300","success":false}],"somethingElse":1}`)
 	push(t, "/api/v1/endpoints/g_n/external?success=true", "")
 	push(t, "/api/v1/endpoints/g_n/external?success=true", "{}")
+	push(t, "/api/v1/endpoints/g_n/external?success=true", "null")
 	endpointStatus, err := store.Get().GetEndpointStatusByKey("g_n", paging.NewEndpointStatusParams().WithResults(1, 10))
 	if err != nil {
 		t.Fatalf("failed to get endpoint status: %s", err.Error())
 	}
-	if len(endpointStatus.Results) != 3 {
-		t.Fatalf("expected 3 results but got %d", len(endpointStatus.Results))
+	if len(endpointStatus.Results) != 4 {
+		t.Fatalf("expected 4 results but got %d", len(endpointStatus.Results))
 	}
 	if endpointStatus.Results[0].Success {
 		t.Error("expected first result to be unsuccessful, because success comes from the query parameter")
@@ -288,5 +289,8 @@ func TestCreateExternalEndpointResultWithConditionResults(t *testing.T) {
 	}
 	if len(endpointStatus.Results[2].ConditionResults) != 0 {
 		t.Errorf("expected third result to have no condition results, because the body was empty")
+	}
+	if len(endpointStatus.Results[3].ConditionResults) != 0 {
+		t.Errorf("expected fourth result to have no condition results, because the body was null")
 	}
 }
