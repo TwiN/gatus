@@ -595,6 +595,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 	}
 	alertTypes := []alert.Type{
 		alert.TypeAWSSES,
+		alert.TypeBark,
 		alert.TypeClickUp,
 		alert.TypeCustom,
 		alert.TypeDatadog,
