@@ -2593,6 +2593,10 @@ If you have an alert using the `custom` provider with `send-on-resolved` set to 
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
 (details at the end of this section).
 
+In request bodies, `[RESULT_CONDITIONS]` separates condition results with newlines. In a valid
+JSON body template, place this placeholder inside a quoted JSON string; condition text, including
+newlines, quotes, and backslashes, is escaped for JSON. Plain-text bodies receive actual newline characters.
+
 For all intents and purposes, we'll configure the custom alert with a Slack webhook, but you can call anything you want.
 ```yaml
 alerting:
