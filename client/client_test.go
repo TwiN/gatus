@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	miekg "github.com/miekg/dns"
 )
 
 func isIgnorableNetworkTestError(err error) bool {
@@ -154,6 +156,42 @@ func TestPing(t *testing.T) {
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
+	}
+}
+
+func TestPing_withCustomDNSResolver(t *testing.T) {
+	t.Parallel()
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &miekg.Server{PacketConn: conn, Handler: miekg.HandlerFunc(func(w miekg.ResponseWriter, r *miekg.Msg) {
+		m := new(miekg.Msg)
+		m.SetReply(r)
+		if q := r.Question[0]; q.Name == "gatus-ping-test.invalid." && q.Qtype == miekg.TypeA {
+			m.Answer = append(m.Answer, &miekg.A{Hdr: miekg.RR_Header{Name: q.Name, Rrtype: miekg.TypeA, Class: miekg.ClassINET, Ttl: 60}, A: net.ParseIP("127.0.0.1")})
+		} else if q.Name != "gatus-ping-test.invalid." {
+			m.Rcode = miekg.RcodeNameError
+		}
+		_ = w.WriteMsg(m)
+	})}
+	go func() { _ = server.ActivateAndServe() }()
+	defer server.Shutdown()
+	dnsResolver := "udp://" + conn.LocalAddr().String()
+	if success, _ := Ping("gatus-ping-test.invalid", &Config{Timeout: 500 * time.Millisecond, DNSResolver: dnsResolver}); !success {
+		t.Error("expected true, because the hostname should've been resolved to 127.0.0.1 by the custom DNS resolver")
+	}
+	if success, _ := Ping("gatus-ping-test.invalid", &Config{Timeout: 500 * time.Millisecond, DNSResolver: dnsResolver, Network: "ip4"}); !success {
+		t.Error("expected true, because the hostname should've been resolved to 127.0.0.1 by the custom DNS resolver")
+	}
+	if success, rtt := Ping("gatus-ping-test.invalid", &Config{Timeout: 500 * time.Millisecond, DNSResolver: dnsResolver, Network: "ip6"}); success || rtt != 0 {
+		t.Error("expected false with a round-trip time of 0, because the hostname only has an A record")
+	}
+	if success, rtt := Ping("does-not-exist.invalid", &Config{Timeout: 500 * time.Millisecond, DNSResolver: dnsResolver}); success || rtt != 0 {
+		t.Error("expected false with a round-trip time of 0, because the custom DNS resolver can't resolve the hostname")
+	}
+	if success, _ := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, DNSResolver: dnsResolver}); !success {
+		t.Error("expected true, because IP addresses don't need to be resolved")
 	}
 }
 
