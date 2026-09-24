@@ -367,6 +367,24 @@ Where:
 
 You must also pass the token as a `Bearer` token in the `Authorization` header.
 
+Optionally, you may also send a JSON body describing the individual conditions that were evaluated on your end.
+They are displayed under **Conditions** when hovering over a result on the dashboard, which is useful when a single error message isn't enough to tell which check failed:
+```
+POST /api/v1/endpoints/{key}/external?success=false
+
+{
+  "conditionResults": [
+    {"condition": "[STATUS] == 200", "success": true},
+    {"condition": "[RESPONSE_TIME] < 300", "success": false}
+  ]
+}
+```
+Where:
+- `conditionResults` (optional): the conditions that were evaluated on your end. Each entry requires a non-empty `condition` of at most 1024 characters and a `success` boolean, with a maximum of 50 entries per request.
+
+The body is entirely optional: a request without one behaves exactly like it did before.
+Note that condition results are for display purposes only: `{success}` remains the source of truth for the health of the endpoint, regardless of whether any of the conditions you pushed failed.
+
 
 ### Suites (ALPHA)
 Suites are collections of endpoints that are executed sequentially with a shared context.
