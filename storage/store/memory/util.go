@@ -92,6 +92,12 @@ func AddResult(ss *endpoint.Status, result *endpoint.Result, maximumNumberOfResu
 				// length of MaximumNumberOfEvents by using ss.Events[len(ss.Events)-MaximumNumberOfEvents:] instead
 				ss.Events = ss.Events[len(ss.Events)-maximumNumberOfEvents:]
 			}
+		} else if !result.Success && len(ss.Events) > 0 {
+			// If the endpoint is still unhealthy, update the latest UNHEALTHY event with any new unique failures
+			latestEvent := ss.Events[len(ss.Events)-1]
+			if latestEvent.Type == endpoint.EventUnhealthy {
+				latestEvent.AddUniqueFailuresFromResult(result)
+			}
 		}
 	} else {
 		// This is the first result, so we need to add the first healthy/unhealthy event
