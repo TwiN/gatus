@@ -38,11 +38,13 @@ var (
 
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for :duration -> 30d, 7d, 24h, 1h
+// Valid values for :duration -> 365d, 30d, 7d, 24h, 1h
 func UptimeBadge(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "365d":
+		from = time.Now().Add(-365 * 24 * time.Hour)
 	case "30d":
 		from = time.Now().Add(-30 * 24 * time.Hour)
 	case "7d":
@@ -52,7 +54,7 @@ func UptimeBadge(c *fiber.Ctx) error {
 	case "1h":
 		from = time.Now().Add(-2 * time.Hour) // Because uptime metrics are stored by hour, we have to cheat a little
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+		return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h, 1h")
 	}
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
@@ -75,12 +77,14 @@ func UptimeBadge(c *fiber.Ctx) error {
 
 // ResponseTimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
-// Valid values for :duration -> 30d, 7d, 24h, 1h
+// Valid values for :duration -> 365d, 30d, 7d, 24h, 1h
 func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		duration := c.Params("duration")
 		var from time.Time
 		switch duration {
+		case "365d":
+			from = time.Now().Add(-365 * 24 * time.Hour)
 		case "30d":
 			from = time.Now().Add(-30 * 24 * time.Hour)
 		case "7d":
@@ -90,7 +94,7 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 		case "1h":
 			from = time.Now().Add(-2 * time.Hour) // Because response time metrics are stored by hour, we have to cheat a little
 		default:
-			return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
+			return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h, 1h")
 		}
 		key, err := url.QueryUnescape(c.Params("key"))
 		if err != nil {
@@ -178,6 +182,8 @@ func HealthBadgeShields(c *fiber.Ctx) error {
 func generateUptimeBadgeSVG(duration string, uptime float64) []byte {
 	var labelWidth, valueWidth, valueWidthAdjustment int
 	switch duration {
+	case "365d":
+		labelWidth = 75
 	case "30d":
 		labelWidth = 70
 	case "7d":
@@ -246,6 +252,8 @@ func getBadgeColorFromUptime(uptime float64) string {
 func generateResponseTimeBadgeSVG(duration string, averageResponseTime int, key string, cfg *config.Config) []byte {
 	var labelWidth, valueWidth int
 	switch duration {
+	case "365d":
+		labelWidth = 115
 	case "30d":
 		labelWidth = 110
 	case "7d":

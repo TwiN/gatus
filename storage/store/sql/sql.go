@@ -33,13 +33,32 @@ const (
 	eventsAboveMaximumCleanUpThreshold  = 10 // Maximum number of events above the configured maximum before triggering a cleanup
 	resultsAboveMaximumCleanUpThreshold = 10 // Maximum number of results above the configured maximum before triggering a cleanup
 
-	uptimeTotalEntriesMergeThreshold = 100                 // Maximum number of uptime entries before triggering a merge
-	uptimeAgeCleanUpThreshold        = 32 * 24 * time.Hour // Maximum uptime age before triggering a cleanup
-	uptimeRetention                  = 30 * 24 * time.Hour // Minimum duration that must be kept to operate as intended
-	uptimeHourlyBuffer               = 48 * time.Hour      // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
+	uptimeTotalEntriesMergeThreshold = 100            // Maximum number of uptime entries before triggering a merge
+	uptimeHourlyBuffer               = 48 * time.Hour // Number of hours to buffer from now when determining which hourly uptime entries can be merged into daily uptime entries
 
 	cacheTTL = 10 * time.Minute
+
+	defaultUptimeRetention = 30 * 24 * time.Hour // Default minimum duration of uptime data to keep (configurable via storage.uptime-retention)
+	uptimeCleanUpBuffer    = 2 * 24 * time.Hour  // Cleanup is triggered for uptime data older than retention + this buffer
 )
+
+// uptimeRetention is the minimum duration that uptime data must be kept; uptimeAgeCleanUpThreshold is the age at which
+// cleanup is triggered (retention + buffer). Both are configurable via SetUptimeRetention; the defaults preserve the
+// historical 30-day behaviour. Increase the retention (e.g. to 365 days) to support long-range uptime badges.
+var (
+	uptimeRetention           = defaultUptimeRetention
+	uptimeAgeCleanUpThreshold = defaultUptimeRetention + uptimeCleanUpBuffer
+)
+
+// SetUptimeRetention configures how long uptime data is retained. A value <= 0 resets it to the default (30 days).
+// It must be called once before the store starts processing results (e.g. from storage.Initialize).
+func SetUptimeRetention(retention time.Duration) {
+	if retention <= 0 {
+		retention = defaultUptimeRetention
+	}
+	uptimeRetention = retention
+	uptimeAgeCleanUpThreshold = retention + uptimeCleanUpBuffer
+}
 
 var (
 	// ErrPathNotSpecified is the error returned when the path parameter passed in NewStore is blank

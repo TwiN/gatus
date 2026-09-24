@@ -7,9 +7,27 @@ import (
 )
 
 const (
-	uptimeCleanUpThreshold = 32 * 24
-	uptimeRetention        = 30 * 24 * time.Hour
+	defaultUptimeRetention = 30 * 24 * time.Hour // Default minimum duration of uptime data to keep (configurable via storage.uptime-retention)
+	uptimeCleanUpBuffer    = 2 * 24 * time.Hour  // Cleanup is triggered for uptime data older than retention + this buffer
 )
+
+// uptimeRetention is the minimum duration that uptime data must be kept; uptimeCleanUpThreshold is the maximum number
+// of hourly entries to keep before triggering a cleanup (i.e. retention + buffer, expressed in hours). Both are
+// configurable via SetUptimeRetention; the defaults preserve the historical 30-day behaviour.
+var (
+	uptimeRetention        = defaultUptimeRetention
+	uptimeCleanUpThreshold = int((defaultUptimeRetention + uptimeCleanUpBuffer).Hours())
+)
+
+// SetUptimeRetention configures how long uptime data is retained. A value <= 0 resets it to the default (30 days).
+// It must be called once before the store starts processing results (e.g. from storage.Initialize).
+func SetUptimeRetention(retention time.Duration) {
+	if retention <= 0 {
+		retention = defaultUptimeRetention
+	}
+	uptimeRetention = retention
+	uptimeCleanUpThreshold = int((retention + uptimeCleanUpBuffer).Hours())
+}
 
 // processUptimeAfterResult processes the result by extracting the relevant from the result and recalculating the uptime
 // if necessary
