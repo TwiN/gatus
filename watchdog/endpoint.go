@@ -13,7 +13,22 @@ import (
 
 // monitorEndpoint a single endpoint in a loop
 func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	// Run it immediately on start
+	// Seed the first execution delay from the last persisted result timestamp so a restart or
+	// config reload resumes the existing schedule (e.g. an interval=1m endpoint whose last
+	// result was 40s ago waits 20s, not a full interval) instead of restarting the cadence
+	// from zero.
+	if delay := endpointInitialDelay(ep.Key(), ep.Interval); delay > 0 {
+		select {
+		case <-ctx.Done():
+			logr.Warnf("[watchdog.monitorEndpoint] Context canceled; stopping monitoring of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			return
+		case <-time.After(delay):
+		}
+	}
+	// Execute once immediately after the seeded delay elapses (or with no delay for a
+	// fresh endpoint) so the run that's due right now isn't skipped: the ticker below only
+	// fires after a full ep.Interval from when it's created, so without this call the first
+	// execution would be deferred an extra interval.
 	executeEndpoint(ep, cfg, extraLabels)
 	// Loop for the next executions
 	ticker := time.NewTicker(ep.Interval)
@@ -21,7 +36,7 @@ func monitorEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	for {
 		select {
 		case <-ctx.Done():
-			logr.Warnf("[watchdog.monitorEndpoint] Canceling current execution of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
+			logr.Warnf("[watchdog.monitorEndpoint] Context canceled; stopping monitoring of group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 			return
 		case <-ticker.C:
 			executeEndpoint(ep, cfg, extraLabels)

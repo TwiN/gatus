@@ -1,16 +1,21 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/controller"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/storage/store/common"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/gatus/v5/watchdog"
 	"github.com/TwiN/logr"
 )
@@ -145,15 +150,17 @@ func initializeStorage(cfg *config.Config) {
 		if numberOfTriggeredAlertsDeleted > 0 {
 			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ep.Key())
 		}
+		// Backfill consecutive success/failure counters from persisted results so a
+		// restart/reload resumes the streak instead of starting from zero.
+		ep.NumberOfFailuresInARow, ep.NumberOfSuccessesInARow = backfillStreakFromResults(ep.Key(), ep.Alerts)
 		for _, alert := range ep.Alerts {
-			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
+			exists, resolveKey, _, err := store.Get().GetTriggeredEndpointAlert(ep, alert)
 			if err != nil {
 				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 				continue
 			}
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
-				ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -170,15 +177,18 @@ func initializeStorage(cfg *config.Config) {
 		if numberOfTriggeredAlertsDeleted > 0 {
 			logr.Debugf("[main.initializeStorage] Deleted %d triggered alerts for endpoint with key=%s because their configurations have been changed or deleted", numberOfTriggeredAlertsDeleted, ee.Key())
 		}
+		// Backfill consecutive success/failure counters from persisted results so a
+		// restart/reload resumes the streak instead of starting from zero. Key off ee.Key()
+		// (identical to convertedEndpoint.Key()) to match the regular-endpoint branch above.
+		ee.NumberOfFailuresInARow, ee.NumberOfSuccessesInARow = backfillStreakFromResults(ee.Key(), ee.Alerts)
 		for _, alert := range ee.Alerts {
-			exists, resolveKey, numberOfSuccessesInARow, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
+			exists, resolveKey, _, err := store.Get().GetTriggeredEndpointAlert(convertedEndpoint, alert)
 			if err != nil {
 				logr.Errorf("[main.initializeStorage] Failed to get triggered alert for endpoint with key=%s: %s", ee.Key(), err.Error())
 				continue
 			}
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
-				ee.NumberOfSuccessesInARow, ee.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -213,6 +223,44 @@ func initializeStorage(cfg *config.Config) {
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
 	}
+}
+
+// backfillStreakFromResults reconstructs the consecutive failure/success counters from the most
+// recently persisted results so a restart or configuration reload resumes an in-progress streak
+// instead of resetting it to zero. It reads only enough results to satisfy the largest alert
+// threshold configured on the endpoint and returns (0, 0) when there is nothing to backfill.
+//
+// key is the endpoint's storage key (endpoint.Endpoint.Key() and externalendpoint.ExternalEndpoint.Key()
+// resolve to the same value for a given group/name); alerts is the endpoint's alert configuration.
+func backfillStreakFromResults(key string, alerts []*alert.Alert) (failuresInARow, successesInARow int) {
+	n := 0
+	for _, a := range alerts {
+		if !a.IsEnabled() {
+			continue
+		}
+		if a.FailureThreshold > n {
+			n = a.FailureThreshold
+		}
+		if a.SuccessThreshold > n {
+			n = a.SuccessThreshold
+		}
+	}
+	if n == 0 {
+		return 0, 0
+	}
+	status, err := store.Get().GetEndpointStatusByKey(key, paging.NewEndpointStatusParams().WithResults(1, n))
+	if err != nil {
+		// A missing endpoint/suite just means there is no history to backfill from yet (e.g. a
+		// brand-new endpoint), so only surface unexpected storage errors instead of swallowing them.
+		if !errors.Is(err, common.ErrEndpointNotFound) && !errors.Is(err, common.ErrSuiteNotFound) {
+			logr.Warnf("[main.backfillStreakFromResults] Failed to load persisted results for key=%s: %s", key, err.Error())
+		}
+		return 0, 0
+	}
+	if status == nil {
+		return 0, 0
+	}
+	return endpoint.NumberOfResultsInARow(status.Results)
 }
 
 func closeTunnels(cfg *config.Config) {
