@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"testing"
@@ -40,6 +41,21 @@ func TestConfig_getHTTPClient(t *testing.T) {
 	request, _ = http.NewRequest("GET", "", nil)
 	if err := secureClient.CheckRedirect(request, nil); err != http.ErrUseLastResponse {
 		t.Error("expected Config.IgnoreRedirect set to true to cause the HTTP client's CheckRedirect to return http.ErrUseLastResponse")
+	}
+}
+
+func TestConfig_getHTTPClient_withTLSRenegotiationWithoutCertificate(t *testing.T) {
+	cfg := &Config{
+		TLS: &TLSConfig{RenegotiationSupport: "freely"},
+	}
+	if err := cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("expected renegotiation-only TLS config to be valid, got %v", err)
+	}
+
+	httpClient := cfg.getHTTPClient()
+	tlsConfig := httpClient.Transport.(*http.Transport).TLSClientConfig
+	if tlsConfig.Renegotiation != tls.RenegotiateFreelyAsClient {
+		t.Errorf("expected TLS renegotiation to be %v, got %v", tls.RenegotiateFreelyAsClient, tlsConfig.Renegotiation)
 	}
 }
 

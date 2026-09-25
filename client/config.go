@@ -28,7 +28,7 @@ var (
 	ErrInvalidDNSResolverPort    = errors.New("invalid DNS resolver port")
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
-	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must both be specified when configuring a client certificate")
 
 	defaultConfig = Config{
 		Insecure:       false,
@@ -110,7 +110,7 @@ type IAPConfig struct {
 	Audience string `yaml:"audience"` // e.g. "toto.apps.googleusercontent.com"
 }
 
-// TLSConfig is the configuration for mTLS configurations
+// TLSConfig is the configuration for client TLS options
 type TLSConfig struct {
 	// CertificateFile is the public certificate for TLS in PEM format.
 	CertificateFile string `yaml:"certificate-file,omitempty"`
@@ -188,9 +188,9 @@ func (c *Config) HasIAPConfig() bool {
 	return c.IAPConfig != nil
 }
 
-// HasTLSConfig returns true if the client has client certificate parameters
+// HasTLSConfig returns true if the client has TLS configuration parameters
 func (c *Config) HasTLSConfig() bool {
-	return c.TLS != nil && len(c.TLS.CertificateFile) > 0 && len(c.TLS.PrivateKeyFile) > 0
+	return c.TLS != nil
 }
 
 // isValid() returns true if the IAP configuration is valid
@@ -203,8 +203,11 @@ func (c *OAuth2Config) isValid() bool {
 	return len(c.TokenURL) > 0 && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
 }
 
-// isValid() returns nil if the client tls certificates are valid, otherwise returns an error
+// isValid() returns nil if the client TLS configuration is valid, otherwise returns an error
 func (t *TLSConfig) isValid() error {
+	if len(t.CertificateFile) == 0 && len(t.PrivateKeyFile) == 0 {
+		return nil
+	}
 	if len(t.CertificateFile) > 0 && len(t.PrivateKeyFile) > 0 {
 		_, err := tls.LoadX509KeyPair(t.CertificateFile, t.PrivateKeyFile)
 		if err != nil {
@@ -349,14 +352,16 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 	return client
 }
 
-// configureTLS returns a TLS Config that will enable mTLS
+// configureTLS returns a TLS Config with the configured client TLS options
 func configureTLS(tlsConfig *tls.Config, c TLSConfig) *tls.Config {
-	clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
-	if err != nil {
-		logr.Errorf("[client.configureTLS] Failed to load certificate: %s", err.Error())
-		return nil
+	if len(c.CertificateFile) > 0 && len(c.PrivateKeyFile) > 0 {
+		clientTLSCert, err := tls.LoadX509KeyPair(c.CertificateFile, c.PrivateKeyFile)
+		if err != nil {
+			logr.Errorf("[client.configureTLS] Failed to load certificate: %s", err.Error())
+			return nil
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
 	}
-	tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
 	tlsConfig.Renegotiation = tls.RenegotiateNever
 	renegotiationSupport := map[string]tls.RenegotiationSupport{
 		"once":   tls.RenegotiateOnceAsClient,
