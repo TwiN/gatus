@@ -73,9 +73,15 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	}
 	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
 		HandleAlerting(convertedEndpoint, result, cfg.Alerting)
-		// Sync the failure/success counters back to the external endpoint
+		// Sync the failure/success counters and the reminder clock back to
+		// the external endpoint; alert Triggered flags already stick because
+		// ToEndpoint shares the Alerts slice, but LastReminderSent lives on
+		// the converted copy and would otherwise reset to zero on every
+		// heartbeat tick, re-sending the alert and ignoring
+		// minimum-reminder-interval (#1765).
 		ee.NumberOfSuccessesInARow = convertedEndpoint.NumberOfSuccessesInARow
 		ee.NumberOfFailuresInARow = convertedEndpoint.NumberOfFailuresInARow
+		ee.LastReminderSent = convertedEndpoint.LastReminderSent
 	} else {
 		logr.Debug("[watchdog.monitorExternalEndpointHeartbeat] Not handling alerting because currently in the maintenance window")
 	}

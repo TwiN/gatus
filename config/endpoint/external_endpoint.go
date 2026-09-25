@@ -48,6 +48,13 @@ type ExternalEndpoint struct {
 
 	// NumberOfSuccessesInARow is the number of successful evaluations in a row
 	NumberOfSuccessesInARow int `yaml:"-"`
+
+	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	// External endpoints run alerting against a converted copy (see ToEndpoint),
+	// so the copy's value must be synced back here after every HandleAlerting
+	// call, or every heartbeat tick / pushed result would see a zero value and
+	// re-send the alert, ignoring minimum-reminder-interval (#1765).
+	LastReminderSent time.Time `yaml:"-"`
 }
 
 // ValidateAndSetDefaults validates the ExternalEndpoint and sets the default values
@@ -95,6 +102,7 @@ func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 		Alerts:                  externalEndpoint.Alerts,
 		NumberOfFailuresInARow:  externalEndpoint.NumberOfFailuresInARow,
 		NumberOfSuccessesInARow: externalEndpoint.NumberOfSuccessesInARow,
+		LastReminderSent:        externalEndpoint.LastReminderSent,
 	}
 	return endpoint
 }
