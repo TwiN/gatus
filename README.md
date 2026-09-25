@@ -521,6 +521,7 @@ Allows you to configure how and where the dashboard is being served.
 | `web`                      | Web configuration                                                                           | `{}`      |
 | `web.address`              | Address to listen on.                                                                       | `0.0.0.0` |
 | `web.port`                 | Port to listen on.                                                                          | `8080`    |
+| `web.socket`               | Unix domain socket to listen on (overrides `address`/`port` when set)                       | `""`      |       
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |
