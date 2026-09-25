@@ -2796,16 +2796,18 @@ security:
 
 
 #### OIDC
-| Parameter                        | Description                                                    | Default       |
-|:---------------------------------|:---------------------------------------------------------------|:--------------|
-| `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
-| `security.oidc.issuer-url`       | Issuer URL                                                     | Required `""` |
-| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`     | Required `""` |
-| `security.oidc.client-id`        | Client id                                                      | Required `""` |
-| `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
-| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
-| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
-| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
+| Parameter                            | Description                                                                                                                      | Default       |
+|:-------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| `security.oidc`                      | OpenID Connect configuration                                                                                                     | `{}`          |
+| `security.oidc.issuer-url`           | Issuer URL                                                                                                                       | Required `""` |
+| `security.oidc.redirect-url`         | Redirect URL. Must end with `/authorization-code/callback`                                                                       | Required `""` |
+| `security.oidc.client-id`            | Client id                                                                                                                        | Required `""` |
+| `security.oidc.client-secret`        | Client secret                                                                                                                    | Required `""` |
+| `security.oidc.scopes`               | Scopes to request. The only scope you need is `openid`.                                                                          | Required `[]` |
+| `security.oidc.allowed-subjects`     | List of subjects to allow. If empty, all subjects are allowed. Cannot be used in conjunction with `security.oidc.allowed-groups` | `[]`          |
+| `security.oidc.allowed-groups`       | List of groups to allow. If empty, all groups are allowed. Cannot be used in conjunction with `security.oidc.allowed-subjects`   | `[]`          |
+| `security.oidc.allowed-groups-claim` | Custom OIDC claim to use for `security.oidc.allowed-groups`                                                                      | `"groups"`    |
+| `security.oidc.session-ttl`          | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).                                                                                 | `8h`          |
 
 ```yaml
 security:
@@ -2815,8 +2817,11 @@ security:
     client-id: "123456789"
     client-secret: "abcdefghijk"
     scopes: ["openid"]
-    # You may optionally specify a list of allowed subjects. If this is not specified, all subjects will be allowed.
+    # You may optionally specify a list of allowed subjects OR allowed groups. If neither options are specified, all subjects and groups will be allowed. Only one of  the allowed-subjects or allowed-groups options can be used at the same time.
     #allowed-subjects: ["johndoe@example.com"]
+    #allowed-groups: ["administrators"]
+    # If using allowed-groups, you may optionally specify a custom OIDC claim to use for the groups, this will default to "groups"
+    #allowed-groups-claim: "groups"
     # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
     #session-ttl: 8h
 ```
