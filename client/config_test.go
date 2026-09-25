@@ -184,3 +184,49 @@ func TestConfig_TlsIsValid(t *testing.T) {
 		})
 	}
 }
+
+func TestAbsoluteDialAddress(t *testing.T) {
+	tests := []struct {
+		name    string
+		address string
+		want    string
+	}{
+		{
+			name:    "hostname-is-made-absolute",
+			address: "example.com:443",
+			want:    "example.com.:443",
+		},
+		{
+			name:    "already-absolute-hostname-is-left-alone",
+			address: "example.com.:443",
+			want:    "example.com.:443",
+		},
+		{
+			name:    "ipv4-literal-is-left-alone",
+			address: "1.1.1.1:443",
+			want:    "1.1.1.1:443",
+		},
+		{
+			name:    "ipv6-literal-is-left-alone",
+			address: "[2606:4700:4700::1111]:443",
+			want:    "[2606:4700:4700::1111]:443",
+		},
+		{
+			name:    "address-without-port-is-left-alone",
+			address: "example.com",
+			want:    "example.com",
+		},
+		{
+			name:    "empty-host-is-left-alone",
+			address: ":443",
+			want:    ":443",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := absoluteDialAddress(tt.address); got != tt.want {
+				t.Errorf("absoluteDialAddress(%q) = %q, want %q", tt.address, got, tt.want)
+			}
+		})
+	}
+}
