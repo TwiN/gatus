@@ -21,7 +21,7 @@ const (
 	defaultFavicon16            = "/favicon-16x16.png"
 	defaultFavicon32            = "/favicon-32x32.png"
 	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
+	defaultSortBy               = "default"
 	defaultFilterBy             = "none"
 	defaultLoginSubtitle        = "System Monitoring Dashboard"
 )
@@ -30,7 +30,7 @@ var (
 	defaultDarkMode = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
-	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'default', 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
 )
 
@@ -47,7 +47,7 @@ type Config struct {
 	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
 	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('default', 'name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
 	//////////////////////////////////////////////
@@ -138,7 +138,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.DefaultSortBy) == 0 {
 		cfg.DefaultSortBy = defaultSortBy
-	} else if cfg.DefaultSortBy != "name" && cfg.DefaultSortBy != "group" && cfg.DefaultSortBy != "health" {
+	} else if cfg.DefaultSortBy != "default" && cfg.DefaultSortBy != "name" && cfg.DefaultSortBy != "group" && cfg.DefaultSortBy != "health" {
 		return ErrInvalidDefaultSortBy
 	}
 	if len(cfg.DefaultFilterBy) == 0 {
