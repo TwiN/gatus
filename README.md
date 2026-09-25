@@ -1591,7 +1591,7 @@ endpoints:
 | `alerting.matrix.server-url`             | Homeserver URL                                                                             | `https://matrix-client.matrix.org` |
 | `alerting.matrix.access-token`           | Bot user access token (see https://webapps.stackexchange.com/q/131056)                     | Required `""`                      |
 | `alerting.matrix.internal-room-id`       | Internal room ID of room to send alerts to (can be found in Room Settings > Advanced)      | Required `""`                      |
-| `alerting.matrix.client`                  | Client configuration. <br />See [Client configuration](#client-configuration).              | `{}`          |
+| `alerting.matrix.client`                 | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`                               |
 | `alerting.matrix.default-alert`          | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                |
 | `alerting.matrix.overrides`              | List of overrides that may be prioritized over the default configuration                   | `[]`                               |
 | `alerting.matrix.overrides[].group`      | Endpoint group for which the configuration will be overridden by this configuration        | `""`                               |
