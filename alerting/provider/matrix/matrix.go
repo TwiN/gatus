@@ -33,6 +33,8 @@ type Config struct {
 
 	// InternalRoomID is the room that the bot user has permissions to send messages to
 	InternalRoomID string `yaml:"internal-room-id"`
+
+	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -49,6 +51,9 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) Merge(override *Config) {
+	if override.ClientConfig != nil {
+		cfg.ClientConfig = override.ClientConfig
+	}
 	if len(override.ServerURL) > 0 {
 		cfg.ServerURL = override.ServerURL
 	}
@@ -114,7 +119,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := client.GetHTTPClient(nil).Do(request)
+	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
 	}
