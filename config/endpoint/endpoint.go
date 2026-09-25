@@ -255,10 +255,12 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 			return err
 		}
 	}
-	// Make sure that the request can be created
-	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
-	if err != nil {
-		return err
+	// Make sure that the request can be created for HTTP-like endpoint types
+	if e.Type() == TypeHTTP || e.Type() == TypeSTARTTLS || e.Type() == TypeTLS || e.Type() == TypeWS || e.Type() == TypeGRPC {
+		_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -304,7 +306,9 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	} else if processedEndpoint.Type() == TypeICMP {
 		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
 		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
-		result.Hostname = strings.TrimPrefix(processedEndpoint.URL, "icmp://")
+		// Strip brackets if present (e.g. "[2a07:6b44:27:11::ac]" -> "2a07:6b44:27:11::ac").
+		rawHost := strings.TrimPrefix(processedEndpoint.URL, "icmp://")
+		result.Hostname = strings.TrimSuffix(strings.TrimPrefix(rawHost, "["), "]")
 	} else {
 		urlObject, err := url.Parse(processedEndpoint.URL)
 		if err != nil {
@@ -486,7 +490,7 @@ func (e *Endpoint) call(result *Result) {
 		result.Connected = client.CanCreateSCTPConnection(strings.TrimPrefix(e.URL, "sctp://"), e.ClientConfig)
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeICMP {
-		result.Connected, result.Duration = client.Ping(strings.TrimPrefix(e.URL, "icmp://"), e.ClientConfig)
+		result.Connected, result.Duration = client.Ping(result.Hostname, e.ClientConfig)
 	} else if endpointType == TypeWS {
 		wsHeaders := map[string]string{}
 		if e.Headers != nil {
