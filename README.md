@@ -550,6 +550,16 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
 
+Dashboard search, filter, and sort options can also be set through query parameters. Query parameters take precedence over user preferences stored in the browser and over the UI defaults above.
+
+| Query parameter | Supported values                        | Example              |
+|:----------------|:----------------------------------------|:---------------------|
+| `search`        | Any endpoint, suite, or group name       | `?search=backend`    |
+| `filter`        | `none`, `failing`, or `unstable`        | `?filter=failing`    |
+| `sort`          | `name`, `group`, or `health`            | `?sort=group`        |
+
+Parameters can be combined, for example `?search=backend&filter=failing&sort=group`. Invalid `filter` and `sort` values are ignored.
+
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
 
