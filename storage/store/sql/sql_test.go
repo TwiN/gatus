@@ -292,6 +292,45 @@ func TestStore_InsertCleansUpEventsAndResultsProperly(t *testing.T) {
 	}
 }
 
+func TestStore_ResultsAreOrderedByTimestamp(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_ResultsAreOrderedByTimestamp.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Close()
+
+	olderResult := testUnsuccessfulResult
+	olderResult.Timestamp = time.Now().Add(-time.Minute)
+	newerResult := testSuccessfulResult
+	newerResult.Timestamp = time.Now()
+
+	if err := store.InsertEndpointResult(&testEndpoint, &newerResult); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.InsertEndpointResult(&testEndpoint, &olderResult); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(status.Results))
+	}
+	if !status.Results[0].Timestamp.Equal(newerResult.Timestamp) {
+		t.Errorf("expected most recent result timestamp %s, got %s", newerResult.Timestamp, status.Results[0].Timestamp)
+	}
+
+	status, err = store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(status.Results))
+	}
+	if !status.Results[0].Timestamp.Equal(olderResult.Timestamp) || !status.Results[1].Timestamp.Equal(newerResult.Timestamp) {
+		t.Errorf("expected results in chronological order, got %s then %s", status.Results[0].Timestamp, status.Results[1].Timestamp)
+	}
+}
+
 func TestStore_InsertWithCaching(t *testing.T) {
 	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_InsertWithCaching.db", true, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
 	defer store.Close()
