@@ -12,6 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/flowtriq"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
@@ -69,6 +70,9 @@ type Config struct {
 
 	// Email is the configuration for the email alerting provider
 	Email *email.AlertProvider `yaml:"email,omitempty"`
+
+	// Flowtriq is the configuration for the flowtriq alerting provider
+	Flowtriq *flowtriq.AlertProvider `yaml:"flowtriq,omitempty"`
 
 	// GitHub is the configuration for the github alerting provider
 	GitHub *github.AlertProvider `yaml:"github,omitempty"`
