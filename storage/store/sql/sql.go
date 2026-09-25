@@ -722,7 +722,7 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 	if err != nil {
 		return nil, err
 	}
-	endpointStatus := endpoint.NewStatus(group, endpointName)
+	endpointStatus := endpoint.NewStatusWithKey(key, group, endpointName)
 	if parameters.EventsPageSize > 0 {
 		if endpointStatus.Events, err = s.getEndpointEventsByEndpointID(tx, endpointID, parameters.EventsPage, parameters.EventsPageSize); err != nil {
 			logr.Errorf("[sql.getEndpointStatusByKey] Failed to retrieve events for key=%s: %s", key, err.Error())

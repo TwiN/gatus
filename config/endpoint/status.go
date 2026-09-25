@@ -28,12 +28,17 @@ type Status struct {
 	Uptime *Uptime `json:"-"`
 }
 
-// NewStatus creates a new Status
+// NewStatus creates a new Status with a key derived from the group and name
 func NewStatus(group, name string) *Status {
+	return NewStatusWithKey(key.ConvertGroupAndNameToKey(group, name), group, name)
+}
+
+// NewStatusWithKey creates a new Status with an explicit key, which may differ from the derived one when the endpoint has an explicit key configured
+func NewStatusWithKey(statusKey, group, name string) *Status {
 	return &Status{
 		Name:    name,
 		Group:   group,
-		Key:     key.ConvertGroupAndNameToKey(group, name),
+		Key:     statusKey,
 		Results: make([]*Result, 0),
 		Events:  make([]*Event, 0),
 		Uptime:  NewUptime(),

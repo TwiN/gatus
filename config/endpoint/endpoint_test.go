@@ -1004,6 +1004,47 @@ func TestIntegrationEvaluateHealthForICMP(t *testing.T) {
 	}
 }
 
+func TestEndpoint_Key(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint Endpoint
+		expected string
+	}{
+		{
+			name:     "derived-from-group-and-name",
+			endpoint: Endpoint{Group: "g", Name: "n"},
+			expected: "g_n",
+		},
+		{
+			name:     "derived-without-group",
+			endpoint: Endpoint{Name: "n"},
+			expected: "_n",
+		},
+		{
+			name:     "explicit-key-ignores-group-and-name",
+			endpoint: Endpoint{Group: "g", Name: "n", ExplicitKey: "550e8400-e29b-41d4-a716-446655440000"},
+			expected: "550e8400-e29b-41d4-a716-446655440000",
+		},
+		{
+			name:     "explicit-key-is-sanitized",
+			endpoint: Endpoint{Group: "g", Name: "n", ExplicitKey: "My Custom.Key"},
+			expected: "my-custom-key",
+		},
+		{
+			name:     "explicit-key-underscore-is-replaced",
+			endpoint: Endpoint{Group: "g", Name: "n", ExplicitKey: "foo_bar"},
+			expected: "foo-bar",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := tt.endpoint.Key(); result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestEndpoint_DisplayName(t *testing.T) {
 	if endpoint := (Endpoint{Name: "n"}); endpoint.DisplayName() != "n" {
 		t.Error("endpoint.DisplayName() should've been 'n', but was", endpoint.DisplayName())

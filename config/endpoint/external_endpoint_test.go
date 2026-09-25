@@ -224,6 +224,24 @@ func TestExternalEndpoint_Key(t *testing.T) {
 			},
 			expected: "test-group_test-endpoint-with-spaces",
 		},
+		{
+			name: "explicit-key-ignores-group-and-name",
+			endpoint: &ExternalEndpoint{
+				Name:        "test-endpoint",
+				Group:       "test-group",
+				ExplicitKey: "550e8400-e29b-41d4-a716-446655440000",
+			},
+			expected: "550e8400-e29b-41d4-a716-446655440000",
+		},
+		{
+			name: "explicit-key-is-sanitized",
+			endpoint: &ExternalEndpoint{
+				Name:        "test-endpoint",
+				Group:       "test-group",
+				ExplicitKey: "My Custom.Key",
+			},
+			expected: "my-custom-key",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -282,6 +300,14 @@ func TestExternalEndpoint_ToEndpoint(t *testing.T) {
 			externalEndpoint: &ExternalEndpoint{
 				Name:  "name",
 				Group: "group",
+			},
+		},
+		{
+			name: "explicit-key-propagates",
+			externalEndpoint: &ExternalEndpoint{
+				Name:        "A Human Readable Name",
+				Group:       "some-group",
+				ExplicitKey: "some-stable-uuid",
 			},
 		},
 	}

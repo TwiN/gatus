@@ -942,3 +942,52 @@ func TestEventOrderingFix(t *testing.T) {
 	t.Logf("First event: %s at %v", events[0].Type, events[0].Timestamp)
 	t.Logf("Last event: %s at %v", events[len(events)-1].Type, events[len(events)-1].Timestamp)
 }
+
+func TestStore_DropsLegacyEndpointNameGroupUniqueConstraint(t *testing.T) {
+	store, _ := NewStore("sqlite", t.TempDir()+"/TestStore_DropsLegacyEndpointNameGroupUniqueConstraint.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	defer store.Close()
+	// Simulate a legacy database whose endpoints table still carries the UNIQUE(endpoint_name, endpoint_group) constraint.
+	if _, err := store.db.Exec(`DROP TABLE endpoints`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`CREATE TABLE endpoints (
+		endpoint_id    INTEGER PRIMARY KEY,
+		endpoint_key   TEXT UNIQUE,
+		endpoint_name  TEXT NOT NULL,
+		endpoint_group TEXT NOT NULL,
+		UNIQUE(endpoint_name, endpoint_group)
+	)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ('key-1', 'shared', 'grp')`); err != nil {
+		t.Fatal(err)
+	}
+	// Sanity check: the legacy constraint rejects a second endpoint with the same name and group.
+	if _, err := store.db.Exec(`INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ('key-2', 'shared', 'grp')`); err == nil {
+		t.Fatal("expected the legacy UNIQUE(endpoint_name, endpoint_group) constraint to reject the duplicate")
+	}
+	// Run the migration.
+	if err := store.dropLegacyEndpointNameGroupUniqueConstraint(); err != nil {
+		t.Fatalf("migration failed: %s", err)
+	}
+	// The seeded row must survive the rebuild with its identity intact.
+	var name string
+	if err := store.db.QueryRow(`SELECT endpoint_name FROM endpoints WHERE endpoint_key = 'key-1'`).Scan(&name); err != nil {
+		t.Fatalf("seeded row was lost during rebuild: %s", err)
+	}
+	if name != "shared" {
+		t.Errorf("expected preserved name 'shared', got %q", name)
+	}
+	// Two endpoints may now share a name and group as long as their keys differ.
+	if _, err := store.db.Exec(`INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ('key-2', 'shared', 'grp')`); err != nil {
+		t.Errorf("expected duplicate name+group with a distinct key to be allowed after migration, got: %s", err)
+	}
+	// endpoint_key must still be unique.
+	if _, err := store.db.Exec(`INSERT INTO endpoints (endpoint_key, endpoint_name, endpoint_group) VALUES ('key-1', 'other', 'grp')`); err == nil {
+		t.Error("expected endpoint_key to remain UNIQUE after migration")
+	}
+	// The migration must be idempotent: running it again on the already-migrated table is a no-op.
+	if err := store.dropLegacyEndpointNameGroupUniqueConstraint(); err != nil {
+		t.Errorf("expected migration to be idempotent, got: %s", err)
+	}
+}
